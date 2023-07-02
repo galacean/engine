@@ -21,20 +21,20 @@ export class PrimitiveMesh {
    * Create a sphere mesh.
    * @param engine - Engine
    * @param radius - Sphere radius
-   * @param segments - Number of segments
+   * @param step - Number of subdiv steps
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Sphere model mesh
    */
   static createSphere(
     engine: Engine,
     radius: number = 0.5,
-    segments: number = 18,
+    step: number = 18,
     noLongerAccessible: boolean = true
   ): ModelMesh {
     const sphereMesh = new ModelMesh(engine);
-    PrimitiveMesh._setSphereData(sphereMesh, radius, segments, noLongerAccessible, false);
+    PrimitiveMesh._setSphereData(sphereMesh, radius, step, noLongerAccessible, false);
     engine.resourceManager.addContentRestorer(
-      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, noLongerAccessible))
+      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, step, noLongerAccessible))
     );
     return sphereMesh;
   }
@@ -236,63 +236,49 @@ export class PrimitiveMesh {
   static _setSphereData(
     sphereMesh: ModelMesh,
     radius: number,
-    segments: number,
+    step: number,
     noLongerAccessible: boolean,
     isRestoreMode: boolean
   ): void {
-    segments = Math.max(2, Math.floor(segments));
+    step = Math.max(1, Math.floor(step));
 
-    const count = segments + 1;
-    const vertexCount = count * count;
-    const rectangleCount = segments * segments;
-    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, vertexCount, rectangleCount * 6);
-    const thetaRange = Math.PI;
-    const alphaRange = thetaRange * 2;
-    const countReciprocal = 1.0 / count;
-    const segmentsReciprocal = 1.0 / segments;
+    const normals: Vector3[] = [];
+    const uvs: Vector2[] = [];
 
-    const positions = new Array<Vector3>(vertexCount);
-    const normals = new Array<Vector3>(vertexCount);
-    const uvs = new Array<Vector2>(vertexCount);
+    let { positions, maxAxisLength, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
-    for (let i = 0; i < vertexCount; ++i) {
-      const x = i % count;
-      const y = (i * countReciprocal) | 0;
-      const u = x * segmentsReciprocal;
-      const v = y * segmentsReciprocal;
-      const alphaDelta = u * alphaRange;
-      const thetaDelta = v * thetaRange;
-      const sinTheta = Math.sin(thetaDelta);
+    // get normals, uvs, and scale to radius
+    for (let i = 0; i < positions.length; i++) {
+      positions[i].scale(radius / maxAxisLength);
 
-      let posX = -radius * Math.cos(alphaDelta) * sinTheta;
-      let posY = radius * Math.cos(thetaDelta);
-      let posZ = radius * Math.sin(alphaDelta) * sinTheta;
+      normals[i] = new Vector3().copyFrom(positions[i]);
+      normals[i].normalize();
 
-      // Position
-      positions[i] = new Vector3(posX, posY, posZ);
-      // Normal
-      normals[i] = new Vector3(posX, posY, posZ);
-      // TexCoord
-      uvs[i] = new Vector2(u, v);
+      let theta = Math.atan2(normals[i].z, normals[i].x);
+      let phi = Math.acos(normals[i].y);
+      uvs[i] = new Vector2((Math.PI - theta) / (2 * Math.PI), phi / Math.PI);
     }
+
+    // get indices
+    const vertexCount = positions.length;
+    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, vertexCount, cells.length * 6);
 
     let offset = 0;
-    for (let i = 0; i < rectangleCount; ++i) {
-      const x = i % segments;
-      const y = (i * segmentsReciprocal) | 0;
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
 
-      const a = y * count + x;
-      const b = a + 1;
-      const c = a + count;
-      const d = c + 1;
+      indices[offset++] = cell[0];
+      indices[offset++] = cell[1];
+      indices[offset++] = cell[2];
 
-      indices[offset++] = b;
-      indices[offset++] = a;
-      indices[offset++] = d;
-      indices[offset++] = a;
-      indices[offset++] = c;
-      indices[offset++] = d;
+      indices[offset++] = cell[0];
+      indices[offset++] = cell[2];
+      indices[offset++] = cell[3];
     }
+
+    // solve texture seam problem due to vertex sharing
+    PrimitiveMesh._computeFlippedVertex(positions, uvs, normals, indices);
+    PrimitiveMesh._computePolesVertex(positions, uvs, normals, indices);
 
     if (!isRestoreMode) {
       const { bounds } = sphereMesh;
@@ -301,6 +287,273 @@ export class PrimitiveMesh {
     }
 
     PrimitiveMesh._initialize(sphereMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
+  }
+
+  /**
+   * @internal
+   */
+  static _subdivCatmullClark(step: number): {
+    cells: number[][];
+    positions: Vector3[];
+    maxAxisLength: number;
+  } {
+    let cells = [
+      [0, 1, 2, 3],
+      [3, 2, 4, 5],
+      [5, 4, 6, 7],
+      [7, 0, 3, 5],
+      [7, 6, 1, 0],
+      [6, 4, 2, 1]
+    ];
+    let vertices = [
+      new Vector3(-1, 1, 1),
+      new Vector3(-1, -1, 1),
+      new Vector3(1, -1, 1),
+      new Vector3(1, 1, 1),
+      new Vector3(1, -1, -1),
+      new Vector3(1, 1, -1),
+      new Vector3(-1, -1, -1),
+      new Vector3(-1, 1, -1)
+    ];
+    let maxLength = 0;
+
+    const tempVec0 = new Vector3();
+    const tempVec1 = new Vector3();
+    const tempVec2 = new Vector3();
+    const tempVec3 = new Vector3();
+
+    const getIndex = (vertex: Vector3): number => {
+      const idx = vertices.findIndex((value) => Vector3.equals(value, vertex));
+      return idx > -1 ? idx : vertices.push(vertex) - 1;
+    };
+
+    for (let i = 0; i < step; i++) {
+      let points: Array<IPoint> = [];
+      let edges: Array<IEdge> = [];
+      let faces: Array<IFace> = [];
+
+      // get cell faces
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+
+        faces[i] = {
+          facePoint: new Vector3(),
+          vertices: [],
+          edges: []
+        };
+
+        // get cell points
+        for (let j = 0; j < cell.length; j++) {
+          const idx = cell[j];
+          const vertex = vertices[idx];
+
+          if (!points[idx]) {
+            const point: IPoint = {
+              position: vertex,
+              newPosition: new Vector3(),
+              facePoint: [],
+              edgeMidPoint: []
+            };
+            points[idx] = point;
+          }
+          points[idx].facePoint.push(i);
+
+          faces[i].vertices.push(idx);
+          faces[i].facePoint.add(vertex);
+        }
+
+        // get cell face's facePoint
+        faces[i].facePoint.scale(1 / cell.length);
+
+        // get cell edges
+        for (let j = 0; j < cell.length; j++) {
+          const vertexIdxA = cell[j];
+          const vertexIdxB = cell[(j + 1) % cell.length];
+          const edgeIdxKey = [vertexIdxA, vertexIdxB].sort().toString();
+
+          if (!edges[edgeIdxKey]) {
+            const edge: IEdge = {
+              midPoint: new Vector3(),
+              edgePoint: new Vector3(),
+              faces: []
+            };
+
+            Vector3.add(vertices[vertexIdxA], vertices[vertexIdxB], edge.midPoint);
+            edge.midPoint.scale(0.5);
+
+            points[vertexIdxA].edgeMidPoint.push(edgeIdxKey);
+            points[vertexIdxB].edgeMidPoint.push(edgeIdxKey);
+
+            edges[edgeIdxKey] = edge;
+          }
+
+          edges[edgeIdxKey].faces.push(i);
+          faces[i].edges.push(edgeIdxKey);
+        }
+      }
+
+      // get edges' edgePoint
+      for (const key in edges) {
+        const edge = edges[key];
+
+        for (let j = 0; j < edge.faces.length; j++) {
+          const curFace = faces[edge.faces[j]];
+          edge.edgePoint.add(curFace.facePoint);
+        }
+        edge.edgePoint.scale(0.5);
+        edge.edgePoint.add(edge.midPoint);
+        edge.edgePoint.scale(0.5);
+      }
+
+      maxLength = 0;
+      // get points' newPosition, and new Position's max length
+      for (let i = 0; i < points.length; i++) {
+        const curPoint = points[i];
+
+        const n = curPoint.facePoint.length;
+        const m1 = (n - 3) / n;
+        const m2 = 1 / n;
+        const m3 = 2 / n;
+
+        tempVec1.copyFrom(curPoint.position);
+        tempVec2.copyFrom(tempVec0);
+        tempVec3.copyFrom(tempVec0);
+
+        curPoint.facePoint.map((value) => {
+          tempVec2.add(faces[value].facePoint);
+        });
+        tempVec2.scale(1 / curPoint.facePoint.length);
+
+        curPoint.edgeMidPoint.map((value) => {
+          tempVec3.add(edges[value].midPoint);
+        });
+        tempVec3.scale(1 / curPoint.edgeMidPoint.length);
+
+        Vector3.add(tempVec1.scale(m1), tempVec2.scale(m2), curPoint.newPosition);
+        Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
+
+        const radius = curPoint.newPosition.y;
+        if (radius > maxLength) {
+          maxLength = radius;
+        }
+      }
+
+      // get updated cells and vertices
+
+      (cells = []), (vertices = []);
+      for (let i = 0; i < faces.length; i++) {
+        const curFace = faces[i];
+
+        for (let j = 0; j < curFace.vertices.length; j++) {
+          const curPoint = curFace.vertices[j];
+
+          const a = points[curPoint].newPosition;
+          const b = edges[curFace.edges[j % 4]].edgePoint;
+          const c = curFace.facePoint;
+          const d = edges[curFace.edges[(j + 3) % 4]].edgePoint;
+
+          const ia = getIndex(a);
+          const ib = getIndex(b);
+          const ic = getIndex(c);
+          const id = getIndex(d);
+          cells.push([ia, ib, ic, id]);
+        }
+      }
+    }
+
+    return { cells, positions: vertices, maxAxisLength: maxLength };
+  }
+
+  /**
+   * @internal
+   * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
+   */
+  static _computeFlippedVertex(
+    positions: Array<Vector3>,
+    uvs: Array<Vector2>,
+    normals: Array<Vector3>,
+    indices: Uint16Array | Uint32Array
+  ): void {
+    const flippedVertex: Set<number> = new Set();
+    const tempVec1 = new Vector3();
+    const tempVec2 = new Vector3();
+    const tempVec3 = new Vector3();
+    const tempVec4 = new Vector3();
+    const tempVec5 = new Vector3();
+
+    for (let i = 0; i < indices.length / 3; i++) {
+      const m1 = indices[i * 3];
+      const m2 = indices[i * 3 + 1];
+      const m3 = indices[i * 3 + 2];
+
+      tempVec1.set(uvs[m1].x, uvs[m1].y, 0);
+      tempVec2.set(uvs[m2].x, uvs[m2].y, 0);
+      tempVec3.set(uvs[m3].x, uvs[m3].y, 0);
+
+      // ab side of this triangle
+      Vector3.subtract(tempVec2, tempVec1, tempVec4);
+      // ac side of this triangle
+      Vector3.subtract(tempVec3, tempVec1, tempVec5);
+      // uv's normal of this triangle
+      Vector3.cross(tempVec4, tempVec5, tempVec4);
+
+      // direction reversed triangle
+      if (tempVec4.z > 0) {
+        for (let j = 0; j < 3; j++) {
+          const e = indices[i * 3 + j];
+          if (uvs[e].x === 0) {
+            if (!flippedVertex[e]) {
+              positions.push(positions[e]);
+              uvs.push(new Vector2(uvs[e].x + 1, uvs[e].y));
+              normals.push(normals[e]);
+
+              flippedVertex[e] = positions.length - 1;
+            }
+            indices[i * 3 + j] = flippedVertex[e];
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * @internal
+   * Duplicate vertices at the poles and adjust their UV coordinates.
+   */
+  static _computePolesVertex(
+    positions: Array<Vector3>,
+    uvs: Array<Vector2>,
+    normals: Array<Vector3>,
+    indices: Uint16Array | Uint32Array
+  ): void {
+    const verticesAtPole = new Set();
+    for (let i = 0; i < uvs.length; i++) {
+      const uv = uvs[i];
+      if (uv.y === 0 || uv.y === 1) {
+        verticesAtPole.add(i);
+      }
+    }
+
+    for (let i = 0; i < indices.length; i += 3) {
+      for (let j = 0; j < 3; j++) {
+        const index = indices[i + j];
+
+        if (verticesAtPole.has(index)) {
+          positions.push(positions[index]);
+          normals.push(normals[index]);
+
+          const uv = new Vector2();
+
+          uv.x = (uvs[indices[i]].x + uvs[indices[i + 1]].x + uvs[indices[i + 2]].x - 0.5) / 2;
+          uv.y = uvs[index].y;
+
+          uvs.push(uv);
+
+          // Update the index
+          indices[i + j] = positions.length - 1;
+        }
+      }
+    }
   }
 
   /**
@@ -1057,4 +1310,23 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = d;
     }
   }
+}
+
+interface IEdge {
+  midPoint: Vector3;
+  edgePoint: Vector3;
+  faces: Array<number>;
+}
+
+interface IPoint {
+  position: Vector3;
+  newPosition: Vector3;
+  facePoint: Array<number>;
+  edgeMidPoint: Array<string>;
+}
+
+interface IFace {
+  facePoint: Vector3;
+  vertices: Array<number>;
+  edges: Array<string>;
 }
