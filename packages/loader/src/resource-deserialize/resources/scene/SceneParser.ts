@@ -90,7 +90,7 @@ export class SceneParser {
     for (let i = 0, l = entitiesConfig.length; i < l; i++) {
       const entityConfig = entitiesConfig[i];
       const entity = entityMap.get(entityConfig.id);
-      const len = entityConfig?.components?.length ?? 0 ;
+      const len = entityConfig?.components?.length ?? 0;
       for (let i = 0; i < len; i++) {
         const componentConfig = entityConfig.components[i];
         const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
