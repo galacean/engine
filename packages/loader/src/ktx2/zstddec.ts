@@ -5,10 +5,7 @@
 interface DecoderExports {
   memory: Uint8Array;
 
-  ZSTD_findDecompressedSize: (
-    compressedPtr: number,
-    compressedSize: number
-  ) => number;
+  ZSTD_findDecompressedSize: (compressedPtr: number, compressedSize: number) => number;
   ZSTD_decompress: (
     uncompressedPtr: number,
     uncompressedSize: number,
@@ -19,7 +16,6 @@ interface DecoderExports {
   free: (ptr: number) => void;
 }
 
-
 /**
  * ZSTD (Zstandard) decoder.
  */
@@ -28,11 +24,9 @@ export class ZSTDDecoder {
   public static IMPORT_OBJECT = {
     env: {
       emscripten_notify_memory_growth: function (): void {
-        ZSTDDecoder.heap = new Uint8Array(
-          ZSTDDecoder.instance.exports.memory.buffer
-        );
-      },
-    },
+        ZSTDDecoder.heap = new Uint8Array(ZSTDDecoder.instance.exports.memory.buffer);
+      }
+    }
   };
   public static instance: { exports: DecoderExports };
   public static WasmModuleURL = "https://preview.babylonjs.com/zstddec.wasm";
@@ -50,9 +44,7 @@ export class ZSTDDecoder {
             `Could not fetch the wasm component for the Zstandard decompression lib: ${response.status} - ${response.statusText}`
           );
         })
-        .then((arrayBuffer) =>
-          WebAssembly.instantiate(arrayBuffer, ZSTDDecoder.IMPORT_OBJECT)
-        )
+        .then((arrayBuffer) => WebAssembly.instantiate(arrayBuffer, ZSTDDecoder.IMPORT_OBJECT))
         .then(this._init);
     }
     return this._initPromise;
@@ -78,15 +70,8 @@ export class ZSTDDecoder {
 
     // Decompress into WASM memory.
     uncompressedSize =
-      uncompressedSize ||
-      Number(
-        ZSTDDecoder.instance.exports.ZSTD_findDecompressedSize(
-          compressedPtr,
-          compressedSize
-        )
-      );
-    const uncompressedPtr =
-      ZSTDDecoder.instance.exports.malloc(uncompressedSize);
+      uncompressedSize || Number(ZSTDDecoder.instance.exports.ZSTD_findDecompressedSize(compressedPtr, compressedSize));
+    const uncompressedPtr = ZSTDDecoder.instance.exports.malloc(uncompressedSize);
     const actualSize = ZSTDDecoder.instance.exports.ZSTD_decompress(
       uncompressedPtr,
       uncompressedSize,
@@ -95,10 +80,7 @@ export class ZSTDDecoder {
     );
 
     // Read decompressed data and free WASM memory.
-    const dec = ZSTDDecoder.heap.slice(
-      uncompressedPtr,
-      uncompressedPtr + actualSize
-    );
+    const dec = ZSTDDecoder.heap.slice(uncompressedPtr, uncompressedPtr + actualSize);
     ZSTDDecoder.instance.exports.free(compressedPtr);
     ZSTDDecoder.instance.exports.free(uncompressedPtr);
 
@@ -106,7 +88,7 @@ export class ZSTDDecoder {
   }
 }
 
-window['zstd'] = ZSTDDecoder
+window["zstd"] = ZSTDDecoder;
 
 /**
  * BSD License

@@ -48,10 +48,7 @@ export class BinomialLLCTranscoder {
     return this._initPromise;
   }
 
-  transcode(
-    buffer: ArrayBuffer,
-    format: KTX2TargetFormat
-  ): Promise<TranscodeResult> {
+  transcode(buffer: ArrayBuffer, format: KTX2TargetFormat): Promise<TranscodeResult> {
     return this._transcodeWorkerPool
       .postMessage({
         buffer,
