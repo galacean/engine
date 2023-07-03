@@ -313,11 +313,19 @@ export class PrimitiveMesh {
       bounds.max.set(radius, radius, radius);
     }
 
-    const vertices = new Float32Array(3 * positions.length);
+    const vertices = new Float32Array(8 * positions.length);
+
     for (let i = 0; i < positions.length; i++) {
-      vertices[i * 3] = positions[i].x;
-      vertices[i * 3 + 1] = positions[i].y;
-      vertices[i * 3 + 2] = positions[i].z;
+      vertices[i * 8] = positions[i].x;
+      vertices[i * 8 + 1] = positions[i].y;
+      vertices[i * 8 + 2] = positions[i].z;
+
+      vertices[i * 8 + 3] = normals[i].x;
+      vertices[i * 8 + 4] = normals[i].y;
+      vertices[i * 8 + 5] = normals[i].z;
+
+      vertices[i * 8 + 6] = uvs[i].x;
+      vertices[i * 8 + 7] = uvs[i].y;
     }
 
     PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);

@@ -19,7 +19,7 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
         PrimitiveMesh._setSphereData(
           this.resource,
           sphereInfo.radius,
-          sphereInfo.segments,
+          sphereInfo.step,
           sphereInfo.noLongerAccessible,
           true,
           sphereInfo.vertexBuffer
@@ -129,7 +129,7 @@ export class PrimitiveRestoreInfo {
  * @internal
  */
 export class SphereRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public radius: number, public segments: number, vertexBuffer: Buffer, noLongerAccessible: boolean) {
+  constructor(public radius: number, public step: number, vertexBuffer: Buffer, noLongerAccessible: boolean) {
     super(PrimitiveType.Sphere, vertexBuffer, noLongerAccessible);
   }
 }
