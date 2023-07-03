@@ -283,7 +283,7 @@ export class PrimitiveMesh {
       positions[i].copyFrom(normals[i]).scale(radius);
 
       let theta = Math.atan2(normals[i].z, normals[i].x);
-      let phi = Math.acos(normals[i].y);
+      let phi = Math.acos(normals[i].y / normals[i].length());
       uvs[i] = new Vector2((Math.PI - theta) / (2 * Math.PI), phi / Math.PI);
     }
 
