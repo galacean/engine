@@ -29,6 +29,8 @@ export class PrefabParser {
   constructor(public readonly context: PrefabParserContext) {
     this._engine = this.context.prefabEntity.engine;
     this._organizeEntities = this._organizeEntities.bind(this);
+    this._parseComponents = this._parseComponents.bind(this);
+    this._clearAndResolvePrefab = this._clearAndResolvePrefab.bind(this);
     this.promise = new Promise<Entity>((resolve, reject) => {
       this._reject = reject;
       this._resolve = resolve;
@@ -37,7 +39,12 @@ export class PrefabParser {
 
   /** start parse the prefab */
   start() {
-    this._parseEntities().then(this._organizeEntities).then(this._resolve).catch(this._reject);
+    this._parseEntities()
+      .then(this._organizeEntities)
+      .then(this._parseComponents)
+      .then(this._clearAndResolvePrefab)
+      .then(this._resolve)
+      .catch(this._reject);
   }
 
   private _parseEntities(): Promise<Entity[]> {
@@ -62,7 +69,7 @@ export class PrefabParser {
   }
 
   private _organizeEntities() {
-    const prefab = this.context.prefabEntity.clone();
+    const prefab = this.context.prefabEntity;
     const { entityConfigMap, entityMap, rootIds } = this.context;
     for (const rootId of rootIds) {
       PrefabParser.parseChildren(entityConfigMap, entityMap, rootId);
@@ -71,6 +78,37 @@ export class PrefabParser {
     for (let i = 0; i < rootEntities.length; i++) {
       prefab.addChild(rootEntities[i]);
     }
+    return prefab;
+  }
+
+  private _parseComponents(): Promise<any[]> {
+    const entitiesConfig = this.context.originalData.entities;
+    const entityMap = this.context.entityMap;
+
+    const promises = [];
+    for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+      const entityConfig = entitiesConfig[i];
+      const entity = entityMap.get(entityConfig.id);
+      const len = entityConfig?.components?.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        const componentConfig = entityConfig.components[i];
+        const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
+        let component;
+        // TODO: remove hack code when support additional edit
+        if (key === "Animator") {
+          component = entity.getComponent(Loader.getClass(key));
+        }
+        component = component || entity.addComponent(Loader.getClass(key));
+        const promise = ReflectionParser.parsePropsAndMethods(component, componentConfig, entity.engine);
+        promises.push(promise);
+      }
+    }
+    return Promise.all(promises);
+  }
+
+  private _clearAndResolvePrefab() {
+    const prefab = this.context.prefabEntity;
+    this.context.destroy();
     return prefab;
   }
 
