@@ -273,14 +273,14 @@ export class PrimitiveMesh {
     const normals: Vector3[] = [];
     const uvs: Vector2[] = [];
 
-    let { positions, maxAxisLength, cells } = PrimitiveMesh._subdivCatmullClark(step);
+    let { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
     // get normals, uvs, and scale to radius
     for (let i = 0; i < positions.length; i++) {
-      positions[i].scale(radius / maxAxisLength);
-
       normals[i] = new Vector3().copyFrom(positions[i]);
       normals[i].normalize();
+
+      positions[i].copyFrom(normals[i]).scale(radius);
 
       let theta = Math.atan2(normals[i].z, normals[i].x);
       let phi = Math.acos(normals[i].y);
@@ -337,7 +337,6 @@ export class PrimitiveMesh {
   static _subdivCatmullClark(step: number): {
     cells: number[][];
     positions: Vector3[];
-    maxAxisLength: number;
   } {
     let cells = [
       [0, 1, 2, 3],
@@ -447,7 +446,6 @@ export class PrimitiveMesh {
         edge.edgePoint.scale(0.5);
       }
 
-      maxLength = 0;
       // get points' newPosition, and new Position's max length
       for (let i = 0; i < points.length; i++) {
         const curPoint = points[i];
@@ -473,11 +471,6 @@ export class PrimitiveMesh {
 
         Vector3.add(tempVec1.scale(m1), tempVec2.scale(m2), curPoint.newPosition);
         Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
-
-        const radius = curPoint.newPosition.y;
-        if (radius > maxLength) {
-          maxLength = radius;
-        }
       }
 
       // get updated cells and vertices
@@ -503,7 +496,7 @@ export class PrimitiveMesh {
       }
     }
 
-    return { cells, positions: vertices, maxAxisLength: maxLength };
+    return { cells, positions: vertices };
   }
 
   /**
