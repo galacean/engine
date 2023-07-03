@@ -284,8 +284,8 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  override _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
+  override _onEnableInScene(): void {
+    const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
@@ -295,8 +295,8 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  override _onDisable(): void {
-    const componentsManager = this.engine._componentsManager;
+  override _onDisableInScene(): void {
+    const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }

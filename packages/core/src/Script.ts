@@ -168,7 +168,6 @@ export class Script extends Component {
 
   /**
    * @internal
-   * @inheritDoc
    */
   override _onAwake(): void {
     this.onAwake();
@@ -176,13 +175,26 @@ export class Script extends Component {
 
   /**
    * @internal
-   * @inheritDoc
    */
   override _onEnable(): void {
+    this.onEnable();
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisable(): void {
+    this.onDisable();
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
     if (this._waitHandlingInValid) {
       this._waitHandlingInValid = false;
     } else {
-      const { _componentsManager: componentsManager } = this.engine;
+      const { _componentsManager: componentsManager } = this.scene;
       const { prototype } = Script;
       if (!this._started) {
         componentsManager.addOnStartScript(this);
@@ -198,25 +210,21 @@ export class Script extends Component {
       }
       this._entity._addScript(this);
     }
-
-    this.onEnable();
   }
 
   /**
    * @internal
-   * @inheritDoc
    */
-  override _onDisable(): void {
+  override _onDisableInScene(): void {
     this._waitHandlingInValid = true;
-    this._engine._componentsManager.addDisableScript(this);
-    this.onDisable();
+    this.scene._componentsManager.addDisableScript(this);
   }
 
   /**
    * @internal
    */
   _handlingInValid(): void {
-    const componentsManager = this.engine._componentsManager;
+    const componentsManager = this.scene._componentsManager;
     const { prototype } = Script;
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
@@ -237,6 +245,6 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._engine._componentsManager.addPendingDestroyScript(this);
+    this.scene._componentsManager.addPendingDestroyScript(this);
   }
 }

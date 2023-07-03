@@ -1,7 +1,7 @@
 import { AssetPromise, request, Utils } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
-import { IBuffer, IGLTF } from "../GLTFSchema";
+import type { IBuffer, IGLTF } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";

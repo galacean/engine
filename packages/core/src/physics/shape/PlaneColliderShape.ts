@@ -1,4 +1,4 @@
-import { PhysicsManager } from "../PhysicsManager";
+import { PhysicsScene } from "../PhysicsScene";
 import { ColliderShape } from "./ColliderShape";
 
 /**
@@ -7,9 +7,6 @@ import { ColliderShape } from "./ColliderShape";
 export class PlaneColliderShape extends ColliderShape {
   constructor() {
     super();
-    this._nativeShape = PhysicsManager._nativePhysics.createPlaneColliderShape(
-      this._id,
-      this._material._nativeMaterial
-    );
+    this._nativeShape = PhysicsScene._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
   }
 }

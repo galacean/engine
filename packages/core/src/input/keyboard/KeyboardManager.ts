@@ -137,14 +137,22 @@ export class KeyboardManager implements IInput {
       this._htmlCanvas.removeEventListener("keyup", this._onKeyEvent);
       this._hadListener = false;
     }
+    this._curHeldDownKeyToIndexMap.length = 0;
     this._curHeldDownKeyToIndexMap = null;
+    this._upKeyToFrameCountMap.length = 0;
     this._upKeyToFrameCountMap = null;
+    this._downKeyToFrameCountMap.length = 0;
     this._downKeyToFrameCountMap = null;
+    this._nativeEvents.length = 0;
     this._nativeEvents = null;
-
+    this._curFrameHeldDownList.length = 0;
     this._curFrameHeldDownList = null;
+    this._curFrameDownList.length = 0;
     this._curFrameDownList = null;
+    this._curFrameUpList.length = 0;
     this._curFrameUpList = null;
+    this._htmlCanvas = null;
+    this._engine = null;
   }
 
   private _onKeyEvent(evt: KeyboardEvent): void {

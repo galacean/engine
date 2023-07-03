@@ -1,7 +1,7 @@
 import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@galacean/engine-core";
 import { GLTFExtensionMode, GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
-import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
+import type { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 /**

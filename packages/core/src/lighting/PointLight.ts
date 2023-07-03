@@ -83,18 +83,16 @@ export class PointLight extends Light {
   }
 
   /**
-   * Mount to the current Scene.
    * @internal
    */
-  override _onEnable(): void {
-    this.engine._lightManager._attachPointLight(this);
+  override _onEnableInScene(): void {
+    this.scene._lightManager._attachPointLight(this);
   }
 
   /**
-   * Unmount from the current Scene.
    * @internal
    */
-  override _onDisable(): void {
-    this.engine._lightManager._detachPointLight(this);
+  override _onDisableInScene(): void {
+    this.scene._lightManager._detachPointLight(this);
   }
 }

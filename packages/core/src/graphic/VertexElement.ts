@@ -5,19 +5,19 @@ import { VertexElementFormat } from "./enums/VertexElementFormat";
  * Vertex element.
  */
 export class VertexElement {
-  _glElementInfo: ElementInfo;
+  _formatMetaInfo: ElementInfo;
 
-  private _semantic: string;
+  private _attributeName: string;
   private _offset: number;
   private _format: VertexElementFormat;
   private _bindingIndex: number;
   private _instanceStepRate: number;
 
   /**
-   * Vertex semantic.
+   * Vertex attribute.
    */
-  get semantic(): string {
-    return this._semantic;
+  get attribute(): string {
+    return this._attributeName;
   }
 
   /**
@@ -58,24 +58,31 @@ export class VertexElement {
 
   /**
    * Create vertex element.
-   * @param semantic - Input vertex semantic
+   * @param attribute - Input attribute
    * @param offset - Vertex data byte offset
    * @param format - Vertex data format
    * @param bindingIndex - Vertex buffer binding index
    * @param instanceStepRate - Instance cadence, the number of instances drawn for each vertex in the buffer, non-instance elements must be 0.
    */
   constructor(
-    semantic: string,
+    attribute: string,
     offset: number,
     format: VertexElementFormat,
     bindingIndex: number,
     instanceStepRate: number = 0
   ) {
-    this._semantic = semantic;
+    this._attributeName = attribute;
     this._offset = offset;
     this._format = format;
     this._bindingIndex = bindingIndex;
-    this._glElementInfo = BufferUtil._getElementInfo(this.format);
+    this._formatMetaInfo = BufferUtil._getElementInfo(this.format);
     this._instanceStepRate = Math.floor(instanceStepRate);
+  }
+
+  /**
+   * @deprecated use `attributeName` instead
+   */
+  get semantic(): string {
+    return this.attribute;
   }
 }
