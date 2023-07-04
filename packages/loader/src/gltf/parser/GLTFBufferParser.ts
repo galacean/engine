@@ -31,7 +31,7 @@ export class GLTFBufferParser extends GLTFParser {
       }).then((glTF: IGLTF) => {
         context.glTF = glTF;
 
-        return Promise.all(
+        const buffersPromise = Promise.all(
           glTF.buffers.map((buffer: IBuffer) => {
             const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
             restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
@@ -40,6 +40,12 @@ export class GLTFBufferParser extends GLTFParser {
         ).then((buffers: ArrayBuffer[]) => {
           context.buffers = buffers;
         });
+        // If the textures are all urls, process `GLTFBufferParser` and `GLTFTextureParser` pipelines in parallel.
+        if (glTF.textures && glTF.textures.every((texture) => glTF.images[texture.source])) {
+          context.buffersPromise = buffersPromise;
+        } else {
+          return buffersPromise;
+        }
       });
     }
   }

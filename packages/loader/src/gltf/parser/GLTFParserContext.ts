@@ -18,6 +18,7 @@ import type { IGLTF } from "../GLTFSchema";
 export class GLTFParserContext {
   glTF: IGLTF;
   buffers: ArrayBuffer[];
+  buffersPromise?: Promise<void>;
   glTFResource: GLTFResource;
   keepMeshData: boolean;
   hasSkinned: boolean = false;

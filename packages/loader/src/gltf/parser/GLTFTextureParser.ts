@@ -13,7 +13,7 @@ export class GLTFTextureParser extends GLTFParser {
   };
 
   parse(context: GLTFParserContext): AssetPromise<Texture2D[]> {
-    const { glTFResource, glTF, buffers } = context;
+    const { glTFResource, glTF, buffers, buffersPromise } = context;
     const { engine, url } = glTFResource;
 
     if (glTF.textures) {
@@ -66,7 +66,14 @@ export class GLTFTextureParser extends GLTFParser {
           texturesPromiseInfo.resolve(textures);
         })
         .catch(texturesPromiseInfo.reject);
-      return texturesPromiseInfo.promise;
+
+      if (buffersPromise) {
+        return (<AssetPromise<void>>buffersPromise).then(() => {
+          return texturesPromiseInfo.promise;
+        });
+      } else {
+        return texturesPromiseInfo.promise;
+      }
     }
   }
 
