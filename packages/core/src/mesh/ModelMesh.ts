@@ -491,14 +491,15 @@ export class ModelMesh extends Mesh {
     this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
+    this._blendShapeManager._vertexElementOffset = this._vertexElements.length;
   }
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
+   * @param vertexBufferBinding - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, index?: number): void;
 
   /**
    * Set vertex buffer binding.

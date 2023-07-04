@@ -46,10 +46,10 @@ export class BufferMesh extends Mesh {
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
+   * @param vertexBufferBinding - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, index?: number): void;
 
   /**
    * Set vertex buffer binding.
