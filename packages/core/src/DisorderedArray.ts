@@ -10,7 +10,6 @@ export class DisorderedArray<T> {
     this._elements = new Array<T>(count);
   }
 
-  
   add(element: T): void {
     if (this.length === this._elements.length) {
       this._elements.push(element);
