@@ -397,10 +397,11 @@ export class Scene extends EngineObject {
     engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+    lightManager._updateSunLightIndex();
 
-    const sunLightIndex = lightManager._getSunLightIndex();
-    if (sunLightIndex !== -1) {
-      const sunlight = lightManager._directLights.get(sunLightIndex);
+    if (lightManager._directLights.length > 0) {
+      const sunlight = lightManager._directLights.get(0);
+
       shaderData.setColor(Scene._sunlightColorProperty, sunlight._getLightIntensityColor());
       shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
       this._sunLight = sunlight;
