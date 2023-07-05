@@ -93,6 +93,17 @@ export class TextUtils {
   }
 
   static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
+    if (renderer.text === "") {
+      return {
+        width: 0,
+        height: 0,
+        lines: [""],
+        lineWidths: [0],
+        lineHeight: 0,
+        lineMaxSizes: [{ ascent: 0, descent: 0, size: 0 }]
+      };
+    }
+
     const subFont = renderer._subFont;
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -269,8 +280,8 @@ export class TextUtils {
     for (let i = 0; i < lineCount; ++i) {
       const line = lines[i];
       let curWidth = 0;
-      let maxAscent = -1;
-      let maxDescent = -1;
+      let maxAscent = 0;
+      let maxDescent = 0;
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
