@@ -23,10 +23,6 @@ export class Shader {
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
 
-  static set shaderLab(parser: IShaderLab) {
-    this._shaderLab = parser;
-  }
-
   /**
    * Create a shader by source code.
    *

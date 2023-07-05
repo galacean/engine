@@ -573,7 +573,7 @@ export class Engine extends EventDispatcher {
     }
     if (shaderLab) {
       shaderLab.initialize();
-      Shader.shaderLab = shaderLab;
+      Shader._shaderLab = shaderLab;
     }
     return this;
   }
