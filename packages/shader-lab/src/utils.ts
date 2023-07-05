@@ -2,7 +2,7 @@ import { CstElement, CstNode, ICstVisitor, IToken, CstChildrenDictionary } from 
 
 import { AstNode, ObjectAstNode } from "./astNode";
 import { IPosition, IPositionRange } from "./astNode/types";
-import ShaderVisitor, { parser } from "./visitor";
+import { ShaderVisitor, parser } from "./visitor";
 import RuntimeContext from "./context";
 
 export function isCstNode(node: any) {

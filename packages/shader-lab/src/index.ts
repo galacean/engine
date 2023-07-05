@@ -1,6 +1,4 @@
-import { ShaderParser } from "./parser";
-import ShaderVisitor, { parser } from "./visitor";
-
-export * from "./ShaderLab";
+export { ShaderParser } from "./parser";
+export { ShaderVisitor, parser } from "./visitor";
+export { ShaderLab } from "./ShaderLab";
 export { parseShader } from "./utils";
-export { ShaderParser, parser, ShaderVisitor };

@@ -40,12 +40,12 @@ export interface IGlobal extends IReference {
 export interface IShaderInfo {
   ast: AstNode<IShaderAstContent>;
   name: string;
-  subShaders: Array<ISubShader>;
+  subShaders: Array<SubShaderInfo>;
   editorProperties: Record<string, any>;
   diagnostics: Array<IDiagnostic>;
 }
 
-export interface ISubShader {
+export interface SubShaderInfo {
   name: string;
   passes: Array<IShaderPass>;
   tags?: Record<string, any>;

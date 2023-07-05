@@ -100,7 +100,7 @@ export const parser = new ShaderParser();
 
 const ShaderVisitorConstructor = parser.getBaseCstVisitorConstructorWithDefaults<any, AstNode>();
 
-export default class ShaderVisitor extends ShaderVisitorConstructor implements Partial<ICstNodeVisitor<any, AstNode>> {
+export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<ICstNodeVisitor<any, AstNode>> {
   constructor() {
     super();
     this.validateVisitor();

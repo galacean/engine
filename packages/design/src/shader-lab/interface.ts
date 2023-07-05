@@ -68,9 +68,11 @@ export interface IPropertyItemAstContent {
 
 export interface ISubShaderAstContent {
   name: string;
-  tags: AstNode<Array<AstNode<ITagAstContent>>>;
+  tags?: TagAstNode;
   pass: Array<AstNode<IPassAstContent>>;
 }
+
+export class TagAstNode extends AstNode<ITagAstContent> {}
 
 export declare type ITagAstContent = Array<AstNode<ITagAssignmentAstContent>>;
 export interface ITagAssignmentAstContent {

@@ -9,7 +9,7 @@ import {
   StructAstNode
 } from "./astNode";
 import { IPassAstContent, IShaderAstContent, ISubShaderAstContent } from "./astNode/types";
-import { IShaderPass, ISubShader, IDiagnostic, IGlobal, IShaderInfo } from "./interface";
+import { IShaderPass, SubShaderInfo, IDiagnostic, IGlobal, IShaderInfo } from "./interface";
 import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./constants";
 
 interface IReferenceStructInfo {
@@ -109,10 +109,10 @@ export default class RuntimeContext {
     return ret;
   }
 
-  parseSubShaderInfo(ast: AstNode<ISubShaderAstContent>): ISubShader {
+  parseSubShaderInfo(ast: AstNode<ISubShaderAstContent>): SubShaderInfo {
     this.subShaderReset();
 
-    const ret = {} as ISubShader;
+    const ret = {} as SubShaderInfo;
     ret.name = ast.content.name;
     ret.tags = ast.content.tags?.toObj();
     ret.passes = ast.content.pass.map((item) => this.parsePassInfo(item));
