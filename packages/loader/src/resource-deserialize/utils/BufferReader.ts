@@ -9,6 +9,7 @@ export class BufferReader {
   private _dataView: DataView;
   private _littleEndian: boolean;
   private _offset: number;
+  private _baseOffset: number;
 
   public static imageMapping = {
     0: "image/png",
@@ -22,6 +23,11 @@ export class BufferReader {
     this._dataView = new DataView(buffer);
     this._littleEndian = littleEndian;
     this._offset = byteOffset;
+    this._baseOffset = byteOffset;
+  }
+
+  get relativeOffset() {
+    return this._offset - this._baseOffset;
   }
 
   get offset() {

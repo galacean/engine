@@ -146,6 +146,13 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
             const { width, height, data } = mipmaps[mipLevel];
             texture.setPixelBuffer(data, mipLevel, 0, 0, width, height);
           }
+          const params = ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array;
+          if (params) {
+            texture.wrapModeU = params[0];
+            texture.wrapModeV = params[1];
+            texture.filterMode = params[2];
+            texture.anisoLevel = params[3];
+          }
           return texture;
         } else {
           const textureCube = new TextureCube(resourceManager.engine, height, engineFormat, mipmap);

@@ -1,3 +1,4 @@
+import { Utils } from "@galacean/engine-core";
 import { BufferReader } from "../resource-deserialize/utils/BufferReader";
 import { KHR_DF_SAMPLE_DATATYPE_SIGNED, SupercompressionScheme } from "./constants";
 
@@ -117,10 +118,6 @@ export class KTX2Container {
     };
 
     this.dataFormatDescriptor = dfd;
-    if (dfd.colorModel === ColorModel.ETC1S) {
-      // 交给 wasm 去解析文件
-      return;
-    }
 
     const sampleStart = 6;
     const sampleWords = 4;
@@ -147,21 +144,19 @@ export class KTX2Container {
       dfd.samples[i] = sample;
     }
 
-    // TODO: support kv data
+    const kvdReader = new BufferReader(buffer, kvdByteOffset, kvdByteLength, true);
 
-    // const kvdReader = new BufferReader(buffer, kvdByteOffset, kvdByteLength, true);
+    while (kvdReader.relativeOffset < kvdByteLength) {
+      const keyValueByteLength = kvdReader.nextUint32();
+      const keyData = kvdReader.scan(keyValueByteLength);
+      const key = Utils.decodeText(keyData);
 
-    // while (kvdReader.offset < kvdByteLength) {
-    // const keyValueByteLength = kvdReader.nextUint32();
-    // const keyData = kvdReader.scan(keyValueByteLength);
-    // const key = decodeText(keyData);
+      const valueData = kvdReader.scan(keyValueByteLength - keyData.byteLength);
+      this.keyValue[key] = key.match(/^ktx/i) ? Utils.decodeText(valueData) : valueData;
 
-    // const valueData = kvdReader.scan(keyValueByteLength - keyData.byteLength);
-    // container.keyValue[key] = key.match(/^ktx/i) ? decodeText(valueData) : valueData;
-
-    // 4-byte alignment.
-    // if (kvdReader._offset % 4) kvdReader._skip(4 - (kvdReader._offset % 4));
-    // }
+      // 4-byte alignment.
+      if (kvdReader.relativeOffset % 4) kvdReader.skip(4 - (kvdReader.relativeOffset % 4));
+    }
 
     if (sgdByteLength <= 0) return this;
 
