@@ -174,6 +174,9 @@ export class AmbientLight extends ReferResource {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     scenes.splice(index, 1);
+    const shaderData = scene.shaderData;
+    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    shaderData.disableMacro(AmbientLight._specularMacro);
   }
 
   constructor(engine: Engine) {

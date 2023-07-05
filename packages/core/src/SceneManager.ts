@@ -68,8 +68,8 @@ export class SceneManager {
    */
   _destroyAllScene(): void {
     const allScenes = this._allScenes;
-    for (let i = allScenes.length - 1; i >= 0; i--) {
-      allScenes[i].destroy();
+    while (allScenes[0]) {
+      allScenes[0].destroy();
     }
   }
 }

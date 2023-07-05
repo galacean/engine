@@ -337,6 +337,20 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Destroy this scene.
+   */
+  override destroy(): void {
+    if (this._destroyed) {
+      return;
+    }
+    super.destroy();
+    this._destroy();
+
+    const allScenes = this.engine.sceneManager._allScenes;
+    allScenes.splice(allScenes.indexOf(this), 1);
+  }
+
+  /**
    * @internal
    */
   _attachRenderCamera(camera: Camera): void {
@@ -424,10 +438,7 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  override _onDestroy(): void {
-    super._onDestroy();
-    const allScenes = this.engine.sceneManager._allScenes;
-    allScenes.splice(allScenes.indexOf(this), 1);
+  _destroy(): void {
     this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
     while (this.rootEntitiesCount > 0) {
       this._rootEntities[0].destroy();
