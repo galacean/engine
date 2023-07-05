@@ -491,7 +491,7 @@ export class ModelMesh extends Mesh {
     this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
-    this._blendShapeManager._vertexElementOffset = this._vertexElements.length;
+    this._blendShapeManager._vertexElementOffset = count;
   }
 
   /**
