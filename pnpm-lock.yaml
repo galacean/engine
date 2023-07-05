@@ -192,7 +192,7 @@ importers:
         specifier: workspace:*
         version: link:../design
 
-  packages/shaderLab:
+  packages/shader-lab:
     dependencies:
       chevrotain:
         specifier: ^10.5.0
@@ -227,7 +227,7 @@ importers:
         version: link:../packages/rhi-webgl
       '@galacean/engine-shaderlab':
         specifier: workspace:*
-        version: link:../packages/shaderLab
+        version: link:../packages/shader-lab
 
 packages:
 
