@@ -3,7 +3,7 @@ import { EditorTypes, Keywords, Others, Symbols, Values } from "../tokens";
 import { ALL_RULES } from "./common";
 import { IShaderParser } from "./interface";
 
-export function RuleProteryItem(this: CstParser) {
+export function RulePropertyItem(this: CstParser) {
   const $ = this as any as IShaderParser;
 
   this.CONSUME(Others.Identifier);
@@ -16,7 +16,7 @@ export function RuleProteryItem(this: CstParser) {
   this.SUBRULE($.RulePropertyItemValue);
   this.CONSUME(Symbols.Semicolon);
 }
-ALL_RULES.push({ name: "RuleProteryItem", fn: RuleProteryItem });
+ALL_RULES.push({ name: "RulePropertyItem", fn: RulePropertyItem });
 
 function RulePropertyItemType(this: CstParser) {
   const $ = this as any as IShaderParser;
@@ -69,7 +69,7 @@ export function RuleProperty(this: CstParser) {
   this.CONSUME(Keywords.EditorProperties);
   this.CONSUME(Symbols.LCurly);
   this.MANY(() => {
-    this.SUBRULE($.RuleProteryItem);
+    this.SUBRULE($.RulePropertyItem);
   });
   this.CONSUME(Symbols.RCurly);
 }

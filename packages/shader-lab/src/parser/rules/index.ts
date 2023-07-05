@@ -1,10 +1,10 @@
 import "./shader";
-import "./subshader";
+import "./subShader";
 import "./shaderPass";
 import "./function";
 import "./common";
 import "./property";
-import "./tupe";
+import "./tuple";
 import "./tag";
 import "./assignment";
 import "./struct";

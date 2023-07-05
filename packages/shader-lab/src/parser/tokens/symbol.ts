@@ -40,7 +40,7 @@ export const MinusEqual = createToken({
   pattern: /\-=/,
   label: "-="
 });
-export const Mutiply = createToken({ name: "Multiply", pattern: /\*/, label: "*" });
+export const Multiply = createToken({ name: "Multiply", pattern: /\*/, label: "*" });
 export const Divide = createToken({ name: "Divide", pattern: /\//, label: "/" });
 export const GreaterThan = createToken({
   name: "GreaterThan",
@@ -70,7 +70,7 @@ export const tokenList = [
   MinusEqual,
   Add,
   Minus,
-  Mutiply,
+  Multiply,
   Divide,
   Dot,
   GreaterThan,

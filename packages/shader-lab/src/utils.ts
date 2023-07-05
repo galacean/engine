@@ -2,6 +2,8 @@ import { CstElement, CstNode, ICstVisitor, IToken, CstChildrenDictionary } from 
 
 import { AstNode, ObjectAstNode } from "./astNode";
 import { IPosition, IPositionRange } from "./astNode/types";
+import ShaderVisitor, { parser } from "./visitor";
+import RuntimeContext from "./context";
 
 export function isCstNode(node: any) {
   return !!node.children;
@@ -119,4 +121,21 @@ export function astSortAsc(a: AstNode, b: AstNode) {
 
 export function astSortDesc(a: AstNode, b: AstNode) {
   return -astSortAsc(a, b);
+}
+
+export function parseShader(input: string) {
+  parser.parse(input);
+  const cst = (parser as any).RuleShader();
+  if (parser.errors.length > 0) {
+    console.log(parser.errors);
+    throw parser.errors;
+  }
+
+  const visitor = new ShaderVisitor();
+  const ast = visitor.visit(cst);
+
+  const context = new RuntimeContext();
+  const shaderInfo = context.parse(ast);
+  shaderInfo.diagnostics = context.diagnostics;
+  return shaderInfo;
 }

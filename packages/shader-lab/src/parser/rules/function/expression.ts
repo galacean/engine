@@ -26,7 +26,7 @@ function RuleFnMultiplicationExpr(this: CstParser) {
 
   this.SUBRULE($.RuleFnAtomicExpr);
   this.MANY(() => {
-    this.SUBRULE($.RuleMultiplcationOperator);
+    this.SUBRULE($.RuleMultiplicationOperator);
     this.SUBRULE2($.RuleFnAtomicExpr);
   });
 }

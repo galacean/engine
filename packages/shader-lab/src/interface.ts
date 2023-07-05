@@ -1,18 +1,19 @@
 import { AstNode } from "./astNode";
 import { IAstInfo, IPositionRange, IShaderAstContent } from "./astNode/types";
-export type DiagnosticSeverity = number;
+import { DiagnosticSeverity } from "./constants";
 
 /**
  * Shader lab interface
  */
 export interface IShaderLab {
   /**  */
-  initialize(): Promise<void>;
+  initialize(): void;
   /**
    * parse galacean shader
    */
   parseShader(shaderCode: string): IShaderInfo;
 }
+
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
   message: string;
@@ -21,17 +22,21 @@ export interface IDiagnostic {
    */
   token: IPositionRange;
 }
+
 export interface IShaderMainFunction {
   type: "vert" | "frag";
   functionAst: IAstInfo;
 }
+
 interface IReference {
   referenced: boolean;
 }
+
 export interface IGlobal extends IReference {
   ast: AstNode;
   name: string;
 }
+
 export interface IShaderInfo {
   ast: AstNode<IShaderAstContent>;
   name: string;
@@ -39,11 +44,13 @@ export interface IShaderInfo {
   editorProperties: Record<string, any>;
   diagnostics: Array<IDiagnostic>;
 }
+
 export interface ISubShader {
   name: string;
   passes: Array<IShaderPass>;
   tags?: Record<string, any>;
 }
+
 export interface IShaderPass {
   name: string;
   vert: string;
@@ -51,5 +58,5 @@ export interface IShaderPass {
   tags?: Record<string, any>;
   renderStates: IRenderState;
 }
-export declare type IRenderState = Record<string, any>;
-export {};
+
+export type IRenderState = Record<string, any>;

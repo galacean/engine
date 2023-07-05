@@ -40,7 +40,7 @@ export default class RuntimeContext {
   varyingStructInfo: IReferenceStructInfo;
   /** attributes struct list */
   attributeStructListInfo: Array<IReferenceStructInfo> = [];
-  /** attibutes variable list */
+  /** attributes variable list */
   attributesVariableListInfo: Array<{
     name: string;
     astNode: FnArgAstNode;
@@ -128,7 +128,7 @@ export default class RuntimeContext {
     ret.name = ast.content.name;
     ret.tags = ast.content.tags?.toObj();
     ret.renderStates = {};
-    ast.content.propterties.forEach((prop) => {
+    ast.content.properties.forEach((prop) => {
       if (prop.content.type === VERT_FN_NAME) {
         if (ret.vert) {
           this.diagnostics.push({

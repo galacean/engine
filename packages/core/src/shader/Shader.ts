@@ -28,10 +28,26 @@ export class Shader {
   }
 
   /**
-   * Create a shader
-   * @param galaceanShader - shader code
+   * Create a shader by source code.
+   *
+   * @remarks
+   *
+   * shaderLab must be enabled first as follows
+   * ```ts
+   * import { ShaderLab } from "@galacean/engine-shaderlab";
+   * // Create ShaderLab
+   * const shaderLab = new ShaderLab();
+   * // Create engine with shaderLab
+   * const engine = await WebGLEngine.create({ canvas: "canvas", shaderLab });
+   * ...
+   * ```
+   *
+   * @param shaderSource - shader code
+   *
+   * @throws
+   * throw string exception if shaderLab has not been enabled properly.
    */
-  static create(galaceanShader: string): Shader;
+  static create(shaderSource: string): Shader;
 
   /**
    * Create a shader.
@@ -59,7 +75,7 @@ export class Shader {
   static create(name: string, subShaders: SubShader[]): Shader;
 
   static create(
-    nameOrGalaceanShader: string,
+    nameOrShaderSource: string,
     vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
   ): Shader {
@@ -68,33 +84,33 @@ export class Shader {
 
     if (!vertexSourceOrShaderPassesOrSubShaders) {
       if (!this._shaderLab) {
-        throw "ShaderLab not been setted up";
+        throw "ShaderLab has not been set up yet.";
       }
       // TODO: render state
-      const shaderInfo = this._shaderLab.parseShader(nameOrGalaceanShader);
-      const subShaderList = shaderInfo.subShaders.map((subshader) => {
-        const passList = subshader.passes.map((pass) => {
+      const shaderInfo = this._shaderLab.parseShader(nameOrShaderSource);
+      const subShaderList = shaderInfo.subShaders.map((subShader) => {
+        const passList = subShader.passes.map((pass) => {
           return new ShaderPass(pass.vert, pass.frag, pass.tags);
         });
-        return new SubShader(subshader.name, passList, subshader.tags);
+        return new SubShader(subShader.name, passList, subShader.tags);
       });
 
       return new Shader(shaderInfo.name, subShaderList);
     } else {
-      if (shaderMap[nameOrGalaceanShader]) {
-        throw `Shader named "${nameOrGalaceanShader}" already exists.`;
+      if (shaderMap[nameOrShaderSource]) {
+        throw `Shader named "${nameOrShaderSource}" already exists.`;
       }
       if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
         const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-        shader = new Shader(nameOrGalaceanShader, [new SubShader("Default", [shaderPass])]);
+        shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
         if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
           if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
-            shader = new Shader(nameOrGalaceanShader, [
+            shader = new Shader(nameOrShaderSource, [
               new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
             ]);
           } else {
-            shader = new Shader(nameOrGalaceanShader, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
           }
         } else {
           throw "SubShader or ShaderPass count must large than 0.";
@@ -102,7 +118,7 @@ export class Shader {
       }
     }
 
-    shaderMap[nameOrGalaceanShader] = shader;
+    shaderMap[nameOrShaderSource] = shader;
     return shader;
   }
 

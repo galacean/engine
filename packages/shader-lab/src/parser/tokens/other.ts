@@ -8,8 +8,8 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED
 });
 
-export const CommnetLine = createToken({
-  name: "CommnetLine",
+export const CommentLine = createToken({
+  name: "CommentLine",
   pattern: /\/\/.*\n/,
   group: Lexer.SKIPPED
 });

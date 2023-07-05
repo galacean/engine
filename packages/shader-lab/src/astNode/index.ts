@@ -27,7 +27,7 @@ import {
   IFnReturnTypeAstContent,
   IFnVariableAstContent,
   IFnVariableDeclarationAstContent,
-  IMultiplcationOperatorAstContent,
+  IMultiplicationOperatorAstContent,
   INumberAstContent,
   IPassPropertyAssignmentAstContent,
   IPropertyAstContent,
@@ -151,20 +151,20 @@ export class AddOperatorAstNode extends AstNode<IAddOperatorAstContent> {
   }
 }
 
-export class MultiplcationOperatorAstNode extends AstNode<IMultiplcationOperatorAstContent> {
+export class MultiplicationOperatorAstNode extends AstNode<IMultiplicationOperatorAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     return this.content;
   }
 }
 
-export class AddExpreAstNode extends AstNode<IFnAddExprAstContent> {
+export class AddExprAstNode extends AstNode<IFnAddExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const orderItemList = [...this.content.operands, ...this.content.operators].sort(astSortAsc);
     return orderItemList.map((item) => item.serialize(context)).join(" ");
   }
 }
 
-export class MutliplicationExprAstNode extends AstNode<IFnMultiplicationExprAstContent> {
+export class MultiplicationExprAstNode extends AstNode<IFnMultiplicationExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const orderItemList = [...this.content.operands, ...this.content.operators].sort(astSortAsc);
     return orderItemList.map((item) => item.serialize(context)).join(" ");
@@ -229,7 +229,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
   }
 }
 
-export class FnReturnStatemtneAstNode extends AstNode<IFnReturnStatementAstContent> {
+export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     if (context.currentFunctionInfo.fnAst === context.currentMainFnAst) {
       return "";

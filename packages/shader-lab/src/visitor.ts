@@ -28,11 +28,11 @@ import {
   RuleFnStatementCstChildren,
   RuleFnVariableCstChildren,
   RuleFnVariableDeclarationCstChildren,
-  RuleMultiplcationOperatorCstChildren,
+  RuleMultiplicationOperatorCstChildren,
   RuleNumberCstChildren,
   RulePropertyCstChildren,
+  RulePropertyItemCstChildren,
   RulePropertyItemValueCstChildren,
-  RuleProteryItemCstChildren,
   RuleRangeCstChildren,
   RuleRelationOperatorCstChildren,
   RuleRenderStateDeclarationCstChildren,
@@ -53,7 +53,7 @@ import { ShaderParser } from "./parser";
 import { defaultVisit, extractCstToken, getTokenPosition, getOrTypeCstNodePosition } from "./utils";
 
 import {
-  AddExpreAstNode,
+  AddExprAstNode,
   AddOperatorAstNode,
   AssignLoAstNode,
   AssignableValueAstNode,
@@ -72,10 +72,10 @@ import {
   FnMacroConditionBranchAstNode,
   FnMacroDefineAstNode,
   FnMacroIncludeAstNode,
-  FnReturnStatemtneAstNode,
+  FnReturnStatementAstNode,
   FnVariableAstNode,
-  MultiplcationOperatorAstNode,
-  MutliplicationExprAstNode,
+  MultiplicationOperatorAstNode,
+  MultiplicationExprAstNode,
   NumberAstNode,
   PassPropertyAssignmentAstNode,
   PropertyAstNode,
@@ -148,7 +148,7 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
 
   RuleShaderPass(ctx: RuleShaderPassCstChildren) {
     const tags = ctx.RuleTag ? (this.visit(ctx.RuleTag) as TagAstNode) : undefined;
-    const propterties = ctx.SubShaderPassPropertyAssignment?.map((item) => this.visit(item));
+    const properties = ctx.SubShaderPassPropertyAssignment?.map((item) => this.visit(item));
     const structs = ctx.RuleStruct?.map((item) => {
       const ret = this.visit(item);
       return ret;
@@ -168,7 +168,7 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
     const content = {
       name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
       tags,
-      propterties,
+      properties,
       structs,
       variables,
       defines,
@@ -434,7 +434,7 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
         end: operands[1].position.end
       };
 
-      return new AddExpreAstNode({
+      return new AddExprAstNode({
         content: {
           operators: ctx.RuleAddOperator.map((item) => this.visit(item)),
           operands
@@ -446,15 +446,15 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
     return this.visit(ctx.RuleFnMultiplicationExpr);
   }
 
-  RuleMultiplcationOperator(children: RuleMultiplcationOperatorCstChildren, param?: any) {
-    return new MultiplcationOperatorAstNode({
+  RuleMultiplicationOperator(children: RuleMultiplicationOperatorCstChildren, param?: any) {
+    return new MultiplicationOperatorAstNode({
       content: extractCstToken(children),
       position: getOrTypeCstNodePosition({ children })
     });
   }
 
   RuleFnMultiplicationExpr(ctx: RuleFnMultiplicationExprCstChildren) {
-    if (ctx.RuleMultiplcationOperator) {
+    if (ctx.RuleMultiplicationOperator) {
       const operands = ctx.RuleFnAtomicExpr?.map((item) => this.visit(item));
 
       const position: IPositionRange = {
@@ -462,9 +462,9 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
         end: operands[1].position.end
       };
 
-      return new MutliplicationExprAstNode({
+      return new MultiplicationExprAstNode({
         content: {
-          operators: ctx.RuleMultiplcationOperator.map((item) => this.visit(item)),
+          operators: ctx.RuleMultiplicationOperator.map((item) => this.visit(item)),
           operands
         },
         position
@@ -538,7 +538,7 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
       end: getTokenPosition(ctx.Semicolon[0]).end
     };
 
-    return new FnReturnStatemtneAstNode({ position, content: defaultVisit.bind(this)(ctx) });
+    return new FnReturnStatementAstNode({ position, content: defaultVisit.bind(this)(ctx) });
   }
 
   RuleFnArg(ctx: RuleFnArgCstChildren) {
@@ -711,12 +711,12 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
     };
 
     return new PropertyAstNode({
-      content: ctx.RuleProteryItem?.map((item) => this.visit(item)),
+      content: ctx.RulePropertyItem?.map((item) => this.visit(item)),
       position
     });
   }
 
-  RuleProteryItem(ctx: RuleProteryItemCstChildren) {
+  RulePropertyItem(ctx: RulePropertyItemCstChildren, param?: any) {
     const position: IPositionRange = {
       start: getTokenPosition(ctx.Identifier[0]).start,
       end: getTokenPosition(ctx.Semicolon[0]).end

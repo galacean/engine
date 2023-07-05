@@ -75,7 +75,7 @@ export interface RuleFnMultiplicationExprCstNode extends CstNode {
 
 export type RuleFnMultiplicationExprCstChildren = {
   RuleFnAtomicExpr: RuleFnAtomicExprCstNode[];
-  RuleMultiplcationOperator?: RuleMultiplcationOperatorCstNode[];
+  RuleMultiplicationOperator?: RuleMultiplicationOperatorCstNode[];
 };
 
 export interface RuleFnAtomicExprCstNode extends CstNode {
@@ -396,12 +396,12 @@ export type RuleFnBodyCstChildren = {
   RuleFnStatement?: RuleFnStatementCstNode[];
 };
 
-export interface RuleProteryItemCstNode extends CstNode {
-  name: "RuleProteryItem";
-  children: RuleProteryItemCstChildren;
+export interface RulePropertyItemCstNode extends CstNode {
+  name: "RulePropertyItem";
+  children: RulePropertyItemCstChildren;
 }
 
-export type RuleProteryItemCstChildren = {
+export type RulePropertyItemCstChildren = {
   Identifier: IToken[];
   LBracket: IToken[];
   ValueString: IToken[];
@@ -466,7 +466,7 @@ export interface RulePropertyCstNode extends CstNode {
 export type RulePropertyCstChildren = {
   EditorProperties: IToken[];
   LCurly: IToken[];
-  RuleProteryItem?: RuleProteryItemCstNode[];
+  RulePropertyItem?: RulePropertyItemCstNode[];
   RCurly: IToken[];
 };
 
@@ -725,12 +725,12 @@ export type RuleAddOperatorCstChildren = {
   Minus?: IToken[];
 };
 
-export interface RuleMultiplcationOperatorCstNode extends CstNode {
-  name: "RuleMultiplcationOperator";
-  children: RuleMultiplcationOperatorCstChildren;
+export interface RuleMultiplicationOperatorCstNode extends CstNode {
+  name: "RuleMultiplicationOperator";
+  children: RuleMultiplicationOperatorCstChildren;
 }
 
-export type RuleMultiplcationOperatorCstChildren = {
+export type RuleMultiplicationOperatorCstChildren = {
   Multiply?: IToken[];
   Divide?: IToken[];
 };
@@ -799,7 +799,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   RuleFnArg(children: RuleFnArgCstChildren, param?: IN): OUT;
   RuleFnReturnType(children: RuleFnReturnTypeCstChildren, param?: IN): OUT;
   RuleFnBody(children: RuleFnBodyCstChildren, param?: IN): OUT;
-  RuleProteryItem(children: RuleProteryItemCstChildren, param?: IN): OUT;
+  RulePropertyItem(children: RulePropertyItemCstChildren, param?: IN): OUT;
   RulePropertyItemType(children: RulePropertyItemTypeCstChildren, param?: IN): OUT;
   RulePropertyItemValue(children: RulePropertyItemValueCstChildren, param?: IN): OUT;
   RuleRange(children: RuleRangeCstChildren, param?: IN): OUT;
@@ -826,7 +826,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   RuleNumber(children: RuleNumberCstChildren, param?: IN): OUT;
   RuleBoolean(children: RuleBooleanCstChildren, param?: IN): OUT;
   RuleAddOperator(children: RuleAddOperatorCstChildren, param?: IN): OUT;
-  RuleMultiplcationOperator(children: RuleMultiplcationOperatorCstChildren, param?: IN): OUT;
+  RuleMultiplicationOperator(children: RuleMultiplicationOperatorCstChildren, param?: IN): OUT;
   RuleRelationOperator(children: RuleRelationOperatorCstChildren, param?: IN): OUT;
   RuleVariableType(children: RuleVariableTypeCstChildren, param?: IN): OUT;
 }

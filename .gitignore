@@ -25,5 +25,5 @@ stats.html
 tsconfig.tsbuildinfo
 api
 yarn.lock
-/packages/shaderLab/output
-/packages/shaderLab/example
+/packages/shader-lab/output
+/packages/shader-lab/example

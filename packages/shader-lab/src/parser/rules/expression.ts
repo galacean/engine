@@ -97,12 +97,12 @@ function RuleAddOperator(this: CstParser) {
 }
 ALL_RULES.push({ name: "RuleAddOperator", fn: RuleAddOperator });
 
-function RuleMultiplcationOperator(this: CstParser) {
-  this.OR([{ ALT: () => this.CONSUME(Symbols.Mutiply) }, { ALT: () => this.CONSUME(Symbols.Divide) }]);
+function RuleMultiplicationOperator(this: CstParser) {
+  this.OR([{ ALT: () => this.CONSUME(Symbols.Multiply) }, { ALT: () => this.CONSUME(Symbols.Divide) }]);
 }
 ALL_RULES.push({
-  name: "RuleMultiplcationOperator",
-  fn: RuleMultiplcationOperator
+  name: "RuleMultiplicationOperator",
+  fn: RuleMultiplicationOperator
 });
 
 function RuleRelationOperator(this: CstParser) {

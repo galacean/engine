@@ -4,7 +4,7 @@ import { ALL_RULES } from "./rules";
 
 const allTokens = [
   Others.WhiteSpace,
-  Others.CommnetLine,
+  Others.CommentLine,
   Others.CommentMultiLine,
   ...Symbols.tokenList,
   ...Keywords.tokenList,

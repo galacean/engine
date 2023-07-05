@@ -7,7 +7,7 @@ export interface IShaderParser {
   TupleFloat4: any;
 
   RuleRange: any;
-  RuleProteryItem: any;
+  RulePropertyItem: any;
   RuleProperty: any;
   RulePropertyItemType: any;
   RulePropertyItemValue: any;
@@ -34,7 +34,7 @@ export interface IShaderParser {
   RuleNumber: any;
   RuleBoolean: any;
 
-  RuleMultiplcationOperator: any;
+  RuleMultiplicationOperator: any;
   RuleAddOperator: any;
   RuleRelationOperator: any;
   RuleVariableType: any;
