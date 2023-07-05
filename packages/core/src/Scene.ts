@@ -207,7 +207,7 @@ export class Scene extends EngineObject {
 
     const shaderData = this.shaderData;
     shaderData._addReferCount(1);
-    this.ambientLight = new AmbientLight();
+    this.ambientLight = new AmbientLight(engine);
     engine.sceneManager._allScenes.push(this);
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
@@ -337,20 +337,6 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Destroy this scene.
-   */
-  override destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    this._destroy();
-
-    const allScenes = this.engine.sceneManager._allScenes;
-    allScenes.splice(allScenes.indexOf(this), 1);
-  }
-
-  /**
    * @internal
    */
   _attachRenderCamera(camera: Camera): void {
@@ -438,13 +424,17 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _destroy(): void {
+  override _onDestroy(): void {
+    super._onDestroy();
+    const allScenes = this.engine.sceneManager._allScenes;
+    allScenes.splice(allScenes.indexOf(this), 1);
     this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
     while (this.rootEntitiesCount > 0) {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
     this.background.destroy();
+    this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
   }
 
