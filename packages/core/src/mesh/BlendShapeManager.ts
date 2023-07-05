@@ -45,7 +45,7 @@ export class BlendShapeManager {
   /** @internal */
   _bufferBindingOffset: number = -1;
   /** @internal */
-  _vertexElementOffset: number;
+  _vertexElementOffset: number = 0;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
@@ -203,15 +203,15 @@ export class BlendShapeManager {
     if (this._bufferBindingOffset !== -1) {
       return;
     }
-
-    const internalVertexBufferIndex = this._modelMesh._internalVertexBufferIndex;
-    const vertexBufferBindings = this._modelMesh._vertexBufferBindings;
-    for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-      if (!vertexBufferBindings[i] && i !== internalVertexBufferIndex) {
+    const { _internalVertexBufferIndex, _vertexBufferBindings } = this._modelMesh;
+    let i = 0;
+    const n = Math.max(_vertexBufferBindings.length, _internalVertexBufferIndex + 1);
+    for (; i < n; i++) {
+      if (!_vertexBufferBindings[i] && i !== _internalVertexBufferIndex) {
         break;
       }
     }
-    this._bufferBindingOffset = internalVertexBufferIndex + 1;
+    this._bufferBindingOffset = i;
   }
 
   /**
