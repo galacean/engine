@@ -151,11 +151,11 @@ export class KTX2Container {
       const keyData = kvdReader.scan(keyValueByteLength);
       const key = Utils.decodeText(keyData);
 
-      const valueData = kvdReader.scan(keyValueByteLength - keyData.byteLength);
-      this.keyValue[key] = key.match(/^ktx/i) ? Utils.decodeText(valueData) : valueData;
-
       // 4-byte alignment.
-      if (kvdReader.relativeOffset % 4) kvdReader.skip(4 - (kvdReader.relativeOffset % 4));
+      const kvPadding = keyValueByteLength % 4 ? 4 - (keyValueByteLength % 4) : 0;
+      const valueData = kvdReader.nextUint8Array(keyValueByteLength - keyData.byteLength - 2);
+      this.keyValue[key] = key.match(/^ktx/i) ? Utils.decodeText(valueData) : valueData;
+      kvdReader.skip(kvPadding + 1);
     }
 
     if (sgdByteLength <= 0) return this;
