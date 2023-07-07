@@ -21,6 +21,13 @@ export class GLTFTextureParser extends GLTFParser {
       AssetPromise.all(
         glTF.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
+          const samplerInfo: ISamplerInfo =
+            sampler !== undefined
+              ? this._getSamplerInfo(glTF.samplers[sampler])
+              : {
+                  mipmap: true
+                };
+          console.log(samplerInfo);
           if (uri) {
             // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
             const index = uri.lastIndexOf(".");
@@ -29,14 +36,17 @@ export class GLTFTextureParser extends GLTFParser {
             return engine.resourceManager
               .load<Texture2D>({
                 url: Utils.resolveAbsoluteUrl(url, uri),
-                type: type
+                type: type,
+                params: {
+                  mipmap: samplerInfo.mipmap
+                }
               })
               .then((texture) => {
                 if (!texture.name) {
                   texture.name = textureName || imageName || `texture_${index}`;
                 }
                 if (sampler !== undefined) {
-                  this._parseSampler(texture, glTF.samplers[sampler]);
+                  this._parseSampler(texture, samplerInfo);
                 }
                 return texture;
               });
@@ -46,12 +56,12 @@ export class GLTFTextureParser extends GLTFParser {
             const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
             return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-              const texture = new Texture2D(engine, image.width, image.height);
+              const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo.mipmap);
               texture.setImageSource(image);
               texture.generateMipmaps();
               texture.name = textureName || imageName || `texture_${index}`;
               if (sampler !== undefined) {
-                this._parseSampler(texture, glTF.samplers[sampler]);
+                this._parseSampler(texture, samplerInfo);
               }
               const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
               context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
@@ -70,25 +80,55 @@ export class GLTFTextureParser extends GLTFParser {
     }
   }
 
-  private _parseSampler(texture: Texture2D, sampler: ISampler): void {
+  private _getSamplerInfo(sampler: ISampler): ISamplerInfo {
     const { magFilter, minFilter, wrapS, wrapT } = sampler;
+    const info: ISamplerInfo = {
+      mipmap: true
+    };
 
     if (magFilter || minFilter) {
+      if (minFilter < TextureMinFilter.NEAREST_MIPMAP_NEAREST) {
+        info.mipmap = false;
+      }
       if (magFilter === TextureMagFilter.NEAREST) {
-        texture.filterMode = TextureFilterMode.Point;
+        info.filterMode = TextureFilterMode.Point;
       } else if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
-        texture.filterMode = TextureFilterMode.Bilinear;
+        info.filterMode = TextureFilterMode.Bilinear;
       } else {
-        texture.filterMode = TextureFilterMode.Trilinear;
+        info.filterMode = TextureFilterMode.Trilinear;
       }
     }
 
     if (wrapS) {
-      texture.wrapModeU = GLTFTextureParser._wrapMap[wrapS];
+      info.wrapModeU = GLTFTextureParser._wrapMap[wrapS];
     }
 
     if (wrapT) {
-      texture.wrapModeV = GLTFTextureParser._wrapMap[wrapT];
+      info.wrapModeV = GLTFTextureParser._wrapMap[wrapT];
+    }
+
+    return info;
+  }
+
+  private _parseSampler(texture: Texture2D, samplerInfo: ISamplerInfo): void {
+    const { filterMode, wrapModeU, wrapModeV } = samplerInfo;
+    if (filterMode) {
+      texture.filterMode = filterMode;
+    }
+
+    if (wrapModeU) {
+      texture.wrapModeU = wrapModeU;
+    }
+
+    if (wrapModeV) {
+      texture.wrapModeV = wrapModeV;
     }
   }
+}
+
+interface ISamplerInfo {
+  filterMode?: TextureFilterMode;
+  wrapModeU?: TextureWrapMode;
+  wrapModeV?: TextureWrapMode;
+  mipmap?: boolean;
 }
