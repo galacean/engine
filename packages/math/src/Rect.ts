@@ -3,64 +3,6 @@ import { ICopy } from "./ICopy";
 
 // A 2d rectangle defined by x and y position, width and height.
 export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
-  /**
-   * Determines the sum of two rectangles.
-   * @param left - The first rectangle to add
-   * @param right - The second rectangle to add
-   * @param out - The sum of two rectangles
-   */
-  static add(left: Rect, right: Rect, out: Rect): void {
-    out._x = left._x + right._x;
-    out._y = left._y + right._y;
-    out._width = left._width + right._width;
-    out._height = left._height + right._height;
-    out._onValueChanged && out._onValueChanged();
-  }
-
-  /**
-   * Performs a linear interpolation between two rectangles.
-   * @param start - The start rectangle
-   * @param end - The end rectangle
-   * @param t - The blend amount where 0 returns start and 1 end
-   * @param out - The result of linear blending between two rectangles
-   */
-  static lerp(start: Rect, end: Rect, t: number, out: Rect): void {
-    const { _x, _y, _width, _height } = start;
-    out._x = _x + (end._x - _x) * t;
-    out._y = _y + (end._y - _y) * t;
-    out._width = _width + (end._width - _width) * t;
-    out._height = _height + (end._height - _height) * t;
-    out._onValueChanged && out._onValueChanged();
-  }
-
-  /**
-   * Scale a rectangle by the given value.
-   * @param a - The rectangle to scale
-   * @param s - The amount by which to scale the rectangle
-   * @param out - The scaled rectangle
-   */
-  static scale(a: Rect, s: number, out: Rect): void {
-    out._x = a._x * s;
-    out._y = a._y * s;
-    out._width = a._width * s;
-    out._height = a._height * s;
-    out._onValueChanged && out._onValueChanged();
-  }
-
-  /**
-   * Determines the difference between two rectangles.
-   * @param left - The first rectangle to subtract
-   * @param right - The second rectangle to subtract
-   * @param out - The difference between two rectangles
-   */
-  static subtract(left: Rect, right: Rect, out: Rect): void {
-    out._x = left._x - right._x;
-    out._y = left._y - right._y;
-    out._width = left._width - right._width;
-    out._height = left._height - right._height;
-    out._onValueChanged && out._onValueChanged();
-  }
-
   /** @internal */
   _x: number;
   /** @internal */

@@ -358,6 +358,7 @@ export class Entity extends EngineObject {
       cloneEntity._hookResource = hookResource;
       hookResource._addReferCount(1);
     }
+    cloneEntity.layer = this.layer;
     cloneEntity._isActive = this._isActive;
     cloneEntity.transform.localMatrix = this.transform.localMatrix;
 

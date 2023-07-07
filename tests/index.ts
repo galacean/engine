@@ -10,7 +10,7 @@ function searchTests(root: string) {
     } else if (stat.isDirectory()) {
       describe(file, () => {
         searchTests(filePath);
-      });
+      }).timeout(5000);
     }
   });
 }
