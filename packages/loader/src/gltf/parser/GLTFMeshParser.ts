@@ -50,7 +50,7 @@ export class GLTFMeshParser extends GLTFParser {
       boneWeights = new Array<Vector4>(vertexCount);
     }
 
-    const promises = [];
+    const promises = new Array<Promise<void | void[]>>();
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
@@ -222,13 +222,13 @@ export class GLTFMeshParser extends GLTFParser {
       [name: string]: number;
     }[],
     getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>
-  ): Promise<void> {
+  ): Promise<void[]> {
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
-    let promise;
+    let promises = new Array<Promise<void>>();
     for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
 
-      promise = Promise.all([
+      const promise = Promise.all([
         getBlendShapeData("POSITION", i),
         getBlendShapeData("NORMAL", i),
         getBlendShapeData("TANGENT", i)
@@ -258,9 +258,10 @@ export class GLTFMeshParser extends GLTFParser {
           )
         );
       });
+      promises.push(promise);
     }
 
-    return promise;
+    return Promise.all(promises);
   }
 
   parse(context: GLTFParserContext) {
