@@ -175,7 +175,7 @@ export class GLTFMeshParser extends GLTFParser {
       promises.push(promise);
     }
 
-    Promise.all(promises).then(() => {
+    return Promise.all(promises).then(() => {
       mesh.setVertexElements(vertexElements);
 
       // Indices
@@ -195,19 +195,19 @@ export class GLTFMeshParser extends GLTFParser {
       if (targets) {
         promises.push(GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData));
       }
-    });
 
-    return Promise.all(promises).then(() => {
-      mesh.uploadData(!keepMeshData);
+      return Promise.all(promises).then(() => {
+        mesh.uploadData(!keepMeshData);
 
-      //@ts-ignore
-      mesh._positions = positions;
-      //@ts-ignore
-      mesh._boneIndices = boneIndices;
-      //@ts-ignore
-      mesh._boneWeights = boneWeights;
+        //@ts-ignore
+        mesh._positions = positions;
+        //@ts-ignore
+        mesh._boneIndices = boneIndices;
+        //@ts-ignore
+        mesh._boneWeights = boneWeights;
 
-      return Promise.resolve(mesh);
+        return Promise.resolve(mesh);
+      });
     });
   }
 
