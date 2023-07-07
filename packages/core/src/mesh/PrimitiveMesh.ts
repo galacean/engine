@@ -6,6 +6,7 @@ import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import {
   CapsuleRestoreInfo,
+  CCSphereRestoreInfo,
   ConeRestoreInfo,
   CuboidRestoreInfo,
   CylinderRestoreInfo,
@@ -26,22 +27,46 @@ export class PrimitiveMesh {
    * Create a sphere mesh.
    * @param engine - Engine
    * @param radius - Sphere radius
-   * @param step - Number of subdiv steps
+   * @param segments - Number of segments
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Sphere model mesh
    */
   static createSphere(
+    engine: Engine,
+    radius: number = 0.5,
+    segments: number = 18,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const sphereMesh = new ModelMesh(engine);
+    PrimitiveMesh._setSphereData(sphereMesh, radius, segments, noLongerAccessible, false);
+
+    const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, vertexBuffer, noLongerAccessible))
+    );
+    return sphereMesh;
+  }
+
+  /**
+   * Create a sphere mesh by implementing Catmull-Clark Surface Subdivision Algorithm.
+   * @param engine - Engine
+   * @param radius - Sphere radius
+   * @param step - Number of subdiv steps
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Sphere model mesh
+   */
+  static createCCSubdivSphere(
     engine: Engine,
     radius: number = 1,
     step: number = 3,
     noLongerAccessible: boolean = true
   ): ModelMesh {
     const sphereMesh = new ModelMesh(engine);
-    PrimitiveMesh._setSphereData(sphereMesh, radius, step, noLongerAccessible, false);
+    PrimitiveMesh._setCCSudivSphereData(sphereMesh, radius, step, noLongerAccessible, false);
 
     const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
-      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, step, vertexBuffer, noLongerAccessible))
+      new PrimitiveMeshRestorer(sphereMesh, new CCSphereRestoreInfo(radius, step, vertexBuffer, noLongerAccessible))
     );
     return sphereMesh;
   }
@@ -260,7 +285,7 @@ export class PrimitiveMesh {
   /**
    * @internal
    */
-  static _setSphereData(
+  static _setCCSudivSphereData(
     sphereMesh: ModelMesh,
     radius: number,
     step: number,
@@ -326,6 +351,85 @@ export class PrimitiveMesh {
 
       vertices[i * 8 + 6] = uvs[i].x;
       vertices[i * 8 + 7] = uvs[i].y;
+    }
+
+    PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
+  }
+
+  /**
+   * @internal
+   */
+  static _setSphereData(
+    sphereMesh: ModelMesh,
+    radius: number,
+    segments: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
+  ): void {
+    segments = Math.max(2, Math.floor(segments));
+
+    const count = segments + 1;
+    const vertexCount = count * count;
+    const rectangleCount = segments * segments;
+    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, vertexCount, rectangleCount * 6);
+    const thetaRange = Math.PI;
+    const alphaRange = thetaRange * 2;
+    const countReciprocal = 1.0 / count;
+    const segmentsReciprocal = 1.0 / segments;
+
+    const vertexFloatCount = 8;
+    const vertices = new Float32Array(vertexCount * vertexFloatCount);
+
+    for (let i = 0; i < vertexCount; ++i) {
+      const x = i % count;
+      const y = (i * countReciprocal) | 0;
+      const u = x * segmentsReciprocal;
+      const v = y * segmentsReciprocal;
+      const alphaDelta = u * alphaRange;
+      const thetaDelta = v * thetaRange;
+      const sinTheta = Math.sin(thetaDelta);
+
+      let posX = -radius * Math.cos(alphaDelta) * sinTheta;
+      let posY = radius * Math.cos(thetaDelta);
+      let posZ = radius * Math.sin(alphaDelta) * sinTheta;
+
+      let offset = i * vertexFloatCount;
+      // Position
+      vertices[offset++] = posX;
+      vertices[offset++] = posY;
+      vertices[offset++] = posZ;
+      // Normal
+      vertices[offset++] = posX;
+      vertices[offset++] = posY;
+      vertices[offset++] = posZ;
+      // TexCoord
+      vertices[offset++] = u;
+      vertices[offset++] = v;
+    }
+
+    let offset = 0;
+    for (let i = 0; i < rectangleCount; ++i) {
+      const x = i % segments;
+      const y = (i * segmentsReciprocal) | 0;
+
+      const a = y * count + x;
+      const b = a + 1;
+      const c = a + count;
+      const d = c + 1;
+
+      indices[offset++] = b;
+      indices[offset++] = a;
+      indices[offset++] = d;
+      indices[offset++] = a;
+      indices[offset++] = c;
+      indices[offset++] = d;
+    }
+
+    if (!isRestoreMode) {
+      const { bounds } = sphereMesh;
+      bounds.min.set(-radius, -radius, -radius);
+      bounds.max.set(radius, radius, radius);
     }
 
     PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
