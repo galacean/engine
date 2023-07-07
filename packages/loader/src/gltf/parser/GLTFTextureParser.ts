@@ -1,9 +1,9 @@
 import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode, Utils } from "@galacean/engine-core";
-import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
-import { GLTFUtils } from "../GLTFUtils";
-import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../GLTFSchema";
-import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from ".";
+import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
+import { TextureWrapMode as GLTFTextureWrapMode, ISampler, TextureMagFilter, TextureMinFilter } from "../GLTFSchema";
+import { GLTFUtils } from "../GLTFUtils";
+import { GLTFParser } from "./GLTFParser";
 
 export class GLTFTextureParser extends GLTFParser {
   private static _wrapMap = {
@@ -21,13 +21,7 @@ export class GLTFTextureParser extends GLTFParser {
       AssetPromise.all(
         glTF.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
-          const samplerInfo: ISamplerInfo =
-            sampler !== undefined
-              ? this._getSamplerInfo(glTF.samplers[sampler])
-              : {
-                  mipmap: true
-                };
-          console.log(samplerInfo);
+          const samplerInfo = sampler !== undefined && this._getSamplerInfo(glTF.samplers[sampler]);
           if (uri) {
             // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
             const index = uri.lastIndexOf(".");
@@ -38,7 +32,7 @@ export class GLTFTextureParser extends GLTFParser {
                 url: Utils.resolveAbsoluteUrl(url, uri),
                 type: type,
                 params: {
-                  mipmap: samplerInfo.mipmap
+                  mipmap: samplerInfo?.mipmap
                 }
               })
               .then((texture) => {
@@ -56,7 +50,7 @@ export class GLTFTextureParser extends GLTFParser {
             const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
             return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-              const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo.mipmap);
+              const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
               texture.setImageSource(image);
               texture.generateMipmaps();
               texture.name = textureName || imageName || `texture_${index}`;
@@ -81,21 +75,20 @@ export class GLTFTextureParser extends GLTFParser {
   }
 
   private _getSamplerInfo(sampler: ISampler): ISamplerInfo {
-    const { magFilter, minFilter, wrapS, wrapT } = sampler;
-    const info: ISamplerInfo = {
-      mipmap: true
-    };
+    const { minFilter, magFilter, wrapS, wrapT } = sampler;
+    const info = <ISamplerInfo>{};
 
-    if (magFilter || minFilter) {
-      if (minFilter < TextureMinFilter.NEAREST_MIPMAP_NEAREST) {
-        info.mipmap = false;
-      }
+    if (minFilter || magFilter) {
+      info.mipmap = minFilter >= TextureMinFilter.NEAREST_MIPMAP_NEAREST;
+
       if (magFilter === TextureMagFilter.NEAREST) {
         info.filterMode = TextureFilterMode.Point;
-      } else if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
-        info.filterMode = TextureFilterMode.Bilinear;
       } else {
-        info.filterMode = TextureFilterMode.Trilinear;
+        if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
+          info.filterMode = TextureFilterMode.Bilinear;
+        } else {
+          info.filterMode = TextureFilterMode.Trilinear;
+        }
       }
     }
 
@@ -112,6 +105,7 @@ export class GLTFTextureParser extends GLTFParser {
 
   private _parseSampler(texture: Texture2D, samplerInfo: ISamplerInfo): void {
     const { filterMode, wrapModeU, wrapModeV } = samplerInfo;
+
     if (filterMode) {
       texture.filterMode = filterMode;
     }
