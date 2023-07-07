@@ -32,7 +32,7 @@ export class GLTFTextureParser extends GLTFParser {
           const { sampler, source = 0, name: textureName, extensions } = textureInfo;
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
 
-          let texture = <Texture | Promise<Texture> | AssetPromise<Texture>>(
+          let texture = <Texture | Promise<Texture>>(
             GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo)
           );
 
