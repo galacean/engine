@@ -175,26 +175,29 @@ export class GLTFMeshParser extends GLTFParser {
       promises.push(promise);
     }
 
-    // Indices
-    if (indices !== undefined) {
-      const indexAccessor = gltf.accessors[indices];
-      const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, indexAccessor).then((accessorBuffer) => {
-        mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>accessorBuffer.data);
-        mesh.addSubMesh(0, indexAccessor.count, mode);
-        meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo;
-      });
-      promises.push(promise);
-    } else {
-      mesh.addSubMesh(0, vertexCount, mode);
-    }
-
-    // BlendShapes
-    if (targets) {
-      promises.push(GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData));
-    }
-    return Promise.all(promises).then(() => {
+    Promise.all(promises).then(() => {
       mesh.setVertexElements(vertexElements);
 
+      // Indices
+      if (indices !== undefined) {
+        const indexAccessor = gltf.accessors[indices];
+        const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, indexAccessor).then((accessorBuffer) => {
+          mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>accessorBuffer.data);
+          mesh.addSubMesh(0, indexAccessor.count, mode);
+          meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo;
+        });
+        promises.push(promise);
+      } else {
+        mesh.addSubMesh(0, vertexCount, mode);
+      }
+
+      // BlendShapes
+      if (targets) {
+        promises.push(GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData));
+      }
+    });
+
+    return Promise.all(promises).then(() => {
       mesh.uploadData(!keepMeshData);
 
       //@ts-ignore
