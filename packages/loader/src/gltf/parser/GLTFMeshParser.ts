@@ -188,11 +188,12 @@ export class GLTFMeshParser extends GLTFParser {
       mesh.addSubMesh(0, vertexCount, mode);
     }
 
+    // BlendShapes
+    if (targets) {
+      promises.push(GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData));
+    }
     return Promise.all(promises).then(() => {
       mesh.setVertexElements(vertexElements);
-
-      // BlendShapes
-      targets && GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData);
 
       mesh.uploadData(!keepMeshData);
 
@@ -218,13 +219,13 @@ export class GLTFMeshParser extends GLTFParser {
       [name: string]: number;
     }[],
     getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>
-  ): void {
+  ): Promise<void> {
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
-
+    let promise;
     for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
 
-      Promise.all([
+      promise = Promise.all([
         getBlendShapeData("POSITION", i),
         getBlendShapeData("NORMAL", i),
         getBlendShapeData("TANGENT", i)
@@ -255,6 +256,8 @@ export class GLTFMeshParser extends GLTFParser {
         );
       });
     }
+
+    return promise;
   }
 
   parse(context: GLTFParserContext) {
