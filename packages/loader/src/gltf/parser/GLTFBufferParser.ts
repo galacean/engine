@@ -30,6 +30,7 @@ export class GLTFBufferParser extends GLTFParser {
         type: "json"
       }).then((glTF: IGLTF) => {
         context.glTF = glTF;
+        const { images, textures } = glTF;
 
         const buffersPromise = Promise.all(
           glTF.buffers.map((buffer: IBuffer) => {
@@ -41,11 +42,13 @@ export class GLTFBufferParser extends GLTFParser {
           context.buffers = buffers;
         });
         // If the textures are all urls, process `GLTFBufferParser` and `GLTFTextureParser` pipelines in parallel.
-        if (glTF.textures && glTF.textures.every((texture) => glTF.images[texture.source])) {
-          context.buffersPromise = buffersPromise;
-        } else {
-          return buffersPromise;
+        for (let i in textures) {
+          if (images[textures[i].source].uri) {
+            return buffersPromise;
+          }
         }
+        context.buffersPromise = buffersPromise;
+        return buffersPromise;
       });
     }
   }
