@@ -226,7 +226,7 @@ export class GLTFAnimationParser extends GLTFParser {
       index: number;
     }>(animationClipCount);
 
-    let parseStandardPropertyPromises = [];
+    let parseStandardPropertyPromises = new Array<Promise<void>>();
     for (let i = 0; i < animationClipCount; i++) {
       const animationInfo = animations[i];
       const { name = `AnimationClip${i}` } = animationInfo;

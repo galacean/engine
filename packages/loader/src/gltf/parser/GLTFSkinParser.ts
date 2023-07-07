@@ -13,7 +13,7 @@ export class GLTFSkinParser extends GLTFParser {
     if (!gltfSkins) return;
 
     const count = gltfSkins.length;
-    const promises = [];
+    const promises = new Array<Promise<Skin>>();
 
     for (let i = 0; i < count; i++) {
       const { inverseBindMatrices, skeleton, joints, name = `SKIN_${i}` } = gltfSkins[i];
