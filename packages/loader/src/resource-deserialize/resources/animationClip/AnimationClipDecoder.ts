@@ -226,7 +226,6 @@ export class AnimationClipDecoder {
             break;
           }
           case "AnimationRefCurve": {
-            const resourceManager = engine.resourceManager;
             curve = new AnimationRefCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
