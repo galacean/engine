@@ -77,8 +77,7 @@ export class GLTFTextureParser extends GLTFParser {
             }
           }
 
-          return Promise.all([texture]).then((textures) => {
-            const texture = textures[0];
+          return Promise.resolve(texture).then((texture) => {
             GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
             return texture;
           });
