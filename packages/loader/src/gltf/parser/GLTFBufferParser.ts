@@ -43,12 +43,11 @@ export class GLTFBufferParser extends GLTFParser {
         });
         // If the textures are all urls, process `GLTFBufferParser` and `GLTFTextureParser` pipelines in parallel.
         for (let i in textures) {
-          if (images[textures[i].source].uri) {
+          if (!images[textures[i].source].uri) {
             return buffersPromise;
           }
         }
         context.buffersPromise = buffersPromise;
-        return buffersPromise;
       });
     }
   }
