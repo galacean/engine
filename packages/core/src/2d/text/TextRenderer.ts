@@ -492,6 +492,7 @@ export class TextRenderer extends Renderer {
 
     if (linesLen > 0) {
       const { _pixelsPerUnit } = Engine;
+      const { horizontalAlignment } = this;
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
       const rendererWidth = this.width * _pixelsPerUnit;
       const halfRendererWidth = rendererWidth * 0.5;
@@ -527,7 +528,7 @@ export class TextRenderer extends Renderer {
           if (firstLine < 0) {
             firstLine = i;
           }
-          switch (this.horizontalAlignment) {
+          switch (horizontalAlignment) {
             case TextHorizontalAlignment.Left:
               startX = -halfRendererWidth;
               break;
