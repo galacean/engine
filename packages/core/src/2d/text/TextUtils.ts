@@ -252,25 +252,21 @@ export class TextUtils {
     const { _subFont: subFont } = renderer;
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
-    const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
-    const lineCount = lines.length;
+    const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
+    const textCount = subTexts.length;
+    const lines = new Array<string>();
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
 
     let width = 0;
-    let height = renderer.height * _pixelsPerUnit;
-    if (renderer.overflowMode === OverflowMode.Overflow) {
-      height = lineHeight * lineCount;
-    }
-
     subFont.nativeFontString = fontString;
-    for (let i = 0; i < lineCount; ++i) {
-      const line = lines[i];
+    for (let i = 0; i < textCount; ++i) {
+      const line = subTexts[i];
       let curWidth = 0;
-      let maxAscent = -1;
-      let maxDescent = -1;
+      let maxAscent = 0;
+      let maxDescent = 0;
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
@@ -282,15 +278,16 @@ export class TextUtils {
         maxAscent < ascent && (maxAscent = ascent);
         maxDescent < descent && (maxDescent = descent);
       }
-      lineWidths[i] = curWidth;
-      lineMaxSizes[i] = {
-        ascent: maxAscent,
-        descent: maxDescent,
-        size: maxAscent + maxDescent
-      };
-      if (curWidth > width) {
-        width = curWidth;
+
+      if (curWidth > 0) {
+        this._pushLine(lines, lineWidths, lineMaxSizes, line, curWidth, maxAscent, maxDescent);
+        width = Math.max(width, curWidth);
       }
+    }
+
+    let height = renderer.height * _pixelsPerUnit;
+    if (renderer.overflowMode === OverflowMode.Overflow) {
+      height = lineHeight * lines.length;
     }
 
     return {

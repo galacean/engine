@@ -18,9 +18,7 @@ class AnimationClipLoader extends Loader<AnimationClip> {
         ...item,
         type: "arraybuffer"
       })
-        .then((data) => {
-          return decode<AnimationClip>(data, resourceManager.engine);
-        })
+        .then((data) => decode<AnimationClip>(data, resourceManager.engine).then(resolve))
         .catch(reject);
     });
   }
