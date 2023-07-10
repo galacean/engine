@@ -1,4 +1,4 @@
 export { ShaderParser } from "./parser";
 export { ShaderVisitor, parser } from "./visitor";
-export { ShaderLab } from "./shaderLab";
+export { ShaderLab } from "./ShaderLab";
 export { parseShader } from "./utils";
