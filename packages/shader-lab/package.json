@@ -13,8 +13,8 @@
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc",
-    "gen_diagram": "ts-node ./scripts/gen_diagram.ts",
-    "gen_dts": "ts-node ./scripts/gen_dts.ts",
+    "gen_diagram": "ts-node ./scripts/genDiagram.ts",
+    "gen_dts": "ts-node ./scripts/genDts.ts",
     "example": "ts-node ./example/ast.ts"
   },
   "umd": {

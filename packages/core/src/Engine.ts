@@ -563,19 +563,21 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  protected async _initialize(configuration: EngineConfiguration): Promise<Engine> {
+  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const { physics, shaderLab } = configuration;
-    if (physics) {
-      await physics.initialize();
-      PhysicsScene._nativePhysics = physics;
-      this._nativePhysicsManager = physics.createPhysicsManager();
-      this._physicsInitialized = true;
-    }
     if (shaderLab) {
       shaderLab.initialize();
       Shader._shaderLab = shaderLab;
     }
-    return this;
+    if (physics) {
+      return physics.initialize().then(() => {
+        PhysicsScene._nativePhysics = physics;
+        this._nativePhysicsManager = physics.createPhysicsManager();
+        this._physicsInitialized = true;
+        return this;
+      });
+    }
+    return Promise.resolve(this);
   }
 
   private _createSpriteMaterial(): Material {
