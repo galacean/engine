@@ -21,7 +21,9 @@ export class ReflectionParser {
 
   private static getEntityByConfig(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     // @ts-ignore
-    const assetRefId: string = entityConfig.assetRefId;
+    const isPrefab = entityConfig.prefabSource ?? false;
+    // @ts-ignore
+    const assetRefId: string = isPrefab ? entityConfig.prefabSource?.assetId : entityConfig.assetRefId;
     if (assetRefId) {
       return (
         engine.resourceManager
