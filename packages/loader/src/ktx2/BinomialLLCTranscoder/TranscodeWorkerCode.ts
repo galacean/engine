@@ -44,7 +44,7 @@ export function TranscodeWorkerCode() {
     BC5 = 5,
     PVRTC1_4_RGB = 8,
     PVRTC1_4_RGBA = 9,
-    RGBA32 = 13
+    RGBA8 = 13
   }
 
   enum TargetFormat {
@@ -55,7 +55,7 @@ export function TranscodeWorkerCode() {
     ETC,
     R8,
     RG8,
-    RGBA32
+    RGBA8
   }
 
   function concat(arrays: Uint8Array[]) {
@@ -125,8 +125,8 @@ export function TranscodeWorkerCode() {
         return BasisFormat.PVRTC1_4_RGB;
       }
     }
-    if (target === TargetFormat.RGBA32) {
-      return BasisFormat.RGBA32;
+    if (target === TargetFormat.RGBA8) {
+      return BasisFormat.RGBA8;
     }
   }
 

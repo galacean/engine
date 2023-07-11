@@ -72,13 +72,13 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       targetFormat === KTX2TargetFormat.PVRTC &&
       (!MathUtil.isPowerOf2(ktx2Container.pixelWidth) || !MathUtil.isPowerOf2(ktx2Container.pixelHeight))
     ) {
-      Logger.warn("pvrtc image need power of 2, downgrade to RGBA32");
-      return KTX2TargetFormat.RGBA32;
+      Logger.warn("pvrtc image need power of 2, downgrade to RGBA8");
+      return KTX2TargetFormat.RGBA8;
     }
 
     if (targetFormat === null) {
-      Logger.warn("can't support any compressed texture, downgrade to RGBA32");
-      return KTX2TargetFormat.RGBA32;
+      Logger.warn("can't support any compressed texture, downgrade to RGBA8");
+      return KTX2TargetFormat.RGBA8;
     }
     // TODO support bc7: https://github.com/galacean/engine/issues/1371
     return targetFormat;
@@ -185,7 +185,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       if (hasAlpha) return TextureFormat.PVRTC_RGBA4;
       else return TextureFormat.PVRTC_RGB4;
     }
-    if (basisFormat === KTX2TargetFormat.RGBA32) {
+    if (basisFormat === KTX2TargetFormat.RGBA8) {
       return TextureFormat.R8G8B8A8;
     }
   }
