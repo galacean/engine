@@ -1,5 +1,5 @@
 import { IShaderInfo, IShaderLab } from "./interface";
-import { parseShader } from "./utils";
+import { AstNodeUtils } from "./AstNodeUtils";
 
 export class ShaderLab implements IShaderLab {
   initialize(): Promise<void> {
@@ -7,6 +7,6 @@ export class ShaderLab implements IShaderLab {
   }
 
   parseShader(shaderCode: string): IShaderInfo {
-    return parseShader(shaderCode);
+    return AstNodeUtils.parseShader(shaderCode);
   }
 }

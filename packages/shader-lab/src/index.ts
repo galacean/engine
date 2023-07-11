@@ -1,4 +1,5 @@
+import { AstNodeUtils } from "./AstNodeUtils";
 export { ShaderParser } from "./parser";
-export { ShaderVisitor, parser } from "./visitor";
+export { ShaderVisitor, parser } from "./ShaderVisitor";
 export { ShaderLab } from "./ShaderLab";
-export { parseShader } from "./utils";
+export const parseShader = AstNodeUtils.parseShader;

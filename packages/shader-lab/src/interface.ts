@@ -1,6 +1,6 @@
-import { AstNode } from "./astNode";
-import { IAstInfo, IPositionRange, IShaderAstContent } from "./astNode/types";
-import { DiagnosticSeverity } from "./constants";
+import { AstNode } from "./AstNode";
+import { IAstInfo, IPositionRange, IShaderAstContent } from "./AstNode/types";
+import { DiagnosticSeverity } from "./Constants";
 
 /**
  * Shader lab interface

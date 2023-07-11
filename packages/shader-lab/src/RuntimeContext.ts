@@ -1,4 +1,4 @@
-import { stringifyVertexFunction, stringifyFragmentFunction } from "./ast2glsl";
+import { Ast2GLSLUtils } from "./Ast2GLSLUtils";
 import {
   AstNode,
   DeclarationAstNode,
@@ -7,10 +7,10 @@ import {
   FnVariableAstNode,
   ReturnTypeAstNode,
   StructAstNode
-} from "./astNode";
-import { IPassAstContent, IShaderAstContent, ISubShaderAstContent } from "./astNode/types";
+} from "./AstNode";
+import { IPassAstContent, IShaderAstContent, ISubShaderAstContent } from "./AstNode/types";
 import { IShaderPass, SubShaderInfo, IDiagnostic, IGlobal, IShaderInfo } from "./interface";
-import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./constants";
+import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 
 interface IReferenceStructInfo {
   /** varying or attribute object name */
@@ -138,7 +138,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        ret.vert = stringifyVertexFunction(prop, this);
+        ret.vert = Ast2GLSLUtils.stringifyVertexFunction(prop, this);
       } else if (prop.content.type === FRAG_FN_NAME) {
         if (ret.frag) {
           this.diagnostics.push({
@@ -148,7 +148,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        ret.frag = stringifyFragmentFunction(prop, this);
+        ret.frag = Ast2GLSLUtils.stringifyFragmentFunction(prop, this);
       }
     });
 
