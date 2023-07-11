@@ -398,9 +398,9 @@ export class Scene extends EngineObject {
       const entity = rootEntities[i];
       if (entity._isActive) {
         if (active) {
-          entity._processActive(ActiveChangeFlag.Hierarchy);
+          entity._processActive(ActiveChangeFlag.Scene);
         } else {
-          entity._processInActive(ActiveChangeFlag.Hierarchy);
+          entity._processInActive(ActiveChangeFlag.Scene);
         }
       }
     }
