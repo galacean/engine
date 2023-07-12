@@ -8,7 +8,7 @@ import {
   ITranscodeMessage,
   TranscodeResult,
   TranscodeWorkerCode
-} from "./TranscoderWorkerCode";
+} from "./KhronosWorkerCode";
 
 /** @internal */
 export class KhronosTranscoder {

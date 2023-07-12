@@ -1,10 +1,4 @@
 import { Utils } from "@galacean/engine-core";
-
-class ImageData {
-  type: "image/png" | "image/jpg" | "image/webp" | "ktx";
-  buffer: ArrayBuffer;
-}
-
 export class BufferReader {
   private _dataView: DataView;
   private _littleEndian: boolean;

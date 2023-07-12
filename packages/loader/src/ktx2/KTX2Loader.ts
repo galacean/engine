@@ -14,9 +14,9 @@ import {
   TextureFormat,
   resourceLoader
 } from "@galacean/engine-core";
-import { BinomialLLCTranscoder } from "./BinomialLLCTranscoder/BinomialLLCTranscoder";
+import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 import { KTX2Container } from "./KTX2Container";
-import { KhronosTranscoder } from "./KhronosTranscoder/KhronosTranscoder";
+import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { MathUtil } from "@galacean/engine-math";
@@ -75,12 +75,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         !MathUtil.isPowerOf2(ktx2Container.pixelHeight) ||
         ktx2Container.pixelWidth !== ktx2Container.pixelHeight)
     ) {
-      Logger.warn("pvrtc image need power of 2, downgrade to RGBA8");
+      Logger.warn("PVRTC image need power of 2 and width===height, downgrade to RGBA8");
       return KTX2TargetFormat.RGBA8;
     }
 
     if (targetFormat === null) {
-      Logger.warn("can't support any compressed texture, downgrade to RGBA8");
+      Logger.warn("Can't support any compressed texture, downgrade to RGBA8");
       return KTX2TargetFormat.RGBA8;
     }
     // TODO support bc7: https://github.com/galacean/engine/issues/1371

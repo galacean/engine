@@ -203,12 +203,12 @@ export class KTX2Container {
   }
 }
 
-export interface KTX2Level {
+interface KTX2Level {
   levelData: Uint8Array;
   uncompressedByteLength: number;
 }
 
-export interface KTX2DataFormatDescriptorBasicFormat {
+interface KTX2DataFormatDescriptorBasicFormat {
   vendorId: number;
   descriptorType: number;
   versionNumber: number;
@@ -223,7 +223,7 @@ export interface KTX2DataFormatDescriptorBasicFormat {
   samples: KTX2BasicFormatSample[];
 }
 
-export interface KTX2BasicFormatSample {
+interface KTX2BasicFormatSample {
   bitOffset: number;
   bitLength: number;
   /** @deprecated Renamed to 'channelType'. */
@@ -234,7 +234,7 @@ export interface KTX2BasicFormatSample {
   sampleUpper: number;
 }
 
-export interface KTX2GlobalDataBasisLZ {
+interface KTX2GlobalDataBasisLZ {
   endpointCount: number;
   selectorCount: number;
   imageDescs: KTX2GlobalDataBasisLZImageDesc[];

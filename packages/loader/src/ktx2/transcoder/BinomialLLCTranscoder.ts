@@ -1,7 +1,7 @@
 import { KTX2TargetFormat } from "../KTX2TargetFormat";
 import { TranscodeResult } from "../TranscodeResult";
 import { WorkerPool } from "../WorkerPool";
-import { IInitMessage, TranscodeWorkerCode } from "./TranscodeWorkerCode";
+import { IInitMessage, TranscodeWorkerCode } from "./BinomialLLCWorkerCode";
 
 /** @internal */
 export class BinomialLLCTranscoder {
