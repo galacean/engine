@@ -1,7 +1,7 @@
 // @ts-nocheck
 interface TaskItem<T, U> {
   message: T;
-  transfer?: Array<Transferable | OffscreenCanvas>;
+  transfer?: Array<Transferable>;
   resolve: (item: U | PromiseLike<U>) => void;
   reject: (reason?: any) => void;
 }

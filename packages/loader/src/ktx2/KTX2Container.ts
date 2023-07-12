@@ -1,6 +1,5 @@
 import { Utils } from "@galacean/engine-core";
 import { BufferReader } from "../resource-deserialize/utils/BufferReader";
-import { KHR_DF_SAMPLE_DATATYPE_SIGNED, SupercompressionScheme } from "./constants";
 
 enum DFDTransferFunction {
   linear = 1,
@@ -10,6 +9,13 @@ enum DFDTransferFunction {
 enum ColorModel {
   ETC1S = 163,
   UASTC = 166
+}
+
+export enum SupercompressionScheme {
+  None,
+  BasisLZ,
+  Zstd,
+  ZLib
 }
 
 /** @internal */
@@ -127,7 +133,7 @@ export class KTX2Container {
         sampleUpper: Infinity
       };
 
-      if (sample.channelType & KHR_DF_SAMPLE_DATATYPE_SIGNED) {
+      if (sample.channelType & 0x40) {
         sample.sampleLower = dfdReader.nextInt32();
         sample.sampleUpper = dfdReader.nextInt32();
       } else {

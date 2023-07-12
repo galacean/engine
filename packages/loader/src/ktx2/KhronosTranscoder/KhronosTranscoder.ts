@@ -1,5 +1,4 @@
-import { SupercompressionScheme } from "../constants";
-import { KTX2Container } from "../KTX2Container";
+import { KTX2Container, SupercompressionScheme } from "../KTX2Container";
 import { KTX2TargetFormat } from "../KTX2TargetFormat";
 import { WorkerPool } from "../WorkerPool";
 import {
@@ -22,7 +21,7 @@ export class KhronosTranscoder {
   private _transcodeWorkerPool: WorkerPool<IMessage, TranscodeResult>;
   private _initPromise: Promise<any>;
 
-  constructor(public readonly workerLimit: number, public readonly type: KTX2TargetFormat) {
+  constructor(public readonly workerLimitCount: number, public readonly type: KTX2TargetFormat) {
     if (!KhronosTranscoder.transcoderMap[type]) {
       throw `khronos decoder does not support type: ${type}`;
     }
@@ -40,7 +39,7 @@ export class KhronosTranscoder {
 
         const workerURL = URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" }));
 
-        this._transcodeWorkerPool = new WorkerPool(this.workerLimit, () => {
+        this._transcodeWorkerPool = new WorkerPool(this.workerLimitCount, () => {
           const worker = new Worker(workerURL);
           const msg: IInitMessage = {
             type: "init",
@@ -55,7 +54,7 @@ export class KhronosTranscoder {
     return this._initPromise;
   }
 
-  async transcode(ktx2Container: KTX2Container): Promise<TranscodeResult> {
+  transcode(ktx2Container: KTX2Container): Promise<TranscodeResult> {
     const needZstd = ktx2Container.supercompressionScheme === SupercompressionScheme.Zstd;
 
     const levelCount = ktx2Container.levels.length;
@@ -96,10 +95,11 @@ export class KhronosTranscoder {
       messageData[faceIndex] = mipmapData;
     }
 
-    const message = await this._transcodeWorkerPool.postMessage(postMessageData);
-    decodedData.faces = message.data;
-    decodedData.hasAlpha = true;
-    return decodedData;
+    return this._transcodeWorkerPool.postMessage(postMessageData).then((message) => {
+      decodedData.faces = message.data;
+      decodedData.hasAlpha = true;
+      return decodedData;
+    });
   }
 
   destroy() {

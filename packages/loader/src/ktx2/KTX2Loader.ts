@@ -7,6 +7,7 @@ import {
   Loader,
   Logger,
   ResourceManager,
+  Texture,
   Texture2D,
   TextureCube,
   TextureCubeFace,
@@ -70,7 +71,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
-      (!MathUtil.isPowerOf2(ktx2Container.pixelWidth) || !MathUtil.isPowerOf2(ktx2Container.pixelHeight))
+      (!MathUtil.isPowerOf2(ktx2Container.pixelWidth) ||
+        !MathUtil.isPowerOf2(ktx2Container.pixelHeight) ||
+        ktx2Container.pixelWidth !== ktx2Container.pixelHeight)
     ) {
       Logger.warn("pvrtc image need power of 2, downgrade to RGBA8");
       return KTX2TargetFormat.RGBA8;
@@ -121,7 +124,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   /**
    * @internal
    */
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<any> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D | TextureCube> {
     return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) => {
       const ktx2Container = new KTX2Container(buffer);
       const formatPriorities = item.params?.formatPriorities;
@@ -140,53 +143,47 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         const mipmaps = faces[0];
         const mipmap = mipmaps.length > 1;
         const engineFormat = this._getEngineTextureFormat(targetFormat, result);
+        let texture: Texture;
         if (faceCount !== 6) {
-          const texture = new Texture2D(resourceManager.engine, width, height, engineFormat, mipmap);
+          texture = new Texture2D(resourceManager.engine, width, height, engineFormat, mipmap);
           for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-            const { width, height, data } = mipmaps[mipLevel];
-            texture.setPixelBuffer(data, mipLevel, 0, 0, width, height);
+            const { data } = mipmaps[mipLevel];
+            (texture as Texture2D).setPixelBuffer(data, mipLevel);
           }
-          const params = ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array;
-          if (params) {
-            texture.wrapModeU = params[0];
-            texture.wrapModeV = params[1];
-            texture.filterMode = params[2];
-            texture.anisoLevel = params[3];
-          }
-          return texture;
         } else {
-          const textureCube = new TextureCube(resourceManager.engine, height, engineFormat, mipmap);
+          texture = new TextureCube(resourceManager.engine, height, engineFormat, mipmap);
           for (let i = 0; i < faces.length; i++) {
             const faceData = faces[i];
             for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-              textureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
+              (texture as TextureCube).setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
             }
           }
-          return textureCube;
         }
+        const params = ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array;
+        if (params) {
+          texture.wrapModeU = params[0];
+          texture.wrapModeV = params[1];
+          texture.filterMode = params[2];
+          texture.anisoLevel = params[3];
+        }
+        return texture as Texture2D | TextureCube;
       });
     });
   }
 
   private _getEngineTextureFormat(basisFormat: KTX2TargetFormat, transcodeResult: TranscodeResult) {
-    const { hasAlpha, width, height } = transcodeResult;
-    if (basisFormat === KTX2TargetFormat.ASTC) {
-      return TextureFormat.ASTC_4x4;
-    }
-    if (basisFormat === KTX2TargetFormat.ETC) {
-      if (hasAlpha) return TextureFormat.ETC2_RGBA8;
-      else return TextureFormat.ETC2_RGB;
-    }
-    if (basisFormat === KTX2TargetFormat.DXT) {
-      if (hasAlpha) return TextureFormat.DXT5;
-      else return TextureFormat.DXT1;
-    }
-    if (basisFormat === KTX2TargetFormat.PVRTC && MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height)) {
-      if (hasAlpha) return TextureFormat.PVRTC_RGBA4;
-      else return TextureFormat.PVRTC_RGB4;
-    }
-    if (basisFormat === KTX2TargetFormat.RGBA8) {
-      return TextureFormat.R8G8B8A8;
+    const { hasAlpha } = transcodeResult;
+    switch (basisFormat) {
+      case KTX2TargetFormat.ASTC:
+        return TextureFormat.ASTC_4x4;
+      case KTX2TargetFormat.ETC:
+        return hasAlpha ? TextureFormat.ETC2_RGBA8 : TextureFormat.ETC2_RGB;
+      case KTX2TargetFormat.DXT:
+        return hasAlpha ? TextureFormat.DXT5 : TextureFormat.DXT1;
+      case KTX2TargetFormat.PVRTC:
+        return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
+      case KTX2TargetFormat.RGBA8:
+        return TextureFormat.R8G8B8A8;
     }
   }
 }
