@@ -5,13 +5,6 @@ export class BufferReader {
   private _offset: number;
   private _baseOffset: number;
 
-  public static imageMapping = {
-    0: "image/png",
-    1: "image/jpg",
-    2: "image/webp",
-    3: "ktx"
-  };
-
   constructor(public buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
     // byteLength = byteLength ?? _buffer.byteLength;
     this._dataView = new DataView(buffer);
