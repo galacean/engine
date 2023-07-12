@@ -52,22 +52,16 @@ export class KTX2Container {
 
   private parse(buffer: ArrayBuffer) {
     const headerBufferReader = new BufferReader(buffer, 12, 68);
-    // vk format 在 vulkan 中的纹理格式，对应的是 vulkan api，在 webgl/opengl 中无法使用
     this.vkFormat = headerBufferReader.nextUint32();
-    // 数据类型每个单元上传到 GPU 的 size, 如果是 R8G8B8A8，那么 typeSize 就是 1，R16G16B16A16，typeSize 就是 2，对解析帮助不大
     this.typeSize = headerBufferReader.nextUint32();
     this.pixelWidth = headerBufferReader.nextUint32();
     this.pixelHeight = headerBufferReader.nextUint32();
 
-    // 3D 纹理深度，引擎目前不支持 3D 纹理，一般都是 1
     this.pixelDepth = headerBufferReader.nextUint32();
-    // 纹理数组的大小，如果是纹理数组则会用到这个
     this.layerCount = headerBufferReader.nextUint32();
-    // cubemap 的 faceCount，要么是 1，要么是 6
     this.faceCount = headerBufferReader.nextUint32();
-    // Mipmap 等级数量
+    
     const levelCount = Math.max(1, headerBufferReader.nextUint32());
-    // 用来标识是否用到超压缩纹理，如果是 0 就没用到，
     this.supercompressionScheme = headerBufferReader.nextUint32();
 
     const dfdByteOffset = headerBufferReader.nextUint32();
