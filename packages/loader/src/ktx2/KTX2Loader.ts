@@ -41,7 +41,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
    */
   static init(engine: WebGLEngine, workerCount: number = 4, formatPriorities?: KTX2TargetFormat[]): Promise<void> {
     // @ts-ignore
-    if (this._decisionTargetFormat(engine._hardwareRenderer, formatPriorities) === KTX2TargetFormat.ASTC) {
+    if (this._detectSupportedFormat(engine._hardwareRenderer, formatPriorities) === KTX2TargetFormat.ASTC) {
       return this._getKhronosTranscoder(workerCount).init();
     } else {
       return this._getBinomialLLCTranscoder(workerCount).init();
@@ -58,7 +58,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     this._khronosTranscoder = null;
   }
 
-  private static _detectTranscoder(
+  private static _decideTargetFormat(
     engine: Engine,
     ktx2Container: KTX2Container,
     formatPriorities?: KTX2TargetFormat[]
@@ -66,7 +66,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     // @ts-ignore
     const renderer = engine._hardwareRenderer as WebGLRenderer;
 
-    const targetFormat = this._decisionTargetFormat(renderer, formatPriorities) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, formatPriorities) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -84,7 +84,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     return targetFormat;
   }
 
-  private static _decisionTargetFormat(
+  private static _detectSupportedFormat(
     renderer: any,
     formatPriorities: KTX2TargetFormat[] = [
       KTX2TargetFormat.ASTC,
@@ -125,7 +125,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) => {
       const ktx2Container = new KTX2Container(buffer);
       const formatPriorities = item.params?.formatPriorities;
-      const targetFormat = KTX2Loader._detectTranscoder(resourceManager.engine, ktx2Container, formatPriorities);
+      const targetFormat = KTX2Loader._decideTargetFormat(resourceManager.engine, ktx2Container, formatPriorities);
       let transcodeResultPromise: Promise<any>;
       if (targetFormat === KTX2TargetFormat.ASTC && ktx2Container.isUASTC) {
         const khronosWorker = KTX2Loader._getKhronosTranscoder();
