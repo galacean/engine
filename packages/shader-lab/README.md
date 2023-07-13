@@ -17,11 +17,11 @@ const engine = await WebGLEngine.create({ canvas: "canvas", shaderLab });
 
 ......
 
-// Create shader by galacean shader code directly!
+// Create shader by galacean shader code directly
 const shader = Shader.create(galaceanShaderCode);
 
 .......
 
-// Run engine.
+// Run engine
 engine.run()
 ```
