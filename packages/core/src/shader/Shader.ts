@@ -92,6 +92,8 @@ export class Shader {
       });
 
       shader = new Shader(shaderInfo.name, subShaderList);
+      shaderMap[shaderInfo.name] = shader;
+      return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {
         throw `Shader named "${nameOrShaderSource}" already exists.`;
