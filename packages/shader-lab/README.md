@@ -4,10 +4,6 @@
 npm install @galacean/engine-shaderlab
 ```
 
-## [example](./example/ast.ts)
-
-`npm run example`
-
 ## Usage
 
 ```typescript
