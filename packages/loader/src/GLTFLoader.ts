@@ -40,7 +40,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         masterPromiseInfo.resolve(glTFResource);
       })
       .catch((e) => {
-        const msg = `Error loading glTF model from ${url} .`;
+        const msg = `Error loading glTF model from ${url} : ${e}`;
         Logger.error(msg);
         masterPromiseInfo.reject(msg);
         context.defaultSceneRootPromiseInfo.reject(e);
