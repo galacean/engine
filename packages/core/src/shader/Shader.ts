@@ -28,20 +28,20 @@ export class Shader {
    *
    * @remarks
    *
-   * shaderLab must be enabled first as follows
+   * ShaderLab must be enabled first as follows:
    * ```ts
+   * // Import shaderLab
    * import { ShaderLab } from "@galacean/engine-shaderlab";
-   * // Create ShaderLab
-   * const shaderLab = new ShaderLab();
    * // Create engine with shaderLab
-   * const engine = await WebGLEngine.create({ canvas: "canvas", shaderLab });
+   * const engine = await WebGLEngine.create({ canvas: "canvas", new ShaderLab() });
    * ...
    * ```
    *
    * @param shaderSource - shader code
+   * @returns Shader
    *
    * @throws
-   * throw string exception if shaderLab has not been enabled properly.
+   * Throw string exception if shaderLab has not been enabled properly.
    */
   static create(shaderSource: string): Shader;
 

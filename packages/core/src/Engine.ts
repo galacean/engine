@@ -564,7 +564,7 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const { physics, shaderLab } = configuration;
+    const { shaderLab, physics } = configuration;
     if (shaderLab) {
       shaderLab.initialize();
       Shader._shaderLab = shaderLab;
