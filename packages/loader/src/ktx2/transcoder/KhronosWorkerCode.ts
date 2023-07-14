@@ -57,7 +57,7 @@ export function TranscodeWorkerCode() {
     }
 
     _init(result: WebAssembly.WebAssemblyInstantiatedSource): void {
-      ZSTDDecoder.instance = result.instance as unknown as {
+      ZSTDDecoder.instance = (result.instance as unknown) as {
         exports: DecoderExports;
       };
 

@@ -66,7 +66,7 @@ export class KTX2Container {
     this.pixelDepth = headerBufferReader.nextUint32();
     this.layerCount = headerBufferReader.nextUint32();
     this.faceCount = headerBufferReader.nextUint32();
-    
+
     const levelCount = Math.max(1, headerBufferReader.nextUint32());
     this.supercompressionScheme = headerBufferReader.nextUint32();
 

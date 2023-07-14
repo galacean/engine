@@ -94,4 +94,3 @@ export interface KhronosTranscoderMessage extends BaseMessage {
 }
 
 export type IKhronosMessageMessage = InitMessage | KhronosTranscoderMessage;
-
