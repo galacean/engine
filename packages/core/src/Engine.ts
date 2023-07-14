@@ -565,16 +565,23 @@ export class Engine extends EventDispatcher {
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const physics = configuration.physics;
+    const initializePromises: Promise<any>[] = [];
     if (physics) {
-      return physics.initialize().then(() => {
-        PhysicsScene._nativePhysics = physics;
-        this._nativePhysicsManager = physics.createPhysicsManager();
-        this._physicsInitialized = true;
-        return this;
-      });
-    } else {
-      return Promise.resolve(this);
+      initializePromises.push(
+        physics.initialize().then(() => {
+          PhysicsScene._nativePhysics = physics;
+          this._nativePhysicsManager = physics.createPhysicsManager();
+          this._physicsInitialized = true;
+          return this;
+        })
+      );
     }
+    const loaders = ResourceManager._loaders;
+    for (let key in loaders) {
+      const loader = loaders[key];
+      if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
+    }
+    return Promise.all(initializePromises).then(() => this);
   }
 
   private _createSpriteMaterial(): Material {

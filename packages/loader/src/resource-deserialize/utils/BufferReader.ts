@@ -13,7 +13,7 @@ export class BufferReader {
     this._baseOffset = byteOffset;
   }
 
-  get relativeOffset() {
+  get position() {
     return this._offset - this._baseOffset;
   }
 

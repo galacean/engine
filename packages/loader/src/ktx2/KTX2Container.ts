@@ -146,7 +146,7 @@ export class KTX2Container {
 
     const kvdReader = new BufferReader(buffer, kvdByteOffset, kvdByteLength, true);
 
-    while (kvdReader.relativeOffset < kvdByteLength) {
+    while (kvdReader.position < kvdByteLength) {
       const keyValueByteLength = kvdReader.nextUint32();
       const keyData = kvdReader.scan(keyValueByteLength);
       const key = Utils.decodeText(keyData);

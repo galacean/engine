@@ -2,6 +2,7 @@ import {
   AssetPromise,
   AssetType,
   Engine,
+  EngineConfiguration,
   GLCapabilityType,
   LoadItem,
   Loader,
@@ -32,22 +33,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     [KTX2TargetFormat.DXT]: [GLCapabilityType.s3tc],
     [KTX2TargetFormat.PVRTC]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit]
   };
-
-  /**
-   * Initialize ktx2 transcoder.
-   * @param engine - WebGLEngine
-   * @param workerCount - Worker count for transcoder, default is 4.
-   * @param formatPriorities - Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8.
-   * @returns
-   */
-  static init(engine: WebGLEngine, workerCount: number = 4, formatPriorities?: KTX2TargetFormat[]): Promise<void> {
-    // @ts-ignore
-    if (this._detectSupportedFormat(engine._hardwareRenderer, formatPriorities) === KTX2TargetFormat.ASTC) {
-      return this._getKhronosTranscoder(workerCount).init();
-    } else {
-      return this._getBinomialLLCTranscoder(workerCount).init();
-    }
-  }
 
   /**
    * Destroy ktx2 transcoder worker.
@@ -113,6 +98,20 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
   private static _getKhronosTranscoder(workerCount: number = 4) {
     return (this._khronosTranscoder ??= new KhronosTranscoder(workerCount, KTX2TargetFormat.ASTC));
+  }
+
+  override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
+    if (configuration.ktx2Loader) {
+      const options = configuration.ktx2Loader;
+      if (
+        // @ts-ignore
+        KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, options.formatPriorities) === KTX2TargetFormat.ASTC
+      ) {
+        return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
+      } else {
+        return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
+      }
+    }
   }
 
   /**
@@ -191,4 +190,16 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 export interface KTX2Params {
   /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
   formatPriorities: KTX2TargetFormat[];
+}
+
+declare module "@galacean/engine-core" {
+  interface EngineConfiguration {
+    /** ktx2 options */
+    ktx2Loader?: {
+      /** Worker count for transcoder, default is 4. */
+      workerCount?: number;
+      /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+      formatPriorities?: KTX2TargetFormat[];
+    };
+  }
 }

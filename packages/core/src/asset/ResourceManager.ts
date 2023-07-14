@@ -9,8 +9,8 @@ import { ReferResource } from "./ReferResource";
  * ResourceManager
  */
 export class ResourceManager {
-  /** Loader collection. */
-  private static _loaders: { [key: string]: Loader<any> } = {};
+  /** @internal */
+  static _loaders: { [key: string]: Loader<any> } = {};
   private static _extTypeMapping: { [key: string]: string } = {};
 
   /**
