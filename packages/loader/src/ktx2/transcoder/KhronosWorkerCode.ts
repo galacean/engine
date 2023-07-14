@@ -70,7 +70,7 @@ export function TranscodeWorkerCode() {
       }
 
       const exports = ZSTDDecoder.instance.exports;
-      
+
       // Write compressed data into WASM memory
       const compressedSize = array.byteLength;
       const compressedPtr = exports.malloc(compressedSize);
