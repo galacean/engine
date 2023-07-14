@@ -20,7 +20,7 @@ import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { MathUtil } from "@galacean/engine-math";
-import { TranscodeResult } from "./TranscodeResult";
+import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 
 @resourceLoader(AssetType.KTX, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {

@@ -1,43 +1,9 @@
+import { EncodedData, IKhronosMessageMessage } from "./AbstractTranscoder";
+
 interface WasmModule {
   memory: WebAssembly.Memory;
   transcode: (nBlocks: number) => number;
 }
-
-export interface EncodedData {
-  buffer: Uint8Array;
-  levelWidth: number;
-  levelHeight: number;
-  uncompressedByteLength: number;
-}
-
-type MessageType = "init" | "transcode";
-
-export interface IBaseMessage {
-  type: MessageType;
-}
-
-export interface IInitMessage extends IBaseMessage {
-  type: "init";
-  transcoderWasm: ArrayBuffer;
-}
-
-export interface ITranscodeMessage extends IBaseMessage {
-  type: "transcode";
-  format: number;
-  needZstd: boolean;
-  data: EncodedData[][];
-}
-
-export type IMessage = IInitMessage | ITranscodeMessage;
-
-export type TranscodeResult = {
-  data: Array<{ data: Uint8Array; width: number; height: number }>;
-};
-
-export type TranscodeResponse = {
-  id: number;
-  type: "transcoded";
-} & TranscodeResult;
 
 interface DecoderExports {
   memory: Uint8Array;
@@ -205,7 +171,7 @@ export function TranscodeWorkerCode() {
     });
   }
 
-  self.onmessage = function onmessage(event: MessageEvent<IMessage>) {
+  self.onmessage = function onmessage(event: MessageEvent<IKhronosMessageMessage>) {
     const message = event.data;
     switch (message.type) {
       case "init":

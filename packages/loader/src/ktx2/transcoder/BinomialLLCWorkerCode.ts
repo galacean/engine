@@ -1,35 +1,4 @@
-type MessageType = "init" | "transcode";
-
-export interface IBaseMessage {
-  type: MessageType;
-}
-
-export interface IInitMessage extends IBaseMessage {
-  type: "init";
-  transcoderWasm: ArrayBuffer;
-}
-
-export interface ITranscodeMessage extends IBaseMessage {
-  type: "transcode";
-  format: number;
-  buffer: ArrayBuffer;
-}
-
-export type IMessage = IInitMessage | ITranscodeMessage;
-
-export type TranscodeResult = {
-  width: number;
-  height: number;
-  hasAlpha: boolean;
-  format: number;
-  faces: Array<{ data: Uint8Array; width: number; height: number }>[];
-  faceCount: number;
-};
-
-export type TranscodeResponse = {
-  id: number;
-  type: "transcoded";
-} & TranscodeResult;
+import { IBinomialMessage, TranscodeResult } from "./AbstractTranscoder";
 
 /** @internal */
 export function TranscodeWorkerCode() {
@@ -78,26 +47,23 @@ export function TranscodeWorkerCode() {
     return result;
   }
 
-  self.onmessage = function onmessage(event: MessageEvent<IMessage>) {
+  self.onmessage = function onmessage(event: MessageEvent<IBinomialMessage>) {
     const message = event.data;
 
     switch (message.type) {
       case "init":
-        init(message.transcoderWasm).then(() => self.postMessage("init-completed"));
+        init(message.transcoderWasm)
+          .then(() => self.postMessage("init-completed"))
+          .catch((e) => {
+            throw e;
+          });
         break;
       case "transcode":
         transcodePromise.then((KTX2File) => {
-          try {
-            const result = transcode(message.buffer, message.format, KTX2File);
-            // @ts-ignore
-            result.type = "transcoded";
-            self.postMessage(result);
-          } catch (error) {
-            self.postMessage({
-              type: "error",
-              error: error.message
-            });
-          }
+          const result = transcode(message.buffer, message.format, KTX2File);
+          // @ts-ignore
+          result.type = "transcoded";
+          self.postMessage(result);
         });
         break;
     }

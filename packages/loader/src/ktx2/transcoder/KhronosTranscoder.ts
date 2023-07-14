@@ -1,57 +1,36 @@
 import { KTX2Container, SupercompressionScheme } from "../KTX2Container";
 import { KTX2TargetFormat } from "../KTX2TargetFormat";
-import { WorkerPool } from "../WorkerPool";
-import {
-  EncodedData,
-  IInitMessage,
-  IMessage,
-  ITranscodeMessage,
-  TranscodeResult,
-  TranscodeWorkerCode
-} from "./KhronosWorkerCode";
+import { AbstractTranscoder, EncodedData, KhronosTranscoderMessage, TranscodeResult } from "./AbstractTranscoder";
+import { TranscodeWorkerCode } from "./KhronosWorkerCode";
 
 /** @internal */
-export class KhronosTranscoder {
+export class KhronosTranscoder extends AbstractTranscoder {
   public static transcoderMap = {
     // TODO: support bc7
     [KTX2TargetFormat.ASTC]:
       "https://mdn.alipayobjects.com/rms/afts/file/A*0jiKRK6D1-kAAAAAAAAAAAAAARQnAQ/uastc_astc.wasm"
   };
 
-  private _transcodeWorkerPool: WorkerPool<IMessage, TranscodeResult>;
-  private _initPromise: Promise<any>;
-
-  constructor(public readonly workerLimitCount: number, public readonly type: KTX2TargetFormat) {
+  constructor(workerLimitCount: number, public readonly type: KTX2TargetFormat) {
+    super(workerLimitCount);
     if (!KhronosTranscoder.transcoderMap[type]) {
       throw `khronos decoder does not support type: ${type}`;
     }
   }
 
-  init() {
-    if (this._initPromise) return this._initPromise;
-    this._initPromise = fetch(KhronosTranscoder.transcoderMap[this.type])
+  _initTranscodeWorkerPool() {
+    return fetch(KhronosTranscoder.transcoderMap[this.type])
       .then((res) => res.arrayBuffer())
       .then((wasmBuffer) => {
         const funcCode = TranscodeWorkerCode.toString();
-        const transcodeString = funcCode.substring(funcCode.indexOf("{") + 1, funcCode.lastIndexOf("}"));
+        const workerURL = URL.createObjectURL(
+          new Blob([funcCode.substring(funcCode.indexOf("{") + 1, funcCode.lastIndexOf("}"))], {
+            type: "application/javascript"
+          })
+        );
 
-        const workerCode = `${transcodeString}`;
-
-        const workerURL = URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" }));
-
-        this._transcodeWorkerPool = new WorkerPool(this.workerLimitCount, () => {
-          const worker = new Worker(workerURL);
-          const msg: IInitMessage = {
-            type: "init",
-            transcoderWasm: wasmBuffer
-          };
-          worker.postMessage(msg);
-          return worker;
-        });
-
-        return this._transcodeWorkerPool.prepareWorker();
+        return this._createTranscodePool(workerURL, wasmBuffer);
       });
-    return this._initPromise;
   }
 
   transcode(ktx2Container: KTX2Container): Promise<TranscodeResult> {
@@ -66,7 +45,7 @@ export class KhronosTranscoder {
       mipmaps: null
     };
 
-    const postMessageData: ITranscodeMessage = {
+    const postMessageData: KhronosTranscoderMessage = {
       type: "transcode",
       format: 0,
       needZstd,
@@ -100,9 +79,5 @@ export class KhronosTranscoder {
       decodedData.hasAlpha = true;
       return decodedData;
     });
-  }
-
-  destroy() {
-    this._transcodeWorkerPool.destroy();
   }
 }
