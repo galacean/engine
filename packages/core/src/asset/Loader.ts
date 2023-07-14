@@ -1,3 +1,4 @@
+import { Engine, EngineConfiguration } from "../Engine";
 import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
 import { request, RequestConfig } from "./request";
@@ -27,7 +28,7 @@ export abstract class Loader<T> {
   private static _engineObjects: { [key: string]: any } = {};
 
   constructor(public readonly useCache: boolean) {}
-
-  request: <U>(url: string, config: RequestConfig) => AssetPromise<U> = request;
+  initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void>;
   abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T> | Record<string, AssetPromise<any>>;
+  request: <U>(url: string, config: RequestConfig) => AssetPromise<U> = request;
 }
