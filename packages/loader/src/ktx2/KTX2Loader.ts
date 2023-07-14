@@ -36,8 +36,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   /**
    * Initialize ktx2 transcoder.
    * @param engine - WebGLEngine
-   * @param workerCount - Worker count for transcoder, default is 4
-   * @param formatPriorities - Transcoder Format priorities, default
+   * @param workerCount - Worker count for transcoder, default is 4.
+   * @param formatPriorities - Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8.
    * @returns
    */
   static init(engine: WebGLEngine, workerCount: number = 4, formatPriorities?: KTX2TargetFormat[]): Promise<void> {
@@ -108,23 +108,20 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _getBinomialLLCTranscoder(workerCount: number = 4) {
-    if (!this._binomialLLCTranscoder) {
-      this._binomialLLCTranscoder = new BinomialLLCTranscoder(workerCount);
-    }
-    return this._binomialLLCTranscoder;
+    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
   }
 
   private static _getKhronosTranscoder(workerCount: number = 4) {
-    if (!this._khronosTranscoder) {
-      this._khronosTranscoder = new KhronosTranscoder(workerCount, KTX2TargetFormat.ASTC);
-    }
-    return this._khronosTranscoder;
+    return (this._khronosTranscoder ??= new KhronosTranscoder(workerCount, KTX2TargetFormat.ASTC));
   }
 
   /**
    * @internal
    */
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D | TextureCube> {
+  load(
+    item: LoadItem & { params?: KTX2Params },
+    resourceManager: ResourceManager
+  ): AssetPromise<Texture2D | TextureCube> {
     return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) => {
       const ktx2Container = new KTX2Container(buffer);
       const formatPriorities = item.params?.formatPriorities;
@@ -186,4 +183,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return TextureFormat.R8G8B8A8;
     }
   }
+}
+
+/**
+ * KTX2 loader params interface.
+ */
+export interface KTX2Params {
+  /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+  formatPriorities: KTX2TargetFormat[];
 }

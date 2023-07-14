@@ -10,12 +10,12 @@ export class BinomialLLCTranscoder extends AbstractTranscoder {
 
   _initTranscodeWorkerPool() {
     return Promise.all([
-      fetch(
-        "https://mdn.alipayobjects.com/rms/afts/file/A*nG8SR6vCgXgAAAAAAAAAAAAAARQnAQ/basis_transcoder.js"
-      ).then((res) => res.text()),
-      fetch(
-        "https://mdn.alipayobjects.com/rms/afts/file/A*qEUfQ7317KsAAAAAAAAAAAAAARQnAQ/basis_transcoder.wasm"
-      ).then((res) => res.arrayBuffer())
+      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*nG8SR6vCgXgAAAAAAAAAAAAAARQnAQ/basis_transcoder.js").then(
+        (res) => res.text()
+      ),
+      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*qEUfQ7317KsAAAAAAAAAAAAAARQnAQ/basis_transcoder.wasm").then(
+        (res) => res.arrayBuffer()
+      )
     ]).then(([jsCode, wasmBuffer]) => {
       const funcCode = TranscodeWorkerCode.toString();
       const transcodeString = funcCode.substring(funcCode.indexOf("{"), funcCode.lastIndexOf("}") + 1);

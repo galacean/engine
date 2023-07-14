@@ -1,5 +1,5 @@
 /**
- * KTX2 transcode format.
+ * KTX2 transcode target format.
  */
 export enum KTX2TargetFormat {
   /** RGB(A) compressed format, 128 bits per 4x4 pixel block. */
