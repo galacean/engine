@@ -6,11 +6,11 @@ export enum KTX2TargetFormat {
   ASTC,
   /** Unsupported format. */
   BC7,
-  /** RGB(A) compressed format。*/
+  /** RGB(A) compressed format. */
   DXT,
-  /** RGB(A) compressed format。*/
+  /** RGB(A) compressed format. */
   PVRTC,
-  /** RGB(A) compressed format。*/
+  /** RGB(A) compressed format. */
   ETC,
   /** R8 format。*/
   R8,

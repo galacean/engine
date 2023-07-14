@@ -1,6 +1,6 @@
 import { EncodedData, IKhronosMessageMessage } from "./AbstractTranscoder";
 
-interface WasmModule {
+interface WasmModule extends WebAssembly.Exports {
   memory: WebAssembly.Memory;
   transcode: (nBlocks: number) => number;
 }
@@ -69,27 +69,22 @@ export function TranscodeWorkerCode() {
         throw new Error(`ZSTDDecoder: Await .init() before decoding.`);
       }
 
-      // Write compressed data into WASM memory.
+      const exports = ZSTDDecoder.instance.exports;
+      
+      // Write compressed data into WASM memory
       const compressedSize = array.byteLength;
-      const compressedPtr = ZSTDDecoder.instance.exports.malloc(compressedSize);
+      const compressedPtr = exports.malloc(compressedSize);
       ZSTDDecoder.heap.set(array, compressedPtr);
 
-      // Decompress into WASM memory.
-      uncompressedSize =
-        uncompressedSize ||
-        Number(ZSTDDecoder.instance.exports.ZSTD_findDecompressedSize(compressedPtr, compressedSize));
-      const uncompressedPtr = ZSTDDecoder.instance.exports.malloc(uncompressedSize);
-      const actualSize = ZSTDDecoder.instance.exports.ZSTD_decompress(
-        uncompressedPtr,
-        uncompressedSize,
-        compressedPtr,
-        compressedSize
-      );
+      // Decompress into WASM memory
+      uncompressedSize = uncompressedSize || Number(exports.ZSTD_findDecompressedSize(compressedPtr, compressedSize));
+      const uncompressedPtr = exports.malloc(uncompressedSize);
+      const actualSize = exports.ZSTD_decompress(uncompressedPtr, uncompressedSize, compressedPtr, compressedSize);
 
-      // Read decompressed data and free WASM memory.
+      // Read decompressed data and free WASM memory
       const dec = ZSTDDecoder.heap.slice(uncompressedPtr, uncompressedPtr + actualSize);
-      ZSTDDecoder.instance.exports.free(compressedPtr);
-      ZSTDDecoder.instance.exports.free(uncompressedPtr);
+      exports.free(compressedPtr);
+      exports.free(uncompressedPtr);
 
       return dec;
     }
@@ -108,14 +103,13 @@ export function TranscodeWorkerCode() {
   }
 
   function initWasm(buffer: ArrayBuffer): Promise<WasmModule> {
-    // @ts-ignore
     wasmPromise = WebAssembly.instantiate(buffer, {
       env: { memory: new WebAssembly.Memory({ initial: 16 }) }
-    }).then((moduleWrapper) => moduleWrapper.instance.exports);
+    }).then((moduleWrapper) => <WasmModule>moduleWrapper.instance.exports);
     return wasmPromise;
   }
 
-  let zstdDecoder = new ZSTDDecoder();
+  const zstdDecoder = new ZSTDDecoder();
 
   function transcode(data: EncodedData[][], needZstd: boolean, wasmModule: WasmModule) {
     const faceCount = data.length;

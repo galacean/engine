@@ -13,9 +13,6 @@ export class KhronosTranscoder extends AbstractTranscoder {
 
   constructor(workerLimitCount: number, public readonly type: KTX2TargetFormat) {
     super(workerLimitCount);
-    if (!KhronosTranscoder.transcoderMap[type]) {
-      throw `khronos decoder does not support type: ${type}`;
-    }
   }
 
   _initTranscodeWorkerPool() {
