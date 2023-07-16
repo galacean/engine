@@ -2,7 +2,6 @@
  * Shader lab interface.
  */
 export interface IShaderLab {
-  initialize(): void;
   parseShader(shaderSource: string): IShaderInfo;
 }
 

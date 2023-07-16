@@ -79,11 +79,11 @@ export class Shader {
     const shaderMap = Shader._shaderMap;
 
     if (!vertexSourceOrShaderPassesOrSubShaders) {
-      if (!this._shaderLab) {
+      if (!Shader._shaderLab) {
         throw "ShaderLab has not been set up yet.";
       }
       // TODO: render state
-      const shaderInfo = this._shaderLab.parseShader(nameOrShaderSource);
+      const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
       const subShaderList = shaderInfo.subShaders.map((subShader) => {
         const passList = subShader.passes.map((pass) => {
           return new ShaderPass(pass.vert, pass.frag, pass.tags);

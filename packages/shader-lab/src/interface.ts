@@ -6,8 +6,6 @@ import { DiagnosticSeverity } from "./Constants";
  * Shader lab interface
  */
 export interface IShaderLab {
-  /**  */
-  initialize(): void;
   /**
    * parse galacean shader
    */
