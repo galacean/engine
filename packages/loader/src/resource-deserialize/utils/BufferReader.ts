@@ -1,27 +1,20 @@
 import { Utils } from "@galacean/engine-core";
-
-class ImageData {
-  type: "image/png" | "image/jpg" | "image/webp" | "ktx";
-  buffer: ArrayBuffer;
-}
-
 export class BufferReader {
   private _dataView: DataView;
   private _littleEndian: boolean;
   private _offset: number;
-
-  public static imageMapping = {
-    0: "image/png",
-    1: "image/jpg",
-    2: "image/webp",
-    3: "ktx"
-  };
+  private _baseOffset: number;
 
   constructor(public buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
     // byteLength = byteLength ?? _buffer.byteLength;
     this._dataView = new DataView(buffer);
     this._littleEndian = littleEndian;
     this._offset = byteOffset;
+    this._baseOffset = byteOffset;
+  }
+
+  get position() {
+    return this._offset - this._baseOffset;
   }
 
   get offset() {

@@ -152,9 +152,17 @@ export abstract class Mesh extends GraphicsResource {
    * @internal
    */
   _addVertexElement(element: VertexElement): void {
-    const { semantic } = element;
-    this._vertexElementMap[semantic] = element;
-    this._vertexElements.push(element);
+    const vertexElementMap = this._vertexElementMap;
+    const vertexElements = this._vertexElements;
+
+    const semantic = element.semantic;
+    const oldVertexElement = vertexElementMap[semantic];
+    if (oldVertexElement) {
+      console.warn(`VertexElement ${semantic} already exists.`);
+      vertexElements.splice(vertexElements.indexOf(oldVertexElement), 1);
+    }
+    vertexElementMap[semantic] = element;
+    vertexElements.push(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
     this._bufferStructChanged = true;
   }
@@ -162,12 +170,49 @@ export abstract class Mesh extends GraphicsResource {
   /**
    * @internal
    */
-  _insertVertexElement(i: number, element: VertexElement): void {
-    const { semantic } = element;
-    this._vertexElementMap[semantic] = element;
-    this._vertexElements.splice(i, 0, element);
+  _removeVertexElement(index: number): void {
+    const vertexElements = this._vertexElements;
+
+    // Delete the old vertex element
+    const vertexElement = vertexElements[index];
+    vertexElements.splice(index, 1);
+    delete this._vertexElementMap[vertexElement.semantic];
+
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
     this._bufferStructChanged = true;
+  }
+
+  /**
+   * @internal
+   * @remarks should use together with `_setVertexElementsLength`
+   */
+  _setVertexElement(index: number, element: VertexElement): void {
+    const vertexElementMap = this._vertexElementMap;
+    const vertexElements = this._vertexElements;
+
+    // Delete the old vertex element
+    const oldVertexElement = vertexElements[index];
+    oldVertexElement && delete vertexElementMap[oldVertexElement.semantic];
+
+    vertexElementMap[element.semantic] = element;
+    vertexElements[index] = element;
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
+  }
+
+  /**
+   * @internal
+   *
+   */
+  _setVertexElementsLength(length: number): void {
+    const vertexElementMap = this._vertexElementMap;
+    const vertexElements = this._vertexElements;
+
+    for (let i = length, n = vertexElements.length; i < n; i++) {
+      const element = vertexElements[i];
+      delete vertexElementMap[element.semantic];
+    }
+    vertexElements.length = length;
   }
 
   /**
@@ -176,8 +221,8 @@ export abstract class Mesh extends GraphicsResource {
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
     if (this._getReferCount() > 0) {
       const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addReferCount(-1);
-      binding._buffer._addReferCount(1);
+      lastBinding && lastBinding.buffer._addReferCount(-1);
+      binding.buffer._addReferCount(1);
     }
     this._vertexBufferBindings[index] = binding;
     this._bufferStructChanged = true;
@@ -195,7 +240,7 @@ export abstract class Mesh extends GraphicsResource {
     super._addReferCount(value);
     const vertexBufferBindings = this._vertexBufferBindings;
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-      vertexBufferBindings[i]._buffer._addReferCount(value);
+      vertexBufferBindings[i]?.buffer._addReferCount(value);
     }
   }
 
