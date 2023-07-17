@@ -15,13 +15,12 @@ import {
   TextureFormat,
   resourceLoader
 } from "@galacean/engine-core";
-import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
-import { KTX2Container } from "./KTX2Container";
-import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
-import { KTX2TargetFormat } from "./KTX2TargetFormat";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { MathUtil } from "@galacean/engine-math";
+import { KTX2Container } from "./KTX2Container";
+import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
+import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
+import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 
 @resourceLoader(AssetType.KTX, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
@@ -30,7 +29,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _supportedMap = {
     [KTX2TargetFormat.ASTC]: [GLCapabilityType.astc],
     [KTX2TargetFormat.ETC]: [GLCapabilityType.etc],
-    [KTX2TargetFormat.DXT]: [GLCapabilityType.s3tc],
+    [KTX2TargetFormat.BC7]: [GLCapabilityType.bptc],
+    [KTX2TargetFormat.BC1_BC3]: [GLCapabilityType.s3tc],
     [KTX2TargetFormat.PVRTC]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit]
   };
 
@@ -61,12 +61,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         ktx2Container.pixelWidth !== ktx2Container.pixelHeight)
     ) {
       Logger.warn("PVRTC image need power of 2 and width===height, downgrade to RGBA8");
-      return KTX2TargetFormat.RGBA8;
+      return KTX2TargetFormat.R8G8B8A8;
     }
 
     if (targetFormat === null) {
       Logger.warn("Can't support any compressed texture, downgrade to RGBA8");
-      return KTX2TargetFormat.RGBA8;
+      return KTX2TargetFormat.R8G8B8A8;
     }
     // TODO support bc7: https://github.com/galacean/engine/issues/1371
     return targetFormat;
@@ -77,7 +77,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     formatPriorities: KTX2TargetFormat[] = [
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.ETC,
-      KTX2TargetFormat.DXT,
+      KTX2TargetFormat.BC7,
+      KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ]
   ): KTX2TargetFormat | null {
@@ -174,11 +175,13 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return TextureFormat.ASTC_4x4;
       case KTX2TargetFormat.ETC:
         return hasAlpha ? TextureFormat.ETC2_RGBA8 : TextureFormat.ETC2_RGB;
-      case KTX2TargetFormat.DXT:
-        return hasAlpha ? TextureFormat.DXT5 : TextureFormat.DXT1;
+      case KTX2TargetFormat.BC7:
+        return TextureFormat.BC7;
+      case KTX2TargetFormat.BC1_BC3:
+        return hasAlpha ? TextureFormat.BC1 : TextureFormat.BC3;
       case KTX2TargetFormat.PVRTC:
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
-      case KTX2TargetFormat.RGBA8:
+      case KTX2TargetFormat.R8G8B8A8:
         return TextureFormat.R8G8B8A8;
     }
   }
@@ -194,7 +197,7 @@ export interface KTX2Params {
 
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
-    /** ktx2 options */
+    /** KTX2 loader options. */
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;

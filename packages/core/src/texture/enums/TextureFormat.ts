@@ -21,10 +21,12 @@ export enum TextureFormat {
   /** RGBA format, 32 bits per channel. */
   R32G32B32A32,
 
-  /** RGB compressed format. */
-  DXT1,
-  /** RGBA compressed format. */
-  DXT5,
+  /** RGB compressed format, 4 bits per pixel. */
+  BC1,
+  /** RGBA compressed format, 8 bits per pixel. */
+  BC3,
+  /** RGB(A) compressed format, 128 bits per 4x4 pixel block. */
+  BC7,
   /** RGB compressed format, 4 bits per pixel. */
   ETC1_RGB,
   /** RGB compressed format, 4 bits per pixel. */
@@ -67,5 +69,10 @@ export enum TextureFormat {
   /** 16-bit depth + 8-bit stencil format. */
   Depth24Stencil8,
   /** 32-bit depth + 8-bit stencil format. */
-  Depth32Stencil8
+  Depth32Stencil8,
+
+  /** @deprecated Use `TextureFormat.BC1` instead. */
+  DXT1,
+  /** @deprecated Use `TextureFormat.BC3` instead. */
+  DXT5
 }
