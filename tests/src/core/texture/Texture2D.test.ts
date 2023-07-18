@@ -32,7 +32,7 @@ describe("Texture2D", () => {
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new Texture2D(engine, width, height, 1234567);
+        new Texture2D(engine, width, height, 1234567 as any);
       }).to.throw;
     });
   });
