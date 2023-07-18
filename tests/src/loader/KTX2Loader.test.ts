@@ -40,9 +40,8 @@ before(async () => {
   blob = await fetch(ktx2Buffer).then((res) => res.blob());
   texture2dKtx2Url = URL.createObjectURL(blob) + "#.ktx2";
 });
-describe.only("ktx2 Loader test", function () {
+describe("ktx2 Loader test", function () {
   it("init and destroy test", async () => {
-    await KTX2Loader.init(engine);
     // @ts-ignore
     const transcoder = KTX2Loader._khronosTranscoder ?? KTX2Loader._binomialLLCTranscoder;
     expect(transcoder).not.to.be.null;

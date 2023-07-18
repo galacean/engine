@@ -47,7 +47,7 @@ export class GLTFTextureParser extends GLTFParser {
                   url: Utils.resolveAbsoluteUrl(url, uri),
                   type: type
                 })
-                .then((texture) => {
+                .then<Texture2D>((texture) => {
                   if (!texture.name) {
                     texture.name = textureName || imageName || `texture_${index}`;
                   }
