@@ -22,6 +22,10 @@ import { VertexAttribute } from "./enums/VertexAttribute";
  */
 export class PrimitiveMesh {
   private static _tempVec30: Vector3 = new Vector3();
+  private static _tempVec31: Vector3 = new Vector3();
+  private static _tempVec32: Vector3 = new Vector3();
+  private static _tempVec33: Vector3 = new Vector3();
+  private static _tempVec34: Vector3 = new Vector3();
 
   /**
    * Create a sphere mesh.
@@ -295,30 +299,36 @@ export class PrimitiveMesh {
   ): void {
     step = Math.max(1, Math.floor(step));
 
-    const normals: Vector3[] = [];
-    const uvs: Vector2[] = [];
-
     let { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
+
+    const vertexCount = positions.length + Math.pow(2, step + 1) + 15;
+    const vertices = new Float32Array(vertexCount * 8);
+    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positions.length, cells.length * 6);
 
     // get normals, uvs, and scale to radius
     for (let i = 0; i < positions.length; i++) {
-      normals[i] = new Vector3().copyFrom(positions[i]);
-      normals[i].normalize();
+      PrimitiveMesh._tempVec30.copyFrom(positions[i]);
+      PrimitiveMesh._tempVec30.normalize();
 
-      positions[i].copyFrom(normals[i]).scale(radius);
+      vertices[i * 8] = PrimitiveMesh._tempVec30.x * radius;
+      vertices[i * 8 + 1] = PrimitiveMesh._tempVec30.y * radius;
+      vertices[i * 8 + 2] = PrimitiveMesh._tempVec30.z * radius;
 
-      let theta = Math.atan2(normals[i].z, normals[i].x);
-      let phi = Math.acos(normals[i].y / normals[i].length());
-      uvs[i] = new Vector2((Math.PI - theta) / (2 * Math.PI), phi / Math.PI);
+      vertices[i * 8 + 3] = PrimitiveMesh._tempVec30.x;
+      vertices[i * 8 + 4] = PrimitiveMesh._tempVec30.y;
+      vertices[i * 8 + 5] = PrimitiveMesh._tempVec30.z;
+
+      vertices[i * 8 + 6] =
+        (Math.PI - Math.atan2(PrimitiveMesh._tempVec30.z, PrimitiveMesh._tempVec30.x)) / (2 * Math.PI);
+      vertices[i * 8 + 7] = Math.acos(PrimitiveMesh._tempVec30.y / PrimitiveMesh._tempVec30.length()) / Math.PI;
     }
 
     // get indices
-    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positions.length, cells.length * 6);
-
     let offset = 0;
     for (let i = 0; i < cells.length; i++) {
       const cell = cells[i];
 
+      // 这个指的是positions之前的
       indices[offset++] = cell[0];
       indices[offset++] = cell[1];
       indices[offset++] = cell[2];
@@ -329,28 +339,13 @@ export class PrimitiveMesh {
     }
 
     // solve texture seam problem due to vertex sharing
-    PrimitiveMesh._computeFlippedVertex(positions, uvs, normals, indices);
-    PrimitiveMesh._computePolesVertex(positions, uvs, normals, indices);
+    const count = PrimitiveMesh._computeFlippedVertex(indices, vertices, positions.length);
+    PrimitiveMesh._computePolesVertex(indices, vertices, positions.length + count);
 
     if (!isRestoreMode) {
       const { bounds } = sphereMesh;
       bounds.min.set(-radius, -radius, -radius);
       bounds.max.set(radius, radius, radius);
-    }
-
-    const vertices = new Float32Array(8 * positions.length);
-
-    for (let i = 0; i < positions.length; i++) {
-      vertices[i * 8] = positions[i].x;
-      vertices[i * 8 + 1] = positions[i].y;
-      vertices[i * 8 + 2] = positions[i].z;
-
-      vertices[i * 8 + 3] = normals[i].x;
-      vertices[i * 8 + 4] = normals[i].y;
-      vertices[i * 8 + 5] = normals[i].z;
-
-      vertices[i * 8 + 6] = uvs[i].x;
-      vertices[i * 8 + 7] = uvs[i].y;
     }
 
     PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
@@ -608,88 +603,93 @@ export class PrimitiveMesh {
    * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
    */
   static _computeFlippedVertex(
-    positions: Array<Vector3>,
-    uvs: Array<Vector2>,
-    normals: Array<Vector3>,
-    indices: Uint16Array | Uint32Array
-  ): void {
+    indices: Uint16Array | Uint32Array,
+    vertices: Float32Array,
+    currentCount: number
+  ): number {
     const flippedVertex: Set<number> = new Set();
-    const tempVec1 = new Vector3();
-    const tempVec2 = new Vector3();
-    const tempVec3 = new Vector3();
-    const tempVec4 = new Vector3();
-    const tempVec5 = new Vector3();
+    let count = 0;
 
     for (let i = 0; i < indices.length / 3; i++) {
-      const m1 = indices[i * 3];
-      const m2 = indices[i * 3 + 1];
-      const m3 = indices[i * 3 + 2];
+      const m1 = indices[i * 3] * 8;
+      const m2 = indices[i * 3 + 1] * 8;
+      const m3 = indices[i * 3 + 2] * 8;
 
-      tempVec1.set(uvs[m1].x, uvs[m1].y, 0);
-      tempVec2.set(uvs[m2].x, uvs[m2].y, 0);
-      tempVec3.set(uvs[m3].x, uvs[m3].y, 0);
+      PrimitiveMesh._tempVec30.set(vertices[m1 + 6], vertices[m1 + 7], 0);
+      PrimitiveMesh._tempVec31.set(vertices[m2 + 6], vertices[m2 + 7], 0);
+      PrimitiveMesh._tempVec32.set(vertices[m3 + 6], vertices[m3 + 7], 0);
 
       // ab side of this triangle
-      Vector3.subtract(tempVec2, tempVec1, tempVec4);
+      Vector3.subtract(PrimitiveMesh._tempVec31, PrimitiveMesh._tempVec30, PrimitiveMesh._tempVec33);
       // ac side of this triangle
-      Vector3.subtract(tempVec3, tempVec1, tempVec5);
+      Vector3.subtract(PrimitiveMesh._tempVec32, PrimitiveMesh._tempVec30, PrimitiveMesh._tempVec34);
       // uv's normal of this triangle
-      Vector3.cross(tempVec4, tempVec5, tempVec4);
+      Vector3.cross(PrimitiveMesh._tempVec33, PrimitiveMesh._tempVec34, PrimitiveMesh._tempVec33);
 
       // direction reversed triangle
-      if (tempVec4.z > 0) {
+      if (PrimitiveMesh._tempVec33.z > 0) {
         for (let j = 0; j < 3; j++) {
           const e = indices[i * 3 + j];
-          if (uvs[e].x === 0) {
+          if (vertices[8 * e + 6] === 0) {
             if (!flippedVertex[e]) {
-              positions.push(positions[e]);
-              uvs.push(new Vector2(uvs[e].x + 1, uvs[e].y));
-              normals.push(normals[e]);
+              vertices[8 * (currentCount + count)] = vertices[8 * e];
+              vertices[8 * (currentCount + count) + 1] = vertices[8 * e + 1];
+              vertices[8 * (currentCount + count) + 2] = vertices[8 * e + 2];
 
-              flippedVertex[e] = positions.length - 1;
+              vertices[8 * (currentCount + count) + 3] = vertices[8 * e + 3];
+              vertices[8 * (currentCount + count) + 4] = vertices[8 * e + 4];
+              vertices[8 * (currentCount + count) + 5] = vertices[8 * e + 5];
+
+              vertices[8 * (currentCount + count) + 6] = vertices[8 * e + 6] + 1;
+              vertices[8 * (currentCount + count) + 7] = vertices[8 * e + 7];
+
+              flippedVertex[e] = currentCount + count;
+              count += 1;
             }
             indices[i * 3 + j] = flippedVertex[e];
           }
         }
       }
     }
+    return count;
   }
 
   /**
    * @internal
    * Duplicate vertices at the poles and adjust their UV coordinates.
    */
-  static _computePolesVertex(
-    positions: Array<Vector3>,
-    uvs: Array<Vector2>,
-    normals: Array<Vector3>,
-    indices: Uint16Array | Uint32Array
-  ): void {
+  static _computePolesVertex(indices: Uint16Array | Uint32Array, vertices: Float32Array, currentCount: number): void {
     const verticesAtPole = new Set();
-    for (let i = 0; i < uvs.length; i++) {
-      const uv = uvs[i];
-      if (uv.y === 0 || uv.y === 1) {
+    let count = 0;
+
+    for (let i = 0; i < currentCount; i++) {
+      const uv_y = vertices[8 * i + 7];
+      if (uv_y === 0 || uv_y === 1) {
         verticesAtPole.add(i);
       }
     }
-
     for (let i = 0; i < indices.length; i += 3) {
       for (let j = 0; j < 3; j++) {
         const index = indices[i + j];
 
         if (verticesAtPole.has(index)) {
-          positions.push(positions[index]);
-          normals.push(normals[index]);
+          vertices[8 * (count + currentCount)] = vertices[8 * index];
+          vertices[8 * (count + currentCount) + 1] = vertices[8 * index + 1];
+          vertices[8 * (count + currentCount) + 2] = vertices[8 * index + 2];
 
-          const uv = new Vector2();
+          vertices[8 * (count + currentCount) + 3] = vertices[8 * index + 3];
+          vertices[8 * (count + currentCount) + 4] = vertices[8 * index + 4];
+          vertices[8 * (count + currentCount) + 5] = vertices[8 * index + 5];
 
-          uv.x = (uvs[indices[i]].x + uvs[indices[i + 1]].x + uvs[indices[i + 2]].x - 0.5) / 2;
-          uv.y = uvs[index].y;
-
-          uvs.push(uv);
+          vertices[8 * (count + currentCount) + 6] =
+            (vertices[8 * indices[i] + 6] + vertices[8 * indices[i + 1] + 6] + vertices[8 * indices[i + 2] + 6] - 0.5) /
+            2;
+          vertices[8 * (count + currentCount) + 7] = vertices[8 * index + 7];
 
           // Update the index
-          indices[i + j] = positions.length - 1;
+          indices[i + j] = count + currentCount;
+
+          count += 1;
         }
       }
     }
