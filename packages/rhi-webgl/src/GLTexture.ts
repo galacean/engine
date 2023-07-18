@@ -11,8 +11,8 @@ import {
   TextureUsage,
   TextureWrapMode
 } from "@galacean/engine-core";
-import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
 /**
  * Texture in WebGL platform.
@@ -96,14 +96,19 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.FLOAT,
           isCompressed: false
         };
-      case TextureFormat.DXT1:
+      case TextureFormat.BC1:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
           isCompressed: true
         };
-      case TextureFormat.DXT5:
+      case TextureFormat.BC3:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT,
+          isCompressed: true
+        };
+      case TextureFormat.BC7:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT,
           isCompressed: true
         };
       case TextureFormat.ETC1_RGB:

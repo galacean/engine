@@ -79,9 +79,11 @@ function getEngineFormat(internalFormat: GLint): TextureFormat {
     // case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
     // break;
     case GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT:
-      return TextureFormat.DXT1;
+      return TextureFormat.BC1;
     case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
-      return TextureFormat.DXT5;
+      return TextureFormat.BC3;
+    case GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT:
+      return TextureFormat.BC7;
     case GLCompressedTextureInternalFormat.RGB_ETC1_WEBGL:
       return TextureFormat.ETC1_RGB;
     case GLCompressedTextureInternalFormat.RGB8_ETC2:
