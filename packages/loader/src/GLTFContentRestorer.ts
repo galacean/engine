@@ -127,14 +127,21 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
  * @internal
  */
 export class BufferRequestInfo {
-  constructor(public url: string, public config: RequestConfig) {}
+  constructor(
+    public url: string,
+    public config: RequestConfig
+  ) {}
 }
 
 /**
  * @internal
  */
 export class BufferTextureRestoreInfo {
-  constructor(public texture: Texture2D, public bufferView: IBufferView, public mimeType: string) {}
+  constructor(
+    public texture: Texture2D,
+    public bufferView: IBufferView,
+    public mimeType: string
+  ) {}
 }
 
 /**
@@ -151,7 +158,10 @@ export class ModelMeshRestoreInfo {
  * @internal
  */
 export class BufferRestoreInfo {
-  constructor(public buffer: Buffer, public data: BufferDataRestoreInfo) {}
+  constructor(
+    public buffer: Buffer,
+    public data: BufferDataRestoreInfo
+  ) {}
 }
 
 /**
