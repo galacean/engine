@@ -110,8 +110,8 @@ export class TextUtils {
     subFont.nativeFontString = fontString;
     for (let i = 0, n = subTexts.length; i < n; i++) {
       const subText = subTexts[i];
-      // Handle empty lines.
-      if (subText === "") {
+      // If subText is empty, push an empty line directly
+      if (subText.length === 0) {
         this._pushLine(lines, lineWidths, lineMaxSizes, "", 0, 0, 0);
         continue;
       }
@@ -149,8 +149,11 @@ export class TextUtils {
           // If it is a word before, need to handle the previous word and line
           if (word.length > 0) {
             if (lineWidth + wordWidth > wrapWidth) {
-              line !== "" &&
+              // Push if before line is not empty
+              if (lineWidth > 0) {
                 this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
+              }
+
               textWidth = Math.max(textWidth, lineWidth);
               notFirstLine = true;
               line = word;
@@ -197,8 +200,12 @@ export class TextUtils {
               line = "";
               lineWidth = lineMaxAscent = lineMaxDescent = 0;
             }
-            word !== "" &&
+
+            // Push if before word is not empty
+            if (wordWidth > 0) {
               this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
+            }
+
             textWidth = Math.max(textWidth, wordWidth);
             notFirstLine = true;
             word = char;
@@ -218,14 +225,16 @@ export class TextUtils {
         // If the total width from line and word exceed wrap width
         if (lineWidth + wordWidth > wrapWidth) {
           // Push chars to a single line
-          line !== "" &&
+          if (lineWidth > 0) {
             this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
+          }
           textWidth = Math.max(textWidth, lineWidth);
 
           lineWidth = 0;
           // Push word to a single line
-          word !== "" &&
+          if (wordWidth > 0) {
             this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
+          }
           textWidth = Math.max(textWidth, wordWidth);
         } else {
           // Merge to chars
