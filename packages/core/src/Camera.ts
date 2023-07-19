@@ -18,6 +18,7 @@ import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { DepthTextureMode } from "./enums/DepthMode";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -53,6 +54,12 @@ export class Camera extends Component {
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
   cullingMask: Layer = Layer.Everything;
+
+  /**
+   * Depth texture mode.
+   * @defaultValue `DepthTextureMode.None`
+   */
+  depthTextureMode: DepthTextureMode = DepthTextureMode.None;
 
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();

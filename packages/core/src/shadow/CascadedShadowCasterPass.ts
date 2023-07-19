@@ -1,6 +1,5 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
@@ -13,14 +12,15 @@ import { Texture2D } from "../texture/Texture2D";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
+import { PipelinePass } from "./PipelinePass";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 
 /**
- * Cascade shadow caster.
+ * Cascade shadow caster pass.
  */
-export class CascadedShadowCasterPass {
+export class CascadedShadowCasterPass extends PipelinePass {
   private static _lightShadowBiasProperty = ShaderProperty.getByName("scene_ShadowBias");
   private static _lightDirectionProperty = ShaderProperty.getByName("scene_LightDirection");
 
@@ -39,7 +39,6 @@ export class CascadedShadowCasterPass {
   private static _tempMatrix0 = new Matrix();
 
   private readonly _camera: Camera;
-  private readonly _engine: Engine;
   private readonly _supportDepthTexture: boolean;
 
   private _shadowMapResolution: number;
@@ -63,8 +62,8 @@ export class CascadedShadowCasterPass {
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   constructor(camera: Camera) {
+    super(camera.engine);
     this._camera = camera;
-    this._engine = camera.engine;
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
     this._shadowSliceData.virtualCamera.isOrthographic = true;
@@ -73,7 +72,7 @@ export class CascadedShadowCasterPass {
   /**
    * @internal
    */
-  _render(context: RenderContext): void {
+  override render(context: RenderContext): void {
     this._updateShadowSettings();
     this._existShadowMap = false;
     this._renderDirectShadowMap(context);

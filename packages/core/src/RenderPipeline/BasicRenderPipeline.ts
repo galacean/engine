@@ -152,7 +152,7 @@ export class BasicRenderPipeline {
 
     context.pipelineStageTagValue = BasicRenderPipeline._shadowCasterPipelineStageTagValue;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
-      this._cascadedShadowCaster._render(context);
+      this._cascadedShadowCaster.render(context);
     }
     opaqueQueue.clear();
     alphaTestQueue.clear();
