@@ -1,9 +1,10 @@
 import { CstElement, CstNode, ICstVisitor, IToken, CstChildrenDictionary } from "chevrotain";
 
-import { AstNode, ObjectAstNode } from "./AstNode";
-import { IPosition, IPositionRange } from "./AstNode/types";
+import { AstNode, ObjectAstNode } from "./ast-node";
+import { IPosition, IPositionRange } from "./ast-node/types";
 import { ShaderVisitor, parser } from "./ShaderVisitor";
-import RuntimeContext from "./RuntimeContext";
+import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
+import { IShaderInfo } from "@galacean/engine-design";
 
 export class AstNodeUtils {
   static isCstNode(node: any) {
@@ -121,9 +122,9 @@ export class AstNodeUtils {
     return -AstNodeUtils.astSortAsc(a, b);
   }
 
-  static parseShader(input: string) {
+  static parseShader(input: string): IShaderInfo & { diagnostics?: Array<IDiagnostic> } {
     parser.parse(input);
-    const cst = (parser as any).RuleShader();
+    const cst = parser.RuleShader();
     if (parser.errors.length > 0) {
       console.log(parser.errors);
       throw parser.errors;
@@ -133,7 +134,7 @@ export class AstNodeUtils {
     const ast = visitor.visit(cst);
 
     const context = new RuntimeContext();
-    const shaderInfo = context.parse(ast);
+    const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
     shaderInfo.diagnostics = context.diagnostics;
     return shaderInfo;
   }

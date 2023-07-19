@@ -38,7 +38,7 @@ export interface IPlatformTexture2DArray extends IPlatformTexture {
    */
   setImageSource(
     index: number,
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number,
     flipY: boolean,
     premultiplyAlpha: boolean,

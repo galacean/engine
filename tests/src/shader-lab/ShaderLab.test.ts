@@ -1,5 +1,6 @@
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { WebGLEngine, Shader } from "@galacean/engine";
+import { Shader } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
 import fs from "fs";
 import path from "path";
@@ -13,10 +14,6 @@ const shaderLab = new ShaderLab();
 const canvas = document.createElement("canvas");
 
 describe("ShaderLab", () => {
-  before(async () => {
-    await shaderLab.initialize();
-  });
-
   it("create shaderlab", async () => {
     expect(shaderLab).not.be.null;
   });
@@ -25,7 +22,6 @@ describe("ShaderLab", () => {
     const shader = shaderLab.parseShader(demoShader);
     expect(shader.name).to.equal("Water");
     const subShader = shader.subShaders[0];
-    expect(subShader.name).to.equal("water");
     const pass = subShader.passes[0];
     expect(pass.name).equal("default");
   });

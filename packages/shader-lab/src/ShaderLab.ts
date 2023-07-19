@@ -1,8 +1,8 @@
 import { AstNodeUtils } from "./AstNodeUtils";
-import { IShaderInfo, IShaderLab } from "./interface";
+import { IShaderLab } from "@galacean/engine-design";
 
 export class ShaderLab implements IShaderLab {
-  parseShader(shaderSource: string): IShaderInfo {
+  parseShader(shaderSource: string) {
     return AstNodeUtils.parseShader(shaderSource);
   }
 }

@@ -88,7 +88,7 @@ export class Shader {
         const passList = subShader.passes.map((pass) => {
           return new ShaderPass(pass.vert, pass.frag, pass.tags);
         });
-        return new SubShader(subShader.name, passList, subShader.tags);
+        return new SubShader(shaderInfo.name, passList, subShader.tags);
       });
 
       shader = new Shader(shaderInfo.name, subShaderList);
@@ -137,7 +137,10 @@ export class Shader {
     return this._subShaders;
   }
 
-  private constructor(public readonly name: string, subShaders: SubShader[]) {
+  private constructor(
+    public readonly name: string,
+    subShaders: SubShader[]
+  ) {
     this.name = name;
     this._subShaders = subShaders;
   }

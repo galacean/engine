@@ -1,7 +1,7 @@
-Shader "Water" {
-  SubShader "water" {
+Shader Water {
+  SubShader {
 
-    Pass "default" {
+    Pass default {
 
       struct a2v {
        vec4 POSITION;

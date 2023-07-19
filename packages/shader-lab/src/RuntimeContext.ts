@@ -7,10 +7,28 @@ import {
   FnVariableAstNode,
   ReturnTypeAstNode,
   StructAstNode
-} from "./AstNode";
-import { IPassAstContent, IShaderAstContent, ISubShaderAstContent } from "./AstNode/types";
-import { IShaderPass, SubShaderInfo, IDiagnostic, IGlobal, IShaderInfo } from "./interface";
+} from "./ast-node";
+import { IPassAstContent, IShaderAstContent, ISubShaderAstContent, IPositionRange } from "./ast-node/types";
 import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
+import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
+
+export interface IDiagnostic {
+  severity: DiagnosticSeverity;
+  message: string;
+  /**
+   * The token which caused the parser error.
+   */
+  token: IPositionRange;
+}
+
+interface IReference {
+  referenced: boolean;
+}
+
+interface IGlobal extends IReference {
+  ast: AstNode;
+  name: string;
+}
 
 interface IReferenceStructInfo {
   /** varying or attribute object name */
@@ -101,30 +119,29 @@ export default class RuntimeContext {
   parse(ast: AstNode<IShaderAstContent>): IShaderInfo {
     this.shaderAst = ast;
     const ret = {} as IShaderInfo;
-    ret.ast = ast;
-    ret.editorProperties = ast.content.editorProperties?.toJson();
+    // ret.ast = ast;
+    // ret.editorProperties = ast.content.editorProperties?.toJson();
     ret.name = ast.content.name;
     ret.subShaders = ast.content.subShader.map((ast) => this.parseSubShaderInfo(ast));
 
     return ret;
   }
 
-  parseSubShaderInfo(ast: AstNode<ISubShaderAstContent>): SubShaderInfo {
+  parseSubShaderInfo(ast: AstNode<ISubShaderAstContent>): ISubShaderInfo {
     this.subShaderReset();
 
-    const ret = {} as SubShaderInfo;
-    ret.name = ast.content.name;
+    const ret = {} as ISubShaderInfo;
     ret.tags = ast.content.tags?.toObj();
     ret.passes = ast.content.pass.map((item) => this.parsePassInfo(item));
     return ret;
   }
 
-  parsePassInfo(ast: AstNode<IPassAstContent>): IShaderPass {
+  parsePassInfo(ast: AstNode<IPassAstContent>): IShaderPassInfo {
     this.passReset();
     this.passAst = ast;
     this._initGlobalList();
 
-    const ret = {} as IShaderPass;
+    const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
     ret.tags = ast.content.tags?.toObj();
     ret.renderStates = {};

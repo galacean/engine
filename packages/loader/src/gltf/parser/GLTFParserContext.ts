@@ -65,7 +65,11 @@ export class BufferInfo {
 
   restoreInfo: BufferDataRestoreInfo;
 
-  constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
+  constructor(
+    public data: TypedArray,
+    public interleaved: boolean,
+    public stride: number
+  ) {}
 }
 
 /**

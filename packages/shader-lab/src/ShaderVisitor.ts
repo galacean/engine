@@ -91,10 +91,9 @@ import {
   TupleNumber4AstNode,
   VariableDeclarationAstNode,
   VariableTypeAstNode
-} from "./AstNode";
-import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./AstNode/types";
+} from "./ast-node";
+import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/types";
 
-export {};
 export const parser = new ShaderParser();
 
 const ShaderVisitorConstructor = parser.getBaseCstVisitorConstructorWithDefaults<any, AstNode>();
@@ -118,7 +117,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     const ast = {
       position,
       content: {
-        name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
+        name: ctx.Identifier[0].image,
         editorProperties,
         subShader
       }
@@ -137,7 +136,6 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     };
 
     const content = {
-      name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
       tags,
       pass
     };
@@ -165,7 +163,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     const defines = ctx.RuleFnMacroDefine?.map((item) => this.visit(item));
 
     const content = {
-      name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
+      name: ctx.Identifier[0].image,
       tags,
       properties,
       structs,

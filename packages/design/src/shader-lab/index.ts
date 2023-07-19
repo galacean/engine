@@ -1,1 +1,1 @@
-export { IShaderLab } from "./interface";
+export * from "./interface";

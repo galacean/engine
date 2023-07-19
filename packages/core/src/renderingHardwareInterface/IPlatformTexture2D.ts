@@ -33,7 +33,7 @@ export interface IPlatformTexture2D extends IPlatformTexture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number,
     flipY: boolean,
     premultiplyAlpha: boolean,

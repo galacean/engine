@@ -7,8 +7,8 @@ import {
   FnAstNode,
   FnAtomicExprAstNode,
   FnVariableAstNode,
-  MultiplicationOperatorAstNode as MultiplicationOperatorAstNode,
-  MultiplicationExprAstNode as MultiplicationExprAstNode,
+  MultiplicationOperatorAstNode,
+  MultiplicationExprAstNode,
   ObjectAstNode,
   PassPropertyAssignmentAstNode,
   PropertyItemAstNode,
@@ -120,7 +120,6 @@ export interface IPropertyItemAstContent {
 }
 
 export interface ISubShaderAstContent {
-  name: string;
   tags?: TagAstNode;
   pass: Array<AstNode<IPassAstContent>>;
 }

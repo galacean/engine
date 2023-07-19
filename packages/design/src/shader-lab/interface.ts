@@ -11,7 +11,6 @@ export interface IShaderInfo {
 }
 
 export interface ISubShaderInfo {
-  name: string;
   passes: IShaderPassInfo[];
   tags?: Record<string, number | string | boolean>;
 }
