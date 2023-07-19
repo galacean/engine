@@ -72,7 +72,6 @@ export class WorkerPool<T = any, U = any> {
   private _initWorker(workerId: number): Promise<Worker> {
     return Promise.resolve(this._workerCreator()).then((worker) => {
       worker.addEventListener("message", this._onMessage.bind(this, workerId));
-      worker.addEventListener("error", this._onError.bind(this, workerId));
       this._workerItems[workerId] = { worker, resolve: null, reject: null };
       return worker;
     });
@@ -85,13 +84,14 @@ export class WorkerPool<T = any, U = any> {
     return -1;
   }
 
-  private _onError(workerId, e: ErrorEvent) {
-    this._workerItems[workerId].reject(e);
-    this._nextTask(workerId);
-  }
-
-  private _onMessage(workerId: number, msg: U) {
-    this._workerItems[workerId].resolve(msg);
+  private _onMessage(workerId: number, msg: MessageEvent<U>) {
+    // @ts-ignore onerror of web worker can't catch error in promise
+    const error = msg.data.error;
+    if (error) {
+      this._workerItems[workerId].reject(error);
+    } else {
+      this._workerItems[workerId].resolve(msg.data);
+    }
     this._nextTask(workerId);
   }
 
