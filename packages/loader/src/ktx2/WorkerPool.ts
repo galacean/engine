@@ -85,8 +85,8 @@ export class WorkerPool<T = any, U = any> {
   }
 
   private _onMessage(workerId: number, msg: MessageEvent<U>) {
-    // @ts-ignore onerror of web worker can't catch error in promise
-    const error = msg.data.error;
+    // onerror of web worker can't catch error in promise
+    const error = (msg.data as ErrorMessageData).error;
     if (error) {
       this._workerItems[workerId].reject(error);
     } else {
@@ -106,6 +106,10 @@ export class WorkerPool<T = any, U = any> {
       this._workerStatus ^= 1 << workerId;
     }
   }
+}
+
+interface ErrorMessageData {
+  error: unknown;
 }
 
 interface WorkerItem<U> {
