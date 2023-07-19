@@ -37,14 +37,16 @@ export class WorkerPool<T = any, U = any> {
     return new Promise((resolve, reject) => {
       const workerId = this._getIdleWorkerId();
       if (workerId !== -1) {
+        this._workerStatus |= 1 << workerId;
         const workerItems = this._workerItems;
-        Promise.resolve(workerItems[workerId] ?? this._initWorker(workerId)).then(() => {
-          this._workerStatus |= 1 << workerId;
-          const workerItem = workerItems[workerId];
-          workerItem.resolve = resolve;
-          workerItem.reject = reject;
-          workerItem.worker.postMessage(message);
-        });
+        Promise.resolve(workerItems[workerId] ?? this._initWorker(workerId))
+          .then(() => {
+            const workerItem = workerItems[workerId];
+            workerItem.resolve = resolve;
+            workerItem.reject = reject;
+            workerItem.worker.postMessage(message);
+          })
+          .catch(reject);
       } else {
         this._taskQueue.push({ resolve, reject, message });
       }
