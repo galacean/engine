@@ -1,5 +1,5 @@
 {
-  "name": "@galacean/engine-shaderlab",
+  "name": "@galacean/engine-shader-lab",
   "version": "1.1.0-alpha.0",
   "publishConfig": {
     "access": "public",
@@ -9,7 +9,6 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "debug": "src/index.ts",
-  "browser": "dist/browser.js",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc",
