@@ -2,7 +2,6 @@
  * @title AnimatorStateScript
  * @category Animation
  */
-import * as dat from "dat.gui";
 import { OrbitControl } from "@galacean/engine-toolkit";
 import {
   Animator,
@@ -10,6 +9,7 @@ import {
   Camera,
   DirectLight,
   Font,
+  FontStyle,
   GLTFResource,
   Logger,
   StateMachineScript,
@@ -44,6 +44,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   textEntity.transform.setPosition(0, 2, 0);
   textRenderer.fontSize = 12;
   textRenderer.font = Font.createFromOS(engine, "AlibabaPuHuiTi");
+  textRenderer.fontStyle = FontStyle.None;
   textRenderer.text = "";
 
   engine.resourceManager
