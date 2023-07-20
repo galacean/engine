@@ -124,7 +124,7 @@ export class AstNodeUtils {
 
   static parseShader(input: string): IShaderInfo & { diagnostics?: Array<IDiagnostic> } {
     parser.parse(input);
-    const cst = parser.RuleShader();
+    const cst = parser.ruleShader();
     if (parser.errors.length > 0) {
       console.log(parser.errors);
       throw parser.errors;

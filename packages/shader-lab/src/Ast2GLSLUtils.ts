@@ -85,7 +85,6 @@ export class Ast2GLSLUtils {
     context.setMainFnAst(fragFnAst);
 
     context.varyingStructInfo.objectName = fragFnAst.content.args[0].content.name;
-
     const fragmentFnStr = fragFnAst.serialize(context);
     return [context.getVaryingText(), context.getGlobalText(), fragmentFnStr].join("\n");
   }

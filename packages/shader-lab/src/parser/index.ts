@@ -36,65 +36,65 @@ export class ShaderParser extends CstParser {
     this.input = lexingResult.tokens;
   }
 
-  public RuleShader = this.RULE("RuleShader", () => {
+  public ruleShader = this.RULE("_ruleShader", () => {
     this.CONSUME(Keywords.Shader);
-    this.CONSUME(Others.Identifier);
+    this.CONSUME(Values.ValueString);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.OR([{ ALT: () => this.SUBRULE(this.RuleProperty) }, { ALT: () => this.SUBRULE(this.RuleSubShader) }]);
+      this.OR([{ ALT: () => this.SUBRULE(this._ruleProperty) }, { ALT: () => this.SUBRULE(this._ruleSubShader) }]);
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleSubShader = this.RULE("RuleSubShader", () => {
+  private _ruleSubShader = this.RULE("_ruleSubShader", () => {
     this.CONSUME(Keywords.SubShader);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
       this.OR([
-        { ALT: () => this.SUBRULE(this.RuleShaderPass) },
-        { ALT: () => this.SUBRULE(this.RuleTag) },
-        { ALT: () => this.SUBRULE(this.RuleRenderStateDeclaration) }
+        { ALT: () => this.SUBRULE(this._ruleShaderPass) },
+        { ALT: () => this.SUBRULE(this._ruleTag) },
+        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) }
       ]);
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleShaderPass = this.RULE("RuleShaderPass", () => {
+  private _ruleShaderPass = this.RULE("_ruleShaderPass", () => {
     this.CONSUME(Keywords.Pass);
-    this.CONSUME(Others.Identifier);
+    this.CONSUME(Values.ValueString);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
       this.OR([
-        { ALT: () => this.SUBRULE(this.RuleTag) },
-        { ALT: () => this.SUBRULE(this.RuleStruct) },
-        { ALT: () => this.SUBRULE(this.RuleFn) },
-        { ALT: () => this.SUBRULE(this.RuleFnVariableDeclaration) },
-        { ALT: () => this.SUBRULE(this.SubShaderPassPropertyAssignment) },
-        { ALT: () => this.SUBRULE(this.RuleRenderStateDeclaration) },
-        { ALT: () => this.SUBRULE(this.RuleFnMacroInclude) },
-        { ALT: () => this.SUBRULE(this.RuleFnMacroDefine) }
+        { ALT: () => this.SUBRULE(this._ruleTag) },
+        { ALT: () => this.SUBRULE(this._ruleStruct) },
+        { ALT: () => this.SUBRULE(this._ruleFn) },
+        { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
+        { ALT: () => this.SUBRULE(this._ruleSubShaderPassPropertyAssignment) },
+        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
+        { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
+        { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) }
       ]);
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleStruct = this.RULE("RuleStruct", () => {
+  private _ruleStruct = this.RULE("_ruleStruct", () => {
     this.CONSUME(GLKeywords.Struct);
     this.CONSUME(Others.Identifier);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.SUBRULE(this.RuleDeclaration);
+      this.SUBRULE(this._ruleDeclaration);
       this.CONSUME(Symbols.Semicolon);
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleDeclaration = this.RULE("RuleDeclaration", () => {
-    this.SUBRULE(this.RuleVariableType);
+  private _ruleDeclaration = this.RULE("_ruleDeclaration", () => {
+    this.SUBRULE(this._ruleVariableType);
     this.CONSUME(Others.Identifier);
   });
 
-  private RuleVariableType = this.RULE("RuleVariableType", () => {
+  private _ruleVariableType = this.RULE("_ruleVariableType", () => {
     const types = Types.tokenList.map((item) => ({
       ALT: () => this.CONSUME(item)
     }));
@@ -102,25 +102,25 @@ export class ShaderParser extends CstParser {
     this.OR([...types, { ALT: () => this.CONSUME(Others.Identifier) }]);
   });
 
-  private RuleTag = this.RULE("RuleTag", () => {
+  private _ruleTag = this.RULE("_ruleTag", () => {
     this.CONSUME(Keywords.Tags);
     this.CONSUME(Symbols.LCurly);
     this.MANY_SEP({
       DEF: () => {
-        this.SUBRULE(this.RuleTagAssignment);
+        this.SUBRULE(this._ruleTagAssignment);
       },
       SEP: Symbols.Comma
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleTagAssignment = this.RULE("RuleTagAssignment", () => {
-    this.SUBRULE(this.RuleTagType);
+  private _ruleTagAssignment = this.RULE("_ruleTagAssignment", () => {
+    this.SUBRULE(this._ruleTagType);
     this.CONSUME(Symbols.Equal);
     this.CONSUME(Values.ValueString);
   });
 
-  private RuleTagType = this.RULE("RuleTagType", () => {
+  private _ruleTagType = this.RULE("_ruleTagType", () => {
     this.OR(
       Keywords.tagTokenList.map((kw) => ({
         ALT: () => this.CONSUME(kw)
@@ -128,141 +128,141 @@ export class ShaderParser extends CstParser {
     );
   });
 
-  private RuleFn = this.RULE("RuleFn", () => {
-    this.SUBRULE(this.RuleFnReturnType);
+  private _ruleFn = this.RULE("_ruleFn", () => {
+    this.SUBRULE(this._ruleFnReturnType);
     this.CONSUME1(Others.Identifier);
     this.CONSUME1(Symbols.LBracket);
     this.MANY_SEP({
       SEP: Symbols.Comma,
-      DEF: () => this.SUBRULE(this.RuleFnArg)
+      DEF: () => this.SUBRULE(this._ruleFnArg)
     });
     this.CONSUME(Symbols.RBracket);
     this.CONSUME(Symbols.LCurly);
-    this.SUBRULE(this.RuleFnBody);
+    this.SUBRULE(this._ruleFnBody);
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleFnReturnType = this.RULE("RuleFnReturnType", () => {
-    this.OR([{ ALT: () => this.SUBRULE(this.RuleVariableType) }, { ALT: () => this.CONSUME(GLKeywords.Void) }]);
+  private _ruleFnReturnType = this.RULE("_ruleFnReturnType", () => {
+    this.OR([{ ALT: () => this.SUBRULE(this._ruleVariableType) }, { ALT: () => this.CONSUME(GLKeywords.Void) }]);
   });
 
-  private RuleFnArg = this.RULE("RuleFnArg", () => {
-    this.SUBRULE(this.RuleVariableType);
+  private _ruleFnArg = this.RULE("_ruleFnArg", () => {
+    this.SUBRULE(this._ruleVariableType);
     this.CONSUME2(Others.Identifier);
   });
 
-  private RuleFnBody = this.RULE("RuleFnBody", () => {
+  private _ruleFnBody = this.RULE("_ruleFnBody", () => {
     this.MANY(() => {
-      this.OR([{ ALT: () => this.SUBRULE(this.RuleFnMacro) }, { ALT: () => this.SUBRULE(this.RuleFnStatement) }]);
+      this.OR([{ ALT: () => this.SUBRULE(this._ruleFnMacro) }, { ALT: () => this.SUBRULE(this._ruleFnStatement) }]);
     });
   });
 
-  private RuleFnMacro = this.RULE("RuleFnMacro", () => {
+  private _ruleFnMacro = this.RULE("_ruleFnMacro", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.RuleFnMacroDefine) },
-      { ALT: () => this.SUBRULE(this.RuleFnMacroInclude) },
-      { ALT: () => this.SUBRULE(this.RuleFnMacroCondition) }
+      { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) },
+      { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
+      { ALT: () => this.SUBRULE(this._ruleFnMacroCondition) }
     ]);
   });
 
-  private RuleFnMacroCondition = this.RULE("RuleFnMacroCondition", () => {
-    this.SUBRULE(this.RuleFnMacroConditionDeclare);
+  private _ruleFnMacroCondition = this.RULE("_ruleFnMacroCondition", () => {
+    this.SUBRULE(this._ruleFnMacroConditionDeclare);
     this.CONSUME(Others.Identifier);
-    this.SUBRULE(this.RuleFnBody);
+    this.SUBRULE(this._ruleFnBody);
     this.OPTION(() => {
-      this.SUBRULE(this.RuleFnMacroConditionBranch);
+      this.SUBRULE(this._ruleFnMacroConditionBranch);
     });
     this.OPTION1(() => {
-      this.SUBRULE1(this.RuleFnBody);
+      this.SUBRULE1(this._ruleFnBody);
     });
     this.CONSUME(GLKeywords.M_ENDIF);
   });
 
-  private RuleFnMacroConditionDeclare = this.RULE("RuleFnMacroConditionDeclare", () => {
+  private _ruleFnMacroConditionDeclare = this.RULE("_ruleFnMacroConditionDeclare", () => {
     this.OR([{ ALT: () => this.CONSUME(GLKeywords.M_IFDEF) }, { ALT: () => this.CONSUME(GLKeywords.M_IFNDEF) }]);
   });
 
-  private RuleFnMacroConditionBranch = this.RULE("RuleFnMacroConditionBranch", () => {
-    this.SUBRULE(this.RuleFnMacroConditionBranchDeclare);
-    this.SUBRULE(this.RuleFnBody);
+  private _ruleFnMacroConditionBranch = this.RULE("_ruleFnMacroConditionBranch", () => {
+    this.SUBRULE(this._ruleFnMacroConditionBranchDeclare);
+    this.SUBRULE(this._ruleFnBody);
   });
 
-  private RuleFnMacroConditionBranchDeclare = this.RULE("RuleFnMacroConditionBranchDeclare", () => {
+  private _ruleFnMacroConditionBranchDeclare = this.RULE("_ruleFnMacroConditionBranchDeclare", () => {
     this.OR([{ ALT: () => this.CONSUME(GLKeywords.M_ELSE) }]);
   });
 
-  private RuleFnMacroDefine = this.RULE("RuleFnMacroDefine", () => {
+  private _ruleFnMacroDefine = this.RULE("_ruleFnMacroDefine", () => {
     this.CONSUME(GLKeywords.M_DEFINE);
     this.CONSUME(Others.Identifier);
     this.OPTION(() => {
-      this.SUBRULE(this.RuleAssignableValue);
+      this.SUBRULE(this._ruleAssignableValue);
     });
   });
 
-  private RuleAssignableValue = this.RULE("RuleAssignableValue", () => {
+  private _ruleAssignableValue = this.RULE("_ruleAssignableValue", () => {
     this.OR([
       { ALT: () => this.CONSUME(Values.ValueTrue) },
       { ALT: () => this.CONSUME(Values.ValueFalse) },
       { ALT: () => this.CONSUME(Values.ValueString) },
-      { ALT: () => this.SUBRULE(this.RuleFnAddExpr) },
+      { ALT: () => this.SUBRULE(this._ruleFnAddExpr) },
       { ALT: () => this.CONSUME(GLKeywords.GLFragColor) },
       { ALT: () => this.CONSUME(GLKeywords.GLPosition) }
     ]);
   });
 
-  private RuleFnAddExpr = this.RULE("RuleFnAddExpr", () => {
-    this.SUBRULE(this.RuleFnMultiplicationExpr);
+  private _ruleFnAddExpr = this.RULE("_ruleFnAddExpr", () => {
+    this.SUBRULE(this._ruleFnMultiplicationExpr);
     this.MANY(() => {
-      this.SUBRULE(this.RuleAddOperator);
-      this.SUBRULE2(this.RuleFnMultiplicationExpr);
+      this.SUBRULE(this._ruleAddOperator);
+      this.SUBRULE2(this._ruleFnMultiplicationExpr);
     });
   });
 
-  private RuleFnMultiplicationExpr = this.RULE("RuleFnMultiplicationExpr", () => {
-    this.SUBRULE(this.RuleFnAtomicExpr);
+  private _ruleFnMultiplicationExpr = this.RULE("_ruleFnMultiplicationExpr", () => {
+    this.SUBRULE(this._ruleFnAtomicExpr);
     this.MANY(() => {
-      this.SUBRULE(this.RuleMultiplicationOperator);
-      this.SUBRULE2(this.RuleFnAtomicExpr);
+      this.SUBRULE(this._ruleMultiplicationOperator);
+      this.SUBRULE2(this._ruleFnAtomicExpr);
     });
   });
 
-  private RuleFnAtomicExpr = this.RULE("RuleFnAtomicExpr", () => {
-    this.OPTION(() => this.SUBRULE(this.RuleAddOperator));
+  private _ruleFnAtomicExpr = this.RULE("_ruleFnAtomicExpr", () => {
+    this.OPTION(() => this.SUBRULE(this._ruleAddOperator));
     this.OR([
-      { ALT: () => this.SUBRULE(this.RuleFnParenthesisExpr) },
-      { ALT: () => this.SUBRULE(this.RuleNumber) },
-      { ALT: () => this.SUBRULE(this.RuleFnCall) },
-      { ALT: () => this.SUBRULE(this.RuleFnVariable) }
+      { ALT: () => this.SUBRULE(this._ruleFnParenthesisExpr) },
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleFnCall) },
+      { ALT: () => this.SUBRULE(this._ruleFnVariable) }
     ]);
   });
 
-  private RuleAddOperator = this.RULE("RuleAddOperator", () => {
+  private _ruleAddOperator = this.RULE("_ruleAddOperator", () => {
     this.OR([{ ALT: () => this.CONSUME(Symbols.Add) }, { ALT: () => this.CONSUME(Symbols.Minus) }]);
   });
 
-  private RuleFnParenthesisExpr = this.RULE("RuleFnParenthesisExpr", () => {
+  private _ruleFnParenthesisExpr = this.RULE("_ruleFnParenthesisExpr", () => {
     this.CONSUME1(Symbols.LBracket);
-    this.SUBRULE(this.RuleFnAddExpr);
+    this.SUBRULE(this._ruleFnAddExpr);
     this.CONSUME(Symbols.RBracket);
   });
 
-  private RuleNumber = this.RULE("RuleNumber", () => {
+  private _ruleNumber = this.RULE("_ruleNumber", () => {
     this.OR([{ ALT: () => this.CONSUME1(ValueInt) }, { ALT: () => this.CONSUME(ValueFloat) }]);
   });
 
-  private RuleFnCall = this.RULE("RuleFnCall", () => {
-    this.SUBRULE(this.RuleFnCallVariable);
+  private _ruleFnCall = this.RULE("_ruleFnCall", () => {
+    this.SUBRULE(this._ruleFnCallVariable);
     this.CONSUME1(Symbols.LBracket);
     this.MANY_SEP({
       SEP: Symbols.Comma,
       DEF: () => {
-        this.SUBRULE(this.RuleAssignableValue);
+        this.SUBRULE(this._ruleAssignableValue);
       }
     });
     this.CONSUME(Symbols.RBracket);
   });
 
-  private RuleFnCallVariable = this.RULE("RuleFnCallVariable", () => {
+  private _ruleFnCallVariable = this.RULE("_ruleFnCallVariable", () => {
     this.OR([
       ...Types.tokenList.map((item) => ({ ALT: () => this.CONSUME(item) })),
       { ALT: () => this.CONSUME(GLKeywords.Pow) },
@@ -271,7 +271,7 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private RuleFnVariable = this.RULE("RuleFnVariable", () => {
+  private _ruleFnVariable = this.RULE("_ruleFnVariable", () => {
     this.CONSUME(Others.Identifier);
     this.MANY(() => {
       this.CONSUME(Symbols.Dot);
@@ -279,22 +279,22 @@ export class ShaderParser extends CstParser {
     });
   });
 
-  private RuleMultiplicationOperator = this.RULE("RuleMultiplicationOperator", () => {
+  private _ruleMultiplicationOperator = this.RULE("_ruleMultiplicationOperator", () => {
     this.OR([{ ALT: () => this.CONSUME(Symbols.Multiply) }, { ALT: () => this.CONSUME(Symbols.Divide) }]);
   });
 
-  private RuleFnMacroInclude = this.RULE("RuleFnMacroInclude", () => {
+  private _ruleFnMacroInclude = this.RULE("_ruleFnMacroInclude", () => {
     this.CONSUME(GLKeywords.M_INCLUDE);
     this.CONSUME(Values.ValueString);
   });
 
-  private RuleFnStatement = this.RULE("RuleFnStatement", () => {
+  private _ruleFnStatement = this.RULE("_ruleFnStatement", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.RuleFnCall) },
-      { ALT: () => this.SUBRULE(this.RuleFnReturnStatement) },
-      { ALT: () => this.SUBRULE(this.RuleFnVariableDeclaration) },
-      { ALT: () => this.SUBRULE(this.RuleFnConditionStatement) },
-      { ALT: () => this.SUBRULE(this.RuleFnAssignStatement) },
+      { ALT: () => this.SUBRULE(this._ruleFnCall) },
+      { ALT: () => this.SUBRULE(this._ruleFnReturnStatement) },
+      { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleFnConditionStatement) },
+      { ALT: () => this.SUBRULE(this._ruleFnAssignStatement) },
       {
         ALT: () => {
           this.CONSUME(GLKeywords.Discard);
@@ -304,83 +304,83 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private RuleFnReturnStatement = this.RULE("RuleFnReturnStatement", () => {
+  private _ruleFnReturnStatement = this.RULE("_ruleFnReturnStatement", () => {
     this.CONSUME(GLKeywords.Return);
     this.OR([
-      { ALT: () => this.SUBRULE(this.RuleFnExpression) },
-      { ALT: () => this.SUBRULE(this.RuleBoolean) },
+      { ALT: () => this.SUBRULE(this._ruleFnExpression) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) }
     ]);
 
     this.CONSUME(Symbols.Semicolon);
   });
 
-  private RuleFnExpression = this.RULE("RuleFnExpression", () => {
-    this.SUBRULE(this.RuleFnAddExpr);
+  private _ruleFnExpression = this.RULE("_ruleFnExpression", () => {
+    this.SUBRULE(this._ruleFnAddExpr);
   });
 
-  private RuleBoolean = this.RULE("RuleBoolean", () => {
+  private _ruleBoolean = this.RULE("_ruleBoolean", () => {
     this.OR([{ ALT: () => this.CONSUME(ValueTrue) }, { ALT: () => this.CONSUME(ValueFalse) }]);
   });
 
-  private RuleFnVariableDeclaration = this.RULE("RuleFnVariableDeclaration", () => {
-    this.SUBRULE(this.RuleVariableType);
+  private _ruleFnVariableDeclaration = this.RULE("_ruleFnVariableDeclaration", () => {
+    this.SUBRULE(this._ruleVariableType);
     this.CONSUME(Others.Identifier);
     this.OPTION1(() => {
       this.CONSUME(Symbols.Equal);
-      this.SUBRULE(this.RuleFnExpression);
+      this.SUBRULE(this._ruleFnExpression);
     });
     this.CONSUME(Symbols.Semicolon);
   });
 
-  private RuleFnConditionStatement = this.RULE("RuleFnConditionStatement", () => {
+  private _ruleFnConditionStatement = this.RULE("_ruleFnConditionStatement", () => {
     this.CONSUME(GLKeywords.If);
     this.CONSUME1(Symbols.LBracket);
-    this.SUBRULE(this.RuleFnRelationExpr);
+    this.SUBRULE(this._ruleFnRelationExpr);
     this.CONSUME(Symbols.RBracket);
-    this.SUBRULE(this.RuleFnBlockStatement);
+    this.SUBRULE(this._ruleFnBlockStatement);
     this.MANY(() => {
       this.CONSUME(GLKeywords.Else);
-      this.SUBRULE(this.RuleFnConditionStatement);
+      this.SUBRULE(this._ruleFnConditionStatement);
     });
     this.OPTION(() => {
       this.CONSUME1(GLKeywords.Else);
-      this.SUBRULE1(this.RuleFnBlockStatement);
+      this.SUBRULE1(this._ruleFnBlockStatement);
     });
   });
 
-  private RuleFnRelationExpr = this.RULE("RuleFnRelationExpr", () => {
-    this.SUBRULE(this.RuleFnAddExpr);
-    this.SUBRULE(this.RuleRelationOperator);
-    this.SUBRULE1(this.RuleFnAddExpr);
+  private _ruleFnRelationExpr = this.RULE("_ruleFnRelationExpr", () => {
+    this.SUBRULE(this._ruleFnAddExpr);
+    this.SUBRULE(this._ruleRelationOperator);
+    this.SUBRULE1(this._ruleFnAddExpr);
   });
 
-  private RuleRelationOperator = this.RULE("RuleRelationOperator", () => {
+  private _ruleRelationOperator = this.RULE("_ruleRelationOperator", () => {
     this.OR([{ ALT: () => this.CONSUME(Symbols.GreaterThan) }, { ALT: () => this.CONSUME(Symbols.LessThan) }]);
   });
 
-  private RuleFnBlockStatement = this.RULE("RuleFnBlockStatement", () => {
+  private _ruleFnBlockStatement = this.RULE("_ruleFnBlockStatement", () => {
     this.CONSUME(Symbols.LCurly);
-    this.SUBRULE(this.RuleFnBody);
+    this.SUBRULE(this._ruleFnBody);
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleFnAssignStatement = this.RULE("RuleFnAssignStatement", () => {
-    this.SUBRULE(this.RuleFnAssignLO);
-    this.SUBRULE(this.RuleFnAssignmentOperator);
-    this.SUBRULE(this.RuleFnExpression);
+  private _ruleFnAssignStatement = this.RULE("_ruleFnAssignStatement", () => {
+    this.SUBRULE(this._ruleFnAssignLO);
+    this.SUBRULE(this._ruleFnAssignmentOperator);
+    this.SUBRULE(this._ruleFnExpression);
     this.CONSUME(Symbols.Semicolon);
   });
 
-  private RuleFnAssignLO = this.RULE("RuleFnAssignLO", () => {
+  private _ruleFnAssignLO = this.RULE("_ruleFnAssignLO", () => {
     this.OR([
       { ALT: () => this.CONSUME(GLKeywords.GLFragColor) },
       { ALT: () => this.CONSUME(GLKeywords.GLPosition) },
-      { ALT: () => this.SUBRULE(this.RuleFnVariable) }
+      { ALT: () => this.SUBRULE(this._ruleFnVariable) }
     ]);
   });
 
-  private RuleFnAssignmentOperator = this.RULE("RuleFnAssignmentOperator", () => {
+  private _ruleFnAssignmentOperator = this.RULE("_ruleFnAssignmentOperator", () => {
     this.OR([
       { ALT: () => this.CONSUME(Symbols.Equal) },
       { ALT: () => this.CONSUME(Symbols.MultiEqual) },
@@ -390,22 +390,22 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private SubShaderPassPropertyAssignment = this.RULE("SubShaderPassPropertyAssignment", () => {
-    this.SUBRULE(this.RuleShaderPassPropertyType);
+  private _ruleSubShaderPassPropertyAssignment = this.RULE("_ruleSubShaderPassPropertyAssignment", () => {
+    this.SUBRULE(this._ruleShaderPassPropertyType);
     this.CONSUME(Symbols.Equal);
     this.CONSUME(Others.Identifier);
     this.CONSUME(Symbols.Semicolon);
   });
 
-  private RuleShaderPassPropertyType = this.RULE("RuleShaderPassPropertyType", () => {
+  private _ruleShaderPassPropertyType = this.RULE("_ruleShaderPassPropertyType", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.RuleRenderStateType) },
+      { ALT: () => this.SUBRULE(this._ruleRenderStateType) },
       { ALT: () => this.CONSUME(Keywords.VertexShader) },
       { ALT: () => this.CONSUME(Keywords.FragmentShader) }
     ]);
   });
 
-  private RuleRenderStateType = this.RULE("RuleRenderStateType", () => {
+  private _ruleRenderStateType = this.RULE("_ruleRenderStateType", () => {
     this.OR([
       { ALT: () => this.CONSUME(Keywords.BlendState) },
       { ALT: () => this.CONSUME(Keywords.DepthState) },
@@ -414,24 +414,24 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private RuleRenderStateDeclaration = this.RULE("RuleRenderStateDeclaration", () => {
-    this.SUBRULE(this.RuleRenderStateType);
+  private _ruleRenderStateDeclaration = this.RULE("_ruleRenderStateDeclaration", () => {
+    this.SUBRULE(this._ruleRenderStateType);
     this.CONSUME(Others.Identifier);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.SUBRULE(this.RuleStatePropertyAssign);
+      this.SUBRULE(this._ruleStatePropertyAssign);
       this.CONSUME(Symbols.Semicolon);
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RuleStatePropertyAssign = this.RULE("RuleStatePropertyAssign", () => {
-    this.SUBRULE(this.RuleStateProperty);
+  private _ruleStatePropertyAssign = this.RULE("_ruleStatePropertyAssign", () => {
+    this.SUBRULE(this._ruleStateProperty);
     this.CONSUME(Symbols.Equal);
-    this.SUBRULE(this.RuleAssignableValue);
+    this.SUBRULE(this._ruleAssignableValue);
   });
 
-  private RuleStateProperty = this.RULE("RuleStateProperty", () => {
+  private _ruleStateProperty = this.RULE("_ruleStateProperty", () => {
     this.OR([
       { ALT: () => this.CONSUME(Keywords.Enabled) },
       { ALT: () => this.CONSUME(Keywords.DestColorBlendFactor) },
@@ -439,40 +439,40 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private RuleProperty = this.RULE("RuleProperty", () => {
+  private _ruleProperty = this.RULE("_ruleProperty", () => {
     this.CONSUME(Keywords.EditorProperties);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.SUBRULE(this.RulePropertyItem);
+      this.SUBRULE(this._rulePropertyItem);
     });
     this.CONSUME(Symbols.RCurly);
   });
 
-  private RulePropertyItem = this.RULE("RulePropertyItem", () => {
+  private _rulePropertyItem = this.RULE("_rulePropertyItem", () => {
     this.CONSUME(Others.Identifier);
     this.CONSUME9(Symbols.LBracket);
     this.CONSUME(Values.ValueString);
     this.CONSUME(Symbols.Comma);
-    this.SUBRULE(this.RulePropertyItemType);
+    this.SUBRULE(this._rulePropertyItemType);
     this.CONSUME(Symbols.RBracket);
     this.CONSUME(Symbols.Equal);
-    this.SUBRULE(this.RulePropertyItemValue);
+    this.SUBRULE(this._rulePropertyItemValue);
     this.CONSUME(Symbols.Semicolon);
   });
 
-  private RulePropertyItemType = this.RULE("RulePropertyItemType", () => {
+  private _rulePropertyItemType = this.RULE("_rulePropertyItemType", () => {
     this.OR([
       ...EditorTypes.tokenList
         .filter((item) => item.name !== "Range")
         .map((item) => ({
           ALT: () => this.CONSUME(item)
         })),
-      { ALT: () => this.SUBRULE(this.RuleVariableType) },
-      { ALT: () => this.SUBRULE(this.RuleRange) }
+      { ALT: () => this.SUBRULE(this._ruleVariableType) },
+      { ALT: () => this.SUBRULE(this._ruleRange) }
     ]);
   });
 
-  private RuleRange = this.RULE("RuleRange", () => {
+  private _ruleRange = this.RULE("_ruleRange", () => {
     this.CONSUME(EditorTypes.TypeRange);
     this.CONSUME2(Symbols.LBracket);
     this.CONSUME(Values.ValueInt);
@@ -481,14 +481,14 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Symbols.RBracket);
   });
 
-  private RulePropertyItemValue = this.RULE("RulePropertyItemValue", () => {
+  private _rulePropertyItemValue = this.RULE("_rulePropertyItemValue", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.TupleFloat4) },
-      { ALT: () => this.SUBRULE(this.TupleFloat3) },
-      { ALT: () => this.SUBRULE(this.TupleFloat2) },
-      { ALT: () => this.SUBRULE(this.TupleInt4) },
-      { ALT: () => this.SUBRULE(this.TupleInt3) },
-      { ALT: () => this.SUBRULE(this.TupleInt2) },
+      { ALT: () => this.SUBRULE(this._ruleTupleFloat4) },
+      { ALT: () => this.SUBRULE(this._ruleTupleFloat3) },
+      { ALT: () => this.SUBRULE(this._ruleTupleFloat2) },
+      { ALT: () => this.SUBRULE(this._ruleTupleInt4) },
+      { ALT: () => this.SUBRULE(this._ruleTupleInt3) },
+      { ALT: () => this.SUBRULE(this._ruleTupleInt2) },
       { ALT: () => this.CONSUME(Values.ValueTrue) },
       { ALT: () => this.CONSUME(Values.ValueFalse) },
       { ALT: () => this.CONSUME1(Values.ValueInt) },
@@ -507,7 +507,7 @@ export class ShaderParser extends CstParser {
     return this.CONSUME7(tokType);
   }
 
-  private _RuleTuple(type: "int" | "float", num: number) {
+  private _ruleTuple(type: "int" | "float", num: number) {
     const valueToken = type === "int" ? Values.ValueInt : Values.ValueFloat;
     this.CONSUME2(Symbols.LBracket);
     for (let i = 0; i < num - 1; i++) {
@@ -518,11 +518,11 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Symbols.RBracket);
   }
 
-  private TupleFloat4 = this.RULE("TupleFloat4", () => this._RuleTuple("float", 4));
-  private TupleFloat3 = this.RULE("TupleFloat3", () => this._RuleTuple("float", 3));
-  private TupleFloat2 = this.RULE("TupleFloat2", () => this._RuleTuple("float", 2));
+  private _ruleTupleFloat4 = this.RULE("_ruleTupleFloat4", () => this._ruleTuple("float", 4));
+  private _ruleTupleFloat3 = this.RULE("_ruleTupleFloat3", () => this._ruleTuple("float", 3));
+  private _ruleTupleFloat2 = this.RULE("_ruleTupleFloat2", () => this._ruleTuple("float", 2));
 
-  private TupleInt4 = this.RULE("TupleInt4", () => this._RuleTuple("int", 4));
-  private TupleInt3 = this.RULE("TupleInt3", () => this._RuleTuple("int", 3));
-  private TupleInt2 = this.RULE("TupleInt2", () => this._RuleTuple("int", 2));
+  private _ruleTupleInt4 = this.RULE("_ruleTupleInt4", () => this._ruleTuple("int", 4));
+  private _ruleTupleInt3 = this.RULE("_ruleTupleInt3", () => this._ruleTuple("int", 3));
+  private _ruleTupleInt2 = this.RULE("_ruleTupleInt2", () => this._ruleTuple("int", 2));
 }

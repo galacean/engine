@@ -1,83 +1,83 @@
 import type { CstNode, ICstVisitor, IToken } from "chevrotain";
 
-export interface RuleShaderCstNode extends CstNode {
-  name: "RuleShader";
-  children: RuleShaderCstChildren;
+export interface _ruleShaderCstNode extends CstNode {
+  name: "_ruleShader";
+  children: _ruleShaderCstChildren;
 }
 
-export type RuleShaderCstChildren = {
+export type _ruleShaderCstChildren = {
   Shader: IToken[];
-  Identifier: IToken[];
+  ValueString: IToken[];
   LCurly: IToken[];
-  RuleProperty?: RulePropertyCstNode[];
-  RuleSubShader?: RuleSubShaderCstNode[];
+  _ruleProperty?: _rulePropertyCstNode[];
+  _ruleSubShader?: _ruleSubShaderCstNode[];
   RCurly: IToken[];
 };
 
-export interface RuleSubShaderCstNode extends CstNode {
-  name: "RuleSubShader";
-  children: RuleSubShaderCstChildren;
+export interface _ruleSubShaderCstNode extends CstNode {
+  name: "_ruleSubShader";
+  children: _ruleSubShaderCstChildren;
 }
 
-export type RuleSubShaderCstChildren = {
+export type _ruleSubShaderCstChildren = {
   SubShader: IToken[];
   LCurly: IToken[];
-  RuleShaderPass?: RuleShaderPassCstNode[];
-  RuleTag?: RuleTagCstNode[];
-  RuleRenderStateDeclaration?: RuleRenderStateDeclarationCstNode[];
+  _ruleShaderPass?: _ruleShaderPassCstNode[];
+  _ruleTag?: _ruleTagCstNode[];
+  _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   RCurly: IToken[];
 };
 
-export interface RuleShaderPassCstNode extends CstNode {
-  name: "RuleShaderPass";
-  children: RuleShaderPassCstChildren;
+export interface _ruleShaderPassCstNode extends CstNode {
+  name: "_ruleShaderPass";
+  children: _ruleShaderPassCstChildren;
 }
 
-export type RuleShaderPassCstChildren = {
+export type _ruleShaderPassCstChildren = {
   Pass: IToken[];
-  Identifier: IToken[];
+  ValueString: IToken[];
   LCurly: IToken[];
-  RuleTag?: RuleTagCstNode[];
-  RuleStruct?: RuleStructCstNode[];
-  RuleFn?: RuleFnCstNode[];
-  RuleFnVariableDeclaration?: RuleFnVariableDeclarationCstNode[];
-  SubShaderPassPropertyAssignment?: SubShaderPassPropertyAssignmentCstNode[];
-  RuleRenderStateDeclaration?: RuleRenderStateDeclarationCstNode[];
-  RuleFnMacroInclude?: RuleFnMacroIncludeCstNode[];
-  RuleFnMacroDefine?: RuleFnMacroDefineCstNode[];
+  _ruleTag?: _ruleTagCstNode[];
+  _ruleStruct?: _ruleStructCstNode[];
+  _ruleFn?: _ruleFnCstNode[];
+  _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
+  _ruleSubShaderPassPropertyAssignment?: _ruleSubShaderPassPropertyAssignmentCstNode[];
+  _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
+  _ruleFnMacroInclude?: _ruleFnMacroIncludeCstNode[];
+  _ruleFnMacroDefine?: _ruleFnMacroDefineCstNode[];
   RCurly: IToken[];
 };
 
-export interface RuleStructCstNode extends CstNode {
-  name: "RuleStruct";
-  children: RuleStructCstChildren;
+export interface _ruleStructCstNode extends CstNode {
+  name: "_ruleStruct";
+  children: _ruleStructCstChildren;
 }
 
-export type RuleStructCstChildren = {
+export type _ruleStructCstChildren = {
   struct: IToken[];
   Identifier: IToken[];
   LCurly: IToken[];
-  RuleDeclaration?: RuleDeclarationCstNode[];
+  _ruleDeclaration?: _ruleDeclarationCstNode[];
   Semicolon?: IToken[];
   RCurly: IToken[];
 };
 
-export interface RuleDeclarationCstNode extends CstNode {
-  name: "RuleDeclaration";
-  children: RuleDeclarationCstChildren;
+export interface _ruleDeclarationCstNode extends CstNode {
+  name: "_ruleDeclaration";
+  children: _ruleDeclarationCstChildren;
 }
 
-export type RuleDeclarationCstChildren = {
-  RuleVariableType: RuleVariableTypeCstNode[];
+export type _ruleDeclarationCstChildren = {
+  _ruleVariableType: _ruleVariableTypeCstNode[];
   Identifier: IToken[];
 };
 
-export interface RuleVariableTypeCstNode extends CstNode {
-  name: "RuleVariableType";
-  children: RuleVariableTypeCstChildren;
+export interface _ruleVariableTypeCstNode extends CstNode {
+  name: "_ruleVariableType";
+  children: _ruleVariableTypeCstChildren;
 }
 
-export type RuleVariableTypeCstChildren = {
+export type _ruleVariableTypeCstChildren = {
   glsl_ivec2?: IToken[];
   glsl_ivec3?: IToken[];
   glsl_ivec4?: IToken[];
@@ -93,248 +93,248 @@ export type RuleVariableTypeCstChildren = {
   Identifier?: IToken[];
 };
 
-export interface RuleTagCstNode extends CstNode {
-  name: "RuleTag";
-  children: RuleTagCstChildren;
+export interface _ruleTagCstNode extends CstNode {
+  name: "_ruleTag";
+  children: _ruleTagCstChildren;
 }
 
-export type RuleTagCstChildren = {
+export type _ruleTagCstChildren = {
   Tags: IToken[];
   LCurly: IToken[];
-  RuleTagAssignment?: RuleTagAssignmentCstNode[];
+  _ruleTagAssignment?: _ruleTagAssignmentCstNode[];
   Comma?: IToken[];
   RCurly: IToken[];
 };
 
-export interface RuleTagAssignmentCstNode extends CstNode {
-  name: "RuleTagAssignment";
-  children: RuleTagAssignmentCstChildren;
+export interface _ruleTagAssignmentCstNode extends CstNode {
+  name: "_ruleTagAssignment";
+  children: _ruleTagAssignmentCstChildren;
 }
 
-export type RuleTagAssignmentCstChildren = {
-  RuleTagType: RuleTagTypeCstNode[];
+export type _ruleTagAssignmentCstChildren = {
+  _ruleTagType: _ruleTagTypeCstNode[];
   Equal: IToken[];
   ValueString: IToken[];
 };
 
-export interface RuleTagTypeCstNode extends CstNode {
-  name: "RuleTagType";
-  children: RuleTagTypeCstChildren;
+export interface _ruleTagTypeCstNode extends CstNode {
+  name: "_ruleTagType";
+  children: _ruleTagTypeCstChildren;
 }
 
-export type RuleTagTypeCstChildren = {
+export type _ruleTagTypeCstChildren = {
   ReplacementTag?: IToken[];
   PipelineStage?: IToken[];
 };
 
-export interface RuleFnCstNode extends CstNode {
-  name: "RuleFn";
-  children: RuleFnCstChildren;
+export interface _ruleFnCstNode extends CstNode {
+  name: "_ruleFn";
+  children: _ruleFnCstChildren;
 }
 
-export type RuleFnCstChildren = {
-  RuleFnReturnType: RuleFnReturnTypeCstNode[];
+export type _ruleFnCstChildren = {
+  _ruleFnReturnType: _ruleFnReturnTypeCstNode[];
   Identifier: IToken[];
   LBracket: IToken[];
-  RuleFnArg?: RuleFnArgCstNode[];
+  _ruleFnArg?: _ruleFnArgCstNode[];
   Comma?: IToken[];
   RBracket: IToken[];
   LCurly: IToken[];
-  RuleFnBody: RuleFnBodyCstNode[];
+  _ruleFnBody: _ruleFnBodyCstNode[];
   RCurly: IToken[];
 };
 
-export interface RuleFnReturnTypeCstNode extends CstNode {
-  name: "RuleFnReturnType";
-  children: RuleFnReturnTypeCstChildren;
+export interface _ruleFnReturnTypeCstNode extends CstNode {
+  name: "_ruleFnReturnType";
+  children: _ruleFnReturnTypeCstChildren;
 }
 
-export type RuleFnReturnTypeCstChildren = {
-  RuleVariableType?: RuleVariableTypeCstNode[];
+export type _ruleFnReturnTypeCstChildren = {
+  _ruleVariableType?: _ruleVariableTypeCstNode[];
   void?: IToken[];
 };
 
-export interface RuleFnArgCstNode extends CstNode {
-  name: "RuleFnArg";
-  children: RuleFnArgCstChildren;
+export interface _ruleFnArgCstNode extends CstNode {
+  name: "_ruleFnArg";
+  children: _ruleFnArgCstChildren;
 }
 
-export type RuleFnArgCstChildren = {
-  RuleVariableType: RuleVariableTypeCstNode[];
+export type _ruleFnArgCstChildren = {
+  _ruleVariableType: _ruleVariableTypeCstNode[];
   Identifier: IToken[];
 };
 
-export interface RuleFnBodyCstNode extends CstNode {
-  name: "RuleFnBody";
-  children: RuleFnBodyCstChildren;
+export interface _ruleFnBodyCstNode extends CstNode {
+  name: "_ruleFnBody";
+  children: _ruleFnBodyCstChildren;
 }
 
-export type RuleFnBodyCstChildren = {
-  RuleFnMacro?: RuleFnMacroCstNode[];
-  RuleFnStatement?: RuleFnStatementCstNode[];
+export type _ruleFnBodyCstChildren = {
+  _ruleFnMacro?: _ruleFnMacroCstNode[];
+  _ruleFnStatement?: _ruleFnStatementCstNode[];
 };
 
-export interface RuleFnMacroCstNode extends CstNode {
-  name: "RuleFnMacro";
-  children: RuleFnMacroCstChildren;
+export interface _ruleFnMacroCstNode extends CstNode {
+  name: "_ruleFnMacro";
+  children: _ruleFnMacroCstChildren;
 }
 
-export type RuleFnMacroCstChildren = {
-  RuleFnMacroDefine?: RuleFnMacroDefineCstNode[];
-  RuleFnMacroInclude?: RuleFnMacroIncludeCstNode[];
-  RuleFnMacroCondition?: RuleFnMacroConditionCstNode[];
+export type _ruleFnMacroCstChildren = {
+  _ruleFnMacroDefine?: _ruleFnMacroDefineCstNode[];
+  _ruleFnMacroInclude?: _ruleFnMacroIncludeCstNode[];
+  _ruleFnMacroCondition?: _ruleFnMacroConditionCstNode[];
 };
 
-export interface RuleFnMacroConditionCstNode extends CstNode {
-  name: "RuleFnMacroCondition";
-  children: RuleFnMacroConditionCstChildren;
+export interface _ruleFnMacroConditionCstNode extends CstNode {
+  name: "_ruleFnMacroCondition";
+  children: _ruleFnMacroConditionCstChildren;
 }
 
-export type RuleFnMacroConditionCstChildren = {
-  RuleFnMacroConditionDeclare: RuleFnMacroConditionDeclareCstNode[];
+export type _ruleFnMacroConditionCstChildren = {
+  _ruleFnMacroConditionDeclare: _ruleFnMacroConditionDeclareCstNode[];
   Identifier: IToken[];
-  RuleFnBody: RuleFnBodyCstNode[];
-  RuleFnMacroConditionBranch?: RuleFnMacroConditionBranchCstNode[];
+  _ruleFnBody: _ruleFnBodyCstNode[];
+  _ruleFnMacroConditionBranch?: _ruleFnMacroConditionBranchCstNode[];
   m_endif: IToken[];
 };
 
-export interface RuleFnMacroConditionDeclareCstNode extends CstNode {
-  name: "RuleFnMacroConditionDeclare";
-  children: RuleFnMacroConditionDeclareCstChildren;
+export interface _ruleFnMacroConditionDeclareCstNode extends CstNode {
+  name: "_ruleFnMacroConditionDeclare";
+  children: _ruleFnMacroConditionDeclareCstChildren;
 }
 
-export type RuleFnMacroConditionDeclareCstChildren = {
+export type _ruleFnMacroConditionDeclareCstChildren = {
   m_ifdef?: IToken[];
   m_ifndef?: IToken[];
 };
 
-export interface RuleFnMacroConditionBranchCstNode extends CstNode {
-  name: "RuleFnMacroConditionBranch";
-  children: RuleFnMacroConditionBranchCstChildren;
+export interface _ruleFnMacroConditionBranchCstNode extends CstNode {
+  name: "_ruleFnMacroConditionBranch";
+  children: _ruleFnMacroConditionBranchCstChildren;
 }
 
-export type RuleFnMacroConditionBranchCstChildren = {
-  RuleFnMacroConditionBranchDeclare: RuleFnMacroConditionBranchDeclareCstNode[];
-  RuleFnBody: RuleFnBodyCstNode[];
+export type _ruleFnMacroConditionBranchCstChildren = {
+  _ruleFnMacroConditionBranchDeclare: _ruleFnMacroConditionBranchDeclareCstNode[];
+  _ruleFnBody: _ruleFnBodyCstNode[];
 };
 
-export interface RuleFnMacroConditionBranchDeclareCstNode extends CstNode {
-  name: "RuleFnMacroConditionBranchDeclare";
-  children: RuleFnMacroConditionBranchDeclareCstChildren;
+export interface _ruleFnMacroConditionBranchDeclareCstNode extends CstNode {
+  name: "_ruleFnMacroConditionBranchDeclare";
+  children: _ruleFnMacroConditionBranchDeclareCstChildren;
 }
 
-export type RuleFnMacroConditionBranchDeclareCstChildren = {
+export type _ruleFnMacroConditionBranchDeclareCstChildren = {
   m_else?: IToken[];
 };
 
-export interface RuleFnMacroDefineCstNode extends CstNode {
-  name: "RuleFnMacroDefine";
-  children: RuleFnMacroDefineCstChildren;
+export interface _ruleFnMacroDefineCstNode extends CstNode {
+  name: "_ruleFnMacroDefine";
+  children: _ruleFnMacroDefineCstChildren;
 }
 
-export type RuleFnMacroDefineCstChildren = {
+export type _ruleFnMacroDefineCstChildren = {
   m_define: IToken[];
   Identifier: IToken[];
-  RuleAssignableValue?: RuleAssignableValueCstNode[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
 };
 
-export interface RuleAssignableValueCstNode extends CstNode {
-  name: "RuleAssignableValue";
-  children: RuleAssignableValueCstChildren;
+export interface _ruleAssignableValueCstNode extends CstNode {
+  name: "_ruleAssignableValue";
+  children: _ruleAssignableValueCstChildren;
 }
 
-export type RuleAssignableValueCstChildren = {
+export type _ruleAssignableValueCstChildren = {
   ValueTrue?: IToken[];
   ValueFalse?: IToken[];
   ValueString?: IToken[];
-  RuleFnAddExpr?: RuleFnAddExprCstNode[];
+  _ruleFnAddExpr?: _ruleFnAddExprCstNode[];
   gl_FragColor?: IToken[];
   gl_Position?: IToken[];
 };
 
-export interface RuleFnAddExprCstNode extends CstNode {
-  name: "RuleFnAddExpr";
-  children: RuleFnAddExprCstChildren;
+export interface _ruleFnAddExprCstNode extends CstNode {
+  name: "_ruleFnAddExpr";
+  children: _ruleFnAddExprCstChildren;
 }
 
-export type RuleFnAddExprCstChildren = {
-  RuleFnMultiplicationExpr: RuleFnMultiplicationExprCstNode[];
-  RuleAddOperator?: RuleAddOperatorCstNode[];
+export type _ruleFnAddExprCstChildren = {
+  _ruleFnMultiplicationExpr: _ruleFnMultiplicationExprCstNode[];
+  _ruleAddOperator?: _ruleAddOperatorCstNode[];
 };
 
-export interface RuleFnMultiplicationExprCstNode extends CstNode {
-  name: "RuleFnMultiplicationExpr";
-  children: RuleFnMultiplicationExprCstChildren;
+export interface _ruleFnMultiplicationExprCstNode extends CstNode {
+  name: "_ruleFnMultiplicationExpr";
+  children: _ruleFnMultiplicationExprCstChildren;
 }
 
-export type RuleFnMultiplicationExprCstChildren = {
-  RuleFnAtomicExpr: RuleFnAtomicExprCstNode[];
-  RuleMultiplicationOperator?: RuleMultiplicationOperatorCstNode[];
+export type _ruleFnMultiplicationExprCstChildren = {
+  _ruleFnAtomicExpr: _ruleFnAtomicExprCstNode[];
+  _ruleMultiplicationOperator?: _ruleMultiplicationOperatorCstNode[];
 };
 
-export interface RuleFnAtomicExprCstNode extends CstNode {
-  name: "RuleFnAtomicExpr";
-  children: RuleFnAtomicExprCstChildren;
+export interface _ruleFnAtomicExprCstNode extends CstNode {
+  name: "_ruleFnAtomicExpr";
+  children: _ruleFnAtomicExprCstChildren;
 }
 
-export type RuleFnAtomicExprCstChildren = {
-  RuleAddOperator?: RuleAddOperatorCstNode[];
-  RuleFnParenthesisExpr?: RuleFnParenthesisExprCstNode[];
-  RuleNumber?: RuleNumberCstNode[];
-  RuleFnCall?: RuleFnCallCstNode[];
-  RuleFnVariable?: RuleFnVariableCstNode[];
+export type _ruleFnAtomicExprCstChildren = {
+  _ruleAddOperator?: _ruleAddOperatorCstNode[];
+  _ruleFnParenthesisExpr?: _ruleFnParenthesisExprCstNode[];
+  _ruleNumber?: _ruleNumberCstNode[];
+  _ruleFnCall?: _ruleFnCallCstNode[];
+  _ruleFnVariable?: _ruleFnVariableCstNode[];
 };
 
-export interface RuleAddOperatorCstNode extends CstNode {
-  name: "RuleAddOperator";
-  children: RuleAddOperatorCstChildren;
+export interface _ruleAddOperatorCstNode extends CstNode {
+  name: "_ruleAddOperator";
+  children: _ruleAddOperatorCstChildren;
 }
 
-export type RuleAddOperatorCstChildren = {
+export type _ruleAddOperatorCstChildren = {
   Add?: IToken[];
   Minus?: IToken[];
 };
 
-export interface RuleFnParenthesisExprCstNode extends CstNode {
-  name: "RuleFnParenthesisExpr";
-  children: RuleFnParenthesisExprCstChildren;
+export interface _ruleFnParenthesisExprCstNode extends CstNode {
+  name: "_ruleFnParenthesisExpr";
+  children: _ruleFnParenthesisExprCstChildren;
 }
 
-export type RuleFnParenthesisExprCstChildren = {
+export type _ruleFnParenthesisExprCstChildren = {
   LBracket: IToken[];
-  RuleFnAddExpr: RuleFnAddExprCstNode[];
+  _ruleFnAddExpr: _ruleFnAddExprCstNode[];
   RBracket: IToken[];
 };
 
-export interface RuleNumberCstNode extends CstNode {
-  name: "RuleNumber";
-  children: RuleNumberCstChildren;
+export interface _ruleNumberCstNode extends CstNode {
+  name: "_ruleNumber";
+  children: _ruleNumberCstChildren;
 }
 
-export type RuleNumberCstChildren = {
+export type _ruleNumberCstChildren = {
   ValueInt?: IToken[];
   ValueFloat?: IToken[];
 };
 
-export interface RuleFnCallCstNode extends CstNode {
-  name: "RuleFnCall";
-  children: RuleFnCallCstChildren;
+export interface _ruleFnCallCstNode extends CstNode {
+  name: "_ruleFnCall";
+  children: _ruleFnCallCstChildren;
 }
 
-export type RuleFnCallCstChildren = {
-  RuleFnCallVariable: RuleFnCallVariableCstNode[];
+export type _ruleFnCallCstChildren = {
+  _ruleFnCallVariable: _ruleFnCallVariableCstNode[];
   LBracket: IToken[];
-  RuleAssignableValue?: RuleAssignableValueCstNode[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
   Comma?: IToken[];
   RBracket: IToken[];
 };
 
-export interface RuleFnCallVariableCstNode extends CstNode {
-  name: "RuleFnCallVariable";
-  children: RuleFnCallVariableCstChildren;
+export interface _ruleFnCallVariableCstNode extends CstNode {
+  name: "_ruleFnCallVariable";
+  children: _ruleFnCallVariableCstChildren;
 }
 
-export type RuleFnCallVariableCstChildren = {
+export type _ruleFnCallVariableCstChildren = {
   glsl_ivec2?: IToken[];
   glsl_ivec3?: IToken[];
   glsl_ivec4?: IToken[];
@@ -352,171 +352,171 @@ export type RuleFnCallVariableCstChildren = {
   Identifier?: IToken[];
 };
 
-export interface RuleFnVariableCstNode extends CstNode {
-  name: "RuleFnVariable";
-  children: RuleFnVariableCstChildren;
+export interface _ruleFnVariableCstNode extends CstNode {
+  name: "_ruleFnVariable";
+  children: _ruleFnVariableCstChildren;
 }
 
-export type RuleFnVariableCstChildren = {
+export type _ruleFnVariableCstChildren = {
   Identifier: IToken[];
   Dot?: IToken[];
 };
 
-export interface RuleMultiplicationOperatorCstNode extends CstNode {
-  name: "RuleMultiplicationOperator";
-  children: RuleMultiplicationOperatorCstChildren;
+export interface _ruleMultiplicationOperatorCstNode extends CstNode {
+  name: "_ruleMultiplicationOperator";
+  children: _ruleMultiplicationOperatorCstChildren;
 }
 
-export type RuleMultiplicationOperatorCstChildren = {
+export type _ruleMultiplicationOperatorCstChildren = {
   Multiply?: IToken[];
   Divide?: IToken[];
 };
 
-export interface RuleFnMacroIncludeCstNode extends CstNode {
-  name: "RuleFnMacroInclude";
-  children: RuleFnMacroIncludeCstChildren;
+export interface _ruleFnMacroIncludeCstNode extends CstNode {
+  name: "_ruleFnMacroInclude";
+  children: _ruleFnMacroIncludeCstChildren;
 }
 
-export type RuleFnMacroIncludeCstChildren = {
+export type _ruleFnMacroIncludeCstChildren = {
   m_include: IToken[];
   ValueString: IToken[];
 };
 
-export interface RuleFnStatementCstNode extends CstNode {
-  name: "RuleFnStatement";
-  children: RuleFnStatementCstChildren;
+export interface _ruleFnStatementCstNode extends CstNode {
+  name: "_ruleFnStatement";
+  children: _ruleFnStatementCstChildren;
 }
 
-export type RuleFnStatementCstChildren = {
-  RuleFnCall?: RuleFnCallCstNode[];
-  RuleFnReturnStatement?: RuleFnReturnStatementCstNode[];
-  RuleFnVariableDeclaration?: RuleFnVariableDeclarationCstNode[];
-  RuleFnConditionStatement?: RuleFnConditionStatementCstNode[];
-  RuleFnAssignStatement?: RuleFnAssignStatementCstNode[];
+export type _ruleFnStatementCstChildren = {
+  _ruleFnCall?: _ruleFnCallCstNode[];
+  _ruleFnReturnStatement?: _ruleFnReturnStatementCstNode[];
+  _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
+  _ruleFnConditionStatement?: _ruleFnConditionStatementCstNode[];
+  _ruleFnAssignStatement?: _ruleFnAssignStatementCstNode[];
   discard?: IToken[];
   Semicolon?: IToken[];
 };
 
-export interface RuleFnReturnStatementCstNode extends CstNode {
-  name: "RuleFnReturnStatement";
-  children: RuleFnReturnStatementCstChildren;
+export interface _ruleFnReturnStatementCstNode extends CstNode {
+  name: "_ruleFnReturnStatement";
+  children: _ruleFnReturnStatementCstChildren;
 }
 
-export type RuleFnReturnStatementCstChildren = {
+export type _ruleFnReturnStatementCstChildren = {
   return: IToken[];
-  RuleFnExpression?: RuleFnExpressionCstNode[];
-  RuleBoolean?: RuleBooleanCstNode[];
+  _ruleFnExpression?: _ruleFnExpressionCstNode[];
+  _ruleBoolean?: _ruleBooleanCstNode[];
   ValueString?: IToken[];
   Semicolon: IToken[];
 };
 
-export interface RuleFnExpressionCstNode extends CstNode {
-  name: "RuleFnExpression";
-  children: RuleFnExpressionCstChildren;
+export interface _ruleFnExpressionCstNode extends CstNode {
+  name: "_ruleFnExpression";
+  children: _ruleFnExpressionCstChildren;
 }
 
-export type RuleFnExpressionCstChildren = {
-  RuleFnAddExpr: RuleFnAddExprCstNode[];
+export type _ruleFnExpressionCstChildren = {
+  _ruleFnAddExpr: _ruleFnAddExprCstNode[];
 };
 
-export interface RuleBooleanCstNode extends CstNode {
-  name: "RuleBoolean";
-  children: RuleBooleanCstChildren;
+export interface _ruleBooleanCstNode extends CstNode {
+  name: "_ruleBoolean";
+  children: _ruleBooleanCstChildren;
 }
 
-export type RuleBooleanCstChildren = {
+export type _ruleBooleanCstChildren = {
   ValueTrue?: IToken[];
   ValueFalse?: IToken[];
 };
 
-export interface RuleFnVariableDeclarationCstNode extends CstNode {
-  name: "RuleFnVariableDeclaration";
-  children: RuleFnVariableDeclarationCstChildren;
+export interface _ruleFnVariableDeclarationCstNode extends CstNode {
+  name: "_ruleFnVariableDeclaration";
+  children: _ruleFnVariableDeclarationCstChildren;
 }
 
-export type RuleFnVariableDeclarationCstChildren = {
-  RuleVariableType: RuleVariableTypeCstNode[];
+export type _ruleFnVariableDeclarationCstChildren = {
+  _ruleVariableType: _ruleVariableTypeCstNode[];
   Identifier: IToken[];
   Equal?: IToken[];
-  RuleFnExpression?: RuleFnExpressionCstNode[];
+  _ruleFnExpression?: _ruleFnExpressionCstNode[];
   Semicolon: IToken[];
 };
 
-export interface RuleFnConditionStatementCstNode extends CstNode {
-  name: "RuleFnConditionStatement";
-  children: RuleFnConditionStatementCstChildren;
+export interface _ruleFnConditionStatementCstNode extends CstNode {
+  name: "_ruleFnConditionStatement";
+  children: _ruleFnConditionStatementCstChildren;
 }
 
-export type RuleFnConditionStatementCstChildren = {
+export type _ruleFnConditionStatementCstChildren = {
   if: IToken[];
   LBracket: IToken[];
-  RuleFnRelationExpr: RuleFnRelationExprCstNode[];
+  _ruleFnRelationExpr: _ruleFnRelationExprCstNode[];
   RBracket: IToken[];
-  RuleFnBlockStatement: RuleFnBlockStatementCstNode[];
+  _ruleFnBlockStatement: _ruleFnBlockStatementCstNode[];
   else?: IToken[];
-  RuleFnConditionStatement?: RuleFnConditionStatementCstNode[];
+  _ruleFnConditionStatement?: _ruleFnConditionStatementCstNode[];
 };
 
-export interface RuleFnRelationExprCstNode extends CstNode {
-  name: "RuleFnRelationExpr";
-  children: RuleFnRelationExprCstChildren;
+export interface _ruleFnRelationExprCstNode extends CstNode {
+  name: "_ruleFnRelationExpr";
+  children: _ruleFnRelationExprCstChildren;
 }
 
-export type RuleFnRelationExprCstChildren = {
-  RuleFnAddExpr: RuleFnAddExprCstNode[];
-  RuleRelationOperator: RuleRelationOperatorCstNode[];
+export type _ruleFnRelationExprCstChildren = {
+  _ruleFnAddExpr: _ruleFnAddExprCstNode[];
+  _ruleRelationOperator: _ruleRelationOperatorCstNode[];
 };
 
-export interface RuleRelationOperatorCstNode extends CstNode {
-  name: "RuleRelationOperator";
-  children: RuleRelationOperatorCstChildren;
+export interface _ruleRelationOperatorCstNode extends CstNode {
+  name: "_ruleRelationOperator";
+  children: _ruleRelationOperatorCstChildren;
 }
 
-export type RuleRelationOperatorCstChildren = {
+export type _ruleRelationOperatorCstChildren = {
   GreaterThan?: IToken[];
   LessThan?: IToken[];
 };
 
-export interface RuleFnBlockStatementCstNode extends CstNode {
-  name: "RuleFnBlockStatement";
-  children: RuleFnBlockStatementCstChildren;
+export interface _ruleFnBlockStatementCstNode extends CstNode {
+  name: "_ruleFnBlockStatement";
+  children: _ruleFnBlockStatementCstChildren;
 }
 
-export type RuleFnBlockStatementCstChildren = {
+export type _ruleFnBlockStatementCstChildren = {
   LCurly: IToken[];
-  RuleFnBody: RuleFnBodyCstNode[];
+  _ruleFnBody: _ruleFnBodyCstNode[];
   RCurly: IToken[];
 };
 
-export interface RuleFnAssignStatementCstNode extends CstNode {
-  name: "RuleFnAssignStatement";
-  children: RuleFnAssignStatementCstChildren;
+export interface _ruleFnAssignStatementCstNode extends CstNode {
+  name: "_ruleFnAssignStatement";
+  children: _ruleFnAssignStatementCstChildren;
 }
 
-export type RuleFnAssignStatementCstChildren = {
-  RuleFnAssignLO: RuleFnAssignLOCstNode[];
-  RuleFnAssignmentOperator: RuleFnAssignmentOperatorCstNode[];
-  RuleFnExpression: RuleFnExpressionCstNode[];
+export type _ruleFnAssignStatementCstChildren = {
+  _ruleFnAssignLO: _ruleFnAssignLOCstNode[];
+  _ruleFnAssignmentOperator: _ruleFnAssignmentOperatorCstNode[];
+  _ruleFnExpression: _ruleFnExpressionCstNode[];
   Semicolon: IToken[];
 };
 
-export interface RuleFnAssignLOCstNode extends CstNode {
-  name: "RuleFnAssignLO";
-  children: RuleFnAssignLOCstChildren;
+export interface _ruleFnAssignLOCstNode extends CstNode {
+  name: "_ruleFnAssignLO";
+  children: _ruleFnAssignLOCstChildren;
 }
 
-export type RuleFnAssignLOCstChildren = {
+export type _ruleFnAssignLOCstChildren = {
   gl_FragColor?: IToken[];
   gl_Position?: IToken[];
-  RuleFnVariable?: RuleFnVariableCstNode[];
+  _ruleFnVariable?: _ruleFnVariableCstNode[];
 };
 
-export interface RuleFnAssignmentOperatorCstNode extends CstNode {
-  name: "RuleFnAssignmentOperator";
-  children: RuleFnAssignmentOperatorCstChildren;
+export interface _ruleFnAssignmentOperatorCstNode extends CstNode {
+  name: "_ruleFnAssignmentOperator";
+  children: _ruleFnAssignmentOperatorCstChildren;
 }
 
-export type RuleFnAssignmentOperatorCstChildren = {
+export type _ruleFnAssignmentOperatorCstChildren = {
   Equal?: IToken[];
   MultiEqual?: IToken[];
   DivideEqual?: IToken[];
@@ -524,125 +524,125 @@ export type RuleFnAssignmentOperatorCstChildren = {
   MinusEqual?: IToken[];
 };
 
-export interface SubShaderPassPropertyAssignmentCstNode extends CstNode {
-  name: "SubShaderPassPropertyAssignment";
-  children: SubShaderPassPropertyAssignmentCstChildren;
+export interface _ruleSubShaderPassPropertyAssignmentCstNode extends CstNode {
+  name: "_ruleSubShaderPassPropertyAssignment";
+  children: _ruleSubShaderPassPropertyAssignmentCstChildren;
 }
 
-export type SubShaderPassPropertyAssignmentCstChildren = {
-  RuleShaderPassPropertyType: RuleShaderPassPropertyTypeCstNode[];
+export type _ruleSubShaderPassPropertyAssignmentCstChildren = {
+  _ruleShaderPassPropertyType: _ruleShaderPassPropertyTypeCstNode[];
   Equal: IToken[];
   Identifier: IToken[];
   Semicolon: IToken[];
 };
 
-export interface RuleShaderPassPropertyTypeCstNode extends CstNode {
-  name: "RuleShaderPassPropertyType";
-  children: RuleShaderPassPropertyTypeCstChildren;
+export interface _ruleShaderPassPropertyTypeCstNode extends CstNode {
+  name: "_ruleShaderPassPropertyType";
+  children: _ruleShaderPassPropertyTypeCstChildren;
 }
 
-export type RuleShaderPassPropertyTypeCstChildren = {
-  RuleRenderStateType?: RuleRenderStateTypeCstNode[];
+export type _ruleShaderPassPropertyTypeCstChildren = {
+  _ruleRenderStateType?: _ruleRenderStateTypeCstNode[];
   VertexShader?: IToken[];
   FragmentShader?: IToken[];
 };
 
-export interface RuleRenderStateTypeCstNode extends CstNode {
-  name: "RuleRenderStateType";
-  children: RuleRenderStateTypeCstChildren;
+export interface _ruleRenderStateTypeCstNode extends CstNode {
+  name: "_ruleRenderStateType";
+  children: _ruleRenderStateTypeCstChildren;
 }
 
-export type RuleRenderStateTypeCstChildren = {
+export type _ruleRenderStateTypeCstChildren = {
   BlendState?: IToken[];
   DepthState?: IToken[];
   RasterState?: IToken[];
   StencilState?: IToken[];
 };
 
-export interface RuleRenderStateDeclarationCstNode extends CstNode {
-  name: "RuleRenderStateDeclaration";
-  children: RuleRenderStateDeclarationCstChildren;
+export interface _ruleRenderStateDeclarationCstNode extends CstNode {
+  name: "_ruleRenderStateDeclaration";
+  children: _ruleRenderStateDeclarationCstChildren;
 }
 
-export type RuleRenderStateDeclarationCstChildren = {
-  RuleRenderStateType: RuleRenderStateTypeCstNode[];
+export type _ruleRenderStateDeclarationCstChildren = {
+  _ruleRenderStateType: _ruleRenderStateTypeCstNode[];
   Identifier: IToken[];
   LCurly: IToken[];
-  RuleStatePropertyAssign?: RuleStatePropertyAssignCstNode[];
+  _ruleStatePropertyAssign?: _ruleStatePropertyAssignCstNode[];
   Semicolon?: IToken[];
   RCurly: IToken[];
 };
 
-export interface RuleStatePropertyAssignCstNode extends CstNode {
-  name: "RuleStatePropertyAssign";
-  children: RuleStatePropertyAssignCstChildren;
+export interface _ruleStatePropertyAssignCstNode extends CstNode {
+  name: "_ruleStatePropertyAssign";
+  children: _ruleStatePropertyAssignCstChildren;
 }
 
-export type RuleStatePropertyAssignCstChildren = {
-  RuleStateProperty: RuleStatePropertyCstNode[];
+export type _ruleStatePropertyAssignCstChildren = {
+  _ruleStateProperty: _ruleStatePropertyCstNode[];
   Equal: IToken[];
-  RuleAssignableValue: RuleAssignableValueCstNode[];
+  _ruleAssignableValue: _ruleAssignableValueCstNode[];
 };
 
-export interface RuleStatePropertyCstNode extends CstNode {
-  name: "RuleStateProperty";
-  children: RuleStatePropertyCstChildren;
+export interface _ruleStatePropertyCstNode extends CstNode {
+  name: "_ruleStateProperty";
+  children: _ruleStatePropertyCstChildren;
 }
 
-export type RuleStatePropertyCstChildren = {
+export type _ruleStatePropertyCstChildren = {
   Enabled?: IToken[];
   DestColorBlendFactor?: IToken[];
   SrcColorBlendFactor?: IToken[];
 };
 
-export interface RulePropertyCstNode extends CstNode {
-  name: "RuleProperty";
-  children: RulePropertyCstChildren;
+export interface _rulePropertyCstNode extends CstNode {
+  name: "_ruleProperty";
+  children: _rulePropertyCstChildren;
 }
 
-export type RulePropertyCstChildren = {
+export type _rulePropertyCstChildren = {
   EditorProperties: IToken[];
   LCurly: IToken[];
-  RulePropertyItem?: RulePropertyItemCstNode[];
+  _rulePropertyItem?: _rulePropertyItemCstNode[];
   RCurly: IToken[];
 };
 
-export interface RulePropertyItemCstNode extends CstNode {
-  name: "RulePropertyItem";
-  children: RulePropertyItemCstChildren;
+export interface _rulePropertyItemCstNode extends CstNode {
+  name: "_rulePropertyItem";
+  children: _rulePropertyItemCstChildren;
 }
 
-export type RulePropertyItemCstChildren = {
+export type _rulePropertyItemCstChildren = {
   Identifier: IToken[];
   LBracket: IToken[];
   ValueString: IToken[];
   Comma: IToken[];
-  RulePropertyItemType: RulePropertyItemTypeCstNode[];
+  _rulePropertyItemType: _rulePropertyItemTypeCstNode[];
   RBracket: IToken[];
   Equal: IToken[];
-  RulePropertyItemValue: RulePropertyItemValueCstNode[];
+  _rulePropertyItemValue: _rulePropertyItemValueCstNode[];
   Semicolon: IToken[];
 };
 
-export interface RulePropertyItemTypeCstNode extends CstNode {
-  name: "RulePropertyItemType";
-  children: RulePropertyItemTypeCstChildren;
+export interface _rulePropertyItemTypeCstNode extends CstNode {
+  name: "_rulePropertyItemType";
+  children: _rulePropertyItemTypeCstChildren;
 }
 
-export type RulePropertyItemTypeCstChildren = {
+export type _rulePropertyItemTypeCstChildren = {
   TypeInteger?: IToken[];
   TypeString?: IToken[];
   TypeFloat?: IToken[];
-  RuleVariableType?: RuleVariableTypeCstNode[];
-  RuleRange?: RuleRangeCstNode[];
+  _ruleVariableType?: _ruleVariableTypeCstNode[];
+  _ruleRange?: _ruleRangeCstNode[];
 };
 
-export interface RuleRangeCstNode extends CstNode {
-  name: "RuleRange";
-  children: RuleRangeCstChildren;
+export interface _ruleRangeCstNode extends CstNode {
+  name: "_ruleRange";
+  children: _ruleRangeCstChildren;
 }
 
-export type RuleRangeCstChildren = {
+export type _ruleRangeCstChildren = {
   Range: IToken[];
   LBracket: IToken[];
   ValueInt: IToken[];
@@ -650,18 +650,18 @@ export type RuleRangeCstChildren = {
   RBracket: IToken[];
 };
 
-export interface RulePropertyItemValueCstNode extends CstNode {
-  name: "RulePropertyItemValue";
-  children: RulePropertyItemValueCstChildren;
+export interface _rulePropertyItemValueCstNode extends CstNode {
+  name: "_rulePropertyItemValue";
+  children: _rulePropertyItemValueCstChildren;
 }
 
-export type RulePropertyItemValueCstChildren = {
-  TupleFloat4?: TupleFloat4CstNode[];
-  TupleFloat3?: TupleFloat3CstNode[];
-  TupleFloat2?: TupleFloat2CstNode[];
-  TupleInt4?: TupleInt4CstNode[];
-  TupleInt3?: TupleInt3CstNode[];
-  TupleInt2?: TupleInt2CstNode[];
+export type _rulePropertyItemValueCstChildren = {
+  _ruleTupleFloat4?: _ruleTupleFloat4CstNode[];
+  _ruleTupleFloat3?: _ruleTupleFloat3CstNode[];
+  _ruleTupleFloat2?: _ruleTupleFloat2CstNode[];
+  _ruleTupleInt4?: _ruleTupleInt4CstNode[];
+  _ruleTupleInt3?: _ruleTupleInt3CstNode[];
+  _ruleTupleInt2?: _ruleTupleInt2CstNode[];
   ValueTrue?: IToken[];
   ValueFalse?: IToken[];
   ValueInt?: IToken[];
@@ -669,72 +669,72 @@ export type RulePropertyItemValueCstChildren = {
   ValueFloat?: IToken[];
 };
 
-export interface TupleFloat4CstNode extends CstNode {
-  name: "TupleFloat4";
-  children: TupleFloat4CstChildren;
+export interface _ruleTupleFloat4CstNode extends CstNode {
+  name: "_ruleTupleFloat4";
+  children: _ruleTupleFloat4CstChildren;
 }
 
-export type TupleFloat4CstChildren = {
+export type _ruleTupleFloat4CstChildren = {
   LBracket: IToken[];
   ValueFloat: IToken[];
   Comma: IToken[];
   RBracket: IToken[];
 };
 
-export interface TupleFloat3CstNode extends CstNode {
-  name: "TupleFloat3";
-  children: TupleFloat3CstChildren;
+export interface _ruleTupleFloat3CstNode extends CstNode {
+  name: "_ruleTupleFloat3";
+  children: _ruleTupleFloat3CstChildren;
 }
 
-export type TupleFloat3CstChildren = {
+export type _ruleTupleFloat3CstChildren = {
   LBracket: IToken[];
   ValueFloat: IToken[];
   Comma: IToken[];
   RBracket: IToken[];
 };
 
-export interface TupleFloat2CstNode extends CstNode {
-  name: "TupleFloat2";
-  children: TupleFloat2CstChildren;
+export interface _ruleTupleFloat2CstNode extends CstNode {
+  name: "_ruleTupleFloat2";
+  children: _ruleTupleFloat2CstChildren;
 }
 
-export type TupleFloat2CstChildren = {
+export type _ruleTupleFloat2CstChildren = {
   LBracket: IToken[];
   ValueFloat: IToken[];
   Comma: IToken[];
   RBracket: IToken[];
 };
 
-export interface TupleInt4CstNode extends CstNode {
-  name: "TupleInt4";
-  children: TupleInt4CstChildren;
+export interface _ruleTupleInt4CstNode extends CstNode {
+  name: "_ruleTupleInt4";
+  children: _ruleTupleInt4CstChildren;
 }
 
-export type TupleInt4CstChildren = {
+export type _ruleTupleInt4CstChildren = {
   LBracket: IToken[];
   ValueInt: IToken[];
   Comma: IToken[];
   RBracket: IToken[];
 };
 
-export interface TupleInt3CstNode extends CstNode {
-  name: "TupleInt3";
-  children: TupleInt3CstChildren;
+export interface _ruleTupleInt3CstNode extends CstNode {
+  name: "_ruleTupleInt3";
+  children: _ruleTupleInt3CstChildren;
 }
 
-export type TupleInt3CstChildren = {
+export type _ruleTupleInt3CstChildren = {
   LBracket: IToken[];
   ValueInt: IToken[];
   Comma: IToken[];
   RBracket: IToken[];
 };
 
-export interface TupleInt2CstNode extends CstNode {
-  name: "TupleInt2";
-  children: TupleInt2CstChildren;
+export interface _ruleTupleInt2CstNode extends CstNode {
+  name: "_ruleTupleInt2";
+  children: _ruleTupleInt2CstChildren;
 }
 
-export type TupleInt2CstChildren = {
+export type _ruleTupleInt2CstChildren = {
   LBracket: IToken[];
   ValueInt: IToken[];
   Comma: IToken[];
@@ -742,64 +742,64 @@ export type TupleInt2CstChildren = {
 };
 
 export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
-  RuleShader(children: RuleShaderCstChildren, param?: IN): OUT;
-  RuleSubShader(children: RuleSubShaderCstChildren, param?: IN): OUT;
-  RuleShaderPass(children: RuleShaderPassCstChildren, param?: IN): OUT;
-  RuleStruct(children: RuleStructCstChildren, param?: IN): OUT;
-  RuleDeclaration(children: RuleDeclarationCstChildren, param?: IN): OUT;
-  RuleVariableType(children: RuleVariableTypeCstChildren, param?: IN): OUT;
-  RuleTag(children: RuleTagCstChildren, param?: IN): OUT;
-  RuleTagAssignment(children: RuleTagAssignmentCstChildren, param?: IN): OUT;
-  RuleTagType(children: RuleTagTypeCstChildren, param?: IN): OUT;
-  RuleFn(children: RuleFnCstChildren, param?: IN): OUT;
-  RuleFnReturnType(children: RuleFnReturnTypeCstChildren, param?: IN): OUT;
-  RuleFnArg(children: RuleFnArgCstChildren, param?: IN): OUT;
-  RuleFnBody(children: RuleFnBodyCstChildren, param?: IN): OUT;
-  RuleFnMacro(children: RuleFnMacroCstChildren, param?: IN): OUT;
-  RuleFnMacroCondition(children: RuleFnMacroConditionCstChildren, param?: IN): OUT;
-  RuleFnMacroConditionDeclare(children: RuleFnMacroConditionDeclareCstChildren, param?: IN): OUT;
-  RuleFnMacroConditionBranch(children: RuleFnMacroConditionBranchCstChildren, param?: IN): OUT;
-  RuleFnMacroConditionBranchDeclare(children: RuleFnMacroConditionBranchDeclareCstChildren, param?: IN): OUT;
-  RuleFnMacroDefine(children: RuleFnMacroDefineCstChildren, param?: IN): OUT;
-  RuleAssignableValue(children: RuleAssignableValueCstChildren, param?: IN): OUT;
-  RuleFnAddExpr(children: RuleFnAddExprCstChildren, param?: IN): OUT;
-  RuleFnMultiplicationExpr(children: RuleFnMultiplicationExprCstChildren, param?: IN): OUT;
-  RuleFnAtomicExpr(children: RuleFnAtomicExprCstChildren, param?: IN): OUT;
-  RuleAddOperator(children: RuleAddOperatorCstChildren, param?: IN): OUT;
-  RuleFnParenthesisExpr(children: RuleFnParenthesisExprCstChildren, param?: IN): OUT;
-  RuleNumber(children: RuleNumberCstChildren, param?: IN): OUT;
-  RuleFnCall(children: RuleFnCallCstChildren, param?: IN): OUT;
-  RuleFnCallVariable(children: RuleFnCallVariableCstChildren, param?: IN): OUT;
-  RuleFnVariable(children: RuleFnVariableCstChildren, param?: IN): OUT;
-  RuleMultiplicationOperator(children: RuleMultiplicationOperatorCstChildren, param?: IN): OUT;
-  RuleFnMacroInclude(children: RuleFnMacroIncludeCstChildren, param?: IN): OUT;
-  RuleFnStatement(children: RuleFnStatementCstChildren, param?: IN): OUT;
-  RuleFnReturnStatement(children: RuleFnReturnStatementCstChildren, param?: IN): OUT;
-  RuleFnExpression(children: RuleFnExpressionCstChildren, param?: IN): OUT;
-  RuleBoolean(children: RuleBooleanCstChildren, param?: IN): OUT;
-  RuleFnVariableDeclaration(children: RuleFnVariableDeclarationCstChildren, param?: IN): OUT;
-  RuleFnConditionStatement(children: RuleFnConditionStatementCstChildren, param?: IN): OUT;
-  RuleFnRelationExpr(children: RuleFnRelationExprCstChildren, param?: IN): OUT;
-  RuleRelationOperator(children: RuleRelationOperatorCstChildren, param?: IN): OUT;
-  RuleFnBlockStatement(children: RuleFnBlockStatementCstChildren, param?: IN): OUT;
-  RuleFnAssignStatement(children: RuleFnAssignStatementCstChildren, param?: IN): OUT;
-  RuleFnAssignLO(children: RuleFnAssignLOCstChildren, param?: IN): OUT;
-  RuleFnAssignmentOperator(children: RuleFnAssignmentOperatorCstChildren, param?: IN): OUT;
-  SubShaderPassPropertyAssignment(children: SubShaderPassPropertyAssignmentCstChildren, param?: IN): OUT;
-  RuleShaderPassPropertyType(children: RuleShaderPassPropertyTypeCstChildren, param?: IN): OUT;
-  RuleRenderStateType(children: RuleRenderStateTypeCstChildren, param?: IN): OUT;
-  RuleRenderStateDeclaration(children: RuleRenderStateDeclarationCstChildren, param?: IN): OUT;
-  RuleStatePropertyAssign(children: RuleStatePropertyAssignCstChildren, param?: IN): OUT;
-  RuleStateProperty(children: RuleStatePropertyCstChildren, param?: IN): OUT;
-  RuleProperty(children: RulePropertyCstChildren, param?: IN): OUT;
-  RulePropertyItem(children: RulePropertyItemCstChildren, param?: IN): OUT;
-  RulePropertyItemType(children: RulePropertyItemTypeCstChildren, param?: IN): OUT;
-  RuleRange(children: RuleRangeCstChildren, param?: IN): OUT;
-  RulePropertyItemValue(children: RulePropertyItemValueCstChildren, param?: IN): OUT;
-  TupleFloat4(children: TupleFloat4CstChildren, param?: IN): OUT;
-  TupleFloat3(children: TupleFloat3CstChildren, param?: IN): OUT;
-  TupleFloat2(children: TupleFloat2CstChildren, param?: IN): OUT;
-  TupleInt4(children: TupleInt4CstChildren, param?: IN): OUT;
-  TupleInt3(children: TupleInt3CstChildren, param?: IN): OUT;
-  TupleInt2(children: TupleInt2CstChildren, param?: IN): OUT;
+  _ruleShader(children: _ruleShaderCstChildren, param?: IN): OUT;
+  _ruleSubShader(children: _ruleSubShaderCstChildren, param?: IN): OUT;
+  _ruleShaderPass(children: _ruleShaderPassCstChildren, param?: IN): OUT;
+  _ruleStruct(children: _ruleStructCstChildren, param?: IN): OUT;
+  _ruleDeclaration(children: _ruleDeclarationCstChildren, param?: IN): OUT;
+  _ruleVariableType(children: _ruleVariableTypeCstChildren, param?: IN): OUT;
+  _ruleTag(children: _ruleTagCstChildren, param?: IN): OUT;
+  _ruleTagAssignment(children: _ruleTagAssignmentCstChildren, param?: IN): OUT;
+  _ruleTagType(children: _ruleTagTypeCstChildren, param?: IN): OUT;
+  _ruleFn(children: _ruleFnCstChildren, param?: IN): OUT;
+  _ruleFnReturnType(children: _ruleFnReturnTypeCstChildren, param?: IN): OUT;
+  _ruleFnArg(children: _ruleFnArgCstChildren, param?: IN): OUT;
+  _ruleFnBody(children: _ruleFnBodyCstChildren, param?: IN): OUT;
+  _ruleFnMacro(children: _ruleFnMacroCstChildren, param?: IN): OUT;
+  _ruleFnMacroCondition(children: _ruleFnMacroConditionCstChildren, param?: IN): OUT;
+  _ruleFnMacroConditionDeclare(children: _ruleFnMacroConditionDeclareCstChildren, param?: IN): OUT;
+  _ruleFnMacroConditionBranch(children: _ruleFnMacroConditionBranchCstChildren, param?: IN): OUT;
+  _ruleFnMacroConditionBranchDeclare(children: _ruleFnMacroConditionBranchDeclareCstChildren, param?: IN): OUT;
+  _ruleFnMacroDefine(children: _ruleFnMacroDefineCstChildren, param?: IN): OUT;
+  _ruleAssignableValue(children: _ruleAssignableValueCstChildren, param?: IN): OUT;
+  _ruleFnAddExpr(children: _ruleFnAddExprCstChildren, param?: IN): OUT;
+  _ruleFnMultiplicationExpr(children: _ruleFnMultiplicationExprCstChildren, param?: IN): OUT;
+  _ruleFnAtomicExpr(children: _ruleFnAtomicExprCstChildren, param?: IN): OUT;
+  _ruleAddOperator(children: _ruleAddOperatorCstChildren, param?: IN): OUT;
+  _ruleFnParenthesisExpr(children: _ruleFnParenthesisExprCstChildren, param?: IN): OUT;
+  _ruleNumber(children: _ruleNumberCstChildren, param?: IN): OUT;
+  _ruleFnCall(children: _ruleFnCallCstChildren, param?: IN): OUT;
+  _ruleFnCallVariable(children: _ruleFnCallVariableCstChildren, param?: IN): OUT;
+  _ruleFnVariable(children: _ruleFnVariableCstChildren, param?: IN): OUT;
+  _ruleMultiplicationOperator(children: _ruleMultiplicationOperatorCstChildren, param?: IN): OUT;
+  _ruleFnMacroInclude(children: _ruleFnMacroIncludeCstChildren, param?: IN): OUT;
+  _ruleFnStatement(children: _ruleFnStatementCstChildren, param?: IN): OUT;
+  _ruleFnReturnStatement(children: _ruleFnReturnStatementCstChildren, param?: IN): OUT;
+  _ruleFnExpression(children: _ruleFnExpressionCstChildren, param?: IN): OUT;
+  _ruleBoolean(children: _ruleBooleanCstChildren, param?: IN): OUT;
+  _ruleFnVariableDeclaration(children: _ruleFnVariableDeclarationCstChildren, param?: IN): OUT;
+  _ruleFnConditionStatement(children: _ruleFnConditionStatementCstChildren, param?: IN): OUT;
+  _ruleFnRelationExpr(children: _ruleFnRelationExprCstChildren, param?: IN): OUT;
+  _ruleRelationOperator(children: _ruleRelationOperatorCstChildren, param?: IN): OUT;
+  _ruleFnBlockStatement(children: _ruleFnBlockStatementCstChildren, param?: IN): OUT;
+  _ruleFnAssignStatement(children: _ruleFnAssignStatementCstChildren, param?: IN): OUT;
+  _ruleFnAssignLO(children: _ruleFnAssignLOCstChildren, param?: IN): OUT;
+  _ruleFnAssignmentOperator(children: _ruleFnAssignmentOperatorCstChildren, param?: IN): OUT;
+  _ruleSubShaderPassPropertyAssignment(children: _ruleSubShaderPassPropertyAssignmentCstChildren, param?: IN): OUT;
+  _ruleShaderPassPropertyType(children: _ruleShaderPassPropertyTypeCstChildren, param?: IN): OUT;
+  _ruleRenderStateType(children: _ruleRenderStateTypeCstChildren, param?: IN): OUT;
+  _ruleRenderStateDeclaration(children: _ruleRenderStateDeclarationCstChildren, param?: IN): OUT;
+  _ruleStatePropertyAssign(children: _ruleStatePropertyAssignCstChildren, param?: IN): OUT;
+  _ruleStateProperty(children: _ruleStatePropertyCstChildren, param?: IN): OUT;
+  _ruleProperty(children: _rulePropertyCstChildren, param?: IN): OUT;
+  _rulePropertyItem(children: _rulePropertyItemCstChildren, param?: IN): OUT;
+  _rulePropertyItemType(children: _rulePropertyItemTypeCstChildren, param?: IN): OUT;
+  _ruleRange(children: _ruleRangeCstChildren, param?: IN): OUT;
+  _rulePropertyItemValue(children: _rulePropertyItemValueCstChildren, param?: IN): OUT;
+  _ruleTupleFloat4(children: _ruleTupleFloat4CstChildren, param?: IN): OUT;
+  _ruleTupleFloat3(children: _ruleTupleFloat3CstChildren, param?: IN): OUT;
+  _ruleTupleFloat2(children: _ruleTupleFloat2CstChildren, param?: IN): OUT;
+  _ruleTupleInt4(children: _ruleTupleInt4CstChildren, param?: IN): OUT;
+  _ruleTupleInt3(children: _ruleTupleInt3CstChildren, param?: IN): OUT;
+  _ruleTupleInt2(children: _ruleTupleInt2CstChildren, param?: IN): OUT;
 }
