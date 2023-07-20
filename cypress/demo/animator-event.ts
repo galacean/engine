@@ -43,7 +43,6 @@ const textRenderer = textEntity.addComponent(TextRenderer);
 textEntity.transform.setPosition(0, 2, 0);
 textRenderer.fontSize = 12;
 textRenderer.font = Font.createFromOS(engine, "AlibabaPuHuiTi");
-textRenderer.fontStyle = FontStyle.Bold;
 textRenderer.text = "";
 
 engine.resourceManager
