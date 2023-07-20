@@ -49,7 +49,7 @@ import {
   TupleInt4CstChildren
 } from "./types";
 import { CstNode } from "chevrotain";
-import { ShaderParser } from "./parser";
+import { ShaderParser } from "./parser/ShaderParser";
 import { AstNodeUtils } from "./AstNodeUtils";
 import {
   AddExprAstNode,
