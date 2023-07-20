@@ -25,7 +25,7 @@ engine.canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
 engine.canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 const scene = engine.sceneManager.activeScene;
 const rootEntity = scene.createRootEntity();
-
+console.log(99, SystemInfo.devicePixelRatio);
 // camera
 const cameraEntity = rootEntity.createChild("camera_node");
 cameraEntity.transform.position = new Vector3(0, 1, 5);
@@ -42,7 +42,7 @@ const textEntity = rootEntity.createChild("text");
 const textRenderer = textEntity.addComponent(TextRenderer);
 textEntity.transform.setPosition(0, 2, 0);
 textRenderer.fontSize = 12;
-textRenderer.font = Font.createFromOS(engine, "AlibabaPuHuiTi");
+textRenderer.font = Font.createFromOS(engine, "AlibabaSans");
 textRenderer.text = "";
 
 engine.resourceManager

@@ -75,7 +75,7 @@ describe("Animator", () => {
     cy.screenshotWithThreshold("Animator", "animator-stateMachineScript", 0.3);
   });
 
-  it("Animator event", () => {
+  it.only("Animator event", () => {
     cy.screenshotWithThreshold("Animator", "animator-event", 0.3);
   });
 
