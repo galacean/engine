@@ -1,0 +1,53 @@
+name: End-to-end tests
+on: [push]
+
+jobs:
+  e2e:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: pnpm
+    - name: Install dependencies
+      run: pnpm i
+    - name: Build
+      run: npm run build
+
+    - name: Run Cypress Tests
+      uses: cypress-io/github-action@v5
+      with:
+        start: npm run demo
+        wait-on: 'http://localhost:3000'
+        wait-on-timeout: 120 
+        browser: chrome
+    - name: Upload Diff
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: cypress-diff
+        path: cypress/diff/
+    - name: Upload Origin
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: cypress-origin
+        path: cypress/fixtures/originImage
+    - name: Upload Screenshots
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: cypress-screenshots
+        path: cypress/screenshots/

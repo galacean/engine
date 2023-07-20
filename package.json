@@ -17,7 +17,10 @@
     "b:umd": "cross-env BUILD_TYPE=UMD rollup -c",
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
     "b:all": "npm run b:types && cross-env BUILD_TYPE=ALL rollup -c",
-    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types"
+    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types",
+    "demo": "pnpm -C ./cypress run demo",
+    "e2e": "cypress run --browser chrome --headless",
+    "e2e:open": "cypress open"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
@@ -53,7 +56,12 @@
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-swc3": "^0.8.0",
     "ts-node": "^10",
-    "typescript": "^4.8.4"
+    "typescript": "^4.8.4",
+    "fs-extra": "^10.1.0",
+    "cypress": "^12.17.1",
+    "cypress-recurse": "^1.23.0",
+    "odiff-bin": "^2.5.0"
+
   },
   "husky": {
     "hooks": {

@@ -1,0 +1,97 @@
+$header-height: 3.5rem
+$header-padding: 1rem
+$container-gap: 2rem
+$transition-duration: 0.5s
+
+*
+    box-sizing: border-box
+
+html, body
+    margin: 0
+    width: 100%
+    height: 100%
+    overflow: hidden
+
+body
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif
+    font-size: 16px
+
+a
+    text-decoration: none
+    color: inherit
+    display: inline-block
+
+.container
+    display: flex
+    height: 100%
+    user-select: none
+    .header
+        position: absolute
+        top: 0
+        left: 0
+        height: $header-height
+        padding: $header-padding $container-gap
+        .logo
+            height: $header-height - 2 * $header-padding
+            display: flex
+            align-items: center
+            img
+                height: 100%
+            span
+                font-weight: bold
+                padding-left: 10px
+                font-size: 1.2em
+    .search-bar
+        position: absolute
+        top: $header-height
+        left: 1rem
+        padding: $header-padding $container-gap
+        background: #fff url("//gw-office.alipayobjects.com/basement_prod/225a73b9-1281-4388-9555-1e671899bc25.svg") .6rem .55rem no-repeat
+        cursor: text
+        width: 10rem
+        height: 2rem
+        color: #666
+        display: inline-block
+        border: 1px solid #ccc
+        border-radius: 2rem
+        font-size: .9rem
+        line-height: 2rem
+        outline: none
+    .nav-left
+        display: flex
+        flex-direction: column
+        overflow: auto
+        padding: 1rem $container-gap
+        margin-top: $header-height + 2rem
+
+        .item-list
+            .hide
+                height: 0
+            ul
+                padding-left: 20px
+                margin: 0
+            .title
+                font-weight: bold
+                cursor: default
+                font-size: 1.2em
+            a
+                height: 2rem
+                line-height: 2rem
+                cursor: pointer
+                transition-property: color,height
+                transition-duration: $transition-duration
+                overflow: hidden
+                display: block
+                &.active
+                    text-decoration: underline
+                    color: #096dd9
+                &:hover
+                    color: #096dd9
+
+    .nav-right
+        flex: 1
+        box-shadow: rgb(125 121 121) -2px 0px 8px
+
+        iframe
+            width: 100%
+            height: 100%

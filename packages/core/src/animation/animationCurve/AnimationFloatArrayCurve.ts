@@ -4,7 +4,6 @@ import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCu
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
-
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
