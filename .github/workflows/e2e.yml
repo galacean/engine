@@ -14,12 +14,6 @@ jobs:
     - uses: actions/checkout@v3
       with:
         lfs: true
-    - name: Install font from repository
-      run: |
-        sudo apt-get update
-        mkdir -p ~/.fonts
-        cp cypress/.dev/AlibabaSans.ttf ~/.fonts/
-        sudo fc-cache -f -v
     - name: Install pnpm
       uses: pnpm/action-setup@v2
     - name: Use Node.js ${{ matrix.node-version }}

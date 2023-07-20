@@ -30,10 +30,20 @@
       .dg.main > ul {
         overflow: initial;
       }
+      div {
+        font-family: "AlibabaSans";
+        font-size: 20px;
+        color: white;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
     </style>
   </head>
 
   <body>
+    <div>event1 called</div>
     <canvas id="canvas"></canvas>
     <script type="module" src="<%= url %>"></script>
     <script>
