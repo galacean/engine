@@ -1,4 +1,4 @@
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderLab } from "@galacean/engine-shader-lab";
 import { Shader } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
