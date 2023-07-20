@@ -49,8 +49,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     ktx2Container: KTX2Container,
     formatPriorities?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
-    // @ts-ignore
-    const renderer = engine._hardwareRenderer as WebGLRenderer;
+    const renderer = (engine as any)._hardwareRenderer;
 
     const targetFormat = this._detectSupportedFormat(renderer, formatPriorities) as KTX2TargetFormat;
 
@@ -68,7 +67,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       Logger.warn("Can't support any compressed texture, downgrade to RGBA8");
       return KTX2TargetFormat.R8G8B8A8;
     }
-    // TODO support bc7: https://github.com/galacean/engine/issues/1371
     return targetFormat;
   }
 
@@ -104,10 +102,21 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
-      if (
-        // @ts-ignore
-        KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, options.formatPriorities) === KTX2TargetFormat.ASTC
-      ) {
+      const priorityFormats = options.priorityFormats;
+      const supportedList: KTX2TargetFormat[] = [];
+      if (Array.isArray(priorityFormats[0])) {
+        for (let i = 0; i < priorityFormats.length; i++) {
+          supportedList.push(
+            KTX2Loader._detectSupportedFormat((engine as any)._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats[i])
+          );
+        }
+      } else {
+        supportedList.push(
+          KTX2Loader._detectSupportedFormat((engine as any)._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats)
+        );
+      }
+
+      if (supportedList.every((format) => KhronosTranscoder.transcoderMap[format])) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
         return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
@@ -124,7 +133,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): AssetPromise<Texture2D | TextureCube> {
     return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) => {
       const ktx2Container = new KTX2Container(buffer);
-      const formatPriorities = item.params?.formatPriorities;
+      const formatPriorities = item.params?.priorityFormats;
       const targetFormat = KTX2Loader._decideTargetFormat(resourceManager.engine, ktx2Container, formatPriorities);
       let transcodeResultPromise: Promise<any>;
       if (targetFormat === KTX2TargetFormat.ASTC && ktx2Container.isUASTC) {
@@ -191,8 +200,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
  * KTX2 loader params interface.
  */
 export interface KTX2Params {
-  /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
-  formatPriorities: KTX2TargetFormat[];
+  /** Transcoder priority formats priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+  priorityFormats: KTX2TargetFormat[];
 }
 
 declare module "@galacean/engine-core" {
@@ -201,8 +210,8 @@ declare module "@galacean/engine-core" {
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
-      /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
-      formatPriorities?: KTX2TargetFormat[];
+      /** Transcoder priority Formats, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+      priorityFormats?: KTX2TargetFormat[] | KTX2TargetFormat[][];
     };
   }
 }
