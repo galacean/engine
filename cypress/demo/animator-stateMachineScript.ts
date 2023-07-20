@@ -9,6 +9,7 @@ import {
   AnimatorState,
   Camera,
   DirectLight,
+  Font,
   GLTFResource,
   Logger,
   StateMachineScript,
@@ -42,6 +43,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const textRenderer = textEntity.addComponent(TextRenderer);
   textEntity.transform.setPosition(0, 2, 0);
   textRenderer.fontSize = 12;
+  textRenderer.font = Font.createFromOS(engine, "Arial");
   textRenderer.text = "";
 
   engine.resourceManager
