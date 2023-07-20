@@ -58,7 +58,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       state.addStateMachineScript(
         class extends StateMachineScript {
           onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
-            textRenderer.text = "onStateEnter";
+            textRenderer.text = "0";
             console.log("onStateEnter: ", animatorState);
           }
 
@@ -67,7 +67,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
           }
 
           onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
-            textRenderer.text = "onStateExit";
+            textRenderer.text = "1";
             console.log("onStateExit: ", animatorState);
           }
         }

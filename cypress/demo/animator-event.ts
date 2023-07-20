@@ -68,11 +68,11 @@ engine.resourceManager
     defaultSceneRoot.addComponent(
       class extends Script {
         event0(): void {
-          textRenderer.text = "event0 called";
+          textRenderer.text = "0";
         }
 
         event1(): void {
-          textRenderer.text = "event1 called";
+          textRenderer.text = "1";
         }
       }
     );

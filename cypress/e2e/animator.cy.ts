@@ -71,7 +71,7 @@ describe("Animator", () => {
     cy.screenshotWithThreshold("Animator", "animator-customBlendShape", 0.3);
   });
 
-  it("Animator stateMachineScript", () => {
+  it.only("Animator stateMachineScript", () => {
     cy.screenshotWithThreshold("Animator", "animator-stateMachineScript", 0.3);
   });
 
