@@ -30,8 +30,8 @@ export class WorkerPool<T = any, U = any> {
 
   /**
    * Post message to worker.
-   * @param message - message which posted to worker
-   * @returns return a promise of message
+   * @param message - Message which posted to worker
+   * @returns Return a promise of message
    */
   postMessage(message: T): Promise<U> {
     return new Promise((resolve, reject) => {

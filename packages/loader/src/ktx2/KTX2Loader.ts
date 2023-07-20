@@ -47,11 +47,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _decideTargetFormat(
     engine: Engine,
     ktx2Container: KTX2Container,
-    formatPriorities?: KTX2TargetFormat[]
+    priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
 
-    const targetFormat = this._detectSupportedFormat(renderer, formatPriorities) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -72,7 +72,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
   private static _detectSupportedFormat(
     renderer: any,
-    formatPriorities: KTX2TargetFormat[] = [
+    priorityFormats: KTX2TargetFormat[] = [
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC7,
@@ -80,11 +80,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.PVRTC
     ]
   ): KTX2TargetFormat | null {
-    for (let i = 0; i < formatPriorities.length; i++) {
-      const capabilities = this._supportedMap[formatPriorities[i]];
+    for (let i = 0; i < priorityFormats.length; i++) {
+      const capabilities = this._supportedMap[priorityFormats[i]];
       for (let j = 0; j < capabilities.length; j++) {
         if (renderer.canIUse(capabilities[j])) {
-          return formatPriorities[i];
+          return priorityFormats[i];
         }
       }
     }
@@ -103,7 +103,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
       const priorityFormats = options.priorityFormats;
-      const supportedList: KTX2TargetFormat[] = [];
+      const supportedList = new Array<KTX2TargetFormat>();
       if (Array.isArray(priorityFormats[0])) {
         for (let i = 0; i < priorityFormats.length; i++) {
           supportedList.push(
@@ -200,7 +200,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
  * KTX2 loader params interface.
  */
 export interface KTX2Params {
-  /** Transcoder priority formats priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+  /** Priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
   priorityFormats: KTX2TargetFormat[];
 }
 
@@ -210,7 +210,7 @@ declare module "@galacean/engine-core" {
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
-      /** Transcoder priority Formats, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+      /** Pre-initialization according to the priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
       priorityFormats?: KTX2TargetFormat[] | KTX2TargetFormat[][];
     };
   }
