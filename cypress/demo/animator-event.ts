@@ -9,6 +9,7 @@ import {
   Animator,
   Camera,
   DirectLight,
+  Font,
   GLTFResource,
   Script,
   SystemInfo,
@@ -41,6 +42,7 @@ const textEntity = rootEntity.createChild("text");
 const textRenderer = textEntity.addComponent(TextRenderer);
 textEntity.transform.setPosition(0, 2, 0);
 textRenderer.fontSize = 12;
+textRenderer.font = Font.createFromOS(engine, "AlibabaPuHuiTi");
 textRenderer.text = "";
 
 engine.resourceManager
