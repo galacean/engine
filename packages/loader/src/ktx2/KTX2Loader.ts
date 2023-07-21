@@ -24,6 +24,7 @@ import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 
 @resourceLoader(AssetType.KTX, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
+  private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
   private static _khronosTranscoder: KhronosTranscoder;
   private static _supportedMap = {
@@ -92,6 +93,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _getBinomialLLCTranscoder(workerCount: number = 4) {
+    KTX2Loader._isBinomialInit = true;
     return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
   }
 
@@ -102,21 +104,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
-      const priorityFormats = options.priorityFormats;
-      const supportedList = new Array<KTX2TargetFormat>();
-      if (Array.isArray(priorityFormats[0])) {
-        for (let i = 0; i < priorityFormats.length; i++) {
-          supportedList.push(
-            KTX2Loader._detectSupportedFormat((engine as any)._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats[i])
-          );
-        }
-      } else {
-        supportedList.push(
-          KTX2Loader._detectSupportedFormat((engine as any)._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats)
-        );
-      }
-
-      if (supportedList.every((format) => KhronosTranscoder.transcoderMap[format])) {
+      if (this._isKhronosSupported(options.priorityFormats, engine)) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
         return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
@@ -136,12 +124,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       const formatPriorities = item.params?.priorityFormats;
       const targetFormat = KTX2Loader._decideTargetFormat(resourceManager.engine, ktx2Container, formatPriorities);
       let transcodeResultPromise: Promise<any>;
-      if (targetFormat === KTX2TargetFormat.ASTC && ktx2Container.isUASTC) {
-        const khronosWorker = KTX2Loader._getKhronosTranscoder();
-        transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
-      } else {
+      if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
         const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
         transcodeResultPromise = binomialLLCWorker.init().then(() => binomialLLCWorker.transcode(buffer, targetFormat));
+      } else {
+        const khronosWorker = KTX2Loader._getKhronosTranscoder();
+        transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
       }
       return transcodeResultPromise.then((result) => {
         const { width, height, faces } = result;
@@ -177,7 +165,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     });
   }
 
-  private _getEngineTextureFormat(basisFormat: KTX2TargetFormat, transcodeResult: TranscodeResult) {
+  private _getEngineTextureFormat(basisFormat: KTX2TargetFormat, transcodeResult: TranscodeResult): TextureFormat {
     const { hasAlpha } = transcodeResult;
     switch (basisFormat) {
       case KTX2TargetFormat.ASTC:
@@ -193,6 +181,32 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       case KTX2TargetFormat.R8G8B8A8:
         return TextureFormat.R8G8B8A8;
     }
+  }
+
+  private _isKhronosSupported(
+    priorityFormats: KTX2TargetFormat[] | KTX2TargetFormat[][] = [
+      KTX2TargetFormat.ASTC,
+      KTX2TargetFormat.ETC,
+      KTX2TargetFormat.BC7,
+      KTX2TargetFormat.BC1_BC3,
+      KTX2TargetFormat.PVRTC,
+      KTX2TargetFormat.R8G8B8A8
+    ],
+    engine: any
+  ): boolean {
+    const supportedList = new Array<KTX2TargetFormat>();
+    if (Array.isArray(priorityFormats[0])) {
+      for (let i = 0; i < priorityFormats.length; i++) {
+        supportedList.push(
+          KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats[i])
+        );
+      }
+    } else {
+      supportedList.push(
+        KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats)
+      );
+    }
+    return supportedList.every((format) => KhronosTranscoder.transcoderMap[format]);
   }
 }
 
