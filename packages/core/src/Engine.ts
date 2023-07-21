@@ -1,4 +1,4 @@
-import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -564,8 +564,13 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const physics = configuration.physics;
-    const initializePromises: Promise<any>[] = [];
+    const { shaderLab, physics } = configuration;
+
+    if (shaderLab) {
+      Shader._shaderLab = shaderLab;
+    }
+
+    const initializePromises = new Array<Promise<any>>();
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
@@ -659,4 +664,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** Color space. */
   colorSpace?: ColorSpace;
+  /** Shader lab */
+  shaderLab?: IShaderLab;
 }
