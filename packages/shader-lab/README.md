@@ -1,13 +1,13 @@
 ## Installation
 
 ```sh
-npm install @galacean/engine-shaderlab
+npm install @galacean/engine-shader-lab
 ```
 
 ## Usage
 
 ```typescript
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderLab } from "@galacean/engine-shader-lab";
 
 // Create ShaderLab
 const shaderLab = new ShaderLab();
