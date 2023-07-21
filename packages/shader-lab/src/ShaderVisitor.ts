@@ -43,7 +43,7 @@ import {
   VariableTypeAstNode,
   ObjectAstNode
 } from "./ast-node";
-import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/types";
+import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
   ICstNodeVisitor,
   _ruleShaderCstChildren,

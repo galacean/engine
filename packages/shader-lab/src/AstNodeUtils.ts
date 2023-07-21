@@ -1,7 +1,7 @@
 import { CstElement, CstNode, ICstVisitor, IToken, CstChildrenDictionary } from "chevrotain";
 
 import { AstNode, ObjectAstNode } from "./ast-node";
-import { IPosition, IPositionRange } from "./ast-node/types";
+import { IPosition, IPositionRange } from "./ast-node/";
 import { ShaderVisitor, parser } from "./ShaderVisitor";
 import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
 import { IShaderInfo } from "@galacean/engine-design";

@@ -7,8 +7,9 @@ import {
   FnVariableAstNode,
   ReturnTypeAstNode,
   StructAstNode
-} from "./ast-node";
-import { IPassAstContent, IShaderAstContent, ISubShaderAstContent, IPositionRange } from "./ast-node/types";
+} from "./ast-node/AstNode";
+
+import { IPassAstContent, IShaderAstContent, ISubShaderAstContent, IPositionRange } from "./ast-node";
 import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 
@@ -39,34 +40,33 @@ interface IReferenceStructInfo {
 }
 
 export default class RuntimeContext {
-  private shaderAst: AstNode<IShaderAstContent>;
+  shaderAst: AstNode<IShaderAstContent>;
   passAst: AstNode<IPassAstContent>;
   functionAstStack: Array<{ fnAst: FnAstNode; localDeclaration: DeclarationAstNode[] }> = [];
   /** Diagnostic for linting service */
   diagnostics: Array<IDiagnostic> = [];
-
-  /** The main function */
-  private _currentMainFnAst?: FnAstNode;
-
   /** Global variables e.g. Uniforms */
   globalList: Array<IGlobal> = [];
-  /** global text */
+  /** Global text */
   globalTextList: Array<string> = [];
-  /** varying info */
+  /** Varying info */
   varyingTypeAstNode?: ReturnTypeAstNode;
-  /** varying */
+  /** Varying */
   varyingStructInfo: IReferenceStructInfo;
-  /** attributes struct list */
+  /** Attributes struct list */
   attributeStructListInfo: Array<IReferenceStructInfo> = [];
-  /** attributes variable list */
+  /** Attributes variable list */
   attributesVariableListInfo: Array<{
     name: string;
     astNode: FnArgAstNode;
     referenced: boolean;
     text: string;
   }> = [];
-  /** current position */
+  /** Current position */
   serializingAstNode?: AstNode;
+
+  /** The main function */
+  private _currentMainFnAst?: FnAstNode;
 
   constructor() {}
 

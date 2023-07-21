@@ -1,110 +1,26 @@
 import {
-  AddOperatorAstNode,
-  AssignLoAstNode,
-  AssignableValueAstNode,
-  DeclarationAstNode,
-  FnArgAstNode,
-  FnAstNode,
-  FnAtomicExprAstNode,
-  FnVariableAstNode,
-  MultiplicationOperatorAstNode,
-  MultiplicationExprAstNode,
-  ObjectAstNode,
-  PassPropertyAssignmentAstNode,
+  AstNode,
   PropertyItemAstNode,
-  ReturnTypeAstNode,
-  StatePropertyAssignAstNode,
-  StructAstNode,
-  TagAssignmentAstNode,
   TagAstNode,
+  PassPropertyAssignmentAstNode,
+  StructAstNode,
   VariableDeclarationAstNode,
-  VariableTypeAstNode
-} from ".";
-import RuntimeContext from "../RuntimeContext";
-
-export interface IPosition {
-  line: number;
-  offset: number;
-}
-
-export interface IPositionRange {
-  start: IPosition;
-  end: IPosition;
-}
-
-export interface IAstInfo<T = any> {
-  position: IPositionRange;
-  content: T;
-}
-
-export class AstNode<T = any> implements IAstInfo<T> {
-  position: IPositionRange;
-  content: T;
-
-  /** @internal */
-  private _isAstNode = true;
-
-  constructor(ast: IAstInfo<T>) {
-    this.position = ast.position;
-    this.content = ast.content;
-  }
-
-  /** @internal */
-  _doSerialization(context: RuntimeContext, args?: any): string {
-    throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
-  }
-
-  /** @internal */
-  _beforeSerialization(context: RuntimeContext, args?: any) {
-    context.serializingAstNode = this;
-  }
-
-  serialize(context: RuntimeContext, args?: any): string {
-    this._beforeSerialization(context, args);
-    return this._doSerialization(context, args);
-  }
-
-  private _jsonifyObject(obj: any, includePos: boolean, withClass = false) {
-    if (typeof obj !== "object") return obj;
-    const ret = {} as any;
-    if (obj._isAstNode) {
-      return obj.toJson(includePos, withClass);
-    }
-    for (const k in obj) {
-      let v = obj[k];
-      if (v === null || v === undefined) continue;
-      if (v._isAstNode) {
-        v = v.toJson(includePos, withClass);
-      } else if (Array.isArray(v)) {
-        v = v.map((i) => this._jsonifyObject(i, includePos, withClass));
-      } else if (typeof v === "object") {
-        v = this._jsonifyObject(v, includePos, withClass);
-      }
-      ret[k] = v;
-    }
-
-    return ret;
-  }
-
-  toJson(includePos = false, withClass = false) {
-    let res: any;
-    if (Array.isArray(this.content)) {
-      res = this.content.map((item) => this._jsonifyObject(item, includePos, withClass));
-    } else if (typeof this.content === "object") {
-      res = this._jsonifyObject(this.content, includePos, withClass);
-    } else {
-      res = this.content;
-    }
-    let ret: any = { content: res };
-    if (includePos) {
-      ret.position = this.position;
-    }
-    if (withClass) {
-      ret.Class = this.constructor.name;
-    }
-    return ret;
-  }
-}
+  FnAstNode,
+  ReturnTypeAstNode,
+  FnArgAstNode,
+  AssignLoAstNode,
+  FnVariableAstNode,
+  AddOperatorAstNode,
+  MultiplicationExprAstNode,
+  MultiplicationOperatorAstNode,
+  FnAtomicExprAstNode,
+  ObjectAstNode,
+  StatePropertyAssignAstNode,
+  AssignableValueAstNode,
+  VariableTypeAstNode,
+  DeclarationAstNode,
+  TagAssignmentAstNode
+} from "./AstNode";
 
 export interface IShaderAstContent {
   name: string;
