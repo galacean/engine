@@ -308,6 +308,7 @@ export class Engine extends EventDispatcher {
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
+
     this._renderElementPool.resetPool();
     this._meshRenderDataPool.resetPool();
     this._spriteRenderDataPool.resetPool();
