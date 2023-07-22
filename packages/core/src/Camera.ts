@@ -10,6 +10,7 @@ import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
+import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -18,7 +19,6 @@ import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
-import { DepthTextureMode } from "./enums/DepthTextureMode";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -100,6 +100,8 @@ export class Camera extends Component {
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
+  private _pixelViewport: Vector4 = new Vector4(0, 0, 0, 0);
+  @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
@@ -157,7 +159,7 @@ export class Camera extends Component {
   }
 
   /**
-   * Viewport, normalized expression, the upper left corner is (0, 0), and the lower right corner is (1, 1).
+   * Viewport, normalized expression, the upper left corner is (0, 0), and the lower right corner is (1.0, 1.0).
    * @remarks Re-assignment is required after modification to ensure that the modification takes effect.
    */
   get viewport(): Vector4 {
@@ -169,8 +171,16 @@ export class Camera extends Component {
       this._viewport.copyFrom(value);
     }
     this._projMatChange();
+    this._updatePixelViewport();
   }
 
+  /**
+   * Pixel viewport, the upper left corner is (0, 0), and the lower right corner is (canvasPixelWidth, canvasPixelHeight).
+   */
+  get pixelViewport(): Vector4 {
+    return this._pixelViewport;
+  }
+  ƒ;
   /**
    * Rendering priority, higher priority will be rendered on top of a camera with lower priority.
    */
@@ -289,7 +299,10 @@ export class Camera extends Component {
   }
 
   set renderTarget(value: RenderTarget | null) {
-    this._renderTarget = value;
+    if (this._renderTarget !== value) {
+      this._renderTarget = value;
+      this._updatePixelViewport();
+    }
   }
 
   /**
@@ -305,6 +318,7 @@ export class Camera extends Component {
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
     this.shaderData._addReferCount(1);
+    this._updatePixelViewport();
   }
 
   /**
@@ -557,6 +571,14 @@ export class Camera extends Component {
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this.shaderData._addReferCount(-1);
+  }
+
+  private _updatePixelViewport(): void {
+    const viewport = this._viewport;
+    const width = this._renderTarget?.width ?? this.engine.canvas.width;
+    const height = this._renderTarget?.height ?? this.engine.canvas.height;
+
+    this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
   }
 
   private _projMatChange(): void {

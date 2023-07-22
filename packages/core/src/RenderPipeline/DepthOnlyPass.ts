@@ -25,19 +25,9 @@ export class DepthOnlyPass extends PipelinePass {
 
   override onConfig(camera: Camera): void {
     const engine = this._engine;
-    const rhi = engine._hardwareRenderer;
 
-    // @todo: remove hack
-    let width: number, height: number;
-    const cameraRenderTarget = camera.renderTarget;
-    if (camera.renderTarget) {
-      width = cameraRenderTarget.width;
-      height = cameraRenderTarget.height;
-    } else {
-      width = rhi._gl.drawingBufferWidth;
-      height = rhi._gl.drawingBufferHeight;
-    }
-
+    const width = camera.pixelViewport.z;
+    const height = camera.pixelViewport.w;
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
       this._renderTarget,
