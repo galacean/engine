@@ -53,7 +53,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _existShadowMap: boolean = false;
 
   private _splitBoundSpheres = new Float32Array(CascadedShadowCasterPass._maxCascades * 4);
-  /** The end is project prcision problem in shader. */
+  /** The end is project precision problem in shader. */
   private _shadowMatrices = new Float32Array((CascadedShadowCasterPass._maxCascades + 1) * 16);
   // strength, null, lightIndex
   private _shadowInfos = new Vector3();

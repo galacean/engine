@@ -148,8 +148,6 @@ export class BasicRenderPipeline {
       this._cascadedShadowCaster.onRender(context);
     }
 
-    this._depthOnlyPass.onRender(context, cullingResults);
-
     cullingResults.reset();
     this._allSpriteMasks.length = 0;
 
@@ -158,6 +156,8 @@ export class BasicRenderPipeline {
     context.pipelineStageTagValue = BasicRenderPipeline._forwardPipelineStageTagValue;
     this._callRender(context);
     cullingResults.sort();
+
+    this._depthOnlyPass.onRender(context, cullingResults);
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel);
