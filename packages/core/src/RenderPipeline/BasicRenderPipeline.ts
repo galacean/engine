@@ -252,9 +252,10 @@ export class BasicRenderPipeline {
     const renderElementPool = context.camera.engine._renderElementPool;
 
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
+    debugger;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const renderQueueType = renderStates[i].renderQueueType;
-      if (renderQueueAddedFlags & renderQueueType) {
+      if (renderQueueAddedFlags & (1 << renderQueueType)) {
         continue;
       }
 

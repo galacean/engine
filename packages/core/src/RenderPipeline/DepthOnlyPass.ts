@@ -8,13 +8,12 @@ import { RenderTarget } from "../texture/RenderTarget";
 import { CullingResults } from "./CullingResults";
 import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
+import { PipelineStage } from "./enums/PipelineStage";
 
 /**
  * Depth only pass.
  */
 export class DepthOnlyPass extends PipelinePass {
-  private static _pipelineStageValue: string = "DepthOnly";
-
   private _renderTarget: RenderTarget;
 
   constructor(engine: Engine) {
@@ -54,17 +53,20 @@ export class DepthOnlyPass extends PipelinePass {
   override onRender(context: RenderContext, cullingResults: CullingResults): void {
     this.onConfig(context.camera);
 
-    context.pipelineStageTagValue = DepthOnlyPass._pipelineStageValue;
+    context.pipelineStageTagValue = PipelineStage.DepthOnly;
     const camera = context.camera;
     const { engine, scene } = camera;
     const renderTarget = this._renderTarget;
     const { background } = scene;
     const rhi = engine._hardwareRenderer;
     rhi.activeRenderTarget(renderTarget, camera.viewport, 0);
-    renderTarget?._setRenderTargetInfo(undefined, 0);
+    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+
+    rhi.viewport(0, 0, renderTarget.width, renderTarget.height);
+    rhi.scissor(0, 0, renderTarget.width, renderTarget.height);
+
     cullingResults.opaqueQueue.render(context, camera, Layer.Everything);
     cullingResults.alphaTestQueue.render(context, camera, Layer.Everything);
-    cullingResults.transparentQueue.render(context, camera, Layer.Everything);
 
     const clearFlags = camera.clearFlags;
     const color = background.solidColor;
