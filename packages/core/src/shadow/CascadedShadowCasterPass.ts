@@ -1,6 +1,7 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
+import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { GLCapabilityType } from "../base/Constant";
@@ -58,7 +59,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   // strength, null, lightIndex
   private _shadowInfos = new Vector3();
   private _depthTexture: Texture2D;
-  private _renderTargets: RenderTarget;
+  private _renderTarget: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   constructor(camera: Camera) {
@@ -117,8 +118,41 @@ export class CascadedShadowCasterPass extends PipelinePass {
       const light = camera.scene._sunLight;
       const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
       this._getCascadesSplitDistance(shadowFar);
-      // prepare render target
-      const renderTarget = this._getAvailableRenderTarget();
+
+      // Prepare render target
+      const { z: width, w: height } = this._shadowMapSize;
+      const format = this._shadowMapFormat;
+      let renderTarget: RenderTarget;
+      let shadowTexture: Texture2D;
+      if (this._supportDepthTexture) {
+        renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._renderTarget,
+          width,
+          height,
+          format,
+          null,
+          false
+        );
+        shadowTexture = <Texture2D>renderTarget.depthTexture;
+      } else {
+        renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._renderTarget,
+          width,
+          height,
+          null,
+          format,
+          false
+        );
+        shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
+      }
+
+      shadowTexture.wrapModeU = shadowTexture.wrapModeV = TextureWrapMode.Clamp;
+      if (engine._hardwareRenderer._isWebGL2) {
+        shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
+      }
+
       // @todo: shouldn't set viewport and scissor in activeRenderTarget
       rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
       if (this._supportDepthTexture) {
@@ -166,11 +200,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
           shadowMatrices
         );
         if (shadowCascades > 1) {
-          const shadowMapSize = this._shadowMapSize;
           ShadowUtils.applySliceTransform(
             shadowTileResolution,
-            shadowMapSize.z,
-            shadowMapSize.w,
+            width,
+            height,
             j,
             this._viewportOffsets[j],
             shadowMatrices
@@ -285,33 +318,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     return Math.sqrt((radius * radius) / denominator);
   }
 
-  private _getAvailableRenderTarget(): RenderTarget {
-    const engine = this._engine;
-    const format = this._shadowMapFormat;
-    const { z: width, w: height } = this._shadowMapSize;
-    let depthTexture = this._depthTexture;
-    let renderTarget = this._renderTargets;
-    if (
-      renderTarget == null ||
-      depthTexture?.width !== width ||
-      depthTexture?.height !== height ||
-      depthTexture?.format !== format
-    ) {
-      depthTexture = this._depthTexture = new Texture2D(engine, width, height, format, false);
-      depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
-      if (engine._hardwareRenderer._isWebGL2) {
-        depthTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
-      }
-
-      if (this._supportDepthTexture) {
-        renderTarget = this._renderTargets = new RenderTarget(engine, width, height, null, depthTexture);
-      } else {
-        renderTarget = this._renderTargets = new RenderTarget(engine, width, height, depthTexture);
-      }
-    }
-    return renderTarget;
-  }
-
   private _updateShadowSettings(): void {
     const scene = this._camera.scene;
     const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
@@ -343,7 +349,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         this._shadowMapSize.set(1.0 / width, 1.0 / height, width, height);
       }
 
-      this._renderTargets = null;
+      this._renderTarget = null;
 
       const viewportOffset = this._viewportOffsets;
       const shadowTileResolution = this._shadowTileResolution;

@@ -3,9 +3,10 @@ import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { PipelinePass } from "../shadow/PipelinePass";
-import { Texture2D, TextureFormat } from "../texture";
+import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { CullingResults } from "./CullingResults";
+import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 
 /**
@@ -35,13 +36,24 @@ export class DepthOnlyPass extends PipelinePass {
       height = rhi._gl.drawingBufferHeight;
     }
 
-    const depthTexture = new Texture2D(engine, width, height, TextureFormat.Depth16, false);
-    this._renderTarget = new RenderTarget(engine, width, height, null, depthTexture);
+    const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+      engine,
+      this._renderTarget,
+      width,
+      height,
+      null,
+      TextureFormat.Depth16,
+      false
+    );
+    const { depthTexture } = renderTarget;
+    depthTexture.wrapModeU = renderTarget.depthTexture.wrapModeV = TextureWrapMode.Clamp;
+    depthTexture.filterMode = TextureFilterMode.Point;
   }
 
   override onRender(context: RenderContext, cullingResults: CullingResults): void {
     this.onConfig(context.camera);
 
+    context.pipelineStageTagValue = DepthOnlyPass._pipelineStageValue;
     const camera = context.camera;
     const { engine, scene } = camera;
     const renderTarget = this._renderTarget;
