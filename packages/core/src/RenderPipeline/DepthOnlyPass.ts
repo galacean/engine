@@ -48,6 +48,7 @@ export class DepthOnlyPass extends PipelinePass {
     const { depthTexture } = renderTarget;
     depthTexture.wrapModeU = renderTarget.depthTexture.wrapModeV = TextureWrapMode.Clamp;
     depthTexture.filterMode = TextureFilterMode.Point;
+    this._renderTarget = renderTarget;
   }
 
   override onRender(context: RenderContext, cullingResults: CullingResults): void {

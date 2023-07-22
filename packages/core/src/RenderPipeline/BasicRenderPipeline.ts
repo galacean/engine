@@ -8,7 +8,7 @@ import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { DepthTextureMode } from "../enums/DepthMode";
+import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { Material } from "../material";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
@@ -154,7 +154,6 @@ export class BasicRenderPipeline {
 
     context.applyVirtualCamera(camera._virtualCamera);
 
-    context.pipelineStageTagValue = BasicRenderPipeline._forwardPipelineStageTagValue;
     this._callRender(context);
     cullingResults.sort();
 
@@ -162,6 +161,7 @@ export class BasicRenderPipeline {
       this._depthOnlyPass.onRender(context, cullingResults);
     }
 
+    context.pipelineStageTagValue = BasicRenderPipeline._forwardPipelineStageTagValue;
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel);
     }
@@ -193,8 +193,8 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
       } else {
-        cullingResults.opaqueQueue.render(context,camera, pass.mask);
-        cullingResults.alphaTestQueue.render(context,camera, pass.mask);
+        cullingResults.opaqueQueue.render(context, camera, pass.mask);
+        cullingResults.alphaTestQueue.render(context, camera, pass.mask);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -202,7 +202,7 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        cullingResults.transparentQueue.render(context,camera, pass.mask);
+        cullingResults.transparentQueue.render(context, camera, pass.mask);
       }
 
       renderTarget?._blitRenderTarget();
@@ -259,7 +259,7 @@ export class BasicRenderPipeline {
       }
 
       const renderElement = renderElementPool.getFromPool();
-      renderElement.set(element,shaderPasses);
+      renderElement.set(element, shaderPasses);
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
           opaqueQueue.pushRenderElement(renderElement);

@@ -28,7 +28,7 @@ export class PipelineUtils {
         currentTexture.width !== width ||
         currentTexture.height !== height ||
         currentTexture.format !== format ||
-        currentTexture.mipmapCount > 0 !== mipmap
+        currentTexture.mipmapCount > 1 !== mipmap
       ) {
         currentTexture.destroy();
         return new Texture2D(engine, width, height, format, mipmap);
@@ -60,8 +60,8 @@ export class PipelineUtils {
     depthFormat: TextureFormat | null,
     mipmap: boolean
   ): RenderTarget {
-    const currentColorTexture = <Texture2D>currentRenderTarget.getColorTexture(0);
-    const currentDepthTexture = <Texture2D>currentRenderTarget.depthTexture;
+    const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
+    const currentDepthTexture = <Texture2D>currentRenderTarget?.depthTexture;
     const colorTexture = colorFormat
       ? PipelineUtils.recreateTextureIfNeeded(engine, currentColorTexture, width, height, colorFormat, mipmap)
       : null;

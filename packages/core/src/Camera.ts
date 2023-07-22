@@ -18,7 +18,7 @@ import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
-import { DepthTextureMode } from "./enums/DepthMode";
+import { DepthTextureMode } from "./enums/DepthTextureMode";
 
 class MathTemp {
   static tempVec4 = new Vector4();
