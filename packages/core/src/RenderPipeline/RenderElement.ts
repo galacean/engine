@@ -1,15 +1,12 @@
 import { ShaderPass } from "../shader/ShaderPass";
-import { RenderState } from "../shader/state/RenderState";
 import { RenderData } from "./RenderData";
 
 export class RenderElement {
   data: RenderData;
-  shaderPass: ShaderPass;
-  renderState: RenderState;
+  shaderPasses: ReadonlyArray<ShaderPass>;
 
-  set(data: RenderData, shaderPass: ShaderPass, renderState: RenderState): void {
+  set(data: RenderData, shaderPasses: ReadonlyArray<ShaderPass>): void {
     this.data = data;
-    this.shaderPass = shaderPass;
-    this.renderState = renderState;
+    this.shaderPasses = shaderPasses;
   }
 }

@@ -8,6 +8,7 @@ import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { DepthTextureMode } from "../enums/DepthMode";
 import { Material } from "../material";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
@@ -22,7 +23,6 @@ import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
 import { PipelineStage } from "./enums/PipelineStage";
-import { DepthTextureMode } from "../enums/DepthMode";
 
 /**
  * Basic render pipeline.
@@ -193,8 +193,8 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
       } else {
-        cullingResults.opaqueQueue.render(camera, pass.mask);
-        cullingResults.alphaTestQueue.render(camera, pass.mask);
+        cullingResults.opaqueQueue.render(context,camera, pass.mask);
+        cullingResults.alphaTestQueue.render(context,camera, pass.mask);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -202,7 +202,7 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        cullingResults.transparentQueue.render(camera, pass.mask);
+        cullingResults.transparentQueue.render(context,camera, pass.mask);
       }
 
       renderTarget?._blitRenderTarget();
@@ -225,11 +225,11 @@ export class BasicRenderPipeline {
 
     if (replacementShader) {
       const replacementSubShaders = replacementShader.subShaders;
-      const { replacementTag: replacementTagKey } = context;
-      if (replacementTagKey) {
+      const { replacementTag } = context;
+      if (replacementTag) {
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
           const subShader = replacementSubShaders[i];
-          if (subShader.getTagValue(replacementTagKey) === materialSubShader.getTagValue(replacementTagKey)) {
+          if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
             this.pushRenderDataWihShader(context, data, subShader.passes, renderStates);
             break;
           }
@@ -248,29 +248,31 @@ export class BasicRenderPipeline {
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
-    const {
-      opaqueQueue: _opaqueQueue,
-      alphaTestQueue: _alphaTestQueue,
-      transparentQueue: _transparentQueue
-    } = this._cullingResults;
-    const pipelineStage = context.pipelineStageTagValue;
+    const { opaqueQueue, alphaTestQueue, transparentQueue } = this._cullingResults;
     const renderElementPool = context.camera.engine._renderElementPool;
+
+    let renderQueueAddedFlags = RenderQueueAddedFlag.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      const shaderPass = shaderPasses[i];
-      if (shaderPass.getTagValue(RenderContext.pipelineStageKey) === pipelineStage) {
-        const renderElement = renderElementPool.getFromPool();
-        renderElement.set(element, shaderPass, renderStates[i]);
-        switch (renderElement.renderState.renderQueueType) {
-          case RenderQueueType.Opaque:
-            _opaqueQueue.pushRenderElement(renderElement);
-            break;
-          case RenderQueueType.AlphaTest:
-            _alphaTestQueue.pushRenderElement(renderElement);
-            break;
-          case RenderQueueType.Transparent:
-            _transparentQueue.pushRenderElement(renderElement);
-            break;
-        }
+      const renderQueueType = renderStates[i].renderQueueType;
+      if (renderQueueAddedFlags & renderQueueType) {
+        continue;
+      }
+
+      const renderElement = renderElementPool.getFromPool();
+      renderElement.set(element,shaderPasses);
+      switch (renderQueueType) {
+        case RenderQueueType.Opaque:
+          opaqueQueue.pushRenderElement(renderElement);
+          renderQueueAddedFlags |= RenderQueueAddedFlag.Opaque;
+          break;
+        case RenderQueueType.AlphaTest:
+          alphaTestQueue.pushRenderElement(renderElement);
+          renderQueueAddedFlags |= RenderQueueAddedFlag.AlphaTest;
+          break;
+        case RenderQueueType.Transparent:
+          transparentQueue.pushRenderElement(renderElement);
+          renderQueueAddedFlags |= RenderQueueAddedFlag.Transparent;
+          break;
       }
     }
   }
@@ -324,4 +326,11 @@ export class BasicRenderPipeline {
       renderer._prepareRender(context);
     }
   }
+}
+
+enum RenderQueueAddedFlag {
+  None = 0x0,
+  Opaque = 0x1,
+  AlphaTest = 0x2,
+  Transparent = 0x4
 }

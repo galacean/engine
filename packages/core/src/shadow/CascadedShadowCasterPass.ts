@@ -208,8 +208,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
           engine._renderCount++;
 
-          opaqueQueue.render(camera, Layer.Everything);
-          alphaTestQueue.render(camera, Layer.Everything);
+          opaqueQueue.render(context, camera, Layer.Everything);
+          alphaTestQueue.render(context, camera, Layer.Everything);
           rhi.setGlobalDepthBias(0, 0);
         }
       }

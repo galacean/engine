@@ -56,14 +56,14 @@ export class RenderContext {
     // rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
   }
 
-  drawRenderers(camera: Camera, cullingResults: CullingResults): void {
+  drawRenderers(context:RenderContext,camera: Camera, cullingResults: CullingResults): void {
     const { engine, renderTarget, scene } = camera;
     const { background } = scene;
     const rhi = engine._hardwareRenderer;
     rhi.activeRenderTarget(renderTarget, camera.viewport, undefined);
     renderTarget?._setRenderTargetInfo(undefined, undefined);
-    cullingResults.opaqueQueue.render(camera, Layer.Everything);
-    cullingResults.alphaTestQueue.render(camera, Layer.Everything);
+    cullingResults.opaqueQueue.render(context,camera, Layer.Everything);
+    cullingResults.alphaTestQueue.render(context,camera, Layer.Everything);
 
     const clearFlags = camera.clearFlags;
     const color = background.solidColor;
