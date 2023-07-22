@@ -2,7 +2,6 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { ShaderProperty } from "../shader/ShaderProperty";
 import { PipelinePass } from "../shadow/PipelinePass";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -15,8 +14,6 @@ import { PipelineStage } from "./enums/PipelineStage";
  * Depth only pass.
  */
 export class DepthOnlyPass extends PipelinePass {
-  private static _shadowMapsProperty = ShaderProperty.getByName("camera_DepthTexture");
-
   private _renderTarget: RenderTarget;
 
   constructor(engine: Engine) {
@@ -25,9 +22,8 @@ export class DepthOnlyPass extends PipelinePass {
 
   override onConfig(camera: Camera): void {
     const engine = this._engine;
+    const { z: width, w: height } = camera.pixelViewport;
 
-    const width = camera.pixelViewport.z;
-    const height = camera.pixelViewport.w;
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
       this._renderTarget,
@@ -38,8 +34,9 @@ export class DepthOnlyPass extends PipelinePass {
       false
     );
     const { depthTexture } = renderTarget;
-    depthTexture.wrapModeU = renderTarget.depthTexture.wrapModeV = TextureWrapMode.Clamp;
+    depthTexture.wrapModeU = depthTexture.wrapModeV = TextureWrapMode.Clamp;
     depthTexture.filterMode = TextureFilterMode.Point;
+
     this._renderTarget = renderTarget;
   }
 
@@ -60,6 +57,6 @@ export class DepthOnlyPass extends PipelinePass {
     cullingResults.opaqueQueue.render(context, camera, Layer.Everything);
     cullingResults.alphaTestQueue.render(context, camera, Layer.Everything);
 
-    camera.shaderData.setTexture(DepthOnlyPass._shadowMapsProperty, this._renderTarget.depthTexture);
+    camera.shaderData.setTexture(Camera._cameraTextureProperty, this._renderTarget.depthTexture);
   }
 }
