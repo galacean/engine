@@ -1,7 +1,7 @@
 import { Engine } from "../Engine";
-import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { PipelinePass } from "../shadow/PipelinePass";
 import { RenderTarget } from "../texture/RenderTarget";
+import { CullingResults } from "./CullingResults";
 import { RenderContext } from "./RenderContext";
 
 /**
@@ -16,8 +16,12 @@ export class DepthOnlyPass extends PipelinePass {
     super(engine);
   }
 
-  override render(context: RenderContext): void {
-    const rhi = this._engine._hardwareRenderer;
-    rhi.activeRenderTarget(this._renderTarget, CascadedShadowCasterPass._viewport, 0);
+  override onConfig(): void {
+    
+  }
+
+  override onRender(context: RenderContext, cullingResults: CullingResults): void {
+    const camera = context.camera;
+    context.drawRenderers(camera, cullingResults);
   }
 }

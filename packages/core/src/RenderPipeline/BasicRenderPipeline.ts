@@ -16,10 +16,11 @@ import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
+import { CullingResults } from "./CullingResults";
+import { DepthOnlyPass } from "./DepthOnlyPass";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
-import { RenderQueue } from "./RenderQueue";
 import { PipelineStage } from "./enums/PipelineStage";
 
 /**
@@ -30,11 +31,8 @@ export class BasicRenderPipeline {
   private static _forwardPipelineStageTagValue = PipelineStage.Forward;
 
   /** @internal */
-  _opaqueQueue: RenderQueue;
-  /** @internal */
-  _transparentQueue: RenderQueue;
-  /** @internal */
-  _alphaTestQueue: RenderQueue;
+  _cullingResults: CullingResults;
+
   /** @internal */
   _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
@@ -43,6 +41,7 @@ export class BasicRenderPipeline {
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
   private _cascadedShadowCaster: CascadedShadowCasterPass;
+  private _depthOnlyPass: DepthOnlyPass;
 
   /**
    * Create a basic render pipeline.
@@ -51,10 +50,9 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
-    this._opaqueQueue = new RenderQueue(engine);
-    this._alphaTestQueue = new RenderQueue(engine);
-    this._transparentQueue = new RenderQueue(engine);
+    this._cullingResults = new CullingResults(engine);
     this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
+    this._depthOnlyPass = new DepthOnlyPass(engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -126,9 +124,7 @@ export class BasicRenderPipeline {
    * Destroy internal resources.
    */
   destroy(): void {
-    this._opaqueQueue.destroy();
-    this._alphaTestQueue.destroy();
-    this._transparentQueue.destroy();
+    this._cullingResults.destroy();
     this._allSpriteMasks = null;
     this._renderPassArray = null;
     this._defaultPass = null;
@@ -144,28 +140,24 @@ export class BasicRenderPipeline {
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
     const camera = this._camera;
     const scene = camera.scene;
-    const opaqueQueue = this._opaqueQueue;
-    const alphaTestQueue = this._alphaTestQueue;
-    const transparentQueue = this._transparentQueue;
-
+    const cullingResults = this._cullingResults;
     camera.engine._spriteMaskManager.clear();
 
     context.pipelineStageTagValue = BasicRenderPipeline._shadowCasterPipelineStageTagValue;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
-      this._cascadedShadowCaster.render(context);
+      this._cascadedShadowCaster.onRender(context);
     }
-    opaqueQueue.clear();
-    alphaTestQueue.clear();
-    transparentQueue.clear();
+
+    this._depthOnlyPass.onRender(context, cullingResults);
+
+    cullingResults.reset();
     this._allSpriteMasks.length = 0;
 
     context.applyVirtualCamera(camera._virtualCamera);
 
     context.pipelineStageTagValue = BasicRenderPipeline._forwardPipelineStageTagValue;
     this._callRender(context);
-    opaqueQueue.sort(RenderQueue._compareFromNearToFar);
-    alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
-    transparentQueue.sort(RenderQueue._compareFromFarToNear);
+    cullingResults.sort();
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel);
@@ -179,7 +171,8 @@ export class BasicRenderPipeline {
     cubeFace?: TextureCubeFace,
     mipLevel?: number
   ) {
-    pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+    const cullingResults = this._cullingResults;
+    pass.preRender(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
 
     if (pass.enabled) {
       const { engine, scene } = camera;
@@ -195,10 +188,10 @@ export class BasicRenderPipeline {
       }
 
       if (pass.renderOverride) {
-        pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+        pass.render(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
       } else {
-        this._opaqueQueue.render(camera, pass.mask);
-        this._alphaTestQueue.render(camera, pass.mask);
+        cullingResults.opaqueQueue.render(camera, pass.mask);
+        cullingResults.alphaTestQueue.render(camera, pass.mask);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -206,14 +199,14 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        this._transparentQueue.render(camera, pass.mask);
+        cullingResults.transparentQueue.render(camera, pass.mask);
       }
 
       renderTarget?._blitRenderTarget();
       renderTarget?.generateMipmaps();
     }
 
-    pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+    pass.postRender(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
   }
 
   /**
@@ -252,23 +245,27 @@ export class BasicRenderPipeline {
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
+    const {
+      opaqueQueue: _opaqueQueue,
+      alphaTestQueue: _alphaTestQueue,
+      transparentQueue: _transparentQueue
+    } = this._cullingResults;
     const pipelineStage = context.pipelineStageTagValue;
     const renderElementPool = context.camera.engine._renderElementPool;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const shaderPass = shaderPasses[i];
       if (shaderPass.getTagValue(RenderContext.pipelineStageKey) === pipelineStage) {
         const renderElement = renderElementPool.getFromPool();
-
         renderElement.set(element, shaderPass, renderStates[i]);
         switch (renderElement.renderState.renderQueueType) {
-          case RenderQueueType.Transparent:
-            this._transparentQueue.pushRenderElement(renderElement);
+          case RenderQueueType.Opaque:
+            _opaqueQueue.pushRenderElement(renderElement);
             break;
           case RenderQueueType.AlphaTest:
-            this._alphaTestQueue.pushRenderElement(renderElement);
+            _alphaTestQueue.pushRenderElement(renderElement);
             break;
-          case RenderQueueType.Opaque:
-            this._opaqueQueue.pushRenderElement(renderElement);
+          case RenderQueueType.Transparent:
+            _transparentQueue.pushRenderElement(renderElement);
             break;
         }
       }

@@ -72,7 +72,12 @@ export class CascadedShadowCasterPass extends PipelinePass {
   /**
    * @internal
    */
-  override render(context: RenderContext): void {
+  override onConfig(): void {}
+
+  /**
+   * @internal
+   */
+  override onRender(context: RenderContext): void {
     this._updateShadowSettings();
     this._existShadowMap = false;
     this._renderDirectShadowMap(context);
@@ -92,11 +97,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
       _shadowMatrices: shadowMatrices
     } = this;
 
-    const {
-      _opaqueQueue: opaqueQueue,
-      _alphaTestQueue: alphaTestQueue,
-      _transparentQueue: transparentQueue
-    } = camera._renderPipeline;
+    const { opaqueQueue, alphaTestQueue, transparentQueue } = camera._renderPipeline._cullingResults;
 
     const scene = camera.scene;
     const componentsManager = scene._componentsManager;

@@ -1,7 +1,12 @@
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
+import { Layer } from "../Layer";
+import { VirtualCamera } from "../VirtualCamera";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
-import { VirtualCamera } from "../VirtualCamera";
+import { RenderTarget, TextureCubeFace } from "../texture";
+import { CullingResults } from "./CullingResults";
 
 /**
  * @internal
@@ -27,5 +32,43 @@ export class RenderContext {
     shaderData.setMatrix(RenderContext._viewMatrixProperty, virtualCamera.viewMatrix);
     shaderData.setMatrix(RenderContext._projectionMatrixProperty, virtualCamera.projectionMatrix);
     shaderData.setMatrix(RenderContext.vpMatrixProperty, virtualCamera.viewProjectionMatrix);
+  }
+
+  /**
+   * Configure the camera clear flag and clear color.
+   * @param clearFLag
+   * @param color
+   */
+  configureClear(clearFLag: CameraClearFlags, color: Color): void {
+    const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    rhi.clearRenderTarget(engine, clearFLag, color);
+  }
+
+  configureTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number, cubeFace?: TextureCubeFace): void {
+    const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    rhi.activeRenderTarget(renderTarget, viewport, mipLevel);
+    renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
+  }
+
+  setViewport(viewport: Vector4): void {
+    // rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
+  }
+
+  drawRenderers(camera: Camera, cullingResults: CullingResults): void {
+    const { engine, renderTarget, scene } = camera;
+    const { background } = scene;
+    const rhi = engine._hardwareRenderer;
+    rhi.activeRenderTarget(renderTarget, camera.viewport, undefined);
+    renderTarget?._setRenderTargetInfo(undefined, undefined);
+    cullingResults.opaqueQueue.render(camera, Layer.Everything);
+    cullingResults.alphaTestQueue.render(camera, Layer.Everything);
+
+    const clearFlags = camera.clearFlags;
+    const color = background.solidColor;
+    if (clearFlags !== CameraClearFlags.None) {
+      rhi.clearRenderTarget(camera.engine, clearFlags, color);
+    }
   }
 }
