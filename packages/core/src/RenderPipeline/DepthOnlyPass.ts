@@ -43,7 +43,6 @@ export class DepthOnlyPass extends PipelinePass {
   override onRender(context: RenderContext, cullingResults: CullingResults): void {
     this.onConfig(context.camera);
 
-    context.pipelineStageTagValue = PipelineStage.DepthOnly;
     const engine = this._engine;
     const camera = context.camera;
     const renderTarget = this._renderTarget;
@@ -54,8 +53,8 @@ export class DepthOnlyPass extends PipelinePass {
     rhi.viewport(0, 0, renderTarget.width, renderTarget.height);
     rhi.scissor(0, 0, renderTarget.width, renderTarget.height);
 
-    cullingResults.opaqueQueue.render(context, camera, Layer.Everything);
-    cullingResults.alphaTestQueue.render(context, camera, Layer.Everything);
+    cullingResults.opaqueQueue.render(context, camera, Layer.Everything, PipelineStage.DepthOnly);
+    cullingResults.alphaTestQueue.render(context, camera, Layer.Everything, PipelineStage.DepthOnly);
 
     camera.shaderData.setTexture(Camera._cameraTextureProperty, this._renderTarget.depthTexture);
   }

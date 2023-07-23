@@ -46,7 +46,7 @@ export class RenderQueue {
     this.elements.push(element);
   }
 
-  render(context: RenderContext, camera: Camera, mask: Layer): void {
+  render(context: RenderContext, camera: Camera, mask: Layer, pipelineStageTagValue: string): void {
     const elements = this.elements;
     if (elements.length === 0) {
       return;
@@ -58,7 +58,6 @@ export class RenderQueue {
     const sceneData = scene.shaderData;
     const cameraData = camera.shaderData;
     const pipelineStageKey = RenderContext.pipelineStageKey;
-    const pipelineStageTagValue = context.pipelineStageTagValue;
 
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];

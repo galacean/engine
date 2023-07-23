@@ -28,9 +28,6 @@ import { PipelineStage } from "./enums/PipelineStage";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  private static _shadowCasterPipelineStageTagValue = PipelineStage.ShadowCaster;
-  private static _forwardPipelineStageTagValue = PipelineStage.Forward;
-
   /** @internal */
   _cullingResults: CullingResults;
 
@@ -144,7 +141,6 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     camera.engine._spriteMaskManager.clear();
 
-    context.pipelineStageTagValue = BasicRenderPipeline._shadowCasterPipelineStageTagValue;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster.onRender(context);
     }
@@ -161,7 +157,6 @@ export class BasicRenderPipeline {
       this._depthOnlyPass.onRender(context, cullingResults);
     }
 
-    context.pipelineStageTagValue = BasicRenderPipeline._forwardPipelineStageTagValue;
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel);
     }
@@ -193,8 +188,8 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
       } else {
-        cullingResults.opaqueQueue.render(context, camera, pass.mask);
-        cullingResults.alphaTestQueue.render(context, camera, pass.mask);
+        cullingResults.opaqueQueue.render(context, camera, pass.mask, PipelineStage.Forward);
+        cullingResults.alphaTestQueue.render(context, camera, pass.mask, PipelineStage.Forward);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -202,7 +197,7 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        cullingResults.transparentQueue.render(context, camera, pass.mask);
+        cullingResults.transparentQueue.render(context, camera, pass.mask, PipelineStage.Forward);
       }
 
       renderTarget?._blitRenderTarget();
@@ -311,12 +306,12 @@ export class BasicRenderPipeline {
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
 
-      // filter by camera culling mask.
+      // Filter by camera culling mask
       if (!(camera.cullingMask & renderer._entity.layer)) {
         continue;
       }
 
-      // filter by camera frustum.
+      // Filter by camera frustum
       if (camera.enableFrustumCulling) {
         if (!camera._frustum.intersectsBox(renderer.bounds)) {
           continue;

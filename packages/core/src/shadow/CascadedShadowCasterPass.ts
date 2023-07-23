@@ -17,6 +17,7 @@ import { PipelinePass } from "./PipelinePass";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
+import { PipelineStage } from "../RenderPipeline/Index";
 
 /**
  * Cascade shadow caster pass.
@@ -241,8 +242,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
           engine._renderCount++;
 
-          opaqueQueue.render(context, camera, Layer.Everything);
-          alphaTestQueue.render(context, camera, Layer.Everything);
+          opaqueQueue.render(context, camera, Layer.Everything, PipelineStage.ShadowCaster);
+          alphaTestQueue.render(context, camera, Layer.Everything, PipelineStage.ShadowCaster);
           rhi.setGlobalDepthBias(0, 0);
         }
       }
