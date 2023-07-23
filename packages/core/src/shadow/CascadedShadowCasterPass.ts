@@ -74,7 +74,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   /**
    * @internal
    */
-  override onConfig(): void {}
+  override onConfig(camera: Camera): void {}
 
   /**
    * @internal

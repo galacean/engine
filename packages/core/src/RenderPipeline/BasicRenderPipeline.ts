@@ -153,7 +153,8 @@ export class BasicRenderPipeline {
     this._callRender(context);
     cullingResults.sort();
 
-    if (this._camera.depthTextureMode === DepthTextureMode.PrePass) {
+    if (camera.depthTextureMode === DepthTextureMode.PrePass) {
+      this._depthOnlyPass.onConfig(camera);
       this._depthOnlyPass.onRender(context, cullingResults);
     }
 
