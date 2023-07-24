@@ -72,11 +72,10 @@ export class GLTFMeshParser extends GLTFParser {
               vertexBuffer = new Buffer(
                 engine,
                 BufferBindFlag.VertexBuffer,
-                vertices.byteLength,
+                vertices,
                 BufferUsage.Static,
                 keepMeshData
               );
-              vertexBuffer.setData(vertices);
               accessorBuffer.vertexBuffer = vertexBuffer;
               meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
             }
