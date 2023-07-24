@@ -22,7 +22,7 @@ import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 
-@resourceLoader(AssetType.KTX, ["ktx2"])
+@resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
