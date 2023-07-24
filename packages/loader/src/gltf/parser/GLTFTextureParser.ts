@@ -113,11 +113,11 @@ export class GLTFTextureParser extends GLTFParser {
       texture.filterMode = filterMode;
     }
 
-    if (wrapModeU) {
+    if (wrapModeU !== undefined) {
       texture.wrapModeU = wrapModeU;
     }
 
-    if (wrapModeV) {
+    if (wrapModeV !== undefined) {
       texture.wrapModeV = wrapModeV;
     }
   }
