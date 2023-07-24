@@ -24,6 +24,7 @@ import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 
 @resourceLoader(AssetType.KTX, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
+  private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
   private static _khronosTranscoder: KhronosTranscoder;
   private static _supportedMap = {
@@ -47,12 +48,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _decideTargetFormat(
     engine: Engine,
     ktx2Container: KTX2Container,
-    formatPriorities?: KTX2TargetFormat[]
+    priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
-    // @ts-ignore
-    const renderer = engine._hardwareRenderer as WebGLRenderer;
+    const renderer = (engine as any)._hardwareRenderer;
 
-    const targetFormat = this._detectSupportedFormat(renderer, formatPriorities) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -68,13 +68,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       Logger.warn("Can't support any compressed texture, downgrade to RGBA8");
       return KTX2TargetFormat.R8G8B8A8;
     }
-    // TODO support bc7: https://github.com/galacean/engine/issues/1371
     return targetFormat;
   }
 
   private static _detectSupportedFormat(
     renderer: any,
-    formatPriorities: KTX2TargetFormat[] = [
+    priorityFormats: KTX2TargetFormat[] = [
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC7,
@@ -82,11 +81,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.PVRTC
     ]
   ): KTX2TargetFormat | null {
-    for (let i = 0; i < formatPriorities.length; i++) {
-      const capabilities = this._supportedMap[formatPriorities[i]];
+    for (let i = 0; i < priorityFormats.length; i++) {
+      const capabilities = this._supportedMap[priorityFormats[i]];
       for (let j = 0; j < capabilities.length; j++) {
         if (renderer.canIUse(capabilities[j])) {
-          return formatPriorities[i];
+          return priorityFormats[i];
         }
       }
     }
@@ -94,6 +93,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _getBinomialLLCTranscoder(workerCount: number = 4) {
+    KTX2Loader._isBinomialInit = true;
     return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
   }
 
@@ -104,10 +104,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
-      if (
-        // @ts-ignore
-        KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, options.formatPriorities) === KTX2TargetFormat.ASTC
-      ) {
+      if (this._isKhronosSupported(options.priorityFormats, engine)) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
         return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
@@ -124,15 +121,15 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): AssetPromise<Texture2D | TextureCube> {
     return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) => {
       const ktx2Container = new KTX2Container(buffer);
-      const formatPriorities = item.params?.formatPriorities;
+      const formatPriorities = item.params?.priorityFormats;
       const targetFormat = KTX2Loader._decideTargetFormat(resourceManager.engine, ktx2Container, formatPriorities);
       let transcodeResultPromise: Promise<any>;
-      if (targetFormat === KTX2TargetFormat.ASTC && ktx2Container.isUASTC) {
-        const khronosWorker = KTX2Loader._getKhronosTranscoder();
-        transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
-      } else {
+      if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
         const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
         transcodeResultPromise = binomialLLCWorker.init().then(() => binomialLLCWorker.transcode(buffer, targetFormat));
+      } else {
+        const khronosWorker = KTX2Loader._getKhronosTranscoder();
+        transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
       }
       return transcodeResultPromise.then((result) => {
         const { width, height, faces } = result;
@@ -168,7 +165,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     });
   }
 
-  private _getEngineTextureFormat(basisFormat: KTX2TargetFormat, transcodeResult: TranscodeResult) {
+  private _getEngineTextureFormat(basisFormat: KTX2TargetFormat, transcodeResult: TranscodeResult): TextureFormat {
     const { hasAlpha } = transcodeResult;
     switch (basisFormat) {
       case KTX2TargetFormat.ASTC:
@@ -178,12 +175,38 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       case KTX2TargetFormat.BC7:
         return TextureFormat.BC7;
       case KTX2TargetFormat.BC1_BC3:
-        return hasAlpha ? TextureFormat.BC1 : TextureFormat.BC3;
+        return hasAlpha ? TextureFormat.BC3 : TextureFormat.BC1;
       case KTX2TargetFormat.PVRTC:
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
       case KTX2TargetFormat.R8G8B8A8:
         return TextureFormat.R8G8B8A8;
     }
+  }
+
+  private _isKhronosSupported(
+    priorityFormats: KTX2TargetFormat[] | KTX2TargetFormat[][] = [
+      KTX2TargetFormat.ASTC,
+      KTX2TargetFormat.ETC,
+      KTX2TargetFormat.BC7,
+      KTX2TargetFormat.BC1_BC3,
+      KTX2TargetFormat.PVRTC,
+      KTX2TargetFormat.R8G8B8A8
+    ],
+    engine: any
+  ): boolean {
+    const supportedList = new Array<KTX2TargetFormat>();
+    if (Array.isArray(priorityFormats[0])) {
+      for (let i = 0; i < priorityFormats.length; i++) {
+        supportedList.push(
+          KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats[i])
+        );
+      }
+    } else {
+      supportedList.push(
+        KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats)
+      );
+    }
+    return supportedList.every((format) => KhronosTranscoder.transcoderMap[format]);
   }
 }
 
@@ -191,8 +214,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
  * KTX2 loader params interface.
  */
 export interface KTX2Params {
-  /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
-  formatPriorities: KTX2TargetFormat[];
+  /** Priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+  priorityFormats: KTX2TargetFormat[];
 }
 
 declare module "@galacean/engine-core" {
@@ -201,8 +224,8 @@ declare module "@galacean/engine-core" {
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
-      /** Transcoder Format priorities, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
-      formatPriorities?: KTX2TargetFormat[];
+      /** Pre-initialization according to the priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+      priorityFormats?: KTX2TargetFormat[] | KTX2TargetFormat[][];
     };
   }
 }
