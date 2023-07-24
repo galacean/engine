@@ -109,7 +109,7 @@ export class GLTFTextureParser extends GLTFParser {
   private _parseSampler(texture: Texture2D, samplerInfo: ISamplerInfo): void {
     const { filterMode, wrapModeU, wrapModeV } = samplerInfo;
 
-    if (filterMode) {
+    if (filterMode !== undefined) {
       texture.filterMode = filterMode;
     }
 
