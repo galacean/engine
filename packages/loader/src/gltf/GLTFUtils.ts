@@ -1,8 +1,26 @@
-import { IndexFormat, TypedArray, Utils, VertexElementFormat } from "@galacean/engine-core";
+import {
+  IndexFormat,
+  Texture2D,
+  TextureFilterMode,
+  TypedArray,
+  Utils,
+  VertexElementFormat
+} from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
-import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
+import {
+  AccessorComponentType,
+  AccessorType,
+  IAccessor,
+  IBufferView,
+  IGLTF,
+  ISampler,
+  ISamplerInfo,
+  TextureMagFilter,
+  TextureMinFilter
+} from "./GLTFSchema";
 import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
+import { GLTFTextureParser } from "./parser";
 
 /**
  * @internal
@@ -446,6 +464,51 @@ export class GLTFUtils {
       glTF,
       buffers
     };
+  }
+
+  static parseSampler(texture: Texture2D, samplerInfo: ISamplerInfo): void {
+    const { filterMode, wrapModeU, wrapModeV } = samplerInfo;
+
+    if (filterMode !== undefined) {
+      texture.filterMode = filterMode;
+    }
+
+    if (wrapModeU !== undefined) {
+      texture.wrapModeU = wrapModeU;
+    }
+
+    if (wrapModeV !== undefined) {
+      texture.wrapModeV = wrapModeV;
+    }
+  }
+
+  static getSamplerInfo(sampler: ISampler): ISamplerInfo {
+    const { minFilter, magFilter, wrapS, wrapT } = sampler;
+    const info = <ISamplerInfo>{};
+
+    if (minFilter || magFilter) {
+      info.mipmap = minFilter >= TextureMinFilter.NEAREST_MIPMAP_NEAREST;
+
+      if (magFilter === TextureMagFilter.NEAREST) {
+        info.filterMode = TextureFilterMode.Point;
+      } else {
+        if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
+          info.filterMode = TextureFilterMode.Bilinear;
+        } else {
+          info.filterMode = TextureFilterMode.Trilinear;
+        }
+      }
+    }
+
+    if (wrapS) {
+      info.wrapModeU = GLTFTextureParser._wrapMap[wrapS];
+    }
+
+    if (wrapT) {
+      info.wrapModeV = GLTFTextureParser._wrapMap[wrapT];
+    }
+
+    return info;
   }
 
   private static _formatRelativePath(path: string): string {

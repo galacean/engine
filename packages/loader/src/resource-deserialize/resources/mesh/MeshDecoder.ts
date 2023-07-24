@@ -22,7 +22,7 @@ export class MeshDecoder {
       const offset = Math.ceil(bufferReader.offset / 4) * 4;
 
       const float32Array = new Float32Array(
-        bufferReader.buffer,
+        bufferReader.data,
         encodedMeshData.positions.start + offset,
         (encodedMeshData.positions.end - encodedMeshData.positions.start) / 4
       );
@@ -31,7 +31,7 @@ export class MeshDecoder {
       modelMesh.setPositions(positions);
       if (encodedMeshData.normals) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.normals.start + offset,
           (encodedMeshData.normals.end - encodedMeshData.normals.start) / 4
         );
@@ -40,7 +40,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uvs) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uvs.start + offset,
           (encodedMeshData.uvs.end - encodedMeshData.uvs.start) / 4
         );
@@ -48,7 +48,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv1) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv1.start + offset,
           (encodedMeshData.uv1.end - encodedMeshData.uv1.start) / 4
         );
@@ -56,7 +56,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv2) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv2.start + offset,
           (encodedMeshData.uv2.end - encodedMeshData.uv2.start) / 4
         );
@@ -64,7 +64,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv3) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv3.start + offset,
           (encodedMeshData.uv3.end - encodedMeshData.uv3.start) / 4
         );
@@ -72,7 +72,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv4) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv4.start + offset,
           (encodedMeshData.uv4.end - encodedMeshData.uv4.start) / 4
         );
@@ -80,7 +80,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv5) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv5.start + offset,
           (encodedMeshData.uv5.end - encodedMeshData.uv5.start) / 4
         );
@@ -88,7 +88,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv6) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv6.start + offset,
           (encodedMeshData.uv6.end - encodedMeshData.uv6.start) / 4
         );
@@ -96,7 +96,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uv7) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.uv7.start + offset,
           (encodedMeshData.uv7.end - encodedMeshData.uv7.start) / 4
         );
@@ -104,7 +104,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.colors) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.colors.start + offset,
           (encodedMeshData.colors.end - encodedMeshData.colors.start) / 4
         );
@@ -112,7 +112,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.boneWeights) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.boneWeights.start + offset,
           (encodedMeshData.boneWeights.end - encodedMeshData.boneWeights.start) / 4
         );
@@ -120,7 +120,7 @@ export class MeshDecoder {
       }
       if (encodedMeshData.boneIndices) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
+          bufferReader.data,
           encodedMeshData.boneIndices.start + offset,
           (encodedMeshData.boneIndices.end - encodedMeshData.boneIndices.start) / 4
         );
@@ -131,7 +131,7 @@ export class MeshDecoder {
           const blendShape = new BlendShape(blendShapeData.name);
           blendShapeData.frames.forEach((frameData) => {
             const positionArray = new Float32Array(
-              bufferReader.buffer,
+              bufferReader.data,
               frameData.deltaPosition.start + offset,
               (frameData.deltaPosition.end - frameData.deltaPosition.start) / 4
             );
@@ -140,7 +140,7 @@ export class MeshDecoder {
             let deltaNormals: Vector3[] | null = null;
             if (frameData.deltaNormals) {
               const normalsArray = new Float32Array(
-                bufferReader.buffer,
+                bufferReader.data,
                 frameData.deltaNormals.start + offset,
                 (frameData.deltaNormals.end - frameData.deltaNormals.start) / 4
               );
@@ -149,7 +149,7 @@ export class MeshDecoder {
             let deltaTangents: Vector4[] | null = null;
             if (frameData.deltaTangents) {
               const tangentsArray = new Float32Array(
-                bufferReader.buffer,
+                bufferReader.data,
                 frameData.deltaTangents.start + offset,
                 (frameData.deltaTangents.end - frameData.deltaTangents.start) / 4
               );
@@ -164,13 +164,13 @@ export class MeshDecoder {
         let indices: Uint16Array | Uint32Array = null;
         if (encodedMeshData.indices.type === 0) {
           indices = new Uint16Array(
-            bufferReader.buffer,
+            bufferReader.data,
             encodedMeshData.indices.start + offset,
             (encodedMeshData.indices.end - encodedMeshData.indices.start) / 2
           );
         } else {
           indices = new Uint32Array(
-            bufferReader.buffer,
+            bufferReader.data,
             encodedMeshData.indices.start + offset,
             (encodedMeshData.indices.end - encodedMeshData.indices.start) / 4
           );

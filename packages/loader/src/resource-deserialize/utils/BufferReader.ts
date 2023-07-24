@@ -6,24 +6,27 @@ export class BufferReader {
   private _baseOffset: number;
 
   constructor(
-    public buffer: ArrayBuffer,
+    public data: Uint8Array,
     byteOffset: number = 0,
     byteLength?: number,
     littleEndian: boolean = true
   ) {
-    // byteLength = byteLength ?? _buffer.byteLength;
-    this._dataView = new DataView(buffer);
+    this._dataView = new DataView(
+      data.buffer,
+      data.byteOffset + byteOffset,
+      byteLength ?? data.byteLength - byteOffset
+    );
     this._littleEndian = littleEndian;
-    this._offset = byteOffset;
+    this._offset = 0;
     this._baseOffset = byteOffset;
   }
 
   get position() {
-    return this._offset - this._baseOffset;
+    return this._offset;
   }
 
   get offset() {
-    return this._offset;
+    return this._offset + this._baseOffset;
   }
 
   nextUint8() {
@@ -51,7 +54,7 @@ export class BufferReader {
   }
 
   nextInt32Array(len: number) {
-    const value = new Int32Array(this.buffer, this._offset, len);
+    const value = new Int32Array(this.data, this._offset, len);
     this._offset += 4 * len;
     return value;
   }
@@ -63,19 +66,19 @@ export class BufferReader {
   }
 
   nextFloat32Array(len: number) {
-    const value = new Float32Array(this.buffer, this._offset, len);
+    const value = new Float32Array(this.data.buffer, this.offset + this.data.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint32Array(len: number) {
-    const value = new Uint32Array(this.buffer, this._offset, len);
+    const value = new Uint32Array(this.data.buffer, this.offset + this.data.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint8Array(len: number) {
-    const value = new Uint8Array(this.buffer, this._offset, len);
+    const value = new Uint8Array(this.data.buffer, this.offset + this.data.byteOffset, len);
     this._offset += len;
     return value;
   }
@@ -90,7 +93,7 @@ export class BufferReader {
 
   nextStr(): string {
     const strByteLength = this.nextUint16();
-    const uint8Array = new Uint8Array(this.buffer, this._offset, strByteLength);
+    const uint8Array = new Uint8Array(this.data, this._offset, strByteLength);
     this._offset += strByteLength;
     return Utils.decodeText(uint8Array);
   }
@@ -99,7 +102,7 @@ export class BufferReader {
    * image data 放在最后
    */
   nextImageData(count: number = 0): ArrayBuffer {
-    return this.buffer.slice(this._offset);
+    return this.data.slice(this._offset);
   }
 
   nextImagesData(count: number): ArrayBuffer[] {
@@ -114,7 +117,7 @@ export class BufferReader {
 
     for (let i = 0; i < count; i++) {
       const len = imagesLen[i];
-      const buffer = this.buffer.slice(this._offset, this._offset + len);
+      const buffer = this.data.slice(this._offset, this._offset + len);
       this._offset += len;
       imagesData.push(buffer);
     }
