@@ -20,7 +20,7 @@ export class GLTFTextureParser extends GLTFParser {
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFParserContext): AssetPromise<Texture2D[]> {
+  parse(context: GLTFParserContext): AssetPromise<Texture2D[]> | void {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
 

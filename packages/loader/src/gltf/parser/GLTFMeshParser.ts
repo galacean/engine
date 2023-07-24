@@ -206,7 +206,7 @@ export class GLTFMeshParser extends GLTFParser {
     return Promise.all(promises);
   }
 
-  parse(context: GLTFParserContext) {
+  parse(context: GLTFParserContext): AssetPromise<ModelMesh[][]> | void {
     const { glTF, glTFResource } = context;
     const { engine } = glTFResource;
     if (!glTF.meshes) return;

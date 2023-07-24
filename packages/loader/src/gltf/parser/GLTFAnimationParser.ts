@@ -210,7 +210,7 @@ export class GLTFAnimationParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> {
+  parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> | void {
     const { glTF, glTFResource } = context;
     const { entities } = glTFResource;
     const { animations, accessors, bufferViews } = glTF;
