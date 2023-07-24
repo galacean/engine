@@ -76,6 +76,7 @@ export class GLTFMeshParser extends GLTFParser {
                 BufferUsage.Static,
                 keepMeshData
               );
+              accessorBuffer.vertexBuffer = vertexBuffer;
               meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
             }
             mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
