@@ -607,7 +607,7 @@ export class ModelMesh extends Mesh {
     this._updateVertexElements();
 
     // If releaseData is false, we shouldn't update buffer data version
-    releaseData || (this._advancedDataSyncToBuffer = true);
+    this._advancedDataSyncToBuffer = true;
 
     // Update internal vertex buffer if needed
     this._updateInternalVertexBuffer(releaseData);
@@ -1296,6 +1296,14 @@ export class ModelMesh extends Mesh {
 
     if (!isDestroy) {
       this._vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+
+      // If release data, we need update buffer data version to ensure get data method can read buffer
+      const dataVersion = this._dataVersionCounter++;
+      const vertexBufferInfos = this._vertexBufferInfos;
+      for (let i = 0, n = vertexBufferInfos.length; i < n; i++) {
+        const vertexBufferInfo = vertexBufferInfos[i];
+        vertexBufferInfo && (vertexBufferInfo.dataVersion = dataVersion);
+      }
     }
   }
 
