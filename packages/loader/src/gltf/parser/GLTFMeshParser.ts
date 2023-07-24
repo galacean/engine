@@ -69,7 +69,13 @@ export class GLTFMeshParser extends GLTFParser {
 
             let vertexBuffer = accessorBuffer.vertexBuffer;
             if (!vertexBuffer) {
-              vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+              vertexBuffer = new Buffer(
+                engine,
+                BufferBindFlag.VertexBuffer,
+                vertices.byteLength,
+                BufferUsage.Static,
+                keepMeshData
+              );
               vertexBuffer.setData(vertices);
               accessorBuffer.vertexBuffer = vertexBuffer;
               meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
@@ -96,7 +102,7 @@ export class GLTFMeshParser extends GLTFParser {
 
         if (attribute === "POSITION") {
           vertexCount = accessorCount;
-  
+
           const { min, max } = mesh.bounds;
           if (accessor.min && accessor.max) {
             min.copyFromArray(accessor.min);
@@ -105,7 +111,7 @@ export class GLTFMeshParser extends GLTFParser {
             const position = GLTFMeshParser._tempVector3;
             min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
             max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-  
+
             const baseOffset = elementOffset / vertices.BYTES_PER_ELEMENT;
             const stride = vertices.length / accessorCount;
             for (let j = 0; j < accessorCount; j++) {
@@ -120,7 +126,7 @@ export class GLTFMeshParser extends GLTFParser {
             max.scale(scaleFactor);
           }
         }
-      })
+      });
       promises.push(promise);
     }
 
