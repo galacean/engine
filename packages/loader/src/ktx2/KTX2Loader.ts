@@ -175,7 +175,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       case KTX2TargetFormat.BC7:
         return TextureFormat.BC7;
       case KTX2TargetFormat.BC1_BC3:
-        return hasAlpha ? TextureFormat.BC1 : TextureFormat.BC3;
+        return hasAlpha ? TextureFormat.BC3 : TextureFormat.BC1;
       case KTX2TargetFormat.PVRTC:
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
       case KTX2TargetFormat.R8G8B8A8:
