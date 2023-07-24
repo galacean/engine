@@ -28,7 +28,6 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   ) {
     const {
       glTF,
-      buffers,
       glTFResource: { engine }
     } = context;
     const { bufferViews, accessors } = glTF;
@@ -53,30 +52,33 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       useUniqueIDs: true,
       indexType
     };
-    const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
-    return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
-      const mesh = new ModelMesh(engine, glTFMesh.name);
-      return this._parseMeshFromGLTFPrimitiveDraco(
-        mesh,
-        glTFMesh,
-        glTFPrimitive,
-        glTF,
-        (attributeSemantic) => {
-          for (let j = 0; j < decodedGeometry.attributes.length; j++) {
-            if (decodedGeometry.attributes[j].name === attributeSemantic) {
-              return decodedGeometry.attributes[j].array;
+
+    return context.getBuffers().then((buffers) => {
+      const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
+      return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
+        const mesh = new ModelMesh(engine, glTFMesh.name);
+        return this._parseMeshFromGLTFPrimitiveDraco(
+          mesh,
+          glTFMesh,
+          glTFPrimitive,
+          glTF,
+          (attributeSemantic) => {
+            for (let j = 0; j < decodedGeometry.attributes.length; j++) {
+              if (decodedGeometry.attributes[j].name === attributeSemantic) {
+                return decodedGeometry.attributes[j].array;
+              }
             }
-          }
-          return null;
-        },
-        (attributeSemantic, shapeIndex) => {
-          throw "BlendShape animation is not supported when using draco.";
-        },
-        () => {
-          return decodedGeometry.index.array;
-        },
-        context.keepMeshData
-      );
+            return null;
+          },
+          (attributeSemantic, shapeIndex) => {
+            throw "BlendShape animation is not supported when using draco.";
+          },
+          () => {
+            return decodedGeometry.index.array;
+          },
+          context.keepMeshData
+        );
+      });
     });
   }
 
@@ -86,7 +88,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => BufferInfo,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>,
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {

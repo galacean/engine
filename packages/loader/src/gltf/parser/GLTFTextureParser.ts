@@ -21,7 +21,7 @@ export class GLTFTextureParser extends GLTFParser {
   };
 
   parse(context: GLTFParserContext): AssetPromise<Texture2D[]> {
-    const { glTFResource, glTF, buffers } = context;
+    const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
 
     if (glTF.textures) {
@@ -62,21 +62,24 @@ export class GLTFTextureParser extends GLTFParser {
                 });
             } else {
               const bufferView = glTF.bufferViews[bufferViewIndex];
-              const buffer = buffers[bufferView.buffer];
-              const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
-              texture = GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-                const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
-                texture.setImageSource(image);
-                texture.generateMipmaps();
-                texture.name = textureName || imageName || `texture_${index}`;
-                if (sampler !== undefined) {
-                  this._parseSampler(texture, samplerInfo);
-                }
-                const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
-                context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+              texture = context.getBuffers().then((buffers) => {
+                const buffer = buffers[bufferView.buffer];
+                const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
-                return texture;
+                return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
+                  const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
+                  texture.setImageSource(image);
+                  texture.generateMipmaps();
+                  texture.name = textureName || imageName || `texture_${index}`;
+                  if (sampler !== undefined) {
+                    this._parseSampler(texture, samplerInfo);
+                  }
+                  const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+                  context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+
+                  return texture;
+                });
               });
             }
           }
