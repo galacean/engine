@@ -1,6 +1,7 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
+import { PipelineStage } from "../RenderPipeline/Index";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
@@ -17,7 +18,6 @@ import { PipelinePass } from "./PipelinePass";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
-import { PipelineStage } from "../RenderPipeline/Index";
 
 /**
  * Cascade shadow caster pass.
@@ -70,11 +70,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
     this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
-
-  /**
-   * @internal
-   */
-  override onConfig(camera: Camera): void {}
 
   /**
    * @internal

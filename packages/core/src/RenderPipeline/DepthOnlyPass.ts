@@ -20,7 +20,7 @@ export class DepthOnlyPass extends PipelinePass {
     super(engine);
   }
 
-  override onConfig(camera: Camera): void {
+  onConfig(camera: Camera): void {
     const engine = this._engine;
     const { z: width, w: height } = camera.pixelViewport;
 
