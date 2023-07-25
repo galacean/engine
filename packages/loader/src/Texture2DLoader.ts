@@ -22,7 +22,7 @@ class Texture2DLoader extends Loader<Texture2D> {
       };
       this.request<HTMLImageElement>(url, requestConfig)
         .then((image) => {
-          const params = item.params;
+          const params = item.params as Texture2DParams;
           const texture = new Texture2D(
             resourceManager.engine,
             image.width,

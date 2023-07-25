@@ -1,5 +1,5 @@
 import { Component, Entity, Scene } from "@galacean/engine-core";
-import { IEntity, IScene } from "../prefab/PrefabDesign";
+import type { IEntity, IScene } from "../schema";
 
 export class SceneParserContext {
   entityMap: Map<string, Entity> = new Map();

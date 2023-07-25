@@ -8,6 +8,7 @@ import {
   TextureDepthCompareFunction,
   TextureFilterMode,
   TextureFormat,
+  TextureUsage,
   TextureWrapMode
 } from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
@@ -542,11 +543,11 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
+    const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
 
-    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA)) {
+    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {

@@ -1,8 +1,16 @@
-import { AssetPromise, BlendShape, Buffer, ContentRestorer, ModelMesh, request, Texture2D } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  BlendShape,
+  Buffer,
+  ContentRestorer,
+  ModelMesh,
+  request,
+  Texture2D
+} from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
-import { IBufferView } from "./gltf/GLTFSchema";
+import type { IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
 
 /**
