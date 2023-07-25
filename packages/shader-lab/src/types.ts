@@ -113,7 +113,7 @@ export interface _ruleTagAssignmentCstNode extends CstNode {
 
 export type _ruleTagAssignmentCstChildren = {
   _ruleTagType: _ruleTagTypeCstNode[];
-  Equal: IToken[];
+  SymbolEqual: IToken[];
   ValueString: IToken[];
 };
 
@@ -291,8 +291,8 @@ export interface _ruleAddOperatorCstNode extends CstNode {
 }
 
 export type _ruleAddOperatorCstChildren = {
-  Add?: IToken[];
-  Minus?: IToken[];
+  SymbolAdd?: IToken[];
+  SymbolMinus?: IToken[];
 };
 
 export interface _ruleFnParenthesisExprCstNode extends CstNode {
@@ -368,8 +368,8 @@ export interface _ruleMultiplicationOperatorCstNode extends CstNode {
 }
 
 export type _ruleMultiplicationOperatorCstChildren = {
-  Multiply?: IToken[];
-  Divide?: IToken[];
+  SymbolMultiply?: IToken[];
+  SymbolDivide?: IToken[];
 };
 
 export interface _ruleFnMacroIncludeCstNode extends CstNode {
@@ -437,7 +437,7 @@ export interface _ruleFnVariableDeclarationCstNode extends CstNode {
 export type _ruleFnVariableDeclarationCstChildren = {
   _ruleVariableType: _ruleVariableTypeCstNode[];
   Identifier: IToken[];
-  Equal?: IToken[];
+  SymbolEqual?: IToken[];
   _ruleFnExpression?: _ruleFnExpressionCstNode[];
   Semicolon: IToken[];
 };
@@ -473,8 +473,8 @@ export interface _ruleRelationOperatorCstNode extends CstNode {
 }
 
 export type _ruleRelationOperatorCstChildren = {
-  GreaterThan?: IToken[];
-  LessThan?: IToken[];
+  SymbolGreaterThan?: IToken[];
+  SymbolLessThan?: IToken[];
 };
 
 export interface _ruleFnBlockStatementCstNode extends CstNode {
@@ -517,11 +517,11 @@ export interface _ruleFnAssignmentOperatorCstNode extends CstNode {
 }
 
 export type _ruleFnAssignmentOperatorCstChildren = {
-  Equal?: IToken[];
-  MultiEqual?: IToken[];
-  DivideEqual?: IToken[];
-  AddEqual?: IToken[];
-  MinusEqual?: IToken[];
+  SymbolEqual?: IToken[];
+  SymbolMultiEqual?: IToken[];
+  SymbolDivideEqual?: IToken[];
+  SymbolAddEqual?: IToken[];
+  SymbolMinusEqual?: IToken[];
 };
 
 export interface _ruleSubShaderPassPropertyAssignmentCstNode extends CstNode {
@@ -531,7 +531,7 @@ export interface _ruleSubShaderPassPropertyAssignmentCstNode extends CstNode {
 
 export type _ruleSubShaderPassPropertyAssignmentCstChildren = {
   _ruleShaderPassPropertyType: _ruleShaderPassPropertyTypeCstNode[];
-  Equal: IToken[];
+  SymbolEqual: IToken[];
   Identifier: IToken[];
   Semicolon: IToken[];
 };
@@ -555,8 +555,8 @@ export interface _ruleRenderStateTypeCstNode extends CstNode {
 export type _ruleRenderStateTypeCstChildren = {
   BlendState?: IToken[];
   DepthState?: IToken[];
-  RasterState?: IToken[];
   StencilState?: IToken[];
+  RasterState?: IToken[];
 };
 
 export interface _ruleRenderStateDeclarationCstNode extends CstNode {
@@ -565,34 +565,206 @@ export interface _ruleRenderStateDeclarationCstNode extends CstNode {
 }
 
 export type _ruleRenderStateDeclarationCstChildren = {
-  _ruleRenderStateType: _ruleRenderStateTypeCstNode[];
+  _ruleBlendStatePropertyDeclaration?: _ruleBlendStatePropertyDeclarationCstNode[];
+  _ruleDepthSatePropertyDeclaration?: _ruleDepthSatePropertyDeclarationCstNode[];
+  _ruleStencilStatePropertyDeclaration?: _ruleStencilStatePropertyDeclarationCstNode[];
+};
+
+export interface _ruleBlendStatePropertyCstNode extends CstNode {
+  name: "_ruleBlendStateProperty";
+  children: _ruleBlendStatePropertyCstChildren;
+}
+
+export type _ruleBlendStatePropertyCstChildren = {
+  ColorBlendOperation?: IToken[];
+  AlphaBlendOperation?: IToken[];
+  SrcColorBlendFactor?: IToken[];
+  SrcAlphaBlendFactor?: IToken[];
+  DestColorBlendFactor?: IToken[];
+  DestAlphaBlendFactor?: IToken[];
+  ColorWriteMask?: IToken[];
+  BlendColor?: IToken[];
+  AlphaToCoverage?: IToken[];
+  Enabled?: IToken[];
+};
+
+export interface _ruleBlendStateValueCstNode extends CstNode {
+  name: "_ruleBlendStateValue";
+  children: _ruleBlendStateValueCstChildren;
+}
+
+export type _ruleBlendStateValueCstChildren = {
+  "BlendFactor.Zero"?: IToken[];
+  "BlendFactor.One"?: IToken[];
+  "BlendFactor.SourceColor"?: IToken[];
+  "BlendFactor.OneMinusSourceColor"?: IToken[];
+  "BlendFactor.DestinationColor"?: IToken[];
+  "BlendFactor.OneMinusDestinationColor"?: IToken[];
+  "BlendFactor.SourceAlpha"?: IToken[];
+  "BlendFactor.OneMinusSourceAlpha"?: IToken[];
+  "BlendFactor.DestinationAlpha"?: IToken[];
+  "BlendFactor.OneMinusDestinationAlpha"?: IToken[];
+  "BlendFactor.SourceAlphaSaturate"?: IToken[];
+  "BlendFactor.BlendColor"?: IToken[];
+  "BlendFactor.OneMinusBlendColor"?: IToken[];
+  "BlendOperation.Add"?: IToken[];
+  "BlendOperation.Subtract"?: IToken[];
+  "BlendOperation.ReverseSubtract"?: IToken[];
+  "BlendOperation.Min"?: IToken[];
+  "BlendOperation.Max"?: IToken[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+};
+
+export interface _ruleBlendPropertyItemCstNode extends CstNode {
+  name: "_ruleBlendPropertyItem";
+  children: _ruleBlendPropertyItemCstChildren;
+}
+
+export type _ruleBlendPropertyItemCstChildren = {
+  _ruleBlendStateProperty: _ruleBlendStatePropertyCstNode[];
+  LSquareBracket?: IToken[];
+  ValueInt?: IToken[];
+  RSquareBracket?: IToken[];
+  SymbolEqual: IToken[];
+  _ruleBlendStateValue: _ruleBlendStateValueCstNode[];
+};
+
+export interface _ruleBlendStatePropertyDeclarationCstNode extends CstNode {
+  name: "_ruleBlendStatePropertyDeclaration";
+  children: _ruleBlendStatePropertyDeclarationCstChildren;
+}
+
+export type _ruleBlendStatePropertyDeclarationCstChildren = {
+  BlendState: IToken[];
   Identifier: IToken[];
   LCurly: IToken[];
-  _ruleStatePropertyAssign?: _ruleStatePropertyAssignCstNode[];
-  Semicolon?: IToken[];
+  _ruleBlendPropertyItem?: _ruleBlendPropertyItemCstNode[];
   RCurly: IToken[];
 };
 
-export interface _ruleStatePropertyAssignCstNode extends CstNode {
-  name: "_ruleStatePropertyAssign";
-  children: _ruleStatePropertyAssignCstChildren;
+export interface _ruleDepthStatePropertyCstNode extends CstNode {
+  name: "_ruleDepthStateProperty";
+  children: _ruleDepthStatePropertyCstChildren;
 }
 
-export type _ruleStatePropertyAssignCstChildren = {
-  _ruleStateProperty: _ruleStatePropertyCstNode[];
-  Equal: IToken[];
-  _ruleAssignableValue: _ruleAssignableValueCstNode[];
+export type _ruleDepthStatePropertyCstChildren = {
+  WriteEnabled?: IToken[];
+  CompareFunction?: IToken[];
+  Enabled?: IToken[];
 };
 
-export interface _ruleStatePropertyCstNode extends CstNode {
-  name: "_ruleStateProperty";
-  children: _ruleStatePropertyCstChildren;
+export interface _ruleDepthStateValueCstNode extends CstNode {
+  name: "_ruleDepthStateValue";
+  children: _ruleDepthStateValueCstChildren;
 }
 
-export type _ruleStatePropertyCstChildren = {
+export type _ruleDepthStateValueCstChildren = {
+  "CompareFunction.Never"?: IToken[];
+  "CompareFunction.Less"?: IToken[];
+  "CompareFunction.Equal"?: IToken[];
+  "CompareFunction.LessEqual"?: IToken[];
+  "CompareFunction.Greater"?: IToken[];
+  "CompareFunction.NotEqual"?: IToken[];
+  "CompareFunction.GreaterEqual"?: IToken[];
+  "CompareFunction.Always"?: IToken[];
+  ValueTrue?: IToken[];
+  ValueFalse?: IToken[];
+};
+
+export interface _ruleDepthStatePropertyItemCstNode extends CstNode {
+  name: "_ruleDepthStatePropertyItem";
+  children: _ruleDepthStatePropertyItemCstChildren;
+}
+
+export type _ruleDepthStatePropertyItemCstChildren = {
+  _ruleDepthStateProperty: _ruleDepthStatePropertyCstNode[];
+  LSquareBracket?: IToken[];
+  ValueInt?: IToken[];
+  RSquareBracket?: IToken[];
+  SymbolEqual: IToken[];
+  _ruleDepthStateValue: _ruleDepthStateValueCstNode[];
+};
+
+export interface _ruleDepthSatePropertyDeclarationCstNode extends CstNode {
+  name: "_ruleDepthSatePropertyDeclaration";
+  children: _ruleDepthSatePropertyDeclarationCstChildren;
+}
+
+export type _ruleDepthSatePropertyDeclarationCstChildren = {
+  DepthState: IToken[];
+  Identifier: IToken[];
+  LCurly: IToken[];
+  _ruleDepthStatePropertyItem?: _ruleDepthStatePropertyItemCstNode[];
+  RCurly: IToken[];
+};
+
+export interface _ruleStencilStatePropertyCstNode extends CstNode {
+  name: "_ruleStencilStateProperty";
+  children: _ruleStencilStatePropertyCstChildren;
+}
+
+export type _ruleStencilStatePropertyCstChildren = {
+  ReferenceValue?: IToken[];
+  Mask?: IToken[];
+  WriteMask?: IToken[];
+  CompareFunctionFront?: IToken[];
+  CompareFunctionBack?: IToken[];
+  PassOperationFront?: IToken[];
+  PassOperationBack?: IToken[];
+  FailOperationFront?: IToken[];
+  FailOperationBack?: IToken[];
+  ZFailOperationFront?: IToken[];
+  ZFailOperationBack?: IToken[];
   Enabled?: IToken[];
-  DestColorBlendFactor?: IToken[];
-  SrcColorBlendFactor?: IToken[];
+};
+
+export interface _ruleStencilStateValueCstNode extends CstNode {
+  name: "_ruleStencilStateValue";
+  children: _ruleStencilStateValueCstChildren;
+}
+
+export type _ruleStencilStateValueCstChildren = {
+  "CompareFunction.Never"?: IToken[];
+  "CompareFunction.Less"?: IToken[];
+  "CompareFunction.Equal"?: IToken[];
+  "CompareFunction.LessEqual"?: IToken[];
+  "CompareFunction.Greater"?: IToken[];
+  "CompareFunction.NotEqual"?: IToken[];
+  "CompareFunction.GreaterEqual"?: IToken[];
+  "CompareFunction.Always"?: IToken[];
+  "StencilOperation.Keep"?: IToken[];
+  "StencilOperation.Zero"?: IToken[];
+  "StencilOperation.Replace"?: IToken[];
+  "StencilOperation.IncrementSaturate"?: IToken[];
+  "StencilOperation.DecrementSaturate"?: IToken[];
+  "StencilOperation.Invert"?: IToken[];
+  "StencilOperation.IncrementWrap"?: IToken[];
+  "StencilOperation.DecrementWrap"?: IToken[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+};
+
+export interface _ruleStencilStatePropertyItemCstNode extends CstNode {
+  name: "_ruleStencilStatePropertyItem";
+  children: _ruleStencilStatePropertyItemCstChildren;
+}
+
+export type _ruleStencilStatePropertyItemCstChildren = {
+  _ruleStencilStateProperty: _ruleStencilStatePropertyCstNode[];
+  SymbolEqual: IToken[];
+  _ruleStencilStateValue: _ruleStencilStateValueCstNode[];
+};
+
+export interface _ruleStencilStatePropertyDeclarationCstNode extends CstNode {
+  name: "_ruleStencilStatePropertyDeclaration";
+  children: _ruleStencilStatePropertyDeclarationCstChildren;
+}
+
+export type _ruleStencilStatePropertyDeclarationCstChildren = {
+  StencilState: IToken[];
+  Identifier: IToken[];
+  LCurly: IToken[];
+  _ruleStencilStatePropertyItem?: _ruleStencilStatePropertyItemCstNode[];
+  RCurly: IToken[];
 };
 
 export interface _rulePropertyCstNode extends CstNode {
@@ -619,7 +791,7 @@ export type _rulePropertyItemCstChildren = {
   Comma: IToken[];
   _rulePropertyItemType: _rulePropertyItemTypeCstNode[];
   RBracket: IToken[];
-  Equal: IToken[];
+  SymbolEqual: IToken[];
   _rulePropertyItemValue: _rulePropertyItemValueCstNode[];
   Semicolon: IToken[];
 };
@@ -789,8 +961,18 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleShaderPassPropertyType(children: _ruleShaderPassPropertyTypeCstChildren, param?: IN): OUT;
   _ruleRenderStateType(children: _ruleRenderStateTypeCstChildren, param?: IN): OUT;
   _ruleRenderStateDeclaration(children: _ruleRenderStateDeclarationCstChildren, param?: IN): OUT;
-  _ruleStatePropertyAssign(children: _ruleStatePropertyAssignCstChildren, param?: IN): OUT;
-  _ruleStateProperty(children: _ruleStatePropertyCstChildren, param?: IN): OUT;
+  _ruleBlendStateProperty(children: _ruleBlendStatePropertyCstChildren, param?: IN): OUT;
+  _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: IN): OUT;
+  _ruleBlendPropertyItem(children: _ruleBlendPropertyItemCstChildren, param?: IN): OUT;
+  _ruleBlendStatePropertyDeclaration(children: _ruleBlendStatePropertyDeclarationCstChildren, param?: IN): OUT;
+  _ruleDepthStateProperty(children: _ruleDepthStatePropertyCstChildren, param?: IN): OUT;
+  _ruleDepthStateValue(children: _ruleDepthStateValueCstChildren, param?: IN): OUT;
+  _ruleDepthStatePropertyItem(children: _ruleDepthStatePropertyItemCstChildren, param?: IN): OUT;
+  _ruleDepthSatePropertyDeclaration(children: _ruleDepthSatePropertyDeclarationCstChildren, param?: IN): OUT;
+  _ruleStencilStateProperty(children: _ruleStencilStatePropertyCstChildren, param?: IN): OUT;
+  _ruleStencilStateValue(children: _ruleStencilStateValueCstChildren, param?: IN): OUT;
+  _ruleStencilStatePropertyItem(children: _ruleStencilStatePropertyItemCstChildren, param?: IN): OUT;
+  _ruleStencilStatePropertyDeclaration(children: _ruleStencilStatePropertyDeclarationCstChildren, param?: IN): OUT;
   _ruleProperty(children: _rulePropertyCstChildren, param?: IN): OUT;
   _rulePropertyItem(children: _rulePropertyItemCstChildren, param?: IN): OUT;
   _rulePropertyItemType(children: _rulePropertyItemTypeCstChildren, param?: IN): OUT;

@@ -8,47 +8,51 @@ export const RCurly = createToken({ name: "RCurly", pattern: /\}/, label: "}" })
 export const LBracket = createToken({ name: "LBracket", pattern: /\(/, label: "(" });
 /** ) */
 export const RBracket = createToken({ name: "RBracket", pattern: /\)/, label: ")" });
+/** [ */
+export const LSquareBracket = createToken({ name: "LSquareBracket", pattern: /\[/, label: "[" });
+/** ] */
+export const RSquareBracket = createToken({ name: "RSquareBracket", pattern: /\]/, label: "]" });
 /** , */
 export const Comma = createToken({ name: "Comma", pattern: /,/, label: "," });
 /** : */
 export const Colon = createToken({ name: "Colon", pattern: /:/, label: ":" });
 /** = */
-export const Equal = createToken({ name: "Equal", pattern: /=/, label: "=" });
+export const Equal = createToken({ name: "SymbolEqual", pattern: /=/, label: "=" });
 /** ; */
 export const Semicolon = createToken({ name: "Semicolon", pattern: /;/, label: ";" });
 /** . */
 export const Dot = createToken({ name: "Dot", pattern: /\./, label: "." });
-export const Add = createToken({ name: "Add", pattern: /\+/, label: "+" });
-export const Minus = createToken({ name: "Minus", pattern: /\-/, label: "-" });
+export const Add = createToken({ name: "SymbolAdd", pattern: /\+/, label: "+" });
+export const Minus = createToken({ name: "SymbolMinus", pattern: /\-/, label: "-" });
 export const MultiEqual = createToken({
-  name: "MultiEqual",
+  name: "SymbolMultiEqual",
   pattern: /\*=/,
   label: "*="
 });
 export const DivideEqual = createToken({
-  name: "DivideEqual",
+  name: "SymbolDivideEqual",
   pattern: /\/=/,
   label: "/="
 });
 export const AddEqual = createToken({
-  name: "AddEqual",
+  name: "SymbolAddEqual",
   pattern: /\+=/,
   label: "+="
 });
 export const MinusEqual = createToken({
-  name: "MinusEqual",
+  name: "SymbolMinusEqual",
   pattern: /\-=/,
   label: "-="
 });
-export const Multiply = createToken({ name: "Multiply", pattern: /\*/, label: "*" });
-export const Divide = createToken({ name: "Divide", pattern: /\//, label: "/" });
+export const Multiply = createToken({ name: "SymbolMultiply", pattern: /\*/, label: "*" });
+export const Divide = createToken({ name: "SymbolDivide", pattern: /\//, label: "/" });
 export const GreaterThan = createToken({
-  name: "GreaterThan",
+  name: "SymbolGreaterThan",
   pattern: /\>/,
   label: ">"
 });
 export const LessThan = createToken({
-  name: "LessThan",
+  name: "SymbolLessThan",
   pattern: /\</,
   label: "<"
 });

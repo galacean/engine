@@ -195,6 +195,9 @@ importers:
         specifier: ^10.5.0
         version: 10.5.0
     devDependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design

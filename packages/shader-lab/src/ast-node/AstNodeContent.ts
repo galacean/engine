@@ -15,11 +15,12 @@ import {
   MultiplicationOperatorAstNode,
   FnAtomicExprAstNode,
   ObjectAstNode,
-  StatePropertyAssignAstNode,
   AssignableValueAstNode,
   VariableTypeAstNode,
   DeclarationAstNode,
-  TagAssignmentAstNode
+  TagAssignmentAstNode,
+  RenderStatePropertyItemAstNode,
+  RenderStateDeclarationAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -38,6 +39,7 @@ export interface IPropertyItemAstContent {
 export interface ISubShaderAstContent {
   tags?: TagAstNode;
   pass: Array<AstNode<IPassAstContent>>;
+  renderStates?: Array<RenderStateDeclarationAstNode>;
 }
 
 export interface IFunctionAstContent {
@@ -54,6 +56,7 @@ export interface IPassAstContent {
   structs: Array<StructAstNode>;
   variables: Array<VariableDeclarationAstNode>;
   functions: Array<FnAstNode>;
+  renderStates?: Array<RenderStateDeclarationAstNode>;
 }
 
 export interface ITypeAstContent {
@@ -165,15 +168,16 @@ export interface IFnArgAstContent {
   };
 }
 
-export interface IRenderStateDeclarationAstContent {
-  name: string;
-  type: string;
-  properties: Array<StatePropertyAssignAstNode>;
+export interface IRenderStateDeclarationAstContent<T = any> {
+  variable: string;
+  renderStateType: string;
+  properties: Array<RenderStatePropertyItemAstNode>;
 }
 
-export interface IStatePropertyAssignAstContent {
-  name: string;
-  value: AssignableValueAstNode;
+export interface IRenderStatePropertyItemAstContent<T = any> {
+  property: AstNode<T>;
+  index?: number;
+  value: AstNode<T>;
 }
 
 export type IAssignableValueAstContent = string;

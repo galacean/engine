@@ -1,43 +1,19 @@
 import { ValueString } from "./value";
-import { createKeywordToken } from "./utils";
+import { TokenUtils } from "./TokenUtils";
 
-export const Shader = createKeywordToken("Shader", { longer_alt: ValueString });
-export const EditorProperties = createKeywordToken("EditorProperties");
-export const SubShader = createKeywordToken("SubShader");
-export const Pass = createKeywordToken("Pass");
-export const Tags = createKeywordToken("Tags");
-
-export const BlendState = createKeywordToken("BlendState");
-export const DepthState = createKeywordToken("DepthState");
-export const StencilState = createKeywordToken("StencilState");
-export const RasterState = createKeywordToken("RasterState");
-
-export const Enabled = createKeywordToken("Enabled");
-export const SrcColorBlendFactor = createKeywordToken("SrcColorBlendFactor");
-export const DestColorBlendFactor = createKeywordToken("DestColorBlendFactor");
+export const Shader = TokenUtils.createKeywordToken("Shader", { longer_alt: ValueString });
+export const EditorProperties = TokenUtils.createKeywordToken("EditorProperties");
+export const SubShader = TokenUtils.createKeywordToken("SubShader");
+export const Pass = TokenUtils.createKeywordToken("Pass");
+export const Tags = TokenUtils.createKeywordToken("Tags");
 
 // tags
-export const ReplacementTag = createKeywordToken("ReplacementTag");
-export const PipelineStage = createKeywordToken("PipelineStage");
+export const ReplacementTag = TokenUtils.createKeywordToken("ReplacementTag");
+export const PipelineStage = TokenUtils.createKeywordToken("PipelineStage");
 
-export const VertexShader = createKeywordToken("VertexShader");
-export const FragmentShader = createKeywordToken("FragmentShader");
+export const VertexShader = TokenUtils.createKeywordToken("VertexShader");
+export const FragmentShader = TokenUtils.createKeywordToken("FragmentShader");
 
 export const tagTokenList = [ReplacementTag, PipelineStage];
 
-export const tokenList = [
-  Shader,
-  EditorProperties,
-  SubShader,
-  Pass,
-  Tags,
-  BlendState,
-  DepthState,
-  StencilState,
-  RasterState,
-  Enabled,
-  DestColorBlendFactor,
-  SrcColorBlendFactor,
-  VertexShader,
-  FragmentShader
-];
+export const tokenList = [Shader, EditorProperties, SubShader, Pass, Tags, VertexShader, FragmentShader];

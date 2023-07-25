@@ -33,7 +33,7 @@ import {
   IPropertyItemAstContent,
   IRelationOperatorAstContent,
   IRenderStateDeclarationAstContent,
-  IStatePropertyAssignAstContent,
+  IRenderStatePropertyItemAstContent,
   IStructAstContent,
   ITagAssignmentAstContent,
   ITagAstContent,
@@ -338,7 +338,7 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
 
 export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {}
 
-export class StatePropertyAssignAstNode extends AstNode<IStatePropertyAssignAstContent> {}
+export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {}
 
 export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> {
   override _doSerialization(context: RuntimeContext): string {
