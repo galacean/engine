@@ -66,19 +66,19 @@ export class BufferReader {
   }
 
   nextFloat32Array(len: number) {
-    const value = new Float32Array(this.data.buffer, this.offset + this.data.byteOffset, len);
+    const value = new Float32Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint32Array(len: number) {
-    const value = new Uint32Array(this.data.buffer, this.offset + this.data.byteOffset, len);
+    const value = new Uint32Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint8Array(len: number) {
-    const value = new Uint8Array(this.data.buffer, this.offset + this.data.byteOffset, len);
+    const value = new Uint8Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += len;
     return value;
   }
@@ -93,7 +93,7 @@ export class BufferReader {
 
   nextStr(): string {
     const strByteLength = this.nextUint16();
-    const uint8Array = new Uint8Array(this.data, this._offset, strByteLength);
+    const uint8Array = new Uint8Array(this.data.buffer, this._offset + this._dataView.byteOffset, strByteLength);
     this._offset += strByteLength;
     return Utils.decodeText(uint8Array);
   }
@@ -101,11 +101,11 @@ export class BufferReader {
   /**
    * image data 放在最后
    */
-  nextImageData(count: number = 0): ArrayBuffer {
-    return this.data.slice(this._offset);
+  nextImageData(count: number = 0): Uint8Array {
+    return new Uint8Array(this.data.buffer, this.data.byteOffset + this._offset);
   }
 
-  nextImagesData(count: number): ArrayBuffer[] {
+  nextImagesData(count: number): Uint8Array[] {
     const imagesLen = new Array(count);
     // Start offset of Uint32Array should be a multiple of 4. ref: https://stackoverflow.com/questions/15417310/why-typed-array-constructors-require-offset-to-be-multiple-of-underlying-type-si
     for (let i = 0; i < count; i++) {
@@ -113,11 +113,11 @@ export class BufferReader {
       imagesLen[i] = len;
       this._offset += 4;
     }
-    const imagesData: ArrayBuffer[] = [];
+    const imagesData: Uint8Array[] = [];
 
     for (let i = 0; i < count; i++) {
       const len = imagesLen[i];
-      const buffer = this.data.slice(this._offset, this._offset + len);
+      const buffer = new Uint8Array(this.data.buffer, this._dataView.byteOffset + this._offset, len);
       this._offset += len;
       imagesData.push(buffer);
     }
