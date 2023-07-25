@@ -32,7 +32,10 @@ export class GLTFTextureParser extends GLTFParser {
           if (!texture) {
             const samplerInfo = sampler !== undefined && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
             if (uri) {
-              const type = uri.endsWith(".ktx") ? AssetType.KTX : AssetType.Texture2D;
+              // TODO: deleted in 2.0
+              const index = uri.lastIndexOf(".");
+              const ext = uri.substring(index + 1);
+              const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
               texture = engine.resourceManager
                 .load<Texture2D>({
                   url: Utils.resolveAbsoluteUrl(url, uri),
