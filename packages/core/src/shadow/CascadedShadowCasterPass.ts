@@ -126,8 +126,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
           this._renderTarget,
           width,
           height,
-          format,
           null,
+          format,
           false
         );
         shadowTexture = <Texture2D>renderTarget.depthTexture;
@@ -137,8 +137,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
           this._renderTarget,
           width,
           height,
-          null,
           format,
+          null,
           false
         );
         shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
