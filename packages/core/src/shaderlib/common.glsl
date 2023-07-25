@@ -21,6 +21,13 @@ vec4 linearToGamma(vec4 linearIn){
     return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
 }
 
+uniform vec4 camera_DepthBufferParams;
+
+float depthBufferLinear01(float z){
+	return 1.0/ (camera_DepthBufferParams.x * z + camera_DepthBufferParams.y);
+}
+
+
 
 #ifdef GRAPHICS_API_WEBGL2
 	#define INVERSE_MAT(mat) inverse(mat)

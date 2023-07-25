@@ -37,6 +37,7 @@ export class Camera extends Component {
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
+  private static _cameraDepthBufferParamsProperty = ShaderProperty.getByName("camera_DepthBufferParams");
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
@@ -89,6 +90,7 @@ export class Camera extends Component {
   private _isFrustumProjectDirty: boolean = true;
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
+  private _depthBufferParams: Vector4 = new Vector4();
 
   @ignoreClone
   private _frustumViewChangeFlag: BoolUpdateFlag;
@@ -599,9 +601,14 @@ export class Camera extends Component {
   }
 
   private _updateShaderData(): void {
+    const depthBufferParams = this._depthBufferParams;
+    const farDivideNear = this._farClipPlane / this._nearClipPlane;
+    depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
+
     const shaderData = this.shaderData;
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
+    shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 
   /**
