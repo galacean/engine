@@ -72,11 +72,10 @@ export class GLTFMeshParser extends GLTFParser {
               vertexBuffer = new Buffer(
                 engine,
                 BufferBindFlag.VertexBuffer,
-                vertices.byteLength,
+                vertices,
                 BufferUsage.Static,
                 keepMeshData
               );
-              vertexBuffer.setData(vertices);
               accessorBuffer.vertexBuffer = vertexBuffer;
               meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
             }
@@ -92,7 +91,6 @@ export class GLTFMeshParser extends GLTFParser {
           let vertexBuffer = accessorBuffer.vertexBuffer;
           if (!vertexBuffer) {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, keepMeshData);
-            accessorBuffer.vertexBuffer = vertexBuffer;
             meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
           }
           mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
