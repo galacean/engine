@@ -149,6 +149,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
         shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
       }
 
+      this._renderTarget = renderTarget;
+      this._depthTexture = shadowTexture;
+
       // @todo: shouldn't set viewport and scissor in activeRenderTarget
       rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
       if (this._supportDepthTexture) {

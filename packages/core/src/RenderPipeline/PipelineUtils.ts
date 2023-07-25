@@ -72,7 +72,8 @@ export class PipelineUtils {
 
     if (currentColorTexture !== colorTexture || currentDepthTexture !== depthTexture) {
       currentRenderTarget?.destroy();
-      return new RenderTarget(engine, width, height, colorTexture, depthTexture);
+      currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthTexture);
     }
+    return currentRenderTarget;
   }
 }
