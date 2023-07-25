@@ -606,7 +606,7 @@ export class ModelMesh extends Mesh {
   uploadData(releaseData: boolean): void {
     this._updateVertexElements();
 
-    // If releaseData is false, we shouldn't update buffer data version
+    // Shouldn't update buffer data version when sync advanced data to buffer
     this._advancedDataSyncToBuffer = true;
 
     // Update internal vertex buffer if needed
