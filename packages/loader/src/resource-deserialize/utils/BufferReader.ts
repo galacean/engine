@@ -54,7 +54,7 @@ export class BufferReader {
   }
 
   nextInt32Array(len: number) {
-    const value = new Int32Array(this.data, this._offset, len);
+    const value = new Int32Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
