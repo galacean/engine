@@ -46,7 +46,7 @@ export class RenderQueue {
     this.elements.push(element);
   }
 
-  render(context: RenderContext, camera: Camera, mask: Layer, pipelineStageTagValue: string): void {
+  render(camera: Camera, mask: Layer, pipelineStageTagValue: string): void {
     const elements = this.elements;
     if (elements.length === 0) {
       return;

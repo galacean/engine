@@ -189,8 +189,8 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
       } else {
-        cullingResults.opaqueQueue.render(context, camera, pass.mask, PipelineStage.Forward);
-        cullingResults.alphaTestQueue.render(context, camera, pass.mask, PipelineStage.Forward);
+        cullingResults.opaqueQueue.render(camera, pass.mask, PipelineStage.Forward);
+        cullingResults.alphaTestQueue.render(camera, pass.mask, PipelineStage.Forward);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -198,7 +198,7 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        cullingResults.transparentQueue.render(context, camera, pass.mask, PipelineStage.Forward);
+        cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);
       }
 
       renderTarget?._blitRenderTarget();

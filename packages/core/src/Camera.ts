@@ -162,7 +162,8 @@ export class Camera extends Component {
   }
 
   /**
-   * Viewport, normalized expression, the upper left corner is (0, 0), and the lower right corner is (1.0, 1.0).
+   * The viewport of the camera in normalized coordinates on the screen.
+   * In normalized screen coordinates, the upper-left corner is (0, 0), and the lower-right corner is (1.0, 1.0).
    * @remarks Re-assignment is required after modification to ensure that the modification takes effect.
    */
   get viewport(): Vector4 {
@@ -178,12 +179,13 @@ export class Camera extends Component {
   }
 
   /**
-   * Pixel viewport, the upper left corner is (0, 0), and the lower right corner is (canvasPixelWidth, canvasPixelHeight).
+   * The viewport of the camera in pixel coordinates on the screen.
+   * In pixel screen coordinates, the upper-left corner is (0, 0), and the lower-right corner is (1.0, 1.0).
    */
   get pixelViewport(): Vector4 {
     return this._pixelViewport;
   }
-  ƒ;
+
   /**
    * Rendering priority, higher priority will be rendered on top of a camera with lower priority.
    */
