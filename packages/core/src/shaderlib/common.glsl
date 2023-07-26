@@ -23,10 +23,9 @@ vec4 linearToGamma(vec4 linearIn){
 
 uniform vec4 camera_DepthBufferParams;
 
-float depthBufferLinear01(float z){
+float remapDepthBufferLinear01(float z){
 	return 1.0/ (camera_DepthBufferParams.x * z + camera_DepthBufferParams.y);
 }
-
 
 
 #ifdef GRAPHICS_API_WEBGL2
