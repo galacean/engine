@@ -62,7 +62,7 @@ export class RenderQueue {
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
       const { data, shaderPasses } = element;
-      
+
       const renderStates = data.material.renderStates;
       const renderPassFlag = data.component.entity.layer;
 
