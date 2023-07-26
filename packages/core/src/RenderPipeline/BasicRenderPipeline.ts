@@ -153,9 +153,12 @@ export class BasicRenderPipeline {
     this._callRender(context);
     cullingResults.sort();
 
-    if (camera.depthTextureMode === DepthTextureMode.PrePass) {
-      this._depthOnlyPass.onConfig(camera);
-      this._depthOnlyPass.onRender(context, cullingResults);
+    const depthOnlyPass = this._depthOnlyPass;
+    if (camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture) {
+      depthOnlyPass.onConfig(camera);
+      depthOnlyPass.onRender(context, cullingResults);
+    } else {
+      camera.shaderData.setTexture(Camera._cameraTextureProperty, camera.engine._whiteTexture2D);
     }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {

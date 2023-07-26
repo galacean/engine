@@ -1,6 +1,7 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
+import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { PipelinePass } from "../shadow/PipelinePass";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
@@ -11,13 +12,17 @@ import { RenderContext } from "./RenderContext";
 import { PipelineStage } from "./enums/PipelineStage";
 
 /**
+ * @internal
  * Depth only pass.
  */
 export class DepthOnlyPass extends PipelinePass {
+  readonly _supportDepthTexture: boolean;
+
   private _renderTarget: RenderTarget;
 
   constructor(engine: Engine) {
     super(engine);
+    this._supportDepthTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
   }
 
   onConfig(camera: Camera): void {
