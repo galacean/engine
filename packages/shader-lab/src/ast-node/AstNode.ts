@@ -42,6 +42,7 @@ import {
   ITupleNumber4,
   IVariableTypeAstContent
 } from "./AstNodeContent";
+import { IRenderStateInfo } from "@galacean/engine-design";
 
 export interface IPosition {
   line: number;
@@ -72,6 +73,11 @@ export class AstNode<T = any> implements IAstInfo<T> {
 
   /** @internal */
   _doSerialization(context: RuntimeContext, args?: any): string {
+    throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
+  }
+
+  /** @internal */
+  getContentInfo(): any {
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
   }
 
@@ -336,9 +342,26 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
   }
 }
 
-export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {}
+export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
+  override getContentInfo(): IRenderStateInfo {
+    const properties = [] as IRenderStateInfo["properties"];
+    for (const prop of this.content.properties) {
+      properties.push(prop.getContentInfo());
+    }
 
-export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {}
+    return {
+      // @ts-ignore
+      renderStateType: this.content.renderStateType,
+      properties
+    };
+  }
+}
+
+export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {
+  override getContentInfo(): any {
+    return this.content;
+  }
+}
 
 export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> {
   override _doSerialization(context: RuntimeContext): string {

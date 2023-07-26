@@ -640,7 +640,8 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleRenderStateDeclaration(ctx: _ruleRenderStateDeclarationCstChildren) {
-    return AstNodeUtils.defaultVisit.bind(this)(ctx);
+    const ret: ObjectAstNode<RenderStateDeclarationAstNode> = AstNodeUtils.defaultVisit.bind(this)(ctx);
+    return Object.values(ret.content)[0];
   }
 
   _ruleAssignableValue(children: _ruleAssignableValueCstChildren, param?: any) {

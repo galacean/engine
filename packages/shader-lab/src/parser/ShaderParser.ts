@@ -33,11 +33,7 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Keywords.SubShader);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.OR([
-        { ALT: () => this.SUBRULE(this._ruleShaderPass) },
-        { ALT: () => this.SUBRULE(this._ruleTag) },
-        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) }
-      ]);
+      this.OR([{ ALT: () => this.SUBRULE(this._ruleShaderPass) }, { ALT: () => this.SUBRULE(this._ruleTag) }]);
     });
     this.CONSUME(Symbols.RCurly);
   });

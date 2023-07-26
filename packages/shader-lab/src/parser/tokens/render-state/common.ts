@@ -1,5 +1,5 @@
 import { TokenUtils } from "../TokenUtils";
-import { CompareFunction } from "@galacean/engine-core";
+import { CompareFunction } from "@galacean/engine";
 
 export const Enabled = TokenUtils.createKeywordToken("Enabled");
 

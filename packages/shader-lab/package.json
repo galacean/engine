@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-core": "workspace:*"
+    "@galacean/engine": "workspace:*"
   }
 }

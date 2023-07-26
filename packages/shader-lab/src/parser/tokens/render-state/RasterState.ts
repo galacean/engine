@@ -1,5 +1,5 @@
 import { TokenUtils } from "../TokenUtils";
-import { CullMode as ECullMode } from "@galacean/engine-core";
+import { CullMode as ECullMode } from "@galacean/engine";
 
 const CullMode = TokenUtils.createKeywordToken("CullMode");
 const DepthBias = TokenUtils.createKeywordToken("DepthBias");

@@ -144,7 +144,7 @@ export default class RuntimeContext {
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
     ret.tags = ast.content.tags?.toObj();
-    ret.renderStates = {};
+    ret.renderStates = ast.content.renderStates.map((state) => state.getContentInfo());
     ast.content.properties.forEach((prop) => {
       if (prop.content.type === VERT_FN_NAME) {
         if (ret.vert) {

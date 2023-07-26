@@ -1,5 +1,5 @@
 import { TokenUtils } from "../TokenUtils";
-import { StencilOperation } from "@galacean/engine-core";
+import { StencilOperation } from "@galacean/engine";
 
 const ReferenceValue = TokenUtils.createKeywordToken("ReferenceValue");
 const Mask = TokenUtils.createKeywordToken("Mask");

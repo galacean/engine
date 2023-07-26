@@ -1,5 +1,5 @@
 import { TokenUtils } from "../TokenUtils";
-import { BlendFactor, BlendOperation } from "@galacean/engine-core";
+import { BlendFactor, BlendOperation } from "@galacean/engine";
 
 const ColorBlendOperation = TokenUtils.createKeywordToken("ColorBlendOperation");
 const AlphaBlendOperation = TokenUtils.createKeywordToken("AlphaBlendOperation");

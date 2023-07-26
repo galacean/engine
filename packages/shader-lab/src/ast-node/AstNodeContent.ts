@@ -15,7 +15,6 @@ import {
   MultiplicationOperatorAstNode,
   FnAtomicExprAstNode,
   ObjectAstNode,
-  AssignableValueAstNode,
   VariableTypeAstNode,
   DeclarationAstNode,
   TagAssignmentAstNode,
@@ -39,7 +38,6 @@ export interface IPropertyItemAstContent {
 export interface ISubShaderAstContent {
   tags?: TagAstNode;
   pass: Array<AstNode<IPassAstContent>>;
-  renderStates?: Array<RenderStateDeclarationAstNode>;
 }
 
 export interface IFunctionAstContent {
@@ -175,9 +173,9 @@ export interface IRenderStateDeclarationAstContent<T = any> {
 }
 
 export interface IRenderStatePropertyItemAstContent<T = any> {
-  property: AstNode<T>;
+  property: string;
   index?: number;
-  value: AstNode<T>;
+  value: string;
 }
 
 export type IAssignableValueAstContent = string;

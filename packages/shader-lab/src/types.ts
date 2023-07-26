@@ -24,7 +24,6 @@ export type _ruleSubShaderCstChildren = {
   LCurly: IToken[];
   _ruleShaderPass?: _ruleShaderPassCstNode[];
   _ruleTag?: _ruleTagCstNode[];
-  _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   RCurly: IToken[];
 };
 
@@ -639,6 +638,7 @@ export type _ruleBlendStatePropertyDeclarationCstChildren = {
   Identifier: IToken[];
   LCurly: IToken[];
   _ruleBlendPropertyItem?: _ruleBlendPropertyItemCstNode[];
+  Semicolon?: IToken[];
   RCurly: IToken[];
 };
 
@@ -695,6 +695,7 @@ export type _ruleDepthSatePropertyDeclarationCstChildren = {
   Identifier: IToken[];
   LCurly: IToken[];
   _ruleDepthStatePropertyItem?: _ruleDepthStatePropertyItemCstNode[];
+  Semicolon?: IToken[];
   RCurly: IToken[];
 };
 
@@ -764,6 +765,7 @@ export type _ruleStencilStatePropertyDeclarationCstChildren = {
   Identifier: IToken[];
   LCurly: IToken[];
   _ruleStencilStatePropertyItem?: _ruleStencilStatePropertyItemCstNode[];
+  Semicolon?: IToken[];
   RCurly: IToken[];
 };
 
