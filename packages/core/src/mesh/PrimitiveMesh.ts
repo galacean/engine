@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { GLCapabilityType } from "../base/Constant";
 import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
@@ -26,6 +26,26 @@ export class PrimitiveMesh {
   private static _tempVec32: Vector3 = new Vector3();
   private static _tempVec33: Vector3 = new Vector3();
   private static _tempVec34: Vector3 = new Vector3();
+
+  private static readonly _initialVertices = [
+    new Vector3(-1, 1, 1),
+    new Vector3(-1, -1, 1),
+    new Vector3(1, -1, 1),
+    new Vector3(1, 1, 1),
+    new Vector3(1, -1, -1),
+    new Vector3(1, 1, -1),
+    new Vector3(-1, -1, -1),
+    new Vector3(-1, 1, -1)
+  ];
+
+  private static readonly _initialCells = [
+    [0, 1, 2, 3],
+    [3, 2, 4, 5],
+    [5, 4, 6, 7],
+    [7, 0, 3, 5],
+    [7, 6, 1, 0],
+    [6, 4, 2, 1]
+  ];
 
   /**
    * Create a sphere mesh.
@@ -301,34 +321,36 @@ export class PrimitiveMesh {
 
     let { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
-    const vertexCount = positions.length + Math.pow(2, step + 1) + 15;
+    const positionCount = positions.length;
+    const cellsCount = cells.length;
+    const vertexCount = positionCount + Math.pow(2, step + 1) + 15;
+
     const vertices = new Float32Array(vertexCount * 8);
-    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positions.length, cells.length * 6);
+    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positionCount, cellsCount * 6);
 
-    // get normals, uvs, and scale to radius
-    for (let i = 0; i < positions.length; i++) {
-      PrimitiveMesh._tempVec30.copyFrom(positions[i]);
-      PrimitiveMesh._tempVec30.normalize();
+    // Get normals, uvs, and scale to radius.
+    const { _tempVec30: tempVec } = PrimitiveMesh;
+    for (let i = 0; i < positionCount; i++) {
+      tempVec.copyFrom(positions[i]);
+      tempVec.normalize();
 
-      vertices[i * 8] = PrimitiveMesh._tempVec30.x * radius;
-      vertices[i * 8 + 1] = PrimitiveMesh._tempVec30.y * radius;
-      vertices[i * 8 + 2] = PrimitiveMesh._tempVec30.z * radius;
+      vertices[i * 8] = tempVec.x * radius;
+      vertices[i * 8 + 1] = tempVec.y * radius;
+      vertices[i * 8 + 2] = tempVec.z * radius;
 
-      vertices[i * 8 + 3] = PrimitiveMesh._tempVec30.x;
-      vertices[i * 8 + 4] = PrimitiveMesh._tempVec30.y;
-      vertices[i * 8 + 5] = PrimitiveMesh._tempVec30.z;
+      vertices[i * 8 + 3] = tempVec.x;
+      vertices[i * 8 + 4] = tempVec.y;
+      vertices[i * 8 + 5] = tempVec.z;
 
-      vertices[i * 8 + 6] =
-        (Math.PI - Math.atan2(PrimitiveMesh._tempVec30.z, PrimitiveMesh._tempVec30.x)) / (2 * Math.PI);
-      vertices[i * 8 + 7] = Math.acos(PrimitiveMesh._tempVec30.y / PrimitiveMesh._tempVec30.length()) / Math.PI;
+      vertices[i * 8 + 6] = (Math.PI - Math.atan2(tempVec.z, tempVec.x)) / (2 * Math.PI);
+      vertices[i * 8 + 7] = Math.acos(tempVec.y / tempVec.length()) / Math.PI;
     }
 
-    // get indices
+    // Get indices.
     let offset = 0;
-    for (let i = 0; i < cells.length; i++) {
+    for (let i = 0; i < cellsCount; i++) {
       const cell = cells[i];
 
-      // 这个指的是positions之前的
       indices[offset++] = cell[0];
       indices[offset++] = cell[1];
       indices[offset++] = cell[2];
@@ -338,9 +360,9 @@ export class PrimitiveMesh {
       indices[offset++] = cell[3];
     }
 
-    // solve texture seam problem due to vertex sharing
-    const count = PrimitiveMesh._computeFlippedVertex(indices, vertices, positions.length);
-    PrimitiveMesh._computePolesVertex(indices, vertices, positions.length + count);
+    // Solve texture seam problem caused by vertex sharing.
+    const count = PrimitiveMesh._computeFlippedVertex(indices, vertices, positionCount);
+    PrimitiveMesh._computePolesVertex(indices, vertices, positionCount + count);
 
     if (!isRestoreMode) {
       const { bounds } = sphereMesh;
@@ -437,53 +459,39 @@ export class PrimitiveMesh {
     cells: number[][];
     positions: Vector3[];
   } {
-    let cells = [
-      [0, 1, 2, 3],
-      [3, 2, 4, 5],
-      [5, 4, 6, 7],
-      [7, 0, 3, 5],
-      [7, 6, 1, 0],
-      [6, 4, 2, 1]
-    ];
-    let vertices = [
-      new Vector3(-1, 1, 1),
-      new Vector3(-1, -1, 1),
-      new Vector3(1, -1, 1),
-      new Vector3(1, 1, 1),
-      new Vector3(1, -1, -1),
-      new Vector3(1, 1, -1),
-      new Vector3(-1, -1, -1),
-      new Vector3(-1, 1, -1)
-    ];
-    let maxLength = 0;
+    const { _tempVec31: tempVec1, _tempVec32: tempVec2, _tempVec33: tempVec3 } = PrimitiveMesh;
 
-    const tempVec0 = new Vector3();
-    const tempVec1 = new Vector3();
-    const tempVec2 = new Vector3();
-    const tempVec3 = new Vector3();
+    let cells = PrimitiveMesh._initialCells.map((cell) => [...cell]);
+    let vertices = PrimitiveMesh._initialVertices.map((vertex) => vertex.clone());
 
     const getIndex = (vertex: Vector3): number => {
       const idx = vertices.findIndex((value) => Vector3.equals(value, vertex));
       return idx > -1 ? idx : vertices.push(vertex) - 1;
     };
 
-    for (let i = 0; i < step; i++) {
-      let points: Array<IPoint> = [];
-      let edges: Array<IEdge> = [];
-      let faces: Array<IFace> = [];
+    const points: Array<IPoint> = [];
+    const edges: Map<number, IEdge> = new Map();
+    const faces: Array<IFace> = [];
 
-      // get cell faces
-      for (let i = 0; i < cells.length; i++) {
+    for (let i = 0; i < step; i++) {
+      points.length = 0;
+      edges.clear();
+      faces.length = 0;
+
+      // Get cell faces.
+      const cellsCount = cells.length;
+      for (let i = 0; i < cellsCount; i++) {
         const cell = cells[i];
 
         faces[i] = {
           facePoint: new Vector3(),
           vertices: [],
-          edges: []
+          adjacentEdges: []
         };
 
-        // get cell points
-        for (let j = 0; j < cell.length; j++) {
+        // Get cell points.
+        const cellLength = cell.length;
+        for (let j = 0; j < cellLength; j++) {
           const idx = cell[j];
           const vertex = vertices[idx];
 
@@ -502,20 +510,19 @@ export class PrimitiveMesh {
           faces[i].facePoint.add(vertex);
         }
 
-        // get cell face's facePoint
-        faces[i].facePoint.scale(1 / cell.length);
+        // Get cell face's facePoint.
+        faces[i].facePoint.scale(1 / cellLength);
 
-        // get cell edges
-        for (let j = 0; j < cell.length; j++) {
+        // Get cell edges.
+        for (let j = 0; j < cellLength; j++) {
           const vertexIdxA = cell[j];
-          const vertexIdxB = cell[(j + 1) % cell.length];
-          const edgeIdxKey = [vertexIdxA, vertexIdxB].sort().toString();
-
-          if (!edges[edgeIdxKey]) {
+          const vertexIdxB = cell[(j + 1) % cellLength];
+          const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * vertices.length + Math.max(vertexIdxA, vertexIdxB);
+          if (!edges.has(edgeIdxKey)) {
             const edge: IEdge = {
               midPoint: new Vector3(),
               edgePoint: new Vector3(),
-              faces: []
+              adjacentFaces: []
             };
 
             Vector3.add(vertices[vertexIdxA], vertices[vertexIdxB], edge.midPoint);
@@ -524,28 +531,28 @@ export class PrimitiveMesh {
             points[vertexIdxA].edgeMidPoint.push(edgeIdxKey);
             points[vertexIdxB].edgeMidPoint.push(edgeIdxKey);
 
-            edges[edgeIdxKey] = edge;
+            edges.set(edgeIdxKey, edge);
           }
 
-          edges[edgeIdxKey].faces.push(i);
-          faces[i].edges.push(edgeIdxKey);
+          edges.get(edgeIdxKey).adjacentFaces.push(i);
+          faces[i].adjacentEdges.push(edgeIdxKey);
         }
       }
 
-      // get edges' edgePoint
-      for (const key in edges) {
-        const edge = edges[key];
-
-        for (let j = 0; j < edge.faces.length; j++) {
-          const curFace = faces[edge.faces[j]];
-          edge.edgePoint.add(curFace.facePoint);
+      // Get edges' edgePoint.
+      for (let [key, edge] of edges) {
+        const { adjacentFaces, edgePoint } = edge;
+        const faceCount = adjacentFaces.length;
+        for (let j = 0; j < faceCount; j++) {
+          const curFace = faces[adjacentFaces[j]];
+          edgePoint.add(curFace.facePoint);
         }
-        edge.edgePoint.scale(0.5);
-        edge.edgePoint.add(edge.midPoint);
-        edge.edgePoint.scale(0.5);
+        edgePoint.scale(0.5);
+        edgePoint.add(edge.midPoint);
+        edgePoint.scale(0.5);
       }
 
-      // get points' newPosition, and new Position's max length
+      // Get points' newPosition, and new Position's max length.
       for (let i = 0; i < points.length; i++) {
         const curPoint = points[i];
 
@@ -555,8 +562,8 @@ export class PrimitiveMesh {
         const m3 = 2 / n;
 
         tempVec1.copyFrom(curPoint.position);
-        tempVec2.copyFrom(tempVec0);
-        tempVec3.copyFrom(tempVec0);
+        tempVec2.set(0, 0, 0);
+        tempVec3.set(0, 0, 0);
 
         curPoint.facePoint.map((value) => {
           tempVec2.add(faces[value].facePoint);
@@ -564,7 +571,7 @@ export class PrimitiveMesh {
         tempVec2.scale(1 / curPoint.facePoint.length);
 
         curPoint.edgeMidPoint.map((value) => {
-          tempVec3.add(edges[value].midPoint);
+          tempVec3.add(edges.get(value).midPoint);
         });
         tempVec3.scale(1 / curPoint.edgeMidPoint.length);
 
@@ -572,9 +579,9 @@ export class PrimitiveMesh {
         Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
       }
 
-      // get updated cells and vertices
-
-      (cells = []), (vertices = []);
+      // Get updated cells and vertices.
+      cells.length = 0;
+      vertices.length = 0;
       for (let i = 0; i < faces.length; i++) {
         const curFace = faces[i];
 
@@ -582,9 +589,9 @@ export class PrimitiveMesh {
           const curPoint = curFace.vertices[j];
 
           const a = points[curPoint].newPosition;
-          const b = edges[curFace.edges[j % 4]].edgePoint;
+          const b = edges.get(curFace.adjacentEdges[j % 4]).edgePoint;
           const c = curFace.facePoint;
-          const d = edges[curFace.edges[(j + 3) % 4]].edgePoint;
+          const d = edges.get(curFace.adjacentEdges[(j + 3) % 4]).edgePoint;
 
           const ia = getIndex(a);
           const ib = getIndex(b);
@@ -608,6 +615,13 @@ export class PrimitiveMesh {
     currentCount: number
   ): number {
     const flippedVertex: Set<number> = new Set();
+    const {
+      _tempVec30: pointA,
+      _tempVec31: pointB,
+      _tempVec32: pointC,
+      _tempVec33: ab,
+      _tempVec34: ac
+    } = PrimitiveMesh;
     let count = 0;
 
     for (let i = 0; i < indices.length / 3; i++) {
@@ -615,19 +629,19 @@ export class PrimitiveMesh {
       const m2 = indices[i * 3 + 1] * 8;
       const m3 = indices[i * 3 + 2] * 8;
 
-      PrimitiveMesh._tempVec30.set(vertices[m1 + 6], vertices[m1 + 7], 0);
-      PrimitiveMesh._tempVec31.set(vertices[m2 + 6], vertices[m2 + 7], 0);
-      PrimitiveMesh._tempVec32.set(vertices[m3 + 6], vertices[m3 + 7], 0);
+      pointA.set(vertices[m1 + 6], vertices[m1 + 7], 0);
+      pointB.set(vertices[m2 + 6], vertices[m2 + 7], 0);
+      pointC.set(vertices[m3 + 6], vertices[m3 + 7], 0);
 
-      // ab side of this triangle
-      Vector3.subtract(PrimitiveMesh._tempVec31, PrimitiveMesh._tempVec30, PrimitiveMesh._tempVec33);
-      // ac side of this triangle
-      Vector3.subtract(PrimitiveMesh._tempVec32, PrimitiveMesh._tempVec30, PrimitiveMesh._tempVec34);
-      // uv's normal of this triangle
-      Vector3.cross(PrimitiveMesh._tempVec33, PrimitiveMesh._tempVec34, PrimitiveMesh._tempVec33);
+      // AB side of this triangle.
+      Vector3.subtract(pointB, pointA, ab);
+      // AC side of this triangle.
+      Vector3.subtract(pointC, pointA, ac);
+      // UV's normal of this triangle.
+      Vector3.cross(ab, ac, ab);
 
-      // direction reversed triangle
-      if (PrimitiveMesh._tempVec33.z > 0) {
+      // Direction reversed triangle.
+      if (ab.z > 0) {
         for (let j = 0; j < 3; j++) {
           const e = indices[i * 3 + j];
           if (vertices[8 * e + 6] === 0) {
@@ -686,7 +700,6 @@ export class PrimitiveMesh {
             2;
           vertices[8 * (count + currentCount) + 7] = vertices[8 * index + 7];
 
-          // Update the index
           indices[i + j] = count + currentCount;
 
           count += 1;
@@ -1543,18 +1556,18 @@ export class PrimitiveMesh {
 interface IEdge {
   midPoint: Vector3;
   edgePoint: Vector3;
-  faces: Array<number>;
+  adjacentFaces: Array<number>;
 }
 
 interface IPoint {
   position: Vector3;
   newPosition: Vector3;
   facePoint: Array<number>;
-  edgeMidPoint: Array<string>;
+  edgeMidPoint: Array<number>;
 }
 
 interface IFace {
   facePoint: Vector3;
   vertices: Array<number>;
-  edges: Array<string>;
+  adjacentEdges: Array<number>;
 }
