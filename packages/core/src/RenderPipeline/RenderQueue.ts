@@ -83,7 +83,8 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = element.shaderPass._getShaderProgram(engine, compileMacros);
+        const shaderPass = element.shaderPass;
+        const program = shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -138,7 +139,12 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+        element.renderState._apply(
+          engine,
+          renderer.entity.transform._isFrontFaceInvert(),
+          shaderPass._renderStateDataMap,
+          material.shaderData
+        );
 
         rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
       } else {
