@@ -11,11 +11,19 @@ import {
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
 import type { IGLTF } from "../GLTFSchema";
+import { GLTFParser } from "./GLTFParser";
 
 /**
  * @internal
  */
 export class GLTFParserContext {
+  private static readonly _parsers: Record<string, GLTFParser> = {};
+
+  /** @internal */
+  static _addParser(parserType: GLTFParserType, parser: GLTFParser) {
+    this._parsers[parserType] = parser;
+  }
+
   glTF: IGLTF;
   glTFResource: GLTFResource;
   keepMeshData: boolean;
@@ -34,7 +42,7 @@ export class GLTFParserContext {
   contentRestorer: GLTFContentRestorer;
 
   /** @internal */
-  _buffers: ArrayBuffer[] | Promise<ArrayBuffer[]>;
+  _buffers?: ArrayBuffer[];
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
@@ -47,10 +55,42 @@ export class GLTFParserContext {
   }
 
   /**
-   * Get all the buffer data.
+   * Get the resource of the specified type.
+   * @param type - The type of resource
+   * @param index - The index of resource, default all
    */
-  getBuffers(): Promise<ArrayBuffer[]> {
-    return Promise.resolve(this._buffers);
+  get<T>(type: GLTFParserType, index?: number): Promise<T> {
+    return GLTFParserContext._parsers[type].parse(this, index);
+  }
+
+  /** @internal */
+  _parse(): Promise<GLTFResource> {
+    return this.get<IGLTF>(GLTFParserType.JSON).then((json) => {
+      this.glTF = json;
+
+      return Promise.all([
+        this.get<Material[]>(GLTFParserType.Material),
+        this.get<Texture2D[]>(GLTFParserType.Texture)
+      ]).then(([materials, textures]) => {
+        console.log(materials, textures);
+        const {
+          materialsPromiseInfo,
+          defaultSceneRootPromiseInfo,
+          texturesPromiseInfo,
+          meshesPromiseInfo,
+          animationClipsPromiseInfo
+        } = this;
+
+        const glTFResource = this.glTFResource;
+
+        materialsPromiseInfo.resolve(materials);
+        texturesPromiseInfo.resolve(textures);
+
+        glTFResource.materials = materials;
+        glTFResource.textures = textures;
+        return glTFResource;
+      });
+    });
   }
 
   private _initPromiseInfo(promiseInfo: PromiseInfo<any>): AssetPromise<any> {
@@ -90,4 +130,25 @@ export class PromiseInfo<T> {
   public reject: (reason?: any) => void;
   public setProgress: (progress: number) => void;
   public onCancel: (callback: () => void) => void;
+}
+
+export enum GLTFParserType {
+  Texture,
+  Material,
+  Mesh,
+  Skin,
+  Animation,
+  Entity,
+  Camera,
+  Light,
+  Scene,
+  Buffer,
+  JSON
+}
+
+export function registerGLTFParser(pipeline: GLTFParserType) {
+  return (Parser: new () => GLTFParser) => {
+    const parser = new Parser();
+    GLTFParserContext._addParser(pipeline, parser);
+  };
 }

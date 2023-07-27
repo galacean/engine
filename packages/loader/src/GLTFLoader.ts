@@ -7,7 +7,6 @@ import {
   resourceLoader,
   ResourceManager
 } from "@galacean/engine-core";
-import { GLTFPipeline } from "./gltf/GLTFPipeline";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
 import { GLTFContentRestorer } from "./GLTFContentRestorer";
@@ -33,8 +32,8 @@ export class GLTFLoader extends Loader<GLTFResource> {
       }
     });
 
-    (params?.pipeline || GLTFPipeline.defaultPipeline)
-      ._parse(context)
+    context
+      ._parse()
       .then((glTFResource) => {
         resourceManager.addContentRestorer(restorer);
         masterPromiseInfo.resolve(glTFResource);
@@ -62,7 +61,5 @@ export interface GLTFParams {
    * @beta Now only contains vertex information, need to improve.
    * Keep raw mesh data for glTF parser, default is false.
    */
-  keepMeshData: boolean;
-  /** Custom glTF pipeline. */
-  pipeline: GLTFPipeline;
+  keepMeshData?: boolean;
 }

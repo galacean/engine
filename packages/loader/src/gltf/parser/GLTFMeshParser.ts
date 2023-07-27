@@ -13,7 +13,7 @@ import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "
 import type { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
-import { BufferInfo, GLTFParserContext } from "./GLTFParserContext";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "./GLTFParserContext";
 
 export class GLTFMeshParser extends GLTFParser {
   private static _tempVector3 = new Vector3();
@@ -265,7 +265,7 @@ export class GLTFMeshParser extends GLTFParser {
               },
               () => {
                 const indexAccessor = glTF.accessors[gltfPrimitive.indices];
-                return context.getBuffers().then((buffers) => {
+                return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
                   return GLTFUtils.getAccessorData(glTF, indexAccessor, buffers);
                 });
               },

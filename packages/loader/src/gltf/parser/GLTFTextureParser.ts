@@ -8,11 +8,18 @@ import {
   Utils
 } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
-import { TextureWrapMode as GLTFTextureWrapMode, ISampler, TextureMagFilter, TextureMinFilter } from "../GLTFSchema";
+import {
+  TextureWrapMode as GLTFTextureWrapMode,
+  ISampler,
+  ITexture,
+  TextureMagFilter,
+  TextureMinFilter
+} from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Texture)
 export class GLTFTextureParser extends GLTFParser {
   private static _wrapMap = {
     [GLTFTextureWrapMode.CLAMP_TO_EDGE]: TextureWrapMode.Clamp,
@@ -20,83 +27,82 @@ export class GLTFTextureParser extends GLTFParser {
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFParserContext): AssetPromise<Texture2D[]> | void {
+  parse(context: GLTFParserContext, index?: number): Promise<Texture[] | Texture> {
+    const {
+      glTF: { textures }
+    } = context;
+
+    if (!textures) return Promise.resolve(null);
+
+    if (index === undefined) {
+      return AssetPromise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
+    } else {
+      return this._parseSingleTexture(context, textures[index]);
+    }
+  }
+
+  private _parseSingleTexture(context: GLTFParserContext, textureInfo: ITexture): Promise<Texture> {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
+    const { sampler, source = 0, name: textureName, extensions } = textureInfo;
+    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
 
-    if (glTF.textures) {
-      const texturesPromiseInfo = context.texturesPromiseInfo;
+    let texture = <Texture | Promise<Texture>>(
+      GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo)
+    );
 
-      AssetPromise.all(
-        glTF.textures.map((textureInfo, index) => {
-          const { sampler, source = 0, name: textureName, extensions } = textureInfo;
-          const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
-
-          let texture = <Texture | Promise<Texture>>(
-            GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo)
-          );
-
-          if (!texture) {
-            const samplerInfo = sampler !== undefined && this._getSamplerInfo(glTF.samplers[sampler]);
-            if (uri) {
-              // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
-              const index = uri.lastIndexOf(".");
-              const ext = uri.substring(index + 1);
-              const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
-              texture = engine.resourceManager
-                .load<Texture2D>({
-                  url: Utils.resolveAbsoluteUrl(url, uri),
-                  type: type,
-                  params: {
-                    mipmap: samplerInfo?.mipmap
-                  }
-                })
-                .then<Texture2D>((texture) => {
-                  if (!texture.name) {
-                    texture.name = textureName || imageName || `texture_${index}`;
-                  }
-                  if (sampler !== undefined) {
-                    this._parseSampler(texture, samplerInfo);
-                  }
-                  return texture;
-                });
-            } else {
-              const bufferView = glTF.bufferViews[bufferViewIndex];
-
-              texture = context.getBuffers().then((buffers) => {
-                const buffer = buffers[bufferView.buffer];
-                const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
-
-                return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-                  const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
-                  texture.setImageSource(image);
-                  texture.generateMipmaps();
-                  texture.name = textureName || imageName || `texture_${index}`;
-                  if (sampler !== undefined) {
-                    this._parseSampler(texture, samplerInfo);
-                  }
-                  const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
-                  context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
-
-                  return texture;
-                });
-              });
+    if (!texture) {
+      const samplerInfo = sampler !== undefined && this._getSamplerInfo(glTF.samplers[sampler]);
+      if (uri) {
+        // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
+        const index = uri.lastIndexOf(".");
+        const ext = uri.substring(index + 1);
+        const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
+        texture = engine.resourceManager
+          .load<Texture2D>({
+            url: Utils.resolveAbsoluteUrl(url, uri),
+            type: type,
+            params: {
+              mipmap: samplerInfo?.mipmap
             }
-          }
-
-          return Promise.resolve(texture).then((texture) => {
-            GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
+          })
+          .then<Texture2D>((texture) => {
+            if (!texture.name) {
+              texture.name = textureName || imageName;
+            }
+            if (sampler !== undefined) {
+              this._parseSampler(texture, samplerInfo);
+            }
             return texture;
           });
-        })
-      )
-        .then((textures: Texture2D[]) => {
-          glTFResource.textures = textures;
-          texturesPromiseInfo.resolve(textures);
-        })
-        .catch(texturesPromiseInfo.reject);
-      return texturesPromiseInfo.promise;
+      } else {
+        const bufferView = glTF.bufferViews[bufferViewIndex];
+
+        texture = context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
+          const buffer = buffers[bufferView.buffer];
+          const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+
+          return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
+            const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
+            texture.setImageSource(image);
+            texture.generateMipmaps();
+            texture.name = textureName || imageName;
+            if (sampler !== undefined) {
+              this._parseSampler(texture, samplerInfo);
+            }
+            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+            context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+
+            return texture;
+          });
+        });
+      }
     }
+
+    return Promise.resolve(texture).then((texture) => {
+      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
+      return texture;
+    });
   }
 
   private _getSamplerInfo(sampler: ISampler): ISamplerInfo {

@@ -1,7 +1,7 @@
-import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@galacean/engine-core";
+import { AnimationClip, EngineObject, Material, Mesh } from "@galacean/engine-core";
+import type { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFExtensionMode, GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
-import type { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 /**
@@ -144,7 +144,7 @@ export abstract class GLTFParser {
     }
   }
 
-  abstract parse(context: GLTFParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
+  abstract parse(context: GLTFParserContext, index?: number);
 }
 
 /**
