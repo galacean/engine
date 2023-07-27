@@ -5,6 +5,7 @@ import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader for rendering.
@@ -82,11 +83,15 @@ export class Shader {
       if (!Shader._shaderLab) {
         throw "ShaderLab has not been set up yet.";
       }
-      // TODO: render state
+
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
       const subShaderList = shaderInfo.subShaders.map((subShader) => {
         const passList = subShader.passes.map((pass) => {
-          return new ShaderPass(pass.vert, pass.frag, pass.tags);
+          const shaderPass = new ShaderPass(pass.vert, pass.frag, pass.tags);
+          shaderPass._renderState = new RenderState();
+          // TODO: render state with `shaderPass._renderStateDataMap`, key is RenderStateDataKey
+          shaderPass._renderStateDataMap = {};
+          return shaderPass;
         });
         return new SubShader(shaderInfo.name, passList, subShader.tags);
       });

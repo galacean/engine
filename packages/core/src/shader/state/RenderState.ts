@@ -42,7 +42,7 @@ export class RenderState {
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData
   ): void {
-    this._applyShaderDataValue(renderStateDataMap, shaderData);
+    renderStateDataMap && this._applyShaderDataValue(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     this.blendState._apply(hardwareRenderer, lastRenderState);
