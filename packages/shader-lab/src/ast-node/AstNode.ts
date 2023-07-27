@@ -64,7 +64,7 @@ export class AstNode<T = any> implements IAstInfo<T> {
   content: T;
 
   /** @internal */
-  private _isAstNode = true;
+  _isAstNode = true;
 
   constructor(ast: IAstInfo<T>) {
     this.position = ast.position;
@@ -72,8 +72,8 @@ export class AstNode<T = any> implements IAstInfo<T> {
   }
 
   /** @internal */
-  _doSerialization(context: RuntimeContext, args?: any): string {
-    throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
+  _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content as string;
   }
 
   /** @internal */
@@ -82,11 +82,11 @@ export class AstNode<T = any> implements IAstInfo<T> {
   }
 
   /** @internal */
-  _beforeSerialization(context: RuntimeContext, args?: any) {
-    context.serializingAstNode = this;
+  _beforeSerialization(context?: RuntimeContext, args?: any) {
+    if (context) context.serializingAstNode = this;
   }
 
-  serialize(context: RuntimeContext, args?: any): string {
+  serialize(context?: RuntimeContext, args?: any): string {
     this._beforeSerialization(context, args);
     return this._doSerialization(context, args);
   }
@@ -135,9 +135,6 @@ export class AstNode<T = any> implements IAstInfo<T> {
 
 export class ReturnTypeAstNode extends AstNode<IFnReturnTypeAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    if (this.content.isCustom) {
-      context.findGlobal(this.content.text);
-    }
     return this.content.text;
   }
 }
@@ -146,7 +143,8 @@ export class ObjectAstNode<T = any> extends AstNode<Record<string, AstNode<T>>> 
   override _doSerialization(context: RuntimeContext): string {
     const astList = Object.values(this.content)
       .sort(AstNodeUtils.astSortAsc)
-      .filter((item) => item.constructor.name !== "AstNode");
+      .filter((item) => item._isAstNode);
+    // .filter((item) => item.constructor.name !== "AstNode");
     return astList.map((ast) => ast.serialize(context)).join("\n");
   }
 }
@@ -343,7 +341,7 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
 }
 
 export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
-  override getContentInfo(): IRenderStateInfo {
+  override getContentInfo(): IRenderStateInfo & { variable: string } {
     const properties = [] as IRenderStateInfo["properties"];
     for (const prop of this.content.properties) {
       properties.push(prop.getContentInfo());
@@ -352,14 +350,19 @@ export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarati
     return {
       // @ts-ignore
       renderStateType: this.content.renderStateType,
-      properties
+      properties,
+      variable: this.content.variable
     };
   }
 }
 
 export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {
   override getContentInfo(): any {
-    return this.content;
+    return {
+      property: this.content.property,
+      index: this.content.index,
+      value: this.content.value.serialize()
+    };
   }
 }
 

@@ -64,6 +64,8 @@ export const tokenList = [
   RCurly,
   LBracket,
   RBracket,
+  LSquareBracket,
+  RSquareBracket,
   Comma,
   Colon,
   Equal,

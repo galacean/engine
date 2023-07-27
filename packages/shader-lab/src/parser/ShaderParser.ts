@@ -7,7 +7,7 @@ export class ShaderParser extends CstParser {
 
   constructor() {
     super(_AllTokens, { maxLookahead: 8 });
-    this.lexer = new Lexer(_AllTokens);
+    this.lexer = new Lexer(_AllTokens, { ensureOptimizations: true });
 
     this.performSelfAnalysis();
   }
@@ -24,7 +24,15 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Values.ValueString);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.OR([{ ALT: () => this.SUBRULE(this._ruleProperty) }, { ALT: () => this.SUBRULE(this._ruleSubShader) }]);
+      this.OR([
+        { ALT: () => this.SUBRULE(this._ruleProperty) },
+        { ALT: () => this.SUBRULE(this._ruleSubShader) },
+        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
+        { ALT: () => this.SUBRULE(this._ruleTag) },
+        { ALT: () => this.SUBRULE(this._ruleStruct) },
+        { ALT: () => this.SUBRULE(this._ruleFn) },
+        { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) }
+      ]);
     });
     this.CONSUME(Symbols.RCurly);
   });
@@ -33,7 +41,14 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Keywords.SubShader);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.OR([{ ALT: () => this.SUBRULE(this._ruleShaderPass) }, { ALT: () => this.SUBRULE(this._ruleTag) }]);
+      this.OR([
+        { ALT: () => this.SUBRULE(this._ruleShaderPass) },
+        { ALT: () => this.SUBRULE(this._ruleTag) },
+        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
+        { ALT: () => this.SUBRULE(this._ruleStruct) },
+        { ALT: () => this.SUBRULE(this._ruleFn) },
+        { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) }
+      ]);
     });
     this.CONSUME(Symbols.RCurly);
   });
@@ -48,7 +63,7 @@ export class ShaderParser extends CstParser {
         { ALT: () => this.SUBRULE(this._ruleStruct) },
         { ALT: () => this.SUBRULE(this._ruleFn) },
         { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
-        { ALT: () => this.SUBRULE(this._ruleSubShaderPassPropertyAssignment) },
+        { ALT: () => this.SUBRULE(this._rulePassPropertyAssignment) },
         { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
         { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
         { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) }
@@ -369,7 +384,7 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private _ruleSubShaderPassPropertyAssignment = this.RULE("_ruleSubShaderPassPropertyAssignment", () => {
+  private _rulePassPropertyAssignment = this.RULE("_rulePassPropertyAssignment", () => {
     this.SUBRULE(this._ruleShaderPassPropertyType);
     this.CONSUME(Symbols.Equal);
     this.CONSUME(Others.Identifier);
@@ -392,7 +407,8 @@ export class ShaderParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleBlendStatePropertyDeclaration) },
       { ALT: () => this.SUBRULE(this._ruleDepthSatePropertyDeclaration) },
-      { ALT: () => this.SUBRULE(this._ruleStencilStatePropertyDeclaration) }
+      { ALT: () => this.SUBRULE(this._ruleStencilStatePropertyDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleRasterStatePropertyDeclaration) }
     ]);
   });
 
@@ -429,7 +445,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleBlendStatePropertyDeclaration = this.RULE("_ruleBlendStatePropertyDeclaration", () => {
     this.CONSUME(RenderState.RenderStateTypeTokens.BlendState);
-    this.CONSUME(Others.Identifier);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
     this.CONSUME(Symbols.LCurly);
 
     this.MANY(() => {
@@ -469,7 +485,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleDepthSatePropertyDeclaration = this.RULE("_ruleDepthSatePropertyDeclaration", () => {
     this.CONSUME(RenderState.RenderStateTypeTokens.DepthState);
-    this.CONSUME(Others.Identifier);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
     this.CONSUME(Symbols.LCurly);
 
     this.MANY(() => {
@@ -508,11 +524,45 @@ export class ShaderParser extends CstParser {
 
   private _ruleStencilStatePropertyDeclaration = this.RULE("_ruleStencilStatePropertyDeclaration", () => {
     this.CONSUME(RenderState.RenderStateTypeTokens.StencilState);
-    this.CONSUME(Others.Identifier);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
     this.CONSUME(Symbols.LCurly);
 
     this.MANY(() => {
       this.SUBRULE(this._ruleStencilStatePropertyItem);
+      this.CONSUME(Symbols.Semicolon);
+    });
+
+    this.CONSUME(Symbols.RCurly);
+  });
+
+  private _ruleRasterStateProperty = this.RULE("_ruleRasterStateProperty", () => {
+    this.OR(
+      [...Object.values(RenderState.RasterStatePropertyTokens), RenderState.Enabled].map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleRasterStateValue = this.RULE("_ruleRasterStateValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleAssignableValue) },
+      ...RenderState.CullModeTokenList.map((token) => ({ ALT: () => this.CONSUME(token) }))
+    ]);
+  });
+
+  private _ruleRasterStatePropertyItem = this.RULE("_ruleRasterStatePropertyItem", () => {
+    this.SUBRULE(this._ruleRasterStateProperty);
+    this.CONSUME(Symbols.Equal);
+    this.SUBRULE(this._ruleRasterStateValue);
+  });
+
+  private _ruleRasterStatePropertyDeclaration = this.RULE("_ruleRasterStatePropertyDeclaration", () => {
+    this.CONSUME(RenderState.RenderStateTypeTokens.RasterState);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
+    this.CONSUME(Symbols.LCurly);
+
+    this.MANY(() => {
+      this.SUBRULE(this._ruleRasterStatePropertyItem);
       this.CONSUME(Symbols.Semicolon);
     });
 

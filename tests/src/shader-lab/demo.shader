@@ -1,6 +1,12 @@
 Shader "Water" {
   SubShader {
 
+    BlendState blendState {
+      Enabled[2] = true;
+      ColorWriteMask[2] = 0.8;
+      BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+
     Pass "default" {
 
       struct a2v {
@@ -27,6 +33,16 @@ Shader "Water" {
       vec4 linearToGamma(vec4 linearIn) {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
     }
+
+    StencilState stencilState {
+      Enabled = true;
+      ReferenceValue = 2;
+      Mask = 1.3; // 0xffffffff
+      WriteMask = 0.32; // 0xffffffff
+      CompareFunctionFront = CompareFunction.Less;
+    }
+
+    BlendState = blendState;
 
       v2f vert(a2v v) {
         v2f o;

@@ -26,6 +26,11 @@ export interface IShaderAstContent {
   name: string;
   editorProperties?: AstNode<Array<PropertyItemAstNode>>;
   subShader: Array<AstNode<ISubShaderAstContent>>;
+  functions?: Array<FnAstNode>;
+  renderStates?: Array<RenderStateDeclarationAstNode>;
+  structs?: Array<StructAstNode>;
+  tags?: TagAstNode;
+  variables?: Array<VariableDeclarationAstNode>;
 }
 
 export interface IPropertyItemAstContent {
@@ -38,6 +43,10 @@ export interface IPropertyItemAstContent {
 export interface ISubShaderAstContent {
   tags?: TagAstNode;
   pass: Array<AstNode<IPassAstContent>>;
+  functions?: Array<FnAstNode>;
+  renderStates?: Array<RenderStateDeclarationAstNode>;
+  structs?: Array<StructAstNode>;
+  variables?: Array<VariableDeclarationAstNode>;
 }
 
 export interface IFunctionAstContent {
@@ -49,11 +58,11 @@ export interface IFunctionAstContent {
 
 export interface IPassAstContent {
   name: string;
-  tags: TagAstNode;
+  tags?: TagAstNode;
   properties: Array<PassPropertyAssignmentAstNode>;
-  structs: Array<StructAstNode>;
+  structs?: Array<StructAstNode>;
   variables: Array<VariableDeclarationAstNode>;
-  functions: Array<FnAstNode>;
+  functions?: Array<FnAstNode>;
   renderStates?: Array<RenderStateDeclarationAstNode>;
 }
 
@@ -175,7 +184,7 @@ export interface IRenderStateDeclarationAstContent<T = any> {
 export interface IRenderStatePropertyItemAstContent<T = any> {
   property: string;
   index?: number;
-  value: string;
+  value: AstNode;
 }
 
 export type IAssignableValueAstContent = string;

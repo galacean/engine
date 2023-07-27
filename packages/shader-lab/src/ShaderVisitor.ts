@@ -86,7 +86,6 @@ import {
   _ruleShaderPassCstChildren,
   _ruleStructCstChildren,
   _ruleSubShaderCstChildren,
-  _ruleSubShaderPassPropertyAssignmentCstChildren,
   _ruleTagAssignmentCstChildren,
   _ruleTagCstChildren,
   _ruleTupleFloat4CstChildren,
@@ -98,7 +97,11 @@ import {
   _ruleDepthSatePropertyDeclarationCstChildren,
   _ruleStencilStatePropertyDeclarationCstChildren,
   _ruleStencilStatePropertyItemCstChildren,
-  _ruleDepthStatePropertyItemCstChildren
+  _ruleDepthStatePropertyItemCstChildren,
+  _rulePassPropertyAssignmentCstChildren,
+  _ruleBlendStateValueCstChildren,
+  _ruleDepthStateValueCstChildren,
+  _ruleStencilStateValueCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -120,15 +123,20 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       start: AstNodeUtils.getTokenPosition(ctx.Shader[0]).start,
       end: AstNodeUtils.getTokenPosition(ctx.RCurly[0]).end
     };
-    const ast = {
+
+    return new AstNode<IShaderAstContent>({
       position,
       content: {
         name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
         editorProperties,
-        subShader
+        subShader,
+        variables: ctx._ruleFnVariableDeclaration?.map((item) => this.visit(item)),
+        functions: ctx._ruleFn?.map((item) => this.visit(item)),
+        structs: ctx._ruleStruct?.map((item) => this.visit(item)),
+        tags: ctx._ruleTag ? (this.visit(ctx._ruleTag) as TagAstNode) : undefined,
+        renderStates: ctx._ruleRenderStateDeclaration?.map((item) => this.visit(item))
       }
-    };
-    return new AstNode<IShaderAstContent>(ast);
+    });
   }
 
   _ruleSubShader(ctx: _ruleSubShaderCstChildren, param?: any) {
@@ -141,17 +149,22 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: AstNodeUtils.getTokenPosition(ctx.RCurly[0]).end
     };
 
-    const content = {
-      tags,
-      pass
-    };
-
-    return new AstNode<ISubShaderAstContent>({ position, content });
+    return new AstNode<ISubShaderAstContent>({
+      position,
+      content: {
+        tags,
+        pass,
+        variables: ctx._ruleFnVariableDeclaration?.map((item) => this.visit(item)),
+        functions: ctx._ruleFn?.map((item) => this.visit(item)),
+        structs: ctx._ruleStruct?.map((item) => this.visit(item)),
+        renderStates: ctx._ruleRenderStateDeclaration?.map((item) => this.visit(item))
+      }
+    });
   }
 
   _ruleShaderPass(ctx: _ruleShaderPassCstChildren) {
     const tags = ctx._ruleTag ? (this.visit(ctx._ruleTag) as TagAstNode) : undefined;
-    const properties = ctx._ruleSubShaderPassPropertyAssignment?.map((item) => this.visit(item));
+    const properties = ctx._rulePassPropertyAssignment?.map((item) => this.visit(item));
     const structs = ctx._ruleStruct?.map((item) => {
       const ret = this.visit(item);
       return ret;
@@ -565,7 +578,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleBlendPropertyItem(children: _ruleBlendPropertyItemCstChildren, param?: any) {
     const property = AstNodeUtils.extractCstToken(children._ruleBlendStateProperty[0]);
     const index = children.ValueInt?.[0].image;
-    const value = AstNodeUtils.extractCstToken(children._ruleBlendStateValue[0]);
+    const value = this.visit(children._ruleBlendStateValue);
     const position: IPositionRange = {
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleBlendStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleBlendStateValue[0]).end
@@ -574,6 +587,10 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: { property, index: index ? Number(index) : undefined, value }
     });
+  }
+
+  _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: any): AstNode<any> {
+    return AstNodeUtils.defaultVisit.bind(this)(children);
   }
 
   _ruleBlendStatePropertyDeclaration(children: _ruleBlendStatePropertyDeclarationCstChildren, param?: any) {
@@ -591,7 +608,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleDepthStatePropertyItem(children: _ruleDepthStatePropertyItemCstChildren, param?: any) {
     const property = AstNodeUtils.extractCstToken(children._ruleDepthStateProperty[0]);
     const index = children.ValueInt?.[0].image;
-    const value = AstNodeUtils.extractCstToken(children._ruleDepthStateValue[0]);
+    const value = this.visit(children._ruleDepthStateValue);
     const position: IPositionRange = {
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleDepthStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleDepthStateValue[0]).end
@@ -600,6 +617,10 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: { property, index: index ? Number(index) : undefined, value }
     });
+  }
+
+  _ruleDepthStateValue(children: _ruleDepthStateValueCstChildren, param?: any): AstNode<any> {
+    return AstNodeUtils.defaultVisit.bind(this)(children);
   }
 
   _ruleDepthSatePropertyDeclaration(children: _ruleDepthSatePropertyDeclarationCstChildren, param?: any) {
@@ -616,7 +637,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleStencilStatePropertyItem(children: _ruleStencilStatePropertyItemCstChildren, param?: any) {
     const property = AstNodeUtils.extractCstToken(children._ruleStencilStateProperty[0]);
-    const value = AstNodeUtils.extractCstToken(children._ruleStencilStateValue[0]);
+    const value = this.visit(children._ruleStencilStateValue);
     const position: IPositionRange = {
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleStencilStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleStencilStateValue[0]).end
@@ -625,6 +646,10 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: { property, value }
     });
+  }
+
+  _ruleStencilStateValue(children: _ruleStencilStateValueCstChildren, param?: any): AstNode<any> {
+    return AstNodeUtils.defaultVisit.bind(this)(children);
   }
 
   _ruleStencilStatePropertyDeclaration(children: _ruleStencilStatePropertyDeclarationCstChildren, param?: any) {
@@ -714,7 +739,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     });
   }
 
-  _ruleSubShaderPassPropertyAssignment(ctx: _ruleSubShaderPassPropertyAssignmentCstChildren) {
+  _rulePassPropertyAssignment(ctx: _rulePassPropertyAssignmentCstChildren, param?: any): AstNode<any> {
     const position: IPositionRange = {
       start: AstNodeUtils.getOrTypeCstNodePosition(ctx._ruleShaderPassPropertyType[0]).start,
       end: AstNodeUtils.getTokenPosition(ctx.Semicolon[0]).end

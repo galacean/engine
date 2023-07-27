@@ -11,6 +11,11 @@ export type _ruleShaderCstChildren = {
   LCurly: IToken[];
   _ruleProperty?: _rulePropertyCstNode[];
   _ruleSubShader?: _ruleSubShaderCstNode[];
+  _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
+  _ruleTag?: _ruleTagCstNode[];
+  _ruleStruct?: _ruleStructCstNode[];
+  _ruleFn?: _ruleFnCstNode[];
+  _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
   RCurly: IToken[];
 };
 
@@ -24,6 +29,10 @@ export type _ruleSubShaderCstChildren = {
   LCurly: IToken[];
   _ruleShaderPass?: _ruleShaderPassCstNode[];
   _ruleTag?: _ruleTagCstNode[];
+  _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
+  _ruleStruct?: _ruleStructCstNode[];
+  _ruleFn?: _ruleFnCstNode[];
+  _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
   RCurly: IToken[];
 };
 
@@ -40,7 +49,7 @@ export type _ruleShaderPassCstChildren = {
   _ruleStruct?: _ruleStructCstNode[];
   _ruleFn?: _ruleFnCstNode[];
   _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
-  _ruleSubShaderPassPropertyAssignment?: _ruleSubShaderPassPropertyAssignmentCstNode[];
+  _rulePassPropertyAssignment?: _rulePassPropertyAssignmentCstNode[];
   _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   _ruleFnMacroInclude?: _ruleFnMacroIncludeCstNode[];
   _ruleFnMacroDefine?: _ruleFnMacroDefineCstNode[];
@@ -523,12 +532,12 @@ export type _ruleFnAssignmentOperatorCstChildren = {
   SymbolMinusEqual?: IToken[];
 };
 
-export interface _ruleSubShaderPassPropertyAssignmentCstNode extends CstNode {
-  name: "_ruleSubShaderPassPropertyAssignment";
-  children: _ruleSubShaderPassPropertyAssignmentCstChildren;
+export interface _rulePassPropertyAssignmentCstNode extends CstNode {
+  name: "_rulePassPropertyAssignment";
+  children: _rulePassPropertyAssignmentCstChildren;
 }
 
-export type _ruleSubShaderPassPropertyAssignmentCstChildren = {
+export type _rulePassPropertyAssignmentCstChildren = {
   _ruleShaderPassPropertyType: _ruleShaderPassPropertyTypeCstNode[];
   SymbolEqual: IToken[];
   Identifier: IToken[];
@@ -567,6 +576,7 @@ export type _ruleRenderStateDeclarationCstChildren = {
   _ruleBlendStatePropertyDeclaration?: _ruleBlendStatePropertyDeclarationCstNode[];
   _ruleDepthSatePropertyDeclaration?: _ruleDepthSatePropertyDeclarationCstNode[];
   _ruleStencilStatePropertyDeclaration?: _ruleStencilStatePropertyDeclarationCstNode[];
+  _ruleRasterStatePropertyDeclaration?: _ruleRasterStatePropertyDeclarationCstNode[];
 };
 
 export interface _ruleBlendStatePropertyCstNode extends CstNode {
@@ -635,7 +645,7 @@ export interface _ruleBlendStatePropertyDeclarationCstNode extends CstNode {
 
 export type _ruleBlendStatePropertyDeclarationCstChildren = {
   BlendState: IToken[];
-  Identifier: IToken[];
+  Identifier?: IToken[];
   LCurly: IToken[];
   _ruleBlendPropertyItem?: _ruleBlendPropertyItemCstNode[];
   Semicolon?: IToken[];
@@ -692,7 +702,7 @@ export interface _ruleDepthSatePropertyDeclarationCstNode extends CstNode {
 
 export type _ruleDepthSatePropertyDeclarationCstChildren = {
   DepthState: IToken[];
-  Identifier: IToken[];
+  Identifier?: IToken[];
   LCurly: IToken[];
   _ruleDepthStatePropertyItem?: _ruleDepthStatePropertyItemCstNode[];
   Semicolon?: IToken[];
@@ -762,9 +772,58 @@ export interface _ruleStencilStatePropertyDeclarationCstNode extends CstNode {
 
 export type _ruleStencilStatePropertyDeclarationCstChildren = {
   StencilState: IToken[];
-  Identifier: IToken[];
+  Identifier?: IToken[];
   LCurly: IToken[];
   _ruleStencilStatePropertyItem?: _ruleStencilStatePropertyItemCstNode[];
+  Semicolon?: IToken[];
+  RCurly: IToken[];
+};
+
+export interface _ruleRasterStatePropertyCstNode extends CstNode {
+  name: "_ruleRasterStateProperty";
+  children: _ruleRasterStatePropertyCstChildren;
+}
+
+export type _ruleRasterStatePropertyCstChildren = {
+  CullMode?: IToken[];
+  DepthBias?: IToken[];
+  SlopeScaledDepthBias?: IToken[];
+  Enabled?: IToken[];
+};
+
+export interface _ruleRasterStateValueCstNode extends CstNode {
+  name: "_ruleRasterStateValue";
+  children: _ruleRasterStateValueCstChildren;
+}
+
+export type _ruleRasterStateValueCstChildren = {
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+  "CullMode.Off"?: IToken[];
+  "CullMode.Front"?: IToken[];
+  "CullMode.Back"?: IToken[];
+};
+
+export interface _ruleRasterStatePropertyItemCstNode extends CstNode {
+  name: "_ruleRasterStatePropertyItem";
+  children: _ruleRasterStatePropertyItemCstChildren;
+}
+
+export type _ruleRasterStatePropertyItemCstChildren = {
+  _ruleRasterStateProperty: _ruleRasterStatePropertyCstNode[];
+  SymbolEqual: IToken[];
+  _ruleRasterStateValue: _ruleRasterStateValueCstNode[];
+};
+
+export interface _ruleRasterStatePropertyDeclarationCstNode extends CstNode {
+  name: "_ruleRasterStatePropertyDeclaration";
+  children: _ruleRasterStatePropertyDeclarationCstChildren;
+}
+
+export type _ruleRasterStatePropertyDeclarationCstChildren = {
+  RasterState: IToken[];
+  Identifier?: IToken[];
+  LCurly: IToken[];
+  _ruleRasterStatePropertyItem?: _ruleRasterStatePropertyItemCstNode[];
   Semicolon?: IToken[];
   RCurly: IToken[];
 };
@@ -959,7 +1018,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleFnAssignStatement(children: _ruleFnAssignStatementCstChildren, param?: IN): OUT;
   _ruleFnAssignLO(children: _ruleFnAssignLOCstChildren, param?: IN): OUT;
   _ruleFnAssignmentOperator(children: _ruleFnAssignmentOperatorCstChildren, param?: IN): OUT;
-  _ruleSubShaderPassPropertyAssignment(children: _ruleSubShaderPassPropertyAssignmentCstChildren, param?: IN): OUT;
+  _rulePassPropertyAssignment(children: _rulePassPropertyAssignmentCstChildren, param?: IN): OUT;
   _ruleShaderPassPropertyType(children: _ruleShaderPassPropertyTypeCstChildren, param?: IN): OUT;
   _ruleRenderStateType(children: _ruleRenderStateTypeCstChildren, param?: IN): OUT;
   _ruleRenderStateDeclaration(children: _ruleRenderStateDeclarationCstChildren, param?: IN): OUT;
@@ -975,6 +1034,10 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleStencilStateValue(children: _ruleStencilStateValueCstChildren, param?: IN): OUT;
   _ruleStencilStatePropertyItem(children: _ruleStencilStatePropertyItemCstChildren, param?: IN): OUT;
   _ruleStencilStatePropertyDeclaration(children: _ruleStencilStatePropertyDeclarationCstChildren, param?: IN): OUT;
+  _ruleRasterStateProperty(children: _ruleRasterStatePropertyCstChildren, param?: IN): OUT;
+  _ruleRasterStateValue(children: _ruleRasterStateValueCstChildren, param?: IN): OUT;
+  _ruleRasterStatePropertyItem(children: _ruleRasterStatePropertyItemCstChildren, param?: IN): OUT;
+  _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: IN): OUT;
   _ruleProperty(children: _rulePropertyCstChildren, param?: IN): OUT;
   _rulePropertyItem(children: _rulePropertyItemCstChildren, param?: IN): OUT;
   _rulePropertyItemType(children: _rulePropertyItemTypeCstChildren, param?: IN): OUT;

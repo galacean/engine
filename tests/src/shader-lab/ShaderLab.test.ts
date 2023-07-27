@@ -14,16 +14,49 @@ const shaderLab = new ShaderLab();
 const canvas = document.createElement("canvas");
 
 describe("ShaderLab", () => {
-  it("create shaderlab", async () => {
+  let shader: ReturnType<typeof shaderLab.parseShader>;
+
+  before(() => {
+    shader = shaderLab.parseShader(demoShader);
+  });
+
+  it("create shaderLab", async () => {
     expect(shaderLab).not.be.null;
   });
 
-  it("shader parse result", () => {
-    const shader = shaderLab.parseShader(demoShader);
+  it("shader name", () => {
     expect(shader.name).to.equal("Water");
     const subShader = shader.subShaders[0];
     const pass = subShader.passes[0];
     expect(pass.name).equal("default");
+  });
+
+  it("render state", () => {
+    const subShader = shader.subShaders[0];
+    const pass = subShader.passes[0];
+    expect(pass.renderStates).not.be.null;
+
+    const stencilState = pass.renderStates[0];
+    expect(stencilState).not.be.null;
+    expect(stencilState.renderStateType).to.equal("StencilState");
+    expect(stencilState.properties).to.have.lengthOf(5);
+    expect(stencilState.properties[0]).eql({ property: "Enabled", value: "true", index: undefined });
+    expect(stencilState.properties[1]).eql({ property: "ReferenceValue", value: "2", index: undefined });
+    expect(stencilState.properties[4]).eql({
+      property: "CompareFunctionFront",
+      value: "CompareFunction.Less",
+      index: undefined
+    });
+
+    const blendState = pass.renderStates[1];
+    expect(blendState).not.be.undefined;
+    expect(blendState.properties[0]).eql({ property: "Enabled", value: "true", index: 2 });
+    expect(blendState.properties[1]).eql({ property: "ColorWriteMask", value: "0.8", index: 2 });
+    expect(blendState.properties[2]).eql({
+      property: "BlendColor",
+      value: "vec4(1.0, 1.0, 1.0, 1.0)",
+      index: undefined
+    });
   });
 });
 

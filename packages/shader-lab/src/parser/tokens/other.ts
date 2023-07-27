@@ -1,6 +1,6 @@
 import { Lexer, createToken } from "chevrotain";
 
-export const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-z]\w*/ });
+export const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-Z][_a-zA-Z0-9]*/ });
 
 export const WhiteSpace = createToken({
   name: "WhiteSpace",
