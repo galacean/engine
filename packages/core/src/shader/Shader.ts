@@ -89,7 +89,7 @@ export class Shader {
         const passList = subShader.passes.map((pass) => {
           const shaderPass = new ShaderPass(pass.vert, pass.frag, pass.tags);
           shaderPass._renderState = new RenderState();
-          // TODO: render state with `shaderPass._renderStateDataMap`, key is RenderStateDataKey
+          // TODO: render state with `shaderPass._renderStateDataMap`, key is `RenderStateDataKey`，value is `ShaderProperty`
           shaderPass._renderStateDataMap = {};
           return shaderPass;
         });
