@@ -1,12 +1,4 @@
-import {
-  AssetPromise,
-  AssetType,
-  Texture,
-  Texture2D,
-  TextureFilterMode,
-  TextureWrapMode,
-  Utils
-} from "@galacean/engine-core";
+import { AssetType, Texture, Texture2D, TextureFilterMode, TextureWrapMode, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import {
   TextureWrapMode as GLTFTextureWrapMode,
@@ -35,7 +27,7 @@ export class GLTFTextureParser extends GLTFParser {
     if (!textures) return Promise.resolve(null);
 
     if (index === undefined) {
-      return AssetPromise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
+      return Promise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
     } else {
       return this._parseSingleTexture(context, textures[index]);
     }

@@ -1,5 +1,4 @@
 import {
-  AssetPromise,
   Logger,
   Material,
   PBRMaterial,
@@ -156,7 +155,7 @@ export class GLTFMaterialParser extends GLTFParser {
     if (!materials) return Promise.resolve(null);
 
     if (index === undefined) {
-      return AssetPromise.all(materials.map((materialInfo) => this._parseSingleMaterial(context, materialInfo)));
+      return Promise.all(materials.map((materialInfo) => this._parseSingleMaterial(context, materialInfo)));
     } else {
       return this._parseSingleMaterial(context, materials[index]);
     }

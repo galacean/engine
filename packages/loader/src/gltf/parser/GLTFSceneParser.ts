@@ -1,21 +1,25 @@
 import {
+  AnimationClip,
   Animator,
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AssetPromise,
   BlinnPhongMaterial,
   Camera,
   Engine,
   Entity,
+  Material,
   MeshRenderer,
+  ModelMesh,
+  Skin,
   SkinnedMeshRenderer
 } from "@galacean/engine-core";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
   private static _defaultMaterial: BlinnPhongMaterial;
 
@@ -27,41 +31,48 @@ export class GLTFSceneParser extends GLTFParser {
     return GLTFSceneParser._defaultMaterial;
   }
 
-  parse(context: GLTFParserContext): AssetPromise<Entity> | void {
+  parse(context: GLTFParserContext): Promise<Entity> {
     const { glTFResource, glTF } = context;
-    const { entities } = glTFResource;
     const { nodes, cameras } = glTF;
 
-    if (!nodes) return;
-    const defaultSceneRootPromiseInfo = context.defaultSceneRootPromiseInfo;
+    if (!nodes) return Promise.resolve(null);
 
-    for (let i = 0; i < nodes.length; i++) {
-      const glTFNode = nodes[i];
-      const { camera: cameraID, mesh: meshID, extensions } = glTFNode;
+    return Promise.all([
+      context.get<Entity[]>(GLTFParserType.Entity),
+      context.get<ModelMesh[][]>(GLTFParserType.Mesh),
+      context.get<Skin[]>(GLTFParserType.Skin),
+      context.get<Material[]>(GLTFParserType.Material),
+      context.get<AnimationClip[]>(GLTFParserType.Animation)
+    ]).then(([entities, meshes, skins, materials, animations]) => {
+      this._buildEntityTree(context, entities);
+      this._createSceneRoots(context, entities);
 
-      const entity = entities[i];
+      for (let i = 0; i < nodes.length; i++) {
+        const glTFNode = nodes[i];
+        const { camera: cameraID, mesh: meshID, extensions } = glTFNode;
 
-      if (cameraID !== undefined) {
-        this._createCamera(glTFResource, cameras[cameraID], entity);
+        const entity = entities[i];
+
+        if (cameraID !== undefined) {
+          this._createCamera(glTFResource, cameras[cameraID], entity);
+        }
+
+        if (meshID !== undefined) {
+          this._createRenderer(context, glTFNode, entity, meshes, skins, materials);
+        }
+
+        GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, glTFNode);
       }
 
-      if (meshID !== undefined) {
-        this._createRenderer(context, glTFNode, entity);
+      if (glTFResource.defaultSceneRoot) {
+        this._createAnimator(context, animations);
       }
 
-      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, glTFNode);
-    }
-
-    if (glTFResource.defaultSceneRoot) {
-      this._createAnimator(context);
-    }
-
-    defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
-
-    return defaultSceneRootPromiseInfo.promise;
+      return glTFResource.defaultSceneRoot;
+    });
   }
 
-  private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
+  private _createCamera(resource: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
     const { orthographic, perspective, type } = cameraSchema;
     const camera = entity.addComponent(Camera);
 
@@ -95,17 +106,23 @@ export class GLTFSceneParser extends GLTFParser {
       }
     }
 
-    if (!context.cameras) context.cameras = [];
-    context.cameras.push(camera);
+    if (!resource.cameras) resource.cameras = [];
+    resource.cameras.push(camera);
     // @todo: use engine camera by default
     camera.enabled = false;
   }
 
-  private _createRenderer(context: GLTFParserContext, glTFNode: INode, entity: Entity) {
+  private _createRenderer(
+    context: GLTFParserContext,
+    glTFNode: INode,
+    entity: Entity,
+    meshes: ModelMesh[][],
+    skins: Skin[],
+    materials: Material[]
+  ) {
     const { glTFResource, glTF } = context;
     const { meshes: glTFMeshes } = glTF;
-
-    const { engine, meshes, materials, skins } = glTFResource;
+    const engine = glTFResource.engine;
     const { mesh: meshID, skin: skinID } = glTFNode;
     const glTFMesh = glTFMeshes[meshID];
     const glTFMeshPrimitives = glTFMesh.primitives;
@@ -147,12 +164,12 @@ export class GLTFSceneParser extends GLTFParser {
     }
   }
 
-  private _createAnimator(context: GLTFParserContext): void {
-    if (!context.hasSkinned && !context.glTFResource.animations) {
+  private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {
+    if (!context.hasSkinned && !animations) {
       return;
     }
 
-    const { defaultSceneRoot, animations } = context.glTFResource;
+    const defaultSceneRoot = context.glTFResource.defaultSceneRoot;
     const animator = defaultSceneRoot.addComponent(Animator);
     const animatorController = new AnimatorController();
     const layer = new AnimatorControllerLayer("layer");
@@ -172,5 +189,52 @@ export class GLTFSceneParser extends GLTFParser {
         animatorState.clip = animationClip;
       }
     }
+  }
+
+  private _buildEntityTree(context: GLTFParserContext, entities: Entity[]): void {
+    const {
+      glTF: { nodes }
+    } = context;
+
+    for (let i = 0; i < nodes.length; i++) {
+      const { children } = nodes[i];
+      const entity = entities[i];
+
+      if (children) {
+        for (let j = 0; j < children.length; j++) {
+          const childEntity = entities[children[j]];
+
+          entity.addChild(childEntity);
+        }
+      }
+    }
+  }
+
+  private _createSceneRoots(context: GLTFParserContext, entities: Entity[]): void {
+    const { glTFResource, glTF } = context;
+    const { scene: sceneID = 0, scenes } = glTF;
+
+    if (!scenes) return;
+
+    const sceneRoots: Entity[] = [];
+
+    for (let i = 0; i < scenes.length; i++) {
+      const { nodes } = scenes[i];
+
+      if (!nodes) continue;
+
+      if (nodes.length === 1) {
+        sceneRoots[i] = entities[nodes[0]];
+      } else {
+        const rootEntity = new Entity(glTFResource.engine, "GLTF_ROOT");
+        for (let j = 0; j < nodes.length; j++) {
+          rootEntity.addChild(entities[nodes[j]]);
+        }
+        sceneRoots[i] = rootEntity;
+      }
+    }
+
+    glTFResource.sceneRoots = sceneRoots;
+    glTFResource.defaultSceneRoot = sceneRoots[sceneID];
   }
 }

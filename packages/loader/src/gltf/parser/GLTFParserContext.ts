@@ -5,6 +5,7 @@ import {
   Entity,
   Material,
   ModelMesh,
+  Skin,
   Texture2D,
   TypedArray
 } from "@galacean/engine-core";
@@ -69,10 +70,22 @@ export class GLTFParserContext {
       this.glTF = json;
 
       return Promise.all([
+        this.get<Texture2D[]>(GLTFParserType.Texture),
         this.get<Material[]>(GLTFParserType.Material),
-        this.get<Texture2D[]>(GLTFParserType.Texture)
-      ]).then(([materials, textures]) => {
-        console.log(materials, textures);
+        this.get<ModelMesh[][]>(GLTFParserType.Mesh),
+        this.get<Entity[]>(GLTFParserType.Entity),
+        this.get<Skin[]>(GLTFParserType.Skin),
+        this.get<AnimationClip[]>(GLTFParserType.Animation),
+        this.get<Entity>(GLTFParserType.Scene)
+      ]).then(([textures, materials, meshes, entities, skins, animations, defaultSceneRoot]) => {
+        console.log(textures);
+        console.log(materials);
+        console.log(meshes);
+        console.log(entities);
+        console.log(skins);
+        console.log(animations);
+        console.log(defaultSceneRoot);
+
         const {
           materialsPromiseInfo,
           defaultSceneRootPromiseInfo,
@@ -83,11 +96,19 @@ export class GLTFParserContext {
 
         const glTFResource = this.glTFResource;
 
-        materialsPromiseInfo.resolve(materials);
-        texturesPromiseInfo.resolve(textures);
-
-        glTFResource.materials = materials;
         glTFResource.textures = textures;
+        glTFResource.materials = materials;
+        glTFResource.meshes = meshes;
+        glTFResource.entities = entities;
+        glTFResource.skins = skins;
+        glTFResource.animations = animations;
+
+        texturesPromiseInfo.resolve(textures);
+        materialsPromiseInfo.resolve(materials);
+        meshesPromiseInfo.resolve(meshes);
+        animationClipsPromiseInfo.resolve(animations);
+        defaultSceneRootPromiseInfo.resolve(defaultSceneRoot);
+
         return glTFResource;
       });
     });
@@ -133,17 +154,16 @@ export class PromiseInfo<T> {
 }
 
 export enum GLTFParserType {
+  JSON,
+  Buffer,
+  Validator,
   Texture,
   Material,
   Mesh,
+  Entity,
   Skin,
   Animation,
-  Entity,
-  Camera,
-  Light,
-  Scene,
-  Buffer,
-  JSON
+  Scene
 }
 
 export function registerGLTFParser(pipeline: GLTFParserType) {

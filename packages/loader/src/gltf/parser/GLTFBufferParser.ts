@@ -1,4 +1,4 @@
-import { AssetPromise, request, Utils } from "@galacean/engine-core";
+import { request, Utils } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import type { IBuffer } from "../GLTFSchema";
@@ -24,7 +24,7 @@ export class GLTFBufferParser extends GLTFParser {
       return Promise.resolve(index === undefined ? context._buffers : context._buffers[index]);
     } else {
       if (index === undefined) {
-        return AssetPromise.all(
+        return Promise.all(
           glTF.buffers.map((buffer: IBuffer) => {
             const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
             return request<ArrayBuffer>(absoluteUrl, requestConfig);

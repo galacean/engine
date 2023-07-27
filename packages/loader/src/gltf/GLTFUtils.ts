@@ -2,7 +2,7 @@ import { IndexFormat, TypedArray, Utils, VertexElementFormat } from "@galacean/e
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
-import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "./parser/GLTFParserContext";
 
 /**
  * @internal
@@ -118,7 +118,7 @@ export class GLTFUtils {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    return context.getBuffers().then((buffers) => {
+    return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
       const bufferIndex = bufferView.buffer;
       const buffer = buffers[bufferIndex];
       const bufferByteOffset = bufferView.byteOffset || 0;

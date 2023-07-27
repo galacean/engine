@@ -1,99 +1,51 @@
 import { Entity } from "@galacean/engine-core";
-import { GLTFResource } from "../GLTFResource";
+import { INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Entity)
 export class GLTFEntityParser extends GLTFParser {
   /** @internal */
   static _defaultName: String = "_GLTF_ENTITY_";
 
-  parse(context: GLTFParserContext): void {
+  parse(context: GLTFParserContext, index?: number): Promise<Entity[] | Entity> {
     const {
-      glTFResource,
       glTF: { nodes }
     } = context;
+
+    if (!nodes) return Promise.resolve(null);
+
+    if (index === undefined) {
+      return Promise.all(nodes.map((entityInfo, index) => this._parserSingleEntity(context, entityInfo, index)));
+    } else {
+      return this._parserSingleEntity(context, nodes[index], index);
+    }
+  }
+
+  private _parserSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Promise<Entity> {
+    const { glTFResource } = context;
 
     const { engine } = glTFResource;
+    const { matrix, translation, rotation, scale } = entityInfo;
+    const entity = new Entity(engine, entityInfo.name || `${GLTFEntityParser._defaultName}${index}`);
 
-    if (!nodes) return;
-
-    const entities: Entity[] = [];
-
-    for (let i = 0; i < nodes.length; i++) {
-      const gltfNode = nodes[i];
-      const { matrix, translation, rotation, scale } = gltfNode;
-      const entity = new Entity(engine, gltfNode.name || `${GLTFEntityParser._defaultName}${i}`);
-
-      const { transform } = entity;
-      if (matrix) {
-        const localMatrix = transform.localMatrix;
-        localMatrix.copyFromArray(matrix);
-        transform.localMatrix = localMatrix;
-      } else {
-        if (translation) {
-          transform.setPosition(translation[0], translation[1], translation[2]);
-        }
-        if (rotation) {
-          transform.setRotationQuaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
-        }
-        if (scale) {
-          transform.setScale(scale[0], scale[1], scale[2]);
-        }
+    const { transform } = entity;
+    if (matrix) {
+      const localMatrix = transform.localMatrix;
+      localMatrix.copyFromArray(matrix);
+      transform.localMatrix = localMatrix;
+    } else {
+      if (translation) {
+        transform.setPosition(translation[0], translation[1], translation[2]);
       }
-
-      entities[i] = entity;
-    }
-
-    glTFResource.entities = entities;
-    this._buildEntityTree(context, glTFResource);
-    this._createSceneRoots(context, glTFResource);
-  }
-
-  private _buildEntityTree(context: GLTFParserContext, glTFResource: GLTFResource): void {
-    const {
-      glTF: { nodes }
-    } = context;
-    const { entities } = glTFResource;
-
-    for (let i = 0; i < nodes.length; i++) {
-      const { children } = nodes[i];
-      const entity = entities[i];
-
-      if (children) {
-        for (let j = 0; j < children.length; j++) {
-          const childEntity = entities[children[j]];
-
-          entity.addChild(childEntity);
-        }
+      if (rotation) {
+        transform.setRotationQuaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
       }
-    }
-  }
-
-  private _createSceneRoots(context: GLTFParserContext, glTFResource: GLTFResource): void {
-    const { scene: sceneID = 0, scenes } = context.glTF;
-    const { engine, entities } = glTFResource;
-
-    if (!scenes) return;
-
-    const sceneRoots: Entity[] = [];
-
-    for (let i = 0; i < scenes.length; i++) {
-      const { nodes } = scenes[i];
-
-      if (!nodes) continue;
-
-      if (nodes.length === 1) {
-        sceneRoots[i] = entities[nodes[0]];
-      } else {
-        const rootEntity = new Entity(engine, "GLTF_ROOT");
-        for (let j = 0; j < nodes.length; j++) {
-          rootEntity.addChild(entities[nodes[j]]);
-        }
-        sceneRoots[i] = rootEntity;
+      if (scale) {
+        transform.setScale(scale[0], scale[1], scale[2]);
       }
     }
 
-    glTFResource.sceneRoots = sceneRoots;
-    glTFResource.defaultSceneRoot = sceneRoots[sceneID];
+    return Promise.resolve(entity);
   }
 }

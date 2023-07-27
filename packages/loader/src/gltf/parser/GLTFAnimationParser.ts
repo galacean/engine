@@ -3,7 +3,6 @@ import {
   AnimationFloatArrayCurve,
   AnimationQuaternionCurve,
   AnimationVector3Curve,
-  AssetPromise,
   Component,
   Entity,
   InterpolationType,
@@ -13,7 +12,6 @@ import {
   TypedArray
 } from "@galacean/engine-core";
 import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
-import { GLTFUtils } from "../GLTFUtils";
 import {
   AccessorType,
   AnimationChannelTargetPath,
@@ -21,9 +19,11 @@ import {
   IAnimation,
   IAnimationChannel
 } from "../GLTFSchema";
+import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Animation)
 export class GLTFAnimationParser extends GLTFParser {
   /**
    * @internal
@@ -33,15 +33,16 @@ export class GLTFAnimationParser extends GLTFParser {
     animationClip: AnimationClip,
     animationInfo: IAnimation
   ): Promise<void> {
-    const { glTF, glTFResource } = context;
-    const { entities } = glTFResource;
+    const { glTF } = context;
     const { accessors, bufferViews } = glTF;
     const { channels, samplers } = animationInfo;
 
     const sampleDataCollection = new Array<SampleData>();
 
     let duration = -1;
-    let promises = new Array<Promise<void>>();
+    let promises = new Array<Promise<Entity[] | void>>();
+    promises.push(context.get<Entity[]>(GLTFParserType.Entity));
+
     // parse samplers
     for (let j = 0, m = samplers.length; j < m; j++) {
       const gltfSampler = samplers[j];
@@ -95,7 +96,9 @@ export class GLTFAnimationParser extends GLTFParser {
       promises.push(promise);
     }
 
-    return Promise.all(promises).then(() => {
+    return Promise.all(promises).then((res) => {
+      const entities = res[0] as Entity[];
+
       for (let j = 0, m = channels.length; j < m; j++) {
         const gltfChannel = channels[j];
         const { target } = gltfChannel;
@@ -210,56 +213,41 @@ export class GLTFAnimationParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> | void {
-    const { glTF, glTFResource } = context;
-    const { entities } = glTFResource;
-    const { animations, accessors, bufferViews } = glTF;
-    if (!animations) {
-      return;
-    }
-    const animationClipsPromiseInfo = context.animationClipsPromiseInfo;
+  parse(context: GLTFParserContext, index?: number): Promise<AnimationClip[] | AnimationClip> {
+    const {
+      glTF: { animations }
+    } = context;
+    if (!animations) return Promise.resolve(null);
 
-    const animationClipCount = animations.length;
-    const animationClipPromises = [];
-    const animationsIndices = new Array<{
-      name: string;
-      index: number;
-    }>(animationClipCount);
-
-    let parseStandardPropertyPromises = new Array<Promise<void>>();
-    for (let i = 0; i < animationClipCount; i++) {
-      const animationInfo = animations[i];
-      const { name = `AnimationClip${i}` } = animationInfo;
-
-      let animationClip = <AnimationClip>(
-        GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
+    if (index === undefined) {
+      return Promise.all(
+        animations.map((animationInfo, index) => this._parseSingleAnimation(context, animationInfo, index))
       );
-
-      if (!animationClip) {
-        animationClip = new AnimationClip(name);
-        parseStandardPropertyPromises.push(
-          GLTFAnimationParser._parseStandardProperty(context, animationClip, animationInfo)
-        );
-      }
-
-      animationClipPromises.push(animationClip);
+    } else {
+      return this._parseSingleAnimation(context, animations[index], index);
     }
+  }
 
-    return AssetPromise.all(parseStandardPropertyPromises).then(() => {
-      return AssetPromise.all(animationClipPromises).then((animationClips) => {
-        glTFResource.animations = animationClips;
-        for (let i = 0; i < glTF.animations.length; i++) {
-          const animationInfo = glTF.animations[i];
-          GLTFParser.executeExtensionsAdditiveAndParse(
-            animationInfo.extensions,
-            context,
-            animationClips[i],
-            animationInfo
-          );
-        }
-        animationClipsPromiseInfo.resolve(animationClips);
-        return animationClipsPromiseInfo.promise;
-      });
+  private _parseSingleAnimation(
+    context: GLTFParserContext,
+    animationInfo: IAnimation,
+    index: number
+  ): Promise<AnimationClip> {
+    const { name = `AnimationClip${index}` } = animationInfo;
+
+    let animationClip = <Promise<AnimationClip> | AnimationClip>(
+      GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
+    );
+
+    let parseStandardPropertyPromise;
+
+    if (!animationClip) {
+      animationClip = new AnimationClip(name);
+      parseStandardPropertyPromise = GLTFAnimationParser._parseStandardProperty(context, animationClip, animationInfo);
+    }
+    return Promise.all([animationClip, parseStandardPropertyPromise]).then(([animationClip]) => {
+      GLTFParser.executeExtensionsAdditiveAndParse(animationInfo.extensions, context, animationClip, animationInfo);
+      return animationClip;
     });
   }
 }

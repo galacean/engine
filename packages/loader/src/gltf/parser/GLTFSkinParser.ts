@@ -1,30 +1,36 @@
-import { AssetPromise, Entity, Skin } from "@galacean/engine-core";
+import { Entity, Skin } from "@galacean/engine-core";
 import { Matrix } from "@galacean/engine-math";
-import { GLTFParserContext } from ".";
+import { ISkin } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Skin)
 export class GLTFSkinParser extends GLTFParser {
-  parse(context: GLTFParserContext): AssetPromise<void> {
-    const { glTFResource, glTF } = context;
-    const { entities } = glTFResource;
-    const gltfSkins = glTF.skins;
+  parse(context: GLTFParserContext, index?: number): Promise<Skin[] | Skin> {
+    const gltfSkins = context.glTF.skins;
 
-    if (!gltfSkins) return;
+    if (!gltfSkins) return Promise.resolve(null);
 
-    const count = gltfSkins.length;
-    const promises = new Array<Promise<Skin>>();
+    if (index === undefined) {
+      return Promise.all(gltfSkins.map((skinInfo, index) => this._parseSingleSkin(context, skinInfo, index)));
+    } else {
+      return this._parseSingleSkin(context, gltfSkins[index], index);
+    }
+  }
 
-    for (let i = 0; i < count; i++) {
-      const { inverseBindMatrices, skeleton, joints, name = `SKIN_${i}` } = gltfSkins[i];
-      const jointCount = joints.length;
+  private _parseSingleSkin(context: GLTFParserContext, skinInfo: ISkin, index: number): Promise<Skin> {
+    const glTF = context.glTF;
+    const { inverseBindMatrices, skeleton, joints, name = `SKIN_${index}` } = skinInfo;
+    const jointCount = joints.length;
 
-      const skin = new Skin(name);
-      skin.inverseBindMatrices.length = jointCount;
+    const skin = new Skin(name);
+    skin.inverseBindMatrices.length = jointCount;
 
-      // parse IBM
-      const accessor = glTF.accessors[inverseBindMatrices];
-      const promise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
+    // parse IBM
+    const accessor = glTF.accessors[inverseBindMatrices];
+    const skinPromise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
+      return context.get<Entity[]>(GLTFParserType.Entity).then((entities) => {
         const buffer = bufferInfo.data;
         for (let i = 0; i < jointCount; i++) {
           const inverseBindMatrix = new Matrix();
@@ -57,13 +63,9 @@ export class GLTFSkinParser extends GLTFParser {
         }
         return skin;
       });
-
-      promises.push(promise);
-    }
-
-    return AssetPromise.all(promises).then((skins) => {
-      glTFResource.skins = skins;
     });
+
+    return Promise.resolve(skinPromise);
   }
 
   private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {
