@@ -6,7 +6,10 @@ export class PrefabParserContext {
   components: Map<string, Component> = new Map();
   entityConfigMap: Map<string, IEntity> = new Map();
   rootIds: string[] = [];
-  constructor(public readonly originalData: IPrefabFile, public readonly prefabEntity: Entity) {}
+  constructor(
+    public readonly originalData: IPrefabFile,
+    public readonly prefabEntity: Entity
+  ) {}
 
   destroy() {
     this.entityMap.clear();

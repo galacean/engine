@@ -120,6 +120,8 @@ export enum GLCapabilityType {
   // atc = "WEBGL_compressed_texture_atc",
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
 
+  bptc = "EXT_texture_compression_bptc",
+
   WEBGL_lose_context = "WEBGL_lose_context"
 }
 

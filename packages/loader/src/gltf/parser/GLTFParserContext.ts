@@ -17,7 +17,6 @@ import type { IGLTF } from "../GLTFSchema";
  */
 export class GLTFParserContext {
   glTF: IGLTF;
-  buffers: ArrayBuffer[];
   glTFResource: GLTFResource;
   keepMeshData: boolean;
   hasSkinned: boolean = false;
@@ -34,6 +33,9 @@ export class GLTFParserContext {
 
   contentRestorer: GLTFContentRestorer;
 
+  /** @internal */
+  _buffers: ArrayBuffer[] | Promise<ArrayBuffer[]>;
+
   constructor(url: string) {
     const promiseMap = this.promiseMap;
     promiseMap[`${url}?q=textures`] = this._initPromiseInfo(this.texturesPromiseInfo);
@@ -42,6 +44,13 @@ export class GLTFParserContext {
     promiseMap[`${url}?q=animations`] = this._initPromiseInfo(this.animationClipsPromiseInfo);
     promiseMap[`${url}?q=defaultSceneRoot`] = this._initPromiseInfo(this.defaultSceneRootPromiseInfo);
     promiseMap[`${url}`] = this._initPromiseInfo(this.masterPromiseInfo);
+  }
+
+  /**
+   * Get all the buffer data.
+   */
+  getBuffers(): Promise<ArrayBuffer[]> {
+    return Promise.resolve(this._buffers);
   }
 
   private _initPromiseInfo(promiseInfo: PromiseInfo<any>): AssetPromise<any> {
@@ -65,7 +74,11 @@ export class BufferInfo {
 
   restoreInfo: BufferDataRestoreInfo;
 
-  constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
+  constructor(
+    public data: TypedArray,
+    public interleaved: boolean,
+    public stride: number
+  ) {}
 }
 
 /**

@@ -491,14 +491,15 @@ export class ModelMesh extends Mesh {
     this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
+    this._blendShapeManager._vertexElementOffset = count;
   }
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
+   * @param vertexBufferBinding - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, index?: number): void;
 
   /**
    * Set vertex buffer binding.
@@ -605,8 +606,8 @@ export class ModelMesh extends Mesh {
   uploadData(releaseData: boolean): void {
     this._updateVertexElements();
 
-    // If releaseData is false, we shouldn't update buffer data version
-    releaseData || (this._advancedDataSyncToBuffer = true);
+    // Shouldn't update buffer data version when sync advanced data to buffer
+    this._advancedDataSyncToBuffer = true;
 
     // Update internal vertex buffer if needed
     this._updateInternalVertexBuffer(releaseData);
@@ -1295,6 +1296,14 @@ export class ModelMesh extends Mesh {
 
     if (!isDestroy) {
       this._vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+
+      // If release data, we need update buffer data version to ensure get data method can read buffer
+      const dataVersion = this._dataVersionCounter++;
+      const vertexBufferInfos = this._vertexBufferInfos;
+      for (let i = 0, n = vertexBufferInfos.length; i < n; i++) {
+        const vertexBufferInfo = vertexBufferInfos[i];
+        vertexBufferInfo && (vertexBufferInfo.dataVersion = dataVersion);
+      }
     }
   }
 
