@@ -1,61 +1,61 @@
 export enum RenderStateDataKey {
   /** Blend state enabled for target 0 key. */
-  BlendStateEnabled0,
+  BlendStateEnabled0 = 0,
   /** Blend state color blend operation for target 0 key. */
-  BlendStateColorBlendOperation0,
+  BlendStateColorBlendOperation0 = 1,
   /** Blend state alpha blend operation for target 0 key. */
-  BlendStateAlphaBlendOperation0,
+  BlendStateAlphaBlendOperation0 = 2,
   /** Blend state source color blend factor for target 0 key. */
-  BlendStateSourceColorBlendFactor0,
+  BlendStateSourceColorBlendFactor0 = 3,
   /** Blend state source alpha blend factor for target 0 key. */
-  BlendStateSourceAlphaBlendFactor0,
+  BlendStateSourceAlphaBlendFactor0 = 4,
   /** Blend state destination color blend factor for target 0 key. */
-  BlendStateDestinationColorBlendFactor0,
+  BlendStateDestinationColorBlendFactor0 = 5,
   /** Blend state destination alpha blend factor for target 0 key. */
-  BlendStateDestinationAlphaBlendFactor0,
+  BlendStateDestinationAlphaBlendFactor0 = 6,
   /** Blend state color write mask for target 0 key. */
-  BlendStateColorWriteMask0,
+  BlendStateColorWriteMask0 = 7,
   /** Blend state blend color key. */
-  BlendStateBlendColor,
+  BlendStateBlendColor = 8,
   /** Blend state alpha to coverage key. */
-  BlendStateAlphaToCoverage,
+  BlendStateAlphaToCoverage = 9,
 
   /** Depth state enabled key. */
-  DepthStateEnabled,
+  DepthStateEnabled = 10,
   /** Depth state write enabled key. */
-  DepthStateWriteEnabled,
+  DepthStateWriteEnabled = 11,
   /** Depth state compare function key. */
-  DepthStateCompareFunction,
+  DepthStateCompareFunction = 12,
 
   /** Stencil state enabled key. */
-  StencilStateEnabled,
+  StencilStateEnabled = 13,
   /** Stencil state reference value key. */
-  StencilStateReferenceValue,
+  StencilStateReferenceValue = 14,
   /** Stencil state read mask key. */
-  StencilStateMask,
+  StencilStateMask = 15,
   /** Stencil state write mask key. */
-  StencilStateWriteMask,
+  StencilStateWriteMask = 16,
   /** Stencil state compare function front key. */
-  StencilStateCompareFunctionFront,
+  StencilStateCompareFunctionFront = 17,
   /** Stencil state compare function back key. */
-  StencilStateCompareFunctionBack,
+  StencilStateCompareFunctionBack = 18,
   /** Stencil state pass operation front key. */
-  StencilStatePassOperationFront,
+  StencilStatePassOperationFront = 19,
   /** Stencil state pass operation back key. */
-  StencilStatePassOperationBack,
+  StencilStatePassOperationBack = 20,
   /** Stencil state fail operation front key. */
-  StencilStateFailOperationFront,
+  StencilStateFailOperationFront = 21,
   /** Stencil state fail operation back key. */
-  StencilStateFailOperationBack,
+  StencilStateFailOperationBack = 22,
   /** Stencil state z fail operation front key. */
-  StencilStateZFailOperationFront,
+  StencilStateZFailOperationFront = 23,
   /** Stencil state z fail operation back key. */
-  StencilStateZFailOperationBack,
+  StencilStateZFailOperationBack = 24,
 
   /** Raster state fill mode key. */
-  RasterStateCullMode,
+  RasterStateCullMode = 25,
   /** Raster state cull mode key. */
-  RasterStateDepthBias,
+  RasterStateDepthBias = 26,
   /** Raster state depth bias key. */
-  RasterStateSlopeScaledDepthBias
+  RasterStateSlopeScaledDepthBias = 27
 }
