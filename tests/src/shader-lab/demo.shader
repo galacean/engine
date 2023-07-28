@@ -1,10 +1,25 @@
 Shader "Water" {
+
+  DepthState depthState {
+    Enabled = true;
+    WriteEnabled = false;
+    CompareFunction[1] = CompareFunction.Greater;
+  }
+
+  RasterState rasterState {
+    CullMode = CullMode.Front;
+    DepthBias = 0.1;
+    SlopeScaledDepthBias = 0.8;
+  }
+
   SubShader {
 
     BlendState blendState {
       Enabled[2] = true;
       ColorWriteMask[2] = 0.8;
       BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
+      SrcAlphaBlendFactor = BlendFactor.Zero;
+      AlphaBlendOperation = BlendOperation.Max;
     }
 
     Pass "default" {
@@ -34,15 +49,18 @@ Shader "Water" {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
     }
 
-    StencilState stencilState {
+    StencilState stencileState {
       Enabled = true;
       ReferenceValue = 2;
       Mask = 1.3; // 0xffffffff
       WriteMask = 0.32; // 0xffffffff
       CompareFunctionFront = CompareFunction.Less;
+      PassOperationBack = StencilOperation.Zero;
     }
 
     BlendState = blendState;
+    DepthState = depthState;
+    RasterState = rasterState;
 
       v2f vert(a2v v) {
         v2f o;

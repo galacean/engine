@@ -41,7 +41,12 @@ import {
   VariableDeclarationAstNode,
   VariableTypeAstNode,
   ObjectAstNode,
-  RenderStatePropertyItemAstNode
+  RenderStatePropertyItemAstNode,
+  StencilOperationAstNode,
+  CompareFunctionAstNode,
+  CullModeAstNode,
+  BlendFactorAstNode,
+  BlendOperationAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
@@ -101,7 +106,16 @@ import {
   _rulePassPropertyAssignmentCstChildren,
   _ruleBlendStateValueCstChildren,
   _ruleDepthStateValueCstChildren,
-  _ruleStencilStateValueCstChildren
+  _ruleStencilStateValueCstChildren,
+  _ruleStencilOperationCstChildren,
+  _ruleCompareFunctionCstChildren,
+  _ruleCullModeCstChildren,
+  _ruleBlendFactorCstChildren,
+  _ruleBlendOperationCstChildren,
+  _ruleRasterStatePropertyDeclarationCstChildren,
+  _ruleStencilStatePropertyCstChildren,
+  _ruleRasterStatePropertyItemCstChildren,
+  _ruleRasterStateValueCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -501,7 +515,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     }
 
     return new FnAtomicExprAstNode({
-      content: { sign, RuleFnAtomicExpr: exprAst },
+      content: { sign, RuleFnAtomicExpr: Object.values(exprAst.content)[0] },
       position
     });
   }
@@ -511,16 +525,18 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleNumber(children: _ruleNumberCstChildren) {
+    const text: string = AstNodeUtils.extractCstToken(children);
     return new NumberAstNode({
-      content: AstNodeUtils.extractCstToken(children),
+      content: { text, value: Number(text) },
       position: AstNodeUtils.getOrTypeCstNodePosition({ children })
     });
   }
 
   _ruleBoolean(children: _ruleBooleanCstChildren, param?: any) {
     const position = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    const text: string = AstNodeUtils.extractCstToken(children);
     return new BooleanAstNode({
-      content: AstNodeUtils.extractCstToken(children),
+      content: { text, value: text.toLowerCase() === "true" },
       position
     });
   }
@@ -590,7 +606,8 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: any): AstNode<any> {
-    return AstNodeUtils.defaultVisit.bind(this)(children);
+    const astNodeObj: Record<string, AstNode> = AstNodeUtils.defaultVisit.bind(this)(children).content;
+    return Object.values(astNodeObj)[0];
   }
 
   _ruleBlendStatePropertyDeclaration(children: _ruleBlendStatePropertyDeclarationCstChildren, param?: any) {
@@ -599,7 +616,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: { line: children.RCurly[0].endLine, offset: children.RCurly[0].endOffset }
     };
 
-    const variable = children.Identifier[0].image;
+    const variable = children.Identifier?.[0].image;
     const renderStateType = children.BlendState[0].image;
     const properties = children._ruleBlendPropertyItem?.map((item) => this.visit(item));
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
@@ -620,7 +637,35 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleDepthStateValue(children: _ruleDepthStateValueCstChildren, param?: any): AstNode<any> {
-    return AstNodeUtils.defaultVisit.bind(this)(children);
+    const astNodeObj: Record<string, AstNode> = AstNodeUtils.defaultVisit.bind(this)(children).content;
+    return Object.values(astNodeObj)[0];
+  }
+
+  _ruleRasterStateValue(children: _ruleRasterStateValueCstChildren, param?: any) {
+    const astNodeObj: Record<string, AstNode> = AstNodeUtils.defaultVisit.bind(this)(children).content;
+    return Object.values(astNodeObj)[0];
+  }
+
+  _ruleRasterStatePropertyItem(children: _ruleRasterStatePropertyItemCstChildren, param?: any) {
+    const property = AstNodeUtils.extractCstToken(children._ruleRasterStateProperty[0]);
+    const value = this.visit(children._ruleRasterStateValue);
+    const position: IPositionRange = {
+      start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleRasterStateProperty[0]).start,
+      end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleRasterStateValue[0]).end
+    };
+    return new RenderStatePropertyItemAstNode({ position, content: { property, value } });
+  }
+
+  _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: { line: children.RasterState[0].startLine, offset: children.RasterState[0].startOffset },
+      end: { line: children.RCurly[0].startLine, offset: children.RCurly[0].startOffset }
+    };
+
+    const variable = children.Identifier?.[0].image;
+    const renderStateType = children.RasterState[0].image;
+    const properties = children._ruleRasterStatePropertyItem?.map((item) => this.visit(item));
+    return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
   }
 
   _ruleDepthSatePropertyDeclaration(children: _ruleDepthSatePropertyDeclarationCstChildren, param?: any) {
@@ -629,7 +674,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: { line: children.RCurly[0].startLine, offset: children.RCurly[0].startOffset }
     };
 
-    const variable = children.Identifier[0].image;
+    const variable = children.Identifier?.[0].image;
     const renderStateType = children.DepthState[0].image;
     const properties = children._ruleDepthStatePropertyItem?.map((item) => this.visit(item));
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
@@ -649,7 +694,33 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleStencilStateValue(children: _ruleStencilStateValueCstChildren, param?: any): AstNode<any> {
-    return AstNodeUtils.defaultVisit.bind(this)(children);
+    const astNodeObj: Record<string, AstNode> = AstNodeUtils.defaultVisit.bind(this)(children).content;
+    return Object.values(astNodeObj)[0];
+  }
+
+  _ruleCompareFunction(children: _ruleCompareFunctionCstChildren, param?: any) {
+    const position = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new CompareFunctionAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
+  }
+
+  _ruleCullMode(children: _ruleCullModeCstChildren, param?: any) {
+    const position = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new CullModeAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
+  }
+
+  _ruleBlendFactor(children: _ruleBlendFactorCstChildren, param?: any): AstNode<any> {
+    const position = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new BlendFactorAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
+  }
+
+  _ruleBlendOperation(children: _ruleBlendOperationCstChildren, param?: any): AstNode<any> {
+    const position = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new BlendOperationAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
+  }
+
+  _ruleStencilOperation(children: _ruleStencilOperationCstChildren, param?: any): AstNode<any> {
+    const position = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new StencilOperationAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
   }
 
   _ruleStencilStatePropertyDeclaration(children: _ruleStencilStatePropertyDeclarationCstChildren, param?: any) {
@@ -658,7 +729,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: { line: children.RCurly[0].startLine, offset: children.RCurly[0].startOffset }
     };
 
-    const variable = children.Identifier[0].image;
+    const variable = children.Identifier?.[0].image;
     const renderStateType = children.StencilState[0].image;
     const properties = children._ruleStencilStatePropertyItem?.map((item) => this.visit(item));
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
@@ -672,6 +743,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleAssignableValue(children: _ruleAssignableValueCstChildren, param?: any) {
     if (children._ruleFnAddExpr) {
       return this.visit(children._ruleFnAddExpr);
+    }
+    if (children._ruleBoolean) {
+      return this.visit(children._ruleBoolean);
     }
 
     const position = AstNodeUtils.getOrTypeCstNodePosition({ children });

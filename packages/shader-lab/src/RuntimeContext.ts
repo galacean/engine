@@ -236,7 +236,7 @@ export default class RuntimeContext {
             token: prop.position
           });
         } else {
-          ret.renderStates.push(astNode.getContentInfo());
+          ret.renderStates.push(astNode.getContentValue());
         }
     }
   }
@@ -249,7 +249,7 @@ export default class RuntimeContext {
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
     ret.tags = ast.content.tags?.toObj();
-    ret.renderStates = ast.content.renderStates?.map((state) => state.getContentInfo());
+    ret.renderStates = ast.content.renderStates?.map((state) => state.getContentValue());
     ast.content.properties.forEach((prop) => this._parsePassProperty(prop, ret));
 
     return ret;

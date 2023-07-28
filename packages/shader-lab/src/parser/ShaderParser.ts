@@ -195,8 +195,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleAssignableValue = this.RULE("_ruleAssignableValue", () => {
     this.OR([
-      { ALT: () => this.CONSUME(Values.ValueTrue) },
-      { ALT: () => this.CONSUME(Values.ValueFalse) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) },
       { ALT: () => this.SUBRULE(this._ruleFnAddExpr) },
       { ALT: () => this.CONSUME(GLKeywords.GLFragColor) },
@@ -422,14 +421,26 @@ export class ShaderParser extends CstParser {
 
   private _ruleBlendStateValue = this.RULE("_ruleBlendStateValue", () => {
     this.OR([
-      ...RenderState.BlendFactorTokenList.map((token) => ({
-        ALT: () => this.CONSUME(token)
-      })),
-      ...RenderState.BlendOperationTokenList.map((token) => ({
-        ALT: () => this.CONSUME(token)
-      })),
+      { ALT: () => this.SUBRULE(this._ruleBlendFactor) },
+      { ALT: () => this.SUBRULE(this._ruleBlendOperation) },
       { ALT: () => this.SUBRULE(this._ruleAssignableValue) }
     ]);
+  });
+
+  private _ruleBlendFactor = this.RULE("_ruleBlendFactor", () => {
+    this.OR(
+      RenderState.BlendFactorTokenList.map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleBlendOperation = this.RULE("_ruleBlendOperation", () => {
+    this.OR(
+      RenderState.BlendOperationTokenList.map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
   });
 
   private _ruleBlendPropertyItem = this.RULE("_ruleBlendPropertyItem", () => {
@@ -465,11 +476,11 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleDepthStateValue = this.RULE("_ruleDepthStateValue", () => {
-    this.OR(
-      [...RenderState.CompareFunctionTokenList, ValueTrue, ValueFalse].map((token) => ({
-        ALT: () => this.CONSUME(token)
-      }))
-    );
+    this.OR([{ ALT: () => this.SUBRULE(this._ruleCompareFunction) }, { ALT: () => this.SUBRULE(this._ruleBoolean) }]);
+  });
+
+  private _ruleCompareFunction = this.RULE("_ruleCompareFunction", () => {
+    this.OR(RenderState.CompareFunctionTokenList.map((token) => ({ ALT: () => this.CONSUME(token) })));
   });
 
   private _ruleDepthStatePropertyItem = this.RULE("_ruleDepthStatePropertyItem", () => {
@@ -506,14 +517,18 @@ export class ShaderParser extends CstParser {
 
   private _ruleStencilStateValue = this.RULE("_ruleStencilStateValue", () => {
     this.OR([
-      ...RenderState.CompareFunctionTokenList.map((token) => ({
-        ALT: () => this.CONSUME(token)
-      })),
-      ...RenderState.StencilOperationTokenList.map((token) => ({
-        ALT: () => this.CONSUME(token)
-      })),
+      { ALT: () => this.SUBRULE(this._ruleCompareFunction) },
+      { ALT: () => this.SUBRULE(this._ruleStencilOperation) },
       { ALT: () => this.SUBRULE(this._ruleAssignableValue) }
     ]);
+  });
+
+  private _ruleStencilOperation = this.RULE("_ruleStencilOperation", () => {
+    this.OR(
+      RenderState.StencilOperationTokenList.map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
   });
 
   private _ruleStencilStatePropertyItem = this.RULE("_ruleStencilStatePropertyItem", () => {
@@ -544,10 +559,11 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleRasterStateValue = this.RULE("_ruleRasterStateValue", () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this._ruleAssignableValue) },
-      ...RenderState.CullModeTokenList.map((token) => ({ ALT: () => this.CONSUME(token) }))
-    ]);
+    this.OR([{ ALT: () => this.SUBRULE(this._ruleAssignableValue) }, { ALT: () => this.SUBRULE(this._ruleCullMode) }]);
+  });
+
+  private _ruleCullMode = this.RULE("_ruleCullMode", () => {
+    this.OR(RenderState.CullModeTokenList.map((token) => ({ ALT: () => this.CONSUME(token) })));
   });
 
   private _ruleRasterStatePropertyItem = this.RULE("_ruleRasterStatePropertyItem", () => {

@@ -37,6 +37,9 @@ export class AstNodeUtils {
     for (const k in ctx) {
       if (AstNodeUtils.isCstNode(ctx[k][0])) {
         const astInfo = this.visit(ctx[k][0] as CstNode);
+        if (!astInfo) {
+          console.log("");
+        }
         if (astInfo.position.start.line < start.line) {
           start = astInfo.position.start;
         }

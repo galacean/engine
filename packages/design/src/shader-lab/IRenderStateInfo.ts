@@ -1,6 +1,6 @@
 interface IRenderStatePropertyItemInfo {
   property: string;
-  value: string;
+  value: any;
   index?: number;
 }
 

@@ -4,7 +4,11 @@ import RuntimeContext from "../RuntimeContext";
 import {
   IAddOperatorAstContent,
   IAssignableValueAstContent,
+  IBlendFactorAstContent,
+  IBlendOperationAstContent,
   IBooleanAstContent,
+  ICompareFunctionAstContent,
+  ICullModeAstContent,
   IDeclarationAstContent,
   IFnAddExprAstContent,
   IFnArgAstContent,
@@ -34,6 +38,7 @@ import {
   IRelationOperatorAstContent,
   IRenderStateDeclarationAstContent,
   IRenderStatePropertyItemAstContent,
+  IStencilOperationAstContent,
   IStructAstContent,
   ITagAssignmentAstContent,
   ITagAstContent,
@@ -43,6 +48,7 @@ import {
   IVariableTypeAstContent
 } from "./AstNodeContent";
 import { IRenderStateInfo } from "@galacean/engine-design";
+import { Vector4, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode } from "@galacean/engine";
 
 export interface IPosition {
   line: number;
@@ -77,7 +83,8 @@ export class AstNode<T = any> implements IAstInfo<T> {
   }
 
   /** @internal */
-  getContentInfo(): any {
+  getContentValue(): any {
+    if (typeof this.content !== "object") return this.content;
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
   }
 
@@ -210,6 +217,16 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
     const args = this.content.args.map((item) => item.serialize(context)).join(", ");
     return `${this.content.function}(${args})`;
   }
+
+  override getContentValue() {
+    switch (this.content.function.toLowerCase()) {
+      case "vec4":
+        const args = this.content.args.map((item) => item.getContentValue());
+        return new Vector4(...args);
+      default:
+        throw `Not supported builtin function ${this.content.function}`;
+    }
+  }
 }
 
 export class FnConditionStatementAstNode extends AstNode<IFnConditionStatementAstContent> {}
@@ -263,17 +280,33 @@ export class FnAtomicExprAstNode extends AstNode<IFnAtomicExprAstContent> {
     const signStr = this.content.sign?.serialize(context) ?? "";
     return signStr + this.content.RuleFnAtomicExpr.serialize(context);
   }
+
+  override getContentValue() {
+    const expressionValue = this.content.RuleFnAtomicExpr.getContentValue();
+    if (typeof expressionValue === "number") {
+      return expressionValue * (this.content.sign?.content === "-" ? -1 : 1);
+    }
+    return expressionValue;
+  }
 }
 
 export class NumberAstNode extends AstNode<INumberAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    return this.content;
+    return this.content.text;
+  }
+
+  override getContentValue() {
+    return this.content.value;
   }
 }
 
 export class BooleanAstNode extends AstNode<IBooleanAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    return this.content;
+    return this.content.text;
+  }
+
+  override getContentValue() {
+    return this.content.value;
   }
 }
 
@@ -341,10 +374,10 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
 }
 
 export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
-  override getContentInfo(): IRenderStateInfo & { variable: string } {
+  override getContentValue(): IRenderStateInfo & { variable: string } {
     const properties = [] as IRenderStateInfo["properties"];
     for (const prop of this.content.properties) {
-      properties.push(prop.getContentInfo());
+      properties.push(prop.getContentValue());
     }
 
     return {
@@ -357,11 +390,11 @@ export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarati
 }
 
 export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {
-  override getContentInfo(): any {
+  override getContentValue(): any {
     return {
       property: this.content.property,
       index: this.content.index,
-      value: this.content.value.serialize()
+      value: this.content.value.getContentValue()
     };
   }
 }
@@ -370,6 +403,10 @@ export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> 
   override _doSerialization(context: RuntimeContext): string {
     return this.content;
   }
+
+  // override getContentValue() {
+
+  // }
 }
 export class VariableTypeAstNode extends AstNode<IVariableTypeAstContent> {
   override _doSerialization(context: RuntimeContext): string {
@@ -448,3 +485,38 @@ export class TupleNumber3AstNode extends AstNode<ITupleNumber3> {}
 export class TupleNumber2AstNode extends AstNode<ITupleNumber2> {}
 
 export class RangeAstNode extends AstNode<ITupleNumber2> {}
+
+export class CullModeAstNode extends AstNode<ICullModeAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return CullMode[prop];
+  }
+}
+
+export class BlendFactorAstNode extends AstNode<IBlendFactorAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return BlendFactor[prop];
+  }
+}
+
+export class BlendOperationAstNode extends AstNode<IBlendOperationAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return BlendOperation[prop];
+  }
+}
+
+export class StencilOperationAstNode extends AstNode<IStencilOperationAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return StencilOperation[prop];
+  }
+}
+
+export class CompareFunctionAstNode extends AstNode<ICompareFunctionAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return CompareFunction[prop];
+  }
+}

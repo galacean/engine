@@ -160,8 +160,14 @@ export interface IFnAtomicExprAstContent {
   RuleFnAtomicExpr: AstNode;
 }
 
-export type INumberAstContent = string;
-export type IBooleanAstContent = string;
+export type INumberAstContent = {
+  text: string;
+  value: number;
+};
+export interface IBooleanAstContent {
+  text: string;
+  value: boolean;
+}
 export type IFnAssignLOAstContent = string;
 
 export type IFnVariableAstContent = Array<string>;
@@ -227,3 +233,9 @@ export type IPropertyAstContent = Array<PropertyItemAstNode>;
 export type ITupleNumber4 = [number, number, number, number];
 export type ITupleNumber3 = [number, number, number];
 export type ITupleNumber2 = [number, number];
+
+export type IStencilOperationAstContent = string;
+export type ICompareFunctionAstContent = string;
+export type IBlendOperationAstContent = string;
+export type IBlendFactorAstContent = string;
+export type ICullModeAstContent = string;

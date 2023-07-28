@@ -252,8 +252,7 @@ export interface _ruleAssignableValueCstNode extends CstNode {
 }
 
 export type _ruleAssignableValueCstChildren = {
-  ValueTrue?: IToken[];
-  ValueFalse?: IToken[];
+  _ruleBoolean?: _ruleBooleanCstNode[];
   ValueString?: IToken[];
   _ruleFnAddExpr?: _ruleFnAddExprCstNode[];
   gl_FragColor?: IToken[];
@@ -603,6 +602,17 @@ export interface _ruleBlendStateValueCstNode extends CstNode {
 }
 
 export type _ruleBlendStateValueCstChildren = {
+  _ruleBlendFactor?: _ruleBlendFactorCstNode[];
+  _ruleBlendOperation?: _ruleBlendOperationCstNode[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+};
+
+export interface _ruleBlendFactorCstNode extends CstNode {
+  name: "_ruleBlendFactor";
+  children: _ruleBlendFactorCstChildren;
+}
+
+export type _ruleBlendFactorCstChildren = {
   "BlendFactor.Zero"?: IToken[];
   "BlendFactor.One"?: IToken[];
   "BlendFactor.SourceColor"?: IToken[];
@@ -616,12 +626,19 @@ export type _ruleBlendStateValueCstChildren = {
   "BlendFactor.SourceAlphaSaturate"?: IToken[];
   "BlendFactor.BlendColor"?: IToken[];
   "BlendFactor.OneMinusBlendColor"?: IToken[];
+};
+
+export interface _ruleBlendOperationCstNode extends CstNode {
+  name: "_ruleBlendOperation";
+  children: _ruleBlendOperationCstChildren;
+}
+
+export type _ruleBlendOperationCstChildren = {
   "BlendOperation.Add"?: IToken[];
   "BlendOperation.Subtract"?: IToken[];
   "BlendOperation.ReverseSubtract"?: IToken[];
   "BlendOperation.Min"?: IToken[];
   "BlendOperation.Max"?: IToken[];
-  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
 };
 
 export interface _ruleBlendPropertyItemCstNode extends CstNode {
@@ -669,6 +686,16 @@ export interface _ruleDepthStateValueCstNode extends CstNode {
 }
 
 export type _ruleDepthStateValueCstChildren = {
+  _ruleCompareFunction?: _ruleCompareFunctionCstNode[];
+  _ruleBoolean?: _ruleBooleanCstNode[];
+};
+
+export interface _ruleCompareFunctionCstNode extends CstNode {
+  name: "_ruleCompareFunction";
+  children: _ruleCompareFunctionCstChildren;
+}
+
+export type _ruleCompareFunctionCstChildren = {
   "CompareFunction.Never"?: IToken[];
   "CompareFunction.Less"?: IToken[];
   "CompareFunction.Equal"?: IToken[];
@@ -677,8 +704,6 @@ export type _ruleDepthStateValueCstChildren = {
   "CompareFunction.NotEqual"?: IToken[];
   "CompareFunction.GreaterEqual"?: IToken[];
   "CompareFunction.Always"?: IToken[];
-  ValueTrue?: IToken[];
-  ValueFalse?: IToken[];
 };
 
 export interface _ruleDepthStatePropertyItemCstNode extends CstNode {
@@ -735,14 +760,17 @@ export interface _ruleStencilStateValueCstNode extends CstNode {
 }
 
 export type _ruleStencilStateValueCstChildren = {
-  "CompareFunction.Never"?: IToken[];
-  "CompareFunction.Less"?: IToken[];
-  "CompareFunction.Equal"?: IToken[];
-  "CompareFunction.LessEqual"?: IToken[];
-  "CompareFunction.Greater"?: IToken[];
-  "CompareFunction.NotEqual"?: IToken[];
-  "CompareFunction.GreaterEqual"?: IToken[];
-  "CompareFunction.Always"?: IToken[];
+  _ruleCompareFunction?: _ruleCompareFunctionCstNode[];
+  _ruleStencilOperation?: _ruleStencilOperationCstNode[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+};
+
+export interface _ruleStencilOperationCstNode extends CstNode {
+  name: "_ruleStencilOperation";
+  children: _ruleStencilOperationCstChildren;
+}
+
+export type _ruleStencilOperationCstChildren = {
   "StencilOperation.Keep"?: IToken[];
   "StencilOperation.Zero"?: IToken[];
   "StencilOperation.Replace"?: IToken[];
@@ -751,7 +779,6 @@ export type _ruleStencilStateValueCstChildren = {
   "StencilOperation.Invert"?: IToken[];
   "StencilOperation.IncrementWrap"?: IToken[];
   "StencilOperation.DecrementWrap"?: IToken[];
-  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
 };
 
 export interface _ruleStencilStatePropertyItemCstNode extends CstNode {
@@ -798,6 +825,15 @@ export interface _ruleRasterStateValueCstNode extends CstNode {
 
 export type _ruleRasterStateValueCstChildren = {
   _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+  _ruleCullMode?: _ruleCullModeCstNode[];
+};
+
+export interface _ruleCullModeCstNode extends CstNode {
+  name: "_ruleCullMode";
+  children: _ruleCullModeCstChildren;
+}
+
+export type _ruleCullModeCstChildren = {
   "CullMode.Off"?: IToken[];
   "CullMode.Front"?: IToken[];
   "CullMode.Back"?: IToken[];
@@ -1024,18 +1060,23 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleRenderStateDeclaration(children: _ruleRenderStateDeclarationCstChildren, param?: IN): OUT;
   _ruleBlendStateProperty(children: _ruleBlendStatePropertyCstChildren, param?: IN): OUT;
   _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: IN): OUT;
+  _ruleBlendFactor(children: _ruleBlendFactorCstChildren, param?: IN): OUT;
+  _ruleBlendOperation(children: _ruleBlendOperationCstChildren, param?: IN): OUT;
   _ruleBlendPropertyItem(children: _ruleBlendPropertyItemCstChildren, param?: IN): OUT;
   _ruleBlendStatePropertyDeclaration(children: _ruleBlendStatePropertyDeclarationCstChildren, param?: IN): OUT;
   _ruleDepthStateProperty(children: _ruleDepthStatePropertyCstChildren, param?: IN): OUT;
   _ruleDepthStateValue(children: _ruleDepthStateValueCstChildren, param?: IN): OUT;
+  _ruleCompareFunction(children: _ruleCompareFunctionCstChildren, param?: IN): OUT;
   _ruleDepthStatePropertyItem(children: _ruleDepthStatePropertyItemCstChildren, param?: IN): OUT;
   _ruleDepthSatePropertyDeclaration(children: _ruleDepthSatePropertyDeclarationCstChildren, param?: IN): OUT;
   _ruleStencilStateProperty(children: _ruleStencilStatePropertyCstChildren, param?: IN): OUT;
   _ruleStencilStateValue(children: _ruleStencilStateValueCstChildren, param?: IN): OUT;
+  _ruleStencilOperation(children: _ruleStencilOperationCstChildren, param?: IN): OUT;
   _ruleStencilStatePropertyItem(children: _ruleStencilStatePropertyItemCstChildren, param?: IN): OUT;
   _ruleStencilStatePropertyDeclaration(children: _ruleStencilStatePropertyDeclarationCstChildren, param?: IN): OUT;
   _ruleRasterStateProperty(children: _ruleRasterStatePropertyCstChildren, param?: IN): OUT;
   _ruleRasterStateValue(children: _ruleRasterStateValueCstChildren, param?: IN): OUT;
+  _ruleCullMode(children: _ruleCullModeCstChildren, param?: IN): OUT;
   _ruleRasterStatePropertyItem(children: _ruleRasterStatePropertyItemCstChildren, param?: IN): OUT;
   _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: IN): OUT;
   _ruleProperty(children: _rulePropertyCstChildren, param?: IN): OUT;
