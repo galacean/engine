@@ -47,11 +47,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   /** @internal */
-  static _parseKTX2Buffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
+  static _parseBuffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
     const ktx2Container = new KTX2Container(buffer);
     const formatPriorities = params?.priorityFormats;
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
-    let transcodeResultPromise: Promise<any>;
+    let transcodeResultPromise: Promise<TranscodeResult>;
     if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
       const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
       transcodeResultPromise = binomialLLCWorker.init().then(() => binomialLLCWorker.transcode(buffer, targetFormat));
@@ -60,36 +60,45 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
     }
     return transcodeResultPromise.then((result) => {
-      const { width, height, faces } = result;
-      const faceCount = faces.length;
-      const mipmaps = faces[0];
-      const mipmap = mipmaps.length > 1;
-      const engineFormat = this._getEngineTextureFormat(targetFormat, result);
-      let texture: Texture;
-      if (faceCount !== 6) {
-        texture = new Texture2D(engine, width, height, engineFormat, mipmap);
-        for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-          const { data } = mipmaps[mipLevel];
-          (texture as Texture2D).setPixelBuffer(data, mipLevel);
-        }
-      } else {
-        texture = new TextureCube(engine, height, engineFormat, mipmap);
-        for (let i = 0; i < faces.length; i++) {
-          const faceData = faces[i];
-          for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-            (texture as TextureCube).setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
-          }
-        }
-      }
-      const params = ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array;
-      if (params) {
-        texture.wrapModeU = params[0];
-        texture.wrapModeV = params[1];
-        texture.filterMode = params[2];
-        texture.anisoLevel = params[3];
-      }
-      return texture as Texture2D | TextureCube;
+      return { engine, result, targetFormat, params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array };
     });
+  }
+
+  /** @internal */
+  static _createTextureByBuffer(
+    engine: Engine,
+    transcodeResult: TranscodeResult,
+    targetFormat: KTX2TargetFormat,
+    params?: Uint8Array
+  ): Texture2D | TextureCube {
+    const { width, height, faces } = transcodeResult;
+    const faceCount = faces.length;
+    const mipmaps = faces[0];
+    const mipmap = mipmaps.length > 1;
+    const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
+    let texture: Texture;
+    if (faceCount !== 6) {
+      texture = new Texture2D(engine, width, height, engineFormat, mipmap);
+      for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
+        const { data } = mipmaps[mipLevel];
+        (texture as Texture2D).setPixelBuffer(data, mipLevel);
+      }
+    } else {
+      texture = new TextureCube(engine, height, engineFormat, mipmap);
+      for (let i = 0; i < faces.length; i++) {
+        const faceData = faces[i];
+        for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
+          (texture as TextureCube).setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
+        }
+      }
+    }
+    if (params) {
+      texture.wrapModeU = params[0];
+      texture.wrapModeV = params[1];
+      texture.filterMode = params[2];
+      texture.anisoLevel = params[3];
+    }
+    return texture as Texture2D | TextureCube;
   }
 
   private static _decideTargetFormat(
@@ -188,7 +197,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
     return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) =>
-      KTX2Loader._parseKTX2Buffer(new Uint8Array(buffer), resourceManager.engine, item.params)
+      KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
+        ({ engine, result, targetFormat, params }) =>
+          KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+      )
     );
   }
 

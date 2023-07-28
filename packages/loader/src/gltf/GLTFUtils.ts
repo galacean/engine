@@ -510,17 +510,4 @@ export class GLTFUtils {
 
     return info;
   }
-
-  private static _formatRelativePath(path: string): string {
-    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
-    return path
-      .split("/")
-      .filter(Boolean)
-      .reduce((acc, cur) => {
-        if (cur === "..") acc.pop();
-        else if (cur !== ".") acc.push(cur);
-        return acc;
-      }, [])
-      .join("/");
-  }
 }
