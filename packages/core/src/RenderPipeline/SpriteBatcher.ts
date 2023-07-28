@@ -107,7 +107,8 @@ export class SpriteBatcher extends Basic2DBatcher {
         compileMacros
       );
 
-      const program = spriteElement.shaderPass._getShaderProgram(engine, compileMacros);
+      const shaderPass = spriteElement.shaderPass;
+      const program = shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }
@@ -121,7 +122,7 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      spriteElement.renderState._apply(engine, false);
+      spriteElement.renderState._apply(engine, false, shaderPass._renderStateDataMap, material.shaderData);
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 
       maskManager.postRender(renderer);

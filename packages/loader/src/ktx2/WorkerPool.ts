@@ -30,21 +30,23 @@ export class WorkerPool<T = any, U = any> {
 
   /**
    * Post message to worker.
-   * @param message - message which posted to worker
-   * @returns return a promise of message
+   * @param message - Message which posted to worker
+   * @returns Return a promise of message
    */
   postMessage(message: T): Promise<U> {
     return new Promise((resolve, reject) => {
       const workerId = this._getIdleWorkerId();
       if (workerId !== -1) {
+        this._workerStatus |= 1 << workerId;
         const workerItems = this._workerItems;
-        Promise.resolve(workerItems[workerId] ?? this._initWorker(workerId)).then(() => {
-          this._workerStatus |= 1 << workerId;
-          const workerItem = workerItems[workerId];
-          workerItem.resolve = resolve;
-          workerItem.reject = reject;
-          workerItem.worker.postMessage(message);
-        });
+        Promise.resolve(workerItems[workerId] ?? this._initWorker(workerId))
+          .then(() => {
+            const workerItem = workerItems[workerId];
+            workerItem.resolve = resolve;
+            workerItem.reject = reject;
+            workerItem.worker.postMessage(message);
+          })
+          .catch(reject);
       } else {
         this._taskQueue.push({ resolve, reject, message });
       }
@@ -70,7 +72,6 @@ export class WorkerPool<T = any, U = any> {
   private _initWorker(workerId: number): Promise<Worker> {
     return Promise.resolve(this._workerCreator()).then((worker) => {
       worker.addEventListener("message", this._onMessage.bind(this, workerId));
-      worker.addEventListener("error", this._onError.bind(this, workerId));
       this._workerItems[workerId] = { worker, resolve: null, reject: null };
       return worker;
     });
@@ -83,13 +84,14 @@ export class WorkerPool<T = any, U = any> {
     return -1;
   }
 
-  private _onError(workerId, e: ErrorEvent) {
-    this._workerItems[workerId].reject(e);
-    this._nextTask(workerId);
-  }
-
-  private _onMessage(workerId: number, msg: U) {
-    this._workerItems[workerId].resolve(msg);
+  private _onMessage(workerId: number, msg: MessageEvent<U>) {
+    // onerror of web worker can't catch error in promise
+    const error = (msg.data as ErrorMessageData).error;
+    if (error) {
+      this._workerItems[workerId].reject(error);
+    } else {
+      this._workerItems[workerId].resolve(msg.data);
+    }
     this._nextTask(workerId);
   }
 
@@ -104,6 +106,10 @@ export class WorkerPool<T = any, U = any> {
       this._workerStatus ^= 1 << workerId;
     }
   }
+}
+
+interface ErrorMessageData {
+  error: unknown;
 }
 
 interface WorkerItem<U> {

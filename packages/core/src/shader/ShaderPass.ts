@@ -1,12 +1,14 @@
-import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import { GLCapabilityType } from "../base/Constant";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
+import { ShaderProperty } from "./ShaderProperty";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader pass containing vertex and fragment source.
@@ -16,6 +18,14 @@ export class ShaderPass extends ShaderPart {
 
   /** @internal */
   _shaderPassId: number = 0;
+
+  /**
+   * @internal
+   * @remarks If undefined, the blend state of the material will be used ( deprecate mode ).
+   */
+  _renderState: RenderState;
+  /** @internal */
+  _renderStateDataMap: Record<number, ShaderProperty> = {};
 
   private _vertexSource: string;
   private _fragmentSource: string;
