@@ -391,7 +391,7 @@ export class Entity extends EngineObject {
     cloneEntity.transform.localMatrix = this.transform.localMatrix;
 
     const children = this._children;
-    for (let i = 0, len = this._children.length; i < len; i++) {
+    for (let i = 0, n = this._children.length; i < n; i++) {
       const child = children[i];
       cloneEntity.addChild(child.clone());
     }
@@ -401,7 +401,7 @@ export class Entity extends EngineObject {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
         const targetComp = cloneEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        ComponentCloner.cloneComponent(sourceComp, targetComp);
+        ComponentCloner.cloneComponent(sourceComp, targetComp, this, cloneEntity);
       }
     }
 
