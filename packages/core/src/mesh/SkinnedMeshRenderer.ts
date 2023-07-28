@@ -154,6 +154,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       const worldToLocal = this._rootBone.getInvModelMatrix();
       const { _bones: bones, _jointMatrices: jointMatrices } = this;
 
+      // @todo: can optimize when share skin
       for (let i = bones.length - 1; i >= 0; i--) {
         const bone = bones[i];
         const offset = i * 16;
