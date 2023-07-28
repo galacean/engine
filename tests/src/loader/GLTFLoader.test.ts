@@ -420,6 +420,8 @@ describe("glTF Loader test", function () {
     const renderer = entities[1].getComponent(SkinnedMeshRenderer);
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
+    // expect(renderer.rootBone).to.equal();
+    // expect(renderer.bones).to.equal();
 
     glTFResource.destroy();
     expect(glTFResource.materials).to.be.null;

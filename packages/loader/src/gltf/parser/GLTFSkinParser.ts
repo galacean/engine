@@ -1,5 +1,5 @@
 import { AssetPromise, Entity, Skin } from "@galacean/engine-core";
-import { BoundingBox, Matrix } from "@galacean/engine-math";
+import { Matrix } from "@galacean/engine-math";
 import { GLTFParserContext } from ".";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
@@ -23,7 +23,7 @@ export class GLTFSkinParser extends GLTFParser {
       skin.inverseBindMatrices.length = jointCount;
       skin.bones.length = jointCount;
 
-      // parse IBM
+      // Parse IBM
       const accessor = glTF.accessors[inverseBindMatrices];
       const promise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
         const buffer = bufferInfo.data;
@@ -32,15 +32,12 @@ export class GLTFSkinParser extends GLTFParser {
           inverseBindMatrix.copyFromArray(buffer, i * 16);
           skin.inverseBindMatrices[i] = inverseBindMatrix;
 
-          // Get joints
-          for (let i = 0; i < jointCount; i++) {
-            const jointIndex = joints[i];
-            const bone = entities[jointIndex];
-            skin.bones[i] = bone;
-            skin.joints[i] = bone.name;
-          }
+          // Get bones
+          const bone = entities[joints[i]];
+          skin.bones[i] = bone;
+          skin.joints[i] = bone.name;
 
-          // get skeleton
+          // Get skeleton
           if (skeleton !== undefined) {
             const rootBone = entities[skeleton];
             skin.rootBone = rootBone;
