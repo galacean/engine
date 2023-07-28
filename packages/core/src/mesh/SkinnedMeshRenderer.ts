@@ -181,10 +181,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const blendShapeManager = mesh._blendShapeManager;
     blendShapeManager._updateShaderData(shaderData, this);
 
-    const skin = this._skin;
-    if (skin) {
+    const bones = this.bones;
+    if (bones) {
       const bsUniformOccupiesCount = blendShapeManager._uniformOccupiesCount;
-      const jointCount = skin.joints.length;
+      const jointCount = bones.length;
       const jointDataCreateCache = this._jointDataCreateCache;
       const jointCountChange = jointCount !== jointDataCreateCache.x;
 
@@ -321,8 +321,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         return false;
       }
       entity = parent;
-      return true;
     }
+    return true;
   }
 
   /**

@@ -385,27 +385,40 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = new Entity(this._engine, this.name);
+    const cloneEntity = this._createCloneEntity(this);
+    this._parseCloneEntity(this, cloneEntity, this, cloneEntity);
 
-    cloneEntity._isActive = this._isActive;
-    cloneEntity.transform.localMatrix = this.transform.localMatrix;
+    return cloneEntity;
+  }
 
-    const children = this._children;
-    for (let i = 0, n = this._children.length; i < n; i++) {
-      const child = children[i];
-      cloneEntity.addChild(child.clone());
+  private _createCloneEntity(srcEntity: Entity): Entity {
+    const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
+
+    cloneEntity._isActive = srcEntity._isActive;
+    cloneEntity.transform.localMatrix = srcEntity.transform.localMatrix;
+
+    const children = srcEntity._children;
+    for (let i = 0, n = srcEntity._children.length; i < n; i++) {
+      cloneEntity.addChild(this._createCloneEntity(children[i]));
+    }
+    return cloneEntity;
+  }
+
+  private _parseCloneEntity(srcEntity: Entity, targetEntity: Entity, srcRoot: Entity, targetRoot: Entity): void {
+    const srcChildren = srcEntity._children;
+    const targetChildren = targetEntity._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot);
     }
 
-    const components = this._components;
+    const components = srcEntity._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = cloneEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        ComponentCloner.cloneComponent(sourceComp, targetComp, this, cloneEntity);
+        const targetComp = targetEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot);
       }
     }
-
-    return cloneEntity;
   }
 
   /**

@@ -114,7 +114,7 @@ export class GLTFSceneParser extends GLTFParser {
     const blendShapeWeights = glTFNode.weights || glTFMesh.weights;
 
     for (let i = 0; i < glTFMeshPrimitives.length; i++) {
-      const gltfPrimitive = glTFMeshPrimitives[i];
+      const glTFPrimitive = glTFMeshPrimitives[i];
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
@@ -124,9 +124,11 @@ export class GLTFSceneParser extends GLTFParser {
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
           const skin = skins[skinID];
-          skinRenderer.skin = skin;
           skinRenderer.rootBone = skin.rootBone;
+          skinRenderer.bones = skin.bones;
           this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
+
+          skinRenderer.skin = skin;
         }
         if (blendShapeWeights) {
           skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
@@ -137,7 +139,7 @@ export class GLTFSceneParser extends GLTFParser {
         renderer.mesh = mesh;
       }
 
-      const materialIndex = gltfPrimitive.material;
+      const materialIndex = glTFPrimitive.material;
       const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
@@ -148,7 +150,7 @@ export class GLTFSceneParser extends GLTFParser {
         }
       });
 
-      GLTFParser.executeExtensionsAdditiveAndParse(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
+      GLTFParser.executeExtensionsAdditiveAndParse(glTFPrimitive.extensions, context, renderer, glTFPrimitive);
     }
   }
 

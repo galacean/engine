@@ -11,7 +11,7 @@ export class Skin extends EngineObject {
   public skeleton: string;
 
   public rootBone: Entity;
-  public bones: Entity[];
+  public bones: Entity[] = [];
 
   /**
    * Constructor of skin

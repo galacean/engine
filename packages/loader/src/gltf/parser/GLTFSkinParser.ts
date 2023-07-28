@@ -37,17 +37,18 @@ export class GLTFSkinParser extends GLTFParser {
             const jointIndex = joints[i];
             const bone = entities[jointIndex];
             skin.bones[i] = bone;
-
-            // @deprecate
             skin.joints[i] = bone.name;
           }
 
           // get skeleton
           if (skeleton !== undefined) {
-            skin.skeleton = entities[skeleton].name;
+            const rootBone = entities[skeleton];
+            skin.rootBone = rootBone;
+            skin.skeleton = rootBone.name;
           } else {
             const rootBone = this._findSkeletonRootBone(joints, entities);
             if (rootBone) {
+              skin.rootBone = rootBone;
               skin.skeleton = rootBone.name;
             } else {
               throw "Failed to find skeleton root bone.";
@@ -95,6 +96,4 @@ export class GLTFSkinParser extends GLTFParser {
       rootNode = entity;
     }
   }
-
-  
 }
