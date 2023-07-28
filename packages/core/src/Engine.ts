@@ -1,4 +1,4 @@
-import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager, IShaderLab, IXRProvider } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -38,6 +38,8 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { XRManager } from "./xr/XRManager";
+import { Ticker } from "./Ticker";
 
 ShaderPool.init();
 
@@ -54,6 +56,8 @@ export class Engine extends EventDispatcher {
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
+  /** XR manager of Engine. */
+  readonly xrManager: XRManager;
 
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -115,34 +119,23 @@ export class Engine extends EventDispatcher {
   /** @internal */
   protected _canvas: Canvas;
 
+  private _ticker: Ticker = new Ticker();
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
-  private _vSyncCount: number = 1;
-  private _targetFrameRate: number = 60;
   private _time: Time = new Time();
   private _isPaused: boolean = true;
-  private _requestId: number;
-  private _timeoutId: number;
-  private _vSyncCounter: number = 1;
-  private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
 
-  private _animate = () => {
-    if (this._vSyncCount) {
-      this._requestId = requestAnimationFrame(this._animate);
-      if (this._vSyncCounter++ % this._vSyncCount === 0) {
-        this.update();
-        this._vSyncCounter = 1;
-      }
-    } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
-      this.update();
-    }
-  };
+  /**
+   * Ticker of Engine.
+   */
+  get ticker(): Ticker {
+    return this._ticker;
+  }
 
   /**
    * Settings of Engine.
@@ -187,34 +180,6 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * The number of vertical synchronization means the number of vertical blanking for one frame.
-   * @remarks 0 means that the vertical synchronization is turned off.
-   */
-  get vSyncCount(): number {
-    return this._vSyncCount;
-  }
-
-  set vSyncCount(value: number) {
-    this._vSyncCount = Math.max(0, Math.floor(value));
-  }
-
-  /**
-   * Set the target frame rate you want to achieve.
-   * @remarks
-   * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
-   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
-   */
-  get targetFrameRate(): number {
-    return this._targetFrameRate;
-  }
-
-  set targetFrameRate(value: number) {
-    value = Math.max(0.000001, value);
-    this._targetFrameRate = value;
-    this._targetFrameInterval = 1000 / value;
-  }
-
-  /**
    * Indicates whether the engine is destroyed.
    */
   get destroyed(): boolean {
@@ -234,7 +199,15 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = false;
 
+    const ticker = this._ticker;
+    ticker.animationLoop = this.update.bind(this);
+    ticker.requestAnimationFrame = window.requestAnimationFrame;
+    ticker.cancelAnimationFrame = window.cancelAnimationFrame;
+
     this.inputManager = new InputManager(this);
+
+    const { xrProvider: xr } = configuration;
+    xr && (this.xrManager = new XRManager(this, xr));
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -274,9 +247,9 @@ export class Engine extends EventDispatcher {
    * Pause the engine.
    */
   pause(): void {
+    if (this._isPaused) return;
     this._isPaused = true;
-    cancelAnimationFrame(this._requestId);
-    clearTimeout(this._timeoutId);
+    this._ticker.pause();
   }
 
   /**
@@ -285,8 +258,8 @@ export class Engine extends EventDispatcher {
   resume(): void {
     if (!this._isPaused) return;
     this._isPaused = false;
+    this._ticker.resume();
     this.time._reset();
-    this._requestId = requestAnimationFrame(this._animate);
   }
 
   /**
@@ -330,6 +303,8 @@ export class Engine extends EventDispatcher {
         scene.physics._update(deltaTime);
       }
     }
+
+    this.xrManager._update();
 
     // Fire `onPointerXX`
     physicsInitialized && inputManager._firePointerScript(loopScenes);
@@ -417,7 +392,6 @@ export class Engine extends EventDispatcher {
 
     this.removeAllEventListeners();
 
-    this._animate = null;
     this._sceneManager = null;
     this._resourceManager = null;
     this._canvas = null;
@@ -662,6 +636,8 @@ export class Engine extends EventDispatcher {
 export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
+  /** XR. */
+  xrProvider?: new () => IXRProvider;
   /** Color space. */
   colorSpace?: ColorSpace;
   /** Shader lab */

@@ -25,6 +25,7 @@ export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";
+export { DisorderedArray } from "./DisorderedArray";
 
 export * from "./RenderPipeline/Index";
 export * from "./base";
@@ -55,6 +56,7 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
+export * from "./xr/index";
 
 // Export for CanvasRenderer plugin.
 export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";

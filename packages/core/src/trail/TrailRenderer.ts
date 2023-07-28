@@ -38,7 +38,7 @@ export class TrailRenderer extends MeshRenderer {
     this._stroke = props.stroke || 0.2;
     this._minSeg = props.minSeg || 0.02;
     this._lifetime = props.lifetime || 1000;
-    this._maxPointNum = (this._lifetime / 1000.0) * entity.engine.targetFrameRate;
+    this._maxPointNum = (this._lifetime / 1000.0) * 60;
 
     this._points = [];
     this._pointStates = [];
