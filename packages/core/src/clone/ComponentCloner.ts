@@ -55,7 +55,7 @@ export class ComponentCloner {
       }
     }
     if ((<any>source)._cloneTo) {
-      (<any>source)._cloneTo(target,srcRoot,targetRoot);
+      (<any>source)._cloneTo(target, srcRoot, targetRoot);
     }
   }
 }

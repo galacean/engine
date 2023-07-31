@@ -5,12 +5,7 @@ export class BufferReader {
   private _offset: number;
   private _baseOffset: number;
 
-  constructor(
-    public buffer: ArrayBuffer,
-    byteOffset: number = 0,
-    byteLength?: number,
-    littleEndian: boolean = true
-  ) {
+  constructor(public buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
     // byteLength = byteLength ?? _buffer.byteLength;
     this._dataView = new DataView(buffer);
     this._littleEndian = littleEndian;

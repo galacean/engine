@@ -11,10 +11,7 @@ export class KhronosTranscoder extends AbstractTranscoder {
       "https://mdn.alipayobjects.com/rms/afts/file/A*0jiKRK6D1-kAAAAAAAAAAAAAARQnAQ/uastc_astc.wasm"
   };
 
-  constructor(
-    workerLimitCount: number,
-    public readonly type: KTX2TargetFormat
-  ) {
+  constructor(workerLimitCount: number, public readonly type: KTX2TargetFormat) {
     super(workerLimitCount);
   }
 

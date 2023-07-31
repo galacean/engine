@@ -12,10 +12,7 @@ export class WorkerPool<T = any, U = any> {
    * @param limitedCount - worker limit count
    * @param _workerCreator - creator of worker
    */
-  constructor(
-    public readonly limitedCount = 4,
-    private readonly _workerCreator: () => Worker | Promise<Worker>
-  ) {
+  constructor(public readonly limitedCount = 4, private readonly _workerCreator: () => Worker | Promise<Worker>) {
     this._workerItems = new Array<WorkerItem<U>>(limitedCount);
   }
 

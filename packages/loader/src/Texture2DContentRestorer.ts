@@ -5,11 +5,7 @@ import { RequestConfig } from "@galacean/engine-core/types/asset/request";
  * @internal
  */
 export class Texture2DContentRestorer extends ContentRestorer<Texture2D> {
-  constructor(
-    resource: Texture2D,
-    public url: string,
-    public requestConfig: RequestConfig
-  ) {
+  constructor(resource: Texture2D, public url: string, public requestConfig: RequestConfig) {
     super(resource);
   }
 
