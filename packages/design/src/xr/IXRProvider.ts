@@ -6,9 +6,11 @@ export interface IXRProvider {
 
   isSupportedMode(mode: number): Promise<void>;
 
-  isSupportedFeature(feature: number): Promise<void>;
+  isSupportedTrackingMode(mode: number): Promise<void>;
 
-  createFeature<T extends IXRFeature>(feature: number): Promise<T>;
+  isSupportedSubsystem(feature: number): Promise<void>;
+
+  createSubsystem<T extends IXRFeature>(feature: number): Promise<T>;
 
   initialize(descriptor: IXRDescriptor): Promise<void>;
 

@@ -1,5 +1,3 @@
-import "./feature/WebXRCameraManager";
-import "./feature/WebXRInputManager";
+import "./subsystem/WebXRInputSubsystem";
 
 export { WebXRProvider } from "./WebXRProvider";
-export type { IWebXRDescriptor } from "./descriptor/IWebXRDescriptor";

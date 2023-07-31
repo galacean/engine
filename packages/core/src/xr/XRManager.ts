@@ -1,49 +1,39 @@
-import { IXRProvider, IXRFeature } from "@galacean/engine-design";
-import { Logger } from "../base";
 import { Engine } from "../Engine";
 import { EnumXRMode } from "./enum/EnumXRMode";
 import { EnumXRFeature } from "./enum/EnumXRFeature";
 import { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
+import { XRFeature } from "./feature/XRFeature";
+import { EnumXRSubsystem } from "./enum/EnumXRSubsystem";
+import { XRProvider } from "./provider/XRProvider";
+import { XRSubsystem } from "./subsystem/XRSubsystem";
+
+type FeatureConstructor = new (engine: Engine) => XRFeature;
 
 export class XRManager {
-  private _engine: Engine;
-  private _mode: EnumXRMode;
+  // @internal
+  static _subsystemDependentMap: EnumXRSubsystem[][] = [];
+  // @internal
+  static _featureMap: FeatureConstructor[] = [];
 
-  private _provider: IXRProvider;
-  private _features: IXRFeature[] = [];
+  private _engine: Engine;
+  private _provider: XRProvider;
+  private _features: XRFeature[] = [];
+  private _subsystems: XRSubsystem[] = [];
   private _isPaused: boolean = true;
 
   isSupportedMode(mode: EnumXRMode): Promise<void> {
     return this._provider.isSupportedMode(mode);
   }
 
+  isSupportedTrackingMode(mode: EnumXRTrackingMode): Promise<void> {
+    return this._provider.isSupportedTrackingMode(mode);
+  }
+
   isSupportedFeature(feature: EnumXRFeature): Promise<void> {
-    return this._provider.isSupportedFeature(feature);
+    return this._provider.isSupportedSubsystem(feature);
   }
 
-  addFeature<T extends IXRFeature>(feature: EnumXRFeature): Promise<T> {
-    return new Promise((resolve, reject) => {
-      if (!this._provider) {
-        reject(new Error("xr 没有实例化"));
-        return;
-      }
-      if (this._features[feature]) {
-        Logger.warn("已经存在 feature : " + EnumXRFeature[feature]);
-        resolve(this._features[feature] as T);
-      } else {
-        (this._provider.createFeature(feature) as Promise<T>).then((ins: T) => {
-          if (ins) {
-            this._features[feature] = ins;
-            resolve(ins);
-          } else {
-            reject(new Error("Provider 没有实现这个功能."));
-          }
-        });
-      }
-    });
-  }
-
-  getFeature<T extends IXRFeature>(feature: EnumXRFeature): T {
+  getFeature<T extends XRFeature>(feature: EnumXRFeature): T {
     return this._features[feature] as T;
   }
 
@@ -55,21 +45,32 @@ export class XRManager {
     this._features[feature]?.onDisable();
   }
 
-  initialize(mode: EnumXRMode, trackingMode: EnumXRTrackingMode, features: EnumXRFeature[] = []): Promise<void> {
-    this._mode = mode;
+  getSubsystem<T extends XRSubsystem>(subsystem: EnumXRSubsystem): T {
+    return this._subsystems[subsystem] as T;
+  }
+
+  initialize(mode: EnumXRMode, trackingMode: EnumXRTrackingMode, requestFeatures: EnumXRFeature[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
+      const { _subsystemDependentMap: subsystemDependentMap, _featureMap: featureMap } = XRManager;
       const { _provider: provider } = this;
-      provider.initialize({ mode, trackingMode, features }).then(() => {
-        const promiseArr = [];
-        promiseArr.push(provider.createFeature(EnumXRFeature.input));
-        promiseArr.push(provider.createFeature(EnumXRFeature.camera));
-        for (let i = 0, n = features.length; i < n; i++) {
-          promiseArr.push(provider.createFeature(features[i]));
+      let dependentSubsystems = [EnumXRSubsystem.input];
+      for (let i = 0, n = requestFeatures.length; i < n; i++) {
+        dependentSubsystems.push(...subsystemDependentMap[requestFeatures[i]]);
+      }
+      // remove duplicate subsystems
+      dependentSubsystems = Array.from(new Set(dependentSubsystems));
+      provider.initialize(mode, trackingMode, dependentSubsystems).then((insArr: XRSubsystem[]) => {
+        const { _engine: engine, _subsystems: subsystem, _features: features } = this;
+        for (let i = 0, n = insArr.length; i < n; i++) {
+          subsystem[dependentSubsystems[i]] = insArr[i];
         }
-        Promise.all(promiseArr).then((features: IXRFeature[]) => {
-          this._features.push(...features);
-          resolve();
-        });
+        features.length = 0;
+        requestFeatures.push(EnumXRFeature.input, EnumXRFeature.camera);
+        for (let i = 0, n = requestFeatures.length; i < n; i++) {
+          const feature = requestFeatures[i];
+          features[feature] ||= new featureMap[feature](engine);
+        }
+        resolve();
       }, reject);
     });
   }
@@ -81,7 +82,6 @@ export class XRManager {
         resolve();
       }, reject);
     });
-    return this._provider.start();
   }
 
   pause(): void {
@@ -112,17 +112,28 @@ export class XRManager {
     if (this._isPaused) {
       return;
     }
+    const { _features: features, _subsystems: subsystems } = this;
     // Update provider.
     this._provider.onUpdate();
+    // Update system.
+    for (let i = 0, n = subsystems.length; i < n; i++) {
+      subsystems[i]?.update();
+    }
     // Update feature.
-    const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       features[i]?.onUpdate();
     }
   }
 
-  constructor(engine: Engine, type: new (engine: Engine) => IXRProvider) {
+  constructor(engine: Engine, type: new (engine: Engine) => XRProvider) {
     this._engine = engine;
     this._provider = new type(engine);
   }
+}
+
+export function registerFeature(feature: EnumXRFeature, dependentSubsystem: EnumXRSubsystem[] = []) {
+  return (featureConstructor: FeatureConstructor) => {
+    XRManager._featureMap[feature] = featureConstructor;
+    XRManager._subsystemDependentMap[feature] = dependentSubsystem;
+  };
 }

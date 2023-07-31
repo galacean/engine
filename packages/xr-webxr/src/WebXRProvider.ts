@@ -1,15 +1,18 @@
-import { Engine, EnumXRFeature, EnumXRMode, WebGLEngine } from "@galacean/engine";
-import { IXRProvider, IXRFeature } from "@galacean/engine-design";
+import {
+  Engine,
+  EnumXRMode,
+  EnumXRSubsystem,
+  EnumXRTrackingMode,
+  WebGLEngine,
+  WebGLGraphicDevice,
+  XRProvider,
+  XRSubsystem
+} from "@galacean/engine";
 import { EnumWebXRSpaceType } from "./enum/EnumWebXRSpaceType";
-import { IWebXRDescriptor } from "./descriptor/IWebXRDescriptor";
 
-export class WebXRProvider implements IXRProvider {
+export class WebXRProvider extends XRProvider {
   // @internal
-  static _featureTypeMap: IXRFeatureGen[] = [];
-
-  name: string = "WebXR";
-  // @internal
-  _engine: WebGLEngine;
+  static _subsystemMap: IXRSubsystemFactory[] = [];
   // @internal
   _frame: XRFrame;
   // @internal
@@ -19,11 +22,12 @@ export class WebXRProvider implements IXRProvider {
   // @internal
   _space: XRReferenceSpace | XRBoundedReferenceSpace;
 
+  private _rhi: WebGLGraphicDevice;
   private _preRequestAnimationFrame: any;
   private _preCancelAnimationFrame: any;
   private _preAnimationLoop: any;
 
-  isSupportedMode(mode: number): Promise<void> {
+  override isSupportedMode(mode: number): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (window.isSecureContext === false) {
         reject(new Error("WebXR is available only in secure contexts (HTTPS)."));
@@ -33,7 +37,7 @@ export class WebXRProvider implements IXRProvider {
         reject(new Error("WebXR isn't available"));
         return;
       }
-      const sessionMode = this._parseWebXRMode(mode);
+      const sessionMode = this._parseXRMode(mode);
       if (!sessionMode) {
         reject(new Error("mode must be a value from the XRMode."));
         return;
@@ -49,20 +53,26 @@ export class WebXRProvider implements IXRProvider {
     });
   }
 
-  isSupportedFeature(feature: EnumXRFeature): Promise<void> {
+  override isSupportedTrackingMode(mode: EnumXRTrackingMode): Promise<void> {
     return new Promise((resolve: () => void, reject: (reason: Error) => void) => {
-      const type = WebXRProvider._featureTypeMap[feature];
+      resolve();
+    });
+  }
+
+  override isSupportedSubsystem(subsystem: EnumXRSubsystem): Promise<void> {
+    return new Promise((resolve: () => void, reject: (reason: Error) => void) => {
+      const type = WebXRProvider._subsystemMap[subsystem];
       if (type) {
-        return type.isSupported(this._engine, this);
+        type.isSupported(this._engine, this).then(resolve, reject);
       } else {
         reject(new Error("The current context doesn't support Feature."));
       }
     });
   }
 
-  createFeature<T extends IXRFeature>(feature: EnumXRFeature): Promise<T> {
+  override createSubsystem<T extends XRSubsystem>(subsystem: EnumXRSubsystem): Promise<T> {
     return new Promise((resolve: (ins: T) => void, reject: (reason: Error) => void) => {
-      const type = WebXRProvider._featureTypeMap[feature];
+      const type = WebXRProvider._subsystemMap[subsystem];
       if (type) {
         type.create(this._engine, this).then(resolve, reject);
       } else {
@@ -71,22 +81,24 @@ export class WebXRProvider implements IXRProvider {
     });
   }
 
-  initialize(descriptor: IWebXRDescriptor): Promise<void> {
+  initialize(
+    mode: EnumXRMode,
+    trackingMode: EnumXRTrackingMode,
+    requestSubsystems: EnumXRSubsystem[] = []
+  ): Promise<XRSubsystem[]> {
     return new Promise((resolve, reject) => {
       if (this._session) {
-        resolve();
+        reject(new Error("There is an undestroyed session."));
       }
-      const sessionMode = this._parseWebXRMode(descriptor.mode);
+      const sessionMode = this._parseXRMode(mode);
       if (!sessionMode) {
-        reject(new Error("mode must be a value from the XRMode."));
+        reject(new Error("Mode must be a value from the XRMode."));
         return;
       }
-      const features = descriptor.features || [];
-      const requiredFeatures = this._parseWebXRFeature(features, [EnumWebXRSpaceType.Local]);
+      const requiredFeatures = this._parseSubsystem(requestSubsystems, [EnumWebXRSpaceType.Local]);
       navigator.xr.requestSession(sessionMode, { requiredFeatures }).then((session) => {
         this._session = session;
-        // @ts-ignore
-        const rhi = <WebGLGraphicDevice>this._engine._hardwareRenderer;
+        const { _rhi: rhi } = this;
         const { gl } = rhi;
         const attributes = gl.getContextAttributes();
         if (!attributes) {
@@ -108,7 +120,7 @@ export class WebXRProvider implements IXRProvider {
             });
           } else {
             this._layer = new XRWebGLLayer(session, gl);
-            session.updateRenderState(<XRRenderStateInit>{
+            session.updateRenderState({
               layers: [this._layer]
             });
           }
@@ -116,7 +128,14 @@ export class WebXRProvider implements IXRProvider {
             .requestReferenceSpace(EnumWebXRSpaceType.Local)
             .then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
               this._space = value;
-              resolve();
+              const promiseArr = [];
+              const length = requestSubsystems.length;
+              for (let i = 0; i < length; i++) {
+                promiseArr.push(this.createSubsystem(requestSubsystems[i]));
+              }
+              Promise.all(promiseArr).then((subsystemArr: XRSubsystem[]) => {
+                resolve(subsystemArr);
+              });
             }, reject);
         }, reject);
       }, reject);
@@ -165,12 +184,27 @@ export class WebXRProvider implements IXRProvider {
   onDestroy(): void {}
 
   private _webXRUpdate(time: DOMHighResTimeStamp, frame: XRFrame) {
+    const { _layer: layer, _rhi: rhi } = this;
     this._frame = frame;
+    const frameBuffer = this._layer?.framebuffer;
+    if (frameBuffer && layer.framebufferWidth && layer.framebufferHeight) {
+      // @ts-ignore
+      rhi._mainFrameBuffer = frame;
+      // @ts-ignore
+      rhi._mainFrameWidth = layer.framebufferWidth;
+      // @ts-ignore
+      rhi._mainFrameHeight = layer.framebufferHeight;
+    } else {
+      // @ts-ignore
+      rhi._mainFrameBuffer = null;
+      // @ts-ignore
+      rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    }
     this._engine.update();
     this._frame = null;
   }
 
-  private _parseWebXRMode(mode: number): XRSessionMode {
+  private _parseXRMode(mode: number): XRSessionMode {
     switch (mode) {
       case EnumXRMode.AR:
         return "immersive-ar";
@@ -181,36 +215,36 @@ export class WebXRProvider implements IXRProvider {
     }
   }
 
-  private _parseWebXRFeature(features: number[], out: string[]): string[] {
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      switch (feature) {
-        case EnumXRFeature.imageTracking:
-          // 添加图片追踪的能力
-          break;
-        case EnumXRFeature.objectTracking:
-          // 添加物体识别的能力
-          break;
-        default:
-          break;
-      }
-    }
+  private _parseSubsystem(subsystems: EnumXRSubsystem[], out: string[]): string[] {
+    // for (let i = 0, n = subsystems.length; i < n; i++) {
+    //   const feature = subsystems[i];
+    //   switch (feature) {
+    //     case EnumXRSubsystem.imageTracking:
+    //       out.push()
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // }
     return out;
   }
 
   constructor(engine: WebGLEngine) {
-    this._engine = engine;
+    super(engine);
+    this.name = "WebXR";
+    // @ts-ignore
+    this._rhi = engine._hardwareRenderer;
     this._webXRUpdate = this._webXRUpdate.bind(this);
   }
 }
 
-export function registerXRFeature(feature: number) {
-  return <T extends IXRFeatureGen>(constructor: T) => {
-    WebXRProvider._featureTypeMap[feature] = constructor;
+export function registerSubsystem(feature: number) {
+  return <T extends IXRSubsystemFactory>(constructor: T) => {
+    WebXRProvider._subsystemMap[feature] = constructor;
   };
 }
 
-export interface IXRFeatureGen {
-  create(engine: Engine, provider: IXRProvider): Promise<IXRFeature>;
-  isSupported(engine: Engine, provider: IXRProvider): Promise<boolean>;
+export interface IXRSubsystemFactory {
+  create(engine: Engine, provider: XRProvider): Promise<XRSubsystem>;
+  isSupported(engine: Engine, provider: XRProvider): Promise<boolean>;
 }

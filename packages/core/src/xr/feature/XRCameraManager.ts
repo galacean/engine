@@ -1,25 +1,16 @@
-import { IXRCameraManager, EnumXRInputSource, Camera, EnumXRFeature, Engine } from "@galacean/engine";
-import { WebXRProvider, registerXRFeature } from "../WebXRProvider";
-import { WebXRInputManager } from "./WebXRInputManager";
-import { WebXRCamera } from "../data/WebXRCamera";
+import { Camera } from "../../Camera";
+import { Engine } from "../../Engine";
+import { registerFeature } from "../XRManager";
+import { XRCamera } from "../data/XRCamera";
+import { EnumXRFeature } from "../enum/EnumXRFeature";
+import { EnumXRInputSource } from "../enum/EnumXRInputSource";
+import { EnumXRSubsystem } from "../enum/EnumXRSubsystem";
+import { XRInputSubsystem } from "../subsystem/XRInputSubsystem";
+import { XRFeature } from "./XRFeature";
+import { XRInputManager } from "./XRInputManager";
 
-@registerXRFeature(EnumXRFeature.camera)
-export class WebXRCameraManager implements IXRCameraManager {
-  static isSupported(engine: Engine, provider: WebXRProvider): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      resolve(true);
-    });
-  }
-
-  static create(engine: Engine, provider: WebXRProvider): Promise<WebXRCameraManager> {
-    return new Promise((resolve, reject) => {
-      resolve(new WebXRCameraManager(engine, provider));
-    });
-  }
-
-  private _engine: Engine;
-  private _provider: WebXRProvider;
-
+@registerFeature(EnumXRFeature.camera, [EnumXRSubsystem.input])
+export class XRCameraManager extends XRFeature {
   private _cameras: Camera[] = [];
   private _automaticNear: number;
   private _customNear: number = undefined;
@@ -62,12 +53,12 @@ export class WebXRCameraManager implements IXRCameraManager {
     return this._cameras[source];
   }
 
-  onUpdate(): void {
+  override onUpdate(): void {
     const { _cameras: cameras } = this;
-    const input = this._engine.xrManager.getFeature<WebXRInputManager>(EnumXRFeature.input);
+    const input = this._engine.xrManager.getFeature<XRInputManager>(EnumXRFeature.input);
     for (let i = 0, n = cameras.length; i < n; i++) {
       const camera = cameras[i];
-      const xrCamera = input.getDevice<WebXRCamera>(i);
+      const xrCamera = input.getDevice<XRCamera>(i);
       if (camera && xrCamera) {
         camera.viewport = xrCamera.viewport;
         camera.projectionMatrix = xrCamera.project;
@@ -75,16 +66,11 @@ export class WebXRCameraManager implements IXRCameraManager {
     }
   }
 
-  onEnable(): void {}
+  override onEnable(): void {}
 
-  onDisable(): void {}
+  override onDisable(): void {}
 
-  onDestroy(): void {
+  override onDestroy(): void {
     this._cameras.length = 0;
-  }
-
-  constructor(engine: Engine, provider: WebXRProvider) {
-    this._engine = engine;
-    this._provider = provider;
   }
 }

@@ -1,20 +1,19 @@
 import { Script } from "../../Script";
+import { XRManager } from "../XRManager";
 import { IXRDevice } from "../data/IXRDevice";
 import { EnumXRFeature } from "../enum/EnumXRFeature";
 import { EnumXRInputSource } from "../enum/EnumXRInputSource";
 import { EnumXRTrackingMode } from "../enum/EnumXRTrackingMode";
-import { IXRInputManager } from "../feature/IXRInputManager";
+import { XRInputManager } from "../feature/XRInputManager";
 
 export class XRPoseDriver extends Script {
   source: EnumXRInputSource = EnumXRInputSource.Eye;
   updateType: EnumXRTrackingMode = EnumXRTrackingMode.RotationAndPosition;
 
+  private _xrManager: XRManager;
+
   override onLateUpdate() {
-    const { xrManager } = this.engine;
-    if (!xrManager) {
-      return;
-    }
-    const input = xrManager.getFeature<IXRInputManager>(EnumXRFeature.input);
+    const input = this._xrManager?.getFeature<XRInputManager>(EnumXRFeature.input);
     if (!input) {
       return;
     }
@@ -34,5 +33,9 @@ export class XRPoseDriver extends Script {
           break;
       }
     }
+  }
+
+  override onAwake(): void {
+    this._xrManager = this.engine.xrManager;
   }
 }

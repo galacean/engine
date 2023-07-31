@@ -1,62 +1,66 @@
 import {
   Engine,
-  EnumXRButton,
   EnumXRDevicePhase,
   EnumXRFeature,
   EnumXRInputSource,
   IXRDevice,
-  IXRInputManager
+  XRCamera,
+  XRSubsystem,
+  XRInputSubsystem,
+  EnumXRButton
 } from "@galacean/engine";
-import { WebXRProvider, registerXRFeature } from "../WebXRProvider";
+import { WebXRProvider, registerSubsystem } from "../WebXRProvider";
 import { EnumWebXREvent } from "../enum/EnumWebXREvent";
 import { WebXRHandle } from "../data/WebXRHandle";
-import { WebXRCamera } from "../data/WebXRCamera";
 
-@registerXRFeature(EnumXRFeature.input)
-export class WebXRInputManager implements IXRInputManager {
+@registerSubsystem(EnumXRFeature.input)
+export class WebXRInputSubsystem extends XRInputSubsystem {
+  static create(engine: Engine, provider: WebXRProvider): Promise<XRSubsystem> {
+    return new Promise((resolve, reject) => {
+      resolve(new WebXRInputSubsystem(engine, provider));
+    });
+  }
+
   static isSupported(engine: Engine, provider: WebXRProvider): Promise<boolean> {
     return new Promise((resolve, reject) => {
       resolve(true);
     });
   }
 
-  static create(engine: Engine, provider: WebXRProvider): Promise<WebXRInputManager> {
+  private _provider: WebXRProvider;
+
+  override start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      resolve(new WebXRInputManager(engine, provider));
+      this.running = true;
+      this._addListener();
+      resolve();
     });
   }
 
-  private _engine: Engine;
-  private _provider: WebXRProvider;
-  private _devices: IXRDevice[] = [];
-
-  onEnable(): boolean {
-    this._addListener();
-    return true;
+  override stop(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.running = false;
+      this._removeListener();
+      resolve();
+    });
   }
 
-  onDisable(): boolean {
-    this._removeListener();
-    return true;
+  override destroy(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.running = false;
+      this._removeListener();
+      resolve();
+    });
   }
 
-  onDestroy(): void {
-    this._removeListener();
-    this._devices.length = 0;
-  }
-
-  getDevice<T extends IXRDevice>(source: EnumXRInputSource): T {
-    return this._devices[source] as T;
-  }
-
-  onUpdate(): void {
+  override update(): void {
     const { _frame: frame, _space: space, _layer: layer } = this._provider;
     if (!frame) {
       return;
     }
     const { frameCount } = this._engine.time;
-    // Update event
-    const { _devices: devices } = this;
+    // Update device input
+    const { devices } = this;
     devices.forEach((device: IXRDevice) => {
       if (device instanceof WebXRHandle) {
         const { _events: events } = device;
@@ -64,23 +68,23 @@ export class WebXRInputManager implements IXRInputManager {
           const handleEvent = events[j];
           switch (handleEvent.type) {
             case "selectstart":
-              device._downList.add(EnumXRButton.Select);
-              device._downMap[EnumXRButton.Select] = frameCount;
+              device.downList.add(EnumXRButton.Select);
+              device.downMap[EnumXRButton.Select] = frameCount;
               device.pressedButtons |= EnumXRButton.Select;
               break;
             case "selectend":
-              device._upList.add(EnumXRButton.Select);
-              device._upMap[EnumXRButton.Select] = frameCount;
+              device.upList.add(EnumXRButton.Select);
+              device.upMap[EnumXRButton.Select] = frameCount;
               device.pressedButtons &= ~EnumXRButton.Select;
               break;
             case "squeezestart":
-              device._downList.add(EnumXRButton.Squeeze);
-              device._downMap[EnumXRButton.Squeeze] = frameCount;
+              device.downList.add(EnumXRButton.Squeeze);
+              device.downMap[EnumXRButton.Squeeze] = frameCount;
               device.pressedButtons |= EnumXRButton.Squeeze;
               break;
             case "squeezeend":
-              device._upList.add(EnumXRButton.Squeeze);
-              device._upMap[EnumXRButton.Squeeze] = frameCount;
+              device.upList.add(EnumXRButton.Squeeze);
+              device.upMap[EnumXRButton.Squeeze] = frameCount;
               device.pressedButtons &= ~EnumXRButton.Squeeze;
               break;
             default:
@@ -111,15 +115,13 @@ export class WebXRInputManager implements IXRInputManager {
         const view = views[i];
         const { transform } = views[i];
         const deviceSource = this._getCameraSource(view.eye);
-        const xrCamera = ((devices[deviceSource] as WebXRCamera) ||= new WebXRCamera());
+        const xrCamera = ((devices[deviceSource] as XRCamera) ||= new XRCamera());
         xrCamera.matrix.copyFromArray(transform.matrix);
         xrCamera.position.copyFrom(transform.position);
         xrCamera.quaternion.copyFrom(transform.orientation);
         xrCamera.project.copyFromArray(view.projectionMatrix);
         if (layer) {
           const { framebufferWidth, framebufferHeight } = layer;
-          xrCamera.frameWidth = framebufferWidth;
-          xrCamera.frameHeight = framebufferHeight;
           const xrViewport = layer.getViewport(view);
           const width = xrViewport.width / framebufferWidth;
           const height = xrViewport.height / framebufferHeight;
@@ -131,44 +133,12 @@ export class WebXRInputManager implements IXRInputManager {
     }
   }
 
-  private _onSessionEvent(event: XRInputSourceEvent) {
-    const { _devices: devices } = this;
-    const handedness = this._getHandleSource(event.inputSource.handedness);
-    if (handedness) {
-      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
-      handle.phase = EnumXRDevicePhase.active;
-      handle._events.push(event);
-    }
-  }
-
-  private _onInputSourcesChange(event: XRInputSourceChangeEvent) {
-    const session = this._provider._session;
-    if (!session) {
-      return;
-    }
-    const { inputSources } = session;
-    const { _devices: devices } = this;
-    for (let i = 0, n = inputSources.length; i < n; i++) {
-      const inputSource = inputSources[i];
-      const handedness = this._getHandleSource(inputSource.handedness);
-      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
-      handle._inputSource = inputSource;
-    }
-    const { removed, added } = event;
-    for (let i = 0, n = removed.length; i < n; i++) {
-      const inputSource = removed[i];
-      const handedness = this._getHandleSource(inputSource.handedness);
-      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
-      handle.phase = EnumXRDevicePhase.leave;
-      handle._inputSource = null;
-    }
-    for (let i = 0, n = added.length; i < n; i++) {
-      const inputSource = event.added[i];
-      const handedness = this._getHandleSource(inputSource.handedness);
-      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
-      handle.phase = EnumXRDevicePhase.active;
-      handle._inputSource = inputSource;
-    }
+  constructor(engine: Engine, provider: WebXRProvider) {
+    super(engine);
+    this._provider = provider;
+    this._onSessionEvent = this._onSessionEvent.bind(this);
+    this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
+    this._addListener();
   }
 
   private _addListener() {
@@ -195,16 +165,44 @@ export class WebXRInputManager implements IXRInputManager {
     session.removeEventListener(EnumWebXREvent.InputSourcesChange, _onInputSourcesChange);
   }
 
-  isButtonDown(handedness: EnumXRInputSource, button: EnumXRButton): boolean {
-    return !!((<WebXRHandle>this._devices[handedness])?._downMap[button] === this._engine.time.frameCount);
+  private _onSessionEvent(event: XRInputSourceEvent) {
+    const { devices } = this;
+    const handedness = this._getHandleSource(event.inputSource.handedness);
+    if (handedness) {
+      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
+      handle.phase = EnumXRDevicePhase.active;
+      handle._events.push(event);
+    }
   }
 
-  isButtonUp(handedness: EnumXRInputSource, button: EnumXRButton): boolean {
-    return !!((<WebXRHandle>this._devices[handedness])?._upMap[button] === this._engine.time.frameCount);
-  }
-
-  isButtonHeldDown(handedness: EnumXRInputSource, button: EnumXRButton): boolean {
-    return !!((<WebXRHandle>this._devices[handedness])?.pressedButtons & button);
+  private _onInputSourcesChange(event: XRInputSourceChangeEvent) {
+    const session = this._provider._session;
+    if (!session) {
+      return;
+    }
+    const { inputSources } = session;
+    const { devices } = this;
+    for (let i = 0, n = inputSources.length; i < n; i++) {
+      const inputSource = inputSources[i];
+      const handedness = this._getHandleSource(inputSource.handedness);
+      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
+      handle._inputSource = inputSource;
+    }
+    const { removed, added } = event;
+    for (let i = 0, n = removed.length; i < n; i++) {
+      const inputSource = removed[i];
+      const handedness = this._getHandleSource(inputSource.handedness);
+      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
+      handle.phase = EnumXRDevicePhase.leave;
+      handle._inputSource = null;
+    }
+    for (let i = 0, n = added.length; i < n; i++) {
+      const inputSource = event.added[i];
+      const handedness = this._getHandleSource(inputSource.handedness);
+      const handle = ((devices[handedness] as WebXRHandle) ||= new WebXRHandle());
+      handle.phase = EnumXRDevicePhase.active;
+      handle._inputSource = inputSource;
+    }
   }
 
   private _getHandleSource(handedness: XRHandedness): EnumXRInputSource {
@@ -227,13 +225,5 @@ export class WebXRInputManager implements IXRInputManager {
       default:
         return EnumXRInputSource.Eye;
     }
-  }
-
-  constructor(engine: Engine, provider: WebXRProvider) {
-    this._engine = engine;
-    this._provider = provider;
-    this._onSessionEvent = this._onSessionEvent.bind(this);
-    this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
-    this._addListener();
   }
 }

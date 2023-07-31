@@ -1,6 +1,8 @@
-import { Matrix, Quaternion, Vector3, Vector4, IXRCamera, EnumXRDevicePhase } from "@galacean/engine";
+import { Matrix, Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
+import { IXRDevice } from "./IXRDevice";
+import { EnumXRDevicePhase } from "../enum/EnumXRDevicePhase";
 
-export class WebXRCamera implements IXRCamera {
+export class XRCamera implements IXRDevice {
   // pose
   position: Vector3 = new Vector3();
   matrix: Matrix = new Matrix();
@@ -11,8 +13,4 @@ export class WebXRCamera implements IXRCamera {
   viewport: Vector4 = new Vector4();
   // state
   phase: EnumXRDevicePhase = EnumXRDevicePhase.leave;
-  // render target
-  frameBuffer?: WebGLFramebuffer;
-  frameWidth?: number;
-  frameHeight?: number;
 }

@@ -70,9 +70,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _readFrameBuffer: WebGLFramebuffer = null;
   /** @internal */
   _mainFrameBuffer: WebGLFramebuffer = null;
-  /** @interface */
+  /** @internal */
   _mainFrameWidth: number = 0;
-  /** @interface */
+  /** @internal */
   _mainFrameHeight: number = 0;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;

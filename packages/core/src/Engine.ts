@@ -1,4 +1,4 @@
-import { IPhysics, IPhysicsManager, IShaderLab, IXRProvider } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -40,6 +40,7 @@ import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { XRManager } from "./xr/XRManager";
 import { Ticker } from "./Ticker";
+import { XRProvider } from "./xr";
 
 ShaderPool.init();
 
@@ -637,7 +638,7 @@ export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
   /** XR. */
-  xrProvider?: new () => IXRProvider;
+  xrProvider?: new () => XRProvider;
   /** Color space. */
   colorSpace?: ColorSpace;
   /** Shader lab */
