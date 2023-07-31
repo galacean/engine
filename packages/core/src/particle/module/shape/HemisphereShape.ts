@@ -25,12 +25,18 @@ export class HemisphereShape extends BaseShape {
   ): void {
     if (rand) {
       rand.seed = randomSeeds[16];
-      if (this.emitFromShell) ShapeUtils._randomPointUnitSphere(position, rand);
-      else ShapeUtils._randomPointInsideUnitSphere(position, rand);
+      if (this.emitFromShell) {
+        ShapeUtils._randomPointUnitSphere(position, rand);
+      } else {
+        ShapeUtils._randomPointInsideUnitSphere(position, rand);
+      }
       randomSeeds[16] = rand.seed;
     } else {
-      if (this.emitFromShell) ShapeUtils._randomPointUnitSphere(position);
-      else ShapeUtils._randomPointInsideUnitSphere(position);
+      if (this.emitFromShell) {
+        ShapeUtils._randomPointUnitSphere(position);
+      } else {
+        ShapeUtils._randomPointInsideUnitSphere(position);
+      }
     }
 
     Vector3.scale(position, this.radius, position);
