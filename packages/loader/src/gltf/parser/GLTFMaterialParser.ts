@@ -150,15 +150,24 @@ export class GLTFMaterialParser extends GLTFParser {
 
   parse(context: GLTFParserContext, index?: number): Promise<Material[] | Material> {
     const {
-      glTF: { materials }
+      glTF: { materials },
+      _cache
     } = context;
     if (!materials) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(materials.map((materialInfo) => this._parseSingleMaterial(context, materialInfo)));
-    } else {
-      return this._parseSingleMaterial(context, materials[index]);
+    const cacheKey = `${GLTFParserType.Material}:${index}`;
+    let promise: Promise<Material[] | Material> = _cache.get(cacheKey);
+
+    if (!promise) {
+      if (index === undefined) {
+        promise = Promise.all(materials.map((materialInfo) => this._parseSingleMaterial(context, materialInfo)));
+      } else {
+        promise = this._parseSingleMaterial(context, materials[index]);
+      }
+
+      _cache.set(cacheKey, promise);
     }
+    return promise;
   }
 
   private _parseSingleMaterial(context: GLTFParserContext, materialInfo: IMaterial): Promise<Material> {

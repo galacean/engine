@@ -45,6 +45,9 @@ export class GLTFParserContext {
   /** @internal */
   _buffers?: ArrayBuffer[];
 
+  /** @internal */
+  _cache = new Map<string, any>();
+
   constructor(url: string) {
     const promiseMap = this.promiseMap;
     promiseMap[`${url}?q=textures`] = this._initPromiseInfo(this.texturesPromiseInfo);

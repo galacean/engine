@@ -21,16 +21,25 @@ export class GLTFTextureParser extends GLTFParser {
 
   parse(context: GLTFParserContext, index?: number): Promise<Texture[] | Texture> {
     const {
-      glTF: { textures }
+      glTF: { textures },
+      _cache
     } = context;
-
     if (!textures) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
-    } else {
-      return this._parseSingleTexture(context, textures[index]);
+    const cacheKey = `${GLTFParserType.Texture}:${index}`;
+    let promise: Promise<Texture[] | Texture> = _cache.get(cacheKey);
+
+    if (!promise) {
+      if (index === undefined) {
+        promise = Promise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
+      } else {
+        promise = this._parseSingleTexture(context, textures[index]);
+      }
+
+      _cache.set(cacheKey, promise);
     }
+
+    return promise;
   }
 
   private _parseSingleTexture(context: GLTFParserContext, textureInfo: ITexture): Promise<Texture> {

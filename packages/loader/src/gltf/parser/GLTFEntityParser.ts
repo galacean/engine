@@ -10,16 +10,26 @@ export class GLTFEntityParser extends GLTFParser {
 
   parse(context: GLTFParserContext, index?: number): Promise<Entity[] | Entity> {
     const {
-      glTF: { nodes }
+      glTF: { nodes },
+      _cache
     } = context;
 
     if (!nodes) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(nodes.map((entityInfo, index) => this._parserSingleEntity(context, entityInfo, index)));
-    } else {
-      return this._parserSingleEntity(context, nodes[index], index);
+    const cacheKey = `${GLTFParserType.Entity}:${index}`;
+    let promise: Promise<Entity[] | Entity> = _cache.get(cacheKey);
+
+    if (!promise) {
+      if (index === undefined) {
+        promise = Promise.all(nodes.map((entityInfo, index) => this._parserSingleEntity(context, entityInfo, index)));
+      } else {
+        promise = this._parserSingleEntity(context, nodes[index], index);
+      }
+
+      _cache.set(cacheKey, promise);
     }
+
+    return promise;
   }
 
   private _parserSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Promise<Entity> {
