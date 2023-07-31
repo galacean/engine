@@ -1,6 +1,6 @@
 import { Engine } from "../../Engine";
 import { registerFeature } from "../XRManager";
-import { IXRDevice } from "../data/IXRDevice";
+import { XRDevice } from "../data/XRDevice";
 import { XRHandle } from "../data/XRHandle";
 import { EnumXRButton } from "../enum/EnumXRButton";
 import { EnumXRFeature } from "../enum/EnumXRFeature";
@@ -13,7 +13,7 @@ import { XRFeature } from "./XRFeature";
 export class XRInputManager extends XRFeature {
   private _subSystem: XRInputSubsystem;
 
-  getDevice<T extends IXRDevice>(source: EnumXRInputSource): T {
+  getDevice<T extends XRDevice>(source: EnumXRInputSource): T {
     return this._subSystem.devices[source] as T;
   }
 

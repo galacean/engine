@@ -1,6 +1,5 @@
 import { Script } from "../../Script";
 import { XRManager } from "../XRManager";
-import { IXRDevice } from "../data/IXRDevice";
 import { EnumXRFeature } from "../enum/EnumXRFeature";
 import { EnumXRInputSource } from "../enum/EnumXRInputSource";
 import { EnumXRTrackingMode } from "../enum/EnumXRTrackingMode";
@@ -17,7 +16,7 @@ export class XRPoseDriver extends Script {
     if (!input) {
       return;
     }
-    const pose = input.getDevice<IXRDevice>(this.source);
+    const pose = input.getDevice(this.source);
     if (pose) {
       switch (this.updateType) {
         case EnumXRTrackingMode.RotationOnly:

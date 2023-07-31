@@ -3,7 +3,7 @@ import {
   EnumXRDevicePhase,
   EnumXRFeature,
   EnumXRInputSource,
-  IXRDevice,
+  XRDevice,
   XRCamera,
   XRSubsystem,
   XRInputSubsystem,
@@ -61,7 +61,7 @@ export class WebXRInputSubsystem extends XRInputSubsystem {
     const { frameCount } = this._engine.time;
     // Update device input
     const { devices } = this;
-    devices.forEach((device: IXRDevice) => {
+    devices.forEach((device: XRDevice) => {
       if (device instanceof WebXRHandle) {
         const { _events: events } = device;
         for (let j = 0; j < events.length; j++) {
@@ -96,7 +96,7 @@ export class WebXRInputSubsystem extends XRInputSubsystem {
     });
 
     // update handle
-    devices.forEach((xrHandle: IXRDevice) => {
+    devices.forEach((xrHandle: XRDevice) => {
       if (xrHandle instanceof WebXRHandle) {
         const { transform } = frame.getPose(xrHandle._inputSource.gripSpace, space);
         if (transform) {

@@ -1,6 +1,6 @@
-import { IXRDevice } from "../data/IXRDevice";
+import { XRDevice } from "../data/XRDevice";
 import { XRSubsystem } from "./XRSubsystem";
 
 export abstract class XRInputSubsystem extends XRSubsystem {
-  devices: IXRDevice[] = [];
+  devices: XRDevice[] = [];
 }

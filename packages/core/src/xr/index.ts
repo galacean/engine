@@ -25,6 +25,6 @@ export { XRProvider } from "./provider/XRProvider";
 export { XRPoseDriver } from "./component/XRPoseDriver";
 
 // data
-export type { IXRDevice } from "./data/IXRDevice";
+export { XRDevice } from "./data/XRDevice";
 export { XRCamera } from "./data/XRCamera";
 export { XRHandle } from "./data/XRHandle";
