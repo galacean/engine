@@ -1,4 +1,4 @@
-import { EnumXRButton, DisorderedArray, XRHandle } from "@galacean/engine";
+import { XRHandle } from "@galacean/engine";
 
 /**
  * XR 手柄
