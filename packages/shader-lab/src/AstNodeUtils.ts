@@ -37,9 +37,6 @@ export class AstNodeUtils {
     for (const k in ctx) {
       if (AstNodeUtils.isCstNode(ctx[k][0])) {
         const astInfo = this.visit(ctx[k][0] as CstNode);
-        if (!astInfo) {
-          console.log("");
-        }
         if (astInfo.position.start.line < start.line) {
           start = astInfo.position.start;
         }
@@ -118,9 +115,6 @@ export class AstNodeUtils {
     const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
     shaderInfo.diagnostics = context.diagnostics;
 
-    // @ts-ignore DEBUG
-    // shaderInfo.ast = ast;
-    // Done
     return shaderInfo;
   }
 }

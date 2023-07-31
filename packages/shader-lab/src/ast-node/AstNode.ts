@@ -161,7 +161,7 @@ export class ObjectAstNode<T = any> extends AstNode<Record<string, AstNode<T>>> 
     const astList = Object.values(this.content)
       .sort(AstNodeUtils.astSortAsc)
       .filter((item) => item._isAstNode);
-    // .filter((item) => item.constructor.name !== "AstNode");
+
     return astList.map((ast) => ast.serialize(context)).join("\n");
   }
 }
