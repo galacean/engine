@@ -32,35 +32,6 @@ export class ConeShape extends BaseShape {
     this.emitType = ConeEmitType.Base;
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
-    const coneRadius2: number = this.radius + this.length * Math.sin(this.angle);
-    const coneLength: number = this.length * Math.cos(this.angle);
-
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = -coneRadius2;
-    min.z = 0;
-
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = coneRadius2;
-    max.z = coneLength;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
-    const sinA: number = Math.sin(this.angle);
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = -sinA;
-    min.z = 0;
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = sinA;
-    max.z = 1;
-  }
-
   override _generatePositionAndDirection(
     position: Vector3,
     direction: Vector3,

@@ -17,26 +17,6 @@ export class SphereShape extends BaseShape {
     this.shapeType = ParticleShapeType.Sphere;
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = min.z = -this.radius;
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = max.z = this.radius;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = min.z = -1;
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = max.z = 1;
-  }
-
   override _generatePositionAndDirection(
     position: Vector3,
     direction: Vector3,

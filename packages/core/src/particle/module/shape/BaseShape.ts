@@ -13,37 +13,22 @@ export abstract class BaseShape implements IClone {
   /** Randomizes the starting direction of particles. */
   randomDirectionAmount: number = 0;
 
-
-    /**
+  /**
    * @override
    * @inheritDoc
    */
-    cloneTo(destShape: BaseShape): void {
-      destShape.enable = this.enable;
-    }
+  cloneTo(destShape: BaseShape): void {
+    destShape.enable = this.enable;
+  }
 
   /**
    * @internal
    */
-  abstract _generatePositionAndDirection(
-    position: Vector3,
-    direction: Vector3,
-    rand: Rand ,
-    randomSeeds: Uint32Array 
-  );
-
- 
-
-
+  abstract _generatePositionAndDirection(position: Vector3, direction: Vector3, rand?: Rand, randomSeeds?: Uint32Array);
 
   /**
    * @override
    * @inheritDoc
    */
   abstract clone(): BaseShape;
-  
-
-  protected abstract _getShapeBoundBox(boundBox: BoundingBox): void 
-  
-  protected abstract _getSpeedBoundBox(boundBox: BoundingBox): void 
 }
