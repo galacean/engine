@@ -93,7 +93,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Root bone.
+   * Bones of the SkinnedMeshRenderer.
    */
   get bones(): ReadonlyArray<Entity> {
     return this._bones;
