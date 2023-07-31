@@ -100,7 +100,7 @@ describe("ktx2 Loader test", function () {
     expect(texture2d.width).to.be.equal(32);
     expect(texture2d.height).to.be.equal(32);
     expect(texture2d.mipmapCount).to.be.equal(6);
-    expect(texture2d.format).to.be.equal(TextureFormat.DXT1);
+    expect(texture2d.format).to.be.equal(TextureFormat.BC1);
   });
 });
 
