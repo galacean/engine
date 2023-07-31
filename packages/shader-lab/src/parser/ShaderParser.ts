@@ -1,6 +1,7 @@
 import { CstParser, Lexer, TokenType } from "chevrotain";
 import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords, RenderState, _AllTokens } from "./tokens";
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/value";
+import { Identifier } from "./tokens/other";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;
@@ -413,7 +414,11 @@ export class ShaderParser extends CstParser {
 
   private _ruleBlendStateProperty = this.RULE("_ruleBlendStateProperty", () => {
     this.OR(
-      [...Object.values(RenderState.BlendStatePropertyTokens), RenderState.Enabled].map((token) => ({
+      [
+        ...Object.values(RenderState.BlendStatePropertyTokens),
+        ...Object.values(RenderState.BlendStatePropertyTokensWithoutIndex),
+        RenderState.Enabled
+      ].map((token) => ({
         ALT: () => this.CONSUME(token)
       }))
     );
@@ -423,7 +428,10 @@ export class ShaderParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleBlendFactor) },
       { ALT: () => this.SUBRULE(this._ruleBlendOperation) },
-      { ALT: () => this.SUBRULE(this._ruleAssignableValue) }
+      { ALT: () => this.SUBRULE(this._ruleFnCall) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.CONSUME(Identifier) }
     ]);
   });
 
@@ -476,7 +484,11 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleDepthStateValue = this.RULE("_ruleDepthStateValue", () => {
-    this.OR([{ ALT: () => this.SUBRULE(this._ruleCompareFunction) }, { ALT: () => this.SUBRULE(this._ruleBoolean) }]);
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleCompareFunction) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.CONSUME(Identifier) }
+    ]);
   });
 
   private _ruleCompareFunction = this.RULE("_ruleCompareFunction", () => {
@@ -485,11 +497,6 @@ export class ShaderParser extends CstParser {
 
   private _ruleDepthStatePropertyItem = this.RULE("_ruleDepthStatePropertyItem", () => {
     this.SUBRULE(this._ruleDepthStateProperty);
-    this.OPTION(() => {
-      this.CONSUME(Symbols.LSquareBracket);
-      this.CONSUME(ValueInt);
-      this.CONSUME(Symbols.RSquareBracket);
-    });
     this.CONSUME(Symbols.Equal);
     this.SUBRULE(this._ruleDepthStateValue);
   });
@@ -519,7 +526,9 @@ export class ShaderParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleCompareFunction) },
       { ALT: () => this.SUBRULE(this._ruleStencilOperation) },
-      { ALT: () => this.SUBRULE(this._ruleAssignableValue) }
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.CONSUME(Identifier) }
     ]);
   });
 
@@ -559,7 +568,11 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleRasterStateValue = this.RULE("_ruleRasterStateValue", () => {
-    this.OR([{ ALT: () => this.SUBRULE(this._ruleAssignableValue) }, { ALT: () => this.SUBRULE(this._ruleCullMode) }]);
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleCullMode) },
+      { ALT: () => this.CONSUME(Identifier) }
+    ]);
   });
 
   private _ruleCullMode = this.RULE("_ruleCullMode", () => {

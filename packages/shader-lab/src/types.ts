@@ -604,7 +604,10 @@ export interface _ruleBlendStateValueCstNode extends CstNode {
 export type _ruleBlendStateValueCstChildren = {
   _ruleBlendFactor?: _ruleBlendFactorCstNode[];
   _ruleBlendOperation?: _ruleBlendOperationCstNode[];
-  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+  _ruleFnCall?: _ruleFnCallCstNode[];
+  _ruleBoolean?: _ruleBooleanCstNode[];
+  _ruleNumber?: _ruleNumberCstNode[];
+  Identifier?: IToken[];
 };
 
 export interface _ruleBlendFactorCstNode extends CstNode {
@@ -688,6 +691,7 @@ export interface _ruleDepthStateValueCstNode extends CstNode {
 export type _ruleDepthStateValueCstChildren = {
   _ruleCompareFunction?: _ruleCompareFunctionCstNode[];
   _ruleBoolean?: _ruleBooleanCstNode[];
+  Identifier?: IToken[];
 };
 
 export interface _ruleCompareFunctionCstNode extends CstNode {
@@ -713,9 +717,6 @@ export interface _ruleDepthStatePropertyItemCstNode extends CstNode {
 
 export type _ruleDepthStatePropertyItemCstChildren = {
   _ruleDepthStateProperty: _ruleDepthStatePropertyCstNode[];
-  LSquareBracket?: IToken[];
-  ValueInt?: IToken[];
-  RSquareBracket?: IToken[];
   SymbolEqual: IToken[];
   _ruleDepthStateValue: _ruleDepthStateValueCstNode[];
 };
@@ -762,7 +763,9 @@ export interface _ruleStencilStateValueCstNode extends CstNode {
 export type _ruleStencilStateValueCstChildren = {
   _ruleCompareFunction?: _ruleCompareFunctionCstNode[];
   _ruleStencilOperation?: _ruleStencilOperationCstNode[];
-  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+  _ruleNumber?: _ruleNumberCstNode[];
+  _ruleBoolean?: _ruleBooleanCstNode[];
+  Identifier?: IToken[];
 };
 
 export interface _ruleStencilOperationCstNode extends CstNode {
@@ -824,8 +827,9 @@ export interface _ruleRasterStateValueCstNode extends CstNode {
 }
 
 export type _ruleRasterStateValueCstChildren = {
-  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+  _ruleNumber?: _ruleNumberCstNode[];
   _ruleCullMode?: _ruleCullModeCstNode[];
+  Identifier?: IToken[];
 };
 
 export interface _ruleCullModeCstNode extends CstNode {

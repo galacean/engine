@@ -3,7 +3,7 @@ Shader "Water" {
   DepthState depthState {
     Enabled = true;
     WriteEnabled = false;
-    CompareFunction[1] = CompareFunction.Greater;
+    CompareFunction = CompareFunction.Greater;
   }
 
   RasterState rasterState {
@@ -15,10 +15,10 @@ Shader "Water" {
   SubShader {
 
     BlendState blendState {
-      Enabled[2] = true;
-      ColorWriteMask[2] = 0.8;
-      BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
-      SrcAlphaBlendFactor = BlendFactor.Zero;
+      SourceAlphaBlendFactor = material_SrcBlend;
+      Enabled[0] = true;
+      ColorWriteMask[0] = 0.8;
+      BlendColor = Color(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
     }
 
@@ -49,7 +49,9 @@ Shader "Water" {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
     }
 
-    StencilState stencileState {
+    BlendState = blendState;
+
+    StencilState {
       Enabled = true;
       ReferenceValue = 2;
       Mask = 1.3; // 0xffffffff
@@ -58,9 +60,10 @@ Shader "Water" {
       PassOperationBack = StencilOperation.Zero;
     }
 
-    BlendState = blendState;
     DepthState = depthState;
     RasterState = rasterState;
+
+    BlendFactor material_SrcBlend;
 
       v2f vert(a2v v) {
         v2f o;

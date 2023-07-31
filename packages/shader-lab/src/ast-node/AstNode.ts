@@ -48,7 +48,17 @@ import {
   IVariableTypeAstContent
 } from "./AstNodeContent";
 import { IRenderStateInfo } from "@galacean/engine-design";
-import { Vector4, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode } from "@galacean/engine";
+import {
+  Vector4,
+  CompareFunction,
+  StencilOperation,
+  BlendOperation,
+  BlendFactor,
+  CullMode,
+  RenderStateDataKey,
+  Color
+} from "@galacean/engine";
+import { BlendStatePropertyTokens } from "../parser/tokens/render-state";
 
 export interface IPosition {
   line: number;
@@ -83,7 +93,7 @@ export class AstNode<T = any> implements IAstInfo<T> {
   }
 
   /** @internal */
-  getContentValue(): any {
+  getContentValue(context?: RuntimeContext): any {
     if (typeof this.content !== "object") return this.content;
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
   }
@@ -219,10 +229,13 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
   }
 
   override getContentValue() {
-    switch (this.content.function.toLowerCase()) {
+    switch (this.content.function) {
       case "vec4":
-        const args = this.content.args.map((item) => item.getContentValue());
-        return new Vector4(...args);
+        const args1 = this.content.args.map((item) => item.getContentValue());
+        return new Vector4(...args1);
+      case "Color":
+        const args2 = this.content.args.map((item) => item.getContentValue());
+        return new Color(...args2);
       default:
         throw `Not supported builtin function ${this.content.function}`;
     }
@@ -374,15 +387,36 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
 }
 
 export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
-  override getContentValue(): IRenderStateInfo & { variable: string } {
-    const properties = [] as IRenderStateInfo["properties"];
+  override getContentValue(context?: RuntimeContext): IRenderStateInfo & { variable: string } {
+    const properties: IRenderStateInfo["properties"] = [{}, {}];
     for (const prop of this.content.properties) {
-      properties.push(prop.getContentValue());
+      const propContent = prop.getContentValue();
+      let _propertyKey = this.content.renderStateType + propContent.property;
+      if (
+        this.content.renderStateType === "BlendState" &&
+        (!!BlendStatePropertyTokens[propContent.property] || propContent.property === "Enabled")
+      ) {
+        _propertyKey += propContent.index ?? "0";
+      }
+      const renderStateKey = RenderStateDataKey[_propertyKey];
+      if (renderStateKey === undefined) {
+        context?.diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          message: "invalid render state key",
+          token: prop.position
+        });
+        return;
+      }
+
+      if (propContent.isVariable) {
+        properties[1][renderStateKey] = propContent.value;
+      } else {
+        properties[0][renderStateKey] = propContent.value;
+      }
     }
 
     return {
-      // @ts-ignore
-      renderStateType: this.content.renderStateType,
+      renderStateType: this.content.renderStateType as any,
       properties,
       variable: this.content.variable
     };
@@ -390,11 +424,26 @@ export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarati
 }
 
 export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {
-  override getContentValue(): any {
+  /** Where the value is a variable */
+  isVariable: boolean;
+
+  override getContentValue(context?: RuntimeContext) {
+    const isVariable = this.isVariable;
+    if (isVariable && context) {
+      const global = context.findGlobal(this.content.value.content);
+      if (!global) {
+        context.diagnostics.push({
+          severity: DiagnosticSeverity.Warning,
+          message: "not found variable definition",
+          token: this.content.value.position
+        });
+      }
+    }
     return {
       property: this.content.property,
       index: this.content.index,
-      value: this.content.value.getContentValue()
+      value: this.content.value.getContentValue(),
+      isVariable
     };
   }
 }

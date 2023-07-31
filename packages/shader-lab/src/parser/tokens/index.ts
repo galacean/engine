@@ -21,6 +21,7 @@ export const _AllTokens = [
   ...RenderState.BlendOperationTokenList,
   ...RenderState.CompareFunctionTokenList,
   ...Object.values(RenderState.BlendStatePropertyTokens),
+  ...Object.values(RenderState.BlendStatePropertyTokensWithoutIndex),
   ...RenderState.CullModeTokenList,
   ...Object.values(RenderState.StencilStatePropertyTokens),
   ...Object.values(RenderState.DepthStatePropertyTokens),

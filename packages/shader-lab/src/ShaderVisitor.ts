@@ -599,10 +599,12 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleBlendStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleBlendStateValue[0]).end
     };
-    return new RenderStatePropertyItemAstNode({
+    const ret = new RenderStatePropertyItemAstNode({
       position,
       content: { property, index: index ? Number(index) : undefined, value }
     });
+    ret.isVariable = !!children._ruleBlendStateValue[0].children.Identifier;
+    return ret;
   }
 
   _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: any): AstNode<any> {
@@ -618,22 +620,25 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     const variable = children.Identifier?.[0].image;
     const renderStateType = children.BlendState[0].image;
-    const properties = children._ruleBlendPropertyItem?.map((item) => this.visit(item));
+    const properties = children._ruleBlendPropertyItem?.map((item) =>
+      this.visit(item)
+    ) as RenderStatePropertyItemAstNode[];
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
   }
 
   _ruleDepthStatePropertyItem(children: _ruleDepthStatePropertyItemCstChildren, param?: any) {
     const property = AstNodeUtils.extractCstToken(children._ruleDepthStateProperty[0]);
-    const index = children.ValueInt?.[0].image;
     const value = this.visit(children._ruleDepthStateValue);
     const position: IPositionRange = {
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleDepthStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleDepthStateValue[0]).end
     };
-    return new RenderStatePropertyItemAstNode({
+    const ret = new RenderStatePropertyItemAstNode({
       position,
-      content: { property, index: index ? Number(index) : undefined, value }
+      content: { property, value }
     });
+    ret.isVariable = !!children._ruleDepthStateValue[0].children.Identifier;
+    return ret;
   }
 
   _ruleDepthStateValue(children: _ruleDepthStateValueCstChildren, param?: any): AstNode<any> {
@@ -653,7 +658,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleRasterStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleRasterStateValue[0]).end
     };
-    return new RenderStatePropertyItemAstNode({ position, content: { property, value } });
+    const ret = new RenderStatePropertyItemAstNode({ position, content: { property, value } });
+    ret.isVariable = !!children._ruleRasterStateValue[0].children.Identifier;
+    return ret;
   }
 
   _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: any) {
@@ -664,7 +671,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     const variable = children.Identifier?.[0].image;
     const renderStateType = children.RasterState[0].image;
-    const properties = children._ruleRasterStatePropertyItem?.map((item) => this.visit(item));
+    const properties = children._ruleRasterStatePropertyItem?.map((item) =>
+      this.visit(item)
+    ) as RenderStatePropertyItemAstNode[];
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
   }
 
@@ -676,7 +685,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     const variable = children.Identifier?.[0].image;
     const renderStateType = children.DepthState[0].image;
-    const properties = children._ruleDepthStatePropertyItem?.map((item) => this.visit(item));
+    const properties = children._ruleDepthStatePropertyItem?.map((item) =>
+      this.visit(item)
+    ) as RenderStatePropertyItemAstNode[];
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
   }
 
@@ -687,10 +698,12 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleStencilStateProperty[0]).start,
       end: AstNodeUtils.getOrTypeCstNodePosition(children._ruleStencilStateValue[0]).end
     };
-    return new RenderStatePropertyItemAstNode({
+    const ret = new RenderStatePropertyItemAstNode({
       position,
       content: { property, value }
     });
+    ret.isVariable = !!children._ruleStencilStateValue[0].children.Identifier;
+    return ret;
   }
 
   _ruleStencilStateValue(children: _ruleStencilStateValueCstChildren, param?: any): AstNode<any> {
@@ -731,7 +744,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     const variable = children.Identifier?.[0].image;
     const renderStateType = children.StencilState[0].image;
-    const properties = children._ruleStencilStatePropertyItem?.map((item) => this.visit(item));
+    const properties = children._ruleStencilStatePropertyItem?.map((item) =>
+      this.visit(item)
+    ) as RenderStatePropertyItemAstNode[];
     return new RenderStateDeclarationAstNode({ position, content: { variable, renderStateType, properties } });
   }
 

@@ -1,7 +1,14 @@
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, CompareFunction, BlendFactor, BlendOperation, CullMode } from "@galacean/engine-core";
+import {
+  Shader,
+  CompareFunction,
+  BlendFactor,
+  BlendOperation,
+  CullMode,
+  RenderStateDataKey
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Vector4 } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 
 import fs from "fs";
 import path from "path";
@@ -14,8 +21,8 @@ const demoShader = fs.readFileSync(path.join(__dirname, "demo.shader")).toString
 const shaderLab = new ShaderLab();
 const canvas = document.createElement("canvas");
 
-function toString(v: Vector4): string {
-  return `vec4(${v.x}, ${v.y}, ${v.z}, ${v.w})`;
+function toString(v: Color): string {
+  return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
 }
 
 describe("ShaderLab", () => {
@@ -39,72 +46,60 @@ describe("ShaderLab", () => {
   it("render state", () => {
     const subShader = shader.subShaders[0];
     const pass = subShader.passes[0];
+
     expect(pass.renderStates).not.be.null;
 
+    // Stencil State
     const stencilState = pass.renderStates[0];
     expect(stencilState).not.be.null;
     expect(stencilState.renderStateType).to.equal("StencilState");
-    expect(stencilState.properties).to.have.lengthOf(6);
-    expect(stencilState.properties[0]).eql({ property: "Enabled", value: true, index: undefined });
-    expect(stencilState.properties[1]).eql({ property: "ReferenceValue", value: 2, index: undefined });
-    expect(stencilState.properties[4]).eql({
-      property: "CompareFunctionFront",
-      value: CompareFunction.Less,
-      index: undefined
+    expect(stencilState.properties).to.have.lengthOf(2);
+
+    const [stencilConstantProps, stencilVariableProps] = stencilState.properties;
+    expect(stencilConstantProps).include({
+      [RenderStateDataKey.StencilStateEnabled]: true,
+      [RenderStateDataKey.StencilStateReferenceValue]: 2,
+      [RenderStateDataKey.StencilStateMask]: 1.3,
+      [RenderStateDataKey.StencilStateWriteMask]: 0.32,
+      [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less
     });
 
+    // Blend State
     const blendState = pass.renderStates[1];
     expect(blendState).not.be.undefined;
-    expect(blendState.properties[0]).eql({ property: "Enabled", value: true, index: 2 });
-    expect(blendState.properties[1]).eql({ property: "ColorWriteMask", value: 0.8, index: 2 });
-    const { property, value } = blendState.properties[2];
-    expect(property).equal("BlendColor");
-    expect(toString(value)).equal("vec4(1, 1, 1, 1)");
-    expect(blendState.properties[3]).eql({
-      property: "SrcAlphaBlendFactor",
-      value: BlendFactor.Zero,
-      index: undefined
+    expect(blendState.renderStateType).to.equal("BlendState");
+    const [blendConstantProps, blendVariableProps] = blendState.properties;
+    expect(blendVariableProps).not.be.undefined;
+    expect(toString(blendConstantProps[RenderStateDataKey.BlendStateBlendColor] as Color)).equal("Color(1, 1, 1, 1)");
+    expect(blendConstantProps).include({
+      [RenderStateDataKey.BlendStateEnabled0]: true,
+      [RenderStateDataKey.BlendStateColorWriteMask0]: 0.8,
+      [RenderStateDataKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max
     });
-    expect(blendState.properties[4]).eql({
-      property: "AlphaBlendOperation",
-      value: BlendOperation.Max,
-      index: undefined
+    expect(blendVariableProps).include({
+      [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
 
+    // Depth State
     const depthState = pass.renderStates[2];
     expect(depthState).not.be.undefined;
-    expect(depthState.properties[0]).eql({
-      property: "Enabled",
-      value: true,
-      index: undefined
-    });
-    expect(depthState.properties[1]).eql({
-      property: "WriteEnabled",
-      value: false,
-      index: undefined
-    });
-    expect(depthState.properties[2]).eql({
-      property: "CompareFunction",
-      value: CompareFunction.Greater,
-      index: 1
+    expect(depthState.renderStateType).to.equal("DepthState");
+    const [depthConstantProps, depthVariableProps] = depthState.properties;
+    expect(depthConstantProps).include({
+      [RenderStateDataKey.DepthStateEnabled]: true,
+      [RenderStateDataKey.DepthStateWriteEnabled]: false,
+      [RenderStateDataKey.DepthStateCompareFunction]: CompareFunction.Greater
     });
 
+    // Raster State
     const rasterState = pass.renderStates[3];
     expect(rasterState).not.be.undefined;
-    expect(rasterState.properties[0]).eql({
-      property: "CullMode",
-      value: CullMode.Front,
-      index: undefined
-    });
-    expect(rasterState.properties[1]).eql({
-      property: "DepthBias",
-      value: 0.1,
-      index: undefined
-    });
-    expect(rasterState.properties[2]).eql({
-      property: "SlopeScaledDepthBias",
-      value: 0.8,
-      index: undefined
+    expect(rasterState.renderStateType).to.equal("RasterState");
+    const [rasterConstantProps, rasterVariableProps] = rasterState.properties;
+    expect(rasterConstantProps).include({
+      [RenderStateDataKey.RasterStateCullMode]: CullMode.Front,
+      [RenderStateDataKey.RasterStateDepthBias]: 0.1,
+      [RenderStateDataKey.RasterStateSlopeScaledDepthBias]: 0.8
     });
   });
 });

@@ -1,10 +1,10 @@
-interface IRenderStatePropertyItemInfo {
-  property: string;
-  value: any;
-  index?: number;
-}
+import { Color } from "@galacean/engine-math";
 
 export interface IRenderStateInfo {
   renderStateType: "BlendState" | "DepthState" | "StencilState" | "RasterState";
-  properties: Array<IRenderStatePropertyItemInfo>;
+  properties: [
+    Record<number, boolean | string | number | Color>,
+    /** Variable RenderState */
+    Record<number, string>
+  ];
 }

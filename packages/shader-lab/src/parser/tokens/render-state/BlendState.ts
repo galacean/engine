@@ -3,10 +3,10 @@ import { BlendFactor, BlendOperation } from "@galacean/engine";
 
 const ColorBlendOperation = TokenUtils.createKeywordToken("ColorBlendOperation");
 const AlphaBlendOperation = TokenUtils.createKeywordToken("AlphaBlendOperation");
-const SrcColorBlendFactor = TokenUtils.createKeywordToken("SrcColorBlendFactor");
-const SrcAlphaBlendFactor = TokenUtils.createKeywordToken("SrcAlphaBlendFactor");
-const DestColorBlendFactor = TokenUtils.createKeywordToken("DestColorBlendFactor");
-const DestAlphaBlendFactor = TokenUtils.createKeywordToken("DestAlphaBlendFactor");
+const SourceColorBlendFactor = TokenUtils.createKeywordToken("SourceColorBlendFactor");
+const SourceAlphaBlendFactor = TokenUtils.createKeywordToken("SourceAlphaBlendFactor");
+const DestinationColorBlendFactor = TokenUtils.createKeywordToken("DestinationColorBlendFactor");
+const DestinationAlphaBlendFactor = TokenUtils.createKeywordToken("DestinationAlphaBlendFactor");
 const ColorWriteMask = TokenUtils.createKeywordToken("ColorWriteMask");
 const BlendColor = TokenUtils.createKeywordToken("BlendColor");
 const AlphaToCoverage = TokenUtils.createKeywordToken("AlphaToCoverage");
@@ -14,14 +14,14 @@ const AlphaToCoverage = TokenUtils.createKeywordToken("AlphaToCoverage");
 export const BlendStatePropertyTokens = {
   ColorBlendOperation,
   AlphaBlendOperation,
-  SrcColorBlendFactor,
-  SrcAlphaBlendFactor,
-  DestColorBlendFactor,
-  DestAlphaBlendFactor,
-  ColorWriteMask,
-  BlendColor,
-  AlphaToCoverage
+  SourceColorBlendFactor,
+  SourceAlphaBlendFactor,
+  DestinationColorBlendFactor,
+  DestinationAlphaBlendFactor,
+  ColorWriteMask
 };
+
+export const BlendStatePropertyTokensWithoutIndex = { BlendColor, AlphaToCoverage };
 
 // BlendOperation
 export const BlendOperationTokenList = TokenUtils.getEnumKeys(BlendOperation).map((item) =>
