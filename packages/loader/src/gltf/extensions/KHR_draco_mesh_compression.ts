@@ -5,7 +5,7 @@ import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFMeshParser } from "../parser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { BufferInfo, GLTFParserContext } from "../parser/GLTFParserContext";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 
@@ -53,7 +53,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       indexType
     };
 
-    return context.getBuffers().then((buffers) => {
+    return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
       const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
       return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
         const mesh = new ModelMesh(engine, glTFMesh.name);

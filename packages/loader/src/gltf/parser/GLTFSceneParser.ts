@@ -44,9 +44,6 @@ export class GLTFSceneParser extends GLTFParser {
       context.get<Material[]>(GLTFParserType.Material),
       context.get<AnimationClip[]>(GLTFParserType.Animation)
     ]).then(([entities, meshes, skins, materials, animations]) => {
-      this._buildEntityTree(context, entities);
-      this._createSceneRoots(context, entities);
-
       for (let i = 0; i < nodes.length; i++) {
         const glTFNode = nodes[i];
         const { camera: cameraID, mesh: meshID, extensions } = glTFNode;
@@ -189,52 +186,5 @@ export class GLTFSceneParser extends GLTFParser {
         animatorState.clip = animationClip;
       }
     }
-  }
-
-  private _buildEntityTree(context: GLTFParserContext, entities: Entity[]): void {
-    const {
-      glTF: { nodes }
-    } = context;
-
-    for (let i = 0; i < nodes.length; i++) {
-      const { children } = nodes[i];
-      const entity = entities[i];
-
-      if (children) {
-        for (let j = 0; j < children.length; j++) {
-          const childEntity = entities[children[j]];
-
-          entity.addChild(childEntity);
-        }
-      }
-    }
-  }
-
-  private _createSceneRoots(context: GLTFParserContext, entities: Entity[]): void {
-    const { glTFResource, glTF } = context;
-    const { scene: sceneID = 0, scenes } = glTF;
-
-    if (!scenes) return;
-
-    const sceneRoots: Entity[] = [];
-
-    for (let i = 0; i < scenes.length; i++) {
-      const { nodes } = scenes[i];
-
-      if (!nodes) continue;
-
-      if (nodes.length === 1) {
-        sceneRoots[i] = entities[nodes[0]];
-      } else {
-        const rootEntity = new Entity(glTFResource.engine, "GLTF_ROOT");
-        for (let j = 0; j < nodes.length; j++) {
-          rootEntity.addChild(entities[nodes[j]]);
-        }
-        sceneRoots[i] = rootEntity;
-      }
-    }
-
-    glTFResource.sceneRoots = sceneRoots;
-    glTFResource.defaultSceneRoot = sceneRoots[sceneID];
   }
 }

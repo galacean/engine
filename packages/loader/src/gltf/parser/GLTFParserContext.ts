@@ -81,14 +81,6 @@ export class GLTFParserContext {
         this.get<AnimationClip[]>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(([textures, materials, meshes, entities, skins, animations, defaultSceneRoot]) => {
-        console.log(textures);
-        console.log(materials);
-        console.log(meshes);
-        console.log(entities);
-        console.log(skins);
-        console.log(animations);
-        console.log(defaultSceneRoot);
-
         const {
           materialsPromiseInfo,
           defaultSceneRootPromiseInfo,
