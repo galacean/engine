@@ -11,15 +11,17 @@ export function TranscodeWorkerCode() {
     BC3 = 3,
     BC4 = 4,
     BC5 = 5,
+    BC7 = 7,
     PVRTC1_4_RGB = 8,
     PVRTC1_4_RGBA = 9,
+    ASTC_4x4 = 10,
     RGBA8 = 13
   }
 
   enum TargetFormat {
     ASTC,
     BC7,
-    DXT,
+    BC1_BC3,
     PVRTC,
     ETC,
     R8,
@@ -70,29 +72,19 @@ export function TranscodeWorkerCode() {
   };
 
   function getTranscodeFormatFromTarget(target: TargetFormat, hasAlpha: boolean) {
-    if (target === TargetFormat.DXT) {
-      if (hasAlpha) {
-        return BasisFormat.BC3;
-      } else {
-        return BasisFormat.BC1;
-      }
-    }
-    if (target === TargetFormat.ETC) {
-      if (hasAlpha) {
-        return BasisFormat.ETC2;
-      } else {
-        return BasisFormat.ETC1;
-      }
-    }
-    if (target === TargetFormat.PVRTC) {
-      if (hasAlpha) {
-        return BasisFormat.PVRTC1_4_RGBA;
-      } else {
-        return BasisFormat.PVRTC1_4_RGB;
-      }
-    }
-    if (target === TargetFormat.RGBA8) {
-      return BasisFormat.RGBA8;
+    switch (target) {
+      case TargetFormat.BC1_BC3:
+        return hasAlpha ? BasisFormat.BC3 : BasisFormat.BC1;
+      case TargetFormat.ETC:
+        return hasAlpha ? BasisFormat.ETC2 : BasisFormat.ETC1;
+      case TargetFormat.PVRTC:
+        return hasAlpha ? BasisFormat.PVRTC1_4_RGBA : BasisFormat.PVRTC1_4_RGB;
+      case TargetFormat.RGBA8:
+        return BasisFormat.RGBA8;
+      case TargetFormat.ASTC:
+        return BasisFormat.ASTC_4x4;
+      case TargetFormat.BC7:
+        return BasisFormat.BC7;
     }
   }
 
