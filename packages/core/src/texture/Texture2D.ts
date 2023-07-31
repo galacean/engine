@@ -81,7 +81,7 @@ export class Texture2D extends Texture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,

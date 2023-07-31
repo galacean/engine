@@ -32,7 +32,7 @@ describe("TextureCube", () => {
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new TextureCube(engine, size, 1234567);
+        new TextureCube(engine, size, 1234567 as any);
       }).to.throw;
     });
   });

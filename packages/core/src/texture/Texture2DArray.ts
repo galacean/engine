@@ -95,7 +95,7 @@ export class Texture2DArray extends Texture {
    */
   setImageSource(
     elementIndex: number,
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,

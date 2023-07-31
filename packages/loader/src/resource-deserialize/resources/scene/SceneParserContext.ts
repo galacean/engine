@@ -7,7 +7,10 @@ export class SceneParserContext {
   assets: Map<string, any> = new Map();
   entityConfigMap: Map<string, IEntity> = new Map();
   rootIds: string[] = [];
-  constructor(public readonly originalData: IScene, public readonly scene: Scene) {}
+  constructor(
+    public readonly originalData: IScene,
+    public readonly scene: Scene
+  ) {}
 
   destroy() {
     this.entityMap.clear();

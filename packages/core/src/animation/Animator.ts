@@ -1,24 +1,23 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { Renderer } from "../Renderer";
 import { ClassPool } from "../RenderPipeline/ClassPool";
-import { Scene } from "../Scene";
+import { Renderer } from "../Renderer";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
+import { KeyframeValueType } from "./Keyframe";
 import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
-import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
-import { KeyframeValueType } from "./Keyframe";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
 /**
  * The controller of the animation system.
