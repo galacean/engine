@@ -5,6 +5,7 @@ import {
   FnArgAstNode,
   FnAstNode,
   PassPropertyAssignmentAstNode,
+  RenderStateDeclarationAstNode,
   ReturnTypeAstNode,
   StructAstNode
 } from "./ast-node/AstNode";
@@ -65,6 +66,8 @@ export default class RuntimeContext {
   }> = [];
   /** Current position */
   serializingAstNode?: AstNode;
+  /** Custom payload */
+  payload?: any;
   /**
    * Global variables within scope of shader, e.g. Uniforms, RenderState, Struct
    */
@@ -201,7 +204,11 @@ export default class RuntimeContext {
     return ret;
   }
 
-  private _parsePassProperty(prop: PassPropertyAssignmentAstNode, ret: IShaderPassInfo) {
+  private _parsePassProperty(
+    prop: PassPropertyAssignmentAstNode,
+    ret: IShaderPassInfo,
+    renderStates: RenderStateDeclarationAstNode[]
+  ) {
     switch (prop.content.type) {
       case VERT_FN_NAME:
         if (ret.vert) {
@@ -236,7 +243,7 @@ export default class RuntimeContext {
             token: prop.position
           });
         } else {
-          ret.renderStates.push(astNode.getContentValue());
+          renderStates.push(astNode);
         }
     }
   }
@@ -249,8 +256,18 @@ export default class RuntimeContext {
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
     ret.tags = ast.content.tags?.toObj();
-    ret.renderStates = ast.content.renderStates?.map((state) => state.getContentValue());
-    ast.content.properties.forEach((prop) => this._parsePassProperty(prop, ret));
+    ret.renderStates = [{}, {}];
+    const [constantProps, variableProps] = ret.renderStates;
+
+    this.payload = { parsingRenderState: true };
+    const tmpRenderStates = ast.content.renderStates?.map((state) => state);
+    ast.content.properties.forEach((prop) => this._parsePassProperty(prop, ret, tmpRenderStates));
+    for (const rs of tmpRenderStates) {
+      const [constP, variableP] = rs.getContentValue(this).properties;
+      Object.assign(constantProps, constP);
+      Object.assign(variableProps, variableP);
+    }
+    this.payload = undefined;
 
     return ret;
   }

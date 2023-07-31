@@ -300,13 +300,17 @@ export class ShaderParser extends CstParser {
 
   private _ruleFnReturnStatement = this.RULE("_ruleFnReturnStatement", () => {
     this.CONSUME(GLKeywords.Return);
+    this.SUBRULE(this._ruleReturnBody);
+
+    this.CONSUME(Symbols.Semicolon);
+  });
+
+  private _ruleReturnBody = this.RULE("_ruleReturnBody", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnExpression) },
       { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) }
     ]);
-
-    this.CONSUME(Symbols.Semicolon);
   });
 
   private _ruleFnExpression = this.RULE("_ruleFnExpression", () => {

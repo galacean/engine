@@ -411,10 +411,19 @@ export interface _ruleFnReturnStatementCstNode extends CstNode {
 
 export type _ruleFnReturnStatementCstChildren = {
   return: IToken[];
+  _ruleReturnBody: _ruleReturnBodyCstNode[];
+  Semicolon: IToken[];
+};
+
+export interface _ruleReturnBodyCstNode extends CstNode {
+  name: "_ruleReturnBody";
+  children: _ruleReturnBodyCstChildren;
+}
+
+export type _ruleReturnBodyCstChildren = {
   _ruleFnExpression?: _ruleFnExpressionCstNode[];
   _ruleBoolean?: _ruleBooleanCstNode[];
   ValueString?: IToken[];
-  Semicolon: IToken[];
 };
 
 export interface _ruleFnExpressionCstNode extends CstNode {
@@ -586,10 +595,10 @@ export interface _ruleBlendStatePropertyCstNode extends CstNode {
 export type _ruleBlendStatePropertyCstChildren = {
   ColorBlendOperation?: IToken[];
   AlphaBlendOperation?: IToken[];
-  SrcColorBlendFactor?: IToken[];
-  SrcAlphaBlendFactor?: IToken[];
-  DestColorBlendFactor?: IToken[];
-  DestAlphaBlendFactor?: IToken[];
+  SourceColorBlendFactor?: IToken[];
+  SourceAlphaBlendFactor?: IToken[];
+  DestinationColorBlendFactor?: IToken[];
+  DestinationAlphaBlendFactor?: IToken[];
   ColorWriteMask?: IToken[];
   BlendColor?: IToken[];
   AlphaToCoverage?: IToken[];
@@ -1048,6 +1057,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleFnMacroInclude(children: _ruleFnMacroIncludeCstChildren, param?: IN): OUT;
   _ruleFnStatement(children: _ruleFnStatementCstChildren, param?: IN): OUT;
   _ruleFnReturnStatement(children: _ruleFnReturnStatementCstChildren, param?: IN): OUT;
+  _ruleReturnBody(children: _ruleReturnBodyCstChildren, param?: IN): OUT;
   _ruleFnExpression(children: _ruleFnExpressionCstChildren, param?: IN): OUT;
   _ruleBoolean(children: _ruleBooleanCstChildren, param?: IN): OUT;
   _ruleFnVariableDeclaration(children: _ruleFnVariableDeclarationCstChildren, param?: IN): OUT;

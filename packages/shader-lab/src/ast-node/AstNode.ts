@@ -47,7 +47,6 @@ import {
   ITupleNumber4,
   IVariableTypeAstContent
 } from "./AstNodeContent";
-import { IRenderStateInfo } from "@galacean/engine-design";
 import {
   Vector4,
   CompareFunction,
@@ -59,6 +58,7 @@ import {
   Color
 } from "@galacean/engine";
 import { BlendStatePropertyTokens } from "../parser/tokens/render-state";
+import { IShaderPassInfo } from "@galacean/engine-design";
 
 export interface IPosition {
   line: number;
@@ -228,10 +228,13 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
     return `${this.content.function}(${args})`;
   }
 
-  override getContentValue() {
+  override getContentValue(context: RuntimeContext) {
     switch (this.content.function) {
       case "vec4":
         const args1 = this.content.args.map((item) => item.getContentValue());
+        if (context.payload?.parsingRenderState) {
+          return new Color(...args1);
+        }
         return new Vector4(...args1);
       case "Color":
         const args2 = this.content.args.map((item) => item.getContentValue());
@@ -387,10 +390,14 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
 }
 
 export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
-  override getContentValue(context?: RuntimeContext): IRenderStateInfo & { variable: string } {
-    const properties: IRenderStateInfo["properties"] = [{}, {}];
+  override getContentValue(context?: RuntimeContext): {
+    variable: string;
+    properties: IShaderPassInfo["renderStates"];
+    renderStateType: string;
+  } {
+    const properties: IShaderPassInfo["renderStates"] = [{}, {}];
     for (const prop of this.content.properties) {
-      const propContent = prop.getContentValue();
+      const propContent = prop.getContentValue(context);
       let _propertyKey = this.content.renderStateType + propContent.property;
       if (
         this.content.renderStateType === "BlendState" &&
@@ -442,7 +449,7 @@ export class RenderStatePropertyItemAstNode extends AstNode<IRenderStateProperty
     return {
       property: this.content.property,
       index: this.content.index,
-      value: this.content.value.getContentValue(),
+      value: this.content.value.getContentValue(context),
       isVariable
     };
   }
@@ -452,10 +459,6 @@ export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> 
   override _doSerialization(context: RuntimeContext): string {
     return this.content;
   }
-
-  // override getContentValue() {
-
-  // }
 }
 export class VariableTypeAstNode extends AstNode<IVariableTypeAstContent> {
   override _doSerialization(context: RuntimeContext): string {
@@ -473,7 +476,7 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
       if (this.content.default) {
         context.diagnostics.push({
           severity: DiagnosticSeverity.Error,
-          message: "不应该给 varying 对象赋值",
+          message: "should not assign values to varying objects",
           token: this.content.default.position
         });
       }

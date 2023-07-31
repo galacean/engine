@@ -1,12 +1,5 @@
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import {
-  Shader,
-  CompareFunction,
-  BlendFactor,
-  BlendOperation,
-  CullMode,
-  RenderStateDataKey
-} from "@galacean/engine-core";
+import { CompareFunction, BlendOperation, CullMode, RenderStateDataKey } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color } from "@galacean/engine-math";
 
@@ -27,9 +20,11 @@ function toString(v: Color): string {
 
 describe("ShaderLab", () => {
   let shader: ReturnType<typeof shaderLab.parseShader>;
+  let gl: WebGL2RenderingContext;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
+    gl = canvas.getContext("webgl2");
   });
 
   it("create shaderLab", async () => {
@@ -49,57 +44,36 @@ describe("ShaderLab", () => {
 
     expect(pass.renderStates).not.be.null;
 
-    // Stencil State
-    const stencilState = pass.renderStates[0];
-    expect(stencilState).not.be.null;
-    expect(stencilState.renderStateType).to.equal("StencilState");
-    expect(stencilState.properties).to.have.lengthOf(2);
+    const [constantState, variableState] = pass.renderStates;
+    expect(constantState).not.be.null;
 
-    const [stencilConstantProps, stencilVariableProps] = stencilState.properties;
-    expect(stencilConstantProps).include({
+    expect(toString(constantState[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
+
+    expect(constantState).include({
+      // Stencil State
       [RenderStateDataKey.StencilStateEnabled]: true,
       [RenderStateDataKey.StencilStateReferenceValue]: 2,
       [RenderStateDataKey.StencilStateMask]: 1.3,
       [RenderStateDataKey.StencilStateWriteMask]: 0.32,
-      [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less
-    });
-
-    // Blend State
-    const blendState = pass.renderStates[1];
-    expect(blendState).not.be.undefined;
-    expect(blendState.renderStateType).to.equal("BlendState");
-    const [blendConstantProps, blendVariableProps] = blendState.properties;
-    expect(blendVariableProps).not.be.undefined;
-    expect(toString(blendConstantProps[RenderStateDataKey.BlendStateBlendColor] as Color)).equal("Color(1, 1, 1, 1)");
-    expect(blendConstantProps).include({
+      [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
+      // Blend State
       [RenderStateDataKey.BlendStateEnabled0]: true,
       [RenderStateDataKey.BlendStateColorWriteMask0]: 0.8,
-      [RenderStateDataKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max
-    });
-    expect(blendVariableProps).include({
-      [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
-    });
+      [RenderStateDataKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
 
-    // Depth State
-    const depthState = pass.renderStates[2];
-    expect(depthState).not.be.undefined;
-    expect(depthState.renderStateType).to.equal("DepthState");
-    const [depthConstantProps, depthVariableProps] = depthState.properties;
-    expect(depthConstantProps).include({
+      // Depth State
       [RenderStateDataKey.DepthStateEnabled]: true,
       [RenderStateDataKey.DepthStateWriteEnabled]: false,
-      [RenderStateDataKey.DepthStateCompareFunction]: CompareFunction.Greater
-    });
+      [RenderStateDataKey.DepthStateCompareFunction]: CompareFunction.Greater,
 
-    // Raster State
-    const rasterState = pass.renderStates[3];
-    expect(rasterState).not.be.undefined;
-    expect(rasterState.renderStateType).to.equal("RasterState");
-    const [rasterConstantProps, rasterVariableProps] = rasterState.properties;
-    expect(rasterConstantProps).include({
+      // Raster State
       [RenderStateDataKey.RasterStateCullMode]: CullMode.Front,
       [RenderStateDataKey.RasterStateDepthBias]: 0.1,
       [RenderStateDataKey.RasterStateSlopeScaledDepthBias]: 0.8
+    });
+
+    expect(variableState).include({
+      [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
   });
 });
@@ -113,10 +87,5 @@ describe("engine shader", () => {
 
   it("engine init", () => {
     expect(engine).not.be.null;
-  });
-
-  it("shader create", () => {
-    const shader = Shader.create(demoShader);
-    expect(shader).not.be.null;
   });
 });

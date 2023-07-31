@@ -115,7 +115,8 @@ import {
   _ruleRasterStatePropertyDeclarationCstChildren,
   _ruleStencilStatePropertyCstChildren,
   _ruleRasterStatePropertyItemCstChildren,
-  _ruleRasterStateValueCstChildren
+  _ruleRasterStateValueCstChildren,
+  _ruleReturnBodyCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -570,7 +571,12 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: AstNodeUtils.getTokenPosition(ctx.Semicolon[0]).end
     };
 
-    return new FnReturnStatementAstNode({ position, content: AstNodeUtils.defaultVisit.bind(this)(ctx) });
+    return new FnReturnStatementAstNode({ position, content: this.visit(ctx._ruleReturnBody) });
+  }
+
+  _ruleReturnBody(children: _ruleReturnBodyCstChildren, param?: any) {
+    const ret: ObjectAstNode<any> = AstNodeUtils.defaultVisit.bind(this)(children).content;
+    return Object.values(ret)[0];
   }
 
   _ruleFnArg(ctx: _ruleFnArgCstChildren) {
