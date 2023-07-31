@@ -14,13 +14,6 @@ export abstract class GLTFExtensionParser {
   _mode: GLTFExtensionMode;
 
   /**
-   * Initialize the parser.
-   * @remarks Some plugins require initialization.
-   * @returns The void or promise
-   */
-  initialize(): void | Promise<void> {}
-
-  /**
    * Create and parse the resource.
    * @remarks This method overrides the default resource creation.
    * @param context - The parser context

@@ -1,14 +1,13 @@
-import { PBRMaterial } from "@galacean/engine-core";
+import { PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsClearcoat } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_clearcoat", GLTFExtensionMode.AdditiveParse)
 class KHR_materials_clearcoat extends GLTFExtensionParser {
   override additiveParse(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsClearcoat): void {
-    const { textures } = context.glTFResource;
     const {
       clearcoatFactor = 0,
       clearcoatTexture,
@@ -21,16 +20,25 @@ class KHR_materials_clearcoat extends GLTFExtensionParser {
     material.clearCoatRoughness = clearcoatRoughnessFactor;
 
     if (clearcoatTexture) {
-      material.clearCoatTexture = textures[clearcoatTexture.index];
       GLTFMaterialParser._checkOtherTextureTransform(clearcoatTexture, "Clear coat");
+
+      context.get<Texture2D>(GLTFParserType.Texture, clearcoatTexture.index).then((texture) => {
+        material.clearCoatTexture = texture;
+      });
     }
     if (clearcoatRoughnessTexture) {
-      material.clearCoatRoughnessTexture = textures[clearcoatRoughnessTexture.index];
       GLTFMaterialParser._checkOtherTextureTransform(clearcoatRoughnessTexture, "Clear coat roughness");
+
+      context.get<Texture2D>(GLTFParserType.Texture, clearcoatRoughnessTexture.index).then((texture) => {
+        material.clearCoatRoughnessTexture = texture;
+      });
     }
     if (clearcoatNormalTexture) {
-      material.clearCoatNormalTexture = textures[clearcoatNormalTexture.index];
       GLTFMaterialParser._checkOtherTextureTransform(clearcoatNormalTexture, "Clear coat normal");
+
+      context.get<Texture2D>(GLTFParserType.Texture, clearcoatNormalTexture.index).then((texture) => {
+        material.clearCoatNormalTexture = texture;
+      });
     }
   }
 }

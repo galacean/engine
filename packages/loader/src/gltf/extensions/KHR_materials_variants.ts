@@ -1,6 +1,6 @@
 import { Material, Renderer } from "@galacean/engine-core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
 
@@ -27,13 +27,15 @@ class KHR_materials_variants extends GLTFExtensionParser {
     const extensionData: IGLTFExtensionVariants = [];
     glTFResource.extensionsData.variants = extensionData;
 
-    for (let i = 0; i < mappings.length; i++) {
-      const { material, variants } = mappings[i];
-      extensionData.push({
-        renderer,
-        material: glTFResource.materials[material],
-        variants: variants.map((index) => variantNames[index].name)
-      });
-    }
+    context.get<Material[]>(GLTFParserType.Material).then((materials) => {
+      for (let i = 0; i < mappings.length; i++) {
+        const { material, variants } = mappings[i];
+        extensionData.push({
+          renderer,
+          material: materials[material],
+          variants: variants.map((index) => variantNames[index].name)
+        });
+      }
+    });
   }
 }

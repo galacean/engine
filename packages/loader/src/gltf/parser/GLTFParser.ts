@@ -11,20 +11,6 @@ export abstract class GLTFParser {
   private static readonly _extensionParsers: Record<string, GLTFExtensionParser[]> = {};
 
   /**
-   * Execute all parses of extension to initialize plugin.
-   * @remarks Some plugins require initialization.
-   * @returns The void or promise
-   */
-  static executeExtensionsInitialize(extensionName: string): void | Promise<void> {
-    const parsers = GLTFParser._extensionParsers[extensionName];
-    const length = parsers?.length;
-
-    if (length) {
-      return parsers[length - 1].initialize();
-    }
-  }
-
-  /**
    * Execute all parses of extension to create resource.
    * @param extensions - Related extensions field
    * @param context - The parser context

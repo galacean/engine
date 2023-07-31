@@ -1,9 +1,10 @@
-import { AssetPromise, Logger } from "@galacean/engine-core";
+import { Logger } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Validator)
 export class GLTFValidator extends GLTFParser {
-  parse(context: GLTFParserContext): AssetPromise<void> {
+  parse(context: GLTFParserContext): Promise<void> {
     const {
       asset: { version },
       extensionsUsed,
@@ -14,7 +15,7 @@ export class GLTFValidator extends GLTFParser {
     if (!(glTFVersion >= 2 && glTFVersion < 3)) {
       throw "Only support glTF 2.x.";
     }
-    const promises = [];
+
     if (extensionsUsed) {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
@@ -32,12 +33,10 @@ export class GLTFValidator extends GLTFParser {
 
         if (!GLTFParser.hasExtensionParser(extensionRequired)) {
           Logger.error(`GLTF parser has not supported required extension ${extensionRequired}.`);
-        } else {
-          promises.push(GLTFParser.executeExtensionsInitialize(extensionRequired));
         }
       }
     }
 
-    return AssetPromise.all(promises).then(null);
+    return Promise.resolve(null);
   }
 }

@@ -79,7 +79,8 @@ export class GLTFParserContext {
         this.get<Entity[]>(GLTFParserType.Entity),
         this.get<Skin[]>(GLTFParserType.Skin),
         this.get<AnimationClip[]>(GLTFParserType.Animation),
-        this.get<Entity>(GLTFParserType.Scene)
+        this.get<Entity>(GLTFParserType.Scene),
+        this.get<void>(GLTFParserType.Validator)
       ]).then(([textures, materials, meshes, entities, skins, animations, defaultSceneRoot]) => {
         const {
           materialsPromiseInfo,
