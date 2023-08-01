@@ -3,9 +3,7 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Camera, CameraClearFlags, Entity, Layer } from "@galacean/engine-core";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
+const canvasDOM = new OffscreenCanvas(256, 256);
 
 describe("camera test", function () {
   let node: Entity;
