@@ -255,7 +255,7 @@ export class GLTFMeshParser extends GLTFParser {
           positions = GLTFUtils.bufferToVector3Array(
             posBufferInfo.data,
             posBufferInfo.stride,
-            positionAccessor.byteOffset,
+            positionAccessor.byteOffset ?? 0,
             positionAccessor.count
           );
         }
@@ -266,7 +266,7 @@ export class GLTFMeshParser extends GLTFParser {
           normals = GLTFUtils.bufferToVector3Array(
             norBufferInfo.data,
             norBufferInfo.stride,
-            normalAccessor.byteOffset,
+            normalAccessor.byteOffset ?? 0,
             normalAccessor.count
           );
         }
@@ -277,7 +277,7 @@ export class GLTFMeshParser extends GLTFParser {
           tangents = GLTFUtils.bufferToVector3Array(
             tanBufferInfo.data,
             tanBufferInfo.stride,
-            tangentAccessor.byteOffset,
+            tangentAccessor.byteOffset ?? 0,
             tangentAccessor.count
           );
         }

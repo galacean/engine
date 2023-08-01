@@ -171,8 +171,8 @@ export class GLTFUtils {
     count: number
   ): Vector3[] {
     const bytesPerElement = data.BYTES_PER_ELEMENT;
-    const offset = ((accessorByteOffset ?? 0) % byteStride) / bytesPerElement;
-    const stride = (byteStride * 3) / bytesPerElement;
+    const offset = (accessorByteOffset % byteStride) / bytesPerElement;
+    const stride = byteStride / bytesPerElement;
 
     const vector3s = new Array<Vector3>(count);
     for (let i = 0; i < count; i++) {
