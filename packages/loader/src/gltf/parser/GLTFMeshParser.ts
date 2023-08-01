@@ -210,31 +210,21 @@ export class GLTFMeshParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, index?: number): Promise<ModelMesh[][] | ModelMesh[]> {
-    const {
-      glTF: { meshes },
-      _cache
-    } = context;
+    const meshes = context.glTF.meshes;
     if (!meshes) return Promise.resolve(null);
 
-    const cacheKey = `${GLTFParserType.Mesh}:${index}`;
-    let promise: Promise<ModelMesh[][] | ModelMesh[]> = _cache.get(cacheKey);
-
-    if (!promise) {
-      if (index === undefined) {
-        promise = Promise.all(meshes.map((meshInfo) => this._parseSingleMesh(context, meshInfo)));
-      } else {
-        promise = this._parseSingleMesh(context, meshes[index]);
-      }
-
-      _cache.set(cacheKey, promise);
+    if (index === undefined) {
+      return Promise.all(meshes.map((meshInfo) => this._parseSingleMesh(context, meshInfo)));
+    } else {
+      return this._parseSingleMesh(context, meshes[index]);
     }
-
-    return promise;
   }
 
   private _parseSingleMesh(context: GLTFParserContext, meshInfo: IMesh): Promise<ModelMesh[]> {
-    const { glTF, glTFResource } = context;
-    const { engine } = glTFResource;
+    const {
+      glTF,
+      glTFResource: { engine }
+    } = context;
     const primitivePromises: Promise<ModelMesh>[] = [];
 
     for (let i = 0, length = meshInfo.primitives.length; i < length; i++) {

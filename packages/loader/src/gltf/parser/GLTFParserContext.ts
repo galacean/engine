@@ -64,7 +64,15 @@ export class GLTFParserContext {
    * @param index - The index of resource, default all
    */
   get<T>(type: GLTFParserType, index?: number): Promise<T> {
-    return GLTFParserContext._parsers[type].parse(this, index);
+    const cacheKey = `${type}:${index}`;
+    let promise: Promise<T> = this._cache.get(cacheKey);
+
+    if (!promise) {
+      promise = GLTFParserContext._parsers[type].parse(this, index);
+      this._cache.set(cacheKey, promise);
+    }
+
+    return promise;
   }
 
   /** @internal */

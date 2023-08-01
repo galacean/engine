@@ -8,27 +8,15 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Skin)
 export class GLTFSkinParser extends GLTFParser {
   parse(context: GLTFParserContext, index?: number): Promise<Skin[] | Skin> {
-    const {
-      glTF: { skins },
-      _cache
-    } = context;
+    const gltfSkins = context.glTF.skins;
 
-    if (!skins) return Promise.resolve(null);
+    if (!gltfSkins) return Promise.resolve(null);
 
-    const cacheKey = `${GLTFParserType.Skin}:${index}`;
-    let promise: Promise<Skin[] | Skin> = _cache.get(cacheKey);
-
-    if (!promise) {
-      if (index === undefined) {
-        promise = Promise.all(skins.map((skinInfo, index) => this._parseSingleSkin(context, skinInfo, index)));
-      } else {
-        promise = this._parseSingleSkin(context, skins[index], index);
-      }
-
-      _cache.set(cacheKey, promise);
+    if (index === undefined) {
+      return Promise.all(gltfSkins.map((skinInfo, index) => this._parseSingleSkin(context, skinInfo, index)));
+    } else {
+      return this._parseSingleSkin(context, gltfSkins[index], index);
     }
-
-    return promise;
   }
 
   private _parseSingleSkin(context: GLTFParserContext, skinInfo: ISkin, index: number): Promise<Skin> {

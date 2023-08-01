@@ -15,26 +15,15 @@ export class GLTFTextureParser extends GLTFParser {
   };
 
   parse(context: GLTFParserContext, index?: number): Promise<Texture[] | Texture> {
-    const {
-      glTF: { textures },
-      _cache
-    } = context;
+    const textures = context.glTF.textures;
+
     if (!textures) return Promise.resolve(null);
 
-    const cacheKey = `${GLTFParserType.Texture}:${index}`;
-    let promise: Promise<Texture[] | Texture> = _cache.get(cacheKey);
-
-    if (!promise) {
-      if (index === undefined) {
-        promise = Promise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
-      } else {
-        promise = this._parseSingleTexture(context, textures[index]);
-      }
-
-      _cache.set(cacheKey, promise);
+    if (index === undefined) {
+      return Promise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
+    } else {
+      return this._parseSingleTexture(context, textures[index]);
     }
-
-    return promise;
   }
 
   private _parseSingleTexture(context: GLTFParserContext, textureInfo: ITexture): Promise<Texture> {
@@ -50,7 +39,7 @@ export class GLTFTextureParser extends GLTFParser {
     if (!texture) {
       const samplerInfo = sampler !== undefined && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
       if (uri) {
-         // TODO: deleted in 2.0
+        // TODO: deleted in 2.0
         const index = uri.lastIndexOf(".");
         const ext = uri.substring(index + 1);
         const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;

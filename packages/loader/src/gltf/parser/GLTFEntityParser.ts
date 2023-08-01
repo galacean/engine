@@ -9,39 +9,26 @@ export class GLTFEntityParser extends GLTFParser {
   static _defaultName: String = "_GLTF_ENTITY_";
 
   parse(context: GLTFParserContext, index?: number): Promise<Entity[] | Entity> {
-    const {
-      glTF: { nodes },
-      _cache
-    } = context;
+    const nodes = context.glTF.nodes;
 
     if (!nodes) return Promise.resolve(null);
 
-    const cacheKey = `${GLTFParserType.Entity}:${index}`;
-    let promise: Promise<Entity[] | Entity> = _cache.get(cacheKey);
-
-    if (!promise) {
-      if (index === undefined) {
-        promise = Promise.all(
-          nodes.map((entityInfo, index) => this._parserSingleEntity(context, entityInfo, index))
-        ).then((entities) => {
+    if (index === undefined) {
+      return Promise.all(nodes.map((entityInfo, index) => this._parserSingleEntity(context, entityInfo, index))).then(
+        (entities) => {
           this._buildEntityTree(context, entities);
           this._createSceneRoots(context, entities);
+
           return entities;
-        });
-      } else {
-        promise = this._parserSingleEntity(context, nodes[index], index);
-      }
-
-      _cache.set(cacheKey, promise);
+        }
+      );
+    } else {
+      return this._parserSingleEntity(context, nodes[index], index);
     }
-
-    return promise;
   }
 
   private _parserSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Promise<Entity> {
-    const { glTFResource } = context;
-
-    const { engine } = glTFResource;
+    const engine = context.glTFResource.engine;
     const { matrix, translation, rotation, scale } = entityInfo;
     const entity = new Entity(engine, entityInfo.name || `${GLTFEntityParser._defaultName}${index}`);
 

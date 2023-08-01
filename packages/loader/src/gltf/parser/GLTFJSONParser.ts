@@ -10,7 +10,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 export class GLTFJSONParser extends GLTFParser {
   parse(context: GLTFParserContext): Promise<IGLTF> {
     const { glTFResource, contentRestorer } = context;
-    const { url } = glTFResource;
+    const url = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     const isGLB = this._isGLB(url);

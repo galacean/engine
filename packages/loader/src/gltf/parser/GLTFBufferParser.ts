@@ -8,7 +8,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Buffer)
 export class GLTFBufferParser extends GLTFParser {
   parse(context: GLTFParserContext, index?: number): Promise<ArrayBuffer | ArrayBuffer[]> {
-    const { glTFResource, contentRestorer, glTF, _cache } = context;
+    const { glTFResource, contentRestorer, glTF } = context;
     const url = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
@@ -20,30 +20,21 @@ export class GLTFBufferParser extends GLTFParser {
       });
     }
 
-    const cacheKey = `${GLTFParserType.Buffer}:${index}`;
-    let promise: Promise<ArrayBuffer | ArrayBuffer[]> = _cache.get(cacheKey);
-
-    if (!promise) {
-      if (context._buffers) {
-        promise = Promise.resolve(index === undefined ? context._buffers : context._buffers[index]);
+    if (context._buffers) {
+      return Promise.resolve(index === undefined ? context._buffers : context._buffers[index]);
+    } else {
+      if (index === undefined) {
+        return Promise.all(
+          glTF.buffers.map((buffer: IBuffer) => {
+            const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
+            return request<ArrayBuffer>(absoluteUrl, requestConfig);
+          })
+        );
       } else {
-        if (index === undefined) {
-          promise = Promise.all(
-            glTF.buffers.map((buffer: IBuffer) => {
-              const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
-              return request<ArrayBuffer>(absoluteUrl, requestConfig);
-            })
-          );
-        } else {
-          const buffer = glTF.buffers[index];
-          const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
-          promise = request<ArrayBuffer>(absoluteUrl, requestConfig);
-        }
+        const buffer = glTF.buffers[index];
+        const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
+        return request<ArrayBuffer>(absoluteUrl, requestConfig);
       }
-
-      _cache.set(cacheKey, promise);
     }
-
-    return promise;
   }
 }
