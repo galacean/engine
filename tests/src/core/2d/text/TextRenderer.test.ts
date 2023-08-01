@@ -13,7 +13,6 @@ import {
   SpriteMaskLayer
 } from "@galacean/engine-core";
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
-import { SpriteMask } from "packages/core/src";
 
 describe("TextRenderer", () => {
   let engine: WebGLEngine;
@@ -42,12 +41,12 @@ describe("TextRenderer", () => {
 
   it("color", () => {
     // Test that return default color.
-    expect(textRenderer.color).to.be.deep.equal(new Color(1, 1, 1, 1));
+    expect(textRenderer.color).to.be.deep.include({ r: 1, g: 1, b: 1, a: 1 });
 
     // Test that set color works correctly.
     const newColor = new Color(0.54, 0.33, 0.72, 0.81);
     textRenderer.color = newColor;
-    expect(textRenderer.color).to.be.deep.equal(newColor);
+    expect(textRenderer.color).to.be.deep.include({ r: 0.54, g: 0.33, b: 0.72, a: 0.81 });
   });
 
   it("font", () => {
@@ -373,7 +372,7 @@ describe("TextRenderer", () => {
     let renderer = entity.getComponent(TextRenderer);
 
     // Test that renderer destroy correctly.
-    expect(renderer.destroy()).not.to.throw("TextRenderer destroy error.");
+    expect(() => renderer.destroy()).not.to.throw("TextRenderer destroy error.");
   });
 
   after(() => {
