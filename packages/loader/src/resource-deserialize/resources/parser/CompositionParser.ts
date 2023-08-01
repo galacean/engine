@@ -1,6 +1,5 @@
 import { Entity, Engine, Loader } from "@galacean/engine-core";
 import type { IEntity, IPrefabFile } from "../schema";
-import { PrefabParserContext } from "./PrefabParserContext";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
 
@@ -14,6 +13,19 @@ export default abstract class CompositionParser<T> {
   protected _resolve: (prefab: T) => void;
   protected _reject: (reason: any) => void;
 
+  static parseChildren(entitiesConfig: Map<string, IEntity>, entities: Map<string, Entity>, parentId: string) {
+    const children = entitiesConfig.get(parentId).children;
+    if (children && children.length > 0) {
+      const parent = entities.get(parentId);
+      for (let i = 0; i < children.length; i++) {
+        const childId = children[i];
+        const entity = entities.get(childId);
+        parent.addChild(entity);
+        this.parseChildren(entitiesConfig, entities, childId);
+      }
+    }
+  }
+
   constructor(public readonly context: ParserContext<T, IPrefabFile>) {
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
@@ -22,16 +34,21 @@ export default abstract class CompositionParser<T> {
   }
 
   /** start parse the scene or prefab or others */
-  protected abstract start(): void;
+  public start() {
+    this._parseEntities()
+      .then(this._organizeEntities)
+      .then(this._parseComponents)
+      .then(this._clearAndResolve)
+      .then(this._resolve)
+      .catch(this._reject);
+  }
 
   /**
-   * organize entities
+   * parse children of entity
    * @protected
-   * @abstract
+   * @return {Promise<Entity[]>}  entity collection
    * @memberof CompositionParser
    */
-  protected abstract _organizeEntities(): void;
-
   protected _parseEntities(): Promise<Entity[]> {
     const entitiesConfig = this.context.originalData.entities;
     const entityConfigMap = this.context.entityConfigMap;
@@ -53,6 +70,12 @@ export default abstract class CompositionParser<T> {
     });
   }
 
+  /**
+   * parse components of entity
+   * @protected
+   * @return {Promise<any[]>}  {Promise<any[]>}
+   * @memberof CompositionParser
+   */
   protected _parseComponents(): Promise<any[]> {
     const entitiesConfig = this.context.originalData.entities;
     const entityMap = this.context.entityMap;
@@ -77,22 +100,28 @@ export default abstract class CompositionParser<T> {
     return Promise.all(promises);
   }
 
+  /**
+   * clear context and resolve target
+   * @protected
+   * @return {T} instance of T
+   * @memberof CompositionParser
+   */
   protected _clearAndResolve() {
     const { target } = this.context;
     this.context.destroy();
     return target;
   }
 
-  static parseChildren(entitiesConfig: Map<string, IEntity>, entities: Map<string, Entity>, parentId: string) {
-    const children = entitiesConfig.get(parentId).children;
-    if (children && children.length > 0) {
-      const parent = entities.get(parentId);
-      for (let i = 0; i < children.length; i++) {
-        const childId = children[i];
-        const entity = entities.get(childId);
-        parent.addChild(entity);
-        this.parseChildren(entitiesConfig, entities, childId);
-      }
+  /**
+   * organize entities
+   * @protected
+   * @abstract
+   * @memberof CompositionParser
+   */
+  protected _organizeEntities(): void {
+    const { entityConfigMap, entityMap, rootIds } = this.context;
+    for (const rootId of rootIds) {
+      CompositionParser.parseChildren(entityConfigMap, entityMap, rootId);
     }
   }
 }

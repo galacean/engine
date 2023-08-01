@@ -1,13 +1,10 @@
-import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
-import { PrefabParser } from "../parser/PrefabParser";
-import { ReflectionParser } from "../parser/ReflectionParser";
+import { Engine, Scene } from "@galacean/engine-core";
 import type { IScene } from "../schema";
 import { SceneParserContext } from "./SceneParserContext";
 import CompositionParser from "../parser/CompositionParser";
 
 /** @Internal */
 export class SceneParser extends CompositionParser<Scene> {
-
   /**
    * Parse scene data.
    * @param engine - the engine of the parser context
@@ -30,21 +27,9 @@ export class SceneParser extends CompositionParser<Scene> {
     this._clearAndResolve = this._clearAndResolve.bind(this);
   }
 
-  /** start parse the scene */
-  start() {
-    this._parseEntities()
-      .then(this._organizeEntities)
-      .then(this._parseComponents)
-      .then(this._clearAndResolve)
-      .then(this._resolve)
-      .catch(this._reject);
-  }
-
-  _organizeEntities() {
-    const { entityConfigMap, entityMap, target, rootIds } = this.context;
-    for (const rootId of rootIds) {
-      SceneParser.parseChildren(entityConfigMap, entityMap, rootId);
-    }
+  override _organizeEntities() {
+    super._organizeEntities();
+    const { entityMap, target, rootIds } = this.context;
     const rootEntities = rootIds.map((id) => entityMap.get(id));
     for (let i = 0; i < rootEntities.length; i++) {
       target.addRootEntity(rootEntities[i]);
