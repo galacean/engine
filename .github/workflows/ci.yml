@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - dev/*
 
   pull_request:
     branches:
       - main
+      - dev/*
 
 jobs:
   lint:
@@ -61,6 +63,12 @@ jobs:
           node-version: 16.x
           cache: pnpm
 
+      - name: Install
+        run: pnpm install
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm run test-cov
       - run: pnpm install codecov -w
       - name: Upload coverage to Codecov
         run: ./node_modules/.bin/codecov

@@ -12,7 +12,7 @@ export class GLTFTextureParser extends GLTFParser {
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFParserContext): AssetPromise<Texture2D[]> {
+  parse(context: GLTFParserContext): AssetPromise<Texture2D[]> | void {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
 
@@ -109,15 +109,15 @@ export class GLTFTextureParser extends GLTFParser {
   private _parseSampler(texture: Texture2D, samplerInfo: ISamplerInfo): void {
     const { filterMode, wrapModeU, wrapModeV } = samplerInfo;
 
-    if (filterMode) {
+    if (filterMode !== undefined) {
       texture.filterMode = filterMode;
     }
 
-    if (wrapModeU) {
+    if (wrapModeU !== undefined) {
       texture.wrapModeU = wrapModeU;
     }
 
-    if (wrapModeV) {
+    if (wrapModeV !== undefined) {
       texture.wrapModeV = wrapModeV;
     }
   }
