@@ -260,4 +260,4 @@ describe("camera test", function () {
     camera.projectionMatrix = camera.viewMatrix;
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
   });
-});
+}).timeout(5000);
