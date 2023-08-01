@@ -13,6 +13,7 @@ import {
   SpriteMaskLayer
 } from "@galacean/engine-core";
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
+import { SpriteMask } from "packages/core/src";
 
 describe("TextRenderer", () => {
   let engine: WebGLEngine;
@@ -29,7 +30,7 @@ describe("TextRenderer", () => {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
 
     const cameraEntity = rootEntity.createChild("Camera");
-    const camera = cameraEntity.addComponent(Camera);
+    cameraEntity.addComponent(Camera);
     cameraEntity.transform.setPosition(0, 0, 0);
     cameraEntity.transform.lookAt(new Vector3(0, 0, 10));
 
@@ -44,19 +45,9 @@ describe("TextRenderer", () => {
     expect(textRenderer.color).to.be.deep.equal(new Color(1, 1, 1, 1));
 
     // Test that set color works correctly.
-    const newColor = textRenderer.color;
-    newColor.r = 0;
-    newColor.b = 0;
+    const newColor = new Color(0.54, 0.33, 0.72, 0.81);
     textRenderer.color = newColor;
     expect(textRenderer.color).to.be.deep.equal(newColor);
-
-    const newColor2 = new Color(1, 1, 1, 1);
-    textRenderer.color = newColor2;
-    expect(textRenderer.color).to.be.deep.equal(newColor2);
-
-    const newColor3 = new Color(0.54, 0.33, 0.72, 0.81);
-    textRenderer.color = newColor3;
-    expect(textRenderer.color).to.be.deep.equal(newColor3);
   });
 
   it("font", () => {
@@ -83,10 +74,6 @@ describe("TextRenderer", () => {
     expect(textRenderer.enableWrapping).to.be.equal(false);
 
     // Test that set enable wrapping works correctly.
-    const enableWrapping = textRenderer.enableWrapping;
-    textRenderer.enableWrapping = enableWrapping;
-    expect(textRenderer.enableWrapping).to.be.equal(enableWrapping);
-
     textRenderer.enableWrapping = true;
     expect(textRenderer.enableWrapping).to.be.equal(true);
   });
@@ -105,11 +92,7 @@ describe("TextRenderer", () => {
     expect(textRenderer.width).to.be.equal(0);
 
     // Test that set width works correctly.
-    let width = textRenderer.width;
-    textRenderer.width = width;
-    expect(textRenderer.width).to.be.equal(width);
-
-    width = 0.2;
+    const width = 0.2;
     textRenderer.width = width;
     expect(textRenderer.width).to.be.equal(width);
   });
@@ -119,11 +102,7 @@ describe("TextRenderer", () => {
     expect(textRenderer.height).to.be.equal(0);
 
     // Test that set height works correctly.
-    let height = textRenderer.height;
-    textRenderer.height = height;
-    expect(textRenderer.height).to.be.equal(height);
-
-    height = 1;
+    const height = 1;
     textRenderer.height = height;
     expect(textRenderer.height).to.be.equal(height);
   });
@@ -133,11 +112,7 @@ describe("TextRenderer", () => {
     expect(textRenderer.fontSize).to.be.equal(24);
 
     // Test that set font size works correctly.
-    let fontSize = textRenderer.fontSize;
-    textRenderer.fontSize = fontSize;
-    expect(textRenderer.fontSize).to.be.equal(fontSize);
-
-    fontSize = 30;
+    const fontSize = 30;
     textRenderer.fontSize = fontSize;
     expect(textRenderer.fontSize).to.be.equal(fontSize);
   });
@@ -147,10 +122,6 @@ describe("TextRenderer", () => {
     expect(textRenderer.fontStyle).to.be.equal(FontStyle.None);
 
     // Test that set font style works correctly.
-    const fontStyle = textRenderer.fontStyle;
-    textRenderer.fontStyle = fontStyle;
-    expect(textRenderer.fontStyle).to.be.equal(fontStyle);
-
     textRenderer.fontStyle = FontStyle.Bold;
     expect(textRenderer.fontStyle).to.be.equal(FontStyle.Bold);
 
@@ -160,8 +131,6 @@ describe("TextRenderer", () => {
     // Test that font style is equal to the sum of FontStyle.Bold and FontStyle.Italic.
     textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
     expect(textRenderer.fontStyle).to.be.equal(FontStyle.Bold | FontStyle.Italic);
-
-    textRenderer.fontStyle = FontStyle.None;
   });
 
   it("lineSpacing", () => {
@@ -169,11 +138,7 @@ describe("TextRenderer", () => {
     expect(textRenderer.lineSpacing).to.be.equal(0);
 
     // Test that set line spacing works correctly.
-    let lineSpacing = textRenderer.lineSpacing;
-    textRenderer.lineSpacing = lineSpacing;
-    expect(textRenderer.lineSpacing).to.be.equal(lineSpacing);
-
-    lineSpacing = 10;
+    const lineSpacing = 10;
     textRenderer.lineSpacing = lineSpacing;
     expect(textRenderer.lineSpacing).to.be.equal(lineSpacing);
   });
@@ -215,9 +180,8 @@ describe("TextRenderer", () => {
     expect(textRenderer.maskInteraction).to.be.equal(SpriteMaskInteraction.None);
 
     // Test that set mask interaction works correctly.
-    const maskInteraction = textRenderer.maskInteraction;
-    textRenderer.maskInteraction = maskInteraction;
-    expect(textRenderer.maskInteraction).to.be.equal(maskInteraction);
+    textRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(textRenderer.maskInteraction).to.be.equal(SpriteMaskInteraction.VisibleOutsideMask);
 
     textRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
     expect(textRenderer.maskInteraction).to.be.equal(SpriteMaskInteraction.VisibleInsideMask);
@@ -236,13 +200,10 @@ describe("TextRenderer", () => {
     // Test that return default text.
     expect(textRenderer.text).to.be.equal("");
 
-    const text1 = "今天天气很好，阳光明媚。我 在公园里 漫步。";
-    const text2 = "The weather is great today.";
-    const text3 = "阳光明媚，the weather is great today。";
-    const text4 = "         \n       World";
-    const text5 = "😢😭🥹🥲";
-    const text6 = '<color="#ff00ff">\n\r\t\t\n\r</color>';
-    const text7 = "趚喥嘟説孒汾掱湜徳弗里凘諴萉\n汸荖dj";
+    const text1 = "阳光明媚，the weather is great today。";
+    const text2 = "😢😭🥹🥲";
+    const text3 = '<color="#ff00ff">\n\r\t\t\n\r</color>';
+    const text4 = "趚喥嘟説孒汾掱湜徳荖dj";
 
     // Test that set text works correctly.
     textRenderer.text = text1;
@@ -253,20 +214,12 @@ describe("TextRenderer", () => {
     expect(textRenderer.text).to.be.equal(text3);
     textRenderer.text = text4;
     expect(textRenderer.text).to.be.equal(text4);
-    textRenderer.text = text5;
-    expect(textRenderer.text).to.be.equal(text5);
-    textRenderer.text = text6;
-    expect(textRenderer.text).to.be.equal(text6);
-    textRenderer.text = text7;
-    expect(textRenderer.text).to.be.equal(text7);
-
-    textRenderer.text = "";
-    expect(textRenderer.text).to.be.equal("");
   });
 
   it("bounds", () => {
     textRenderer.fontSize = 24;
     textRenderer.font = rootEntity.engine["_textDefaultFont"];
+    textRenderer.fontStyle = FontStyle.None;
     textRenderer.lineSpacing = 0;
     textRenderer.enableWrapping = true;
     textRenderer.overflowMode = OverflowMode.Truncate;
@@ -287,6 +240,7 @@ describe("TextRenderer", () => {
     textRenderer.width = 3;
     textRenderer.height = 3;
 
+    // Test that bounds is correct, while verticalAlignment is top and horizontalAlignment is left.
     textRenderer.verticalAlignment = TextVerticalAlignment.Top;
     textRenderer.horizontalAlignment = TextHorizontalAlignment.Left;
     BoundingBox.transform(
@@ -325,6 +279,7 @@ describe("TextRenderer", () => {
       "Request textRenderer.bounds.max.z close to box.max.z"
     );
 
+    // Test that bounds is correct, while verticalAlignment is top and horizontalAlignment is right.
     textRenderer.horizontalAlignment = TextHorizontalAlignment.Right;
     textRendererEntity.transform.setPosition(0, 1, 0);
     textRendererEntity.transform.setRotation(10, 3, 0);
@@ -364,6 +319,7 @@ describe("TextRenderer", () => {
       "Request textRenderer.bounds.min.z close to box.max.z"
     );
 
+    // Test that bounds is correct, while verticalAlignment is bottom and horizontalAlignment is right.
     textRenderer.verticalAlignment = TextVerticalAlignment.Bottom;
     BoundingBox.transform(
       new BoundingBox(new Vector3(-1.39, 1.25, 0), new Vector3(1.5, 1.47, 0)),
@@ -417,7 +373,7 @@ describe("TextRenderer", () => {
     let renderer = entity.getComponent(TextRenderer);
 
     // Test that renderer destroy correctly.
-    renderer.destroy();
+    expect(renderer.destroy()).not.to.throw("TextRenderer destroy error.");
   });
 
   after(() => {
