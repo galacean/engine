@@ -65,11 +65,19 @@ export class GLTFParserContext {
    */
   get<T>(type: GLTFParserType, index?: number): Promise<T> {
     const cacheKey = `${type}:${index}`;
-    let promise: Promise<T> = this._cache.get(cacheKey);
+    const cache = this._cache;
+    let promise: Promise<T> = cache.get(cacheKey);
 
     if (!promise) {
+      if (index !== undefined) {
+        const allPromise: Promise<T> = cache.get(`${type}:${undefined}`);
+        if (allPromise) {
+          return allPromise.then((res) => res[index]);
+        }
+      }
+
       promise = GLTFParserContext._parsers[type].parse(this, index);
-      this._cache.set(cacheKey, promise);
+      cache.set(cacheKey, promise);
     }
 
     return promise;
@@ -112,7 +120,7 @@ export class GLTFParserContext {
         meshesPromiseInfo.resolve(meshes);
         animationClipsPromiseInfo.resolve(animations);
         defaultSceneRootPromiseInfo.resolve(defaultSceneRoot);
-
+        
         return glTFResource;
       });
     });
@@ -160,14 +168,14 @@ export class PromiseInfo<T> {
 export enum GLTFParserType {
   JSON,
   Buffer,
-  Validator,
   Texture,
   Material,
   Mesh,
   Entity,
   Skin,
   Animation,
-  Scene
+  Scene,
+  Validator
 }
 
 export function registerGLTFParser(pipeline: GLTFParserType) {
