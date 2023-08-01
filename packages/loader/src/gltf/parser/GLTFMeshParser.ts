@@ -248,7 +248,6 @@ export class GLTFMeshParser extends GLTFParser {
         let positionAccessor: IAccessor;
         let normalAccessor: IAccessor;
         let tangentAccessor: IAccessor;
-        debugger;
 
         let positions: Vector3[] = null;
         if (posBufferInfo) {

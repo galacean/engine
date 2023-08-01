@@ -172,14 +172,14 @@ export class GLTFUtils {
   ): Vector3[] {
     const bytesPerElement = data.BYTES_PER_ELEMENT;
     const offset = ((accessorByteOffset ?? 0) % byteStride) / bytesPerElement;
-    const typeStride = (byteStride * 3) / bytesPerElement;
+    const stride = (byteStride * 3) / bytesPerElement;
 
-    const array = new Array<Vector3>(count);
+    const vector3s = new Array<Vector3>(count);
     for (let i = 0; i < count; i++) {
-      const index = offset + i * typeStride;
-      array[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
+      const index = offset + i * stride;
+      vector3s[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
     }
-    return array;
+    return vector3s;
   }
 
   /**
