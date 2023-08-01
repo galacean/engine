@@ -17,11 +17,15 @@ export class GLTFUtils {
     return array;
   }
 
-  public static floatBufferToVector3Array(buffer: Float32Array): Vector3[] {
-    const bufferLen = buffer.length;
-    const array = new Array<Vector3>(bufferLen / 3);
-    for (let i = 0; i < bufferLen; i += 3) {
-      array[i / 3] = new Vector3(buffer[i], buffer[i + 1], buffer[i + 2]);
+  public static floatBufferToVector3Array(bufferInfo: BufferInfo, accessor: IAccessor): Vector3[] {
+    const { data, stride } = bufferInfo;
+    const offset = (accessor.byteOffset ?? 0 % stride) / data.BYTES_PER_ELEMENT;
+    const count = accessor.count;
+
+    const array = new Array<Vector3>(count);
+    for (let i = 0; i < count; i += 3) {
+      const index = offset + i * stride;
+      array[i / 3] = new Vector3(data[index], data[index + 1], data[index + 2]);
     }
     return array;
   }
