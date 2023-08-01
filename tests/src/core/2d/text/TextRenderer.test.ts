@@ -73,14 +73,9 @@ describe("TextRenderer", () => {
     textRenderer.font = newFont2;
     expect(newFont2.refCount).to.be.equal(newFontReferCount + 1);
 
-    // Test that font reference count is not changed, while set font twice with same font.
-    textRenderer.font = newFont2;
-    expect(newFont2.refCount).to.be.equal(newFontReferCount + 1);
-
-    // Test that font reference count is not changed, while set font to null.
-    // Note: If set font to null or undefined, engine will be blocked and throw error.
-    // textRenderer.font = null;
-    // expect(newFont2.refCount).to.be.equal(newFontReferCount);
+    // Test that font reference count decrease, while set font to null.
+    textRenderer.font = null;
+    expect(newFont2.refCount).to.be.equal(newFontReferCount);
   });
 
   it("enableWrapping", () => {
