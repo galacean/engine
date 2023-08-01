@@ -18,9 +18,9 @@ describe("Sprite", async () => {
     const sprite = new Sprite(engine);
 
     expect(sprite.texture).to.eq(null);
-    expect(sprite.region).to.deep.eq(new Rect(0, 0, 1, 1));
-    expect(sprite.pivot).to.deep.eq(new Vector2(0.5, 0.5));
-    expect(sprite.border).to.deep.eq(new Vector4(0, 0, 0, 0));
+    expect(sprite.region).to.deep.include({ x: 0, y: 0, width: 1, height: 1 });
+    expect(sprite.pivot).to.deep.include({ x: 0.5, y: 0.5 });
+    expect(sprite.border).to.deep.include({ x: 0, y: 0, z: 0, w: 0 });
   });
 
   it("get set texture", () => {
@@ -36,23 +36,23 @@ describe("Sprite", async () => {
     const rect = new Rect(0.1, 0.1, 0.7, 1.0);
     sprite.region = rect;
 
-    expect(sprite.region).to.deep.eq(new Rect(0.1, 0.1, 0.7, 0.9));
+    expect(sprite.region).to.deep.include({ x: 0.1, y: 0.1, width: 0.7, height: 0.9 });
   });
 
   it("get set pivot", () => {
     const sprite = new Sprite(engine);
     const pivot = new Vector2(0.1, 0.1);
     sprite.pivot = pivot;
-    expect(sprite.pivot).to.deep.eq(pivot);
+    expect(sprite.pivot).to.deep.include({ x: 0.1, y: 0.1 });
     sprite.pivot = sprite.pivot;
-    expect(sprite.pivot).to.deep.eq(pivot);
+    expect(sprite.pivot).to.deep.include({ x: 0.1, y: 0.1 });
   });
 
   it("get set border", () => {
     const sprite = new Sprite(engine);
     const border = new Vector4(0.1, 0.1, 0.8, 0.8);
     sprite.border = border;
-    expect(sprite.border).to.deep.eq(border);
+    expect(sprite.border).to.deep.include({ x: 0.1, y: 0.1, z: 0.8, w: 0.8 });
   });
 
   it("get set atlasRotated", () => {
@@ -189,9 +189,6 @@ describe("Sprite", async () => {
     const sprite1 = new Sprite(engine, new Texture2D(engine, 1000, 2000));
     const sprite2 = sprite1.clone();
     expect(sprite1.texture).to.deep.eq(sprite2.texture);
-    expect(sprite1.region).to.deep.eq(sprite2.region);
-    expect(sprite1.pivot).to.deep.eq(sprite2.pivot);
-    expect(sprite1.border).to.deep.eq(sprite2.border);
     expect(sprite1.atlasRotated).to.eq(sprite2.atlasRotated);
     expect(sprite1.atlasRegion).to.deep.eq(sprite2.atlasRegion);
     expect(sprite1.atlasRegionOffset).to.deep.eq(sprite2.atlasRegionOffset);

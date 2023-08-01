@@ -1,7 +1,9 @@
+import { IPoolElement } from "./IPoolElement";
+
 /**
  * Class pool utils.
  */
-export class ClassPool<T> {
+export class ClassPool<T extends IPoolElement> {
   private _elementPoolIndex: number = 0;
   private _elementPool: T[] = [];
   private _type: new () => T;
@@ -30,5 +32,12 @@ export class ClassPool<T> {
    */
   resetPool(): void {
     this._elementPoolIndex = 0;
+  }
+
+  garbageCollection(): void {
+    const { _elementPool: pool } = this;
+    for (let i = pool.length - 1; i >= 0; i--) {
+      pool[i].dispose && pool[i].dispose();
+    }
   }
 }
