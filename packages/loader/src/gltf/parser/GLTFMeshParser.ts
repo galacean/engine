@@ -245,40 +245,40 @@ export class GLTFMeshParser extends GLTFParser {
         const norBufferInfo = infos[1];
         const tanBufferInfo = infos[2];
         const target = glTFTargets[i];
-        let positionAccessor: IAccessor;
-        let normalAccessor: IAccessor;
-        let tangentAccessor: IAccessor;
+        let posAccessor: IAccessor;
+        let norAccessor: IAccessor;
+        let tanAccessor: IAccessor;
 
         let positions: Vector3[] = null;
         if (posBufferInfo) {
-          positionAccessor = accessors[target["POSITION"]];
+          posAccessor = accessors[target["POSITION"]];
           positions = GLTFUtils.bufferToVector3Array(
             posBufferInfo.data,
             posBufferInfo.stride,
-            positionAccessor.byteOffset ?? 0,
-            positionAccessor.count
+            posAccessor.byteOffset ?? 0,
+            posAccessor.count
           );
         }
 
         let normals: Vector3[] = null;
         if (norBufferInfo) {
-          normalAccessor = accessors[target["NORMAL"]];
+          norAccessor = accessors[target["NORMAL"]];
           normals = GLTFUtils.bufferToVector3Array(
             norBufferInfo.data,
             norBufferInfo.stride,
-            normalAccessor.byteOffset ?? 0,
-            normalAccessor.count
+            norAccessor.byteOffset ?? 0,
+            norAccessor.count
           );
         }
 
         let tangents: Vector3[] = null;
         if (tanBufferInfo) {
-          tangentAccessor = accessors[target["NORMAL"]];
+          tanAccessor = accessors[target["NORMAL"]];
           tangents = GLTFUtils.bufferToVector3Array(
             tanBufferInfo.data,
             tanBufferInfo.stride,
-            tangentAccessor.byteOffset ?? 0,
-            tangentAccessor.count
+            tanAccessor.byteOffset ?? 0,
+            tanAccessor.count
           );
         }
 
@@ -291,23 +291,23 @@ export class GLTFMeshParser extends GLTFParser {
             new BlendShapeDataRestoreInfo(
               posBufferInfo.restoreInfo,
               posBufferInfo.stride,
-              positionAccessor.byteOffset ?? 0,
-              positionAccessor.count
+              posAccessor.byteOffset ?? 0,
+              posAccessor.count
             ),
             norBufferInfo
               ? new BlendShapeDataRestoreInfo(
                   norBufferInfo.restoreInfo,
                   norBufferInfo.stride,
-                  normalAccessor.byteOffset ?? 0,
-                  normalAccessor.count
+                  norAccessor.byteOffset ?? 0,
+                  norAccessor.count
                 )
               : null,
             tanBufferInfo
               ? new BlendShapeDataRestoreInfo(
                   tanBufferInfo.restoreInfo,
                   tanBufferInfo.stride,
-                  tangentAccessor.byteOffset ?? 0,
-                  tangentAccessor.count
+                  tanAccessor.byteOffset ?? 0,
+                  tanAccessor.count
                 )
               : null
           )
