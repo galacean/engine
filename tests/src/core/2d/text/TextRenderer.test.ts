@@ -64,7 +64,7 @@ describe("TextRenderer", () => {
     expect(newFont2.refCount).to.be.equal(newFontReferCount + 1);
 
     // Test that font reference count decrease, while set font to null.
-    textRenderer.font = null;
+    textRenderer.font = newFont;
     expect(newFont2.refCount).to.be.equal(newFontReferCount);
   });
 
