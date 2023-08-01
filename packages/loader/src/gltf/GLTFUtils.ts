@@ -17,15 +17,11 @@ export class GLTFUtils {
     return array;
   }
 
-  public static floatBufferToVector3Array(bufferInfo: BufferInfo, accessor: IAccessor): Vector3[] {
-    const { data, stride } = bufferInfo;
-    const offset = (accessor.byteOffset ?? 0 % stride) / data.BYTES_PER_ELEMENT;
-    const count = accessor.count;
-
-    const array = new Array<Vector3>(count);
-    for (let i = 0; i < count; i += 3) {
-      const index = offset + i * stride;
-      array[i / 3] = new Vector3(data[index], data[index + 1], data[index + 2]);
+  public static floatBufferToVector3Array(buffer: Float32Array): Vector3[] {
+    const bufferLen = buffer.length;
+    const array = new Array<Vector3>(bufferLen / 3);
+    for (let i = 0; i < bufferLen; i += 3) {
+      array[i / 3] = new Vector3(buffer[i], buffer[i + 1], buffer[i + 2]);
     }
     return array;
   }
@@ -125,8 +121,8 @@ export class GLTFUtils {
     return context.getBuffers().then((buffers) => {
       const bufferIndex = bufferView.buffer;
       const buffer = buffers[bufferIndex];
-      const bufferByteOffset = bufferView.byteOffset || 0;
-      const byteOffset = accessor.byteOffset || 0;
+      const bufferByteOffset = bufferView.byteOffset ?? 0;
+      const byteOffset = accessor.byteOffset ?? 0;
 
       const TypedArray = GLTFUtils.getComponentType(componentType);
       const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
@@ -166,6 +162,24 @@ export class GLTFUtils {
       }
       return bufferInfo;
     });
+  }
+
+  public static bufferToVector3Array(
+    data: TypedArray,
+    byteStride: number,
+    accessorByteOffset: number,
+    count: number
+  ): Vector3[] {
+    const bytesPerElement = data.BYTES_PER_ELEMENT;
+    const offset = ((accessorByteOffset ?? 0) % byteStride) / bytesPerElement;
+    const typeStride = (byteStride * 3) / bytesPerElement;
+
+    const array = new Array<Vector3>(count);
+    for (let i = 0; i < count; i++) {
+      const index = offset + i * typeStride;
+      array[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
+    }
+    return array;
   }
 
   /**

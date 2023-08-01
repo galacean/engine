@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
-import type { IGLTF } from "../GLTFSchema";
+import type { IAccessor, IGLTF } from "../GLTFSchema";
 
 /**
  * @internal
@@ -71,7 +71,6 @@ export class GLTFParserContext {
 export class BufferInfo {
   vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
-
   restoreInfo: BufferDataRestoreInfo;
 
   constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}

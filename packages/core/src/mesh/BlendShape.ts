@@ -62,8 +62,6 @@ export class BlendShape {
     deltaNormals?: Vector3[],
     deltaTangents?: Vector3[]
   ): void | BlendShapeFrame {
-    debugger;
-    console.log(deltaPositions.length);
     if (typeof frameOrWeight === "number") {
       const frame = new BlendShapeFrame(frameOrWeight, deltaPositions, deltaNormals, deltaTangents);
       this._addFrame(frame);
