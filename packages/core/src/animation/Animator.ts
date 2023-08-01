@@ -19,7 +19,7 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { KeyframeValueType } from "./Keyframe";
 import { Logger } from "../base";
-
+import { Script } from "../Script";
 /**
  * The controller of the animation system.
  */
@@ -302,7 +302,8 @@ export class Animator extends Component {
 
   private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const eventHandlerPool = this._animationEventHandlerPool;
-    const scripts = this._entity._scripts;
+    const scripts = [];
+    this._entity.getComponents(Script, scripts);
     const scriptCount = scripts.length;
     const { eventHandlers } = animatorStateData;
     const { events } = state.clip;
@@ -317,7 +318,7 @@ export class Animator extends Component {
       eventHandler.event = event;
       handlers.length = 0;
       for (let j = scriptCount - 1; j >= 0; j--) {
-        const handler = <Function>scripts.get(j)[funcName];
+        const handler = <Function>scripts[j][funcName];
         handler && handlers.push(handler);
       }
       eventHandlers.push(eventHandler);

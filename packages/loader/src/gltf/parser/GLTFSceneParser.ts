@@ -3,6 +3,7 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
+  AssetPromise,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -26,7 +27,7 @@ export class GLTFSceneParser extends GLTFParser {
     return GLTFSceneParser._defaultMaterial;
   }
 
-  parse(context: GLTFParserContext) {
+  parse(context: GLTFParserContext): AssetPromise<Entity> | void {
     const { glTFResource, glTF } = context;
     const { entities } = glTFResource;
     const { nodes, cameras } = glTF;
