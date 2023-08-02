@@ -23,7 +23,7 @@ export class GLTFBufferParser extends GLTFParser {
         })
         .then(({ glTF, buffers }) => {
           context.glTF = glTF;
-          context.buffers = buffers;
+          context._buffers = buffers;
         });
     } else {
       return request(url, {
@@ -31,15 +31,13 @@ export class GLTFBufferParser extends GLTFParser {
       }).then((glTF: IGLTF) => {
         context.glTF = glTF;
 
-        return Promise.all(
+        context._buffers = Promise.all(
           glTF.buffers.map((buffer: IBuffer) => {
             const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
             restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
             return request<ArrayBuffer>(absoluteUrl, requestConfig);
           })
-        ).then((buffers: ArrayBuffer[]) => {
-          context.buffers = buffers;
-        });
+        );
       });
     }
   }

@@ -1,4 +1,4 @@
-import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -564,17 +564,29 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const physics = configuration.physics;
-    if (physics) {
-      return physics.initialize().then(() => {
-        PhysicsScene._nativePhysics = physics;
-        this._nativePhysicsManager = physics.createPhysicsManager();
-        this._physicsInitialized = true;
-        return this;
-      });
-    } else {
-      return Promise.resolve(this);
+    const { shaderLab, physics } = configuration;
+
+    if (shaderLab) {
+      Shader._shaderLab = shaderLab;
     }
+
+    const initializePromises = new Array<Promise<any>>();
+    if (physics) {
+      initializePromises.push(
+        physics.initialize().then(() => {
+          PhysicsScene._nativePhysics = physics;
+          this._nativePhysicsManager = physics.createPhysicsManager();
+          this._physicsInitialized = true;
+          return this;
+        })
+      );
+    }
+    const loaders = ResourceManager._loaders;
+    for (let key in loaders) {
+      const loader = loaders[key];
+      if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
+    }
+    return Promise.all(initializePromises).then(() => this);
   }
 
   private _createSpriteMaterial(): Material {
@@ -652,4 +664,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** Color space. */
   colorSpace?: ColorSpace;
+  /** Shader lab */
+  shaderLab?: IShaderLab;
 }

@@ -110,54 +110,58 @@ export class GLTFUtils {
     }
   }
 
-  static getAccessorBuffer(context: GLTFParserContext, bufferViews: IBufferView[], accessor: IAccessor): BufferInfo {
-    const { buffers } = context;
-
+  static getAccessorBuffer(
+    context: GLTFParserContext,
+    bufferViews: IBufferView[],
+    accessor: IAccessor
+  ): Promise<BufferInfo> {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    const bufferIndex = bufferView.buffer;
-    const buffer = buffers[bufferIndex];
-    const bufferByteOffset = bufferView.byteOffset || 0;
-    const byteOffset = accessor.byteOffset || 0;
+    return context.getBuffers().then((buffers) => {
+      const bufferIndex = bufferView.buffer;
+      const buffer = buffers[bufferIndex];
+      const bufferByteOffset = bufferView.byteOffset || 0;
+      const byteOffset = accessor.byteOffset || 0;
 
-    const TypedArray = GLTFUtils.getComponentType(componentType);
-    const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
-    const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
-    const elementStride = dataElementSize * dataElementBytes;
-    const accessorCount = accessor.count;
-    const bufferStride = bufferView.byteStride;
+      const TypedArray = GLTFUtils.getComponentType(componentType);
+      const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
+      const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
+      const elementStride = dataElementSize * dataElementBytes;
+      const accessorCount = accessor.count;
+      const bufferStride = bufferView.byteStride;
 
-    let bufferInfo: BufferInfo;
-    // According to the glTF official documentation only byteStride not undefined is allowed
-    if (bufferStride !== undefined && bufferStride !== elementStride) {
-      const bufferSlice = Math.floor(byteOffset / bufferStride);
-      const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
-      const accessorBufferCache = context.accessorBufferCache;
-      bufferInfo = accessorBufferCache[bufferCacheKey];
-      if (!bufferInfo) {
-        const offset = bufferByteOffset + bufferSlice * bufferStride;
-        const count = accessorCount * (bufferStride / dataElementBytes);
+      let bufferInfo: BufferInfo;
+      // According to the glTF official documentation only byteStride not undefined is allowed
+      if (bufferStride !== undefined && bufferStride !== elementStride) {
+        const bufferSlice = Math.floor(byteOffset / bufferStride);
+        const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+        const accessorBufferCache = context.accessorBufferCache;
+        bufferInfo = accessorBufferCache[bufferCacheKey];
+        if (!bufferInfo) {
+          const offset = bufferByteOffset + bufferSlice * bufferStride;
+          const count = accessorCount * (bufferStride / dataElementBytes);
+          const data = new TypedArray(buffer, offset, count);
+          accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+          bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+            new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+          );
+        }
+      } else {
+        const offset = bufferByteOffset + byteOffset;
+        const count = accessorCount * dataElementSize;
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+        bufferInfo = new BufferInfo(data, false, elementStride);
         bufferInfo.restoreInfo = new BufferDataRestoreInfo(
           new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
         );
       }
-    } else {
-      const offset = bufferByteOffset + byteOffset;
-      const count = accessorCount * dataElementSize;
-      const data = new TypedArray(buffer, offset, count);
-      bufferInfo = new BufferInfo(data, false, elementStride);
-      bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-        new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
-      );
-    }
 
-    if (accessor.sparse) {
-      GLTFUtils.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
-    }
-    return bufferInfo;
+      if (accessor.sparse) {
+        GLTFUtils.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
+      }
+      return bufferInfo;
+    });
   }
 
   /**
