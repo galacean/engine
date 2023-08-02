@@ -1,1 +1,1 @@
-export { ParticleRenderer, ParticleRendererBlendMode } from "./ParticleRenderer";
+export { ParticleRenderer } from "./ParticleRenderer";
