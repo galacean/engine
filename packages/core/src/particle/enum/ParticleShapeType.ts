@@ -1,15 +1,15 @@
 /**
- * The emission shape.
+ * The emission shape type.
  */
 export enum ParticleShapeType {
   /** Emit from the volume of a box. */
-  Box = 0,
+  Box,
   /** Emit from a circle. */
-  Circle = 1,
+  Circle,
   /** Emit from the base of a cone. */
-  Cone = 2,
+  Cone,
   /** Emit from a half-sphere. */
-  Hemisphere = 3,
+  Hemisphere,
   /** Emit from a sphere. */
-  Sphere = 4
+  Sphere
 }

@@ -1852,8 +1852,8 @@ export class ParticleMesh extends BufferMesh {
             zDirectionSpeed.set(1, 1, 1);
             fDirectionSpeed.set(1, 1, 1);
           }
-          Vector3.scale(box.boxThickness, 0.5, zEmissionOffsetXYZ);
-          Vector3.scale(box.boxThickness, 0.5, fEmissionOffsetXYZ);
+          Vector3.scale(box.size, 0.5, zEmissionOffsetXYZ);
+          Vector3.scale(box.size, 0.5, fEmissionOffsetXYZ);
           break;
         case ParticleShapeType.Circle:
           const circle: CircleShape = <CircleShape>this.shape;
