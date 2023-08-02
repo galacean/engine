@@ -18,14 +18,6 @@ export abstract class ParserContext<T, I> {
   constructor(public readonly originalData: I, public readonly target: T) {}
 
   /**
-   * Append child entity to target.
-   * @abstract
-   * @param {Entity} entity
-   * @memberof ParserContext
-   */
-  public abstract appendChild(entity: Entity): void;
-
-  /**
    * Destroy the context.
    * @abstract
    * @memberof ParserContext

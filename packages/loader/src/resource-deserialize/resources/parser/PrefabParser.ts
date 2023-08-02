@@ -17,4 +17,9 @@ export class PrefabParser extends CompositionParser<Entity> {
     parser.start();
     return parser.promise;
   }
+
+  protected override appendChild(entity: Entity): void {
+    const { target } = this.context;
+    target.addChild(entity);
+  }
 }

@@ -1,4 +1,4 @@
-import { Engine, Scene } from "@galacean/engine-core";
+import { Engine, Entity, Scene } from "@galacean/engine-core";
 import type { IScene } from "../schema";
 import { SceneParserContext } from "./SceneParserContext";
 import CompositionParser from "../parser/CompositionParser";
@@ -17,5 +17,10 @@ export class SceneParser extends CompositionParser<Scene> {
     const parser = new SceneParser(context);
     parser.start();
     return parser.promise;
+  }
+
+  protected override appendChild(entity: Entity): void {
+    const { target } = this.context;
+    target.addRootEntity(entity);
   }
 }
