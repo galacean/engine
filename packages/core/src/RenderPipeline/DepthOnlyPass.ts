@@ -27,7 +27,7 @@ export class DepthOnlyPass extends PipelinePass {
 
   onConfig(camera: Camera): void {
     const engine = this._engine;
-    const { z: width, w: height } = camera.pixelViewport;
+    const { width, height } = camera.pixelViewport;
 
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,

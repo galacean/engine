@@ -1,4 +1,4 @@
-import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
@@ -103,7 +103,7 @@ export class Camera extends Component {
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
-  private _pixelViewport: Vector4 = new Vector4(0, 0, 0, 0);
+  private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
   @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
@@ -182,7 +182,7 @@ export class Camera extends Component {
    * The viewport of the camera in pixel coordinates on the screen.
    * In pixel screen coordinates, the upper-left corner is (0, 0), and the lower-right corner is (1.0, 1.0).
    */
-  get pixelViewport(): Vector4 {
+  get pixelViewport(): Rect {
     return this._pixelViewport;
   }
 
