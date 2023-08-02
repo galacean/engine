@@ -1,7 +1,7 @@
 import { AssetType, Texture2D, Utils } from "@galacean/engine-core";
 import type { ITexture } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { GLTFUtils } from "../GLTFUtils";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
@@ -44,7 +44,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
 
-      return context.getBuffers().then((buffers) => {
+      return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
         const buffer = buffers[bufferView.buffer];
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 

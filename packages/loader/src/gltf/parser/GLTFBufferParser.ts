@@ -8,33 +8,27 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Buffer)
 export class GLTFBufferParser extends GLTFParser {
   parse(context: GLTFParserContext, index?: number): Promise<ArrayBuffer | ArrayBuffer[]> {
-    const { glTFResource, contentRestorer, glTF } = context;
-    const url = glTFResource.url;
-    const restoreBufferRequests = contentRestorer.bufferRequests;
-    const requestConfig = <RequestConfig>{ type: "arraybuffer" };
-
-    if (!restoreBufferRequests.length) {
-      glTF.buffers.forEach((buffer: IBuffer) => {
-        const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
-        restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
-      });
-    }
+    const buffers = context.glTF.buffers;
 
     if (context._buffers) {
       return Promise.resolve(index === undefined ? context._buffers : context._buffers[index]);
     } else {
       if (index === undefined) {
-        return Promise.all(
-          glTF.buffers.map((buffer: IBuffer) => {
-            const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
-            return request<ArrayBuffer>(absoluteUrl, requestConfig);
-          })
-        );
+        return Promise.all(buffers.map((bufferInfo) => this._parseSingleBuffer(context, bufferInfo)));
       } else {
-        const buffer = glTF.buffers[index];
-        const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
-        return request<ArrayBuffer>(absoluteUrl, requestConfig);
+        return this._parseSingleBuffer(context, buffers[index]);
       }
     }
+  }
+
+  private _parseSingleBuffer(context: GLTFParserContext, bufferInfo: IBuffer): Promise<ArrayBuffer> {
+    const { glTFResource, contentRestorer } = context;
+    const url = glTFResource.url;
+    const restoreBufferRequests = contentRestorer.bufferRequests;
+    const requestConfig = <RequestConfig>{ type: "arraybuffer" };
+    const absoluteUrl = Utils.resolveAbsoluteUrl(url, bufferInfo.uri);
+
+    restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
+    return request<ArrayBuffer>(absoluteUrl, requestConfig);
   }
 }
