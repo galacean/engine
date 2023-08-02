@@ -164,7 +164,7 @@ export class MultiExecutor {
     }
     this._currentCount++;
     this.execFunc(this._currentCount)
-      .then((result) => this._onComplete(result))
+      .then((result) => this._onComplete && this._onComplete(result))
       .catch((e) => {
         this._error = e;
         this._timeoutId = window.setTimeout(this.exec, this.interval);
