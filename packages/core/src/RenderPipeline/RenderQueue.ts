@@ -148,7 +148,9 @@ export class RenderQueue {
               program.uploadUnGroupTextures();
             }
           }
-          renderStates[j]._apply(
+
+          const renderState = shaderPass._renderState ?? renderStates[j];
+          renderState._apply(
             engine,
             renderer.entity.transform._isFrontFaceInvert(),
             shaderPass._renderStateDataMap,
