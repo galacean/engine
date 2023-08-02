@@ -31,13 +31,13 @@ import { ShaderPass } from "./ShaderPass";
  */
 export class ShaderPool {
   static init(): void {
-    const depthOnlyPass = new ShaderPass(depthOnlyVs, depthOnlyFs, {
-      pipelineStage: PipelineStage.DepthOnly
-    });
     const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, {
       pipelineStage: PipelineStage.ShadowCaster
     });
-    const basePasses = [depthOnlyPass, shadowCasterPass];
+    const depthOnlyPass = new ShaderPass(depthOnlyVs, depthOnlyFs, {
+      pipelineStage: PipelineStage.DepthOnly
+    });
+    const basePasses = [shadowCasterPass, depthOnlyPass];
 
     const forwardPassTags = {
       pipelineStage: PipelineStage.Forward
