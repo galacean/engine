@@ -9,7 +9,6 @@ void main() {
     #include <begin_position_vert>
     #include <blendShape_vert>
     #include <skinning_vert>
-
-    gl_Position = renderer_MVPMat * position;
+    #include <position_vert>
 
 }
