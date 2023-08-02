@@ -25,13 +25,4 @@ export class PrefabParser extends CompositionParser<Entity> {
     this._parseComponents = this._parseComponents.bind(this);
     this._clearAndResolve = this._clearAndResolve.bind(this);
   }
-
-  override _organizeEntities() {
-    super._organizeEntities();
-    const { entityMap, target, rootIds } = this.context;
-    const rootEntities = rootIds.map((id) => entityMap.get(id));
-    for (let i = 0; i < rootEntities.length; i++) {
-      target.addChild(rootEntities[i]);
-    }
-  }
 }

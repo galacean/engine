@@ -119,9 +119,13 @@ export default abstract class CompositionParser<T> {
    * @memberof CompositionParser
    */
   protected _organizeEntities(): void {
-    const { entityConfigMap, entityMap, rootIds } = this.context;
+    const { entityConfigMap, entityMap, rootIds, appendChild } = this.context;
     for (const rootId of rootIds) {
       CompositionParser.parseChildren(entityConfigMap, entityMap, rootId);
+    }
+    const rootEntities = rootIds.map((id) => entityMap.get(id));
+    for (let i = 0; i < rootEntities.length; i++) {
+      appendChild(rootEntities[i]);
     }
   }
 }
