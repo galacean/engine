@@ -31,12 +31,16 @@ export class PipelineUtils {
         currentTexture.mipmapCount > 1 !== mipmap
       ) {
         currentTexture.destroy();
-        return new Texture2D(engine, width, height, format, mipmap);
+        const texture = new Texture2D(engine, width, height, format, mipmap);
+        texture.isGCIgnored = true;
+        return texture;
       } else {
         return currentTexture;
       }
     } else {
-      return new Texture2D(engine, width, height, format, mipmap);
+      const texture = new Texture2D(engine, width, height, format, mipmap);
+      texture.isGCIgnored = true;
+      return texture;
     }
   }
 
@@ -73,7 +77,9 @@ export class PipelineUtils {
     if (currentColorTexture !== colorTexture || currentDepthTexture !== depthTexture) {
       currentRenderTarget?.destroy();
       currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthTexture);
+      currentRenderTarget.isGCIgnored = true;
     }
+
     return currentRenderTarget;
   }
 }
