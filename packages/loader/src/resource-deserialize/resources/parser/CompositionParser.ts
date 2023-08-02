@@ -3,8 +3,15 @@ import type { IEntity, IPrefabFile } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
 
-/** @Internal */
-export default abstract class CompositionParser<T> {
+/**
+ * Composition parser.
+ * Any composition parser should extends this class, like scene parser, prefab parser, etc.
+ * @export
+ * @abstract
+ * @class CompositionParser
+ * @template T
+ */
+export default abstract class CompositionParser<T extends { engine: Engine }> {
   /**
    * The promise of parsed object.
    */
@@ -27,6 +34,10 @@ export default abstract class CompositionParser<T> {
   }
 
   constructor(public readonly context: ParserContext<T, IPrefabFile>) {
+    this._engine = this.context.target.engine;
+    this._organizeEntities = this._organizeEntities.bind(this);
+    this._parseComponents = this._parseComponents.bind(this);
+    this._clearAndResolve = this._clearAndResolve.bind(this);
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
       this._resolve = resolve;
@@ -42,6 +53,14 @@ export default abstract class CompositionParser<T> {
       .then(this._resolve)
       .catch(this._reject);
   }
+
+  /**
+   * Append child entity to target.
+   * @abstract
+   * @param {Entity} entity
+   * @memberof ParserContext
+   */
+  protected abstract appendChild(entity: Entity): void;
 
   /**
    * parse children of entity
@@ -122,6 +141,10 @@ export default abstract class CompositionParser<T> {
     const { entityConfigMap, entityMap, rootIds } = this.context;
     for (const rootId of rootIds) {
       CompositionParser.parseChildren(entityConfigMap, entityMap, rootId);
+    }
+    const rootEntities = rootIds.map((id) => entityMap.get(id));
+    for (let i = 0; i < rootEntities.length; i++) {
+      this.appendChild(rootEntities[i]);
     }
   }
 }
