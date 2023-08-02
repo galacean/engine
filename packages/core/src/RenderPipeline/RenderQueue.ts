@@ -148,7 +148,12 @@ export class RenderQueue {
               program.uploadUnGroupTextures();
             }
           }
-          renderStates[j]._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+          renderStates[j]._apply(
+            engine,
+            renderer.entity.transform._isFrontFaceInvert(),
+            shaderPass._renderStateDataMap,
+            material.shaderData
+          );
 
           rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
         }

@@ -278,7 +278,7 @@ export class BasicRenderPipeline {
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {
     const rhi = engine._hardwareRenderer;
-    const { _backgroundTextureMaterial, canvas } = engine;
+    const { _backgroundTextureMaterial: material, canvas } = engine;
     const mesh = background._mesh;
 
     if (
@@ -289,15 +289,13 @@ export class BasicRenderPipeline {
       background._resizeBackgroundTexture();
     }
 
-    const program = _backgroundTextureMaterial.shader.subShaders[0].passes[0]._getShaderProgram(
-      engine,
-      Shader._compileMacros
-    );
+    const pass = material.shader.subShaders[0].passes[0];
+    const program = pass._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
-    program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
+    program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadUnGroupTextures();
 
-    _backgroundTextureMaterial.renderState._apply(engine, false);
+    (pass._renderState || material.renderState)._apply(engine, false, pass._renderStateDataMap, material.shaderData);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 

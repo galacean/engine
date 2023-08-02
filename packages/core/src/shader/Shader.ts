@@ -1,9 +1,11 @@
+import { IShaderLab } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader for rendering.
@@ -17,8 +19,32 @@ export class Shader {
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers"
   ];
+  /** @internal */
+  static _shaderLab?: IShaderLab;
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
+
+  /**
+   * Create a shader by source code.
+   *
+   * @remarks
+   *
+   * ShaderLab must be enabled first as follows:
+   * ```ts
+   * // Import shaderLab
+   * import { ShaderLab } from "@galacean/engine-shader-lab";
+   * // Create engine with shaderLab
+   * const engine = await WebGLEngine.create({ canvas: "canvas", new ShaderLab() });
+   * ...
+   * ```
+   *
+   * @param shaderSource - shader code
+   * @returns Shader
+   *
+   * @throws
+   * Throw string exception if shaderLab has not been enabled properly.
+   */
+  static create(shaderSource: string): Shader;
 
   /**
    * Create a shader.
@@ -46,30 +72,56 @@ export class Shader {
   static create(name: string, subShaders: SubShader[]): Shader;
 
   static create(
-    name: string,
-    vertexSourceOrShaderPassesOrSubShaders: SubShader[] | ShaderPass[] | string,
+    nameOrShaderSource: string,
+    vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
   ): Shader {
-    const shaderMap = Shader._shaderMap;
-    if (shaderMap[name]) {
-      throw `Shader named "${name}" already exists.`;
-    }
     let shader: Shader;
-    if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
-      const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-      shader = new Shader(name, [new SubShader("Default", [shaderPass])]);
+    const shaderMap = Shader._shaderMap;
+
+    if (!vertexSourceOrShaderPassesOrSubShaders) {
+      if (!Shader._shaderLab) {
+        throw "ShaderLab has not been set up yet.";
+      }
+
+      const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
+      const subShaderList = shaderInfo.subShaders.map((subShader) => {
+        const passList = subShader.passes.map((pass) => {
+          const shaderPass = new ShaderPass(pass.vert, pass.frag, pass.tags);
+          shaderPass._renderState = new RenderState();
+          // TODO: render state with `shaderPass._renderStateDataMap`, key is `RenderStateDataKey`，value is `ShaderProperty`
+          shaderPass._renderStateDataMap = {};
+          return shaderPass;
+        });
+        return new SubShader(shaderInfo.name, passList, subShader.tags);
+      });
+
+      shader = new Shader(shaderInfo.name, subShaderList);
+      shaderMap[shaderInfo.name] = shader;
+      return shader;
     } else {
-      if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
-        if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
-          shader = new Shader(name, [new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)]);
-        } else {
-          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
-        }
+      if (shaderMap[nameOrShaderSource]) {
+        throw `Shader named "${nameOrShaderSource}" already exists.`;
+      }
+      if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
+        shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
-        throw "SubShader or ShaderPass count must large than 0.";
+        if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
+          if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
+            shader = new Shader(nameOrShaderSource, [
+              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+            ]);
+          } else {
+            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+          }
+        } else {
+          throw "SubShader or ShaderPass count must large than 0.";
+        }
       }
     }
-    shaderMap[name] = shader;
+
+    shaderMap[nameOrShaderSource] = shader;
     return shader;
   }
 

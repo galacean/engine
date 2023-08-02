@@ -13,7 +13,7 @@
     shadowAttenuation = 1.0;
     #ifdef SCENE_IS_CALCULATE_SHADOWS
         shadowAttenuation *= sampleShadowMap();
-        int sunIndex = int(scene_ShadowInfo.z);
+        // int sunIndex = int(scene_ShadowInfo.z);
     #endif
 
     DirectLight directionalLight;
@@ -23,7 +23,7 @@
 
         directionalLight.color = scene_DirectLightColor[i];
         #ifdef SCENE_IS_CALCULATE_SHADOWS
-            if (i == sunIndex) {
+            if (i == 0) { // Sun light index is always 0
                 directionalLight.color *= shadowAttenuation;
             }
         #endif

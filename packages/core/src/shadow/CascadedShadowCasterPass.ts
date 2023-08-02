@@ -108,10 +108,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
 
-    const sunLightIndex = scene._lightManager._getSunLightIndex();
-
-    if (sunLightIndex !== -1) {
-      const light = camera.scene._sunLight;
+    const light = camera.scene._sunLight;
+    if (light) {
       const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
       this._getCascadesSplitDistance(shadowFar);
 
@@ -160,7 +158,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
       }
       this._shadowInfos.x = light.shadowStrength;
-      this._shadowInfos.z = sunLightIndex;
+      this._shadowInfos.z = 0; // @todo: sun light index always 0
 
       // prepare light and camera direction
       Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);

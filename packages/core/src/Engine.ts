@@ -1,4 +1,4 @@
-import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -132,6 +132,7 @@ export class Engine extends EventDispatcher {
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
+  private _waitingGC: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -234,7 +235,7 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
-    this._textDefaultFont.isGCIgnored = false;
+    this._textDefaultFont.isGCIgnored = true;
 
     this.inputManager = new InputManager(this);
 
@@ -249,6 +250,7 @@ export class Engine extends EventDispatcher {
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
+    magentaMaterial.isGCIgnored = true;
     magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
 
@@ -371,6 +373,10 @@ export class Engine extends EventDispatcher {
 
     if (this._waitingDestroy) {
       this._destroy();
+    }
+    if (this._waitingGC) {
+      this._gc();
+      this._waitingGC = false;
     }
     this._frameInProcess = false;
   }
@@ -571,9 +577,25 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
+  _pendingGC() {
+    if (this._frameInProcess) {
+      this._waitingGC = true;
+    } else {
+      this._gc();
+    }
+  }
+
+  /**
+   * @internal
+   */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const physics = configuration.physics;
-    const initializePromises: Promise<any>[] = [];
+    const { shaderLab, physics } = configuration;
+
+    if (shaderLab) {
+      Shader._shaderLab = shaderLab;
+    }
+
+    const initializePromises = new Array<Promise<any>>();
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
@@ -650,6 +672,14 @@ export class Engine extends EventDispatcher {
       });
   }
 
+  private _gc(): void {
+    this._renderElementPool.garbageCollection();
+    this._meshRenderDataPool.garbageCollection();
+    this._spriteRenderDataPool.garbageCollection();
+    this._spriteMaskRenderDataPool.garbageCollection();
+    this._textRenderDataPool.garbageCollection();
+  }
+
   /**
    * @deprecated
    * The first scene physics manager.
@@ -667,4 +697,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** Color space. */
   colorSpace?: ColorSpace;
+  /** Shader lab */
+  shaderLab?: IShaderLab;
 }

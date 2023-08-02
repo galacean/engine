@@ -74,8 +74,8 @@ export class KhronosTranscoder extends AbstractTranscoder {
       messageData[faceIndex] = mipmapData;
     }
 
-    return this._transcodeWorkerPool.postMessage(postMessageData).then((message) => {
-      decodedData.faces = message.data;
+    return this._transcodeWorkerPool.postMessage(postMessageData).then((data) => {
+      decodedData.faces = data;
       decodedData.hasAlpha = true;
       return decodedData;
     });

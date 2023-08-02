@@ -31,12 +31,10 @@ export class BinomialLLCTranscoder extends AbstractTranscoder {
   }
 
   transcode(buffer: ArrayBuffer, format: KTX2TargetFormat): Promise<TranscodeResult> {
-    return this._transcodeWorkerPool
-      .postMessage({
-        buffer,
-        format,
-        type: "transcode"
-      })
-      .then((ev) => ev.data);
+    return this._transcodeWorkerPool.postMessage({
+      buffer,
+      format,
+      type: "transcode"
+    });
   }
 }

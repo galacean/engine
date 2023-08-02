@@ -4,6 +4,7 @@ import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
 import { Texture2D } from "../../texture/Texture2D";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteAtlas } from "../atlas/SpriteAtlas";
 
 /**
  * 2D sprite.
@@ -32,6 +33,8 @@ export class Sprite extends ReferResource {
 
   private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
 
+  /** @internal */
+  _atlas: SpriteAtlas;
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -153,14 +156,7 @@ export class Sprite extends ReferResource {
   }
 
   set region(value: Rect) {
-    const region = this._region;
-    const x = MathUtil.clamp(value.x, 0, 1);
-    const y = MathUtil.clamp(value.y, 0, 1);
-    region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpriteModifyFlags.region);
-    if (this._customWidth === undefined || this._customHeight === undefined) {
-      this._dispatchSpriteChange(SpriteModifyFlags.size);
-    }
+    this._region !== value && this._region.copyFrom(value);
   }
 
   /**
@@ -172,16 +168,7 @@ export class Sprite extends ReferResource {
   }
 
   set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    if (pivot === value) {
-      this._dispatchSpriteChange(SpriteModifyFlags.pivot);
-    } else {
-      const { x, y } = value;
-      if (pivot.x !== x || pivot.y !== y) {
-        pivot.set(x, y);
-        this._dispatchSpriteChange(SpriteModifyFlags.pivot);
-      }
-    }
+    this._pivot !== value && this._pivot.copyFrom(value);
   }
 
   /**
@@ -196,11 +183,7 @@ export class Sprite extends ReferResource {
   }
 
   set border(value: Vector4) {
-    const border = this._border;
-    const x = MathUtil.clamp(value.x, 0, 1);
-    const y = MathUtil.clamp(value.y, 0, 1);
-    border.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpriteModifyFlags.border);
+    this._border !== value && this._border.copyFrom(value);
   }
 
   /**
@@ -222,6 +205,15 @@ export class Sprite extends ReferResource {
   ) {
     super(engine);
     this._texture = texture;
+    this._onRegionChange = this._onRegionChange.bind(this);
+    this._onPivotChange = this._onPivotChange.bind(this);
+    this._onBorderChange = this._onBorderChange.bind(this);
+    // @ts-ignore
+    this._region._onValueChanged = this._onRegionChange;
+    // @ts-ignore
+    this._pivot._onValueChanged = this._onPivotChange;
+    // @ts-ignore
+    this._border._onValueChanged = this._onBorderChange;
     region && this._region.copyFrom(region);
     pivot && this._pivot.copyFrom(pivot);
     border && this._border.copyFrom(border);
@@ -267,9 +259,29 @@ export class Sprite extends ReferResource {
   /**
    * @internal
    */
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._atlas?._addReferCount(value);
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._positions.length = 0;
+    this._positions = null;
+    this._uvs.length = 0;
+    this._uvs = null;
+    this._atlasRegion = null;
+    this._atlasRegionOffset = null;
+    this._region = null;
+    this._pivot = null;
+    this._border = null;
+    this._bounds = null;
+    this._atlas = null;
     this._texture = null;
+    this._updateFlagManager = null;
   }
 
   private _calDefaultSize(): void {
@@ -367,6 +379,37 @@ export class Sprite extends ReferResource {
         break;
     }
     this._updateFlagManager.dispatch(type);
+  }
+
+  private _onRegionChange(): void {
+    const { _region: region } = this;
+    // @ts-ignore
+    region._onValueChanged = null;
+    const x = MathUtil.clamp(region.x, 0, 1);
+    const y = MathUtil.clamp(region.y, 0, 1);
+    region.set(x, y, MathUtil.clamp(region.width, 0, 1 - x), MathUtil.clamp(region.height, 0, 1 - y));
+    this._dispatchSpriteChange(SpriteModifyFlags.region);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
+    // @ts-ignore
+    region._onValueChanged = this._onRegionChange;
+  }
+
+  private _onPivotChange(): void {
+    this._dispatchSpriteChange(SpriteModifyFlags.pivot);
+  }
+
+  private _onBorderChange(): void {
+    const { _border: border } = this;
+    // @ts-ignore
+    border._onValueChanged = null;
+    const x = MathUtil.clamp(border.x, 0, 1);
+    const y = MathUtil.clamp(border.y, 0, 1);
+    border.set(x, y, MathUtil.clamp(border.z, 0, 1 - x), MathUtil.clamp(border.w, 0, 1 - y));
+    this._dispatchSpriteChange(SpriteModifyFlags.border);
+    // @ts-ignore
+    border._onValueChanged = this._onBorderChange;
   }
 }
 
