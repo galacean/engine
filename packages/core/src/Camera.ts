@@ -33,7 +33,7 @@ class MathTemp {
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
-  static _cameraTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
+  static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");

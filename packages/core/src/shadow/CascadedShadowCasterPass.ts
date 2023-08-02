@@ -14,10 +14,10 @@ import { Texture2D } from "../texture/Texture2D";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
-import { PipelinePass } from "./PipelinePass";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
+import { PipelinePass } from "../RenderPipeline/PipelinePass";
 
 /**
  * Cascade shadow caster pass.

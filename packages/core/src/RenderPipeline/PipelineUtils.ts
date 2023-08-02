@@ -17,7 +17,7 @@ export class PipelineUtils {
    */
   static recreateTextureIfNeeded(
     engine: Engine,
-    currentTexture: Texture2D,
+    currentTexture: Texture2D | null,
     width: number,
     height: number,
     format: TextureFormat,
@@ -57,7 +57,7 @@ export class PipelineUtils {
    */
   static recreateRenderTargetIfNeeded(
     engine: Engine,
-    currentRenderTarget: RenderTarget,
+    currentRenderTarget: RenderTarget | null,
     width: number,
     height: number,
     colorFormat: TextureFormat | null,

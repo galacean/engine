@@ -158,7 +158,7 @@ export class BasicRenderPipeline {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
     } else {
-      camera.shaderData.setTexture(Camera._cameraTextureProperty, camera.engine._whiteTexture2D);
+      camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, camera.engine._whiteTexture2D);
     }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
@@ -174,7 +174,8 @@ export class BasicRenderPipeline {
     mipLevel?: number
   ) {
     const cullingResults = this._cullingResults;
-    pass.preRender(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
+    const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
+    pass.preRender(camera, opaqueQueue, alphaTestQueue, transparentQueue);
 
     if (pass.enabled) {
       const { engine, scene } = camera;
@@ -190,10 +191,10 @@ export class BasicRenderPipeline {
       }
 
       if (pass.renderOverride) {
-        pass.render(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
+        pass.render(camera, opaqueQueue, alphaTestQueue, transparentQueue);
       } else {
-        cullingResults.opaqueQueue.render(camera, pass.mask, PipelineStage.Forward);
-        cullingResults.alphaTestQueue.render(camera, pass.mask, PipelineStage.Forward);
+        opaqueQueue.render(camera, pass.mask, PipelineStage.Forward);
+        alphaTestQueue.render(camera, pass.mask, PipelineStage.Forward);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
