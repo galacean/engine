@@ -1,4 +1,4 @@
-import { Entity, Engine, Loader } from "@galacean/engine-core";
+import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
 import type { IEntity, IPrefabFile } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
@@ -11,7 +11,7 @@ import { ParserContext } from "./ParserContext";
  * @class CompositionParser
  * @template T
  */
-export default abstract class CompositionParser<T extends { engine: Engine }> {
+export default abstract class CompositionParser<T extends Scene | Entity> {
   /**
    * The promise of parsed object.
    */
