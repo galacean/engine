@@ -7,8 +7,8 @@ export class PrefabParser extends CompositionParser<Entity> {
   /**
    * Parse prefab data.
    * @param engine - the engine of the parser context
-   * @param sceneData - scene data which is exported by editor
-   * @returns a promise of scene
+   * @param prefabData - prefab data which is exported by editor
+   * @returns a promise of prefab
    */
   static parse(engine: Engine, prefabData: IPrefabFile): Promise<Entity> {
     const prefabEntity = new Entity(engine, "prefab");
@@ -16,13 +16,5 @@ export class PrefabParser extends CompositionParser<Entity> {
     const parser = new PrefabParser(context);
     parser.start();
     return parser.promise;
-  }
-
-  constructor(public override readonly context: PrefabParserContext) {
-    super(context);
-    this._engine = this.context.target.engine;
-    this._organizeEntities = this._organizeEntities.bind(this);
-    this._parseComponents = this._parseComponents.bind(this);
-    this._clearAndResolve = this._clearAndResolve.bind(this);
   }
 }

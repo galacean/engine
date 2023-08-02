@@ -27,6 +27,10 @@ export default abstract class CompositionParser<T> {
   }
 
   constructor(public readonly context: ParserContext<T, IPrefabFile>) {
+    this._engine = this.context.target.engine;
+    this._organizeEntities = this._organizeEntities.bind(this);
+    this._parseComponents = this._parseComponents.bind(this);
+    this._clearAndResolve = this._clearAndResolve.bind(this);
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
       this._resolve = resolve;

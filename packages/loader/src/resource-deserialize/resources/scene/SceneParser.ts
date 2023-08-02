@@ -18,12 +18,4 @@ export class SceneParser extends CompositionParser<Scene> {
     parser.start();
     return parser.promise;
   }
-
-  constructor(public override readonly context: SceneParserContext) {
-    super(context);
-    this._engine = this.context.target.engine;
-    this._organizeEntities = this._organizeEntities.bind(this);
-    this._parseComponents = this._parseComponents.bind(this);
-    this._clearAndResolve = this._clearAndResolve.bind(this);
-  }
 }
