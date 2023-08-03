@@ -15,6 +15,24 @@ export class ParticleCurve implements IClone {
   constantMax: number = 0;
 
   /**
+   * Query the curve value at the specified time.
+   * @param time - Normalized time at which to evaluate the curve, Valid when `mode` is set to `Curve` or `TwoCurves`
+   * @param lerpFactor - Lerp factor between two constants or curves, Valid when `mode` is set to `TwoConstants` or `TwoCurves`
+   * @returns - The result curve value
+   */
+
+  evaluate(time: number, lerpFactor: number): number {
+    switch (this.mode) {
+      case ParticleCurveMode.Constant:
+        return this.constant;
+      case ParticleCurveMode.TwoConstants:
+        return this.constantMin + (this.constantMax - this.constantMin) * lerpFactor;
+      default:
+        break;
+    }
+  }
+
+  /**
    * @inheritDoc
    */
   cloneTo(destEmission: ParticleCurve): void {

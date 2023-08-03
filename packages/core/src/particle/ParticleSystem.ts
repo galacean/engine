@@ -1,6 +1,8 @@
-import { Vector3 } from "oasis-engine";
+import { Quaternion, Rand, Vector3 } from "@galacean/engine-math";
+import { Transform } from "../Transform";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleData } from "./ParticleData";
+import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./moudules/EmissionModule";
 import { MainModule } from "./moudules/MainModule";
 import { ShapeModule } from "./moudules/ShapeModule";
@@ -15,6 +17,9 @@ export class ParticleSystem {
   private static _tempVector31: Vector3 = new Vector3();
   /** @internal */
   private static _particleData: ParticleData = new ParticleData();
+
+  /** Use auto random seed. */
+  useAutoRandomSeed: boolean = true;
 
   /** Main module. */
   readonly main: MainModule = new MainModule();
@@ -36,6 +41,20 @@ export class ParticleSystem {
   private _vertices: Float32Array;
   private _instanceVertices: Float32Array;
   private _indices: Uint16Array;
+
+  private _rand: Rand = new Rand(0);
+
+  /**
+   * Random seed.
+   * @remarks If `useAutoRandomSeed` is true, this value will be random changed when play.
+   */
+  get randomSeed(): number {
+    return this._rand.seed;
+  }
+
+  set randomSeed(value: number) {
+    this._rand.reset(value);
+  }
 
   /**
    * Emit a certain number of particles.
@@ -64,7 +83,7 @@ export class ParticleSystem {
     }
   }
 
-  private _addNewParticle(position: Vector3, direction: Vector3): void {
+  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform): void {
     direction.normalize();
     let nextFreeParticle = this._firstFreeElement + 1;
     if (nextFreeParticle >= this._maxBufferParticles) {
@@ -74,6 +93,38 @@ export class ParticleSystem {
     if (nextFreeParticle === this._firstRetiredElement) {
       // @todo: 查看是否可以扩容
     }
+
+    const main = this.main;
+    const out = ParticleSystem._particleData;
+
+    const rand = this._rand;
+    main.startColor.evaluate(undefined, rand.random(), out.startColor);
+
+    if (main.startSize3D) {
+      out.startSize[0] = main.startSizeX.evaluate(undefined, rand.random());
+      out.startSize[1] = main.startSizeY.evaluate(undefined, rand.random());
+      out.startSize[2] = main.startSizeZ.evaluate(undefined, rand.random());
+    } else {
+      out.startSize[0] = main.startSize.evaluate(undefined, rand.random());
+    }
+
+    if (main.startRotation3D) {
+      out.startRotation[0] = main.startRotationX.evaluate(undefined, rand.random());
+      out.startRotation[1] = main.startRotationY.evaluate(undefined, rand.random());
+      out.startRotation[2] = main.startRotationZ.evaluate(undefined, rand.random());
+    } else {
+      out.startRotation[0] = main.startRotation.evaluate(undefined, rand.random());
+    }
+
+    out.startLifeTime = main.startLifetime.evaluate(undefined, rand.random());
+
+    let pos: Vector3, rot: Quaternion;
+    if (this.main.simulationSpace === ParticleSimulationSpace.World) {
+      pos = transform.worldPosition;
+      rot = transform.worldRotationQuaternion;
+    }
+
+    const startSpeed = main.startSpeed.evaluate(undefined, rand.random());
   }
 
   private _retireActiveParticles(): void {}
@@ -82,9 +133,5 @@ export class ParticleSystem {
 
   private _addNewParticlesToBuffer(): void {}
 
-  private _createParticleData(main: MainModule, out: ParticleData): void {
-    this.main.startColor.evaluate(undefined, Math.random(), out.startColor);
-
-    
-  }
+  private _createParticleData(main: MainModule, out: ParticleData): void {}
 }

@@ -8,10 +8,22 @@ export class Rand {
     return x >>> 0;
   }
 
+  private _seed: number;
   private _state: [number, number];
 
+  /**
+   * Seed used to initialize the generator.
+   */
+  get seed(): number {
+    return this._seed;
+  }
+
+  /**
+   * Create a random number generator.
+   * @param seed - Seed used to initialize the generator
+   */
   constructor(seed: number) {
-    this._state = this._initializeState(seed);
+    this.reset(seed);
   }
 
   /**
@@ -21,6 +33,15 @@ export class Rand {
   random(): number {
     this._advanceState();
     return Rand._toUint32(this._state[0] + this._state[1]) / Rand._uint32MaxValue;
+  }
+
+  /**
+   * Reset the generator by a new seed.
+   * @param seed
+   */
+  reset(seed: number): void {
+    this._seed = seed;
+    this._state = this._initializeState(seed);
   }
 
   private _initializeState(seed: number): [number, number] {

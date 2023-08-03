@@ -1,6 +1,6 @@
 import { IClone } from "@galacean/engine-design";
-import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { Color } from "@galacean/engine-math";
+import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 
 /**
  * Particle curve.
@@ -17,8 +17,8 @@ export class ParticleGradient implements IClone {
 
   /**
    * Query the color at the specified time.
-   * @param time - Normalized time at which to evaluate the curve, Valid when `mode` is set to `Gradient` or `TwoGradients`
-   * @param lerpFactor - Lerp factor between two color or gradient, Valid when `mode` is set to `TwoColors` or `TwoGradients`
+   * @param time - Normalized time at which to evaluate the gradient, Valid when `mode` is set to `Gradient` or `TwoGradients`
+   * @param lerpFactor - Lerp factor between two colors or gradients, Valid when `mode` is set to `TwoColors` or `TwoGradients`
    * @param out - The result color
    */
 
