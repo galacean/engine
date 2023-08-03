@@ -11,15 +11,25 @@ export class DisorderedArray<T> {
   }
 
   add(element: T): void {
-    if (this.length === this._elements.length) this._elements.push(element);
-    else this._elements[this.length] = element;
+    if (this.length === this._elements.length) {
+      this._elements.push(element);
+    } else {
+      this._elements[this.length] = element;
+    }
     this.length++;
   }
 
   delete(element: T): void {
-    //TODO: It can be optimized for custom binary search and other algorithms, currently this._elements>=this.length wastes performance.
+    // @todo: It can be optimized for custom binary search and other algorithms, currently this._elements>=this.length wastes performance.
     const index = this._elements.indexOf(element);
     this.deleteByIndex(index);
+  }
+
+  set(index: number, element: T): void {
+    if (index >= this.length) {
+      throw "Index is out of range.";
+    }
+    this._elements[index] = element;
   }
 
   get(index: number): T {
@@ -30,9 +40,9 @@ export class DisorderedArray<T> {
   }
 
   /**
-   *
-   * @param index
-   * @returns The replaced item is used to reset its index.
+   * Delete the element at the specified index.
+   * @param index - The index of the element to be deleted
+   * @returns The replaced item is used to reset its index
    */
   deleteByIndex(index: number): T {
     var elements: T[] = this._elements;

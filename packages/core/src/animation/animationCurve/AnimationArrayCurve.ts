@@ -1,4 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -22,6 +23,13 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     owner.fixedPoseValue = [];
     owner.baseEvaluateData.value = [];
     owner.crossEvaluateData.value = [];
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = [];
   }
 
   /**
