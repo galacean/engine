@@ -417,8 +417,8 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
-    const { refId, key, isClone } = ref;
+  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean; needContext?: boolean }): Promise<T> {
+    const { refId, key, isClone, needContext } = ref;
     const obj = this._objectPool[refId];
     let promise;
     if (obj) {
@@ -432,7 +432,8 @@ export class ResourceManager {
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
         url,
-        type: this._editorResourceConfig[refId].type
+        type: this._editorResourceConfig[refId].type,
+        params: { needContext }
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));

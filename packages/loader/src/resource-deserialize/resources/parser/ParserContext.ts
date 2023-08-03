@@ -15,7 +15,10 @@ export abstract class ParserContext<T, I> {
   assets: Map<string, any> = new Map();
   entityConfigMap: Map<string, IEntity> = new Map();
   rootIds: string[] = [];
-  constructor(public readonly originalData: I, public readonly target: T) {}
+  constructor(
+    public readonly originalData: I,
+    public readonly target: T
+  ) {}
 
   /**
    * Destroy the context.

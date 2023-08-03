@@ -61,7 +61,7 @@ export interface IRefEntity extends IBasicEntity {
 
 export interface IPrefabEntity extends IBasicEntity {
   prefabSource: { assetId: string };
-  modification: any[];
+  modifications: any[];
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;

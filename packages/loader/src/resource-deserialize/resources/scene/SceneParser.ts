@@ -1,10 +1,10 @@
 import { Engine, Entity, Scene } from "@galacean/engine-core";
 import type { IScene } from "../schema";
 import { SceneParserContext } from "./SceneParserContext";
-import CompositionParser from "../parser/CompositionParser";
+import HierarchyParser from "../parser/HierarchyParser";
 
 /** @Internal */
-export class SceneParser extends CompositionParser<Scene> {
+export class SceneParser extends HierarchyParser<Scene> {
   /**
    * Parse scene data.
    * @param engine - the engine of the parser context
