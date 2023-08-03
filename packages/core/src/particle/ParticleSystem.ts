@@ -1,10 +1,19 @@
 import { Buffer } from "./../graphic/Buffer";
+import { MainModule } from "./moudules/MainModule";
 
 /**
  * Particle System.
  */
 export class ParticleSystem {
+  /** Main Particle System module. */
+  readonly main: MainModule = new MainModule();
+  /** Emission Particle System module. */
+  readonly emission: MainModule = new MainModule();
 
+  private _firstActiveElement: number = 0;
+  private _firstNewElement: number = 0;
+  private _firstFreeElement: number = 0;
+  private _firstRetiredElement: number = 0;
 
   private _vertexBuffer: Buffer;
   private _instanceVertexBuffer: Buffer;
@@ -14,5 +23,5 @@ export class ParticleSystem {
   private _instanceVertices: Float32Array;
   private _indices: Uint16Array;
 
-  private _initBuffers() {}
+  private _initBuffers(): void {}
 }

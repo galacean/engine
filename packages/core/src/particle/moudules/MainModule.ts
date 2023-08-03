@@ -49,4 +49,23 @@ export class MainModule {
   startSizeY: ParticleCurve = new ParticleCurve();
   /** The initial size of particles along the z-axis when the Particle System first spawns them. */
   startSizeZ: ParticleCurve = new ParticleCurve();
+
+  private _bufferMaxParticles: number = 0;
+
+  /**
+   * Max particles count.
+   */
+  get maxParticles(): number {
+    return this._bufferMaxParticles - 1;
+  }
+
+  set maxParticles(value: number) {
+    var newMaxParticles: number = value + 1;
+    if (newMaxParticles !== this._bufferMaxParticles) {
+      this._bufferMaxParticles = newMaxParticles;
+      // this._initBufferDatas();
+    }
+
+    // this._updateParticlesSimulationRestart(0);
+  }
 }
