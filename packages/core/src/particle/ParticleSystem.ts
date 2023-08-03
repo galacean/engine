@@ -1,7 +1,12 @@
 import { Quaternion, Rand, Vector3 } from "@galacean/engine-math";
+import { Engine } from "../Engine";
 import { Transform } from "../Transform";
+import { BufferBindFlag, BufferUsage } from "../graphic";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleData } from "./ParticleData";
+import { ParticleRenderer } from "./ParticleRenderer";
+import { ParticleBufferUtils as ParticleBufferUtils } from "./ParticleVertexUtils";
+import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./moudules/EmissionModule";
 import { MainModule } from "./moudules/MainModule";
@@ -41,8 +46,13 @@ export class ParticleSystem {
   private _vertices: Float32Array;
   private _instanceVertices: Float32Array;
   private _indices: Uint16Array;
+  private _vertexStride: number = 0;
+  private _instanceVertexStride: number = 0;
 
   private _rand: Rand = new Rand(0);
+
+  private _engine: Engine;
+  private _renderer: ParticleRenderer;
 
   /**
    * Random seed.
@@ -56,6 +66,10 @@ export class ParticleSystem {
     this._rand.reset(value);
   }
 
+  constructor(renderer: ParticleRenderer) {
+    this._renderer = renderer;
+  }
+
   /**
    * Emit a certain number of particles.
    * @param count - Number of particles to emit
@@ -66,10 +80,11 @@ export class ParticleSystem {
     if (this.emission.enabled) {
       if (this.shape.enabled) {
       } else {
+        const transform = this._renderer.entity.transform;
         for (let i = 0; i < count; i++) {
           position.set(0, 0, 0);
           direction.set(0, 0, -1);
-          this._addNewParticle(position, direction);
+          this._addNewParticle(position, direction, transform);
         }
       }
     }
@@ -80,6 +95,36 @@ export class ParticleSystem {
       this._vertexBuffer.destroy();
       this._instanceVertexBuffer.destroy();
       this._indexBuffer.destroy();
+    }
+
+    if (this._renderer.renderMode === ParticleRenderMode.Mesh) {
+    } else {
+      const engine = this._engine;
+      const vertexBillboardStride = ParticleBufferUtils.billboardVertexStride * 4;
+      const vertexBuffer = new Buffer(
+        engine,
+        BufferBindFlag.VertexBuffer,
+        vertexBillboardStride,
+        BufferUsage.Static,
+        false
+      );
+      vertexBuffer.setData(ParticleBufferUtils.billboardVertices);
+      this._vertexBuffer = vertexBuffer;
+
+      const indexStride = 2 * 6;
+      const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexStride, BufferUsage.Static, false);
+      indexBuffer.setData(ParticleBufferUtils.billboardIndices);
+      this._indexBuffer = indexBuffer;
+
+      const vertexInstanceStride = ParticleBufferUtils.instanceVertexStride * this.main.maxParticles;
+      const vertexInstanceBuffer = new Buffer(
+        engine,
+        BufferBindFlag.VertexBuffer,
+        vertexInstanceStride,
+        BufferUsage.Static,
+        false
+      );
+      this._instanceVertices = new Float32Array(vertexInstanceStride / 4);
     }
   }
 

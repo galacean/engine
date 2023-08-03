@@ -1,8 +1,7 @@
 import { Color } from "@galacean/engine-math";
 
-
 /**
- * Particle data.
+ * @internal
  */
 export class ParticleData {
   startLifeTime: number;

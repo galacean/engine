@@ -21,7 +21,7 @@ export class ParticleRenderer extends Renderer {
   private _renderMode: ParticleRenderMode;
 
   /** Particle system. */
-  readonly particleSystem: ParticleSystem = new ParticleSystem();
+  readonly particleSystem: ParticleSystem = new ParticleSystem(this);
 
   /**
    * Specifies how the system draws particles.
