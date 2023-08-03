@@ -7,7 +7,7 @@ import { ParticleCurve } from "./ParticleCurve";
  */
 export class EmissionModule implements IClone {
   /** Specifies whether the EmissionModule is enabled or disabled. */
-  enable: boolean = true;
+  enabled: boolean = true;
   /**  The rate of particle emission. */
   rateOverTime: ParticleCurve = new ParticleCurve();
   /**  The rate at which the emitter spawns new particles over distance. */
@@ -68,7 +68,7 @@ export class EmissionModule implements IClone {
    * @override
    */
   cloneTo(destEmission: EmissionModule): void {
-    destEmission.enable = this.enable;
+    destEmission.enabled = this.enabled;
     destEmission.rateOverTime = this.rateOverTime;
     destEmission.rateOverDistance = this.rateOverDistance;
 
