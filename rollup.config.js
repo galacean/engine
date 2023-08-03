@@ -104,7 +104,7 @@ function config({ location, pkgJson }) {
             sourcemap: false
           }
         ],
-        external: Object.keys(pkgJson.dependencies || {})
+        external: external
           .concat("@galacean/engine-miniprogram-adapter")
           .map((name) => `${name}/dist/miniprogram`),
         plugins

@@ -406,6 +406,13 @@ export class PhysicsScene {
     }
   }
 
+  /**
+   * @internal
+   */
+  _gc(): void {
+    this._colliders.garbageCollection();
+  }
+
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }

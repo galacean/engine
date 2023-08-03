@@ -130,6 +130,7 @@ export class Engine extends EventDispatcher {
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
+  private _waitingGC: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -232,7 +233,7 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
-    this._textDefaultFont.isGCIgnored = false;
+    this._textDefaultFont.isGCIgnored = true;
 
     this.inputManager = new InputManager(this);
 
@@ -247,6 +248,7 @@ export class Engine extends EventDispatcher {
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
+    magentaMaterial.isGCIgnored = true;
     magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
 
@@ -369,6 +371,10 @@ export class Engine extends EventDispatcher {
 
     if (this._waitingDestroy) {
       this._destroy();
+    }
+    if (this._waitingGC) {
+      this._gc();
+      this._waitingGC = false;
     }
     this._frameInProcess = false;
   }
@@ -563,6 +569,17 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
+  _pendingGC() {
+    if (this._frameInProcess) {
+      this._waitingGC = true;
+    } else {
+      this._gc();
+    }
+  }
+
+  /**
+   * @internal
+   */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const { shaderLab, physics } = configuration;
 
@@ -645,6 +662,14 @@ export class Engine extends EventDispatcher {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  private _gc(): void {
+    this._renderElementPool.garbageCollection();
+    this._meshRenderDataPool.garbageCollection();
+    this._spriteRenderDataPool.garbageCollection();
+    this._spriteMaskRenderDataPool.garbageCollection();
+    this._textRenderDataPool.garbageCollection();
   }
 
   /**

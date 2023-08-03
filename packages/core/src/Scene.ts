@@ -33,10 +33,6 @@ export class Scene extends EngineObject {
 
   /** Physics. */
   readonly physics: PhysicsScene = new PhysicsScene(this);
-  /** The background of the scene. */
-  readonly background: Background = new Background(this._engine);
-  /** Scene-related shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
   /** If cast shadows. */
   castShadows: boolean = true;
@@ -66,6 +62,8 @@ export class Scene extends EngineObject {
   /** @internal */
   _sunLight: Light;
 
+  private _background: Background = new Background(this._engine);
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
   private _fogMode: FogMode = FogMode.None;
@@ -74,6 +72,20 @@ export class Scene extends EngineObject {
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
+
+  /**
+   * Scene-related shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
+
+  /**
+   * The background of the scene.
+   */
+  get background(): Background {
+    return this._background;
+  }
 
   /**
    *  Number of cascades to use for directional light shadows.
@@ -209,7 +221,7 @@ export class Scene extends EngineObject {
 
     const shaderData = this.shaderData;
     shaderData._addReferCount(1);
-    this.ambientLight = new AmbientLight();
+    this.ambientLight = new AmbientLight(engine);
     engine.sceneManager._allCreatedScenes.push(this);
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
@@ -305,7 +317,7 @@ export class Scene extends EngineObject {
 
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       Entity._traverseSetOwnerScene(entity, null);
     }
@@ -417,13 +429,16 @@ export class Scene extends EngineObject {
     engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+    lightManager._updateSunLightIndex();
 
-    const sunLightIndex = lightManager._getSunLightIndex();
-    if (sunLightIndex !== -1) {
-      const sunlight = lightManager._directLights.get(sunLightIndex);
+    if (lightManager._directLights.length > 0) {
+      const sunlight = lightManager._directLights.get(0);
+
       shaderData.setColor(Scene._sunlightColorProperty, sunlight._getLightIntensityColor());
       shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
       this._sunLight = sunlight;
+    } else {
+      this._sunLight = null;
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
@@ -467,6 +482,8 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
+    this.background.destroy();
+    this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
     this._componentsManager.handlingInvalidScripts();
 

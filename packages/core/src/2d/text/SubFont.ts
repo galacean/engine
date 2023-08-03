@@ -95,6 +95,7 @@ export class SubFont {
     const fontAtlas = new FontAtlas(engine);
     const texture = new Texture2D(engine, 256, 256);
     fontAtlas.texture = texture;
+    fontAtlas.isGCIgnored = texture.isGCIgnored = true;
     this._fontAtlases.push(fontAtlas);
 
     const nativeFontString = this.nativeFontString;

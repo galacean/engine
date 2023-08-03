@@ -306,8 +306,7 @@ class GLTFCustomBufferParser extends GLTFParser {
       0, 0, 0, 0, 7, 9, 255, 196, 0, 20, 17, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 218, 0, 12, 3, 1,
       0, 2, 17, 3, 17, 0, 63, 0, 157, 0, 6, 42, 155, 255, 217
     ]);
-    // @ts-ignore
-    context.buffers = [buffer];
+    context._buffers = [buffer];
   }
 }
 
@@ -421,10 +420,5 @@ describe("glTF Loader test", function () {
     const renderer = entities[1].getComponent(SkinnedMeshRenderer);
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
-
-    glTFResource.destroy();
-    expect(glTFResource.materials).to.be.null;
-    expect(glTFResource.textures).to.be.null;
-    expect(glTFResource.entities).to.be.null;
   });
 });

@@ -48,7 +48,8 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 state.wrapMode = wrapMode;
                 state.clipStartTime = clipStartNormalizedTime;
                 state.clipEndTime = clipEndNormalizedTime;
-                scripts?.forEach((script) => {
+                const scriptsObject = JSON.parse(scripts);
+                scriptsObject?.forEach((script) => {
                   state.addStateMachineScript(Loader.getClass(script));
                 });
                 if (clipData) {
