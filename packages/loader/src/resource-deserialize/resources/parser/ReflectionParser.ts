@@ -8,38 +8,6 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
-    return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
-      entity.isActive = entityConfig.isActive ?? true;
-      const { position, rotation, scale } = entityConfig;
-      if (position) entity.transform.position.copyFrom(position);
-      if (rotation) entity.transform.rotation.copyFrom(rotation);
-      if (scale) entity.transform.scale.copyFrom(scale);
-      return entity;
-    });
-  }
-
-  private static getEntityByConfig(entityConfig: IEntity, engine: Engine): Promise<Entity> {
-    // @ts-ignore
-    const isPrefab = entityConfig.prefabSource ?? false;
-    // @ts-ignore
-    const assetRefId: string = isPrefab ? entityConfig.prefabSource?.assetId : entityConfig.assetRefId;
-    if (assetRefId) {
-      return (
-        engine.resourceManager
-          // @ts-ignore
-          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
-          .then((entity) => {
-            entity.name = entityConfig.name;
-            return entity;
-          })
-      );
-    } else {
-      const entity = new Entity(engine, entityConfig.name);
-      return Promise.resolve(entity);
-    }
-  }
-
   static parseClassObject(
     item: IClassObject,
     engine: Engine,

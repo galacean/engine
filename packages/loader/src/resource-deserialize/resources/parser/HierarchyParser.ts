@@ -5,11 +5,11 @@ import { ParserContext } from "./ParserContext";
 import { IPrefabContextData } from "../../../PrefabLoader";
 
 /**
- * Composition parser.
- * Any composition parser should extends this class, like scene parser, prefab parser, etc.
+ * HierarchyParser parser.
+ * Any HierarchyParser parser should extends this class, like scene parser, prefab parser, etc.
  * @export
  * @abstract
- * @class CompositionParser
+ * @class HierarchyParserParser
  * @template T
  */
 export default abstract class HierarchyParser<T extends Scene | Entity> {
