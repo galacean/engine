@@ -23,5 +23,11 @@ export class ParticleSystem {
   private _instanceVertices: Float32Array;
   private _indices: Uint16Array;
 
-  private _initBuffers(): void {}
+  private _recreateBuffers(): void {
+    if (this._vertexBuffer) {
+      this._vertexBuffer.destroy();
+      this._instanceVertexBuffer.destroy();
+      this._indexBuffer.destroy();
+    }
+  }
 }
