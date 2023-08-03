@@ -1,4 +1,4 @@
-import { Camera, PrimitiveMesh } from "@galacean/engine-core";
+import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
 import { expect } from "chai";
@@ -149,8 +149,8 @@ describe("PrimitiveMesh", () => {
   it("createCapsule", () => {
     const radius = 2;
     const height = 3;
-    const radialSegments = 599.9999;
-    const heightSegments = 100.0001;
+    const radialSegments = 20.9999;
+    const heightSegments = 30.0001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const capsuleMesh = PrimitiveMesh.createCapsule(engine, radius, height, radialSegments, heightSegments, false);
@@ -164,5 +164,28 @@ describe("PrimitiveMesh", () => {
     expect(capsuleMesh.getIndices().length).equal(
       (floorRadialSegments * floorHeightSegments + 2 * floorRadialSegments * floorRadialSegments) * 6
     );
+  });
+
+  it("test limit vertex count", () => {
+    const radius = 1;
+    const segments = 300;
+    const floorSegments = Math.floor(segments);
+    const count = segments + 1;
+
+    if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
+      const sphereMesh = PrimitiveMesh.createSphere(engine, radius, segments, false);
+      expect(sphereMesh.vertexCount).equal(count * count);
+      expect(sphereMesh.vertexElements.length).equal(4);
+      expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
+      expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
+      expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
+      expect(sphereMesh.vertexBufferBindings.length).equal(1);
+    } else {
+      expect(() => {
+        try {
+          PrimitiveMesh.createSphere(engine, radius, segments, false);
+        } catch (e) {}
+      }).throw("The vertex count is out of range.");
+    }
   });
 });
