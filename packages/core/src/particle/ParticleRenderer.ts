@@ -1,4 +1,6 @@
+
 import { Renderer } from "../Renderer";
+import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ParticleSystem } from "./ParticleSystem";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
@@ -22,6 +24,12 @@ export class ParticleRenderer extends Renderer {
 
   /** Particle system. */
   readonly particleSystem: ParticleSystem = new ParticleSystem(this);
+
+  /**
+   * The mesh of particle.
+   * @remarks Valid when `renderMode` is `Mesh`.
+   */
+  mesh: ModelMesh;
 
   /**
    * Specifies how the system draws particles.

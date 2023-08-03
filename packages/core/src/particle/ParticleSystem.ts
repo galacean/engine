@@ -1,16 +1,17 @@
 import { Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { Transform } from "../Transform";
 import { BufferBindFlag, BufferUsage } from "../graphic";
+import { Transform } from "../Transform";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleData } from "./ParticleData";
 import { ParticleRenderer } from "./ParticleRenderer";
-import { ParticleBufferUtils as ParticleBufferUtils } from "./ParticleVertexUtils";
+
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./moudules/EmissionModule";
 import { MainModule } from "./moudules/MainModule";
 import { ShapeModule } from "./moudules/ShapeModule";
+import { ParticleBufferDefinition } from "./ParticleBufferUtils";
 
 /**
  * Particle System.
@@ -97,35 +98,46 @@ export class ParticleSystem {
       this._indexBuffer.destroy();
     }
 
+    const engine = this._engine;
+
     if (this._renderer.renderMode === ParticleRenderMode.Mesh) {
+      const mesh = this._renderer.mesh;
+      if (!mesh) {
+        return;
+      }
+
+      const vertexBufferBindings = mesh.vertexBufferBindings;
+      const indexBufferBinding = mesh._indexBufferBinding;
+
+
     } else {
-      const engine = this._engine;
-      const vertexBillboardStride = ParticleBufferUtils.billboardVertexStride * 4;
+      const billboardVertexStride = ParticleBufferDefinition.billboardVertexStride * 4;
       const vertexBuffer = new Buffer(
         engine,
         BufferBindFlag.VertexBuffer,
-        vertexBillboardStride,
+        billboardVertexStride,
         BufferUsage.Static,
         false
       );
-      vertexBuffer.setData(ParticleBufferUtils.billboardVertices);
+      vertexBuffer.setData(ParticleBufferDefinition.billboardVertices);
       this._vertexBuffer = vertexBuffer;
 
       const indexStride = 2 * 6;
       const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexStride, BufferUsage.Static, false);
-      indexBuffer.setData(ParticleBufferUtils.billboardIndices);
+      indexBuffer.setData(ParticleBufferDefinition.billboardIndices);
       this._indexBuffer = indexBuffer;
-
-      const vertexInstanceStride = ParticleBufferUtils.instanceVertexStride * this.main.maxParticles;
-      const vertexInstanceBuffer = new Buffer(
-        engine,
-        BufferBindFlag.VertexBuffer,
-        vertexInstanceStride,
-        BufferUsage.Static,
-        false
-      );
-      this._instanceVertices = new Float32Array(vertexInstanceStride / 4);
     }
+
+    const instanceVertexStride = ParticleBufferDefinition.instanceVertexStride * this.main.maxParticles;
+    const vertexInstanceBuffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      instanceVertexStride,
+      BufferUsage.Static,
+      false
+    );
+    this._instanceVertices = new Float32Array(instanceVertexStride / 4);
+    this._instanceVertexBuffer = vertexInstanceBuffer;
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform): void {

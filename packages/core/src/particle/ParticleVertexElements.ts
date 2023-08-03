@@ -1,6 +1,0 @@
-/**
- * @internal
- */
-export class ParticleVertexElements {
-    
-}

@@ -7,7 +7,7 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
 /**
  * @internal
  */
-export class ParticleBufferUtils {
+export class ParticleBufferDefinition {
   static readonly billboardVertexElements = [
     new VertexElement(ParticleBillboardVertexAttribute.cornerTextureCoordinate, 0, VertexElementFormat.Vector4, 0)
   ];
@@ -33,6 +33,10 @@ export class ParticleBufferUtils {
   static readonly billboardVertexStride = 16;
   static readonly meshVertexStride = 36;
   static readonly instanceVertexStride = 152;
+
+  static readonly instanceStartLifeTimeOffset = 3;
+  static readonly instanceStartSizeOffset = 7;
+  static readonly instanceSimulationOffset = 34;
 
   static readonly billboardVertices = new Float32Array([
     -0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0
