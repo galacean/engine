@@ -1,17 +1,18 @@
 import { Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { BufferBindFlag, BufferUsage } from "../graphic";
 import { Transform } from "../Transform";
+import { BufferBindFlag, BufferUsage, IndexBufferBinding, VertexBufferBinding, VertexElement } from "../graphic";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleData } from "./ParticleData";
 import { ParticleRenderer } from "./ParticleRenderer";
 
+import { VertexAttribute } from "../mesh";
+import { ParticleBufferDefinition } from "./ParticleBufferUtils";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./moudules/EmissionModule";
 import { MainModule } from "./moudules/MainModule";
 import { ShapeModule } from "./moudules/ShapeModule";
-import { ParticleBufferDefinition } from "./ParticleBufferUtils";
 
 /**
  * Particle System.
@@ -40,15 +41,12 @@ export class ParticleSystem {
   private _firstFreeElement: number = 0;
   private _firstRetiredElement: number = 0;
 
-  private _vertexBuffer: Buffer;
-  private _instanceVertexBuffer: Buffer;
-  private _indexBuffer: Buffer;
+  private _vertexElements: VertexElement[] = [];
+  private _vertexBufferBindings: VertexBufferBinding[] = [];
+  private _indexBufferBinding: IndexBufferBinding;
 
-  private _vertices: Float32Array;
+  private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
-  private _indices: Uint16Array;
-  private _vertexStride: number = 0;
-  private _instanceVertexStride: number = 0;
 
   private _rand: Rand = new Rand(0);
 
@@ -91,14 +89,25 @@ export class ParticleSystem {
     }
   }
 
-  private _recreateBuffers(): void {
-    if (this._vertexBuffer) {
-      this._vertexBuffer.destroy();
-      this._instanceVertexBuffer.destroy();
-      this._indexBuffer.destroy();
+  private _addVertexBufferBindingsFilterDuplicate(
+    vertexBufferBinding: VertexBufferBinding,
+    out: VertexBufferBinding[]
+  ): number {
+    let index = 0;
+    for (let n = out.length; index < n; index++) {
+      if (out[index] === vertexBufferBinding) {
+        return index;
+      }
     }
+    out.push(vertexBufferBinding);
+    return index;
+  }
 
-    const engine = this._engine;
+  private _createGeometryBuffers(): void {
+    const vertexElements = this._vertexElements;
+    const vertexBufferBindings = this._vertexBufferBindings;
+    vertexElements.length = 0;
+    vertexBufferBindings.length = 0;
 
     if (this._renderer.renderMode === ParticleRenderMode.Mesh) {
       const mesh = this._renderer.mesh;
@@ -106,38 +115,59 @@ export class ParticleSystem {
         return;
       }
 
-      const vertexBufferBindings = mesh.vertexBufferBindings;
-      const indexBufferBinding = mesh._indexBufferBinding;
+      const positionElement = mesh.getVertexElement(VertexAttribute.Position);
+      const colorElement = mesh.getVertexElement(VertexAttribute.Color);
+      const uvElement = mesh.getVertexElement(VertexAttribute.UV);
+      const positionBufferBinding = positionElement ? mesh.vertexBufferBindings[positionElement.bindingIndex] : null;
+      const colorBufferBinding = colorElement ? mesh.vertexBufferBindings[colorElement.bindingIndex] : null;
+      const uvBufferBinding = uvElement ? mesh.vertexBufferBindings[uvElement.bindingIndex] : null;
 
+      if (positionBufferBinding) {
+        const index = this._addVertexBufferBindingsFilterDuplicate(positionBufferBinding, vertexBufferBindings);
+        vertexElements.push(
+          new VertexElement(VertexAttribute.Position, positionElement.offset, positionElement.format, index)
+        );
+      }
 
+      if (colorBufferBinding) {
+        const index = this._addVertexBufferBindingsFilterDuplicate(colorBufferBinding, vertexBufferBindings);
+        vertexElements.push(new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index));
+      }
+
+      if (uvBufferBinding) {
+        const index = this._addVertexBufferBindingsFilterDuplicate(uvBufferBinding, vertexBufferBindings);
+        vertexElements.push(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
+      }
+
+      this._indexBufferBinding = mesh._indexBufferBinding;
     } else {
-      const billboardVertexStride = ParticleBufferDefinition.billboardVertexStride * 4;
-      const vertexBuffer = new Buffer(
-        engine,
-        BufferBindFlag.VertexBuffer,
-        billboardVertexStride,
-        BufferUsage.Static,
-        false
-      );
-      vertexBuffer.setData(ParticleBufferDefinition.billboardVertices);
-      this._vertexBuffer = vertexBuffer;
+      vertexElements.push(ParticleBufferDefinition.billboardVertexElement);
+      vertexBufferBindings.push(ParticleBufferDefinition.billboardVertexBufferBinding);
+      this._indexBufferBinding = ParticleBufferDefinition.billboardIndexBufferBinding;
+    }
+  }
 
-      const indexStride = 2 * 6;
-      const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexStride, BufferUsage.Static, false);
-      indexBuffer.setData(ParticleBufferDefinition.billboardIndices);
-      this._indexBuffer = indexBuffer;
+  private _recreateInstanceBuffer(particleCount: number): void {
+    const instanceBinding = this._instanceVertexBufferBinding;
+    const vertexBufferBindings = this._vertexBufferBindings;
+
+    if (instanceBinding !== null) {
+      instanceBinding.buffer.destroy();
+    } else {
+      vertexBufferBindings.length++;
     }
 
-    const instanceVertexStride = ParticleBufferDefinition.instanceVertexStride * this.main.maxParticles;
+    const stride = ParticleBufferDefinition.instanceVertexStride;
+    const byteLength = stride * Math.min(particleCount, this.main.maxParticles);
     const vertexInstanceBuffer = new Buffer(
-      engine,
+      this._engine,
       BufferBindFlag.VertexBuffer,
-      instanceVertexStride,
-      BufferUsage.Static,
+      byteLength,
+      BufferUsage.Dynamic,
       false
     );
-    this._instanceVertices = new Float32Array(instanceVertexStride / 4);
-    this._instanceVertexBuffer = vertexInstanceBuffer;
+    this._instanceVertices = new Float32Array(byteLength / 4);
+    vertexBufferBindings[vertexBufferBindings.length - 1] = new VertexBufferBinding(vertexInstanceBuffer, stride);
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform): void {

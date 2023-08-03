@@ -93,7 +93,7 @@ export class ModelMesh extends Mesh {
   /**
    * Vertex buffer binding collection.
    */
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+  get vertexBufferBindings(): ReadonlyArray<VertexBufferBinding> {
     // @todo: update if dirty like `vertexElements` is better
     return this._vertexBufferBindings;
   }
@@ -570,6 +570,16 @@ export class ModelMesh extends Mesh {
       }
     }
     this._vertexCountDirty = true;
+  }
+
+  /**
+   * Get `VertexElement` by attribute.
+   * @param attribute - Vertex attribute
+   * @returns Vertex element
+   */
+  getVertexElement(attribute: VertexAttribute): VertexElement | null {
+    this._updateVertexElements();
+    return this._vertexElementMap[attribute];
   }
 
   /**

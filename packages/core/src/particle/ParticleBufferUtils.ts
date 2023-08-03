@@ -1,22 +1,27 @@
+import { Engine } from "../Engine";
+import { Buffer } from "../graphic/Buffer";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ParticleBillboardVertexAttribute } from "./enums/attributes/BillboardParticleVertexAttribute";
-import { MeshParticleVertexAttribute } from "./enums/attributes/MeshParticleVertexAttribute";
 import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInstanceVertexAttribute";
 
 /**
  * @internal
  */
 export class ParticleBufferDefinition {
-  static readonly billboardVertexElements = [
-    new VertexElement(ParticleBillboardVertexAttribute.cornerTextureCoordinate, 0, VertexElementFormat.Vector4, 0)
-  ];
-  static readonly meshVertexElements = [
-    new VertexElement(MeshParticleVertexAttribute.MeshPosition, 0, VertexElementFormat.Vector3, 0),
-    new VertexElement(MeshParticleVertexAttribute.MeshColor, 12, VertexElementFormat.Vector4, 0),
-    new VertexElement(MeshParticleVertexAttribute.MeshTextureCoordinate, 28, VertexElementFormat.Vector2, 0)
-  ];
-  static readonly instanceVertexElement = [
+  static readonly billboardVertexElement = new VertexElement(
+    ParticleBillboardVertexAttribute.cornerTextureCoordinate,
+    0,
+    VertexElementFormat.Vector4,
+    0
+  );
+
+  static readonly instanceVertexElements = [
     new VertexElement(ParticleInstanceVertexAttribute.ShapePositionStartLifeTime, 0, VertexElementFormat.Vector4, 1, 1),
     new VertexElement(ParticleInstanceVertexAttribute.DirectionTime, 16, VertexElementFormat.Vector4, 1, 1),
     new VertexElement(ParticleInstanceVertexAttribute.StartColor, 32, VertexElementFormat.Vector4, 1, 1),
@@ -30,7 +35,6 @@ export class ParticleBufferDefinition {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1)
   ];
 
-  static readonly billboardVertexStride = 16;
   static readonly meshVertexStride = 36;
   static readonly instanceVertexStride = 152;
 
@@ -38,8 +42,19 @@ export class ParticleBufferDefinition {
   static readonly instanceStartSizeOffset = 7;
   static readonly instanceSimulationOffset = 34;
 
-  static readonly billboardVertices = new Float32Array([
-    -0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0
-  ]);
-  static readonly billboardIndices = new Uint16Array([0, 2, 1, 0, 3, 2]);
+  static billboardVertexBufferBinding: VertexBufferBinding;
+  static billboardIndexBufferBinding: IndexBufferBinding;
+
+  static initialize(engine: Engine): void {
+    const stride = 16;
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, stride * 4, BufferUsage.Static, false);
+    const billboardVertices = new Float32Array([-0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0]);
+    vertexBuffer.setData(billboardVertices);
+    ParticleBufferDefinition.billboardVertexBufferBinding = new VertexBufferBinding(vertexBuffer, stride);
+
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, 6, BufferUsage.Static, false);
+    const billboardIndices = new Uint8Array([0, 2, 1, 0, 3, 2]);
+    indexBuffer.setData(billboardIndices);
+    ParticleBufferDefinition.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);
+  }
 }
