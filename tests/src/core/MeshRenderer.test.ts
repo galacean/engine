@@ -70,20 +70,20 @@ describe("MeshRenderer", async function () {
     expect(mr.bounds.max.z).to.closeTo(2.5, 0.01, "test bounds max z equal 2.5, delta 0.01");
 
     cubeEntity.transform.rotate(new Vector3(0, 30, 0));
-    expect(mr.bounds.min.x).to.closeTo(0.134, 0.001, "test bounds min x equal 0.5, delta 0.01");
-    expect(mr.bounds.min.y).to.closeTo(0.5, 0.01, "test bounds min y equal 0.5, delta 0.01");
-    expect(mr.bounds.min.z).to.closeTo(0.134, 0.001, "test bounds min z equal 0.5, delta 0.01");
-    expect(mr.bounds.max.x).to.closeTo(2.866, 0.001, "test bounds max x equal 2.5, delta 0.01");
-    expect(mr.bounds.max.y).to.closeTo(2.5, 0.001, "test bounds max y equal 2.5, delta 0.01");
-    expect(mr.bounds.max.z).to.closeTo(2.866, 0.001, "test bounds max z equal 2.5, delta 0.01");
+    expect(mr.bounds.min.x).to.closeTo(0.134, 0.001, "test bounds min x equal 0.134, delta 0.001");
+    expect(mr.bounds.min.y).to.closeTo(0.5, 0.01, "test bounds min y equal 0.5, delta 0.001");
+    expect(mr.bounds.min.z).to.closeTo(0.134, 0.001, "test bounds min z equal 0.134, delta 0.001");
+    expect(mr.bounds.max.x).to.closeTo(2.866, 0.001, "test bounds max x equal 2.866, delta 0.001");
+    expect(mr.bounds.max.y).to.closeTo(2.5, 0.001, "test bounds max y equal 2.5, delta 0.001");
+    expect(mr.bounds.max.z).to.closeTo(2.866, 0.001, "test bounds max z equal 2.866, delta 0.001");
 
     cubeEntity.transform.setScale(3, 3, 3);
-    expect(mr.bounds.min.x).to.closeTo(-2.598, 0.01, "test bounds min x equal -1.5, delta 0.01");
+    expect(mr.bounds.min.x).to.closeTo(-2.598, 0.01, "test bounds min x equal -2.598, delta 0.01");
     expect(mr.bounds.min.y).to.closeTo(-1.5, 0.01, "test bounds min y equal -1.5, delta 0.01");
-    expect(mr.bounds.min.z).to.closeTo(-2.598, 0.01, "test bounds min z equal -1.5, delta 0.01");
-    expect(mr.bounds.max.x).to.closeTo(5.598, 0.01, "test bounds max x equal 7.5, delta 0.01");
-    expect(mr.bounds.max.y).to.closeTo(4.5, 0.01, "test bounds max y equal 7.5, delta 0.01");
-    expect(mr.bounds.max.z).to.closeTo(5.598, 0.01, "test bounds max z equal 7.5, delta 0.01");
+    expect(mr.bounds.min.z).to.closeTo(-2.598, 0.01, "test bounds min z equal -2.598, delta 0.01");
+    expect(mr.bounds.max.x).to.closeTo(5.598, 0.01, "test bounds max x equal 5.598, delta 0.01");
+    expect(mr.bounds.max.y).to.closeTo(4.5, 0.01, "test bounds max y equal 4.5, delta 0.01");
+    expect(mr.bounds.max.z).to.closeTo(5.598, 0.01, "test bounds max z equal 5.598, delta 0.01");
   });
 
   it("clone", () => {
