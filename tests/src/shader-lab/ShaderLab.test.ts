@@ -2,6 +2,7 @@ import { ShaderLab } from "@galacean/engine-shader-lab";
 import { CompareFunction, BlendOperation, CullMode, RenderStateDataKey } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color } from "@galacean/engine-math";
+import { ISubShaderInfo, IShaderPassInfo } from "@galacean/engine-design";
 
 import fs from "fs";
 import path from "path";
@@ -21,10 +22,14 @@ function toString(v: Color): string {
 describe("ShaderLab", () => {
   let shader: ReturnType<typeof shaderLab.parseShader>;
   let gl: WebGL2RenderingContext;
+  let subShader: ISubShaderInfo;
+  let pass: IShaderPassInfo;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
     gl = canvas.getContext("webgl2");
+    subShader = shader.subShaders[0];
+    pass = subShader.passes[0];
   });
 
   it("create shaderLab", async () => {
@@ -33,15 +38,10 @@ describe("ShaderLab", () => {
 
   it("shader name", () => {
     expect(shader.name).to.equal("Water");
-    const subShader = shader.subShaders[0];
-    const pass = subShader.passes[0];
     expect(pass.name).equal("default");
   });
 
   it("render state", () => {
-    const subShader = shader.subShaders[0];
-    const pass = subShader.passes[0];
-
     expect(pass.renderStates).not.be.null;
 
     const [constantState, variableState] = pass.renderStates;
@@ -74,6 +74,21 @@ describe("ShaderLab", () => {
 
     expect(variableState).include({
       [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
+    });
+  });
+
+  it("Tags", () => {
+    expect(subShader.tags).not.be.undefined;
+    expect(subShader.tags).include({
+      LightMode: "ForwardBase",
+      Tag2: false,
+      Tag3: 1.2
+    });
+
+    expect(pass.tags).include({
+      ReplacementTag: "Opaque",
+      Tag2: true,
+      Tag3: 1.9
     });
   });
 });

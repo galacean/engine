@@ -199,7 +199,7 @@ export default class RuntimeContext {
     this.subShaderAst = ast;
     this._initSubShaderGlobalList();
     const ret = {} as ISubShaderInfo;
-    ret.tags = ast.content.tags?.toObj();
+    ret.tags = ast.content.tags?.getContentValue();
     ret.passes = ast.content.pass.map((item) => this.parsePassInfo(item));
     return ret;
   }
@@ -255,12 +255,12 @@ export default class RuntimeContext {
 
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
-    ret.tags = ast.content.tags?.toObj();
+    ret.tags = ast.content.tags?.getContentValue();
     ret.renderStates = [{}, {}];
     const [constantProps, variableProps] = ret.renderStates;
 
     this.payload = { parsingRenderState: true };
-    const tmpRenderStates = ast.content.renderStates?.map((state) => state);
+    const tmpRenderStates = ast.content.renderStates;
     ast.content.properties.forEach((prop) => this._parsePassProperty(prop, ret, tmpRenderStates));
     for (const rs of tmpRenderStates) {
       const [constP, variableP] = rs.getContentValue(this).properties;

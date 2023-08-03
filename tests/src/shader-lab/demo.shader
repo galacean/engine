@@ -13,7 +13,7 @@ Shader "Water" {
   }
 
   SubShader {
-
+    Tags { LightMode = "ForwardBase", Tag2 = false, Tag3 = 1.2 }
     BlendState blendState {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
@@ -23,6 +23,7 @@ Shader "Water" {
     }
 
     Pass "default" {
+      Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
 
       struct a2v {
        vec4 POSITION;

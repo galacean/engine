@@ -120,19 +120,20 @@ export interface _ruleTagAssignmentCstNode extends CstNode {
 }
 
 export type _ruleTagAssignmentCstChildren = {
-  _ruleTagType: _ruleTagTypeCstNode[];
+  Identifier: IToken[];
   SymbolEqual: IToken[];
-  ValueString: IToken[];
+  _ruleTagAssignableValue: _ruleTagAssignableValueCstNode[];
 };
 
-export interface _ruleTagTypeCstNode extends CstNode {
-  name: "_ruleTagType";
-  children: _ruleTagTypeCstChildren;
+export interface _ruleTagAssignableValueCstNode extends CstNode {
+  name: "_ruleTagAssignableValue";
+  children: _ruleTagAssignableValueCstChildren;
 }
 
-export type _ruleTagTypeCstChildren = {
-  ReplacementTag?: IToken[];
-  PipelineStage?: IToken[];
+export type _ruleTagAssignableValueCstChildren = {
+  _ruleNumber?: _ruleNumberCstNode[];
+  _ruleBoolean?: _ruleBooleanCstNode[];
+  ValueString?: IToken[];
 };
 
 export interface _ruleFnCstNode extends CstNode {
@@ -1032,7 +1033,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleVariableType(children: _ruleVariableTypeCstChildren, param?: IN): OUT;
   _ruleTag(children: _ruleTagCstChildren, param?: IN): OUT;
   _ruleTagAssignment(children: _ruleTagAssignmentCstChildren, param?: IN): OUT;
-  _ruleTagType(children: _ruleTagTypeCstChildren, param?: IN): OUT;
+  _ruleTagAssignableValue(children: _ruleTagAssignableValueCstChildren, param?: IN): OUT;
   _ruleFn(children: _ruleFnCstChildren, param?: IN): OUT;
   _ruleFnReturnType(children: _ruleFnReturnTypeCstChildren, param?: IN): OUT;
   _ruleFnArg(children: _ruleFnArgCstChildren, param?: IN): OUT;

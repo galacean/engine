@@ -34,6 +34,5 @@ export const _AllTokens = [
   ...GLKeywords.funcTokenList,
   ...GLKeywords.macroTokenList,
   ...GLKeywords.otherTokenList,
-  ...Keywords.tagTokenList,
   Others.Identifier
 ];

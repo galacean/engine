@@ -223,7 +223,7 @@ export interface IPassPropertyAssignmentAstContent {
 
 export interface ITagAssignmentAstContent {
   tag: string;
-  value: string;
+  value: TagAssignmentAstNode;
 }
 
 export type ITagAstContent = Array<TagAssignmentAstNode>;

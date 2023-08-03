@@ -116,7 +116,8 @@ import {
   _ruleStencilStatePropertyCstChildren,
   _ruleRasterStatePropertyItemCstChildren,
   _ruleRasterStateValueCstChildren,
-  _ruleReturnBodyCstChildren
+  _ruleReturnBodyCstChildren,
+  _ruleTagAssignableValueCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -863,17 +864,22 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleTagAssignment(ctx: _ruleTagAssignmentCstChildren) {
     const position: IPositionRange = {
-      start: AstNodeUtils.getOrTypeCstNodePosition(ctx._ruleTagType[0]).start,
-      end: AstNodeUtils.getTokenPosition(ctx.ValueString[0]).end
+      start: AstNodeUtils.getOrTypeCstNodePosition(ctx.Identifier[0]).start,
+      end: AstNodeUtils.getOrTypeCstNodePosition(ctx._ruleTagAssignableValue[0]).end
     };
 
     return new TagAssignmentAstNode({
       position,
       content: {
-        tag: AstNodeUtils.extractCstToken(ctx._ruleTagType[0]),
-        value: ctx.ValueString[0].image
+        tag: ctx.Identifier[0].image,
+        value: this.visit(ctx._ruleTagAssignableValue)
       }
     });
+  }
+
+  _ruleTagAssignableValue(children: _ruleTagAssignableValueCstChildren, param?: any): AstNode<any> {
+    const astNodeObj: Record<string, AstNode> = AstNodeUtils.defaultVisit.bind(this)(children).content;
+    return Object.values(astNodeObj)[0];
   }
 
   _ruleProperty(ctx: _rulePropertyCstChildren) {

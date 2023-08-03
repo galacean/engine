@@ -14,6 +14,4 @@ export const PipelineStage = TokenUtils.createKeywordToken("PipelineStage");
 export const VertexShader = TokenUtils.createKeywordToken("VertexShader");
 export const FragmentShader = TokenUtils.createKeywordToken("FragmentShader");
 
-export const tagTokenList = [ReplacementTag, PipelineStage];
-
 export const tokenList = [Shader, EditorProperties, SubShader, Pass, Tags, VertexShader, FragmentShader];

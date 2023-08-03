@@ -110,17 +110,17 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleTagAssignment = this.RULE("_ruleTagAssignment", () => {
-    this.SUBRULE(this._ruleTagType);
+    this.CONSUME(Others.Identifier);
     this.CONSUME(Symbols.Equal);
-    this.CONSUME(Values.ValueString);
+    this.SUBRULE(this._ruleTagAssignableValue);
   });
 
-  private _ruleTagType = this.RULE("_ruleTagType", () => {
-    this.OR(
-      Keywords.tagTokenList.map((kw) => ({
-        ALT: () => this.CONSUME(kw)
-      }))
-    );
+  private _ruleTagAssignableValue = this.RULE("_ruleTagAssignableValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.CONSUME(Values.ValueString) }
+    ]);
   });
 
   private _ruleFn = this.RULE("_ruleFn", () => {

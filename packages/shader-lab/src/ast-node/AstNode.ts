@@ -94,6 +94,7 @@ export class AstNode<T = any> implements IAstInfo<T> {
 
   /** @internal */
   getContentValue(context?: RuntimeContext): any {
+    if (typeof this.content === "string") return this.content.replace(/"(.*)"/, "$1");
     if (typeof this.content !== "object") return this.content;
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
   }
@@ -517,10 +518,10 @@ export class TagAssignmentAstNode extends AstNode<ITagAssignmentAstContent> {
 }
 
 export class TagAstNode extends AstNode<ITagAstContent> {
-  toObj(): Record<string, any> {
-    const ret = {} as any;
+  override getContentValue(context?: RuntimeContext) {
+    const ret = {} as IShaderPassInfo["tags"];
     for (const t of this.content) {
-      ret[t.content.tag] = t.content.value.replace(/"(.*)"/, "$1");
+      ret[t.content.tag] = t.content.value.getContentValue();
     }
     return ret;
   }
