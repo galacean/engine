@@ -87,6 +87,8 @@ export class Engine extends EventDispatcher {
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
+  _whiteTexture2D: Texture2D;
+  /* @internal */
   _magentaTexture2D: Texture2D;
   /* @internal */
   _magentaTextureCube: TextureCube;
@@ -407,6 +409,7 @@ export class Engine extends EventDispatcher {
     this._sceneManager._destroyAllScene();
 
     this._resourceManager._destroy();
+    this._whiteTexture2D.destroy(true);
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
     this._textDefaultFont = null;
@@ -509,8 +512,12 @@ export class Engine extends EventDispatcher {
    * Standalone for CanvasRenderer plugin.
    */
   _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
+    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    whiteTexture2D.setPixelBuffer(whitePixel);
+    whiteTexture2D.isGCIgnored = true;
 
+    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
     const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
     magentaTexture2D.setPixelBuffer(magentaPixel);
     magentaTexture2D.isGCIgnored = true;
@@ -545,6 +552,7 @@ export class Engine extends EventDispatcher {
       })()
     );
 
+    this._whiteTexture2D = whiteTexture2D;
     this._magentaTexture2D = magentaTexture2D;
     this._magentaTextureCube = magentaTextureCube;
 
