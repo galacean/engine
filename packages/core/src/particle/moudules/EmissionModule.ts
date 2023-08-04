@@ -70,40 +70,6 @@ export class EmissionModule {
   }
 
   /**
-   * @internal
-   */
-  _emitByRateOverTime(fromTime: number, toTime: number): void {
-    const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
-
-    if (ratePerSeconds > 0) {
-      const particleSystem = this._particleSystem;
-      const emitInterval = 1.0 / ratePerSeconds;
-
-      const emitStartTime = fromTime - emitInterval;
-      let totalFrameRateTime = toTime - emitStartTime;
-      while (totalFrameRateTime >= emitInterval) {
-        particleSystem._emit(fromTime + emitInterval, 1);
-        totalFrameRateTime -= emitInterval;
-      }
-
-      this._frameRateTime = totalFrameRateTime;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _emitByBurst(fromTime: number, toTime: number): void {
-    if (toTime < fromTime) {
-      this._emitBySubBurst(fromTime, this._particleSystem.main.duration);
-      this._currentBurstIndex = 0;
-      this._emitBySubBurst(0, toTime);
-    } else {
-      this._emitBySubBurst(fromTime, toTime);
-    }
-  }
-
-  /**
    * @override
    */
   cloneTo(destEmission: EmissionModule): void {
@@ -125,25 +91,77 @@ export class EmissionModule {
     }
   }
 
-  private _emitBySubBurst(fromTime: number, toTime: number): void {
+  /**
+   * @internal
+   */
+  _emit(lastPlayTime: number, playTime: number): void {
+    this._emitByRateOverTime(playTime);
+    this._emitByBurst(lastPlayTime, playTime);
+  }
+
+  private _emitByRateOverTime(playTime: number): void {
+    const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
+    if (ratePerSeconds > 0) {
+      const particleSystem = this._particleSystem;
+      const emitInterval = 1.0 / ratePerSeconds;
+
+      let cumulativeTime = playTime - this._frameRateTime;
+      while (cumulativeTime >= emitInterval) {
+        particleSystem._emit(this._frameRateTime, 1);
+        cumulativeTime -= emitInterval;
+        this._frameRateTime += emitInterval;
+      }
+    }
+  }
+
+  private _emitByBurst(lastPlayTime: number, playTime: number): void {
+    const main = this._particleSystem.main;
+    const duration = main.duration;
+    const cycleCount = Math.floor(playTime - lastPlayTime / duration);
+
+    // Across one cycle
+    if (main.loop && (cycleCount > 0 || playTime < lastPlayTime)) {
+      let middleTime = Math.ceil(lastPlayTime / duration) * duration;
+      this._emitBySubBurst(lastPlayTime, middleTime);
+      this._currentBurstIndex = 0;
+
+      for (let i = 0; i < cycleCount; i++) {
+        const lastMiddleTime = middleTime;
+        middleTime += duration;
+        this._emitBySubBurst(lastMiddleTime, middleTime);
+        this._currentBurstIndex = 0;
+      }
+
+      this._emitBySubBurst(middleTime, playTime);
+    } else {
+      this._emitBySubBurst(lastPlayTime, playTime);
+    }
+  }
+
+  private _emitBySubBurst(lastPlayTime: number, playTime: number): void {
     const particleSystem = this._particleSystem;
     const rand = particleSystem._rand;
     const bursts = this.bursts;
 
-    let currentBurstIndex = this._currentBurstIndex;
-    for (let n = bursts.length; currentBurstIndex < n; currentBurstIndex++) {
-      const burst = bursts[currentBurstIndex];
+    // Calculate the relative time of the burst
+    const burstDuration = playTime - lastPlayTime;
+    const burstStart = lastPlayTime % particleSystem.main.duration;
+    const burstEnd = burstStart + burstDuration;
+
+    let index = this._currentBurstIndex;
+    for (let n = bursts.length; index < n; index++) {
+      const burst = bursts[index];
       const burstTime = burst.time;
 
-      if (burstTime > toTime) {
+      if (burstTime > burstEnd) {
         break;
       }
 
-      if (burstTime >= fromTime) {
+      if (burstTime >= burstStart) {
         const count = burst.count.evaluate(undefined, rand.random());
-        particleSystem._emit(burstTime, count);
+        particleSystem._emit(lastPlayTime + burstTime, count);
       }
     }
-    this._currentBurstIndex = currentBurstIndex;
+    this._currentBurstIndex = index;
   }
 }

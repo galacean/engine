@@ -105,18 +105,14 @@ export class ParticleSystem {
    * @internal
    */
   _update(elapsedTime: number): void {
-    this._playTime += elapsedTime;
-    this._retireActiveParticles();
-    this._freeRetiredParticles();
-  }
-
-  private _updateTime(elapsedTime: number): void {
     const lastPlayTime = this._playTime;
     this._playTime += elapsedTime;
 
-    if (this._playTime > this.main.duration) {
-      this._playTime = 0;
-    } else {
+    this._retireActiveParticles();
+    this._freeRetiredParticles();
+
+    if (this.emission.enabled) {
+      this.emission._emit(lastPlayTime, this._playTime);
     }
   }
 
@@ -214,13 +210,24 @@ export class ParticleSystem {
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
     direction.normalize();
 
-    let nextFreeParticle = this._firstFreeElement + 1;
-    if (nextFreeParticle >= this._currentParticleCount) {
-      nextFreeParticle = 0;
+    let nextFreeElement = this._firstFreeElement + 1;
+    if (nextFreeElement >= this._currentParticleCount) {
+      nextFreeElement = 0;
     }
 
-    if (nextFreeParticle === this._firstRetiredElement) {
-      this._recreateInstanceBuffer(this._currentParticleCount + this._particleIncreaseCount);
+    // Check whether to expand the capacity
+    if (nextFreeElement === this._firstRetiredElement) {
+      const availableCapacity = this.main.maxParticles - this._currentParticleCount;
+      const increaseCount = Math.min(this._particleIncreaseCount, availableCapacity);
+      if (increaseCount === 0) {
+        return;
+      }
+
+      this._recreateInstanceBuffer(this._currentParticleCount + increaseCount);
+      if (this._firstActiveElement >= this._firstRetiredElement) {
+        this._firstActiveElement += increaseCount;
+      }
+      this._firstRetiredElement += increaseCount;
     }
 
     const main = this.main;
@@ -254,6 +261,75 @@ export class ParticleSystem {
     }
 
     const startSpeed = main.startSpeed.evaluate(undefined, rand.random());
+
+    const instanceVertices = this._instanceVertices;
+    let offset = this._firstFreeElement * ParticleBufferUtils.instanceVertexFloatStride;
+
+    // Position
+    instanceVertices[offset] = position.x;
+    instanceVertices[offset + 1] = position.y;
+    instanceVertices[offset + 2] = position.z;
+    // Start life time
+    instanceVertices[offset + ParticleBufferUtils.startLifeTimeOffset] = time;
+
+    // Direction
+    instanceVertices[offset] = direction.x;
+    instanceVertices[offset + 1] = direction.y;
+    instanceVertices[offset + 2] = direction.z;
+    // Time
+    instanceVertices[offset + ParticleBufferUtils.timeOffset] = time;
+
+    // Color
+    instanceVertices[offset + 8] = out.startColor.r;
+    instanceVertices[offset + 9] = out.startColor.g;
+    instanceVertices[offset + 10] = out.startColor.b;
+    instanceVertices[offset + 11] = out.startColor.a;
+
+    // Start size
+    instanceVertices[offset + 12] = out.startSize[0];
+    instanceVertices[offset + 13] = out.startSize[1];
+    instanceVertices[offset + 14] = out.startSize[2];
+
+    // Start rotation
+    instanceVertices[offset + 15] = out.startRotation[0];
+    instanceVertices[offset + 16] = out.startRotation[1];
+    instanceVertices[offset + 17] = out.startRotation[2];
+
+    // Start speed
+    instanceVertices[offset + 18] = startSpeed;
+
+    // Color, size, rotation, texture animation
+    instanceVertices[offset + 19] = rand.random();
+    instanceVertices[offset + 20] = rand.random();
+    instanceVertices[offset + 21] = rand.random();
+    instanceVertices[offset + 22] = rand.random();
+
+    // Velocity random
+    instanceVertices[offset + 23] = rand.random();
+    instanceVertices[offset + 24] = rand.random();
+    instanceVertices[offset + 25] = rand.random();
+    instanceVertices[offset + 26] = rand.random();
+
+    if (this.main.simulationSpace === ParticleSimulationSpace.World) {
+      // Simulation world position
+      instanceVertices[offset + 27] = pos.x;
+      instanceVertices[offset + 28] = pos.y;
+      instanceVertices[offset + 29] = pos.z;
+
+      // Simulation world position
+      instanceVertices[offset + 30] = rot.x;
+      instanceVertices[offset + 31] = rot.y;
+      instanceVertices[offset + 32] = rot.z;
+      instanceVertices[offset + 33] = rot.w;
+    }
+
+    // Simulation UV
+    instanceVertices[offset + ParticleBufferUtils.simulationOffset] = out.startUVInfo[0];
+    instanceVertices[offset + 35] = out.startUVInfo[1];
+    instanceVertices[offset + 36] = out.startUVInfo[2];
+    instanceVertices[offset + 37] = out.startUVInfo[3];
+
+    this._firstFreeElement = nextFreeElement;
   }
 
   private _retireActiveParticles(): void {
@@ -299,7 +375,25 @@ export class ParticleSystem {
     }
   }
 
-  private _addNewParticlesToBuffer(): void {}
+  private _addNewParticlesToVertexBuffer(): void {
+    const byteStride = ParticleBufferUtils.instanceVertexStride;
+    const firstNewElement = this._firstNewElement;
+    const firstFreeElement = this._firstFreeElement;
+    const start = firstNewElement * byteStride;
+    const instanceBuffer = this._instanceVertexBufferBinding.buffer;
+    const dataBuffer = this._instanceVertices.buffer;
+
+    if (firstNewElement < firstFreeElement) {
+      instanceBuffer.setData(dataBuffer, start, start, (firstFreeElement - firstNewElement) * byteStride);
+    } else {
+      instanceBuffer.setData(dataBuffer, start, start, (this._currentParticleCount - firstNewElement) * byteStride);
+
+      if (firstFreeElement > 0) {
+        instanceBuffer.setData(dataBuffer, 0, 0, firstFreeElement * byteStride);
+      }
+    }
+    this._firstNewElement = firstFreeElement;
+  }
 
   private _createParticleData(main: MainModule, out: ParticleData): void {}
 
