@@ -255,8 +255,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const paths = new Array<number>();
 
     // Clone rootBone
-    const success = this._getEntityHierarchyPath(srcRoot, this.rootBone, paths);
-    target.rootBone = success ? this._getEntityByHierarchyPath(targetRoot, paths) : this.rootBone;
+    if (this.rootBone) {
+      const success = this._getEntityHierarchyPath(srcRoot, this.rootBone, paths);
+      target.rootBone = success ? this._getEntityByHierarchyPath(targetRoot, paths) : this.rootBone;
+    }
 
     // Clone bones
     const bones = this._bones;
