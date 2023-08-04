@@ -182,7 +182,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const blendShapeManager = mesh._blendShapeManager;
     blendShapeManager._updateShaderData(shaderData, this);
 
-    const bones = this.bones;
+    const bones = this._bones;
     if (bones) {
       const bsUniformOccupiesCount = blendShapeManager._uniformOccupiesCount;
       const jointCount = bones.length;
@@ -313,15 +313,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   private _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
     inversePath.length = 0;
-    let entity = searchEntity;
-    while (entity !== rootEntity) {
-      const parent = entity.parent;
-      if (parent) {
-        inversePath.push(entity.siblingIndex);
-      } else {
+    while (searchEntity !== rootEntity) {
+      const parent = searchEntity.parent;
+      if (!parent) {
         return false;
       }
-      entity = parent;
+      inversePath.push(searchEntity.siblingIndex);
+      searchEntity = parent;
     }
     return true;
   }
@@ -330,11 +328,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   private _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
-    let sprite = rootEntity;
+    let entity = rootEntity;
     for (let i = inversePath.length - 1; i >= 0; i--) {
-      sprite = sprite.children[inversePath[i]];
+      entity = entity.children[inversePath[i]];
     }
-    return sprite;
+    return entity;
   }
 
   private _skin: Skin;
@@ -342,6 +340,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @deprecated
    * Skin Object.
+   *
+   * If you want get `skeleton`, use {@link SkinnedMeshRenderer.rootBone} instead.
+   * If you want get `bones`, use {@link SkinnedMeshRenderer.bones} instead.
+   * `inverseBindMatrices` will migrate to mesh in the future.
+   *
+   * @remarks `rootBone` and `bones` will not update when `skin` changed.
    */
   get skin(): Skin {
     return this._skin;

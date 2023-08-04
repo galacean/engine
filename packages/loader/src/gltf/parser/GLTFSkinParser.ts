@@ -21,7 +21,7 @@ export class GLTFSkinParser extends GLTFParser {
 
       const skin = new Skin(name);
       skin.inverseBindMatrices.length = jointCount;
-      skin.bones.length = jointCount;
+      skin._bones.length = jointCount;
 
       // Parse IBM
       const accessor = glTF.accessors[inverseBindMatrices];
@@ -34,18 +34,18 @@ export class GLTFSkinParser extends GLTFParser {
 
           // Get bones
           const bone = entities[joints[i]];
-          skin.bones[i] = bone;
+          skin._bones[i] = bone;
           skin.joints[i] = bone.name;
 
           // Get skeleton
           if (skeleton !== undefined) {
             const rootBone = entities[skeleton];
-            skin.rootBone = rootBone;
+            skin._rootBone = rootBone;
             skin.skeleton = rootBone.name;
           } else {
             const rootBone = this._findSkeletonRootBone(joints, entities);
             if (rootBone) {
-              skin.rootBone = rootBone;
+              skin._rootBone = rootBone;
               skin.skeleton = rootBone.name;
             } else {
               throw "Failed to find skeleton root bone.";

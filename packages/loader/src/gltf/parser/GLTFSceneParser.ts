@@ -124,9 +124,9 @@ export class GLTFSceneParser extends GLTFParser {
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
           const skin = skins[skinID];
-          skinRenderer.rootBone = skin.rootBone;
-          skinRenderer.bones = skin.bones;
-          this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
+          skinRenderer.rootBone = skin._rootBone;
+          skinRenderer.bones = skin._bones;
+          this._computeLocalBounds(skinRenderer, mesh, skin._bones, skin._rootBone, skin.inverseBindMatrices);
 
           skinRenderer.skin = skin;
         }
