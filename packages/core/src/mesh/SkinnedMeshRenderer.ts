@@ -262,14 +262,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     // Clone bones
     const bones = this._bones;
-    const boneCount = bones.length;
-    const destBones = new Array<Entity>(boneCount);
-    for (let i = 0; i < boneCount; i++) {
-      const bone = bones[i];
-      const success = this._getEntityHierarchyPath(srcRoot, bone, paths);
-      destBones[i] = success ? this._getEntityByHierarchyPath(targetRoot, paths) : bone;
+    if (bones) {
+      const boneCount = bones.length;
+      const destBones = new Array<Entity>(boneCount);
+      for (let i = 0; i < boneCount; i++) {
+        const bone = bones[i];
+        const success = this._getEntityHierarchyPath(srcRoot, bone, paths);
+        destBones[i] = success ? this._getEntityByHierarchyPath(targetRoot, paths) : bone;
+      }
+      target.bones = destBones;
     }
-    target.bones = destBones;
 
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
