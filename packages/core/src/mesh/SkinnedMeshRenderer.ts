@@ -244,10 +244,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._jointMatrices = null;
     this._jointTexture?.destroy();
     this._jointTexture = null;
-    if (this._jointEntities) {
-      this._jointEntities.length = 0;
-      this._jointEntities = null;
-    }
+    this._bones = null;
   }
 
   /**

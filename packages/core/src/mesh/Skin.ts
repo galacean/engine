@@ -10,9 +10,7 @@ export class Skin extends EngineObject {
   public joints: string[];
   public skeleton: string;
 
-  /* @internal */
   public _rootBone: Entity;
-  /* @internal */
   public _bones: Entity[] = [];
 
   /**
