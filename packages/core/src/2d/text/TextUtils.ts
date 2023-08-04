@@ -110,6 +110,11 @@ export class TextUtils {
     subFont.nativeFontString = fontString;
     for (let i = 0, n = subTexts.length; i < n; i++) {
       const subText = subTexts[i];
+      // If subText is empty, push an empty line directly
+      if (subText.length === 0) {
+        this._pushLine(lines, lineWidths, lineMaxSizes, "", 0, 0, 0);
+        continue;
+      }
 
       let word = "";
       let wordWidth = 0;
@@ -144,7 +149,11 @@ export class TextUtils {
           // If it is a word before, need to handle the previous word and line
           if (word.length > 0) {
             if (lineWidth + wordWidth > wrapWidth) {
-              this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
+              // Push if before line is not empty
+              if (lineWidth > 0) {
+                this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
+              }
+
               textWidth = Math.max(textWidth, lineWidth);
               notFirstLine = true;
               line = word;
@@ -191,7 +200,12 @@ export class TextUtils {
               line = "";
               lineWidth = lineMaxAscent = lineMaxDescent = 0;
             }
-            this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
+
+            // Push if before word is not empty
+            if (wordWidth > 0) {
+              this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
+            }
+
             textWidth = Math.max(textWidth, wordWidth);
             notFirstLine = true;
             word = char;
@@ -211,12 +225,16 @@ export class TextUtils {
         // If the total width from line and word exceed wrap width
         if (lineWidth + wordWidth > wrapWidth) {
           // Push chars to a single line
-          this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
+          if (lineWidth > 0) {
+            this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
+          }
           textWidth = Math.max(textWidth, lineWidth);
 
           lineWidth = 0;
           // Push word to a single line
-          this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
+          if (wordWidth > 0) {
+            this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
+          }
           textWidth = Math.max(textWidth, wordWidth);
         } else {
           // Merge to chars
@@ -252,25 +270,21 @@ export class TextUtils {
     const { _subFont: subFont } = renderer;
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
-    const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
-    const lineCount = lines.length;
+    const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
+    const textCount = subTexts.length;
+    const lines = new Array<string>();
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
 
     let width = 0;
-    let height = renderer.height * _pixelsPerUnit;
-    if (renderer.overflowMode === OverflowMode.Overflow) {
-      height = lineHeight * lineCount;
-    }
-
     subFont.nativeFontString = fontString;
-    for (let i = 0; i < lineCount; ++i) {
-      const line = lines[i];
+    for (let i = 0; i < textCount; ++i) {
+      const line = subTexts[i];
       let curWidth = 0;
-      let maxAscent = -1;
-      let maxDescent = -1;
+      let maxAscent = 0;
+      let maxDescent = 0;
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
@@ -282,15 +296,16 @@ export class TextUtils {
         maxAscent < ascent && (maxAscent = ascent);
         maxDescent < descent && (maxDescent = descent);
       }
-      lineWidths[i] = curWidth;
-      lineMaxSizes[i] = {
-        ascent: maxAscent,
-        descent: maxDescent,
-        size: maxAscent + maxDescent
-      };
-      if (curWidth > width) {
-        width = curWidth;
+
+      if (curWidth > 0) {
+        this._pushLine(lines, lineWidths, lineMaxSizes, line, curWidth, maxAscent, maxDescent);
+        width = Math.max(width, curWidth);
       }
+    }
+
+    let height = renderer.height * _pixelsPerUnit;
+    if (renderer.overflowMode === OverflowMode.Overflow) {
+      height = lineHeight * lines.length;
     }
 
     return {

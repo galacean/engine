@@ -2,7 +2,7 @@
  * Module for glTF 2.0 Interface
  */
 
-import { MeshTopology } from "@galacean/engine-core";
+import type { MeshTopology, TextureFilterMode, TextureWrapMode as EngineTextureWrapMode } from "@galacean/engine-core";
 
 /**
  * The datatype of the components in the attribute
@@ -856,3 +856,10 @@ export interface IGLTF extends IProperty {
 
 /** glTF extensible owner schema. */
 export type GLTFExtensionOwnerSchema = IMeshPrimitive | IMaterial | ITextureInfo | INode;
+
+export interface ISamplerInfo {
+  filterMode?: TextureFilterMode;
+  wrapModeU?: EngineTextureWrapMode;
+  wrapModeV?: EngineTextureWrapMode;
+  mipmap?: boolean;
+}

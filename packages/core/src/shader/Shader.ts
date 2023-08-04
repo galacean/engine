@@ -142,7 +142,10 @@ export class Shader {
     return this._subShaders;
   }
 
-  private constructor(public readonly name: string, subShaders: SubShader[]) {
+  private constructor(
+    public readonly name: string,
+    subShaders: SubShader[]
+  ) {
     this.name = name;
     this._subShaders = subShaders;
   }

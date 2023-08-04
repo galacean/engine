@@ -9,6 +9,7 @@ import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
 import { EngineObject } from "./base";
+import { ReferResource } from "./asset/ReferResource";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 
@@ -66,6 +67,8 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
+  /** @internal @todo: temporary solution */
+  _hookResource: ReferResource;
 
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -394,6 +397,12 @@ export class Entity extends EngineObject {
   private _createCloneEntity(srcEntity: Entity): Entity {
     const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
 
+    const { _hookResource: hookResource } = this;
+    if (hookResource) {
+      cloneEntity._hookResource = hookResource;
+      hookResource._addReferCount(1);
+    }
+    cloneEntity.layer = srcEntity.layer;
     cloneEntity._isActive = srcEntity._isActive;
     cloneEntity.transform.localMatrix = srcEntity.transform.localMatrix;
 
@@ -430,6 +439,10 @@ export class Entity extends EngineObject {
     }
 
     super.destroy();
+    if (this._hookResource) {
+      this._hookResource._addReferCount(-1);
+      this._hookResource = null;
+    }
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
