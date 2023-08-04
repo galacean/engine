@@ -31,12 +31,14 @@ export class ParticleSystem {
   /** Main module. */
   readonly main: MainModule = new MainModule(this);
   /** Emission module. */
-  readonly emission: EmissionModule = new EmissionModule();
+  readonly emission: EmissionModule = new EmissionModule(this);
   /** Shape module. */
   readonly shape: ShapeModule = new ShapeModule();
 
   /** @internal */
   _currentParticleCount: number = 0;
+  /** @internal */
+  _rand: Rand = new Rand(0);
 
   private _firstNewElement: number = 0;
   private _firstActiveElement: number = 0;
@@ -49,8 +51,6 @@ export class ParticleSystem {
 
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
-
-  private _rand: Rand = new Rand(0);
 
   private _playTime: number = 0;
 
@@ -79,6 +79,13 @@ export class ParticleSystem {
    * @param count - Number of particles to emit
    */
   emit(count: number): void {
+    this._emit(this._playTime, count);
+  }
+
+  /**
+   * @internal
+   */
+  _emit(time: number, count: number): void {
     const position = ParticleSystem._tempVector30;
     const direction = ParticleSystem._tempVector31;
     if (this.emission.enabled) {
@@ -88,7 +95,7 @@ export class ParticleSystem {
         for (let i = 0; i < count; i++) {
           position.set(0, 0, 0);
           direction.set(0, 0, -1);
-          this._addNewParticle(position, direction, transform);
+          this._addNewParticle(position, direction, transform, time);
         }
       }
     }
@@ -101,6 +108,16 @@ export class ParticleSystem {
     this._playTime += elapsedTime;
     this._retireActiveParticles();
     this._freeRetiredParticles();
+  }
+
+  private _updateTime(elapsedTime: number): void {
+    const lastPlayTime = this._playTime;
+    this._playTime += elapsedTime;
+
+    if (this._playTime > this.main.duration) {
+      this._playTime = 0;
+    } else {
+    }
   }
 
   /**
@@ -194,7 +211,7 @@ export class ParticleSystem {
     this._currentParticleCount = particleCount;
   }
 
-  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform): void {
+  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
     direction.normalize();
 
     let nextFreeParticle = this._firstFreeElement + 1;

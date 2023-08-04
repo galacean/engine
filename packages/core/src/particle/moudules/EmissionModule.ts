@@ -1,11 +1,12 @@
 import { IClone } from "@galacean/engine-design";
 import { Burst } from "./Burst";
 import { ParticleCurve } from "./ParticleCurve";
+import { ParticleSystem } from "../ParticleSystem";
 
 /**
  * The EmissionModule of a Particle System.
  */
-export class EmissionModule implements IClone {
+export class EmissionModule {
   /** Specifies whether the EmissionModule is enabled or disabled. */
   enabled: boolean = true;
   /**  The rate of particle emission. */
@@ -15,6 +16,10 @@ export class EmissionModule implements IClone {
 
   private _bursts: Burst[] = [];
 
+  private _frameRateTime: number = 0;
+  private _currentBurstIndex: number = 0;
+  private _particleSystem: ParticleSystem;
+
   /**
    * Gets the burst array.
    */
@@ -22,7 +27,8 @@ export class EmissionModule implements IClone {
     return this._bursts;
   }
 
-  constructor() {
+  constructor(particleSystem: ParticleSystem) {
+    this._particleSystem = particleSystem;
     this.rateOverTime.constant = 10;
   }
 
@@ -65,6 +71,33 @@ export class EmissionModule implements IClone {
   }
 
   /**
+   * @internal
+   */
+  _emitByRateOverTime(fromTime: number, toTime: number): number {
+    const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
+    const emitInterval = 1.0 / ratePerSeconds;
+    const totalFrameRateTime = this._frameRateTime + (toTime - fromTime);
+    const emitCount = Math.floor(totalFrameRateTime / emitInterval);
+    this._frameRateTime = totalFrameRateTime % emitInterval;
+    return emitCount;
+  }
+
+  /**
+   * @internal
+   */
+  _emitByBurst(fromTime: number, toTime: number): number {
+    if (toTime < fromTime) {
+      let emitCount = 0;
+      emitCount += this._subBurst(fromTime, this._particleSystem.main.duration);
+      this._currentBurstIndex = 0;
+      emitCount += this._subBurst(0, toTime);
+      return emitCount;
+    } else {
+      return this._subBurst(fromTime, toTime);
+    }
+  }
+
+  /**
    * @override
    */
   cloneTo(destEmission: EmissionModule): void {
@@ -86,12 +119,25 @@ export class EmissionModule implements IClone {
     }
   }
 
-  /**
-   * @override
-   */
-  clone(): EmissionModule {
-    const destEmission = new EmissionModule();
-    this.cloneTo(destEmission);
-    return destEmission;
+  private _subBurst(fromTime: number, toTime: number): number {
+    const rand = this._particleSystem._rand;
+    const bursts = this.bursts;
+
+    let emitCount = 0;
+    let currentBurstIndex = this._currentBurstIndex;
+    for (let n = bursts.length; currentBurstIndex < n; currentBurstIndex++) {
+      const burst = bursts[currentBurstIndex];
+      const burstTime = burst.time;
+
+      if (burstTime > toTime) {
+        break;
+      }
+
+      if (burstTime >= fromTime) {
+        emitCount += burst.count.evaluate(undefined, rand.random());
+      }
+    }
+    this._currentBurstIndex = currentBurstIndex;
+    return emitCount;
   }
 }
