@@ -1,122 +1,113 @@
-attribute vec3 a_position;
-attribute vec3 a_velocity;
-attribute vec3 a_acceleration;
-attribute vec4 a_color;
-
-attribute vec4 a_lifeAndSize;
-attribute vec2 a_rotation;
-
-attribute vec3 a_uv;
-attribute vec2 a_normalizedUv;
-
-uniform float u_time;
-uniform bool u_once;
-uniform mat4 renderer_MVPMat;
-
-varying vec4 v_color;
-varying float v_lifeLeft;
-varying vec2 v_uv;
-
-#ifdef is2d
-  uniform mat4 camera_ViewInvMat;
-  uniform mat4 camera_ProjMat;
-  uniform mat4 camera_ViewMat;
-  uniform mat4 renderer_ModelMat;
+#if defined(SPHERE_BILLBOARD) || defined(STRETCHED_BILLBOARD) || defined(HORIZONTAL_BILLBOARD) || defined(VERTICAL_BILLBOARD)
+    attribute vec4 a_CornerTextureCoordinate;
 #endif
 
-mat2 rotation2d(float angle) {
-  float s = sin(angle);
-  float c = cos(angle);
+#ifdef MESH
+    attribute vec3 a_MeshPosition;
+    attribute vec4 a_MeshColor;
+    attribute vec2 a_MeshTextureCoordinate;
+    varying vec4 v_MeshColor;
+#endif
 
-  return mat2(
-    c, -s,
-    s, c
-  );
-}
+attribute vec4 a_ShapePositionStartLifeTime;
+attribute vec4 a_DirectionTime;
+attribute vec4 a_StartColor;
+attribute vec3 a_StartSize;
+attribute vec3 a_StartRotation0;
+attribute float a_StartSpeed;
 
+//#if defined(COLOR_OVER_LIFETIME) || defined(RANDOM_COLOR_OVER_LIFETIME) || defined(SIZE_OVER_LIFETIME_RANDOM_CURVES) || defined(SIZE_OVER_LIFETIME_RANDOM_CURVES_SEPARATE) || defined(ROTATION_OVER_LIFE_TIME_RANDOM_CONSTANTS) || defined(ROTATION_OVER_LIFETIME_RANDOM_CURVES)
+    attribute vec4 a_Random0;
+//#endif
+
+#if defined(TEXTURE_SHEET_ANIMATION_RANDOM_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
+    attribute vec4 a_Random1;
+#endif
+
+attribute vec3 a_SimulationWorldPosition;
+attribute vec4 a_SimulationWorldRotation;
+
+varying vec4 v_Color;
+#ifdef BASETEXTURE
+    attribute vec4 a_SimulationUV;
+    varying vec2 v_TextureCoordinate;
+#endif
+uniform vec4 u_tilingOffset;
+
+uniform float u_CurrentTime;
+uniform vec3 u_Gravity;
+uniform vec2 u_DragConstant;
+uniform vec3 u_WorldPosition;
+uniform vec4 u_WorldRotation;
+uniform bool u_ThreeDStartRotation;
+uniform int u_ScalingMode;
+uniform vec3 u_PositionScale;
+uniform vec3 u_SizeScale;
+
+uniform mat4 u_viewMat;
+uniform mat4 u_projMat;
+
+#ifdef STRETCHED_BILLBOARD
+    uniform vec3 u_cameraPos;
+#endif
+uniform vec3 u_cameraDirection; // TODO:只有几种广告牌模式需要用
+uniform vec3 u_cameraUp;
+
+uniform float u_StretchedBillboardLengthScale;
+uniform float u_StretchedBillboardSpeedScale;
+uniform int u_SimulationSpace;
+
+#include <particle_common>
+#include <velocity_over_lifetime_module>
+#include <color_over_lifetime_module>
+#include <size_over_lifetime_module>
+#include <rotation_over_lifetime_module>
+#include <texture_sheet_animation_module>
 
 void main() {
-  v_color = a_color;
-  v_uv = a_uv.xy;
-  
-  // life time
-  float life = a_lifeAndSize.y;
-  float startTime = a_lifeAndSize.x;
+    float age = u_CurrentTime - a_DirectionTime.w;
+    float normalizedAge = age / a_ShapePositionStartLifeTime.w;
+    vec3 lifeVelocity;
+    if (normalizedAge < 1.0) {
+        vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
+#if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
+        lifeVelocity = computeParticleLifeVelocity(normalizedAge); //计算粒子生命周期速度
+#endif
+        vec3 gravityVelocity = u_Gravity * age;
 
-  // Elapsed time
-  float deltaTime = max(mod(u_time - startTime, life), 0.0);
+        vec4 worldRotation;
+        if (u_SimulationSpace == 1) {
+            worldRotation = a_SimulationWorldRotation;
+        } else {
+            worldRotation = u_WorldRotation;
+        }
 
-  if ((u_once && u_time > life + startTime)) {
-    deltaTime = 0.0;
-  }
+        //drag
+        vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
+        vec3 center = computeParticlePosition(startVelocity, lifeVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData); //计算粒子位置
 
-  v_lifeLeft = 1.0 - deltaTime / life;
-  float scale = a_lifeAndSize.z;
-  vec3 position = a_position + (a_velocity + a_acceleration * deltaTime * 0.5) * deltaTime;
+        #include <sphere_billboard>
+        #include <stretched_billboard>
+        #include <horizontal_billboard>
+        #include <vertical_billboard>
+        #include <particle_mesh>
 
-  #ifdef isScaleByLifetime
-    scale *= v_lifeLeft;
-  #else
-    scale *= pow(a_lifeAndSize.w, deltaTime);
-  #endif
+        gl_Position = u_projMat * u_viewMat * vec4(center, 1.0);
+        v_Color = computeParticleColor(a_StartColor, normalizedAge);
 
-  #ifdef rotateToVelocity
-    vec3 v = a_velocity + a_acceleration * deltaTime;
-    float angle = atan(v.z, v.x) * 2.0;
-  #else
-    float deltaAngle = deltaTime * a_rotation.y;
-    float angle = a_rotation.x + deltaAngle;
-  #endif
-
-  #ifdef is2d
-
-    vec2 rotatedPoint = rotation2d(angle) * vec2(a_normalizedUv.x, a_normalizedUv.y * a_uv.z);
-
-    vec3 basisX = camera_ViewInvMat[0].xyz;
-    vec3 basisZ = camera_ViewInvMat[1].xyz;
-
-    vec3 localPosition = vec3(basisX * rotatedPoint.x + 
-                basisZ * rotatedPoint.y) * scale + position;
-
-    gl_Position = camera_ProjMat * camera_ViewMat * vec4(localPosition + renderer_ModelMat[3].xyz, 1.);
-  #else
-    #ifdef rotateToVelocity
-      float s = sin(angle);
-      float c = cos(angle);
-    #else
-      float s = sin(angle);
-      float c = cos(angle);
+#ifdef BASETEXTURE
+        vec2 simulateUV;
+    #if defined(SPHERE_BILLBOARD) || defined(STRETCHED_BILLBOARD) || defined(HORIZONTAL_BILLBOARD) || defined(VERTICAL_BILLBOARD)
+        simulateUV = a_SimulationUV.xy + a_CornerTextureCoordinate.zw * a_SimulationUV.zw;
+        v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
     #endif
-
-    vec4 rotatedPoint = vec4((a_normalizedUv.x * c + a_normalizedUv.y * a_uv.z * s) * scale , 0., 
-                              (a_normalizedUv.x * s - a_normalizedUv.y * a_uv.z * c) * scale, 1.);
-  
-    vec4 orientation = vec4(0, 0, 0, 1);
-    vec4 q2 = orientation + orientation;
-    vec4 qx = orientation.xxxw * q2.xyzx;
-    vec4 qy = orientation.xyyw * q2.xyzy;
-    vec4 qz = orientation.xxzw * q2.xxzz;
-  
-    mat4 localMatrix = mat4(
-        (1.0 - qy.y) - qz.z, 
-        qx.y + qz.w, 
-        qx.z - qy.w,
-        0,
-  
-        qx.y - qz.w, 
-        (1.0 - qx.x) - qz.z, 
-        qy.z + qx.w,
-        0,
-  
-        qx.z + qy.w, 
-        qy.z - qx.w, 
-        (1.0 - qx.x) - qy.y,
-        0,
-  
-        position.x, position.y, position.z, 1);
-
-    rotatedPoint = localMatrix * rotatedPoint;
-
-    gl_Position = renderer_MVPMat * rotatedPoint;
-  #endif
+    #ifdef MESH
+        simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
+        v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
+    #endif
+        v_TextureCoordinate = TransformUV(v_TextureCoordinate, u_tilingOffset);
+#endif
+    } else {
+	    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Discard use out of X(-1,1),Y(-1,1),Z(0,1)
+    }
 }

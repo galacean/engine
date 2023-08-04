@@ -43,7 +43,7 @@ export class ParticleMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("ParticleUnlit"));
+    super(engine, Shader.find("particle-shader"));
 
     const shaderData = this.shaderData;
 
