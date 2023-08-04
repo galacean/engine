@@ -10,7 +10,8 @@ import {
 } from "@galacean/engine-core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
-import type { IGLTF } from "../GLTFSchema";
+import { GLTFParser } from "./GLTFParser";
+import type { IBufferView, IGLTF } from "../GLTFSchema";
 
 /**
  * @internal
@@ -36,6 +37,9 @@ export class GLTFParserContext {
   /** @internal */
   _buffers: ArrayBuffer[] | Promise<ArrayBuffer[]>;
 
+  /** @internal */
+  _bufferViewMap = new WeakMap<IBufferView, Promise<Uint8Array>>();
+
   constructor(url: string) {
     const promiseMap = this.promiseMap;
     promiseMap[`${url}?q=textures`] = this._initPromiseInfo(this.texturesPromiseInfo);
@@ -51,6 +55,25 @@ export class GLTFParserContext {
    */
   getBuffers(): Promise<ArrayBuffer[]> {
     return Promise.resolve(this._buffers);
+  }
+
+  getBufferViewData(bufferView: IBufferView): Promise<Uint8Array> {
+    const cachedPromise = this._bufferViewMap.get(bufferView);
+    if (cachedPromise) return cachedPromise;
+
+    const { extensions, byteOffset = 0, byteLength, buffer } = bufferView;
+    let bufferViewDataPromise: Promise<Uint8Array>;
+    if (extensions) {
+      bufferViewDataPromise = <Promise<Uint8Array>>(
+        GLTFParser.executeExtensionsCreateAndParse(extensions, this, bufferView)
+      );
+    } else {
+      bufferViewDataPromise = this.getBuffers().then(
+        (buffers) => new Uint8Array(buffers[buffer], byteOffset, byteLength)
+      );
+    }
+    this._bufferViewMap.set(bufferView, bufferViewDataPromise);
+    return bufferViewDataPromise;
   }
 
   private _initPromiseInfo(promiseInfo: PromiseInfo<any>): AssetPromise<any> {

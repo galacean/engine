@@ -20,7 +20,7 @@ import {
   TextureMinFilter
 } from "./GLTFSchema";
 import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
-import { GLTFTextureParser } from "./parser";
+import { GLTFParser, GLTFTextureParser } from "./parser";
 
 /**
  * @internal
@@ -136,11 +136,10 @@ export class GLTFUtils {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    return context.getBuffers().then((buffers) => {
+    return context.getBufferViewData(bufferView).then((bufferViewData) => {
       const bufferIndex = bufferView.buffer;
-      const buffer = buffers[bufferIndex];
-      const bufferByteOffset = bufferView.byteOffset || 0;
-      const byteOffset = accessor.byteOffset || 0;
+      const bufferByteOffset = bufferViewData.byteOffset ?? 0;
+      const byteOffset = accessor.byteOffset ?? 0;
 
       const TypedArray = GLTFUtils.getComponentType(componentType);
       const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
@@ -159,7 +158,7 @@ export class GLTFUtils {
         if (!bufferInfo) {
           const offset = bufferByteOffset + bufferSlice * bufferStride;
           const count = accessorCount * (bufferStride / dataElementBytes);
-          const data = new TypedArray(buffer, offset, count);
+          const data = new TypedArray(bufferViewData.buffer, offset, count);
           accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
           bufferInfo.restoreInfo = new BufferDataRestoreInfo(
             new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
@@ -168,7 +167,7 @@ export class GLTFUtils {
       } else {
         const offset = bufferByteOffset + byteOffset;
         const count = accessorCount * dataElementSize;
-        const data = new TypedArray(buffer, offset, count);
+        const data = new TypedArray(bufferViewData.buffer, offset, count);
         bufferInfo = new BufferInfo(data, false, elementStride);
         bufferInfo.restoreInfo = new BufferDataRestoreInfo(
           new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
@@ -176,7 +175,7 @@ export class GLTFUtils {
       }
 
       if (accessor.sparse) {
-        GLTFUtils.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
+        return GLTFUtils.processingSparseData(context, accessor, bufferInfo).then(() => bufferInfo);
       }
       return bufferInfo;
     });
@@ -257,55 +256,59 @@ export class GLTFUtils {
   /**
    * Get accessor data.
    */
-  static processingSparseData(
-    bufferViews: IBufferView[],
-    accessor: IAccessor,
-    buffers: ArrayBuffer[],
-    bufferInfo: BufferInfo
-  ): void {
+  static processingSparseData(context: GLTFParserContext, accessor: IAccessor, bufferInfo: BufferInfo) {
     const { restoreInfo } = bufferInfo;
+    const bufferViews = context.glTF.bufferViews;
     const accessorTypeSize = GLTFUtils.getAccessorTypeSize(accessor.type);
     const TypedArray = GLTFUtils.getComponentType(accessor.componentType);
     const data = bufferInfo.data.slice();
 
     const { count, indices, values } = accessor.sparse;
+
     const indicesBufferView = bufferViews[indices.bufferView];
     const valuesBufferView = bufferViews[values.bufferView];
-    const indicesBufferIndex = indicesBufferView.buffer;
-    const valuesBufferIndex = valuesBufferView.buffer;
-    const indicesArrayBuffer = buffers[indicesBufferIndex];
-    const valuesArrayBuffer = buffers[valuesBufferIndex];
-    const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
-    const indicesByteLength = indicesBufferView.byteLength;
-    const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
-    const valuesByteLength = valuesBufferView.byteLength;
 
-    restoreInfo.typeSize = accessorTypeSize;
-    restoreInfo.sparseCount = count;
+    return Promise.all([
+      context.getBufferViewData(indicesBufferView),
+      context.getBufferViewData(valuesBufferView)
+    ]).then(([indicesUint8Array, valuesUin8Array]) => {
+      const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesUint8Array.byteOffset ?? 0);
+      const indicesByteLength = indicesUint8Array.byteLength;
+      const valuesByteOffset = (values.byteOffset ?? 0) + (valuesUin8Array.byteOffset ?? 0);
+      const valuesByteLength = valuesUin8Array.byteLength;
 
-    const IndexTypeArray = GLTFUtils.getComponentType(indices.componentType);
+      restoreInfo.typeSize = accessorTypeSize;
+      restoreInfo.sparseCount = count;
 
-    const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
-    const indicesArray = new IndexTypeArray(indicesArrayBuffer, indicesByteOffset, indexLength);
-    restoreInfo.sparseIndices = new RestoreDataAccessor(
-      indicesBufferIndex,
-      IndexTypeArray,
-      indicesByteOffset,
-      indexLength
-    );
+      const IndexTypeArray = GLTFUtils.getComponentType(indices.componentType);
 
-    const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
-    const valuesArray = new TypedArray(valuesArrayBuffer, valuesByteOffset, valueLength);
-    restoreInfo.sparseValues = new RestoreDataAccessor(valuesBufferIndex, TypedArray, valuesByteOffset, valueLength);
+      const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
+      const indicesArray = new IndexTypeArray(indicesUint8Array.buffer, indicesByteOffset, indexLength);
+      restoreInfo.sparseIndices = new RestoreDataAccessor(
+        indicesBufferView.buffer,
+        IndexTypeArray,
+        indicesByteOffset,
+        indexLength
+      );
 
-    for (let i = 0; i < count; i++) {
-      const replaceIndex = indicesArray[i];
-      for (let j = 0; j < accessorTypeSize; j++) {
-        data[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+      const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
+      const valuesArray = new TypedArray(valuesUin8Array.buffer, valuesByteOffset, valueLength);
+      restoreInfo.sparseValues = new RestoreDataAccessor(
+        valuesBufferView.buffer,
+        TypedArray,
+        valuesByteOffset,
+        valueLength
+      );
+
+      for (let i = 0; i < count; i++) {
+        const replaceIndex = indicesArray[i];
+        for (let j = 0; j < accessorTypeSize; j++) {
+          data[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+        }
       }
-    }
 
-    bufferInfo.data = data;
+      bufferInfo.data = data;
+    });
   }
 
   static getIndexFormat(type: AccessorComponentType): IndexFormat {

@@ -37,7 +37,7 @@ export abstract class GLTFParser {
     context: GLTFParserContext,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | void | Promise<EngineObject | void> {
+  ): Uint8Array | EngineObject | void | Promise<EngineObject | Uint8Array | void> {
     let resource: EngineObject | Promise<EngineObject> = null;
 
     const extensionArray = Object.keys(extensions);
@@ -121,7 +121,7 @@ export abstract class GLTFParser {
     extensionSchema: GLTFExtensionSchema,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | Promise<EngineObject> {
+  ): EngineObject | Uint8Array | Promise<EngineObject | Uint8Array> {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
 
     if (parser) {
