@@ -420,5 +420,6 @@ describe("glTF Loader test", function () {
     const renderer = entities[1].getComponent(SkinnedMeshRenderer);
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
+
   });
 });

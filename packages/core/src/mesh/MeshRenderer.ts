@@ -74,20 +74,20 @@ export class MeshRenderer extends Renderer {
   /**
    * @internal
    */
+  override _cloneTo(target: MeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.mesh = this._mesh;
+  }
+
+  /**
+   * @internal
+   */
   override _prepareRender(context: RenderContext): void {
     if (!this._mesh) {
       Logger.error("mesh is null.");
       return;
     }
     super._prepareRender(context);
-  }
-
-  /**
-   * @internal
-   */
-  override _cloneTo(target: MeshRenderer): void {
-    super._cloneTo(target);
-    target.mesh = this._mesh;
   }
 
   /**
