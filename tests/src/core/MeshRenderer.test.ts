@@ -43,6 +43,8 @@ describe("MeshRenderer", async function () {
     mr.mesh = cubeMesh;
     expect(mr.mesh).to.equal(cubeMesh);
     expect(cubeMesh2.refCount).to.be.equal(0);
+
+    mr.mesh = null;
   });
 
   it("enableVertexColor", () => {
@@ -58,6 +60,10 @@ describe("MeshRenderer", async function () {
 
   it("bounds", () => {
     const mr = cubeEntity.getComponent(MeshRenderer);
+    expect(mr.bounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(mr.bounds.max).to.deep.include({ x: 0, y: 0, z: 0 });
+
+    mr.mesh = cubeMesh;
     expect(mr.bounds.min).to.deep.include({ x: -1, y: -1, z: -1 });
     expect(mr.bounds.max).to.deep.include({ x: 1, y: 1, z: 1 });
 
