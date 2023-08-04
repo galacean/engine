@@ -406,5 +406,18 @@ describe("Entity", async () => {
       entity.destroy();
       expect(entity.children.length).eq(0);
     });
+
+    it("addChildAfterDestroy", () => {
+      const root = scene.createRootEntity("root");
+      const entity = root.createChild("entity");
+      entity.destroy();
+      expect(entity.isActive).eq(false);
+      expect(entity.isActiveInHierarchy).eq(false);
+      expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
+      root.destroy();
+      expect(root.isActive).eq(false);
+      expect(root.isActiveInHierarchy).eq(false);
+      expect(root.createChild("child1").isActiveInHierarchy).eq(false);
+    });
   });
 });

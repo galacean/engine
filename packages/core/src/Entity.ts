@@ -389,6 +389,8 @@ export class Entity extends EngineObject {
     }
 
     super.destroy();
+    this._isActive = false;
+    this._isActiveInHierarchy = false;
     if (this._hookResource) {
       this._hookResource._addReferCount(-1);
       this._hookResource = null;
