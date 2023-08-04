@@ -35,12 +35,12 @@ export class ParticleBufferDefinition {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1)
   ];
 
-  static readonly meshVertexStride = 36;
   static readonly instanceVertexStride = 152;
+  static readonly instanceVertexFloatStride = ParticleBufferDefinition.instanceVertexStride / 4;
 
-  static readonly instanceStartLifeTimeOffset = 3;
-  static readonly instanceStartSizeOffset = 7;
-  static readonly instanceSimulationOffset = 34;
+  static readonly startLifeTimeOffset = 3;
+  static readonly timeOffset = 7;
+  static readonly simulationOffset = 34;
 
   static billboardVertexBufferBinding: VertexBufferBinding;
   static billboardIndexBufferBinding: IndexBufferBinding;

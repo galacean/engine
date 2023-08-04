@@ -1,3 +1,4 @@
+import { ParticleSystem } from "../ParticleSystem";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCurve } from "./ParticleCurve";
@@ -54,6 +55,7 @@ export class MainModule {
   playOnAwake: boolean = true;
 
   private _bufferMaxParticles: number = 0;
+  private _particleSystem: ParticleSystem;
 
   /**
    * Max particles count.
@@ -66,9 +68,17 @@ export class MainModule {
     var newMaxParticles: number = value + 1;
     if (newMaxParticles !== this._bufferMaxParticles) {
       this._bufferMaxParticles = newMaxParticles;
-      // this._initBufferDatas();
+
+      const particleSystem = this._particleSystem;
+      if (value < particleSystem._currentParticleCount) {
+        particleSystem._recreateInstanceBuffer(value);
+      }
     }
 
     // this._updateParticlesSimulationRestart(0);
+  }
+
+  constructor(particleSystem: ParticleSystem) {
+    this._particleSystem = particleSystem;
   }
 }

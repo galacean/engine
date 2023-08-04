@@ -7,7 +7,7 @@ import { ParticleData } from "./ParticleData";
 import { ParticleRenderer } from "./ParticleRenderer";
 
 import { VertexAttribute } from "../mesh";
-import { ParticleBufferDefinition } from "./ParticleBufferUtils";
+import { ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./moudules/EmissionModule";
@@ -29,15 +29,17 @@ export class ParticleSystem {
   useAutoRandomSeed: boolean = true;
 
   /** Main module. */
-  readonly main: MainModule = new MainModule();
+  readonly main: MainModule = new MainModule(this);
   /** Emission module. */
   readonly emission: EmissionModule = new EmissionModule();
   /** Shape module. */
   readonly shape: ShapeModule = new ShapeModule();
 
-  private _maxBufferParticles: number = 0;
-  private _firstActiveElement: number = 0;
+  /** @internal */
+  _currentParticleCount: number = 0;
+
   private _firstNewElement: number = 0;
+  private _firstActiveElement: number = 0;
   private _firstFreeElement: number = 0;
   private _firstRetiredElement: number = 0;
 
@@ -50,8 +52,11 @@ export class ParticleSystem {
 
   private _rand: Rand = new Rand(0);
 
-  private _engine: Engine;
-  private _renderer: ParticleRenderer;
+  private _playTime: number = 0;
+
+  private readonly _engine: Engine;
+  private readonly _renderer: ParticleRenderer;
+  private readonly _particleIncreaseCount: number = 128;
 
   /**
    * Random seed.
@@ -89,28 +94,28 @@ export class ParticleSystem {
     }
   }
 
-  private _addVertexBufferBindingsFilterDuplicate(
-    vertexBufferBinding: VertexBufferBinding,
-    out: VertexBufferBinding[]
-  ): number {
-    let index = 0;
-    for (let n = out.length; index < n; index++) {
-      if (out[index] === vertexBufferBinding) {
-        return index;
-      }
-    }
-    out.push(vertexBufferBinding);
-    return index;
+  /**
+   * @internal
+   */
+  _update(elapsedTime: number): void {
+    this._playTime += elapsedTime;
+    this._retireActiveParticles();
+    this._freeRetiredParticles();
   }
 
-  private _createGeometryBuffers(): void {
+  /**
+   * @internal
+   */
+  _reorganizeGeometryBuffers(): void {
+    const renderer = this._renderer;
     const vertexElements = this._vertexElements;
     const vertexBufferBindings = this._vertexBufferBindings;
+
     vertexElements.length = 0;
     vertexBufferBindings.length = 0;
 
-    if (this._renderer.renderMode === ParticleRenderMode.Mesh) {
-      const mesh = this._renderer.mesh;
+    if (renderer.renderMode === ParticleRenderMode.Mesh) {
+      const mesh = renderer.mesh;
       if (!mesh) {
         return;
       }
@@ -141,24 +146,30 @@ export class ParticleSystem {
 
       this._indexBufferBinding = mesh._indexBufferBinding;
     } else {
-      vertexElements.push(ParticleBufferDefinition.billboardVertexElement);
-      vertexBufferBindings.push(ParticleBufferDefinition.billboardVertexBufferBinding);
-      this._indexBufferBinding = ParticleBufferDefinition.billboardIndexBufferBinding;
+      vertexElements.push(ParticleBufferUtils.billboardVertexElement);
+      vertexBufferBindings.push(ParticleBufferUtils.billboardVertexBufferBinding);
+      this._indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
     }
+
+    const instanceVertexElements = ParticleBufferUtils.instanceVertexElements;
+    const bindingIndex = vertexBufferBindings.length;
+    for (let i = 0, n = instanceVertexElements.length; i < n; i++) {
+      const element = instanceVertexElements[i];
+      vertexElements.push(
+        new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
+      );
+    }
+    vertexBufferBindings.length++;
   }
 
-  private _recreateInstanceBuffer(particleCount: number): void {
-    const instanceBinding = this._instanceVertexBufferBinding;
-    const vertexBufferBindings = this._vertexBufferBindings;
+  /**
+   * @internal
+   */
+  _recreateInstanceBuffer(particleCount: number): void {
+    this._instanceVertexBufferBinding?.buffer.destroy();
 
-    if (instanceBinding !== null) {
-      instanceBinding.buffer.destroy();
-    } else {
-      vertexBufferBindings.length++;
-    }
-
-    const stride = ParticleBufferDefinition.instanceVertexStride;
-    const byteLength = stride * Math.min(particleCount, this.main.maxParticles);
+    const stride = ParticleBufferUtils.instanceVertexStride;
+    const byteLength = stride * particleCount;
     const vertexInstanceBuffer = new Buffer(
       this._engine,
       BufferBindFlag.VertexBuffer,
@@ -166,19 +177,33 @@ export class ParticleSystem {
       BufferUsage.Dynamic,
       false
     );
-    this._instanceVertices = new Float32Array(byteLength / 4);
-    vertexBufferBindings[vertexBufferBindings.length - 1] = new VertexBufferBinding(vertexInstanceBuffer, stride);
+
+    const vertexBufferBindings = this._vertexBufferBindings;
+    const instanceVertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
+    vertexBufferBindings[vertexBufferBindings.length - 1] = instanceVertexBufferBinding;
+
+    const instanceVertices = new Float32Array(byteLength / 4);
+    const lastInstanceVertices = this._instanceVertices;
+    if (lastInstanceVertices) {
+      instanceVertices.set(lastInstanceVertices);
+      instanceVertexBufferBinding.buffer.setData(lastInstanceVertices);
+    }
+
+    this._instanceVertices = instanceVertices;
+    this._instanceVertexBufferBinding = instanceVertexBufferBinding;
+    this._currentParticleCount = particleCount;
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform): void {
     direction.normalize();
+
     let nextFreeParticle = this._firstFreeElement + 1;
-    if (nextFreeParticle >= this._maxBufferParticles) {
+    if (nextFreeParticle >= this._currentParticleCount) {
       nextFreeParticle = 0;
     }
 
     if (nextFreeParticle === this._firstRetiredElement) {
-      // @todo: 查看是否可以扩容
+      this._recreateInstanceBuffer(this._currentParticleCount + this._particleIncreaseCount);
     }
 
     const main = this.main;
@@ -214,11 +239,64 @@ export class ParticleSystem {
     const startSpeed = main.startSpeed.evaluate(undefined, rand.random());
   }
 
-  private _retireActiveParticles(): void {}
+  private _retireActiveParticles(): void {
+    const epsilon = 0.0001;
+    const frameCount = this._engine.time.frameCount;
+    const instanceVertices = this._instanceVertices;
 
-  private _freeRetiredParticles(): void {}
+    // let firstActive = this._firstActiveElement;
+    while (this._firstActiveElement != this._firstNewElement) {
+      const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
+      const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
+
+      const particleAge = this._playTime - instanceVertices[activeParticleTimeOffset];
+      if (particleAge + epsilon < instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset]) {
+        break;
+      }
+
+      // Store frame count in time offset to free retired particle
+      instanceVertices[activeParticleTimeOffset] = frameCount;
+      if (++this._firstActiveElement >= this._currentParticleCount) {
+        this._firstActiveElement = 0;
+      }
+    }
+  }
+
+  private _freeRetiredParticles(): void {
+    const frameCount = this._engine.time.frameCount;
+
+    while (this._firstRetiredElement != this._firstActiveElement) {
+      const offset =
+        this._firstRetiredElement * ParticleBufferUtils.instanceVertexFloatStride +
+        ParticleBufferUtils.startLifeTimeOffset;
+      const age = frameCount - this._instanceVertices[offset];
+
+      // WebGL don't support map buffer range, so off this optimization
+      if (age < 0) {
+        break;
+      }
+
+      if (++this._firstRetiredElement >= this._currentParticleCount) {
+        this._firstRetiredElement = 0;
+      }
+    }
+  }
 
   private _addNewParticlesToBuffer(): void {}
 
   private _createParticleData(main: MainModule, out: ParticleData): void {}
+
+  private _addVertexBufferBindingsFilterDuplicate(
+    vertexBufferBinding: VertexBufferBinding,
+    out: VertexBufferBinding[]
+  ): number {
+    let index = 0;
+    for (let n = out.length; index < n; index++) {
+      if (out[index] === vertexBufferBinding) {
+        return index;
+      }
+    }
+    out.push(vertexBufferBinding);
+    return index;
+  }
 }

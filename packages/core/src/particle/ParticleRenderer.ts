@@ -1,4 +1,3 @@
-
 import { Renderer } from "../Renderer";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -21,6 +20,8 @@ export class ParticleRenderer extends Renderer {
   static renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private _renderMode: ParticleRenderMode;
+  private _currentRenderModeMacro: ShaderMacro;
+  private _mesh: ModelMesh;
 
   /** Particle system. */
   readonly particleSystem: ParticleSystem = new ParticleSystem(this);
@@ -29,7 +30,22 @@ export class ParticleRenderer extends Renderer {
    * The mesh of particle.
    * @remarks Valid when `renderMode` is `Mesh`.
    */
-  mesh: ModelMesh;
+  get mesh(): ModelMesh {
+    return this._mesh;
+  }
+
+  set mesh(value: ModelMesh) {
+    const lastMesh = this._mesh;
+    if (lastMesh !== value) {
+      this._mesh = value;
+
+      lastMesh?._addReferCount(-1);
+      value?._addReferCount(1);
+      if (this.renderMode === ParticleRenderMode.Mesh) {
+        this.particleSystem._reorganizeGeometryBuffers();
+      }
+    }
+  }
 
   /**
    * Specifies how the system draws particles.
@@ -40,43 +56,35 @@ export class ParticleRenderer extends Renderer {
 
   set renderMode(value: ParticleRenderMode) {
     if (this._renderMode !== value) {
-      const shaderData = this.shaderData;
-      switch (this._renderMode) {
-        case ParticleRenderMode.Billboard:
-          shaderData.disableMacro(ParticleRenderer.renderModeBillboardMacro);
-          break;
-        case ParticleRenderMode.Stretch:
-          shaderData.disableMacro(ParticleRenderer.renderModeStretchedBillboardMode);
-          break;
-        case ParticleRenderMode.HorizontalBillboard:
-          shaderData.disableMacro(ParticleRenderer.renderModeHorizontalBillboardMacro);
-          break;
-        case ParticleRenderMode.VerticalBillboard:
-          shaderData.disableMacro(ParticleRenderer.renderModeVerticalBillboardMacro);
-          break;
-        case ParticleRenderMode.Mesh:
-          shaderData.disableMacro(ParticleRenderer.renderModeMeshMacro);
-          break;
-      }
+      const lastRenderMode = this._renderMode;
+      const lastRenderModeMacro = this._currentRenderModeMacro;
+
       this._renderMode = value;
+
+      const shaderData = this.shaderData;
+      lastRenderModeMacro && shaderData.disableMacro(lastRenderModeMacro);
+
       switch (value) {
         case ParticleRenderMode.Billboard:
-          shaderData.enableMacro(ParticleRenderer.renderModeBillboardMacro);
+          this._currentRenderModeMacro = ParticleRenderer.renderModeBillboardMacro;
           break;
         case ParticleRenderMode.Stretch:
-          shaderData.enableMacro(ParticleRenderer.renderModeStretchedBillboardMode);
+          this._currentRenderModeMacro = ParticleRenderer.renderModeStretchedBillboardMode;
           break;
         case ParticleRenderMode.HorizontalBillboard:
-          shaderData.enableMacro(ParticleRenderer.renderModeHorizontalBillboardMacro);
+          this._currentRenderModeMacro = ParticleRenderer.renderModeHorizontalBillboardMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:
-          shaderData.enableMacro(ParticleRenderer.renderModeVerticalBillboardMacro);
+          this._currentRenderModeMacro = ParticleRenderer.renderModeVerticalBillboardMacro;
           break;
         case ParticleRenderMode.Mesh:
-          shaderData.enableMacro(ParticleRenderer.renderModeMeshMacro);
+          this._currentRenderModeMacro = ParticleRenderer.renderModeMeshMacro;
           break;
       }
-      //   this._particleMesh._initBuffer();
+      shaderData.enableMacro(this._currentRenderModeMacro);
+      if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
+        this.particleSystem._reorganizeGeometryBuffers();
+      }
     }
   }
 }
