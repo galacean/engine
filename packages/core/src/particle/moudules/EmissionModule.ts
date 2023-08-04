@@ -1,7 +1,6 @@
-import { IClone } from "@galacean/engine-design";
+import { ParticleSystem } from "../ParticleSystem";
 import { Burst } from "./Burst";
 import { ParticleCurve } from "./ParticleCurve";
-import { ParticleSystem } from "../ParticleSystem";
 
 /**
  * The EmissionModule of a Particle System.
@@ -73,27 +72,34 @@ export class EmissionModule {
   /**
    * @internal
    */
-  _emitByRateOverTime(fromTime: number, toTime: number): number {
+  _emitByRateOverTime(fromTime: number, toTime: number): void {
     const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
-    const emitInterval = 1.0 / ratePerSeconds;
-    const totalFrameRateTime = this._frameRateTime + (toTime - fromTime);
-    const emitCount = Math.floor(totalFrameRateTime / emitInterval);
-    this._frameRateTime = totalFrameRateTime % emitInterval;
-    return emitCount;
+
+    if (ratePerSeconds > 0) {
+      const particleSystem = this._particleSystem;
+      const emitInterval = 1.0 / ratePerSeconds;
+
+      const emitStartTime = fromTime - emitInterval;
+      let totalFrameRateTime = toTime - emitStartTime;
+      while (totalFrameRateTime >= emitInterval) {
+        particleSystem._emit(fromTime + emitInterval, 1);
+        totalFrameRateTime -= emitInterval;
+      }
+
+      this._frameRateTime = totalFrameRateTime;
+    }
   }
 
   /**
    * @internal
    */
-  _emitByBurst(fromTime: number, toTime: number): number {
+  _emitByBurst(fromTime: number, toTime: number): void {
     if (toTime < fromTime) {
-      let emitCount = 0;
-      emitCount += this._subBurst(fromTime, this._particleSystem.main.duration);
+      this._emitBySubBurst(fromTime, this._particleSystem.main.duration);
       this._currentBurstIndex = 0;
-      emitCount += this._subBurst(0, toTime);
-      return emitCount;
+      this._emitBySubBurst(0, toTime);
     } else {
-      return this._subBurst(fromTime, toTime);
+      this._emitBySubBurst(fromTime, toTime);
     }
   }
 
@@ -119,11 +125,11 @@ export class EmissionModule {
     }
   }
 
-  private _subBurst(fromTime: number, toTime: number): number {
-    const rand = this._particleSystem._rand;
+  private _emitBySubBurst(fromTime: number, toTime: number): void {
+    const particleSystem = this._particleSystem;
+    const rand = particleSystem._rand;
     const bursts = this.bursts;
 
-    let emitCount = 0;
     let currentBurstIndex = this._currentBurstIndex;
     for (let n = bursts.length; currentBurstIndex < n; currentBurstIndex++) {
       const burst = bursts[currentBurstIndex];
@@ -134,10 +140,10 @@ export class EmissionModule {
       }
 
       if (burstTime >= fromTime) {
-        emitCount += burst.count.evaluate(undefined, rand.random());
+        const count = burst.count.evaluate(undefined, rand.random());
+        particleSystem._emit(burstTime, count);
       }
     }
     this._currentBurstIndex = currentBurstIndex;
-    return emitCount;
   }
 }
