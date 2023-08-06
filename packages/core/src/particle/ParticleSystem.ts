@@ -40,6 +40,8 @@ export class ParticleSystem {
   _currentParticleCount: number = 0;
   /** @internal */
   _rand: Rand = new Rand(0);
+  /** @internal */
+  _playTime: number = 0;
 
   private _firstNewElement: number = 0;
   private _firstActiveElement: number = 0;
@@ -54,8 +56,6 @@ export class ParticleSystem {
 
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
-
-  private _playTime: number = 0;
 
   private readonly _engine: Engine;
   private readonly _renderer: ParticleRenderer;

@@ -13,6 +13,8 @@ import { ParticleBufferDefinition } from "./ParticleBufferUtils";
  */
 export class ParticleRenderer extends Renderer {
   /** @internal */
+  private static _tempVector30: Vector3 = new Vector3();
+  /** @internal */
   private static _tempVector40: Vector4 = new Vector4();
   /** @internal */
   private static _vector3One: Vector3 = new Vector3(1, 1, 1);
@@ -34,6 +36,11 @@ export class ParticleRenderer extends Renderer {
 
   /** Particle system. */
   readonly particleSystem: ParticleSystem = new ParticleSystem(this);
+
+  /** Specifies how much particles stretch depending on their velocity. */
+  velocityScale: number = 0;
+  /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
+  lengthScale: number = 2;
 
   /**
    * The mesh of particle.
@@ -149,13 +156,15 @@ export class ParticleRenderer extends Renderer {
         break;
     }
 
-    Vector3.scale(Physics3DUtils.gravity, particleSystem.gravityModifier, this._finalGravity);
-    shaderData.setVector3(ParticleBufferDefinition.GRAVITY, this._finalGravity);
-    shaderData.setInt(ParticleBufferDefinition.SIMULATIONSPACE, particleSystem.simulationSpace);
-    shaderData.setFloat(ParticleBufferDefinition.THREEDSTARTROTATION, particleSystem.threeDStartRotation);
-    shaderData.setInt(ParticleBufferDefinition.SCALINGMODE, particleSystem.scaleMode);
-    shaderData.setFloat(ParticleBufferDefinition.STRETCHEDBILLBOARDLENGTHSCALE, this.stretchedBillboardLengthScale);
-    shaderData.setFloat(ParticleBufferDefinition.STRETCHEDBILLBOARDSPEEDSCALE, this.stretchedBillboardSpeedScale);
-    shaderData.setFloat(ParticleBufferDefinition.CURRENTTIME, particleSystem._currentTime);
+    const particleGravity = ParticleRenderer._tempVector30;
+    const gravityModifierValue = particleSystem.main.gravityModifier.evaluate(undefined, undefined);
+    Vector3.scale(this.scene.physics.gravity, gravityModifierValue, particleGravity);
+    shaderData.setVector3(ParticleBufferDefinition.GRAVITY, particleGravity);
+    shaderData.setInt(ParticleBufferDefinition.SIMULATIONSPACE, particleSystem.main.simulationSpace);
+    shaderData.setFloat(ParticleBufferDefinition.THREEDSTARTROTATION, +particleSystem.main.startRotation3D);
+    shaderData.setInt(ParticleBufferDefinition.SCALINGMODE, particleSystem.main.scalingMode);
+    shaderData.setFloat(ParticleBufferDefinition.STRETCHEDBILLBOARDLENGTHSCALE, this.lengthScale);
+    shaderData.setFloat(ParticleBufferDefinition.STRETCHEDBILLBOARDSPEEDSCALE, this.velocityScale);
+    shaderData.setFloat(ParticleBufferDefinition.CURRENTTIME, particleSystem._playTime);
   }
 }
