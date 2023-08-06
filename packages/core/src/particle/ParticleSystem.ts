@@ -45,6 +45,8 @@ export class ParticleSystem {
   private _firstFreeElement: number = 0;
   private _firstRetiredElement: number = 0;
 
+  private _waitProcessRetiredElementCount: number = 0;
+
   private _vertexElements: VertexElement[] = [];
   private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _indexBufferBinding: IndexBufferBinding;
@@ -113,6 +115,12 @@ export class ParticleSystem {
 
     if (this.emission.enabled) {
       this.emission._emit(lastPlayTime, this._playTime);
+    }
+
+    // Add new particles to vertex buffer when has wait process retired element or new particle
+    // @todo: just update new particle buffer to instance buffer, ignore retired particle in shader, especially billboard
+    if (this._waitProcessRetiredElementCount > 0 || this._firstNewElement != this._firstFreeElement) {
+      this._addNewParticlesToVertexBuffer();
     }
   }
 
@@ -352,6 +360,9 @@ export class ParticleSystem {
       if (++this._firstActiveElement >= this._currentParticleCount) {
         this._firstActiveElement = 0;
       }
+
+      // Record wait process retired element count
+      this._waitProcessRetiredElementCount++;
     }
   }
 
