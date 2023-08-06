@@ -22,6 +22,7 @@ export class ParticleSystem {
   private static _tempVector30: Vector3 = new Vector3();
   /** @internal */
   private static _tempVector31: Vector3 = new Vector3();
+
   /** @internal */
   private static _particleData: ParticleData = new ParticleData();
 

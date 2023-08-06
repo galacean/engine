@@ -7,6 +7,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Shader, ShaderProperty } from "../shader";
 import { ParticleBillboardVertexAttribute } from "./enums/attributes/BillboardParticleVertexAttribute";
 import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInstanceVertexAttribute";
 
@@ -44,6 +45,71 @@ export class ParticleBufferDefinition {
 
   static billboardVertexBufferBinding: VertexBufferBinding;
   static billboardIndexBufferBinding: IndexBufferBinding;
+
+  //Base
+  static WORLDPOSITION: ShaderProperty = ShaderProperty.getByName("u_WorldPosition");
+  static WORLDROTATION: ShaderProperty = ShaderProperty.getByName("u_WorldRotation");
+  static POSITIONSCALE: ShaderProperty = ShaderProperty.getByName("u_PositionScale");
+  static SIZESCALE: ShaderProperty = ShaderProperty.getByName("u_SizeScale");
+  static SCALINGMODE: ShaderProperty = ShaderProperty.getByName("u_ScalingMode");
+  static GRAVITY: ShaderProperty = ShaderProperty.getByName("u_Gravity");
+  static THREEDSTARTROTATION: ShaderProperty = ShaderProperty.getByName("u_ThreeDStartRotation");
+  static STRETCHEDBILLBOARDLENGTHSCALE: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardLengthScale");
+  static STRETCHEDBILLBOARDSPEEDSCALE: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
+  static SIMULATIONSPACE: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
+  static CURRENTTIME: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
+
+  //VelocityOverLifetime
+  static VOLVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConst");
+  static VOLVELOCITYGRADIENTX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientX");
+  static VOLVELOCITYGRADIENTY: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientY");
+  static VOLVELOCITYGRADIENTZ: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientZ");
+  static VOLVELOCITYCONSTMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConstMax");
+  static VOLVELOCITYGRADIENTXMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxX");
+  static VOLVELOCITYGRADIENTYMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxY");
+  static VOLVELOCITYGRADIENTZMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxZ");
+  static VOLSPACETYPE: ShaderProperty = ShaderProperty.getByName("u_VOLSpaceType");
+
+  //ColorOverLifetime
+  static COLOROVERLIFEGRADIENTALPHAS: ShaderProperty = ShaderProperty.getByName("u_ColorOverLifeGradientAlphas");
+  static COLOROVERLIFEGRADIENTCOLORS: ShaderProperty = ShaderProperty.getByName("u_ColorOverLifeGradientColors");
+  static MAXCOLOROVERLIFEGRADIENTALPHAS: ShaderProperty = ShaderProperty.getByName("u_MaxColorOverLifeGradientAlphas");
+  static MAXCOLOROVERLIFEGRADIENTCOLORS: ShaderProperty = ShaderProperty.getByName("u_MaxColorOverLifeGradientColors");
+
+  //SizeOverLifetime
+  static SOLSIZEGRADIENT: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradient");
+  static SOLSIZEGRADIENTX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientX");
+  static SOLSIZEGRADIENTY: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientY");
+  static SOLSizeGradientZ: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientZ");
+  static SOLSizeGradientMax: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMax");
+  static SOLSIZEGRADIENTXMAX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMaxX");
+  static SOLSIZEGRADIENTYMAX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMaxY");
+  static SOLSizeGradientZMAX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMaxZ");
+
+  //RotationOverLifetime
+  static ROLANGULARVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConst");
+  static ROLANGULARVELOCITYCONSTSEPRARATE: ShaderProperty = ShaderProperty.getByName(
+    "u_ROLAngularVelocityConstSeprarate"
+  );
+  static ROLANGULARVELOCITYGRADIENT: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradient");
+  static ROLANGULARVELOCITYGRADIENTX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientX");
+  static ROLANGULARVELOCITYGRADIENTY: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientY");
+  static ROLANGULARVELOCITYGRADIENTZ: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientZ");
+  static ROLANGULARVELOCITYCONSTMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConstMax");
+  static ROLANGULARVELOCITYCONSTMAXSEPRARATE: ShaderProperty = ShaderProperty.getByName(
+    "u_ROLAngularVelocityConstMaxSeprarate"
+  );
+  static ROLANGULARVELOCITYGRADIENTMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientMax");
+  static ROLANGULARVELOCITYGRADIENTXMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientMaxX");
+  static ROLANGULARVELOCITYGRADIENTYMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientMaxY");
+  static ROLANGULARVELOCITYGRADIENTZMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientMaxZ");
+  static ROLANGULARVELOCITYGRADIENTWMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradientMaxW");
+
+  //TextureSheetAnimation
+  static TEXTURESHEETANIMATIONCYCLES: ShaderProperty = ShaderProperty.getByName("u_TSACycles");
+  static TEXTURESHEETANIMATIONSUBUVLENGTH: ShaderProperty = ShaderProperty.getByName("u_TSASubUVLength");
+  static TEXTURESHEETANIMATIONGRADIENTUVS: ShaderProperty = ShaderProperty.getByName("u_TSAGradientUVs");
+  static TEXTURESHEETANIMATIONGRADIENTMAXUVS: ShaderProperty = ShaderProperty.getByName("u_TSAMaxGradientUVs");
 
   static initialize(engine: Engine): void {
     const stride = 16;

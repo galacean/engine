@@ -1,14 +1,22 @@
+import { Vector3, Vector4 } from "@galacean/engine-math";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ParticleSystem } from "./ParticleSystem";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleBufferDefinition } from "./ParticleBufferUtils";
 
 /**
  * Particle Renderer Component.
  */
 export class ParticleRenderer extends Renderer {
+  /** @internal */
+  private static _tempVector40: Vector4 = new Vector4();
+  /** @internal */
+  private static _vector3One: Vector3 = new Vector3(1, 1, 1);
+
   /**@internal */
   static renderModeBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
   /**@internal */
@@ -101,4 +109,53 @@ export class ParticleRenderer extends Renderer {
    * @param stopMode - Stop mode
    */
   stop(withChildren: boolean, stopMode: ParticleStopMode): void {}
+
+  /**
+   * @internal
+   */
+  protected override _render(context: RenderContext): void {
+    const particleSystem = this.particleSystem;
+    const shaderData = this.shaderData;
+    const transform = this.entity.transform;
+
+    switch (particleSystem.main.simulationSpace) {
+      case 0: //World
+        break;
+      case 1: //Local
+        shaderData.setVector3(ParticleBufferDefinition.WORLDPOSITION, transform.worldPosition);
+        const worldRotation = transform.worldRotationQuaternion;
+        const worldRotationV4 = ParticleRenderer._tempVector40;
+        worldRotationV4.copyFrom(worldRotation);
+        shaderData.setVector4(ParticleBufferDefinition.WORLDROTATION, worldRotationV4);
+        break;
+      default:
+        throw new Error("ShurikenParticleMaterial: SimulationSpace value is invalid.");
+    }
+
+    switch (particleSystem.main.scalingMode) {
+      case 0:
+        var scale = transform.lossyWorldScale;
+        shaderData.setVector3(ParticleBufferDefinition.POSITIONSCALE, scale);
+        shaderData.setVector3(ParticleBufferDefinition.SIZESCALE, scale);
+        break;
+      case 1:
+        var scale = transform.scale;
+        shaderData.setVector3(ParticleBufferDefinition.POSITIONSCALE, scale);
+        shaderData.setVector3(ParticleBufferDefinition.SIZESCALE, scale);
+        break;
+      case 2:
+        shaderData.setVector3(ParticleBufferDefinition.POSITIONSCALE, transform.lossyWorldScale);
+        shaderData.setVector3(ParticleBufferDefinition.SIZESCALE, ParticleRenderer._vector3One);
+        break;
+    }
+
+    Vector3.scale(Physics3DUtils.gravity, particleSystem.gravityModifier, this._finalGravity);
+    shaderData.setVector3(ParticleBufferDefinition.GRAVITY, this._finalGravity);
+    shaderData.setInt(ParticleBufferDefinition.SIMULATIONSPACE, particleSystem.simulationSpace);
+    shaderData.setFloat(ParticleBufferDefinition.THREEDSTARTROTATION, particleSystem.threeDStartRotation);
+    shaderData.setInt(ParticleBufferDefinition.SCALINGMODE, particleSystem.scaleMode);
+    shaderData.setFloat(ParticleBufferDefinition.STRETCHEDBILLBOARDLENGTHSCALE, this.stretchedBillboardLengthScale);
+    shaderData.setFloat(ParticleBufferDefinition.STRETCHEDBILLBOARDSPEEDSCALE, this.stretchedBillboardSpeedScale);
+    shaderData.setFloat(ParticleBufferDefinition.CURRENTTIME, particleSystem._currentTime);
+  }
 }
