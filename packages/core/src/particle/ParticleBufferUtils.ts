@@ -47,17 +47,17 @@ export class ParticleBufferDefinition {
   static billboardIndexBufferBinding: IndexBufferBinding;
 
   //Base
-  static WORLDPOSITION: ShaderProperty = ShaderProperty.getByName("u_WorldPosition");
-  static WORLDROTATION: ShaderProperty = ShaderProperty.getByName("u_WorldRotation");
-  static POSITIONSCALE: ShaderProperty = ShaderProperty.getByName("u_PositionScale");
-  static SIZESCALE: ShaderProperty = ShaderProperty.getByName("u_SizeScale");
-  static SCALINGMODE: ShaderProperty = ShaderProperty.getByName("u_ScalingMode");
-  static GRAVITY: ShaderProperty = ShaderProperty.getByName("u_Gravity");
-  static THREEDSTARTROTATION: ShaderProperty = ShaderProperty.getByName("u_ThreeDStartRotation");
-  static STRETCHEDBILLBOARDLENGTHSCALE: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardLengthScale");
-  static STRETCHEDBILLBOARDSPEEDSCALE: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
-  static SIMULATIONSPACE: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
-  static CURRENTTIME: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
+  static _worldPositionProperty: ShaderProperty = ShaderProperty.getByName("u_WorldPosition");
+  static _worldRotationProperty: ShaderProperty = ShaderProperty.getByName("u_WorldRotation");
+  static _positionScaleProperty: ShaderProperty = ShaderProperty.getByName("u_PositionScale");
+  static _sizeScaleProperty: ShaderProperty = ShaderProperty.getByName("u_SizeScale");
+  static _scaleModeProperty: ShaderProperty = ShaderProperty.getByName("u_ScalingMode");
+  static _gravityProperty: ShaderProperty = ShaderProperty.getByName("u_Gravity");
+  static _startRotation3DProperty: ShaderProperty = ShaderProperty.getByName("u_ThreeDStartRotation");
+  static _lengthScaleProperty: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardLengthScale");
+  static _speedScaleProperty: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
+  static _simulationSpaceProperty: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
+  static _currentTime: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
 
   //VelocityOverLifetime
   static VOLVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConst");
