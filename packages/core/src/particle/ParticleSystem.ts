@@ -43,10 +43,14 @@ export class ParticleSystem {
   /** @internal */
   _playTime: number = 0;
 
-  private _firstNewElement: number = 0;
-  private _firstActiveElement: number = 0;
-  private _firstFreeElement: number = 0;
-  private _firstRetiredElement: number = 0;
+  /** @internal */
+  _firstNewElement: number = 0;
+  /** @internal */
+  _firstActiveElement: number = 0;
+  /** @internal */
+  _firstFreeElement: number = 0;
+  /** @internal */
+  _firstRetiredElement: number = 0;
 
   private _waitProcessRetiredElementCount: number = 0;
 

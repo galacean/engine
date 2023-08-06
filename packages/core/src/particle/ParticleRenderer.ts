@@ -7,6 +7,7 @@ import { ParticleSystem } from "./ParticleSystem";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleBufferDefinition } from "./ParticleBufferUtils";
+import { Logger } from "../base/Logger";
 
 /**
  * Particle Renderer Component.
@@ -33,6 +34,7 @@ export class ParticleRenderer extends Renderer {
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
+  private _isPlaying: boolean = false;
 
   /** Particle system. */
   readonly particleSystem: ParticleSystem = new ParticleSystem(this);
@@ -41,6 +43,18 @@ export class ParticleRenderer extends Renderer {
   velocityScale: number = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
   lengthScale: number = 2;
+
+  /**
+   * Whether the particle system is contain alive or is still creating particles.
+   */
+  get isAlive(): boolean {
+    if (this._isPlaying) {
+      return true;
+    }
+
+    const particleSystem = this.particleSystem;
+    return particleSystem._firstActiveElement !== particleSystem._firstNewElement;
+  }
 
   /**
    * The mesh of particle.
@@ -108,7 +122,9 @@ export class ParticleRenderer extends Renderer {
    * Play the particle system.
    * @param withChildren - Whether to play the particle system of the child entity
    */
-  play(withChildren: boolean): void {}
+  play(withChildren: boolean): void {
+    this._isPlaying = true;
+  }
 
   /**
    * Stop the particle system.
@@ -120,7 +136,24 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  override _prepareRender(context: RenderContext): void {
+    if (!this.isAlive) {
+      return;
+    }
+    this.particleSystem._update(this.engine.time.deltaTime);
+    this._updateParticleShaderData();
+
+    super._prepareRender(context);
+  }
+
+  /**
+   * @internal
+   */
   protected override _render(context: RenderContext): void {
+    this._updateParticleShaderData();
+  }
+
+  private _updateParticleShaderData(): void {
     const particleSystem = this.particleSystem;
     const shaderData = this.shaderData;
     const transform = this.entity.transform;
