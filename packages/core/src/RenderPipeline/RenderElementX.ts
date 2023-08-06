@@ -1,20 +1,29 @@
+import { IndexBufferBinding, VertexBufferBinding } from "oasis-engine";
+import { Renderer } from "../Renderer";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { Material } from "../material/Material";
 import { ShaderPass } from "../shader/ShaderPass";
-import { RenderState } from "../shader/state/RenderState";
 import { IPoolElement } from "./IPoolElement";
-import { RenderData } from "./RenderData";
 
 export class RenderElementX implements IPoolElement {
-  data: RenderData;
-  shaderPass: ShaderPass;
-  renderState: RenderState;
-
-  set(data: RenderData, shaderPass: ShaderPass, renderState: RenderState): void {
-    this.data = data;
-    this.shaderPass = shaderPass;
-    this.renderState = renderState;
-  }
+  component: Renderer;
+  material: Material;
+  shaderPasses: ReadonlyArray<ShaderPass>;
+  geometryData: GeometryData = new GeometryData();
 
   dispose(): void {
-    this.data = this.shaderPass = this.renderState = null;
+    this.component = null;
+    this.material = null;
+    this.shaderPasses = null;
+    this.geometryData = null;
   }
+}
+
+export class GeometryData {
+  vertexBufferBindings: VertexBufferBinding[];
+  IndexBufferBinding: IndexBufferBinding;
+  instanceCount: number;
+  start: number;
+  count: number;
+  topology: MeshTopology;
 }
