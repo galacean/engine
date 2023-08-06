@@ -137,11 +137,13 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _prepareRender(context: RenderContext): void {
-    if (!this.isAlive) {
+    const particleSystem = this.particleSystem;
+    particleSystem._update(this.engine.time.deltaTime);
+
+    // No particles to render
+    if (particleSystem._firstActiveElement !== particleSystem._firstNewElement) {
       return;
     }
-    this.particleSystem._update(this.engine.time.deltaTime);
-    this._updateParticleShaderData();
 
     super._prepareRender(context);
   }
@@ -149,11 +151,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _render(context: RenderContext): void {
-    this._updateParticleShaderData();
-  }
-
-  private _updateParticleShaderData(): void {
+  protected override _updateShaderData(context: RenderContext): void {
     const particleSystem = this.particleSystem;
     const shaderData = this.shaderData;
     const transform = this.entity.transform;
@@ -200,4 +198,9 @@ export class ParticleRenderer extends Renderer {
     shaderData.setFloat(ParticleBufferDefinition._speedScaleProperty, this.velocityScale);
     shaderData.setFloat(ParticleBufferDefinition._currentTime, particleSystem._playTime);
   }
+
+  /**
+   * @internal
+   */
+  protected override _render(context: RenderContext): void {}
 }

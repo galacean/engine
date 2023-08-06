@@ -118,7 +118,7 @@ export class ParticleSystem {
     this._retireActiveParticles();
     this._freeRetiredParticles();
 
-    if (this.emission.enabled) {
+    if (this.emission.enabled && this._playTime) {
       this.emission._emit(lastPlayTime, this._playTime);
     }
 
