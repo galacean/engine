@@ -8,6 +8,7 @@ import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleBufferDefinition } from "./ParticleBufferUtils";
 import { Logger } from "../base/Logger";
+import { SubPrimitive } from "../graphic/SubPrimitive";
 
 /**
  * Particle Renderer Component.
@@ -202,5 +203,25 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _render(context: RenderContext): void {}
+  protected override _render(context: RenderContext): void {
+    const particleSystem = this.particleSystem;
+    const primitive = particleSystem._primitive;
+
+    const subPrimitive = new SubPrimitive();
+    subPrimitive.start = 0;
+    subPrimitive.count = 6;
+    primitive.subPrimitives.push(subPrimitive);
+    if (particleSystem._firstActiveElement < particleSystem._firstFreeElement) {
+      primitive.instanceCount = particleSystem._firstFreeElement - particleSystem._firstActiveElement;
+    } else {
+      let instanceCount = particleSystem._currentParticleCount - particleSystem._firstActiveElement;
+      if (particleSystem._firstFreeElement > 0) {
+        instanceCount += particleSystem._firstFreeElement;
+      }
+      primitive.instanceCount = instanceCount;
+    }
+
+    const renderPipeline = context.camera._renderPipeline;
+    renderPipeline.pushRenderData(context, primitive);
+  }
 }

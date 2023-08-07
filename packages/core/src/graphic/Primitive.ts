@@ -1,17 +1,16 @@
-import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { RenderData } from "../RenderPipeline/RenderData";
 import { IndexBufferBinding } from "./IndexBufferBinding";
+import { SubPrimitive } from "./SubPrimitive";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
 
 /**
  * Primitive.
  */
-export class Primitive {
+export class Primitive extends RenderData {
   vertexElements: VertexElement[] = [];
   vertexBufferBindings: VertexBufferBinding[] = [];
   indexBufferBinding: IndexBufferBinding;
   instanceCount: number;
-  start: number;
-  count: number;
-  topology: MeshTopology;
+  subPrimitives: SubPrimitive[] = [];
 }
