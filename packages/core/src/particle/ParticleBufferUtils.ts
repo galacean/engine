@@ -43,6 +43,8 @@ export class ParticleBufferDefinition {
   static readonly timeOffset = 7;
   static readonly simulationOffset = 34;
 
+  static readonly billboardIndexCount = 6;
+
   static billboardVertexBufferBinding: VertexBufferBinding;
   static billboardIndexBufferBinding: IndexBufferBinding;
 
@@ -118,7 +120,13 @@ export class ParticleBufferDefinition {
     vertexBuffer.setData(billboardVertices);
     ParticleBufferDefinition.billboardVertexBufferBinding = new VertexBufferBinding(vertexBuffer, stride);
 
-    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, 6, BufferUsage.Static, false);
+    const indexBuffer = new Buffer(
+      engine,
+      BufferBindFlag.IndexBuffer,
+      ParticleBufferDefinition.billboardIndexCount,
+      BufferUsage.Static,
+      false
+    );
     const billboardIndices = new Uint8Array([0, 2, 1, 0, 3, 2]);
     indexBuffer.setData(billboardIndices);
     ParticleBufferDefinition.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);

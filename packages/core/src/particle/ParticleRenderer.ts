@@ -207,10 +207,7 @@ export class ParticleRenderer extends Renderer {
     const particleSystem = this.particleSystem;
     const primitive = particleSystem._primitive;
 
-    const subPrimitive = new SubPrimitive();
-    subPrimitive.start = 0;
-    subPrimitive.count = 6;
-    primitive.subPrimitives.push(subPrimitive);
+    
     if (particleSystem._firstActiveElement < particleSystem._firstFreeElement) {
       primitive.instanceCount = particleSystem._firstFreeElement - particleSystem._firstActiveElement;
     } else {

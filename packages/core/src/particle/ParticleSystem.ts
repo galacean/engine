@@ -14,6 +14,7 @@ import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
 import { ShapeModule } from "./modules/ShapeModule";
 import { Primitive } from "../graphic/Primitive";
+import { SubPrimitive } from "../graphic/SubPrimitive";
 
 /**
  * Particle System.
@@ -77,6 +78,9 @@ export class ParticleSystem {
 
   constructor(renderer: ParticleRenderer) {
     this._renderer = renderer;
+    const subPrimitive = new SubPrimitive();
+    subPrimitive.start = 0;
+    this._primitive.subPrimitives.push(subPrimitive);
   }
 
   /**
@@ -127,8 +131,6 @@ export class ParticleSystem {
     }
   }
 
-
-
   /**
    * @internal
    */
@@ -171,11 +173,15 @@ export class ParticleSystem {
         vertexElements.push(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
       }
 
-      primitive.indexBufferBinding = mesh._indexBufferBinding;
+      // @todo: multi subMesh or not support
+      const indexBufferBinding = mesh._indexBufferBinding;
+      primitive.indexBufferBinding = indexBufferBinding;
+      this._primitive.subPrimitives[0].count = indexBufferBinding.buffer.byteLength / mesh._glIndexByteCount;
     } else {
       vertexElements.push(ParticleBufferUtils.billboardVertexElement);
       vertexBufferBindings.push(ParticleBufferUtils.billboardVertexBufferBinding);
       primitive.indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
+      this._primitive.subPrimitives[0].count = ParticleBufferUtils.billboardIndexCount;
     }
 
     const instanceVertexElements = ParticleBufferUtils.instanceVertexElements;
