@@ -10,9 +10,10 @@ import { VertexAttribute } from "../mesh";
 import { ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
-import { EmissionModule } from "./moudules/EmissionModule";
-import { MainModule } from "./moudules/MainModule";
-import { ShapeModule } from "./moudules/ShapeModule";
+import { EmissionModule } from "./modules/EmissionModule";
+import { MainModule } from "./modules/MainModule";
+import { ShapeModule } from "./modules/ShapeModule";
+import { Primitive } from "../graphic/Primitive";
 
 /**
  * Particle System.
@@ -51,13 +52,10 @@ export class ParticleSystem {
   _firstFreeElement: number = 0;
   /** @internal */
   _firstRetiredElement: number = 0;
+  /** @internal */
+  _primitive: Primitive = new Primitive();
 
   private _waitProcessRetiredElementCount: number = 0;
-
-  private _vertexElements: VertexElement[] = [];
-  private _vertexBufferBindings: VertexBufferBinding[] = [];
-  private _indexBufferBinding: IndexBufferBinding;
-
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
 
@@ -134,8 +132,9 @@ export class ParticleSystem {
    */
   _reorganizeGeometryBuffers(): void {
     const renderer = this._renderer;
-    const vertexElements = this._vertexElements;
-    const vertexBufferBindings = this._vertexBufferBindings;
+    const primitive = this._primitive;
+    const vertexElements = primitive.vertexElements;
+    const vertexBufferBindings = primitive.vertexBufferBindings;
 
     vertexElements.length = 0;
     vertexBufferBindings.length = 0;
@@ -170,11 +169,11 @@ export class ParticleSystem {
         vertexElements.push(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
       }
 
-      this._indexBufferBinding = mesh._indexBufferBinding;
+      primitive.indexBufferBinding = mesh._indexBufferBinding;
     } else {
       vertexElements.push(ParticleBufferUtils.billboardVertexElement);
       vertexBufferBindings.push(ParticleBufferUtils.billboardVertexBufferBinding);
-      this._indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
+      primitive.indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
     }
 
     const instanceVertexElements = ParticleBufferUtils.instanceVertexElements;
@@ -204,7 +203,7 @@ export class ParticleSystem {
       false
     );
 
-    const vertexBufferBindings = this._vertexBufferBindings;
+    const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const instanceVertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
     vertexBufferBindings[vertexBufferBindings.length - 1] = instanceVertexBufferBinding;
 
