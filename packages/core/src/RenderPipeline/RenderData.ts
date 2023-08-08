@@ -9,7 +9,6 @@ export class RenderData implements IPoolElement {
   material: Material;
   primitive: Primitive;
   subPrimitive: SubMesh;
-  renderSubPrimitiveIndices: number[];
 
   multiRenderData: boolean;
 
@@ -25,6 +24,5 @@ export class RenderData implements IPoolElement {
     this.component = null;
     this.material = null;
     this.primitive = null;
-    this.renderSubPrimitiveIndices = null;
   }
 }
