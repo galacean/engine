@@ -19,7 +19,7 @@ import { SubPrimitive } from "../graphic/SubPrimitive";
 /**
  * Particle System.
  */
-export class ParticleSystem {
+export class ParticleGenerator {
   /** @internal */
   private static _tempVector30: Vector3 = new Vector3();
   /** @internal */
@@ -95,8 +95,8 @@ export class ParticleSystem {
    * @internal
    */
   _emit(time: number, count: number): void {
-    const position = ParticleSystem._tempVector30;
-    const direction = ParticleSystem._tempVector31;
+    const position = ParticleGenerator._tempVector30;
+    const direction = ParticleGenerator._tempVector31;
     if (this.emission.enabled) {
       if (this.shape.enabled) {
       } else {
@@ -251,7 +251,7 @@ export class ParticleSystem {
     }
 
     const main = this.main;
-    const out = ParticleSystem._particleData;
+    const out = ParticleGenerator._particleData;
 
     const rand = this._rand;
     main.startColor.evaluate(undefined, rand.random(), out.startColor);

@@ -1,4 +1,4 @@
-import { ParticleSystem } from "../ParticleSystem";
+import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCurve } from "./ParticleCurve";
@@ -55,7 +55,7 @@ export class MainModule {
   playOnAwake: boolean = true;
 
   private _bufferMaxParticles: number = 0;
-  private _particleSystem: ParticleSystem;
+  private _particleSystem: ParticleGenerator;
 
   /**
    * Max particles count.
@@ -78,7 +78,7 @@ export class MainModule {
     // this._updateParticlesSimulationRestart(0);
   }
 
-  constructor(particleSystem: ParticleSystem) {
+  constructor(particleSystem: ParticleGenerator) {
     this._particleSystem = particleSystem;
   }
 }

@@ -5,9 +5,10 @@ import { ShaderPass } from "../shader/ShaderPass";
 import { IPoolElement } from "./IPoolElement";
 
 export class RenderElementX implements IPoolElement {
+  shaderPasses: ReadonlyArray<ShaderPass>;
+
   component: Renderer;
   material: Material;
-  shaderPasses: ReadonlyArray<ShaderPass>;
   primitive: Primitive;
 
   dispose(): void {

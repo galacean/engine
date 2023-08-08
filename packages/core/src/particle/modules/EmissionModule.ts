@@ -1,4 +1,4 @@
-import { ParticleSystem } from "../ParticleSystem";
+import { ParticleGenerator } from "../ParticleGenerator";
 import { Burst } from "./Burst";
 import { ParticleCurve } from "./ParticleCurve";
 
@@ -17,7 +17,7 @@ export class EmissionModule {
 
   private _frameRateTime: number = 0;
   private _currentBurstIndex: number = 0;
-  private _particleSystem: ParticleSystem;
+  private _particleSystem: ParticleGenerator;
 
   /**
    * Gets the burst array.
@@ -26,7 +26,7 @@ export class EmissionModule {
     return this._bursts;
   }
 
-  constructor(particleSystem: ParticleSystem) {
+  constructor(particleSystem: ParticleGenerator) {
     this._particleSystem = particleSystem;
     this.rateOverTime.constant = 10;
   }

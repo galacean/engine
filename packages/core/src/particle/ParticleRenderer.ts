@@ -3,7 +3,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { ParticleSystem } from "./ParticleSystem";
+import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleBufferDefinition } from "./ParticleBufferUtils";
@@ -37,8 +37,8 @@ export class ParticleRenderer extends Renderer {
   private _mesh: ModelMesh;
   private _isPlaying: boolean = false;
 
-  /** Particle system. */
-  readonly particleSystem: ParticleSystem = new ParticleSystem(this);
+  /** Particle generator. */
+  readonly generator: ParticleGenerator = new ParticleGenerator(this);
 
   /** Specifies how much particles stretch depending on their velocity. */
   velocityScale: number = 0;
@@ -53,7 +53,7 @@ export class ParticleRenderer extends Renderer {
       return true;
     }
 
-    const particleSystem = this.particleSystem;
+    const particleSystem = this.generator;
     return particleSystem._firstActiveElement !== particleSystem._firstNewElement;
   }
 
@@ -73,7 +73,7 @@ export class ParticleRenderer extends Renderer {
       lastMesh?._addReferCount(-1);
       value?._addReferCount(1);
       if (this.renderMode === ParticleRenderMode.Mesh) {
-        this.particleSystem._reorganizeGeometryBuffers();
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -114,7 +114,7 @@ export class ParticleRenderer extends Renderer {
       }
       shaderData.enableMacro(this._currentRenderModeMacro);
       if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
-        this.particleSystem._reorganizeGeometryBuffers();
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -138,7 +138,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _prepareRender(context: RenderContext): void {
-    const particleSystem = this.particleSystem;
+    const particleSystem = this.generator;
     particleSystem._update(this.engine.time.deltaTime);
 
     // No particles to render
@@ -153,7 +153,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   protected override _updateShaderData(context: RenderContext): void {
-    const particleSystem = this.particleSystem;
+    const particleSystem = this.generator;
     const shaderData = this.shaderData;
     const transform = this.entity.transform;
 
@@ -204,10 +204,9 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   protected override _render(context: RenderContext): void {
-    const particleSystem = this.particleSystem;
+    const particleSystem = this.generator;
     const primitive = particleSystem._primitive;
 
-    
     if (particleSystem._firstActiveElement < particleSystem._firstFreeElement) {
       primitive.instanceCount = particleSystem._firstFreeElement - particleSystem._firstActiveElement;
     } else {
