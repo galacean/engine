@@ -173,8 +173,16 @@ export class ShaderParser extends CstParser {
     this.CONSUME(GLKeywords.M_ENDIF);
   });
 
+  private _ruleFnMacroVariable = this.RULE("_ruleFnMacroVariable", () => {
+    this.OR([{ ALT: () => this.CONSUME(Others.Identifier) }, { ALT: () => this.SUBRULE(this._ruleFnRelationExpr) }]);
+  });
+
   private _ruleFnMacroConditionDeclare = this.RULE("_ruleFnMacroConditionDeclare", () => {
-    this.OR([{ ALT: () => this.CONSUME(GLKeywords.M_IFDEF) }, { ALT: () => this.CONSUME(GLKeywords.M_IFNDEF) }]);
+    this.OR([
+      { ALT: () => this.CONSUME(GLKeywords.M_IFDEF) },
+      { ALT: () => this.CONSUME(GLKeywords.M_IFNDEF) },
+      { ALT: () => this.CONSUME(GLKeywords.M_IF) }
+    ]);
   });
 
   private _ruleFnMacroConditionBranch = this.RULE("_ruleFnMacroConditionBranch", () => {
@@ -282,6 +290,11 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Values.ValueString);
   });
 
+  private _ruleDiscardStatement = this.RULE("_ruleDiscardStatement", () => {
+    this.CONSUME(GLKeywords.Discard);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
   private _ruleFnStatement = this.RULE("_ruleFnStatement", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnCall) },
@@ -289,12 +302,7 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
       { ALT: () => this.SUBRULE(this._ruleFnConditionStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnAssignStatement) },
-      {
-        ALT: () => {
-          this.CONSUME(GLKeywords.Discard);
-          this.CONSUME(Symbols.Semicolon);
-        }
-      }
+      { ALT: () => this.SUBRULE(this._ruleDiscardStatement) }
     ]);
   });
 
@@ -349,12 +357,19 @@ export class ShaderParser extends CstParser {
 
   private _ruleFnRelationExpr = this.RULE("_ruleFnRelationExpr", () => {
     this.SUBRULE(this._ruleFnAddExpr);
-    this.SUBRULE(this._ruleRelationOperator);
-    this.SUBRULE1(this._ruleFnAddExpr);
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleRelationOperator);
+      this.SUBRULE1(this._ruleFnAddExpr);
+    });
   });
 
   private _ruleRelationOperator = this.RULE("_ruleRelationOperator", () => {
-    this.OR([{ ALT: () => this.CONSUME(Symbols.GreaterThan) }, { ALT: () => this.CONSUME(Symbols.LessThan) }]);
+    this.OR([
+      { ALT: () => this.CONSUME(Symbols.GreaterThan) },
+      { ALT: () => this.CONSUME(Symbols.LessThan) },
+      { ALT: () => this.CONSUME(Symbols.EqualThan) },
+      { ALT: () => this.CONSUME(Symbols.NotEqual) }
+    ]);
   });
 
   private _ruleFnBlockStatement = this.RULE("_ruleFnBlockStatement", () => {

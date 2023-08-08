@@ -215,6 +215,7 @@ export interface _ruleFnMacroConditionDeclareCstNode extends CstNode {
 export type _ruleFnMacroConditionDeclareCstChildren = {
   m_ifdef?: IToken[];
   m_ifndef?: IToken[];
+  m_if?: IToken[];
 };
 
 export interface _ruleFnMacroConditionBranchCstNode extends CstNode {
@@ -390,6 +391,16 @@ export type _ruleFnMacroIncludeCstChildren = {
   ValueString: IToken[];
 };
 
+export interface _ruleDiscardStatementCstNode extends CstNode {
+  name: "_ruleDiscardStatement";
+  children: _ruleDiscardStatementCstChildren;
+}
+
+export type _ruleDiscardStatementCstChildren = {
+  discard: IToken[];
+  Semicolon: IToken[];
+};
+
 export interface _ruleFnStatementCstNode extends CstNode {
   name: "_ruleFnStatement";
   children: _ruleFnStatementCstChildren;
@@ -401,8 +412,7 @@ export type _ruleFnStatementCstChildren = {
   _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
   _ruleFnConditionStatement?: _ruleFnConditionStatementCstNode[];
   _ruleFnAssignStatement?: _ruleFnAssignStatementCstNode[];
-  discard?: IToken[];
-  Semicolon?: IToken[];
+  _ruleDiscardStatement?: _ruleDiscardStatementCstNode[];
 };
 
 export interface _ruleFnReturnStatementCstNode extends CstNode {
@@ -481,7 +491,7 @@ export interface _ruleFnRelationExprCstNode extends CstNode {
 
 export type _ruleFnRelationExprCstChildren = {
   _ruleFnAddExpr: _ruleFnAddExprCstNode[];
-  _ruleRelationOperator: _ruleRelationOperatorCstNode[];
+  _ruleRelationOperator?: _ruleRelationOperatorCstNode[];
 };
 
 export interface _ruleRelationOperatorCstNode extends CstNode {
@@ -1056,6 +1066,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleFnVariable(children: _ruleFnVariableCstChildren, param?: IN): OUT;
   _ruleMultiplicationOperator(children: _ruleMultiplicationOperatorCstChildren, param?: IN): OUT;
   _ruleFnMacroInclude(children: _ruleFnMacroIncludeCstChildren, param?: IN): OUT;
+  _ruleDiscardStatement(children: _ruleDiscardStatementCstChildren, param?: IN): OUT;
   _ruleFnStatement(children: _ruleFnStatementCstChildren, param?: IN): OUT;
   _ruleFnReturnStatement(children: _ruleFnReturnStatementCstChildren, param?: IN): OUT;
   _ruleReturnBody(children: _ruleReturnBodyCstChildren, param?: IN): OUT;

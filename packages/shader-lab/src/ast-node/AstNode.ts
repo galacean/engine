@@ -101,18 +101,25 @@ export class AstNode<T = any> implements IAstInfo<T> {
 
   /** @internal */
   _beforeSerialization(context?: RuntimeContext, args?: any) {
-    if (context) context.serializingAstNode = this;
+    context?.setSerializingNode(this);
+  }
+
+  /** @internal */
+  _afterSerialization(context?: RuntimeContext, args?: any) {
+    context?.unsetSerializingNode();
   }
 
   serialize(context?: RuntimeContext, args?: any): string {
     this._beforeSerialization(context, args);
-    return this._doSerialization(context, args);
+    const ret = this._doSerialization(context, args);
+    this._afterSerialization(context);
+    return ret;
   }
 
   private _jsonifyObject(obj: any, includePos: boolean, withClass = false) {
     if (typeof obj !== "object") return obj;
     const ret = {} as any;
-    if (obj._isAstNode) {
+    if (obj?._isAstNode) {
       return obj.toJson(includePos, withClass);
     }
     for (const k in obj) {
@@ -214,6 +221,12 @@ export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent
 
 export class FnMacroConditionBranchAstNode extends AstNode<IFnMacroConditionBranchAstContent> {}
 
+export class DiscardStatementAstNode extends AstNode {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return "discard;";
+  }
+}
+
 export class FnCallAstNode extends AstNode<IFnCallAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     if (this.content.isCustom) {
@@ -246,17 +259,42 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
   }
 }
 
-export class FnConditionStatementAstNode extends AstNode<IFnConditionStatementAstContent> {}
-
-export class FnBlockStatementAstNode extends AstNode<IFnBlockStatementAstContent> {}
-
-export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent> {
-  override _doSerialization(context: RuntimeContext): string {
-    return this.content.text;
+export class FnConditionStatementAstNode extends AstNode<IFnConditionStatementAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    const elseIfBranches = this.content.elseIfBranches?.map((item) => "else " + item.serialize(context)) ?? "";
+    const elseBranch = this.content.elseBranch ? "else " + this.content.elseBranch?.serialize(context) : "";
+    const body = this.content.body.serialize(context);
+    const relation = this.content.relation.serialize(context);
+    return `if (${relation}) 
+${body}
+${elseIfBranches}
+${elseBranch}`;
   }
 }
 
-export class RelationExprAstNode extends AstNode<IFnRelationExprAstContent> {}
+export class FnBlockStatementAstNode extends AstNode<IFnBlockStatementAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `{ 
+  ${this.content.serialize(context)}
+}`;
+  }
+}
+
+export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent> {
+  override _doSerialization(context: RuntimeContext): string {
+    return this.content;
+  }
+}
+
+export class RelationExprAstNode extends AstNode<IFnRelationExprAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    let ret = this.content.leftOperand.serialize(context);
+    if (this.content.operator) {
+      ret += ` ${this.content.operator.serialize(context)} ${this.content.rightOperand?.serialize(context)}`;
+    }
+    return ret;
+  }
+}
 
 export class FnAssignStatementAstNode extends AstNode<IFnAssignStatementAstContent> {
   override _doSerialization(context: RuntimeContext): string {

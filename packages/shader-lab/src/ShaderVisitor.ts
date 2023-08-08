@@ -46,7 +46,8 @@ import {
   CompareFunctionAstNode,
   CullModeAstNode,
   BlendFactorAstNode,
-  BlendOperationAstNode
+  BlendOperationAstNode,
+  DiscardStatementAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
@@ -117,7 +118,8 @@ import {
   _ruleRasterStatePropertyItemCstChildren,
   _ruleRasterStateValueCstChildren,
   _ruleReturnBodyCstChildren,
-  _ruleTagAssignableValueCstChildren
+  _ruleTagAssignableValueCstChildren,
+  _ruleDiscardStatementCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -347,6 +349,14 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return AstNodeUtils.defaultVisit.bind(this)(ctx);
   }
 
+  _ruleDiscardStatement(children: _ruleDiscardStatementCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.discard[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+    };
+    return new DiscardStatementAstNode({ position, content: null });
+  }
+
   _ruleFnCall(ctx: _ruleFnCallCstChildren) {
     const isCustom = !!ctx._ruleFnCallVariable[0].children.Identifier;
     const args = ctx._ruleAssignableValue?.map((item) => {
@@ -376,7 +386,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       ?.map((item) => this.visit(item))
       .sort((a, b) => a.position.start.line - b.position.start.line);
 
-    let end: IPosition = elseIfBranches[elseIfBranches.length - 1]?.position.end;
+    let end: IPosition = elseIfBranches?.[elseIfBranches?.length - 1]?.position.end;
     const blockEnd = blocks[blocks.length - 1].position.end;
 
     end = end && end.line > blockEnd.line ? end : blockEnd;
@@ -407,8 +417,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return new RelationExprAstNode({
       position,
       content: {
-        operator: this.visit(ctx._ruleRelationOperator),
-        operands
+        operator: ctx._ruleRelationOperator ? this.visit(ctx._ruleRelationOperator) : undefined,
+        leftOperand: operands[0],
+        rightOperand: operands[1]
       }
     });
   }

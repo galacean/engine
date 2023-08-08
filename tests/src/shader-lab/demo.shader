@@ -79,6 +79,15 @@ Shader "Water" {
       void frag(v2f i) {
         vec4 color = texture2D(material_BaseTexture, i.v_uv) * u_color;
         float fogDistance = length(i.v_position);
+        if (fogDistance > 0.2) {
+          discard;
+        } else if (fogDistance == 0.2) {
+          discard;
+        } else if (fogDistance < 0.2) {
+          discard;
+        } else {
+          discard;
+        }
         float fogAmount = 1.0 - exp2(-u_fogDensity * u_fogDensity * fogDistance * fogDistance * 1.442695);
         fogAmount = clamp(fogAmount, 0.0, 1.0);
         gl_FragColor = mix(color, u_fogColor, fogAmount); 

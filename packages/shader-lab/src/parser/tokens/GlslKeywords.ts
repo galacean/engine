@@ -10,12 +10,15 @@ export const Texture2D = TokenUtils.createKeywordToken("texture2D");
 
 // macro
 export const M_DEFINE = TokenUtils.createKeywordToken("#define", { name: "m_define" });
+export const M_IF = TokenUtils.createKeywordToken("#if", { name: "m_if" });
 export const M_IFDEF = TokenUtils.createKeywordToken("#ifdef", { name: "m_ifdef" });
 export const M_IFNDEF = TokenUtils.createKeywordToken("#ifndef", { name: "m_ifndef" });
 export const M_ELSE = TokenUtils.createKeywordToken("#else", { name: "m_else" });
 export const M_ELIF = TokenUtils.createKeywordToken("#elif", { name: "m_elif" });
 export const M_ENDIF = TokenUtils.createKeywordToken("#endif", { name: "m_endif" });
 export const M_INCLUDE = TokenUtils.createKeywordToken("#include", { name: "m_include" });
+
+export const M_DEFINED = TokenUtils.createKeywordToken("defined", { name: "defined" });
 
 // other
 export const Struct = TokenUtils.createKeywordToken("struct");
@@ -27,5 +30,5 @@ export const Return = TokenUtils.createKeywordToken("return");
 
 export const variableTokenList = [GLPosition, GLFragColor];
 export const funcTokenList = [Texture2D, Pow];
-export const macroTokenList = [M_DEFINE, M_IFDEF, M_IFNDEF, M_ELSE, M_ELIF, M_ENDIF, M_INCLUDE];
+export const macroTokenList = [M_DEFINE, M_IFDEF, M_IFNDEF, M_IF, M_ELSE, M_ELIF, M_ENDIF, M_INCLUDE, M_DEFINED];
 export const otherTokenList = [Struct, If, Else, Discard, Void, Return];

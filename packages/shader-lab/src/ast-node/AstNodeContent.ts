@@ -19,7 +19,10 @@ import {
   DeclarationAstNode,
   TagAssignmentAstNode,
   RenderStatePropertyItemAstNode,
-  RenderStateDeclarationAstNode
+  RenderStateDeclarationAstNode,
+  FnBodyAstNode,
+  AddExprAstNode,
+  RelationOperatorAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -123,15 +126,14 @@ export interface IFnConditionStatementAstContent {
 }
 
 export interface IFnRelationExprAstContent {
-  operands: Array<AstNode>;
-  operator: AstNode<IRelationOperatorAstContent>;
+  leftOperand: AddExprAstNode;
+  rightOperand?: AddExprAstNode;
+  operator?: RelationOperatorAstNode;
 }
 
-export type IFnBlockStatementAstContent = AstNode<IFnBodyAstContent>;
+export type IFnBlockStatementAstContent = FnBodyAstNode;
 
-export interface IRelationOperatorAstContent {
-  text: string;
-}
+export type IRelationOperatorAstContent = string;
 
 export interface IFnAssignStatementAstContent {
   assignee: AssignLoAstNode | FnVariableAstNode;

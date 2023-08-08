@@ -56,6 +56,8 @@ export const LessThan = createToken({
   pattern: /\</,
   label: "<"
 });
+export const EqualThan = createToken({ name: "SymbolEqualThan", pattern: /==/, label: "==" });
+export const NotEqual = createToken({ name: "SymbolNotEqual", pattern: /\!=/, label: "!=" });
 
 export const tokenList = [
   GreaterThan,
@@ -68,6 +70,7 @@ export const tokenList = [
   RSquareBracket,
   Comma,
   Colon,
+  EqualThan,
   Equal,
   Semicolon,
   MultiEqual,
@@ -80,5 +83,6 @@ export const tokenList = [
   Divide,
   Dot,
   GreaterThan,
-  LessThan
+  LessThan,
+  NotEqual
 ];

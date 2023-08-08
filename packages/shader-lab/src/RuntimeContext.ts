@@ -65,7 +65,11 @@ export default class RuntimeContext {
     text: string;
   }> = [];
   /** Current position */
-  serializingAstNode?: AstNode;
+  get serializingAstNode() {
+    return this._serializingNodeStack[this._serializingNodeStack.length - 1];
+  }
+  /** serialize token stack */
+  private _serializingNodeStack: AstNode[] = [];
   /** Custom payload */
   payload?: any;
   /**
@@ -93,6 +97,14 @@ export default class RuntimeContext {
     return this._currentMainFnAst;
   }
 
+  setSerializingNode(node: AstNode) {
+    this._serializingNodeStack.push(node);
+  }
+
+  unsetSerializingNode() {
+    this._serializingNodeStack.pop();
+  }
+
   setMainFnAst(ast: FnAstNode) {
     this.globalText.length = 0;
     this._currentMainFnAst = ast;
@@ -100,6 +112,7 @@ export default class RuntimeContext {
 
   private _shaderReset() {
     this._shaderGlobalList.length = 0;
+    this._serializingNodeStack.length = 0;
     this._subShaderReset();
   }
 
@@ -116,7 +129,6 @@ export default class RuntimeContext {
     this.varyingTypeAstNode = undefined;
     this._currentMainFnAst = undefined;
     this.passAst = undefined;
-    this.serializingAstNode = undefined;
     this.varyingStructInfo = {};
   }
 
