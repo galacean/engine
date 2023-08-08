@@ -9,18 +9,12 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix;
 
-  before(function () {
+  before(async function () {
     this.timeout(10000);
-    const webCanvas = new WebCanvas(canvasDOM);
-    const webGLGraphicDevice = new WebGLGraphicDevice();
-    // @ts-ignore
-    const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, { canvas: canvasDOM });
-    // return WebGLEngine.create({ canvas: canvasDOM }).then((engine) => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     node = engine.sceneManager.activeScene.createRootEntity();
     camera = node.addComponent(Camera);
     identityMatrix = new Matrix();
-    // done();
-    // });
   });
 
   it("constructor", () => {
