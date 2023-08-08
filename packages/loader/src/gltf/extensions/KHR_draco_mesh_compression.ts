@@ -200,6 +200,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       mesh.addSubMesh(0, vertexCount, mode);
     }
     // BlendShapes
+    /* eslint-disable */
     targets && GLTFMeshParser._createBlendShape(mesh, null, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
