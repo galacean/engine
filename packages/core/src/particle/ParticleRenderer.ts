@@ -3,12 +3,10 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { ParticleBufferDefinition } from "./ParticleBufferUtils";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import { ParticleBufferDefinition } from "./ParticleBufferUtils";
-import { Logger } from "../base/Logger";
-import { SubPrimitive } from "../graphic/SubPrimitive";
 
 /**
  * Particle Renderer Component.

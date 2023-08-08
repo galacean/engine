@@ -3,7 +3,6 @@ import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { MeshRenderData } from "./MeshRenderData";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
@@ -70,13 +69,13 @@ export class RenderQueue {
         continue;
       }
 
-      if (!!(data as MeshRenderData).mesh) {
+      if (data.primitive) {
         this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
-        const meshData = <MeshRenderData>data;
-        const renderer = meshData.component;
-        const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
+        const primitive = data.primitive;
+        const renderer = data.component;
+        const material = data.material.destroyed ? engine._magentaMaterial : data.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 
@@ -157,7 +156,7 @@ export class RenderQueue {
             material.shaderData
           );
 
-          rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
+          rhi.drawPrimitive(primitive, data.subPrimitive, program);
         }
       } else {
         this._spriteBatcher.drawElement(element, camera);

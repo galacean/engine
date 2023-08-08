@@ -5,8 +5,8 @@ import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { ClassPool } from "./RenderPipeline/ClassPool";
-import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
+import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
@@ -69,7 +69,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   /* @internal */
-  _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
+  _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
   /* @internal */
   _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
   /* @internal */
@@ -308,7 +308,7 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.resetPool();
-    this._meshRenderDataPool.resetPool();
+    this._renderDataPool.resetPool();
     this._spriteRenderDataPool.resetPool();
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
@@ -674,7 +674,7 @@ export class Engine extends EventDispatcher {
 
   private _gc(): void {
     this._renderElementPool.garbageCollection();
-    this._meshRenderDataPool.garbageCollection();
+    this._renderDataPool.garbageCollection();
     this._spriteRenderDataPool.garbageCollection();
     this._spriteMaskRenderDataPool.garbageCollection();
     this._textRenderDataPool.garbageCollection();

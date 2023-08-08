@@ -1,7 +1,8 @@
-import { GLCapabilityType, Logger, Mesh, SubMesh } from "@galacean/engine-core";
+import { GLCapabilityType, Logger, Mesh, SubMesh, Primitive } from "@galacean/engine-core";
 import { IPlatformPrimitive } from "@galacean/engine-design";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";
+import { SubPrimitive } from "@galacean/engine-core/types/graphic/SubPrimitive";
 
 /**
  * Improvement of VAO:
@@ -14,14 +15,14 @@ import { WebGLExtension } from "./type";
  */
 export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
-  private readonly _primitive: Mesh;
+  private readonly _primitive: Primitive;
   private readonly _canUseInstancedArrays: boolean;
 
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
-  constructor(rhi: WebGLGraphicDevice, primitive: Mesh) {
+  constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
     this._primitive = primitive;
     this._canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
@@ -31,14 +32,12 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subMesh: SubMesh): void {
+  draw(shaderProgram: any, subMesh: SubPrimitive): void {
     const gl = this._gl;
     const primitive = this._primitive;
-    // @ts-ignore
     const useVao = this._useVao && primitive._enableVAO;
 
     if (useVao) {
-      // @ts-ignore
       if (primitive._bufferStructChanged) {
         this._clearVAO();
       }
@@ -51,16 +50,15 @@ export class GLPrimitive implements IPlatformPrimitive {
       this._bindBufferAndAttrib(shaderProgram);
     }
 
-    // @ts-ignore
-    const { _indexBufferBinding, _instanceCount, _glIndexType, _glIndexByteCount } = primitive;
+    const { indexBufferBinding, instanceCount, _glIndexType, _glIndexByteCount } = primitive;
     const { topology, start, count } = subMesh;
 
-    if (!_instanceCount) {
-      if (_indexBufferBinding) {
+    if (!instanceCount) {
+      if (indexBufferBinding) {
         if (useVao) {
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
-          const { _glBuffer } = _indexBufferBinding.buffer._platformBuffer;
+          const { _glBuffer } = indexBufferBinding.buffer._platformBuffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
@@ -70,17 +68,17 @@ export class GLPrimitive implements IPlatformPrimitive {
       }
     } else {
       if (this._canUseInstancedArrays) {
-        if (_indexBufferBinding) {
+        if (indexBufferBinding) {
           if (useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, instanceCount);
           } else {
-            const { _glBuffer } = _indexBufferBinding.buffer._platformBuffer;
+            const { _glBuffer } = indexBufferBinding.buffer._platformBuffer;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
         } else {
-          gl.drawArraysInstanced(topology, start, count, _instanceCount);
+          gl.drawArraysInstanced(topology, start, count, instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
@@ -105,17 +103,15 @@ export class GLPrimitive implements IPlatformPrimitive {
   private _bindBufferAndAttrib(shaderProgram: any): void {
     const gl = this._gl;
     const primitive = this._primitive;
-    // @ts-ignore
-    const vertexBufferBindings = primitive._vertexBufferBindings;
+    const vertexBufferBindings = primitive.vertexBufferBindings;
 
     this._attribLocArray.length = 0;
     const attributeLocation = shaderProgram.attributeLocation;
-    // @ts-ignore
     const attributes = primitive._vertexElementMap;
 
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
-
+  
     for (const name in attributeLocation) {
       const loc = attributeLocation[name];
       if (loc === -1) continue;
@@ -159,10 +155,9 @@ export class GLPrimitive implements IPlatformPrimitive {
     /** register VAO */
     gl.bindVertexArray(vao);
 
-    // @ts-ignore
-    const { _indexBufferBinding } = this._primitive;
-    if (_indexBufferBinding) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _indexBufferBinding.buffer._platformBuffer._glBuffer);
+    const { indexBufferBinding } = this._primitive;
+    if (indexBufferBinding) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._platformBuffer._glBuffer);
     }
     this._bindBufferAndAttrib(shaderProgram);
 

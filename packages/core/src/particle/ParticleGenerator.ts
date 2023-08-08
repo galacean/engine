@@ -54,7 +54,7 @@ export class ParticleGenerator {
   /** @internal */
   _firstRetiredElement: number = 0;
   /** @internal */
-  _primitive: Primitive = new Primitive();
+  _primitive: Primitive;
 
   private _waitProcessRetiredElementCount: number = 0;
   private _instanceVertexBufferBinding: VertexBufferBinding;
@@ -80,7 +80,10 @@ export class ParticleGenerator {
     this._renderer = renderer;
     const subPrimitive = new SubPrimitive();
     subPrimitive.start = 0;
-    this._primitive.subPrimitives.push(subPrimitive);
+
+    const primitive = new Primitive(renderer.engine);
+    // primitive.subPrimitives.push(subPrimitive);
+    this._primitive = primitive;
   }
 
   /**
@@ -174,14 +177,14 @@ export class ParticleGenerator {
       }
 
       // @todo: multi subMesh or not support
-      const indexBufferBinding = mesh._indexBufferBinding;
+      const indexBufferBinding = mesh._primitive.indexBufferBinding;
       primitive.indexBufferBinding = indexBufferBinding;
-      this._primitive.subPrimitives[0].count = indexBufferBinding.buffer.byteLength / mesh._glIndexByteCount;
+      // this._primitive.subPrimitives[0].count = indexBufferBinding.buffer.byteLength / mesh._glIndexByteCount;
     } else {
       vertexElements.push(ParticleBufferUtils.billboardVertexElement);
       vertexBufferBindings.push(ParticleBufferUtils.billboardVertexBufferBinding);
       primitive.indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
-      this._primitive.subPrimitives[0].count = ParticleBufferUtils.billboardIndexCount;
+      // this._primitive.subPrimitives[0].count = ParticleBufferUtils.billboardIndexCount;
     }
 
     const instanceVertexElements = ParticleBufferUtils.instanceVertexElements;
