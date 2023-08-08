@@ -9,7 +9,8 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix;
 
-  before(() => {
+  before(function () {
+    this.timeout(10000);
     const webCanvas = new WebCanvas(canvasDOM);
     const webGLGraphicDevice = new WebGLGraphicDevice();
     // @ts-ignore
@@ -263,4 +264,4 @@ describe("camera test", function () {
     camera.projectionMatrix = camera.viewMatrix;
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
   });
-}).timeout(5000);
+});
