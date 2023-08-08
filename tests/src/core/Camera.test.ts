@@ -10,11 +10,12 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix;
 
-  this.beforeAll(async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
-    node = engine.sceneManager.activeScene.createRootEntity();
-    camera = node.addComponent(Camera);
-    identityMatrix = new Matrix();
+  this.beforeAll(() => {
+    return WebGLEngine.create({ canvas: canvasDOM }).then((engine) => {
+      node = engine.sceneManager.activeScene.createRootEntity();
+      camera = node.addComponent(Camera);
+      identityMatrix = new Matrix();
+    });
   });
 
   it("constructor", () => {
