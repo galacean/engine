@@ -21,7 +21,7 @@ export class Primitive extends RenderData {
   /** @internal */
   _vertexElementMap: Record<string, VertexElement> = {};
   /** @internal */
-  _bufferStructChanged: boolean;
+  _bufferStructChanged: boolean = false;
   /** @internal */
   _enableVAO: boolean = true;
 
@@ -38,7 +38,8 @@ export class Primitive extends RenderData {
   }
 
   set indexBufferBinding(value: IndexBufferBinding) {
-    if (this._indexBufferBinding !== value) {
+    const lastBinding = this._indexBufferBinding;
+    if (lastBinding !== value) {
       this._indexBufferBinding = value;
       if (value) {
         this._glIndexType = BufferUtil._getGLIndexType(value.format);
@@ -46,7 +47,7 @@ export class Primitive extends RenderData {
       } else {
         this._glIndexType = undefined;
       }
-      this._bufferStructChanged = true;
+      this._bufferStructChanged = lastBinding?.buffer !== value?.buffer;
     }
   }
 
