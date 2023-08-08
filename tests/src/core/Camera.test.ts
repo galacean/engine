@@ -23,21 +23,21 @@ describe("camera test", function () {
     // });
   });
 
-  // it("constructor", () => {
-  //   // Test default values
-  //   expect(camera.aspectRatio).to.eq(1);
-  //   expect(camera.entity.transform.worldPosition).not.to.be.undefined;
-  //   expect(camera.viewport).to.deep.eq(new Vector4(0, 0, 1, 1));
-  //   expect(camera.fieldOfView).to.eq(45);
-  //   expect(camera.isOrthographic).to.eq(false);
+  it("constructor", () => {
+    // Test default values
+    expect(camera.aspectRatio).to.eq(1);
+    expect(camera.entity.transform.worldPosition).not.to.be.undefined;
+    expect(camera.viewport).to.deep.eq(new Vector4(0, 0, 1, 1));
+    expect(camera.fieldOfView).to.eq(45);
+    expect(camera.isOrthographic).to.eq(false);
 
-  //   // Test set renderTarget values
-  //   camera.renderTarget = null;
-  //   expect(camera.renderTarget).to.eq(null);
+    // Test set renderTarget values
+    camera.renderTarget = null;
+    expect(camera.renderTarget).to.eq(null);
 
-  //   // Test that _renderPipeline is not undefined
-  //   expect(camera["_renderPipeline"]).not.to.be.undefined;
-  // });
+    // Test that _renderPipeline is not undefined
+    expect(camera["_renderPipeline"]).not.to.be.undefined;
+  });
 
   it("private property value", () => {
     // Test nearClipPlane
