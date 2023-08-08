@@ -6,6 +6,7 @@ import { SubPrimitive } from "./SubPrimitive";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
 import { Engine } from "../Engine";
+import { BufferUtil } from "./BufferUtil";
 
 /**
  * @internal
@@ -14,7 +15,7 @@ import { Engine } from "../Engine";
 export class Primitive extends RenderData {
   vertexElements: VertexElement[] = [];
   vertexBufferBindings: VertexBufferBinding[] = [];
-  indexBufferBinding: IndexBufferBinding;
+
   instanceCount: number;
 
   /** @internal */
@@ -23,13 +24,30 @@ export class Primitive extends RenderData {
   _bufferStructChanged: boolean;
   /** @internal */
   _enableVAO: boolean = true;
-  
+
   /** @internal */
   _glIndexType: number;
   /** @internal */
   _glIndexByteCount: number;
 
+  private _indexBufferBinding: IndexBufferBinding;
   private _platformPrimitive: IPlatformPrimitive;
+
+  get indexBufferBinding(): IndexBufferBinding {
+    return this._indexBufferBinding;
+  }
+
+  set indexBufferBinding(value: IndexBufferBinding) {
+    if (this._indexBufferBinding !== value) {
+      this._indexBufferBinding = value;
+      if (value) {
+        this._glIndexType = BufferUtil._getGLIndexType(value.format);
+        this._glIndexByteCount = BufferUtil._getGLIndexByteCount(value.format);
+      } else {
+        this._glIndexType = undefined;
+      }
+    }
+  }
 
   constructor(engine: Engine) {
     super();

@@ -2,7 +2,6 @@ import { BoundingBox } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { BufferUtil } from "../graphic/BufferUtil";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
@@ -271,12 +270,10 @@ export abstract class Mesh extends GraphicsResource {
     }
     if (binding) {
       primitive.indexBufferBinding = binding;
-      primitive._glIndexType = BufferUtil._getGLIndexType(binding.format);
-      primitive._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+
       (!lastBinding || lastBinding._buffer !== binding._buffer) && (primitive._bufferStructChanged = true);
     } else {
       primitive.indexBufferBinding = null;
-      primitive._glIndexType = undefined;
       lastBinding && (primitive._bufferStructChanged = true);
     }
   }
