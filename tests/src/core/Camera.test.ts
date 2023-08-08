@@ -13,7 +13,7 @@ describe("camera test", function () {
     const webCanvas = new WebCanvas(canvasDOM);
     const webGLGraphicDevice = new WebGLGraphicDevice();
     // @ts-ignore
-    const engine = new WebGLEngine(webCanvas, webGLGraphicDevice);
+    const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, { canvas: canvasDOM });
     // return WebGLEngine.create({ canvas: canvasDOM }).then((engine) => {
     node = engine.sceneManager.activeScene.createRootEntity();
     camera = node.addComponent(Camera);
