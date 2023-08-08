@@ -10,12 +10,13 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix;
 
-  before(() => {
+  before((done) => {
     this.timeout(10000);
     return WebGLEngine.create({ canvas: canvasDOM }).then((engine) => {
       node = engine.sceneManager.activeScene.createRootEntity();
       camera = node.addComponent(Camera);
       identityMatrix = new Matrix();
+      done();
     });
   });
 
