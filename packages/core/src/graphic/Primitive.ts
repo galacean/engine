@@ -46,6 +46,7 @@ export class Primitive extends RenderData {
       } else {
         this._glIndexType = undefined;
       }
+      this._bufferStructChanged = true;
     }
   }
 

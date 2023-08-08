@@ -268,14 +268,7 @@ export abstract class Mesh extends GraphicsResource {
       lastBinding?.buffer._addReferCount(-referCount);
       binding?.buffer._addReferCount(referCount);
     }
-    if (binding) {
-      primitive.indexBufferBinding = binding;
-
-      (!lastBinding || lastBinding._buffer !== binding._buffer) && (primitive._bufferStructChanged = true);
-    } else {
-      primitive.indexBufferBinding = null;
-      lastBinding && (primitive._bufferStructChanged = true);
-    }
+    primitive.indexBufferBinding = binding;
   }
 
   private _onBoundsChanged(): void {
