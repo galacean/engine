@@ -1,4 +1,5 @@
 import { Component } from "../Component";
+import { Entity } from "../Entity";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
 
@@ -9,7 +10,7 @@ export interface ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: ICustomClone): void;
+  _cloneTo(target: ICustomClone, srcRoot: Entity, targetRoot: Entity): void;
 }
 
 export class ComponentCloner {
@@ -18,7 +19,7 @@ export class ComponentCloner {
    * @param source - Clone source
    * @param target - Clone target
    */
-  static cloneComponent(source: Component, target: Component): void {
+  static cloneComponent(source: Component, target: Component, srcRoot: Entity, targetRoot: Entity): void {
     const cloneModes = CloneManager.getCloneMode(source.constructor);
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
@@ -54,7 +55,7 @@ export class ComponentCloner {
       }
     }
     if ((<any>source)._cloneTo) {
-      (<any>source)._cloneTo(target);
+      (<any>source)._cloneTo(target, srcRoot, targetRoot);
     }
   }
 }

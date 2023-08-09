@@ -9,6 +9,10 @@ export class Skin extends EngineObject {
   public inverseBindMatrices: Matrix[];
   public joints: string[];
   public skeleton: string;
+
+  public _rootBone: Entity;
+  public _bones: Entity[] = [];
+
   /**
    * Constructor of skin
    * @param name - name
