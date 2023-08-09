@@ -32,6 +32,8 @@ interface IGlobal extends IReference {
   name: string;
 }
 
+type GlobalMap = Map<string, IGlobal>;
+
 interface IReferenceStructInfo {
   /** varying or attribute object name */
   objectName?: string;
@@ -70,11 +72,11 @@ export default class RuntimeContext {
   payload?: any;
 
   /** Global variables within scope of shader, e.g. Uniforms, RenderState, Struct. */
-  private _shaderGlobalList: IGlobal[] = [];
+  private _shaderGlobalMap: GlobalMap = new Map();
   /** Global variables within scope of subShader, e.g. Uniforms, RenderState, Struct. */
-  private _subShaderGlobalList: IGlobal[] = [];
+  private _subShaderGlobalMap: GlobalMap = new Map();
   /** Global variables within scope of pass, e.g. Uniforms, RenderState, Struct. */
-  private _passGlobalList: IGlobal[] = [];
+  private _passGlobalMap: GlobalMap = new Map();
   /** The main function */
   private _currentMainFnAst?: FnAstNode;
 
@@ -99,18 +101,18 @@ export default class RuntimeContext {
   }
 
   private _shaderReset() {
-    this._shaderGlobalList.length = 0;
+    this._shaderGlobalMap.clear();
     this._serializingNodeStack.length = 0;
     this._subShaderReset();
   }
 
   private _subShaderReset() {
-    this._subShaderGlobalList.length = 0;
+    this._subShaderGlobalMap.clear();
     this._passReset();
   }
 
   private _passReset() {
-    this._passGlobalList.length = 0;
+    this._passGlobalMap.clear();
     this.functionAstStack.length = 0;
     this.attributeStructListInfo.length = 0;
     this.attributesVariableListInfo.length = 0;
@@ -121,64 +123,60 @@ export default class RuntimeContext {
   }
 
   private _initShaderGlobalList() {
-    this._shaderGlobalList = [
-      ...(this.shaderAst.content.functions?.map((fn) => ({ referenced: false, ast: fn, name: fn.content.name })) ?? []),
-      ...(this.shaderAst.content.structs?.map((struct) => ({
-        referenced: false,
-        ast: struct,
-        name: struct.content.name
-      })) ?? []),
-      ...(this.shaderAst.content.renderStates?.map((v) => ({ referenced: false, ast: v, name: v.content.variable })) ??
-        []),
-      ...(this.shaderAst.content.variables?.map((item) => ({
-        referenced: false,
-        ast: item,
-        name: item.content.variable
-      })) ?? [])
-    ];
+    this.shaderAst.content.functions?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name })
+    );
+    this.shaderAst.content.structs?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name })
+    );
+    this.shaderAst.content.renderStates?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
+    );
+    this.shaderAst.content.variables?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
+    );
   }
 
   private _initSubShaderGlobalList() {
-    this._subShaderGlobalList = [
-      ...(this.subShaderAst.content.functions?.map((fn) => ({ referenced: false, ast: fn, name: fn.content.name })) ??
-        []),
-      ...(this.subShaderAst.content.structs?.map((struct) => ({
-        referenced: false,
-        ast: struct,
-        name: struct.content.name
-      })) ?? []),
-      ...(this.subShaderAst.content.renderStates?.map((v) => ({
-        referenced: false,
-        ast: v,
-        name: v.content.variable
-      })) ?? []),
-      ...(this.subShaderAst.content.variables?.map((item) => ({
-        referenced: false,
+    this.subShaderAst.content.functions?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.subShaderAst.content.structs?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.subShaderAst.content.renderStates?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.variable, {
         ast: item,
+        referenced: false,
         name: item.content.variable
-      })) ?? [])
-    ];
+      });
+    });
+    this.subShaderAst.content.variables?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.variable, {
+        ast: item,
+        referenced: false,
+        name: item.content.variable
+      });
+    });
   }
 
   private _initPassGlobalList() {
-    this._passGlobalList = [
-      ...(this.passAst.content.functions?.map((fn) => ({ referenced: false, ast: fn, name: fn.content.name })) ?? []),
-      ...(this.passAst.content.structs?.map((struct) => ({
-        referenced: false,
-        ast: struct,
-        name: struct.content.name
-      })) ?? []),
-      ...(this.passAst.content.variables?.map((v) => ({ referenced: false, ast: v, name: v.content.variable })) ?? []),
-      ...(this.passAst.content.defines?.map((item) => ({
-        referenced: false,
-        ast: item,
-        name: item.content.variable
-      })) ?? [])
-    ];
+    this.passAst.content.functions?.forEach((item) => {
+      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.passAst.content.structs?.forEach((item) => {
+      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.passAst.content.variables?.forEach((item) => {
+      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
+    });
+    this.passAst.content.defines?.forEach((item) => {
+      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
+    });
   }
 
   referenceGlobal(name: string): IGlobal | undefined {
-    const globalV = this._passGlobalList.find((global) => global.name === name);
+    const globalV = this._passGlobalMap.get(name);
     if (globalV) {
       globalV.referenced = true;
     }
@@ -277,15 +275,15 @@ export default class RuntimeContext {
   }
 
   findShaderGlobal(variable: string) {
-    return this._shaderGlobalList.find((item) => item.name === variable);
+    return this._shaderGlobalMap.get(variable);
   }
 
   findSubShaderGlobal(variable: string) {
-    return this._subShaderGlobalList.find((item) => item.name === variable);
+    return this._subShaderGlobalMap.get(variable);
   }
 
   findPassGlobal(variable: string) {
-    return this._passGlobalList.find((item) => item.name === variable);
+    return this._passGlobalMap.get(variable);
   }
 
   findGlobal(variable: string): IGlobal | undefined {
@@ -319,7 +317,7 @@ export default class RuntimeContext {
   }
 
   getPassGlobalText(): string {
-    return this._passGlobalList
+    return Array.from(this._passGlobalMap.values())
       .filter((item) => item.referenced)
       .map((item) => item.ast.serialize(this, { global: true }))
       .join("\n");
