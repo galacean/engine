@@ -93,7 +93,21 @@ Shader "Water" {
         // For testing only (macro)
         #if SCENE_SHADOW_TYPE == 2 || defined(XX_Macro)
           gl_FragColor = linearToGamma(gl_FragColor);
+        #elif SCENE_SHADOW_TYPE == 3
+          gl_FragColor = linearToGamma(gl_FragColor);
+        #else 
+          gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
         #endif
+
+        #ifndef SCENE_SHADOW_TYPE
+          gl_FragColor = linearToGamma(gl_FragColor);
+        #else
+          gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
+        #endif 
+
+        #ifdef SCENE_SHADOW_TYPE
+          gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
+        #endif 
       }
     }
   }

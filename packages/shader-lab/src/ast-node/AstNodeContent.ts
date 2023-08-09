@@ -24,10 +24,11 @@ import {
   AddExprAstNode,
   RelationOperatorAstNode,
   RelationExprAstNode,
-  FnMacroConditionBranchAstNode,
   FnBlockStatementAstNode,
   FnConditionStatementAstNode,
-  FnMacroDefineAstNode
+  FnMacroDefineAstNode,
+  FnMacroConditionElifBranchAstNode,
+  FnMacroConditionElseBranchAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -110,11 +111,16 @@ export interface IFnMacroConditionAstContent {
   command: string;
   condition: RelationExprAstNode;
   body: FnBodyAstNode;
-  branch?: FnMacroConditionBranchAstNode;
+  elifBranch?: FnMacroConditionElifBranchAstNode;
+  elseBranch?: FnMacroConditionElseBranchAstNode;
 }
 
-export interface IFnMacroConditionBranchAstContent {
-  declare: string;
+export interface IFnMacroConditionElifBranchAstContent {
+  condition: RelationExprAstNode;
+  body: FnBodyAstNode;
+}
+
+export interface IFnMacroConditionElseBranchAstContent {
   body: FnBodyAstNode;
 }
 

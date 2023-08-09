@@ -203,7 +203,8 @@ export type _ruleFnMacroConditionCstChildren = {
   _ruleFnMacroConditionDeclare: _ruleFnMacroConditionDeclareCstNode[];
   _ruleConditionExpr: _ruleConditionExprCstNode[];
   _ruleFnBody: _ruleFnBodyCstNode[];
-  _ruleFnMacroConditionBranch?: _ruleFnMacroConditionBranchCstNode[];
+  _ruleMacroConditionElifBranch?: _ruleMacroConditionElifBranchCstNode[];
+  _ruleFnMacroConditionElseBranch?: _ruleFnMacroConditionElseBranchCstNode[];
   m_endif: IToken[];
 };
 
@@ -218,23 +219,25 @@ export type _ruleFnMacroConditionDeclareCstChildren = {
   m_if?: IToken[];
 };
 
-export interface _ruleFnMacroConditionBranchCstNode extends CstNode {
-  name: "_ruleFnMacroConditionBranch";
-  children: _ruleFnMacroConditionBranchCstChildren;
+export interface _ruleFnMacroConditionElseBranchCstNode extends CstNode {
+  name: "_ruleFnMacroConditionElseBranch";
+  children: _ruleFnMacroConditionElseBranchCstChildren;
 }
 
-export type _ruleFnMacroConditionBranchCstChildren = {
-  _ruleFnMacroConditionBranchDeclare: _ruleFnMacroConditionBranchDeclareCstNode[];
+export type _ruleFnMacroConditionElseBranchCstChildren = {
+  m_else: IToken[];
   _ruleFnBody: _ruleFnBodyCstNode[];
 };
 
-export interface _ruleFnMacroConditionBranchDeclareCstNode extends CstNode {
-  name: "_ruleFnMacroConditionBranchDeclare";
-  children: _ruleFnMacroConditionBranchDeclareCstChildren;
+export interface _ruleMacroConditionElifBranchCstNode extends CstNode {
+  name: "_ruleMacroConditionElifBranch";
+  children: _ruleMacroConditionElifBranchCstChildren;
 }
 
-export type _ruleFnMacroConditionBranchDeclareCstChildren = {
-  m_else?: IToken[];
+export type _ruleMacroConditionElifBranchCstChildren = {
+  m_elif: IToken[];
+  _ruleConditionExpr: _ruleConditionExprCstNode[];
+  _ruleFnBody: _ruleFnBodyCstNode[];
 };
 
 export interface _ruleFnMacroDefineCstNode extends CstNode {
@@ -1067,8 +1070,8 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleFnMacro(children: _ruleFnMacroCstChildren, param?: IN): OUT;
   _ruleFnMacroCondition(children: _ruleFnMacroConditionCstChildren, param?: IN): OUT;
   _ruleFnMacroConditionDeclare(children: _ruleFnMacroConditionDeclareCstChildren, param?: IN): OUT;
-  _ruleFnMacroConditionBranch(children: _ruleFnMacroConditionBranchCstChildren, param?: IN): OUT;
-  _ruleFnMacroConditionBranchDeclare(children: _ruleFnMacroConditionBranchDeclareCstChildren, param?: IN): OUT;
+  _ruleFnMacroConditionElseBranch(children: _ruleFnMacroConditionElseBranchCstChildren, param?: IN): OUT;
+  _ruleMacroConditionElifBranch(children: _ruleMacroConditionElifBranchCstChildren, param?: IN): OUT;
   _ruleFnMacroDefine(children: _ruleFnMacroDefineCstChildren, param?: IN): OUT;
   _ruleAssignableValue(children: _ruleAssignableValueCstChildren, param?: IN): OUT;
   _ruleFnAddExpr(children: _ruleFnAddExprCstChildren, param?: IN): OUT;

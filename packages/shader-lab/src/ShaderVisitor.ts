@@ -18,7 +18,6 @@ import {
   FnCallAstNode,
   FnConditionStatementAstNode,
   FnMacroConditionAstNode,
-  FnMacroConditionBranchAstNode,
   FnMacroDefineAstNode,
   FnMacroIncludeAstNode,
   FnReturnStatementAstNode,
@@ -48,7 +47,9 @@ import {
   BlendFactorAstNode,
   BlendOperationAstNode,
   DiscardStatementAstNode,
-  ConditionExprAstNode
+  ConditionExprAstNode,
+  FnMacroConditionElifBranchAstNode,
+  FnMacroConditionElseBranchAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
@@ -70,7 +71,6 @@ import {
   _ruleFnConditionStatementCstChildren,
   _ruleFnCstChildren,
   _ruleFnExpressionCstChildren,
-  _ruleFnMacroConditionBranchCstChildren,
   _ruleFnMacroConditionCstChildren,
   _ruleFnMacroCstChildren,
   _ruleFnMacroDefineCstChildren,
@@ -121,7 +121,9 @@ import {
   _ruleReturnBodyCstChildren,
   _ruleTagAssignableValueCstChildren,
   _ruleDiscardStatementCstChildren,
-  _ruleConditionExprCstChildren
+  _ruleConditionExprCstChildren,
+  _ruleMacroConditionElifBranchCstChildren,
+  _ruleFnMacroConditionElseBranchCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -317,34 +319,40 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: AstNodeUtils.getTokenPosition(children.m_endif[0]).end
     };
 
-    const branch = children._ruleFnMacroConditionBranch && this.visit(children._ruleFnMacroConditionBranch);
-
     return new FnMacroConditionAstNode({
       position,
       content: {
         command: AstNodeUtils.extractCstToken(children._ruleFnMacroConditionDeclare[0]),
         condition: this.visit(children._ruleConditionExpr),
         body: this.visit(children._ruleFnBody),
-        branch
+        elifBranch: children._ruleMacroConditionElifBranch
+          ? this.visit(children._ruleMacroConditionElifBranch)
+          : undefined,
+        elseBranch: children._ruleFnMacroConditionElseBranch
+          ? this.visit(children._ruleFnMacroConditionElseBranch)
+          : undefined
       }
     });
   }
 
-  _ruleFnMacroConditionBranch(children: _ruleFnMacroConditionBranchCstChildren, param?: any) {
+  _ruleMacroConditionElifBranch(children: _ruleMacroConditionElifBranchCstChildren, param?: any) {
     const body = this.visit(children._ruleFnBody);
-
+    const condition = this.visit(children._ruleConditionExpr);
     const position: IPositionRange = {
-      start: AstNodeUtils.getOrTypeCstNodePosition(children._ruleFnMacroConditionBranchDeclare[0]).start,
+      start: AstNodeUtils.getTokenPosition(children.m_elif[0]).start,
       end: body.position.end
     };
 
-    return new FnMacroConditionBranchAstNode({
-      position,
-      content: {
-        declare: AstNodeUtils.extractCstToken(children._ruleFnMacroConditionBranchDeclare[0]),
-        body
-      }
-    });
+    return new FnMacroConditionElifBranchAstNode({ position, content: { condition, body } });
+  }
+
+  _ruleFnMacroConditionElseBranch(children: _ruleFnMacroConditionElseBranchCstChildren, param?: any) {
+    const body = this.visit(children._ruleFnBody);
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.m_else[0]).start,
+      end: body.position.end
+    };
+    return new FnMacroConditionElseBranchAstNode({ position, content: { body } });
   }
 
   _ruleFnStatement(ctx: _ruleFnStatementCstChildren) {

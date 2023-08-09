@@ -165,10 +165,10 @@ export class ShaderParser extends CstParser {
     this.SUBRULE(this._ruleConditionExpr);
     this.SUBRULE(this._ruleFnBody);
     this.OPTION(() => {
-      this.SUBRULE(this._ruleFnMacroConditionBranch);
+      this.SUBRULE(this._ruleMacroConditionElifBranch);
     });
     this.OPTION1(() => {
-      this.SUBRULE1(this._ruleFnBody);
+      this.SUBRULE(this._ruleFnMacroConditionElseBranch);
     });
     this.CONSUME(GLKeywords.M_ENDIF);
   });
@@ -181,13 +181,15 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private _ruleFnMacroConditionBranch = this.RULE("_ruleFnMacroConditionBranch", () => {
-    this.SUBRULE(this._ruleFnMacroConditionBranchDeclare);
+  private _ruleFnMacroConditionElseBranch = this.RULE("_ruleFnMacroConditionElseBranch", () => {
+    this.CONSUME(GLKeywords.M_ELSE);
     this.SUBRULE(this._ruleFnBody);
   });
 
-  private _ruleFnMacroConditionBranchDeclare = this.RULE("_ruleFnMacroConditionBranchDeclare", () => {
-    this.OR([{ ALT: () => this.CONSUME(GLKeywords.M_ELSE) }]);
+  private _ruleMacroConditionElifBranch = this.RULE("_ruleMacroConditionElifBranch", () => {
+    this.CONSUME(GLKeywords.M_ELIF);
+    this.SUBRULE(this._ruleConditionExpr);
+    this.SUBRULE(this._ruleFnBody);
   });
 
   private _ruleFnMacroDefine = this.RULE("_ruleFnMacroDefine", () => {

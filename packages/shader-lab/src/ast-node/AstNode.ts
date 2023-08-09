@@ -22,7 +22,8 @@ import {
   IFnCallAstContent,
   IFnConditionStatementAstContent,
   IFnMacroConditionAstContent,
-  IFnMacroConditionBranchAstContent,
+  IFnMacroConditionElifBranchAstContent,
+  IFnMacroConditionElseBranchAstContent,
   IFnMacroDefineAstContent,
   IFnMacroIncludeAstContent,
   IFnMultiplicationExprAstContent,
@@ -220,12 +221,25 @@ export class FnMacroIncludeAstNode extends AstNode<IFnMacroIncludeAstContent> {}
 export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const body = this.content.body.serialize(context);
-    const branch = this.content.branch?.serialize(context) ?? "";
-    return `${this.content.command} ${this.content.condition.serialize(context)}\n  ${body}\n${branch}\n#endif`;
+    const elifBranch = this.content.elifBranch?.serialize(context) ?? "";
+    const elseBranch = this.content.elseBranch?.serialize(context) ?? "";
+    return `${this.content.command} ${this.content.condition.serialize(context)}\n ${[body, elifBranch, elseBranch]
+      .filter((item) => item)
+      .join("\n")}\n#endif`;
   }
 }
 
-export class FnMacroConditionBranchAstNode extends AstNode<IFnMacroConditionBranchAstContent> {}
+export class FnMacroConditionElifBranchAstNode extends AstNode<IFnMacroConditionElifBranchAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `#elif ${this.content.condition.serialize(context)}\n  ${this.content.body.serialize(context)}`;
+  }
+}
+
+export class FnMacroConditionElseBranchAstNode extends AstNode<IFnMacroConditionElseBranchAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `#else\n  ${this.content.body.serialize(context)}`;
+  }
+}
 
 export class DiscardStatementAstNode extends AstNode {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
