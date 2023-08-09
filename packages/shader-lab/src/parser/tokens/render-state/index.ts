@@ -3,4 +3,4 @@ export * from "./DepthState";
 export * from "./RasterState";
 export * from "./StateType";
 export * from "./StencilState";
-export * from "./common";
+export * from "./Common";

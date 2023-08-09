@@ -2,7 +2,7 @@ import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRen
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
-import { RenderStateDataKey } from "../enums/RenderStateElementKey";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { StencilOperation } from "../enums/StencilOperation";
 import { RenderState } from "./RenderState";
 
@@ -85,63 +85,63 @@ export class StencilState {
    * @internal
    */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    const enableProperty = renderStateDataMap[RenderStateDataKey.StencilStateEnabled];
+    const enableProperty = renderStateDataMap[RenderStateElementKey.StencilStateEnabled];
     if (enableProperty !== undefined) {
       const enabled = shaderData.getFloat(enableProperty);
       this.enabled = enabled !== undefined ? !!enabled : false;
     }
 
-    const referenceValueProperty = renderStateDataMap[RenderStateDataKey.StencilStateReferenceValue];
+    const referenceValueProperty = renderStateDataMap[RenderStateElementKey.StencilStateReferenceValue];
     if (referenceValueProperty !== undefined) {
       this.referenceValue = shaderData.getFloat(referenceValueProperty) ?? 0;
     }
 
-    const maskProperty = renderStateDataMap[RenderStateDataKey.StencilStateMask];
+    const maskProperty = renderStateDataMap[RenderStateElementKey.StencilStateMask];
     if (maskProperty !== undefined) {
       this.mask = shaderData.getFloat(maskProperty) ?? 0xff;
     }
 
-    const writeMaskProperty = renderStateDataMap[RenderStateDataKey.StencilStateWriteMask];
+    const writeMaskProperty = renderStateDataMap[RenderStateElementKey.StencilStateWriteMask];
     if (writeMaskProperty !== undefined) {
       this.writeMask = shaderData.getFloat(writeMaskProperty) ?? 0xff;
     }
 
-    const compareFunctionFrontProperty = renderStateDataMap[RenderStateDataKey.StencilStateCompareFunctionFront];
+    const compareFunctionFrontProperty = renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionFront];
     if (compareFunctionFrontProperty !== undefined) {
       this.compareFunctionFront = shaderData.getFloat(compareFunctionFrontProperty) ?? CompareFunction.Always;
     }
 
-    const compareFunctionBackProperty = renderStateDataMap[RenderStateDataKey.StencilStateCompareFunctionBack];
+    const compareFunctionBackProperty = renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionBack];
     if (compareFunctionBackProperty !== undefined) {
       this.compareFunctionBack = shaderData.getFloat(compareFunctionBackProperty) ?? CompareFunction.Always;
     }
 
-    const passOperationFrontProperty = renderStateDataMap[RenderStateDataKey.StencilStatePassOperationFront];
+    const passOperationFrontProperty = renderStateDataMap[RenderStateElementKey.StencilStatePassOperationFront];
     if (passOperationFrontProperty !== undefined) {
       this.passOperationFront = shaderData.getFloat(passOperationFrontProperty) ?? StencilOperation.Keep;
     }
 
-    const passOperationBackProperty = renderStateDataMap[RenderStateDataKey.StencilStatePassOperationBack];
+    const passOperationBackProperty = renderStateDataMap[RenderStateElementKey.StencilStatePassOperationBack];
     if (passOperationBackProperty !== undefined) {
       this.passOperationBack = shaderData.getFloat(passOperationBackProperty) ?? StencilOperation.Keep;
     }
 
-    const failOperationFrontProperty = renderStateDataMap[RenderStateDataKey.StencilStateFailOperationFront];
+    const failOperationFrontProperty = renderStateDataMap[RenderStateElementKey.StencilStateFailOperationFront];
     if (failOperationFrontProperty !== undefined) {
       this.failOperationFront = shaderData.getFloat(failOperationFrontProperty) ?? StencilOperation.Keep;
     }
 
-    const failOperationBackProperty = renderStateDataMap[RenderStateDataKey.StencilStateFailOperationBack];
+    const failOperationBackProperty = renderStateDataMap[RenderStateElementKey.StencilStateFailOperationBack];
     if (failOperationBackProperty !== undefined) {
       this.failOperationBack = shaderData.getFloat(failOperationBackProperty) ?? StencilOperation.Keep;
     }
 
-    const zFailOperationFrontProperty = renderStateDataMap[RenderStateDataKey.StencilStateZFailOperationFront];
+    const zFailOperationFrontProperty = renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationFront];
     if (zFailOperationFrontProperty !== undefined) {
       this.zFailOperationFront = shaderData.getFloat(zFailOperationFrontProperty) ?? StencilOperation.Keep;
     }
 
-    const zFailOperationBackProperty = renderStateDataMap[RenderStateDataKey.StencilStateZFailOperationBack];
+    const zFailOperationBackProperty = renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationBack];
     if (zFailOperationBackProperty !== undefined) {
       this.zFailOperationBack = shaderData.getFloat(zFailOperationBackProperty) ?? StencilOperation.Keep;
     }

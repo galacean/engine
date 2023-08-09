@@ -94,13 +94,13 @@ describe("ShaderLab", () => {
     const vs = gl.createShader(gl.VERTEX_SHADER);
     const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-    gl.shaderSource(vs, "precision mediump float;" + pass.vert);
+    gl.shaderSource(vs, "precision mediump float;" + pass.vertexSource);
     gl.compileShader(vs);
 
     const fsPrefix = `#version 100
     precision mediump float;
     precision mediump int;`;
-    gl.shaderSource(fs, fsPrefix + pass.frag);
+    gl.shaderSource(fs, fsPrefix + pass.fragmentSource);
     gl.compileShader(fs);
 
     expect(gl.getShaderParameter(vs, gl.COMPILE_STATUS), `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}`).to

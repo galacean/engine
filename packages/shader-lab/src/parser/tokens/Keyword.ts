@@ -1,4 +1,4 @@
-import { ValueString } from "./value";
+import { ValueString } from "./Value";
 import { TokenUtils } from "./TokenUtils";
 
 export const Shader = TokenUtils.createKeywordToken("Shader", { longer_alt: ValueString });
