@@ -123,11 +123,11 @@ export class BlendShapeManager {
           }
           this._filterCondensedBlendShapeWeights(skinnedMeshRenderer.blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
-          this._modelMesh._primitive._enableVAO = false;
+          this._modelMesh._primitive.enableVAO = false;
           blendShapeCount = maxBlendCount;
         } else {
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-          this._modelMesh._primitive._enableVAO = true;
+          this._modelMesh._primitive.enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");

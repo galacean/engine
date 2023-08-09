@@ -121,7 +121,7 @@ export class MeshRenderer extends Renderer {
       shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
 
       for (let i = 0, n = vertexElements.length; i < n; i++) {
-        switch (vertexElements[i].semantic) {
+        switch (vertexElements[i].attribute) {
           case "TEXCOORD_0":
             shaderData.enableMacro(MeshRenderer._uvMacro);
             break;
