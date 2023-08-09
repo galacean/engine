@@ -76,6 +76,7 @@ export class AnimatorState {
    */
   addTransition(transition: AnimatorStateTransition): void {
     this._transitions.push(transition);
+    this._transitions.sort((a, b) => a.exitTime - b.exitTime);
   }
 
   /**
