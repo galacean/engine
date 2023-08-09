@@ -47,10 +47,6 @@ export default class RuntimeContext {
   functionAstStack: Array<{ fnAst: FnAstNode; localDeclaration: DeclarationAstNode[] }> = [];
   /** Diagnostic for linting service */
   diagnostics: Array<IDiagnostic> = [];
-  /**
-   * The string list will be integrated into the glsl code
-   */
-  globalText: Array<string> = [];
   /** Varying info */
   varyingTypeAstNode?: ReturnTypeAstNode;
   /** Varying */
@@ -106,7 +102,6 @@ export default class RuntimeContext {
   }
 
   setMainFnAst(ast: FnAstNode) {
-    this.globalText.length = 0;
     this._currentMainFnAst = ast;
   }
 
@@ -174,20 +169,24 @@ export default class RuntimeContext {
 
   private _initPassGlobalList() {
     this._passGlobalList = [
-      ...(this.passAst.content.functions.map((fn) => ({ referenced: false, ast: fn, name: fn.content.name })) ?? []),
-      ...(this.passAst.content.structs.map((struct) => ({
+      ...(this.passAst.content.functions?.map((fn) => ({ referenced: false, ast: fn, name: fn.content.name })) ?? []),
+      ...(this.passAst.content.structs?.map((struct) => ({
         referenced: false,
         ast: struct,
         name: struct.content.name
       })) ?? []),
-      ...(this.passAst.content.variables.map((v) => ({ referenced: false, ast: v, name: v.content.variable })) ?? [])
+      ...(this.passAst.content.variables?.map((v) => ({ referenced: false, ast: v, name: v.content.variable })) ?? []),
+      ...(this.passAst.content.defines?.map((item) => ({
+        referenced: false,
+        ast: item,
+        name: item.content.variable
+      })) ?? [])
     ];
   }
 
   referenceGlobal(name: string): IGlobal | undefined {
     const globalV = this._passGlobalList.find((global) => global.name === name);
     if (globalV) {
-      this.globalText.push(globalV.ast.serialize(this, { global: true }));
       globalV.referenced = true;
     }
     return globalV;
@@ -326,7 +325,10 @@ export default class RuntimeContext {
       .join("\n");
   }
 
-  getGlobalText(): string {
-    return this.globalText.join("\n");
+  getPassGlobalText(): string {
+    return this._passGlobalList
+      .filter((item) => item.referenced)
+      .map((item) => item.ast.serialize(this, { global: true }))
+      .join("\n");
   }
 }

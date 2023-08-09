@@ -18,8 +18,6 @@ export const M_ELIF = TokenUtils.createKeywordToken("#elif", { name: "m_elif" })
 export const M_ENDIF = TokenUtils.createKeywordToken("#endif", { name: "m_endif" });
 export const M_INCLUDE = TokenUtils.createKeywordToken("#include", { name: "m_include" });
 
-export const M_DEFINED = TokenUtils.createKeywordToken("defined", { name: "defined" });
-
 // other
 export const Struct = TokenUtils.createKeywordToken("struct");
 export const If = TokenUtils.createKeywordToken("if");
@@ -30,5 +28,5 @@ export const Return = TokenUtils.createKeywordToken("return");
 
 export const variableTokenList = [GLPosition, GLFragColor];
 export const funcTokenList = [Texture2D, Pow];
-export const macroTokenList = [M_DEFINE, M_IFDEF, M_IFNDEF, M_IF, M_ELSE, M_ELIF, M_ENDIF, M_INCLUDE, M_DEFINED];
+export const macroTokenList = [M_DEFINE, M_IFDEF, M_IFNDEF, M_IF, M_ELSE, M_ELIF, M_ENDIF, M_INCLUDE];
 export const otherTokenList = [Struct, If, Else, Discard, Void, Return];

@@ -13,7 +13,7 @@ Shader "Water" {
   }
 
   SubShader {
-    Tags { LightMode = "ForwardBase", Tag2 = false, Tag3 = 1.2 }
+    Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
     BlendState blendState {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
@@ -64,6 +64,8 @@ Shader "Water" {
     DepthState = depthState;
     RasterState = rasterState;
 
+    #define SCENE_SHADOW_TYPE 3
+
     BlendFactor material_SrcBlend;
 
       v2f vert(a2v v) {
@@ -79,20 +81,15 @@ Shader "Water" {
       void frag(v2f i) {
         vec4 color = texture2D(material_BaseTexture, i.v_uv) * u_color;
         float fogDistance = length(i.v_position);
-        if (fogDistance > 0.2) {
-          discard;
-        } else if (fogDistance == 0.2) {
-          discard;
-        } else if (fogDistance < 0.2) {
-          discard;
-        } else {
-          discard;
-        }
         float fogAmount = 1.0 - exp2(-u_fogDensity * u_fogDensity * fogDistance * fogDistance * 1.442695);
         fogAmount = clamp(fogAmount, 0.0, 1.0);
         gl_FragColor = mix(color, u_fogColor, fogAmount); 
   
         #ifndef ENGINE_IS_COLORSPACE_GAMMA
+          gl_FragColor = linearToGamma(gl_FragColor);
+        #endif
+
+        #if SCENE_SHADOW_TYPE == 2
           gl_FragColor = linearToGamma(gl_FragColor);
         #endif
       }

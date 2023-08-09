@@ -201,7 +201,7 @@ export interface _ruleFnMacroConditionCstNode extends CstNode {
 
 export type _ruleFnMacroConditionCstChildren = {
   _ruleFnMacroConditionDeclare: _ruleFnMacroConditionDeclareCstNode[];
-  Identifier: IToken[];
+  _ruleConditionExpr: _ruleConditionExprCstNode[];
   _ruleFnBody: _ruleFnBodyCstNode[];
   _ruleFnMacroConditionBranch?: _ruleFnMacroConditionBranchCstNode[];
   m_endif: IToken[];
@@ -477,11 +477,21 @@ export interface _ruleFnConditionStatementCstNode extends CstNode {
 export type _ruleFnConditionStatementCstChildren = {
   if: IToken[];
   LBracket: IToken[];
-  _ruleFnRelationExpr: _ruleFnRelationExprCstNode[];
+  _ruleConditionExpr: _ruleConditionExprCstNode[];
   RBracket: IToken[];
   _ruleFnBlockStatement: _ruleFnBlockStatementCstNode[];
   else?: IToken[];
   _ruleFnConditionStatement?: _ruleFnConditionStatementCstNode[];
+};
+
+export interface _ruleConditionExprCstNode extends CstNode {
+  name: "_ruleConditionExpr";
+  children: _ruleConditionExprCstChildren;
+}
+
+export type _ruleConditionExprCstChildren = {
+  _ruleFnRelationExpr: _ruleFnRelationExprCstNode[];
+  _ruleRelationOperator?: _ruleRelationOperatorCstNode[];
 };
 
 export interface _ruleFnRelationExprCstNode extends CstNode {
@@ -500,8 +510,14 @@ export interface _ruleRelationOperatorCstNode extends CstNode {
 }
 
 export type _ruleRelationOperatorCstChildren = {
+  SymbolGreaterEqual?: IToken[];
   SymbolGreaterThan?: IToken[];
+  SymbolLessEqual?: IToken[];
   SymbolLessThan?: IToken[];
+  SymbolEqualThan?: IToken[];
+  SymbolNotEqual?: IToken[];
+  AND?: IToken[];
+  OR?: IToken[];
 };
 
 export interface _ruleFnBlockStatementCstNode extends CstNode {
@@ -1074,6 +1090,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleBoolean(children: _ruleBooleanCstChildren, param?: IN): OUT;
   _ruleFnVariableDeclaration(children: _ruleFnVariableDeclarationCstChildren, param?: IN): OUT;
   _ruleFnConditionStatement(children: _ruleFnConditionStatementCstChildren, param?: IN): OUT;
+  _ruleConditionExpr(children: _ruleConditionExprCstChildren, param?: IN): OUT;
   _ruleFnRelationExpr(children: _ruleFnRelationExprCstChildren, param?: IN): OUT;
   _ruleRelationOperator(children: _ruleRelationOperatorCstChildren, param?: IN): OUT;
   _ruleFnBlockStatement(children: _ruleFnBlockStatementCstChildren, param?: IN): OUT;

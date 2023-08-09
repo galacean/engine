@@ -47,7 +47,8 @@ import {
   CullModeAstNode,
   BlendFactorAstNode,
   BlendOperationAstNode,
-  DiscardStatementAstNode
+  DiscardStatementAstNode,
+  ConditionExprAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
@@ -119,7 +120,8 @@ import {
   _ruleRasterStateValueCstChildren,
   _ruleReturnBodyCstChildren,
   _ruleTagAssignableValueCstChildren,
-  _ruleDiscardStatementCstChildren
+  _ruleDiscardStatementCstChildren,
+  _ruleConditionExprCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -321,7 +323,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: {
         command: AstNodeUtils.extractCstToken(children._ruleFnMacroConditionDeclare[0]),
-        identifier: children.Identifier[0].image,
+        condition: this.visit(children._ruleConditionExpr),
         body: this.visit(children._ruleFnBody),
         branch
       }
@@ -399,7 +401,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return new FnConditionStatementAstNode({
       position,
       content: {
-        relation: this.visit(ctx._ruleFnRelationExpr),
+        relation: this.visit(ctx._ruleConditionExpr),
         body,
         elseBranch,
         elseIfBranches
@@ -407,12 +409,34 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     });
   }
 
+  _ruleConditionExpr(children: _ruleConditionExprCstChildren, param?: any) {
+    const leftExpr = this.visit(children._ruleFnRelationExpr[0]);
+    let position: IPositionRange;
+    if (children._ruleRelationOperator) {
+      const rightExpr = this.visit(children._ruleFnRelationExpr[1]);
+      const operator = this.visit(children._ruleRelationOperator);
+
+      position = {
+        start: leftExpr.position.start,
+        end: rightExpr.position.end
+      };
+      return new ConditionExprAstNode({ position, content: { leftExpr, rightExpr, operator } });
+    }
+    position = leftExpr.position;
+    return new ConditionExprAstNode({ position, content: { leftExpr } });
+  }
+
   _ruleFnRelationExpr(ctx: _ruleFnRelationExprCstChildren) {
     const operands = ctx._ruleFnAddExpr.map((item) => this.visit(item));
-    const position: IPositionRange = {
-      start: operands[0].position.start,
-      end: operands[1].position.end
-    };
+    let position: IPositionRange;
+    if (ctx._ruleRelationOperator) {
+      position = {
+        start: operands[0].position.start,
+        end: operands[1].position.end
+      };
+    } else {
+      position = operands[0].position;
+    }
 
     return new RelationExprAstNode({
       position,

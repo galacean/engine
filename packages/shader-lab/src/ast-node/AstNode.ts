@@ -8,6 +8,7 @@ import {
   IBlendOperationAstContent,
   IBooleanAstContent,
   ICompareFunctionAstContent,
+  IConditionExprAstContent,
   ICullModeAstContent,
   IDeclarationAstContent,
   IFnAddExprAstContent,
@@ -207,7 +208,12 @@ export class FnBodyAstNode extends AstNode<IFnBodyAstContent> {
   }
 }
 
-export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {}
+export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    context.referenceGlobal(this.content.variable);
+    return `#define ${this.content.variable} ${this.content.value.serialize(context) ?? ""}`;
+  }
+}
 
 export class FnMacroIncludeAstNode extends AstNode<IFnMacroIncludeAstContent> {}
 
@@ -215,7 +221,7 @@ export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent
   override _doSerialization(context: RuntimeContext): string {
     const body = this.content.body.serialize(context);
     const branch = this.content.branch?.serialize(context) ?? "";
-    return `${this.content.command} ${this.content.identifier}\n  ${body}\n${branch}\n#endif`;
+    return `${this.content.command} ${this.content.condition.serialize(context)}\n  ${body}\n${branch}\n#endif`;
   }
 }
 
@@ -286,11 +292,21 @@ export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent
   }
 }
 
+export class ConditionExprAstNode extends AstNode<IConditionExprAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    let ret = this.content.leftExpr.serialize(context);
+    if (this.content.operator) {
+      ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightExpr.serialize(context)}`;
+    }
+    return ret;
+  }
+}
+
 export class RelationExprAstNode extends AstNode<IFnRelationExprAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     let ret = this.content.leftOperand.serialize(context);
     if (this.content.operator) {
-      ret += ` ${this.content.operator.serialize(context)} ${this.content.rightOperand?.serialize(context)}`;
+      ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightOperand?.serialize(context)}`;
     }
     return ret;
   }

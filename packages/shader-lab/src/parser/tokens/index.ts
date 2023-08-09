@@ -13,6 +13,7 @@ export const _AllTokens = [
   Others.WhiteSpace,
   Others.CommentLine,
   Others.CommentMultiLine,
+  ...Symbols.RelationTokenList,
   ...Symbols.tokenList,
   ...Values.tokenList,
   ...Types.tokenList,

@@ -46,22 +46,8 @@ export const MinusEqual = createToken({
 });
 export const Multiply = createToken({ name: "SymbolMultiply", pattern: /\*/, label: "*" });
 export const Divide = createToken({ name: "SymbolDivide", pattern: /\//, label: "/" });
-export const GreaterThan = createToken({
-  name: "SymbolGreaterThan",
-  pattern: /\>/,
-  label: ">"
-});
-export const LessThan = createToken({
-  name: "SymbolLessThan",
-  pattern: /\</,
-  label: "<"
-});
-export const EqualThan = createToken({ name: "SymbolEqualThan", pattern: /==/, label: "==" });
-export const NotEqual = createToken({ name: "SymbolNotEqual", pattern: /\!=/, label: "!=" });
 
 export const tokenList = [
-  GreaterThan,
-  LessThan,
   LCurly,
   RCurly,
   LBracket,
@@ -70,7 +56,6 @@ export const tokenList = [
   RSquareBracket,
   Comma,
   Colon,
-  EqualThan,
   Equal,
   Semicolon,
   MultiEqual,
@@ -81,8 +66,23 @@ export const tokenList = [
   Minus,
   Multiply,
   Divide,
-  Dot,
-  GreaterThan,
-  LessThan,
-  NotEqual
+  Dot
 ];
+
+const GreaterThan = createToken({
+  name: "SymbolGreaterThan",
+  pattern: /\>/,
+  label: ">"
+});
+const GreaterEqual = createToken({ name: "SymbolGreaterEqual", pattern: /\>=/, label: ">=" });
+const LessThan = createToken({
+  name: "SymbolLessThan",
+  pattern: /\</,
+  label: "<"
+});
+const LessEqual = createToken({ name: "SymbolLessEqual", pattern: /\<=/, label: "<=" });
+const EqualThan = createToken({ name: "SymbolEqualThan", pattern: /==/, label: "==" });
+const NotEqual = createToken({ name: "SymbolNotEqual", pattern: /\!=/, label: "!=" });
+const AND = createToken({ name: "AND", pattern: /\&\&/, label: "&&" });
+const OR = createToken({ name: "OR", pattern: /\|\|/, label: "||" });
+export const RelationTokenList = [GreaterEqual, GreaterThan, LessEqual, LessThan, EqualThan, NotEqual, AND, OR];

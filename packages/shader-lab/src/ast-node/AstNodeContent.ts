@@ -22,7 +22,12 @@ import {
   RenderStateDeclarationAstNode,
   FnBodyAstNode,
   AddExprAstNode,
-  RelationOperatorAstNode
+  RelationOperatorAstNode,
+  RelationExprAstNode,
+  FnMacroConditionBranchAstNode,
+  FnBlockStatementAstNode,
+  FnConditionStatementAstNode,
+  FnMacroDefineAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -67,6 +72,7 @@ export interface IPassAstContent {
   variables: Array<VariableDeclarationAstNode>;
   functions?: Array<FnAstNode>;
   renderStates?: Array<RenderStateDeclarationAstNode>;
+  defines?: Array<FnMacroDefineAstNode>;
 }
 
 export interface ITypeAstContent {
@@ -102,14 +108,14 @@ export interface IFnMacroIncludeAstContent {
 
 export interface IFnMacroConditionAstContent {
   command: string;
-  identifier: string;
-  body: AstNode<IFnBodyAstContent>;
-  branch?: AstNode;
+  condition: RelationExprAstNode;
+  body: FnBodyAstNode;
+  branch?: FnMacroConditionBranchAstNode;
 }
 
 export interface IFnMacroConditionBranchAstContent {
   declare: string;
-  body: AstNode<IFnBodyAstContent>;
+  body: FnBodyAstNode;
 }
 
 export interface IFnCallAstContent {
@@ -120,9 +126,15 @@ export interface IFnCallAstContent {
 
 export interface IFnConditionStatementAstContent {
   relation: AstNode;
-  body: AstNode<IFnBlockStatementAstContent>;
-  elseBranch: AstNode<IFnBlockStatementAstContent>;
-  elseIfBranches: Array<AstNode<IFnConditionStatementAstContent>>;
+  body: FnBlockStatementAstNode;
+  elseBranch: FnBlockStatementAstNode;
+  elseIfBranches: Array<FnConditionStatementAstNode>;
+}
+
+export interface IConditionExprAstContent {
+  leftExpr: RelationExprAstNode;
+  rightExpr?: RelationExprAstNode;
+  operator?: RelationOperatorAstNode;
 }
 
 export interface IFnRelationExprAstContent {

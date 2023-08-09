@@ -1,6 +1,5 @@
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { CompareFunction, BlendOperation, CullMode, RenderStateDataKey } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color } from "@galacean/engine-math";
 import { ISubShaderInfo, IShaderPassInfo } from "@galacean/engine-design";
 
@@ -13,7 +12,6 @@ chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "demo.shader")).toString();
 
 const shaderLab = new ShaderLab();
-const canvas = document.createElement("canvas");
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -21,13 +19,11 @@ function toString(v: Color): string {
 
 describe("ShaderLab", () => {
   let shader: ReturnType<typeof shaderLab.parseShader>;
-  let gl: WebGL2RenderingContext;
   let subShader: ISubShaderInfo;
   let pass: IShaderPassInfo;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
-    gl = canvas.getContext("webgl2");
     subShader = shader.subShaders[0];
     pass = subShader.passes[0];
   });
@@ -77,30 +73,47 @@ describe("ShaderLab", () => {
     });
   });
 
-  it("Tags", () => {
+  it("shader tags", () => {
     expect(subShader.tags).not.be.undefined;
     expect(subShader.tags).include({
       LightMode: "ForwardBase",
-      Tag2: false,
+      Tag2: true,
       Tag3: 1.2
     });
-
     expect(pass.tags).include({
       ReplacementTag: "Opaque",
       Tag2: true,
       Tag3: 1.9
     });
   });
-});
 
-describe("engine shader", () => {
-  let engine: WebGLEngine;
+  it("engine shader", async () => {
+    const gl = document.createElement("canvas").getContext("webgl");
+    expect(!!gl, "Not support webgl").to.be.true;
 
-  before(async () => {
-    engine = await WebGLEngine.create({ canvas, shaderLab });
-  });
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-  it("engine init", () => {
-    expect(engine).not.be.null;
+    gl.shaderSource(vs, "precision mediump float;" + pass.vert);
+    gl.compileShader(vs);
+
+    const fsPrefix = `#version 100
+    precision mediump float;
+    precision mediump int;`;
+    gl.shaderSource(fs, fsPrefix + pass.frag);
+    gl.compileShader(fs);
+
+    expect(gl.getShaderParameter(vs, gl.COMPILE_STATUS), `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}`).to
+      .be.true;
+    expect(gl.getShaderParameter(fs, gl.COMPILE_STATUS), `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}`)
+      .to.be.true;
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+
+    expect(gl.getProgramParameter(program, gl.LINK_STATUS), `Error link shader: ${gl.getProgramInfoLog(program)}`).to.be
+      .true;
   });
 });

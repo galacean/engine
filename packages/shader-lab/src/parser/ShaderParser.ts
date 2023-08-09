@@ -162,7 +162,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleFnMacroCondition = this.RULE("_ruleFnMacroCondition", () => {
     this.SUBRULE(this._ruleFnMacroConditionDeclare);
-    this.CONSUME(Others.Identifier);
+    this.SUBRULE(this._ruleConditionExpr);
     this.SUBRULE(this._ruleFnBody);
     this.OPTION(() => {
       this.SUBRULE(this._ruleFnMacroConditionBranch);
@@ -171,10 +171,6 @@ export class ShaderParser extends CstParser {
       this.SUBRULE1(this._ruleFnBody);
     });
     this.CONSUME(GLKeywords.M_ENDIF);
-  });
-
-  private _ruleFnMacroVariable = this.RULE("_ruleFnMacroVariable", () => {
-    this.OR([{ ALT: () => this.CONSUME(Others.Identifier) }, { ALT: () => this.SUBRULE(this._ruleFnRelationExpr) }]);
   });
 
   private _ruleFnMacroConditionDeclare = this.RULE("_ruleFnMacroConditionDeclare", () => {
@@ -342,7 +338,7 @@ export class ShaderParser extends CstParser {
   private _ruleFnConditionStatement = this.RULE("_ruleFnConditionStatement", () => {
     this.CONSUME(GLKeywords.If);
     this.CONSUME1(Symbols.LBracket);
-    this.SUBRULE(this._ruleFnRelationExpr);
+    this.SUBRULE(this._ruleConditionExpr);
     this.CONSUME(Symbols.RBracket);
     this.SUBRULE(this._ruleFnBlockStatement);
     this.MANY(() => {
@@ -355,6 +351,14 @@ export class ShaderParser extends CstParser {
     });
   });
 
+  private _ruleConditionExpr = this.RULE("_ruleConditionExpr", () => {
+    this.SUBRULE(this._ruleFnRelationExpr);
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleRelationOperator);
+      this.SUBRULE1(this._ruleFnRelationExpr);
+    });
+  });
+
   private _ruleFnRelationExpr = this.RULE("_ruleFnRelationExpr", () => {
     this.SUBRULE(this._ruleFnAddExpr);
     this.OPTION(() => {
@@ -364,12 +368,7 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleRelationOperator = this.RULE("_ruleRelationOperator", () => {
-    this.OR([
-      { ALT: () => this.CONSUME(Symbols.GreaterThan) },
-      { ALT: () => this.CONSUME(Symbols.LessThan) },
-      { ALT: () => this.CONSUME(Symbols.EqualThan) },
-      { ALT: () => this.CONSUME(Symbols.NotEqual) }
-    ]);
+    this.OR(Symbols.RelationTokenList.map((item) => ({ ALT: () => this.CONSUME(item) })));
   });
 
   private _ruleFnBlockStatement = this.RULE("_ruleFnBlockStatement", () => {
