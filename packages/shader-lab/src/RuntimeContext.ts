@@ -44,46 +44,37 @@ export default class RuntimeContext {
   shaderAst: AstNode<IShaderAstContent>;
   passAst: AstNode<IPassAstContent>;
   subShaderAst: AstNode<ISubShaderAstContent>;
-  functionAstStack: Array<{ fnAst: FnAstNode; localDeclaration: DeclarationAstNode[] }> = [];
-  /** Diagnostic for linting service */
-  diagnostics: Array<IDiagnostic> = [];
-  /**
-   * The string list will be integrated into the glsl code
-   */
-  globalText: Array<string> = [];
-  /** Varying info */
+  functionAstStack: { fnAst: FnAstNode; localDeclaration: DeclarationAstNode[] }[] = [];
+  /** Diagnostic for linting service. */
+  diagnostics: IDiagnostic[] = [];
+  /** The string list will be integrated into the glsl code. */
+  globalText: string[] = [];
+  /** Varying info. */
   varyingTypeAstNode?: ReturnTypeAstNode;
-  /** Varying */
+  /** Varying. */
   varyingStructInfo: IReferenceStructInfo;
-  /** Attributes struct list */
-  attributeStructListInfo: Array<IReferenceStructInfo> = [];
-  /** Attributes variable list */
-  attributesVariableListInfo: Array<{
+  /** Attributes struct list. */
+  attributeStructListInfo: IReferenceStructInfo[] = [];
+  /** Attributes variable list. */
+  attributesVariableListInfo: {
     name: string;
     astNode: FnArgAstNode;
     referenced: boolean;
     text: string;
-  }> = [];
-  /** Current position */
+  }[] = [];
+  /** Current position. */
   serializingAstNode?: AstNode;
-  /** Custom payload */
+  /** Custom payload. */
   payload?: any;
-  /**
-   * Global variables within scope of shader, e.g. Uniforms, RenderState, Struct
-   */
-  private _shaderGlobalList: Array<IGlobal> = [];
-  /**
-   * Global variables within scope of subShader, e.g. Uniforms, RenderState, Struct
-   */
-  private _subShaderGlobalList: Array<IGlobal> = [];
-  /**
-   * Global variables within scope of pass, e.g. Uniforms, RenderState, Struct
-   */
-  private _passGlobalList: Array<IGlobal> = [];
+
+  /** Global variables within scope of shader, e.g. Uniforms, RenderState, Struct. */
+  private _shaderGlobalList: IGlobal[] = [];
+  /** Global variables within scope of subShader, e.g. Uniforms, RenderState, Struct. */
+  private _subShaderGlobalList: IGlobal[] = [];
+  /** Global variables within scope of pass, e.g. Uniforms, RenderState, Struct. */
+  private _passGlobalList: IGlobal[] = [];
   /** The main function */
   private _currentMainFnAst?: FnAstNode;
-
-  constructor() {}
 
   get currentFunctionInfo() {
     return this.functionAstStack[this.functionAstStack.length - 1];
@@ -211,7 +202,7 @@ export default class RuntimeContext {
   ) {
     switch (prop.content.type) {
       case VERT_FN_NAME:
-        if (ret.vert) {
+        if (ret.vertexSource) {
           this.diagnostics.push({
             severity: DiagnosticSeverity.Error,
             message: "multiple vertex main function found",
@@ -219,10 +210,10 @@ export default class RuntimeContext {
           });
           return;
         }
-        ret.vert = Ast2GLSLUtils.stringifyVertexFunction(prop, this);
+        ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(prop, this);
         break;
       case FRAG_FN_NAME:
-        if (ret.frag) {
+        if (ret.fragmentSource) {
           this.diagnostics.push({
             severity: DiagnosticSeverity.Error,
             message: "multiple fragment main function found",
@@ -230,7 +221,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        ret.frag = Ast2GLSLUtils.stringifyFragmentFunction(prop, this);
+        ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(prop, this);
         break;
       default:
         // Render State

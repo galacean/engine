@@ -2,7 +2,7 @@ import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRen
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
-import { RenderStateDataKey } from "../enums/RenderStateElementKey";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { RenderState } from "./RenderState";
 
 /**
@@ -43,19 +43,19 @@ export class DepthState {
    * @internal
    */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    const enableProperty = renderStateDataMap[RenderStateDataKey.DepthStateEnabled];
+    const enableProperty = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
     if (enableProperty !== undefined) {
       const enabled = shaderData.getFloat(enableProperty);
       this.enabled = enabled !== undefined ? !!enabled : false;
     }
 
-    const writeEnabledProperty = renderStateDataMap[RenderStateDataKey.DepthStateWriteEnabled];
+    const writeEnabledProperty = renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled];
     if (writeEnabledProperty !== undefined) {
       const writeEnabled = shaderData.getFloat(writeEnabledProperty);
       this.writeEnabled = writeEnabled !== undefined ? !!writeEnabled : false;
     }
 
-    const compareFunctionProperty = renderStateDataMap[RenderStateDataKey.DepthStateCompareFunction];
+    const compareFunctionProperty = renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction];
     if (compareFunctionProperty !== undefined) {
       this.compareFunction = shaderData.getFloat(compareFunctionProperty) ?? CompareFunction.Less;
     }

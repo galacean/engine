@@ -1,15 +1,15 @@
 import * as Keywords from "./keyword";
 import * as Symbols from "./symbol";
 import * as EditorTypes from "./EditorTypes";
-import * as Types from "./GlslTypes";
-import * as GLKeywords from "./GlslKeywords";
+import * as Types from "./GLSLTypes";
+import * as GLKeywords from "./GLSLKeywords";
 import * as Others from "./other";
 import * as Values from "./value";
 import * as RenderState from "./render-state";
 
 export { Keywords, Symbols, EditorTypes, Types, GLKeywords, Others, Values, RenderState };
 
-export const _AllTokens = [
+export const _allTokens = [
   Others.WhiteSpace,
   Others.CommentLine,
   Others.CommentMultiLine,

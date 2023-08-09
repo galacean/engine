@@ -1,5 +1,5 @@
 import { CstParser, Lexer, TokenType } from "chevrotain";
-import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords, RenderState, _AllTokens } from "./tokens";
+import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords, RenderState, _allTokens } from "./tokens";
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/value";
 import { Identifier } from "./tokens/other";
 
@@ -7,8 +7,8 @@ export class ShaderParser extends CstParser {
   lexer: Lexer;
 
   constructor() {
-    super(_AllTokens, { maxLookahead: 8 });
-    this.lexer = new Lexer(_AllTokens, { ensureOptimizations: true });
+    super(_allTokens, { maxLookahead: 8 });
+    this.lexer = new Lexer(_allTokens, { ensureOptimizations: true });
 
     this.performSelfAnalysis();
   }

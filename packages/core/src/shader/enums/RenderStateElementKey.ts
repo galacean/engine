@@ -1,4 +1,4 @@
-export enum RenderStateDataKey {
+export enum RenderStateElementKey {
   /** Blend state enabled for target 0 key. */
   BlendStateEnabled0 = 0,
   /** Blend state color blend operation for target 0 key. */

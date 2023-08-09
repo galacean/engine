@@ -2,13 +2,13 @@ import { Color } from "@galacean/engine-math";
 
 export interface IShaderPassInfo {
   name: string;
-  vert: string;
-  frag: string;
+  vertexSource: string;
+  fragmentSource: string;
   tags?: Record<string, number | string | boolean>;
   renderStates: [
-    /** Constant RenderState */
+    /** Constant RenderState. */
     Record<number, boolean | string | number | Color>,
-    /** Variable RenderState */
+    /** Variable RenderState. */
     Record<number, string>
   ];
 }
