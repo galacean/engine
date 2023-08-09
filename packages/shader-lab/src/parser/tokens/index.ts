@@ -1,10 +1,10 @@
-import * as Keywords from "./keyword";
-import * as Symbols from "./symbol";
+import * as Keywords from "./Keyword";
+import * as Symbols from "./Symbol";
 import * as EditorTypes from "./EditorTypes";
 import * as Types from "./GLSLTypes";
 import * as GLKeywords from "./GLSLKeywords";
-import * as Others from "./other";
-import * as Values from "./value";
+import * as Others from "./Other";
+import * as Values from "./Value";
 import * as RenderState from "./render-state";
 
 export { Keywords, Symbols, EditorTypes, Types, GLKeywords, Others, Values, RenderState };
