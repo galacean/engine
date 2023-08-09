@@ -12,7 +12,7 @@ import { BufferUtil } from "./BufferUtil";
  * @internal
  * Primitive.
  */
-export class Primitive extends RenderData {
+export class Primitive {
   vertexElements: VertexElement[] = [];
   vertexBufferBindings: VertexBufferBinding[] = [];
 
@@ -52,7 +52,6 @@ export class Primitive extends RenderData {
   }
 
   constructor(engine: Engine) {
-    super();
     this._platformPrimitive = engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 

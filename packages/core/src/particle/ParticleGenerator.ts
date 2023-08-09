@@ -1,7 +1,15 @@
 import { Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Transform } from "../Transform";
-import { BufferBindFlag, BufferUsage, IndexBufferBinding, VertexBufferBinding, VertexElement } from "../graphic";
+import {
+  BufferBindFlag,
+  BufferUsage,
+  IndexBufferBinding,
+  MeshTopology,
+  SubMesh,
+  VertexBufferBinding,
+  VertexElement
+} from "../graphic";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleData } from "./ParticleData";
 import { ParticleRenderer } from "./ParticleRenderer";
@@ -53,8 +61,10 @@ export class ParticleGenerator {
   _firstFreeElement: number = 0;
   /** @internal */
   _firstRetiredElement: number = 0;
-  /** @internal */
+
   _primitive: Primitive;
+  /** @internal */
+  _subPrimitive: SubMesh = new SubMesh(0, 0, MeshTopology.Triangles);
 
   private _waitProcessRetiredElementCount: number = 0;
   private _instanceVertexBufferBinding: VertexBufferBinding;
@@ -81,9 +91,7 @@ export class ParticleGenerator {
     const subPrimitive = new SubPrimitive();
     subPrimitive.start = 0;
 
-    const primitive = new Primitive(renderer.engine);
-    // primitive.subPrimitives.push(subPrimitive);
-    this._primitive = primitive;
+    this._primitive = new Primitive(renderer.engine);
   }
 
   /**
@@ -179,12 +187,12 @@ export class ParticleGenerator {
       // @todo: multi subMesh or not support
       const indexBufferBinding = mesh._primitive.indexBufferBinding;
       primitive.indexBufferBinding = indexBufferBinding;
-      // this._primitive.subPrimitives[0].count = indexBufferBinding.buffer.byteLength / mesh._glIndexByteCount;
+      this._subPrimitive.count = indexBufferBinding.buffer.byteLength / primitive._glIndexByteCount;
     } else {
       vertexElements.push(ParticleBufferUtils.billboardVertexElement);
       vertexBufferBindings.push(ParticleBufferUtils.billboardVertexBufferBinding);
       primitive.indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
-      // this._primitive.subPrimitives[0].count = ParticleBufferUtils.billboardIndexCount;
+      this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
 
     const instanceVertexElements = ParticleBufferUtils.instanceVertexElements;

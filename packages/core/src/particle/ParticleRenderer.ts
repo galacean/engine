@@ -215,7 +215,10 @@ export class ParticleRenderer extends Renderer {
       primitive.instanceCount = instanceCount;
     }
 
-    const renderPipeline = context.camera._renderPipeline;
-    renderPipeline.pushRenderData(context, primitive);
+    const material = this.getMaterial();
+    const generator = this.generator;
+    const renderData = this._engine._renderDataPool.getFromPool();
+    renderData.setX(this, material, generator._primitive, generator._subPrimitive);
+    context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 }
