@@ -14,6 +14,9 @@ Shader "Water" {
 
   SubShader {
     Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
+
+    BlendFactor material_SrcBlend;
+
     BlendState blendState {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
@@ -66,8 +69,6 @@ Shader "Water" {
 
     #define SCENE_SHADOW_TYPE 3
 
-    BlendFactor material_SrcBlend;
-
       v2f vert(a2v v) {
         v2f o;
 
@@ -89,7 +90,8 @@ Shader "Water" {
           gl_FragColor = linearToGamma(gl_FragColor);
         #endif
 
-        #if SCENE_SHADOW_TYPE == 2
+        // For testing only (macro)
+        #if SCENE_SHADOW_TYPE == 2 || defined(XX_Macro)
           gl_FragColor = linearToGamma(gl_FragColor);
         #endif
       }
