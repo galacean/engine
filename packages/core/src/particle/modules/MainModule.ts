@@ -81,4 +81,6 @@ export class MainModule {
   constructor(particleSystem: ParticleGenerator) {
     this._particleSystem = particleSystem;
   }
+
+  
 }

@@ -1,19 +1,11 @@
-import { Quaternion, Rand, Vector3 } from "@galacean/engine-math";
+import { Color, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Transform } from "../Transform";
-import {
-  BufferBindFlag,
-  BufferUsage,
-  IndexBufferBinding,
-  MeshTopology,
-  SubMesh,
-  VertexBufferBinding,
-  VertexElement
-} from "../graphic";
+import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Buffer } from "./../graphic/Buffer";
-import { ParticleData } from "./ParticleData";
 import { ParticleRenderer } from "./ParticleRenderer";
-
+import { Primitive } from "../graphic/Primitive";
+import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
 import { ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
@@ -21,8 +13,6 @@ import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
 import { ShapeModule } from "./modules/ShapeModule";
-import { Primitive } from "../graphic/Primitive";
-import { SubPrimitive } from "../graphic/SubPrimitive";
 
 /**
  * Particle System.
@@ -32,9 +22,10 @@ export class ParticleGenerator {
   private static _tempVector30: Vector3 = new Vector3();
   /** @internal */
   private static _tempVector31: Vector3 = new Vector3();
-
   /** @internal */
-  private static _particleData: ParticleData = new ParticleData();
+  private static _tempVector40: Vector4 = new Vector4();
+  /** @internal */
+  private static _tempColor0: Color = new Color();
 
   /** Use auto random seed. */
   useAutoRandomSeed: boolean = true;
@@ -262,28 +253,7 @@ export class ParticleGenerator {
     }
 
     const main = this.main;
-    const out = ParticleGenerator._particleData;
-
     const rand = this._rand;
-    main.startColor.evaluate(undefined, rand.random(), out.startColor);
-
-    if (main.startSize3D) {
-      out.startSize[0] = main.startSizeX.evaluate(undefined, rand.random());
-      out.startSize[1] = main.startSizeY.evaluate(undefined, rand.random());
-      out.startSize[2] = main.startSizeZ.evaluate(undefined, rand.random());
-    } else {
-      out.startSize[0] = main.startSize.evaluate(undefined, rand.random());
-    }
-
-    if (main.startRotation3D) {
-      out.startRotation[0] = main.startRotationX.evaluate(undefined, rand.random());
-      out.startRotation[1] = main.startRotationY.evaluate(undefined, rand.random());
-      out.startRotation[2] = main.startRotationZ.evaluate(undefined, rand.random());
-    } else {
-      out.startRotation[0] = main.startRotation.evaluate(undefined, rand.random());
-    }
-
-    out.startLifeTime = main.startLifetime.evaluate(undefined, rand.random());
 
     let pos: Vector3, rot: Quaternion;
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
@@ -300,31 +270,46 @@ export class ParticleGenerator {
     instanceVertices[offset] = position.x;
     instanceVertices[offset + 1] = position.y;
     instanceVertices[offset + 2] = position.z;
+
     // Start life time
-    instanceVertices[offset + ParticleBufferUtils.startLifeTimeOffset] = time;
+    instanceVertices[offset + ParticleBufferUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
+      undefined,
+      rand.random()
+    );
 
     // Direction
     instanceVertices[offset] = direction.x;
     instanceVertices[offset + 1] = direction.y;
     instanceVertices[offset + 2] = direction.z;
+
     // Time
     instanceVertices[offset + ParticleBufferUtils.timeOffset] = time;
 
     // Color
-    instanceVertices[offset + 8] = out.startColor.r;
-    instanceVertices[offset + 9] = out.startColor.g;
-    instanceVertices[offset + 10] = out.startColor.b;
-    instanceVertices[offset + 11] = out.startColor.a;
+    const startColor = ParticleGenerator._tempColor0;
+    main.startColor.evaluate(undefined, rand.random(), startColor);
+    instanceVertices[offset + 8] = startColor.r;
+    instanceVertices[offset + 9] = startColor.g;
+    instanceVertices[offset + 10] = startColor.b;
+    instanceVertices[offset + 11] = startColor.a;
 
     // Start size
-    instanceVertices[offset + 12] = out.startSize[0];
-    instanceVertices[offset + 13] = out.startSize[1];
-    instanceVertices[offset + 14] = out.startSize[2];
+    if (main.startSize3D) {
+      instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, rand.random());
+      instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, rand.random());
+      instanceVertices[offset + 14] = main.startSizeZ.evaluate(undefined, rand.random());
+    } else {
+      instanceVertices[offset + 12] = main.startSize.evaluate(undefined, rand.random());
+    }
 
     // Start rotation
-    instanceVertices[offset + 15] = out.startRotation[0];
-    instanceVertices[offset + 16] = out.startRotation[1];
-    instanceVertices[offset + 17] = out.startRotation[2];
+    if (main.startRotation3D) {
+      instanceVertices[offset + 15] = main.startRotationX.evaluate(undefined, rand.random());
+      instanceVertices[offset + 16] = main.startRotationY.evaluate(undefined, rand.random());
+      instanceVertices[offset + 17] = main.startRotationZ.evaluate(undefined, rand.random());
+    } else {
+      instanceVertices[offset + 15] = main.startRotation.evaluate(undefined, rand.random());
+    }
 
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
@@ -355,10 +340,11 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    instanceVertices[offset + ParticleBufferUtils.simulationOffset] = out.startUVInfo[0];
-    instanceVertices[offset + 35] = out.startUVInfo[1];
-    instanceVertices[offset + 36] = out.startUVInfo[2];
-    instanceVertices[offset + 37] = out.startUVInfo[3];
+    const startUVInfo = ParticleGenerator._tempVector40;
+    instanceVertices[offset + ParticleBufferUtils.simulationOffset] = startUVInfo.x;
+    instanceVertices[offset + 35] = startUVInfo.y;
+    instanceVertices[offset + 36] = startUVInfo.z;
+    instanceVertices[offset + 37] = startUVInfo.w;
 
     this._firstFreeElement = nextFreeElement;
   }
@@ -368,7 +354,6 @@ export class ParticleGenerator {
     const frameCount = this._engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
-    // let firstActive = this._firstActiveElement;
     while (this._firstActiveElement != this._firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
@@ -428,8 +413,6 @@ export class ParticleGenerator {
     }
     this._firstNewElement = firstFreeElement;
   }
-
-  private _createParticleData(main: MainModule, out: ParticleData): void {}
 
   private _addVertexBufferBindingsFilterDuplicate(
     vertexBufferBinding: VertexBufferBinding,
