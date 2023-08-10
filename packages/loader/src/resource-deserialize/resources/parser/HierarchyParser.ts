@@ -217,7 +217,6 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
 
   private _parseGLTF(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.assetRefId;
-    if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
     return (
       engine.resourceManager
@@ -228,6 +227,8 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
           isClone: entityConfig.isClone
         })
         .then((entity) => {
+          if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
+
           entity.name = entityConfig.name;
           return entity;
         })
