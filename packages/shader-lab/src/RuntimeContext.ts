@@ -32,6 +32,12 @@ interface IGlobal extends IReference {
   name: string;
 }
 
+export enum EGlobalLevel {
+  Pass = 0,
+  SubShader = 1,
+  Shader = 2
+}
+
 type GlobalMap = Map<string, IGlobal>;
 
 interface IReferenceStructInfo {
@@ -100,83 +106,8 @@ export default class RuntimeContext {
     this._currentMainFnAst = ast;
   }
 
-  private _shaderReset() {
-    this._shaderGlobalMap.clear();
-    this._serializingNodeStack.length = 0;
-    this._subShaderReset();
-  }
-
-  private _subShaderReset() {
-    this._subShaderGlobalMap.clear();
-    this._passReset();
-  }
-
-  private _passReset() {
-    this._passGlobalMap.clear();
-    this.functionAstStack.length = 0;
-    this.attributeStructListInfo.length = 0;
-    this.attributesVariableListInfo.length = 0;
-    this.varyingTypeAstNode = undefined;
-    this._currentMainFnAst = undefined;
-    this.passAst = undefined;
-    this.varyingStructInfo = {};
-  }
-
-  private _initShaderGlobalList() {
-    this.shaderAst.content.functions?.forEach((item) =>
-      this._shaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name })
-    );
-    this.shaderAst.content.structs?.forEach((item) =>
-      this._shaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name })
-    );
-    this.shaderAst.content.renderStates?.forEach((item) =>
-      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
-    );
-    this.shaderAst.content.variables?.forEach((item) =>
-      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
-    );
-  }
-
-  private _initSubShaderGlobalList() {
-    this.subShaderAst.content.functions?.forEach((item) => {
-      this._subShaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
-    });
-    this.subShaderAst.content.structs?.forEach((item) => {
-      this._subShaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
-    });
-    this.subShaderAst.content.renderStates?.forEach((item) => {
-      this._subShaderGlobalMap.set(item.content.variable, {
-        ast: item,
-        referenced: false,
-        name: item.content.variable
-      });
-    });
-    this.subShaderAst.content.variables?.forEach((item) => {
-      this._subShaderGlobalMap.set(item.content.variable, {
-        ast: item,
-        referenced: false,
-        name: item.content.variable
-      });
-    });
-  }
-
-  private _initPassGlobalList() {
-    this.passAst.content.functions?.forEach((item) => {
-      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
-    });
-    this.passAst.content.structs?.forEach((item) => {
-      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
-    });
-    this.passAst.content.variables?.forEach((item) => {
-      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
-    });
-    this.passAst.content.defines?.forEach((item) => {
-      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
-    });
-  }
-
-  referenceGlobal(name: string): IGlobal | undefined {
-    const globalV = this._passGlobalMap.get(name);
+  referenceGlobal(name: string, scopeLevel = EGlobalLevel.Pass): IGlobal | undefined {
+    const globalV = this.findGlobal(name, scopeLevel);
     if (globalV) {
       globalV.referenced = true;
     }
@@ -274,24 +205,18 @@ export default class RuntimeContext {
     return ret;
   }
 
-  findShaderGlobal(variable: string) {
-    return this._shaderGlobalMap.get(variable);
-  }
-
-  findSubShaderGlobal(variable: string) {
-    return this._subShaderGlobalMap.get(variable);
-  }
-
-  findPassGlobal(variable: string) {
-    return this._passGlobalMap.get(variable);
-  }
-
-  findGlobal(variable: string): IGlobal | undefined {
-    const passGlobal = this.findPassGlobal(variable);
-    if (passGlobal) return passGlobal;
-    const subShaderGlobal = this.findSubShaderGlobal(variable);
-    if (subShaderGlobal) return subShaderGlobal;
-    return this.findShaderGlobal(variable);
+  findGlobal(variable: string, globalLevel = EGlobalLevel.Pass): IGlobal | undefined {
+    if (globalLevel === EGlobalLevel.Pass) {
+      const passGlobal = this._findPassGlobal(variable);
+      if (passGlobal) return passGlobal;
+      globalLevel++;
+    }
+    if (globalLevel === EGlobalLevel.SubShader) {
+      const subShaderGlobal = this._findSubShaderGlobal(variable);
+      if (subShaderGlobal) return subShaderGlobal;
+      globalLevel++;
+    }
+    if (globalLevel === EGlobalLevel.Shader) return this._findShaderGlobal(variable);
   }
 
   findLocal(variable: string): DeclarationAstNode | undefined {
@@ -316,10 +241,102 @@ export default class RuntimeContext {
       .join("\n");
   }
 
-  getPassGlobalText(): string {
-    return Array.from(this._passGlobalMap.values())
+  getGlobalText(): string {
+    return [
+      ...Array.from(this._passGlobalMap.values()),
+      ...Array.from(this._subShaderGlobalMap.values()),
+      ...Array.from(this._shaderGlobalMap.values())
+    ]
       .filter((item) => item.referenced)
+      .sort((a, b) => a.ast.position.start.line - b.ast.position.start.line)
       .map((item) => item.ast.serialize(this, { global: true }))
       .join("\n");
+  }
+
+  private _shaderReset() {
+    this._shaderGlobalMap.clear();
+    this._serializingNodeStack.length = 0;
+    this._subShaderReset();
+  }
+
+  private _subShaderReset() {
+    this._subShaderGlobalMap.clear();
+    this._passReset();
+  }
+
+  private _passReset() {
+    this._passGlobalMap.clear();
+    this.functionAstStack.length = 0;
+    this.attributeStructListInfo.length = 0;
+    this.attributesVariableListInfo.length = 0;
+    this.varyingTypeAstNode = undefined;
+    this._currentMainFnAst = undefined;
+    this.passAst = undefined;
+    this.varyingStructInfo = {};
+  }
+
+  private _initShaderGlobalList() {
+    this.shaderAst.content.functions?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name })
+    );
+    this.shaderAst.content.structs?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name })
+    );
+    this.shaderAst.content.renderStates?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
+    );
+    this.shaderAst.content.variables?.forEach((item) =>
+      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
+    );
+  }
+
+  private _initSubShaderGlobalList() {
+    this.subShaderAst.content.functions?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.subShaderAst.content.structs?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.subShaderAst.content.renderStates?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.variable, {
+        ast: item,
+        referenced: false,
+        name: item.content.variable
+      });
+    });
+    this.subShaderAst.content.variables?.forEach((item) => {
+      this._subShaderGlobalMap.set(item.content.variable, {
+        ast: item,
+        referenced: false,
+        name: item.content.variable
+      });
+    });
+  }
+
+  private _initPassGlobalList() {
+    this.passAst.content.functions?.forEach((item) => {
+      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.passAst.content.structs?.forEach((item) => {
+      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+    });
+    this.passAst.content.variables?.forEach((item) => {
+      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
+    });
+    this.passAst.content.defines?.forEach((item) => {
+      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
+    });
+  }
+
+  private _findShaderGlobal(variable: string) {
+    return this._shaderGlobalMap.get(variable);
+  }
+
+  private _findSubShaderGlobal(variable: string) {
+    return this._subShaderGlobalMap.get(variable);
+  }
+
+  private _findPassGlobal(variable: string) {
+    return this._passGlobalMap.get(variable);
   }
 }

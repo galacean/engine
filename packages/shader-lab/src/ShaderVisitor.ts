@@ -49,7 +49,8 @@ import {
   DiscardStatementAstNode,
   ConditionExprAstNode,
   FnMacroConditionElifBranchAstNode,
-  FnMacroConditionElseBranchAstNode
+  FnMacroConditionElseBranchAstNode,
+  FnMacroUndefineAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
@@ -123,7 +124,8 @@ import {
   _ruleDiscardStatementCstChildren,
   _ruleConditionExprCstChildren,
   _ruleMacroConditionElifBranchCstChildren,
-  _ruleFnMacroConditionElseBranchCstChildren
+  _ruleFnMacroConditionElseBranchCstChildren,
+  _ruleFnMacroUndefineCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -280,6 +282,14 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleFnMacro(children: _ruleFnMacroCstChildren, param?: any) {
     return AstNodeUtils.defaultVisit.bind(this)(children);
+  }
+
+  _ruleFnMacroUndefine(children: _ruleFnMacroUndefineCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.m_undefine[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Identifier[0]).end
+    };
+    return new FnMacroUndefineAstNode({ position, content: { variable: children.Identifier[0].image } });
   }
 
   _ruleFnMacroDefine(children: _ruleFnMacroDefineCstChildren, param?: any) {

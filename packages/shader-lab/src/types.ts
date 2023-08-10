@@ -192,6 +192,7 @@ export type _ruleFnMacroCstChildren = {
   _ruleFnMacroDefine?: _ruleFnMacroDefineCstNode[];
   _ruleFnMacroInclude?: _ruleFnMacroIncludeCstNode[];
   _ruleFnMacroCondition?: _ruleFnMacroConditionCstNode[];
+  _ruleFnMacroUndefine?: _ruleFnMacroUndefineCstNode[];
 };
 
 export interface _ruleFnMacroConditionCstNode extends CstNode {
@@ -249,6 +250,16 @@ export type _ruleFnMacroDefineCstChildren = {
   m_define: IToken[];
   Identifier: IToken[];
   _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+};
+
+export interface _ruleFnMacroUndefineCstNode extends CstNode {
+  name: "_ruleFnMacroUndefine";
+  children: _ruleFnMacroUndefineCstChildren;
+}
+
+export type _ruleFnMacroUndefineCstChildren = {
+  m_undefine: IToken[];
+  Identifier: IToken[];
 };
 
 export interface _ruleAssignableValueCstNode extends CstNode {
@@ -1073,6 +1084,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleFnMacroConditionElseBranch(children: _ruleFnMacroConditionElseBranchCstChildren, param?: IN): OUT;
   _ruleMacroConditionElifBranch(children: _ruleMacroConditionElifBranchCstChildren, param?: IN): OUT;
   _ruleFnMacroDefine(children: _ruleFnMacroDefineCstChildren, param?: IN): OUT;
+  _ruleFnMacroUndefine(children: _ruleFnMacroUndefineCstChildren, param?: IN): OUT;
   _ruleAssignableValue(children: _ruleAssignableValueCstChildren, param?: IN): OUT;
   _ruleFnAddExpr(children: _ruleFnAddExprCstChildren, param?: IN): OUT;
   _ruleFnMultiplicationExpr(children: _ruleFnMultiplicationExprCstChildren, param?: IN): OUT;

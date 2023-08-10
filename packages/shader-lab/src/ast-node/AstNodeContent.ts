@@ -103,6 +103,10 @@ export interface IFnMacroDefineAstContent {
   value?: AstNode;
 }
 
+export interface IFnMacroUndefineAstContent {
+  variable: string;
+}
+
 export interface IFnMacroIncludeAstContent {
   name: string;
 }

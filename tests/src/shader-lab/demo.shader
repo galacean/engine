@@ -99,6 +99,8 @@ Shader "Water" {
           gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
         #endif
 
+        #undef SCENE_SHADOW_TYPE
+
         #ifndef SCENE_SHADOW_TYPE
           gl_FragColor = linearToGamma(gl_FragColor);
         #else

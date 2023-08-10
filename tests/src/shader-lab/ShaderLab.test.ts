@@ -17,6 +17,22 @@ function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
 }
 
+function addLineNum(str: string) {
+  const lines = str.split("\n");
+  const limitLength = (lines.length + 1).toString().length + 6;
+  let prefix;
+  return lines
+    .map((line, index) => {
+      prefix = `0:${index + 1}`;
+      if (prefix.length >= limitLength) return prefix.substring(0, limitLength) + line;
+
+      for (let i = 0; i < limitLength - prefix.length; i++) prefix += " ";
+
+      return prefix + line;
+    })
+    .join("\n");
+}
+
 describe("ShaderLab", () => {
   let shader: ReturnType<typeof shaderLab.parseShader>;
   let subShader: ISubShaderInfo;
@@ -94,19 +110,26 @@ describe("ShaderLab", () => {
     const vs = gl.createShader(gl.VERTEX_SHADER);
     const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-    gl.shaderSource(vs, "precision mediump float;" + pass.vertexSource);
-    gl.compileShader(vs);
-
     const fsPrefix = `#version 100
     precision mediump float;
     precision mediump int;`;
-    gl.shaderSource(fs, fsPrefix + pass.fragmentSource);
+    const fsSource = fsPrefix + pass.fragmentSource;
+    const vsSource = "precision mediump float;" + pass.vertexSource;
+
+    gl.shaderSource(vs, vsSource);
+    gl.compileShader(vs);
+
+    gl.shaderSource(fs, fsSource);
     gl.compileShader(fs);
 
-    expect(gl.getShaderParameter(vs, gl.COMPILE_STATUS), `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}`).to
-      .be.true;
-    expect(gl.getShaderParameter(fs, gl.COMPILE_STATUS), `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}`)
-      .to.be.true;
+    expect(
+      gl.getShaderParameter(vs, gl.COMPILE_STATUS),
+      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(vsSource)}`
+    ).to.be.true;
+    expect(
+      gl.getShaderParameter(fs, gl.COMPILE_STATUS),
+      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(fsSource)}`
+    ).to.be.true;
 
     const program = gl.createProgram();
     gl.attachShader(program, vs);

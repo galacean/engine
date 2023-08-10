@@ -156,7 +156,8 @@ export class ShaderParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) },
       { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
-      { ALT: () => this.SUBRULE(this._ruleFnMacroCondition) }
+      { ALT: () => this.SUBRULE(this._ruleFnMacroCondition) },
+      { ALT: () => this.SUBRULE(this._ruleFnMacroUndefine) }
     ]);
   });
 
@@ -198,6 +199,11 @@ export class ShaderParser extends CstParser {
     this.OPTION(() => {
       this.SUBRULE(this._ruleAssignableValue);
     });
+  });
+
+  private _ruleFnMacroUndefine = this.RULE("_ruleFnMacroUndefine", () => {
+    this.CONSUME(GLKeywords.M_UNDEFINE);
+    this.CONSUME(Others.Identifier);
   });
 
   private _ruleAssignableValue = this.RULE("_ruleAssignableValue", () => {

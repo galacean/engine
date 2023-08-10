@@ -67,7 +67,7 @@ export class Ast2GLSLUtils {
 
     const vertexFnStr = vertFnAst.serialize(context);
 
-    return [context.getAttribText(), context.getPassGlobalText(), context.getVaryingText(), vertexFnStr].join("\n");
+    return [context.getAttribText(), context.getGlobalText(), context.getVaryingText(), vertexFnStr].join("\n");
   }
 
   static stringifyFragmentFunction(fragmentFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
@@ -86,6 +86,6 @@ export class Ast2GLSLUtils {
 
     context.varyingStructInfo.objectName = fragFnAst.content.args[0].content.name;
     const fragmentFnStr = fragFnAst.serialize(context);
-    return [context.getVaryingText(), context.getPassGlobalText(), fragmentFnStr].join("\n");
+    return [context.getVaryingText(), context.getGlobalText(), fragmentFnStr].join("\n");
   }
 }

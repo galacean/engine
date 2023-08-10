@@ -26,6 +26,7 @@ import {
   IFnMacroConditionElseBranchAstContent,
   IFnMacroDefineAstContent,
   IFnMacroIncludeAstContent,
+  IFnMacroUndefineAstContent,
   IFnMultiplicationExprAstContent,
   IFnRelationExprAstContent,
   IFnReturnStatementAstContent,
@@ -213,6 +214,12 @@ export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     context.referenceGlobal(this.content.variable);
     return `#define ${this.content.variable} ${this.content.value.serialize(context) ?? ""}`;
+  }
+}
+
+export class FnMacroUndefineAstNode extends AstNode<IFnMacroUndefineAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `#undef ${this.content.variable}`;
   }
 }
 
