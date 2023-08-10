@@ -51,7 +51,7 @@ export interface IBasicEntity {
   parent?: string;
 }
 
-export type IEntity = IBasicEntity | IRefEntity | IPrefabEntity;
+export type IEntity = IBasicEntity | IRefEntity | IPrefabEntity | IStrippedEntity;
 
 export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
@@ -59,9 +59,24 @@ export interface IRefEntity extends IBasicEntity {
   isClone?: boolean;
 }
 
+export interface IPrefabModifyTarget {
+  entityId: string;
+  componentId: string;
+}
+
 export interface IPrefabEntity extends IBasicEntity {
   prefabSource: { assetId: string };
-  modifications: any[];
+  modifications: {
+    target: IPrefabModifyTarget;
+    methods?: { [methodName: string]: Array<IMethodParams> };
+    props?: { [key: string]: IBasicType | IMethodParams };
+  }[];
+  removedComponents: IPrefabModifyTarget[];
+}
+
+export interface IStrippedEntity extends IBasicEntity {
+  strippedId: string;
+  prefabInstanceId: string;
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;

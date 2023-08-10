@@ -1,8 +1,9 @@
 import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
-import type { IEntity, IPrefabEntity, IPrefabFile, IRefEntity } from "../schema";
+import type { IEntity, IPrefabEntity, IPrefabFile, IRefEntity, IStrippedEntity } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
 import { IPrefabContextData } from "../../../PrefabLoader";
+import { PrefabParserContext } from "../prefab/PrefabParserContext";
 
 /**
  * HierarchyParser parser.
@@ -12,22 +13,31 @@ import { IPrefabContextData } from "../../../PrefabLoader";
  * @class HierarchyParserParser
  * @template T
  */
-export default abstract class HierarchyParser<T extends Scene | Entity> {
+export default abstract class HierarchyParser<T extends Scene | Entity, V extends ParserContext<T, IPrefabFile>> {
   /**
    * The promise of parsed object.
    */
   readonly promise: Promise<T>;
   protected _engine: Engine;
-  protected _resolve: (prefab: T) => void;
+  protected _resolve: (item: T) => void;
   protected _reject: (reason: any) => void;
 
   private childrenContextMap = new WeakMap<Entity, ParserContext<Entity, IPrefabFile>>();
 
-  constructor(public readonly context: ParserContext<T, IPrefabFile>) {
-    this._engine = this.context.target.engine;
+  private prefabPromiseMap = new Map<
+    string,
+    {
+      resolve: (context: PrefabParserContext) => void;
+      reject: (reason: any) => void;
+    }
+  >();
+
+  constructor(public readonly context: V) {
+    this._engine = this.context.engine;
     this._organizeEntities = this._organizeEntities.bind(this);
     this._parseComponents = this._parseComponents.bind(this);
     this._parsePrefabModification = this._parsePrefabModification.bind(this);
+    this._parsePrefabRemovedComponents = this._parsePrefabRemovedComponents.bind(this);
     this._clearAndResolve = this._clearAndResolve.bind(this);
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
@@ -41,6 +51,7 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
       .then(this._organizeEntities)
       .then(this._parseComponents)
       .then(this._parsePrefabModification)
+      .then(this._parsePrefabRemovedComponents)
       .then(this._clearAndResolve)
       .then(this._resolve)
       .catch(this._reject);
@@ -52,18 +63,15 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
    * @param {Entity} entity
    * @memberof ParserContext
    */
-  protected abstract appendChild(entity: Entity): void;
+  protected abstract handleRootEntity(id: string): void;
 
   private _parseEntities(): Promise<Entity[]> {
     const entitiesConfig = this.context.originalData.entities;
     const entityConfigMap = this.context.entityConfigMap;
     const entitiesMap = this.context.entityMap;
-    const rootIds = this.context.rootIds;
     const engine = this._engine;
     const promises = entitiesConfig.map((entityConfig) => {
       entityConfigMap.set(entityConfig.id, entityConfig);
-      // record root entities
-      if (!entityConfig.parent) rootIds.push(entityConfig.id);
 
       return this._getEntityByConfig(entityConfig, engine);
     });
@@ -114,15 +122,13 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
 
       if (prefabSource) {
         const rootEntity = entityMap.get(id);
-        promises.concat(
-          modifications.map((modification) => {
+        promises.push(
+          ...modifications.map((modification) => {
             const { target, props, methods } = modification;
             const { entityId, componentId } = target;
-            const isSelf = entityId === id;
-            const context = isSelf ? this.context : this.childrenContextMap.get(rootEntity);
+            const context = this.childrenContextMap.get(rootEntity);
             const targetEntity = context.entityMap.get(entityId);
             const targetComponent = context.components.get(componentId);
-
             if (targetComponent) {
               return ReflectionParser.parsePropsAndMethods(
                 targetComponent,
@@ -133,7 +139,34 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
                 targetEntity.engine
               );
             } else {
-              return this._applyEntityData(targetEntity, props);
+              return Promise.resolve(this._applyEntityData(targetEntity, props));
+            }
+          })
+        );
+      }
+    }
+
+    return Promise.all(promises);
+  }
+
+  private _parsePrefabRemovedComponents() {
+    const entitiesConfig = this.context.originalData.entities;
+    const entityMap = this.context.entityMap;
+
+    const promises = [];
+    for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+      const entityConfig = entitiesConfig[i];
+      const { id, prefabSource, removedComponents } = entityConfig as IPrefabEntity;
+
+      if (prefabSource) {
+        const rootEntity = entityMap.get(id);
+        promises.concat(
+          ...removedComponents.map((target) => {
+            const { componentId } = target;
+            const context = this.childrenContextMap.get(rootEntity);
+            const targetComponent = context.components.get(componentId);
+            if (targetComponent) {
+              targetComponent.destroy();
             }
           })
         );
@@ -149,13 +182,13 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
   }
 
   private _organizeEntities(): void {
-    const { entityMap, rootIds } = this.context;
-    for (const rootId of rootIds) {
-      this._parseChildren(rootId);
+    const { rootIds, strippedIds } = this.context;
+    const parentIds = rootIds.concat(strippedIds);
+    for (const parentId of parentIds) {
+      this._parseChildren(parentId);
     }
-    const rootEntities = rootIds.map((id) => entityMap.get(id));
-    for (let i = 0; i < rootEntities.length; i++) {
-      this.appendChild(rootEntities[i]);
+    for (let i = 0; i < rootIds.length; i++) {
+      this.handleRootEntity(rootIds[i]);
     }
   }
 
@@ -165,6 +198,8 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
       entityPromise = this._parsePrefab(<IPrefabEntity>entityConfig, engine);
     } else if ((<IRefEntity>entityConfig).assetRefId) {
       entityPromise = this._parseGLTF(<IRefEntity>entityConfig, engine);
+    } else if ((<IStrippedEntity>entityConfig).strippedId) {
+      entityPromise = this._parseStrippedEntity(<IStrippedEntity>entityConfig);
     } else {
       entityPromise = this._parseEntity(entityConfig, engine);
     }
@@ -175,52 +210,58 @@ export default abstract class HierarchyParser<T extends Scene | Entity> {
 
   private _parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     const entity = new Entity(engine, entityConfig.name);
+    if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
     return Promise.resolve(entity);
   }
 
   private _parseGLTF(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.assetRefId;
-    if (assetRefId) {
-      return (
-        engine.resourceManager
-          // @ts-ignore
-          .getResourceByRef<Entity>({
-            refId: assetRefId,
-            key: entityConfig.key,
-            isClone: entityConfig.isClone
-          })
-          .then((entity) => {
-            entity.name = entityConfig.name;
-            return entity;
-          })
-      );
-    } else {
-      return this._parseEntity(entityConfig, engine);
-    }
+    if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
+
+    return (
+      engine.resourceManager
+        // @ts-ignore
+        .getResourceByRef<Entity>({
+          refId: assetRefId,
+          key: entityConfig.key,
+          isClone: entityConfig.isClone
+        })
+        .then((entity) => {
+          entity.name = entityConfig.name;
+          return entity;
+        })
+    );
   }
 
   private _parsePrefab(entityConfig: IPrefabEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.prefabSource?.assetId;
-    if (assetRefId) {
-      return (
-        engine.resourceManager
-          // @ts-ignore
-          .getResourceByRef<Entity>({
-            refId: assetRefId,
-            needContext: true
-          })
-          .then((prefabContextData: IPrefabContextData) => {
-            const { entity, context } = prefabContextData;
-            entity.name = entityConfig.name;
+    return (
+      engine.resourceManager
+        // @ts-ignore
+        .getResourceByRef<Entity>({
+          refId: assetRefId,
+          needContext: true
+        })
+        .then((prefabContextData: IPrefabContextData) => {
+          const { entity, context } = prefabContextData;
+          if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
-            this.childrenContextMap.set(entity, context);
-            return entity;
-          })
-      );
-    } else {
-      return this._parseEntity(entityConfig, engine);
-    }
+          this.childrenContextMap.set(entity, context);
+          this.prefabPromiseMap.get(entityConfig.id)?.resolve(context);
+          return entity;
+        })
+    );
+  }
+
+  private _parseStrippedEntity(entityConfig: IStrippedEntity): Promise<Entity> {
+    this.context.strippedIds.push(entityConfig.id);
+
+    return new Promise<PrefabParserContext>((resolve, reject) => {
+      this.prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, { resolve, reject });
+    }).then((context) => {
+      return context.entityMap.get((<IStrippedEntity>entityConfig).strippedId);
+    });
   }
 
   private _parseChildren(parentId) {

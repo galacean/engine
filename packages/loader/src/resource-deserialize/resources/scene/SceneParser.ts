@@ -4,7 +4,7 @@ import { SceneParserContext } from "./SceneParserContext";
 import HierarchyParser from "../parser/HierarchyParser";
 
 /** @Internal */
-export class SceneParser extends HierarchyParser<Scene> {
+export class SceneParser extends HierarchyParser<Scene, SceneParserContext> {
   /**
    * Parse scene data.
    * @param engine - the engine of the parser context
@@ -13,14 +13,14 @@ export class SceneParser extends HierarchyParser<Scene> {
    */
   static parse(engine: Engine, sceneData: IScene): Promise<Scene> {
     const scene = new Scene(engine);
-    const context = new SceneParserContext(sceneData, scene);
+    const context = new SceneParserContext(sceneData, engine, scene);
     const parser = new SceneParser(context);
     parser.start();
     return parser.promise;
   }
 
-  protected override appendChild(entity: Entity): void {
-    const { target } = this.context;
-    target.addRootEntity(entity);
+  protected override handleRootEntity(id: string): void {
+    const { target, entityMap } = this.context;
+    target.addRootEntity(entityMap.get(id));
   }
 }

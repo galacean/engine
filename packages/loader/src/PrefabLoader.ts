@@ -8,14 +8,14 @@ import {
   ResourceManager
 } from "@galacean/engine-core";
 import { PrefabParser } from "./resource-deserialize";
-import { PrefabParserContext } from "./resource-deserialize/resources/parser/PrefabParserContext";
+import { PrefabParserContext } from "./resource-deserialize/resources/prefab/PrefabParserContext";
 
 export interface IPrefabContextData {
   context: PrefabParserContext;
   entity: Entity;
 }
 
-@resourceLoader(AssetType.Prefab, ["prefab"], true)
+@resourceLoader(AssetType.Prefab, ["prefab"], false)
 class PrefabLoader extends Loader<Entity | IPrefabContextData> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Entity | IPrefabContextData> {
     const { engine } = resourceManager;

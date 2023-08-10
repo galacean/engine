@@ -288,10 +288,17 @@ export class ResourceManager {
       assetURL += "?q=" + paths.shift();
     }
 
+    // Check loader
+    const loader = ResourceManager._loaders[item.type];
+    if (!loader) {
+      throw `loader not found: ${item.type}`;
+    }
+
     // Check is loading
     const loadingPromises = this._loadingPromises;
     const loadingPromise = loadingPromises[assetURL];
-    if (loadingPromise) {
+
+    if (loadingPromise && loader.useCache) {
       return new AssetPromise((resolve, reject) => {
         loadingPromise
           .then((resource: EngineObject) => {
@@ -301,12 +308,6 @@ export class ResourceManager {
             reject(error);
           });
       });
-    }
-
-    // Check loader
-    const loader = ResourceManager._loaders[item.type];
-    if (!loader) {
-      throw `loader not found: ${item.type}`;
     }
 
     // Load asset
