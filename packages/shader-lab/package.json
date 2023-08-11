@@ -29,6 +29,10 @@
     "chevrotain": "^10.5.0"
   },
   "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
   }
 }
