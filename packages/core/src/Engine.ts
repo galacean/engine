@@ -38,6 +38,9 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { XRManager } from "./xr/XRManager";
+import { Ticker } from "./Ticker";
+import { IXRPlatform } from "./xr";
 
 ShaderPool.init();
 
@@ -54,6 +57,8 @@ export class Engine extends EventDispatcher {
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
+  /** XR manager of Engine. */
+  readonly xrManager: XRManager;
 
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -117,6 +122,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   protected _canvas: Canvas;
 
+  private _ticker: Ticker = new Ticker();
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
@@ -146,6 +152,13 @@ export class Engine extends EventDispatcher {
       this.update();
     }
   };
+
+  /**
+   * Ticker of Engine.
+   */
+  get ticker(): Ticker {
+    return this._ticker;
+  }
 
   /**
    * Settings of Engine.
@@ -237,7 +250,15 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
+    const ticker = this._ticker;
+    ticker.animationLoop = this.update.bind(this);
+    ticker.requestAnimationFrame = window.requestAnimationFrame;
+    ticker.cancelAnimationFrame = window.cancelAnimationFrame;
+
     this.inputManager = new InputManager(this);
+
+    const { xrProvider: xr } = configuration;
+    xr && (this.xrManager = new XRManager(this, xr));
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -695,6 +716,8 @@ export class Engine extends EventDispatcher {
 export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
+  /** XR. */
+  xrProvider?: new () => IXRPlatform;
   /** Color space. */
   colorSpace?: ColorSpace;
   /** Shader lab */

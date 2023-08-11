@@ -242,6 +242,7 @@ export interface KTX2Params {
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
     /** KTX2 loader options. */
+    // @ts-ignore
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;

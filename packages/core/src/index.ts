@@ -56,6 +56,7 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
+export * from "./xr/index";
 
 // Export for CanvasRenderer plugin.
 export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";

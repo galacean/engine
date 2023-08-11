@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 importers:
 
   .:
@@ -40,6 +44,9 @@ importers:
       '@types/node':
         specifier: ^18.7.16
         version: 18.7.16
+      '@types/webxr':
+        specifier: latest
+        version: 0.5.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.1.0(@typescript-eslint/parser@6.1.0)(eslint@8.44.0)(typescript@5.1.6)
@@ -76,6 +83,9 @@ importers:
       lint-staged:
         specifier: ^10.5.3
         version: 10.5.3
+      miniprogram-api-typings:
+        specifier: ^3.10.0
+        version: 3.10.0
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -195,6 +205,15 @@ importers:
         specifier: ^10.5.0
         version: 10.5.0
     devDependencies:
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+
+  packages/xr-webxr:
+    devDependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
@@ -1053,6 +1072,10 @@ packages:
 
   /@types/semver@7.5.0:
     resolution: {integrity: sha512-G8hZ6XJiHnuhQKR7ZmysCeJWE08o8T0AXtk5darsCaTVsYZhhgUrq53jizaR2FvsoeCwJhlmwTjkXBY5Pn/ZHw==}
+    dev: true
+
+  /@types/webxr@0.5.1:
+    resolution: {integrity: sha512-xlFXPfgJR5vIuDefhaHuUM9uUgvPaXB6GKdXy2gdEh8gBWQZ2ul24AJz3foUd8NNKlSTQuWYJpCb1/pL81m1KQ==}
     dev: true
 
   /@typescript-eslint/eslint-plugin@6.1.0(@typescript-eslint/parser@6.1.0)(eslint@8.44.0)(typescript@5.1.6):
@@ -3465,6 +3488,10 @@ packages:
 
   /minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+    dev: true
+
+  /miniprogram-api-typings@3.10.0:
+    resolution: {integrity: sha512-pvGZmj9uamahlqfPj1bwn5Cd/bjImc5ehyAha/QfA9limG6HO9Plj/yROfSChK6J6+VUoVB9cnNthx4XuI0T2Q==}
     dev: true
 
   /mkdirp@0.5.6:
