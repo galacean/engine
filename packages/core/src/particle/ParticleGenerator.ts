@@ -244,7 +244,8 @@ export class ParticleGenerator {
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
     direction.normalize();
 
-    let nextFreeElement = this._firstFreeElement + 1;
+    const firstFreeElement = this._firstFreeElement;
+    let nextFreeElement = firstFreeElement + 1;
     if (nextFreeElement >= this._currentParticleCount) {
       nextFreeElement = 0;
     }
@@ -259,9 +260,9 @@ export class ParticleGenerator {
       this._resizeInstanceBuffer(increaseCount);
 
       // Maintain expanded pointers
-      this._firstNewElement >= this._firstRetiredElement && (this._firstNewElement += increaseCount);
-      this._firstActiveElement >= this._firstRetiredElement && (this._firstActiveElement += increaseCount);
-      this._firstRetiredElement += increaseCount;
+      this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
+      this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
+      this._firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
     }
 
     const main = this.main;
@@ -276,7 +277,7 @@ export class ParticleGenerator {
     const startSpeed = main.startSpeed.evaluate(undefined, rand.random());
 
     const instanceVertices = this._instanceVertices;
-    let offset = this._firstFreeElement * ParticleBufferUtils.instanceVertexFloatStride;
+    const offset = firstFreeElement * ParticleBufferUtils.instanceVertexFloatStride;
 
     // Position
     instanceVertices[offset] = position.x;
