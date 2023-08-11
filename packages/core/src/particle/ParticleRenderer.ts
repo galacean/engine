@@ -111,6 +111,7 @@ export class ParticleRenderer extends Renderer {
           break;
       }
       shaderData.enableMacro(this._currentRenderModeMacro);
+      
       if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
         this.generator._reorganizeGeometryBuffers();
       }
@@ -198,9 +199,6 @@ export class ParticleRenderer extends Renderer {
     shaderData.setFloat(ParticleBufferDefinition._currentTime, particleSystem._playTime);
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context: RenderContext): void {
     const particleSystem = this.generator;
     const primitive = particleSystem._primitive;

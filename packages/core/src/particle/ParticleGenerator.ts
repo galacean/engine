@@ -237,7 +237,7 @@ export class ParticleGenerator {
       nextFreeElement = 0;
     }
 
-    // Check whether to expand the capacity
+    // Check if can be expanded
     if (nextFreeElement === this._firstRetiredElement) {
       const availableCapacity = this.main.maxParticles - this._currentParticleCount;
       const increaseCount = Math.min(this._particleIncreaseCount, availableCapacity);
@@ -246,9 +246,10 @@ export class ParticleGenerator {
       }
 
       this._recreateInstanceBuffer(this._currentParticleCount + increaseCount);
-      if (this._firstActiveElement >= this._firstRetiredElement) {
-        this._firstActiveElement += increaseCount;
-      }
+
+      // Maintain expanded pointers
+      this._firstNewElement >= this._firstRetiredElement && (this._firstNewElement += increaseCount);
+      this._firstActiveElement >= this._firstRetiredElement && (this._firstActiveElement += increaseCount);
       this._firstRetiredElement += increaseCount;
     }
 
