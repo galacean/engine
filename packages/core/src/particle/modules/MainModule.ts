@@ -71,7 +71,7 @@ export class MainModule {
 
       const particleSystem = this._particleSystem;
       if (value < particleSystem._currentParticleCount) {
-        particleSystem._recreateInstanceBuffer(value);
+        particleSystem._resizeInstanceBuffer(value);
       }
     }
 

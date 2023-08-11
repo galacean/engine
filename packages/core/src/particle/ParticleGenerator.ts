@@ -7,7 +7,7 @@ import { ParticleRenderer } from "./ParticleRenderer";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
-import { ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
+import { ParticleBufferDefinition, ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./modules/EmissionModule";
@@ -57,6 +57,7 @@ export class ParticleGenerator {
   /** @internal */
   _subPrimitive: SubMesh = new SubMesh(0, 0, MeshTopology.Triangles);
 
+  private _instanceBufferResized: boolean = false;
   private _waitProcessRetiredElementCount: number = 0;
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
@@ -128,7 +129,11 @@ export class ParticleGenerator {
 
     // Add new particles to vertex buffer when has wait process retired element or new particle
     // @todo: just update new particle buffer to instance buffer, ignore retired particle in shader, especially billboard
-    if (this._waitProcessRetiredElementCount > 0 || this._firstNewElement != this._firstFreeElement) {
+    if (
+      this._firstNewElement != this._firstFreeElement ||
+      this._waitProcessRetiredElementCount > 0 ||
+      this._instanceBufferResized
+    ) {
       this._addNewParticlesToVertexBuffer();
     }
   }
@@ -200,10 +205,11 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _recreateInstanceBuffer(particleCount: number): void {
+  _resizeInstanceBuffer(increaseCount: number): void {
     this._instanceVertexBufferBinding?.buffer.destroy();
 
     const stride = ParticleBufferUtils.instanceVertexStride;
+    const particleCount = this._currentParticleCount + increaseCount;
     const byteLength = stride * particleCount;
     const vertexInstanceBuffer = new Buffer(
       this._engine,
@@ -220,8 +226,14 @@ export class ParticleGenerator {
     const instanceVertices = new Float32Array(byteLength / 4);
     const lastInstanceVertices = this._instanceVertices;
     if (lastInstanceVertices) {
-      instanceVertices.set(lastInstanceVertices);
-      instanceVertexBufferBinding.buffer.setData(lastInstanceVertices);
+      const stride = ParticleBufferDefinition.instanceVertexFloatStride;
+
+      const freeOffset = this._firstFreeElement * stride;
+      instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
+      const freeEndOffset = (this._firstFreeElement + increaseCount) * stride;
+      instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset), freeEndOffset);
+
+      this._instanceBufferResized = true;
     }
 
     this._instanceVertices = instanceVertices;
@@ -239,13 +251,12 @@ export class ParticleGenerator {
 
     // Check if can be expanded
     if (nextFreeElement === this._firstRetiredElement) {
-      const availableCapacity = this.main.maxParticles - this._currentParticleCount;
-      const increaseCount = Math.min(this._particleIncreaseCount, availableCapacity);
+      const increaseCount = Math.min(this._particleIncreaseCount, this.main.maxParticles - this._currentParticleCount);
       if (increaseCount === 0) {
         return;
       }
 
-      this._recreateInstanceBuffer(this._currentParticleCount + increaseCount);
+      this._resizeInstanceBuffer(increaseCount);
 
       // Maintain expanded pointers
       this._firstNewElement >= this._firstRetiredElement && (this._firstNewElement += increaseCount);
@@ -279,9 +290,9 @@ export class ParticleGenerator {
     );
 
     // Direction
-    instanceVertices[offset] = direction.x;
-    instanceVertices[offset + 1] = direction.y;
-    instanceVertices[offset + 2] = direction.z;
+    instanceVertices[offset + 4] = direction.x;
+    instanceVertices[offset + 5] = direction.y;
+    instanceVertices[offset + 6] = direction.z;
 
     // Time
     instanceVertices[offset + ParticleBufferUtils.timeOffset] = time;
@@ -413,6 +424,8 @@ export class ParticleGenerator {
       }
     }
     this._firstNewElement = firstFreeElement;
+    this._waitProcessRetiredElementCount = 0;
+    this._instanceBufferResized = false;
   }
 
   private _addVertexBufferBindingsFilterDuplicate(
