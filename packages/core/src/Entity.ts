@@ -177,7 +177,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T | undefined {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
     // @todo: should inverse traversal
     for (let i = components.length - 1; i >= 0; i--) {
@@ -186,6 +186,7 @@ export class Entity extends EngineObject {
         return component;
       }
     }
+    return null;
   }
 
   /**
