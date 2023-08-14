@@ -5,7 +5,6 @@ import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
 import { Buffer } from "./../graphic/Buffer";
-import { ParticleBufferDefinition, ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderer } from "./ParticleRenderer";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
@@ -145,7 +144,7 @@ export class ParticleGenerator {
    */
   _reorganizeGeometryBuffers(): void {
     const renderer = this._renderer;
-    const particleUtils = renderer.engine._particleUtils;
+    const particleUtils = renderer.engine._particleBufferUtils;
     const primitive = this._primitive;
     const vertexBufferBindings = this._vertexBufferBindings;
 
@@ -212,7 +211,7 @@ export class ParticleGenerator {
   _resizeInstanceBuffer(increaseCount: number): void {
     this._instanceVertexBufferBinding?.buffer.destroy();
 
-    const particleUtils = this._renderer.engine._particleUtils;
+    const particleUtils = this._renderer.engine._particleBufferUtils;
     const stride = particleUtils.instanceVertexStride;
     const particleCount = this._currentParticleCount + increaseCount;
     const byteLength = stride * particleCount;
@@ -248,7 +247,7 @@ export class ParticleGenerator {
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
-    const particleUtils = this._renderer.engine._particleUtils;
+    const particleUtils = this._renderer.engine._particleBufferUtils;
 
     direction.normalize();
 
@@ -371,7 +370,7 @@ export class ParticleGenerator {
   }
 
   private _retireActiveParticles(): void {
-    const particleUtils = this._renderer.engine._particleUtils;
+    const particleUtils = this._renderer.engine._particleBufferUtils;
 
     const epsilon = 0.0001;
     const frameCount = this._renderer.engine.time.frameCount;
@@ -398,7 +397,7 @@ export class ParticleGenerator {
   }
 
   private _freeRetiredParticles(): void {
-    const particleUtils = this._renderer.engine._particleUtils;
+    const particleUtils = this._renderer.engine._particleBufferUtils;
     const frameCount = this._renderer.engine.time.frameCount;
 
     while (this._firstRetiredElement != this._firstActiveElement) {
@@ -418,7 +417,7 @@ export class ParticleGenerator {
   }
 
   private _addNewParticlesToVertexBuffer(): void {
-    const byteStride = this._renderer.engine._particleUtils.instanceVertexStride;
+    const byteStride = this._renderer.engine._particleBufferUtils.instanceVertexStride;
     const firstNewElement = this._firstNewElement;
     const firstFreeElement = this._firstFreeElement;
     const start = firstNewElement * byteStride;

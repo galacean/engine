@@ -21,6 +21,7 @@ import { GLCapabilityType } from "./base/Constant";
 import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
+import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
@@ -38,7 +39,6 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { ParticleBufferDefinition } from "./particle/ParticleBufferUtils";
 
 ShaderPool.init();
 
@@ -57,7 +57,7 @@ export class Engine extends EventDispatcher {
   readonly inputManager: InputManager;
 
   /** @internal */
-  _particleUtils: ParticleBufferDefinition;
+  _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
@@ -267,7 +267,7 @@ export class Engine extends EventDispatcher {
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
 
-    this._particleUtils = new ParticleBufferDefinition(this);
+    this._particleBufferUtils = new ParticleBufferUtils(this);
   }
 
   /**

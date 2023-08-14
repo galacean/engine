@@ -6,6 +6,7 @@ import { ShaderMacro } from "../shader/ShaderMacro";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleShaderProperty } from "./ParticleShaderProperty";
 
 /**
  * Particle Renderer Component.
@@ -154,17 +155,16 @@ export class ParticleRenderer extends Renderer {
     const particleSystem = this.generator;
     const shaderData = this.shaderData;
     const transform = this.entity.transform;
-    const particleUtils = this.engine._particleUtils;
 
     switch (particleSystem.main.simulationSpace) {
       case 0: //World
         break;
       case 1: //Local
-        shaderData.setVector3(particleUtils._worldPositionProperty, transform.worldPosition);
+        shaderData.setVector3(ParticleShaderProperty.worldPosition, transform.worldPosition);
         const worldRotation = transform.worldRotationQuaternion;
         const worldRotationV4 = ParticleRenderer._tempVector40;
         worldRotationV4.copyFrom(worldRotation);
-        shaderData.setVector4(particleUtils._worldRotationProperty, worldRotationV4);
+        shaderData.setVector4(ParticleShaderProperty.worldRotation, worldRotationV4);
         break;
       default:
         throw new Error("ShurikenParticleMaterial: SimulationSpace value is invalid.");
@@ -173,30 +173,30 @@ export class ParticleRenderer extends Renderer {
     switch (particleSystem.main.scalingMode) {
       case 0:
         var scale = transform.lossyWorldScale;
-        shaderData.setVector3(particleUtils._positionScaleProperty, scale);
-        shaderData.setVector3(particleUtils._sizeScaleProperty, scale);
+        shaderData.setVector3(ParticleShaderProperty.positionScale, scale);
+        shaderData.setVector3(ParticleShaderProperty.sizeScale, scale);
         break;
       case 1:
         var scale = transform.scale;
-        shaderData.setVector3(particleUtils._positionScaleProperty, scale);
-        shaderData.setVector3(particleUtils._sizeScaleProperty, scale);
+        shaderData.setVector3(ParticleShaderProperty.positionScale, scale);
+        shaderData.setVector3(ParticleShaderProperty.sizeScale, scale);
         break;
       case 2:
-        shaderData.setVector3(particleUtils._positionScaleProperty, transform.lossyWorldScale);
-        shaderData.setVector3(particleUtils._sizeScaleProperty, ParticleRenderer._vector3One);
+        shaderData.setVector3(ParticleShaderProperty.positionScale, transform.lossyWorldScale);
+        shaderData.setVector3(ParticleShaderProperty.sizeScale, ParticleRenderer._vector3One);
         break;
     }
 
     const particleGravity = ParticleRenderer._tempVector30;
     const gravityModifierValue = particleSystem.main.gravityModifier.evaluate(undefined, undefined);
     Vector3.scale(this.scene.physics.gravity, gravityModifierValue, particleGravity);
-    shaderData.setVector3(particleUtils._gravityProperty, particleGravity);
-    shaderData.setInt(particleUtils._simulationSpaceProperty, particleSystem.main.simulationSpace);
-    shaderData.setFloat(particleUtils._startRotation3DProperty, +particleSystem.main.startRotation3D);
-    shaderData.setInt(particleUtils._scaleModeProperty, particleSystem.main.scalingMode);
-    shaderData.setFloat(particleUtils._lengthScaleProperty, this.lengthScale);
-    shaderData.setFloat(particleUtils._speedScaleProperty, this.velocityScale);
-    shaderData.setFloat(particleUtils._currentTime, particleSystem._playTime);
+    shaderData.setVector3(ParticleShaderProperty.gravity, particleGravity);
+    shaderData.setInt(ParticleShaderProperty.simulationSpace, particleSystem.main.simulationSpace);
+    shaderData.setFloat(ParticleShaderProperty.startRotation3D, +particleSystem.main.startRotation3D);
+    shaderData.setInt(ParticleShaderProperty.scaleMode, particleSystem.main.scalingMode);
+    shaderData.setFloat(ParticleShaderProperty.lengthScale, this.lengthScale);
+    shaderData.setFloat(ParticleShaderProperty.speedScale, this.velocityScale);
+    shaderData.setFloat(ParticleShaderProperty.currentTime, particleSystem._playTime);
   }
 
   protected override _render(context: RenderContext): void {
