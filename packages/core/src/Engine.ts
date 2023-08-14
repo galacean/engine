@@ -38,6 +38,7 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { ParticleBufferDefinition } from "./particle/ParticleBufferUtils";
 
 ShaderPool.init();
 
@@ -55,6 +56,8 @@ export class Engine extends EventDispatcher {
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
+  /** @internal */
+  _particleUtils: ParticleBufferDefinition;
   /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
@@ -263,6 +266,8 @@ export class Engine extends EventDispatcher {
     const colorSpace = configuration.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
+
+    this._particleUtils = new ParticleBufferDefinition(this);
   }
 
   /**

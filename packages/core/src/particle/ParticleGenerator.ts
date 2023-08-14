@@ -1,13 +1,12 @@
 import { Color, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
-import { Engine } from "../Engine";
 import { Transform } from "../Transform";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
-import { Buffer } from "./../graphic/Buffer";
-import { ParticleRenderer } from "./ParticleRenderer";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
+import { Buffer } from "./../graphic/Buffer";
 import { ParticleBufferDefinition, ParticleBufferDefinition as ParticleBufferUtils } from "./ParticleBufferUtils";
+import { ParticleRenderer } from "./ParticleRenderer";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./modules/EmissionModule";
@@ -52,8 +51,10 @@ export class ParticleGenerator {
   _firstFreeElement: number = 0;
   /** @internal */
   _firstRetiredElement: number = 0;
-
+  /** @internal */
   _primitive: Primitive;
+  /** @internal */
+  _vertexBufferBindings: VertexBufferBinding[] = [];
   /** @internal */
   _subPrimitive: SubMesh = new SubMesh(0, 0, MeshTopology.Triangles);
 
@@ -83,6 +84,8 @@ export class ParticleGenerator {
     subPrimitive.start = 0;
 
     this._primitive = new Primitive(renderer.engine);
+    this._reorganizeGeometryBuffers();
+    this._resizeInstanceBuffer(this._particleIncreaseCount);
   }
 
   /**
@@ -142,11 +145,11 @@ export class ParticleGenerator {
    */
   _reorganizeGeometryBuffers(): void {
     const renderer = this._renderer;
+    const particleUtils = renderer.engine._particleUtils;
     const primitive = this._primitive;
-    const vertexElements = primitive.vertexElements;
-    const vertexBufferBindings = primitive.vertexBufferBindings;
+    const vertexBufferBindings = this._vertexBufferBindings;
 
-    vertexElements.length = 0;
+    primitive.clearVertexElements();
     vertexBufferBindings.length = 0;
 
     if (renderer.renderMode === ParticleRenderMode.Mesh) {
@@ -164,41 +167,43 @@ export class ParticleGenerator {
 
       if (positionBufferBinding) {
         const index = this._addVertexBufferBindingsFilterDuplicate(positionBufferBinding, vertexBufferBindings);
-        vertexElements.push(
+        primitive.addVertexElement(
           new VertexElement(VertexAttribute.Position, positionElement.offset, positionElement.format, index)
         );
       }
 
       if (colorBufferBinding) {
         const index = this._addVertexBufferBindingsFilterDuplicate(colorBufferBinding, vertexBufferBindings);
-        vertexElements.push(new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index));
+        primitive.addVertexElement(
+          new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index)
+        );
       }
 
       if (uvBufferBinding) {
         const index = this._addVertexBufferBindingsFilterDuplicate(uvBufferBinding, vertexBufferBindings);
-        vertexElements.push(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
+        primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
       }
 
       // @todo: multi subMesh or not support
       const indexBufferBinding = mesh._primitive.indexBufferBinding;
-      primitive.indexBufferBinding = indexBufferBinding;
+      primitive.setIndexBufferBinding(indexBufferBinding);
       this._subPrimitive.count = indexBufferBinding.buffer.byteLength / primitive._glIndexByteCount;
     } else {
-      vertexElements.push(ParticleBufferUtils.billboardVertexElement);
-      vertexBufferBindings.push(ParticleBufferUtils.billboardVertexBufferBinding);
-      primitive.indexBufferBinding = ParticleBufferUtils.billboardIndexBufferBinding;
-      this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
+      primitive.addVertexElement(particleUtils.billboardVertexElement);
+      vertexBufferBindings.push(particleUtils.billboardVertexBufferBinding);
+      primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
+      this._subPrimitive.count = particleUtils.billboardIndexCount;
     }
+    primitive.setVertexBufferBindings(vertexBufferBindings);
 
-    const instanceVertexElements = ParticleBufferUtils.instanceVertexElements;
+    const instanceVertexElements = particleUtils.instanceVertexElements;
     const bindingIndex = vertexBufferBindings.length;
     for (let i = 0, n = instanceVertexElements.length; i < n; i++) {
       const element = instanceVertexElements[i];
-      vertexElements.push(
+      primitive.addVertexElement(
         new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
       );
     }
-    vertexBufferBindings.length++;
   }
 
   /**
@@ -207,7 +212,8 @@ export class ParticleGenerator {
   _resizeInstanceBuffer(increaseCount: number): void {
     this._instanceVertexBufferBinding?.buffer.destroy();
 
-    const stride = ParticleBufferUtils.instanceVertexStride;
+    const particleUtils = this._renderer.engine._particleUtils;
+    const stride = particleUtils.instanceVertexStride;
     const particleCount = this._currentParticleCount + increaseCount;
     const byteLength = stride * particleCount;
     const engine = this._renderer.engine;
@@ -221,12 +227,11 @@ export class ParticleGenerator {
 
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const instanceVertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
-    vertexBufferBindings[vertexBufferBindings.length - 1] = instanceVertexBufferBinding;
 
     const instanceVertices = new Float32Array(byteLength / 4);
     const lastInstanceVertices = this._instanceVertices;
     if (lastInstanceVertices) {
-      const stride = ParticleBufferDefinition.instanceVertexFloatStride;
+      const stride = particleUtils.instanceVertexFloatStride;
 
       const freeOffset = this._firstFreeElement * stride;
       instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
@@ -235,6 +240,7 @@ export class ParticleGenerator {
 
       this._instanceBufferResized = true;
     }
+    this._primitive.setVertexBufferBinding(vertexBufferBindings.length, instanceVertexBufferBinding);
 
     this._instanceVertices = instanceVertices;
     this._instanceVertexBufferBinding = instanceVertexBufferBinding;
@@ -242,6 +248,8 @@ export class ParticleGenerator {
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
+    const particleUtils = this._renderer.engine._particleUtils;
+
     direction.normalize();
 
     const firstFreeElement = this._firstFreeElement;
@@ -277,7 +285,7 @@ export class ParticleGenerator {
     const startSpeed = main.startSpeed.evaluate(undefined, rand.random());
 
     const instanceVertices = this._instanceVertices;
-    const offset = firstFreeElement * ParticleBufferUtils.instanceVertexFloatStride;
+    const offset = firstFreeElement * particleUtils.instanceVertexFloatStride;
 
     // Position
     instanceVertices[offset] = position.x;
@@ -285,7 +293,7 @@ export class ParticleGenerator {
     instanceVertices[offset + 2] = position.z;
 
     // Start life time
-    instanceVertices[offset + ParticleBufferUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
+    instanceVertices[offset + particleUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
       undefined,
       rand.random()
     );
@@ -296,7 +304,7 @@ export class ParticleGenerator {
     instanceVertices[offset + 6] = direction.z;
 
     // Time
-    instanceVertices[offset + ParticleBufferUtils.timeOffset] = time;
+    instanceVertices[offset + particleUtils.timeOffset] = time;
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
@@ -354,7 +362,7 @@ export class ParticleGenerator {
 
     // Simulation UV
     const startUVInfo = ParticleGenerator._tempVector40;
-    instanceVertices[offset + ParticleBufferUtils.simulationOffset] = startUVInfo.x;
+    instanceVertices[offset + particleUtils.simulationOffset] = startUVInfo.x;
     instanceVertices[offset + 35] = startUVInfo.y;
     instanceVertices[offset + 36] = startUVInfo.z;
     instanceVertices[offset + 37] = startUVInfo.w;
@@ -363,16 +371,18 @@ export class ParticleGenerator {
   }
 
   private _retireActiveParticles(): void {
+    const particleUtils = this._renderer.engine._particleUtils;
+
     const epsilon = 0.0001;
     const frameCount = this._renderer.engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
     while (this._firstActiveElement != this._firstNewElement) {
-      const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
-      const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
+      const activeParticleOffset = this._firstActiveElement * particleUtils.instanceVertexFloatStride;
+      const activeParticleTimeOffset = activeParticleOffset + particleUtils.timeOffset;
 
       const particleAge = this._playTime - instanceVertices[activeParticleTimeOffset];
-      if (particleAge + epsilon < instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset]) {
+      if (particleAge + epsilon < instanceVertices[activeParticleOffset + particleUtils.startLifeTimeOffset]) {
         break;
       }
 
@@ -388,12 +398,12 @@ export class ParticleGenerator {
   }
 
   private _freeRetiredParticles(): void {
+    const particleUtils = this._renderer.engine._particleUtils;
     const frameCount = this._renderer.engine.time.frameCount;
 
     while (this._firstRetiredElement != this._firstActiveElement) {
       const offset =
-        this._firstRetiredElement * ParticleBufferUtils.instanceVertexFloatStride +
-        ParticleBufferUtils.startLifeTimeOffset;
+        this._firstRetiredElement * particleUtils.instanceVertexFloatStride + particleUtils.startLifeTimeOffset;
       const age = frameCount - this._instanceVertices[offset];
 
       // WebGL don't support map buffer range, so off this optimization
@@ -408,7 +418,7 @@ export class ParticleGenerator {
   }
 
   private _addNewParticlesToVertexBuffer(): void {
-    const byteStride = ParticleBufferUtils.instanceVertexStride;
+    const byteStride = this._renderer.engine._particleUtils.instanceVertexStride;
     const firstNewElement = this._firstNewElement;
     const firstFreeElement = this._firstFreeElement;
     const start = firstNewElement * byteStride;

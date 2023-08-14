@@ -54,24 +54,23 @@ export class MainModule {
   /** If set to true, the Particle System automatically begins to play on startup. */
   playOnAwake: boolean = true;
 
-  private _bufferMaxParticles: number = 0;
-  private _particleSystem: ParticleGenerator;
+  private _maxParticles: number = 1000;
+  private _generator: ParticleGenerator;
 
   /**
    * Max particles count.
    */
   get maxParticles(): number {
-    return this._bufferMaxParticles - 1;
+    return this._maxParticles;
   }
 
   set maxParticles(value: number) {
-    var newMaxParticles: number = value + 1;
-    if (newMaxParticles !== this._bufferMaxParticles) {
-      this._bufferMaxParticles = newMaxParticles;
+    if (this._maxParticles !== value) {
+      this._maxParticles = value;
 
-      const particleSystem = this._particleSystem;
-      if (value < particleSystem._currentParticleCount) {
-        particleSystem._resizeInstanceBuffer(value);
+      const generator = this._generator;
+      if (value < generator._currentParticleCount) {
+        generator._resizeInstanceBuffer(value);
       }
     }
 
@@ -79,8 +78,6 @@ export class MainModule {
   }
 
   constructor(particleSystem: ParticleGenerator) {
-    this._particleSystem = particleSystem;
+    this._generator = particleSystem;
   }
-
-  
 }

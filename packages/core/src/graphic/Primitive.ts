@@ -127,6 +127,21 @@ export class Primitive extends GraphicsResource {
     this._bufferStructChanged = true;
   }
 
+  /**
+   * Set vertex buffer binding.
+   * @param vertexBufferBindings - Vertex buffer binding
+   * @param firstIndex - First vertex buffer index, the default value is 0
+   */
+  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
+    const bindings = this.vertexBufferBindings;
+    const count = vertexBufferBindings.length;
+    const needLength = firstIndex + count;
+    bindings.length < needLength && (bindings.length = needLength);
+    for (let i = 0; i < count; i++) {
+      this.setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
+    }
+  }
+
   setIndexBufferBinding(binding: IndexBufferBinding | null): void {
     const lastBinding = this.indexBufferBinding;
     const referCount = this._getReferCount();

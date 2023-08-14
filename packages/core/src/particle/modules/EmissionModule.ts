@@ -17,7 +17,7 @@ export class EmissionModule {
 
   private _frameRateTime: number = 0;
   private _currentBurstIndex: number = 0;
-  private _particleSystem: ParticleGenerator;
+  private _generator: ParticleGenerator;
 
   /**
    * Gets the burst array.
@@ -26,8 +26,8 @@ export class EmissionModule {
     return this._bursts;
   }
 
-  constructor(particleSystem: ParticleGenerator) {
-    this._particleSystem = particleSystem;
+  constructor(generator: ParticleGenerator) {
+    this._generator = generator;
     this.rateOverTime.constant = 10;
   }
 
@@ -102,7 +102,7 @@ export class EmissionModule {
   private _emitByRateOverTime(playTime: number): void {
     const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
     if (ratePerSeconds > 0) {
-      const particleSystem = this._particleSystem;
+      const particleSystem = this._generator;
       const emitInterval = 1.0 / ratePerSeconds;
 
       let cumulativeTime = playTime - this._frameRateTime;
@@ -115,7 +115,7 @@ export class EmissionModule {
   }
 
   private _emitByBurst(lastPlayTime: number, playTime: number): void {
-    const main = this._particleSystem.main;
+    const main = this._generator.main;
     const duration = main.duration;
     const cycleCount = Math.floor(playTime - lastPlayTime / duration);
 
@@ -139,7 +139,7 @@ export class EmissionModule {
   }
 
   private _emitBySubBurst(lastPlayTime: number, playTime: number): void {
-    const particleSystem = this._particleSystem;
+    const particleSystem = this._generator;
     const rand = particleSystem._rand;
     const bursts = this.bursts;
 
