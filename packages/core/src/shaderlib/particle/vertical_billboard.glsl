@@ -1,4 +1,4 @@
-#ifdef VERTICAL_BILLBOARD
+#ifdef RENDERER_MODE_VERTICAL_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy; // Billboard模式z轴无效
 	const vec3 cameraUpVector = vec3(0.0, 1.0, 0.0);
 	vec3 sideVector = normalize(cross(u_cameraDirection, cameraUpVector));

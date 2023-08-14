@@ -3,7 +3,7 @@ import { Color } from "@galacean/engine-math";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 
 /**
- * Particle curve.
+ * Particle Gradient.
  */
 export class ParticleGradient implements IClone {
   /** The curve mode. */

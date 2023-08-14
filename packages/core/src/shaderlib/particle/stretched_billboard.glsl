@@ -1,4 +1,4 @@
-#ifdef STRETCHED_BILLBOARD
+#ifdef RENDERER_MODE_STRETCHED_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy; // Billboard模式z轴无效
 	vec3 velocity;
     #if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)

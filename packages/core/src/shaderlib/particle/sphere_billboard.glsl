@@ -1,4 +1,4 @@
-#ifdef SPHERE_BILLBOARD
+#ifdef RENDERER_MODE_SPHERE_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy; // Billboard模式z轴无效
 	vec3 cameraUpVector = normalize(u_cameraUp); // TODO:是否外面归一化
 	vec3 sideVector = normalize(cross(u_cameraDirection, cameraUpVector));

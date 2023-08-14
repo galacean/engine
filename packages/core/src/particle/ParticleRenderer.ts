@@ -7,6 +7,7 @@ import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleShaderProperty } from "./ParticleShaderProperty";
+import { Entity } from "../Entity";
 
 /**
  * Particle Renderer Component.
@@ -86,13 +87,10 @@ export class ParticleRenderer extends Renderer {
   set renderMode(value: ParticleRenderMode) {
     if (this._renderMode !== value) {
       const lastRenderMode = this._renderMode;
-      const lastRenderModeMacro = this._currentRenderModeMacro;
-
       this._renderMode = value;
 
       const shaderData = this.shaderData;
-      lastRenderModeMacro && shaderData.disableMacro(lastRenderModeMacro);
-
+      shaderData.disableMacro(this._currentRenderModeMacro);
       switch (value) {
         case ParticleRenderMode.Billboard:
           this._currentRenderModeMacro = ParticleRenderer.renderModeBillboardMacro;
@@ -116,6 +114,14 @@ export class ParticleRenderer extends Renderer {
         this.generator._reorganizeGeometryBuffers();
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
+    super(entity);
+    this.shaderData.enableMacro(ParticleRenderer.renderModeBillboardMacro);
   }
 
   /**

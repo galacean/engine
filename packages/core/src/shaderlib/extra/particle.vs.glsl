@@ -1,4 +1,4 @@
-#if defined(SPHERE_BILLBOARD) || defined(STRETCHED_BILLBOARD) || defined(HORIZONTAL_BILLBOARD) || defined(VERTICAL_BILLBOARD)
+#if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
     attribute vec4 a_CornerTextureCoordinate;
 #endif
 
@@ -47,7 +47,7 @@ uniform vec3 u_SizeScale;
 uniform mat4 camera_ViewMat;
 uniform mat4 camera_ProjMat;
 
-#ifdef STRETCHED_BILLBOARD
+#ifdef RENDERER_MODE_STRETCHED_BILLBOARD
     uniform vec3 u_cameraPos;
 #endif
 uniform vec3 u_cameraDirection; // TODO:只有几种广告牌模式需要用
@@ -97,7 +97,7 @@ void main() {
 
 #ifdef BASETEXTURE
         vec2 simulateUV;
-    #if defined(SPHERE_BILLBOARD) || defined(STRETCHED_BILLBOARD) || defined(HORIZONTAL_BILLBOARD) || defined(VERTICAL_BILLBOARD)
+    #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
         simulateUV = a_SimulationUV.xy + a_CornerTextureCoordinate.zw * a_SimulationUV.zw;
         v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
     #endif
