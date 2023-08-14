@@ -32,7 +32,6 @@ varying vec4 v_Color;
     attribute vec4 a_SimulationUV;
     varying vec2 v_TextureCoordinate;
 #endif
-uniform vec4 u_tilingOffset;
 
 uniform float u_CurrentTime;
 uniform vec3 u_Gravity;
@@ -105,7 +104,6 @@ void main() {
                 simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
-                v_TextureCoordinate = TransformUV(v_TextureCoordinate, u_tilingOffset);
         #endif
     } else {
 	    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Discard use out of X(-1,1),Y(-1,1),Z(0,1)

@@ -1,8 +1,4 @@
-vec2 TransformUV(vec2 texcoord, vec4 tilingOffset) {
-    vec2 transTexcoord = vec2(texcoord.x, texcoord.y - 1.0) * tilingOffset.xy + vec2(tilingOffset.z, -tilingOffset.w);
-    transTexcoord.y += 1.0;
-    return transTexcoord;
-}
+
 
 vec3 rotationByEuler(in vec3 vector, in vec3 rot) {
     float halfRoll = rot.z * 0.5;

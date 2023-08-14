@@ -363,11 +363,10 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    const startUVInfo = ParticleGenerator._tempVector40;
-    instanceVertices[offset + particleUtils.simulationOffset] = startUVInfo.x;
-    instanceVertices[offset + 35] = startUVInfo.y;
-    instanceVertices[offset + 36] = startUVInfo.z;
-    instanceVertices[offset + 37] = startUVInfo.w;
+    instanceVertices[offset + particleUtils.simulationOffset] = 1;
+    instanceVertices[offset + 35] = 1;
+    instanceVertices[offset + 36] = 0;
+    instanceVertices[offset + 37] = 0;
 
     this._firstFreeElement = nextFreeElement;
   }
