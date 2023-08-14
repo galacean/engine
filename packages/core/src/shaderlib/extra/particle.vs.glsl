@@ -76,10 +76,10 @@ void main() {
         vec3 gravityVelocity = u_Gravity * age;
 
         vec4 worldRotation;
-        if (u_SimulationSpace == 1) {
-            worldRotation = a_SimulationWorldRotation;
-        } else {
+        if (u_SimulationSpace == 0) {
             worldRotation = u_WorldRotation;
+        } else {
+            worldRotation = a_SimulationWorldRotation;
         }
 
         //drag

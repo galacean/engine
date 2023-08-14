@@ -132,10 +132,10 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
     }
 #endif
 
-    if (u_SimulationSpace == 1) {
+    if (u_SimulationSpace == 0) {
+        finalPosition = finalPosition + u_WorldPosition;
+    } else if (u_SimulationSpace == 1) {
 	    finalPosition = finalPosition + a_SimulationWorldPosition;
-    } else if (u_SimulationSpace == 0) {
-	    finalPosition = finalPosition + u_WorldPosition;
 	}
 
     finalPosition += 0.5 * gravityVelocity * age;
