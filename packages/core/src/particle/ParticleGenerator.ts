@@ -319,7 +319,10 @@ export class ParticleGenerator {
       instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, rand.random());
       instanceVertices[offset + 14] = main.startSizeZ.evaluate(undefined, rand.random());
     } else {
-      instanceVertices[offset + 12] = main.startSize.evaluate(undefined, rand.random());
+      const size = main.startSize.evaluate(undefined, rand.random());
+      instanceVertices[offset + 12] = size;
+      instanceVertices[offset + 13] = size;
+      instanceVertices[offset + 14] = size;
     }
 
     // Start rotation
