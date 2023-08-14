@@ -235,7 +235,9 @@ export class ParticleRenderer extends Renderer {
         " New:" +
         particleSystem._firstNewElement +
         " Free:" +
-        particleSystem._firstFreeElement
+        particleSystem._firstFreeElement +
+        " InstanceCount:" +
+        primitive.instanceCount
     );
   }
 }

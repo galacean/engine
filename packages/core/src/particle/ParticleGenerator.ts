@@ -420,19 +420,20 @@ export class ParticleGenerator {
 
   private _addNewParticlesToVertexBuffer(): void {
     const byteStride = this._renderer.engine._particleBufferUtils.instanceVertexStride;
-    const firstNewElement = this._firstNewElement;
+    const firstActiveElement = this._firstActiveElement;
     const firstFreeElement = this._firstFreeElement;
-    const start = firstNewElement * byteStride;
+    const start = firstActiveElement * byteStride;
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
     const dataBuffer = this._instanceVertices.buffer;
 
-    if (firstNewElement < firstFreeElement) {
-      instanceBuffer.setData(dataBuffer, start, start, (firstFreeElement - firstNewElement) * byteStride);
+    if (firstActiveElement < firstFreeElement) {
+      instanceBuffer.setData(dataBuffer, 0, start, (firstFreeElement - firstActiveElement) * byteStride);
     } else {
-      instanceBuffer.setData(dataBuffer, start, start, (this._currentParticleCount - firstNewElement) * byteStride);
+      const firstSegmentCount = (this._currentParticleCount - firstActiveElement) * byteStride;
+      instanceBuffer.setData(dataBuffer, 0, start, firstSegmentCount);
 
       if (firstFreeElement > 0) {
-        instanceBuffer.setData(dataBuffer, 0, 0, firstFreeElement * byteStride);
+        instanceBuffer.setData(dataBuffer, firstSegmentCount, 0, firstFreeElement * byteStride);
       }
     }
     this._firstNewElement = firstFreeElement;
