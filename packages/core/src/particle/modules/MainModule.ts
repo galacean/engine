@@ -1,3 +1,4 @@
+import { Color } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
@@ -42,7 +43,7 @@ export class MainModule {
   flipRotation: number = 0;
 
   /** The mode of start color */
-  startColor: ParticleGradient = new ParticleGradient();
+  startColor: ParticleGradient = new ParticleGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle System applies to gravity, defined by Physics.gravity. */
   gravityModifier: ParticleCurve = new ParticleCurve(0);
   /** This selects the space in which to simulate particles. It can be either world or local space. */

@@ -44,8 +44,8 @@ uniform int u_ScalingMode;
 uniform vec3 u_PositionScale;
 uniform vec3 u_SizeScale;
 
-uniform mat4 u_viewMat;
-uniform mat4 u_projMat;
+uniform mat4 camera_ViewMat;
+uniform mat4 camera_ProjMat;
 
 #ifdef STRETCHED_BILLBOARD
     uniform vec3 u_cameraPos;
@@ -92,7 +92,7 @@ void main() {
         #include <vertical_billboard>
         #include <particle_mesh>
 
-        gl_Position = u_projMat * u_viewMat * vec4(center, 1.0);
+        gl_Position = camera_ProjMat * camera_ViewMat * vec4(center, 1.0);
         v_Color = computeParticleColor(a_StartColor, normalizedAge);
 
 #ifdef BASETEXTURE

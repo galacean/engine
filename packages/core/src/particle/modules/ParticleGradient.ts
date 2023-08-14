@@ -7,13 +7,37 @@ import { ParticleGradientMode } from "../enums/ParticleGradientMode";
  */
 export class ParticleGradient implements IClone {
   /** The curve mode. */
-  mode: ParticleGradientMode = ParticleGradientMode.Color;
-  /* The constant value used by the curve if mode is set to `Constant`. */
-  color: Color = new Color();
-  /* The min constant value used by the curve if mode is set to `TwoConstants`. */
-  colorMin: Color = new Color();
-  /* The max constant value used by the curve if mode is set to`TwoConstants`. */
-  colorMax: Color = new Color();
+  mode: ParticleGradientMode = ParticleGradientMode.Constant;
+  /* The color used by the curve if mode is set to `Constant`. */
+  constant: Color = new Color();
+  /* The min color value used by the curve if mode is set to `TwoConstants`. */
+  constantMin: Color = new Color();
+  /* The max color value used by the curve if mode is set to `TwoConstants`. */
+  constantMax: Color = new Color();
+
+  /**
+   * Create a curve that generates a constant color.
+   * @param constant - The constant color
+   */
+  constructor(constant: Color);
+
+  /**
+   * Create a curve that can generate color between a minimum constant and a maximum constant.
+   * @param constantMin - The min constant value
+   * @param constantMax - The max constant value
+   */
+  constructor(constantMin: Color, constantMax: Color);
+
+  constructor(constantOrConstantMin: Color, constantMax?: Color) {
+    if (constantMax) {
+      this.constantMin.copyFrom(constantOrConstantMin);
+      this.constantMax.copyFrom(constantMax);
+      this.mode = ParticleGradientMode.TwoConstants;
+    } else {
+      this.constant.copyFrom(constantOrConstantMin);
+      this.mode = ParticleGradientMode.Constant;
+    }
+  }
 
   /**
    * Query the color at the specified time.
@@ -24,11 +48,11 @@ export class ParticleGradient implements IClone {
 
   evaluate(time: number, lerpFactor: number, out: Color): void {
     switch (this.mode) {
-      case ParticleGradientMode.Color:
-        out.copyFrom(this.color);
+      case ParticleGradientMode.Constant:
+        out.copyFrom(this.constant);
         break;
-      case ParticleGradientMode.TwoColors:
-        Color.lerp(this.colorMin, this.colorMax, lerpFactor, out);
+      case ParticleGradientMode.TwoConstants:
+        Color.lerp(this.constantMin, this.constantMax, lerpFactor, out);
         break;
       default:
         break;
@@ -40,16 +64,16 @@ export class ParticleGradient implements IClone {
    */
   cloneTo(destEmission: ParticleGradient): void {
     destEmission.mode = this.mode;
-    destEmission.color = this.color;
-    destEmission.colorMin = this.colorMin;
-    destEmission.colorMax = this.colorMax;
+    destEmission.constant.copyFrom(this.constant);
+    destEmission.constantMin.copyFrom(this.constantMin);
+    destEmission.constantMax.copyFrom(this.constantMax);
   }
 
   /**
    * @inheritDoc
    */
   clone(): ParticleGradient {
-    const destEmission = new ParticleGradient();
+    const destEmission = new ParticleGradient(this.constant);
     this.cloneTo(destEmission);
     return destEmission;
   }

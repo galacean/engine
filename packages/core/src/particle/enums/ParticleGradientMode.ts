@@ -2,10 +2,10 @@
  * Particle gradient mode.
  */
 export enum ParticleGradientMode {
-  /* Single color. */
-  Color,
-  /* Random value between two colors. */
-  TwoColors,
+  /* Single constant color. */
+  Constant,
+  /* Random value between two constant colors. */
+  TwoConstants,
   /* Single color gradient curve mode. */
   Gradient,
   /* Random value between two color gradients. */
