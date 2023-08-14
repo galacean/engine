@@ -1,7 +1,6 @@
 #ifdef RENDERER_MODE_SPHERE_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy; // Billboard模式z轴无效
-	vec3 cameraUpVector = normalize(camera_Up); // TODO:是否外面归一化
-	vec3 sideVector = normalize(cross(camera_Direction, cameraUpVector));
+	vec3 sideVector = normalize(cross(camera_Direction, camera_Up));
 	vec3 upVector = normalize(cross(sideVector, camera_Direction));
 	corner *= computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);
     #if defined(ROTATION_OVER_LIFETIME) || defined(ROTATION_OVER_LIFETIME_SEPARATE)

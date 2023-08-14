@@ -67,7 +67,7 @@ export class ParticleBufferUtils {
       BufferUsage.Static,
       false
     );
-    const billboardIndices = new Uint8Array([0, 2, 1, 0, 3, 2]);
+    const billboardIndices = new Uint8Array([0, 2, 3, 0, 1, 2]);
     indexBuffer.setData(billboardIndices);
     this.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);
   }
