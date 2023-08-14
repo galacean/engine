@@ -122,7 +122,7 @@ export class ParticleRenderer extends Renderer {
    * Play the particle system.
    * @param withChildren - Whether to play the particle system of the child entity
    */
-  play(withChildren: boolean): void {
+  play(withChildren?: boolean): void {
     this._isPlaying = true;
   }
 

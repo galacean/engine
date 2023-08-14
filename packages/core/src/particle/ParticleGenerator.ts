@@ -62,7 +62,6 @@ export class ParticleGenerator {
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
 
-  private readonly _engine: Engine;
   private readonly _renderer: ParticleRenderer;
   private readonly _particleIncreaseCount: number = 128;
 
@@ -211,8 +210,9 @@ export class ParticleGenerator {
     const stride = ParticleBufferUtils.instanceVertexStride;
     const particleCount = this._currentParticleCount + increaseCount;
     const byteLength = stride * particleCount;
+    const engine = this._renderer.engine;
     const vertexInstanceBuffer = new Buffer(
-      this._engine,
+      engine,
       BufferBindFlag.VertexBuffer,
       byteLength,
       BufferUsage.Dynamic,
@@ -364,7 +364,7 @@ export class ParticleGenerator {
 
   private _retireActiveParticles(): void {
     const epsilon = 0.0001;
-    const frameCount = this._engine.time.frameCount;
+    const frameCount = this._renderer.engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
     while (this._firstActiveElement != this._firstNewElement) {
@@ -388,7 +388,7 @@ export class ParticleGenerator {
   }
 
   private _freeRetiredParticles(): void {
-    const frameCount = this._engine.time.frameCount;
+    const frameCount = this._renderer.engine.time.frameCount;
 
     while (this._firstRetiredElement != this._firstActiveElement) {
       const offset =

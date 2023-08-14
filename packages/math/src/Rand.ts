@@ -9,7 +9,7 @@ export class Rand {
   }
 
   private _seed: number;
-  private _state: [number, number];
+  private _state: number[];
 
   /**
    * Seed used to initialize the generator.
@@ -23,6 +23,7 @@ export class Rand {
    * @param seed - Seed used to initialize the generator
    */
   constructor(seed: number) {
+    this._state = new Array<number>(2);
     this.reset(seed);
   }
 
@@ -37,19 +38,16 @@ export class Rand {
 
   /**
    * Reset the generator by a new seed.
-   * @param seed
+   * @param seed - Random seed
    */
   reset(seed: number): void {
     this._seed = seed;
-    this._state = this._initializeState(seed);
-  }
 
-  private _initializeState(seed: number): [number, number] {
-    const state = <[number, number]>[seed || 1, 0];
+    this._state[0] = seed || 1;
+    this._state[1] = 0;
     for (let i = 0; i < 10; i++) {
       this._advanceState();
     }
-    return state;
   }
 
   private _advanceState(): void {
