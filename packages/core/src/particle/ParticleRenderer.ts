@@ -8,6 +8,8 @@ import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleShaderProperty } from "./ParticleShaderProperty";
 import { Entity } from "../Entity";
+import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 
 /**
  * Particle Renderer Component.
@@ -163,31 +165,31 @@ export class ParticleRenderer extends Renderer {
     const transform = this.entity.transform;
 
     switch (particleSystem.main.simulationSpace) {
-      case 0: //World
-        break;
-      case 1: //Local
+      case ParticleSimulationSpace.Local:
         shaderData.setVector3(ParticleShaderProperty.worldPosition, transform.worldPosition);
         const worldRotation = transform.worldRotationQuaternion;
         const worldRotationV4 = ParticleRenderer._tempVector40;
         worldRotationV4.copyFrom(worldRotation);
         shaderData.setVector4(ParticleShaderProperty.worldRotation, worldRotationV4);
         break;
+      case ParticleSimulationSpace.World:
+        break;
       default:
         throw new Error("ShurikenParticleMaterial: SimulationSpace value is invalid.");
     }
 
     switch (particleSystem.main.scalingMode) {
-      case 0:
+      case ParticleScaleMode.Hierarchy:
         var scale = transform.lossyWorldScale;
         shaderData.setVector3(ParticleShaderProperty.positionScale, scale);
         shaderData.setVector3(ParticleShaderProperty.sizeScale, scale);
         break;
-      case 1:
+      case ParticleScaleMode.Local:
         var scale = transform.scale;
         shaderData.setVector3(ParticleShaderProperty.positionScale, scale);
         shaderData.setVector3(ParticleShaderProperty.sizeScale, scale);
         break;
-      case 2:
+      case ParticleScaleMode.World:
         shaderData.setVector3(ParticleShaderProperty.positionScale, transform.lossyWorldScale);
         shaderData.setVector3(ParticleShaderProperty.sizeScale, ParticleRenderer._vector3One);
         break;
