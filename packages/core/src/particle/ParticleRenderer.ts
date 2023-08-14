@@ -141,7 +141,7 @@ export class ParticleRenderer extends Renderer {
     particleSystem._update(this.engine.time.deltaTime);
 
     // No particles to render
-    if (particleSystem._firstActiveElement !== particleSystem._firstNewElement) {
+    if (particleSystem._firstActiveElement === particleSystem._firstFreeElement) {
       return;
     }
 
