@@ -56,17 +56,17 @@ export function TranscodeWorkerCode() {
       case "init":
         init(message.transcoderWasm)
           .then(() => self.postMessage("init-completed"))
-          .catch((e) => {
-            throw e;
-          });
+          .catch((e) => self.postMessage({ error: e }));
         break;
       case "transcode":
-        transcodePromise.then((KTX2File) => {
-          const result = transcode(message.buffer, message.format, KTX2File);
-          // @ts-ignore
-          result.type = "transcoded";
-          self.postMessage(result);
-        });
+        transcodePromise
+          .then((KTX2File) => {
+            const result = transcode(message.buffer, message.format, KTX2File);
+            // @ts-ignore
+            result.type = "transcoded";
+            self.postMessage(result);
+          })
+          .catch((e) => self.postMessage({ error: e }));
         break;
     }
   };
@@ -89,14 +89,19 @@ export function TranscodeWorkerCode() {
   }
 
   function init(wasmBinary: ArrayBuffer) {
-    transcodePromise = new Promise((resolve) => {
+    transcodePromise = new Promise((resolve, reject) => {
       const BasisModule = {
         wasmBinary,
         onRuntimeInitialized: () => {
           resolve(BasisModule);
+        },
+        onAbort: (e) => {
+          reject(e);
         }
       };
-      self["BASIS"](BasisModule);
+      self["BASIS"](BasisModule).catch((e) => {
+        console.log(e);
+      });
     }).then((BasisModule: any) => {
       BasisModule.initializeBasis();
       return BasisModule.KTX2File;
