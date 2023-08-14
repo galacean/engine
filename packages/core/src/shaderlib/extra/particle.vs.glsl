@@ -2,7 +2,7 @@
     attribute vec4 a_CornerTextureCoordinate;
 #endif
 
-#ifdef MESH
+#ifdef RENDERER_MODE_MESH
     attribute vec3 a_MeshPosition;
     attribute vec4 a_MeshColor;
     attribute vec2 a_MeshTextureCoordinate;
@@ -100,7 +100,7 @@ void main() {
                 simulateUV = a_CornerTextureCoordinate.zw * a_SimulationUV.xy + a_SimulationUV.zw;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
-            #ifdef MESH
+            #ifdef RENDERER_MODE_MESH
                 simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif

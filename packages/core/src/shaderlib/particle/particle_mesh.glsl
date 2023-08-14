@@ -1,4 +1,4 @@
-#ifdef MESH
+#ifdef RENDERER_MODE_MESH
 	vec3 size = computeParticleSizeMesh(a_StartSize, normalizedAge);
     #if defined(ROTATION_OVER_LIFETIME) || defined(ROTATION_OVER_LIFETIME_SEPARATE)
         if (u_ThreeDStartRotation) {

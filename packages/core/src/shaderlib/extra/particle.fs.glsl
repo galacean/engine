@@ -3,19 +3,19 @@ varying vec2 v_TextureCoordinate;
 uniform sampler2D material_BaseTexture;
 uniform vec4 material_BaseColor;
 
-#ifdef MESH
+#ifdef RENDERER_MODE_MESH
 	varying vec4 v_MeshColor;
 #endif
 
 void main() {
-	#ifdef MESH
+	#ifdef RENDERER_MODE_MESH
 		gl_FragColor = v_MeshColor;
 	#else
 		gl_FragColor = vec4(1.0);	
 	#endif
 		
 	#ifdef MATERIAL_HAS_BASETEXTURE
-		gl_FragColor *= texture2D(material_BaseTexture,v_TextureCoordinate) * material_BaseColor * 2.0 * v_Color;
+		gl_FragColor *= texture2D(material_BaseTexture,v_TextureCoordinate) * material_BaseColor * v_Color;
 	#else
 		gl_FragColor *= material_BaseColor*2.0*v_Color;
 	#endif

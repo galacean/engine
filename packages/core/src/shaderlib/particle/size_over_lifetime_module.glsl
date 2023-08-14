@@ -57,7 +57,7 @@ vec2 computeParticleSizeBillboard(in vec2 size, in float normalizedAge) {
     return size;
 }
 
-#ifdef MESH
+#ifdef RENDERER_MODE_MESH
 vec3 computeParticleSizeMesh(in vec3 size, in float normalizedAge) {
     #ifdef SIZE_OVER_LIFETIME_CURVE
         size *= getCurValueFromGradientFloat(u_SOLSizeGradient, normalizedAge);
