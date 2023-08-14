@@ -103,6 +103,23 @@ export class ResourceManager {
   }
 
   /**
+   * Find the resource by type.
+   * @param type - Resource type
+   * @returns - Resource collection
+   */
+  findResourcesByType<T extends EngineObject>(type: new (...args) => T): T[] | null {
+    const resources = new Array<T>();
+    const referResourcePool = this._referResourcePool;
+    for (const k in referResourcePool) {
+      const resource = referResourcePool[k];
+      if (resource instanceof type) {
+        resources.push(resource);
+      }
+    }
+    return resources;
+  }
+
+  /**
    * Get asset url from instanceId.
    * @param instanceId - Engine instance id
    * @returns Asset url
