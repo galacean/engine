@@ -1,5 +1,5 @@
 /**
- * Random number generator based on the Xorshift algorithm.
+ * Random number generator based on the Xorshift+ algorithm.
  */
 export class Rand {
   private static _uint32MaxValue = Math.pow(2, 32) - 1;
@@ -9,7 +9,8 @@ export class Rand {
   }
 
   private _seed: number;
-  private _state: number[];
+  private _state0: number;
+  private _state1: number;
 
   /**
    * Seed used to initialize the generator.
@@ -23,7 +24,6 @@ export class Rand {
    * @param seed - Seed used to initialize the generator
    */
   constructor(seed: number) {
-    this._state = new Array<number>(2);
     this.reset(seed);
   }
 
@@ -33,7 +33,7 @@ export class Rand {
    */
   random(): number {
     this._advanceState();
-    return Rand._toUint32(this._state[0] + this._state[1]) / Rand._uint32MaxValue;
+    return Rand._toUint32(this._state0 + this._state1) / Rand._uint32MaxValue;
   }
 
   /**
@@ -43,20 +43,20 @@ export class Rand {
   reset(seed: number): void {
     this._seed = seed;
 
-    this._state[0] = seed || 1;
-    this._state[1] = 0;
-    for (let i = 0; i < 10; i++) {
+    this._state0 = seed;
+    this._state1 = 0;
+    for (let i = 0; i < 5; i++) {
       this._advanceState();
     }
   }
 
   private _advanceState(): void {
-    let x = this._state[0];
-    let y = this._state[1];
-    this._state[0] = y;
+    let x = this._state0;
+    const y = this._state1;
+    this._state0 = y;
     x ^= x << 23;
     x ^= x >>> 17;
     x ^= y ^ (y >>> 26);
-    this._state[1] = x;
+    this._state1 = x;
   }
 }
