@@ -20,12 +20,12 @@ export class GLPrimitive implements IPlatformPrimitive {
 
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject> = new Map();
-  private readonly _useVao: boolean;
+  private readonly _isSupportVAO: boolean;
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
     this._primitive = primitive;
     this._canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
-    this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
+    this._isSupportVAO = rhi.canIUse(GLCapabilityType.vertexArrayObject);
     this._gl = rhi.gl;
   }
 
@@ -35,7 +35,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   draw(shaderProgram: any, subMesh: SubPrimitive): void {
     const gl = this._gl;
     const primitive = this._primitive;
-    const useVao = this._useVao && primitive._enableVAO;
+    const useVao = this._isSupportVAO && primitive.enableVAO;
 
     if (useVao) {
       if (primitive._bufferStructChanged) {
@@ -70,6 +70,7 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (this._canUseInstancedArrays) {
         if (indexBufferBinding) {
           if (useVao) {
+            console.log(start + " " + count + " " + instanceCount);
             gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, instanceCount);
           } else {
             const { _glBuffer } = indexBufferBinding.buffer._platformBuffer;
@@ -94,7 +95,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   }
 
   destroy(): void {
-    this._useVao && this._clearVAO();
+    this._isSupportVAO && this._clearVAO();
   }
 
   /**
@@ -111,7 +112,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
-  
+
     for (const name in attributeLocation) {
       const loc = attributeLocation[name];
       if (loc === -1) continue;
