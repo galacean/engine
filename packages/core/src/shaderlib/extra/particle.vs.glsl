@@ -28,7 +28,7 @@ attribute vec3 a_SimulationWorldPosition;
 attribute vec4 a_SimulationWorldRotation;
 
 varying vec4 v_Color;
-#ifdef BASETEXTURE
+#ifdef MATERIAL_HAS_BASETEXTURE
     attribute vec4 a_SimulationUV;
     varying vec2 v_TextureCoordinate;
 #endif
@@ -70,9 +70,9 @@ void main() {
     vec3 lifeVelocity;
     if (normalizedAge < 1.0) {
         vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
-#if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
-        lifeVelocity = computeParticleLifeVelocity(normalizedAge); //计算粒子生命周期速度
-#endif
+        #if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
+            lifeVelocity = computeParticleLifeVelocity(normalizedAge); //计算粒子生命周期速度
+        #endif
         vec3 gravityVelocity = u_Gravity * age;
 
         vec4 worldRotation;
@@ -95,18 +95,18 @@ void main() {
         gl_Position = camera_ProjMat * camera_ViewMat * vec4(center, 1.0);
         v_Color = computeParticleColor(a_StartColor, normalizedAge);
 
-#ifdef BASETEXTURE
-        vec2 simulateUV;
-    #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
-        simulateUV = a_SimulationUV.xy + a_CornerTextureCoordinate.zw * a_SimulationUV.zw;
-        v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
-    #endif
-    #ifdef MESH
-        simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
-        v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
-    #endif
-        v_TextureCoordinate = TransformUV(v_TextureCoordinate, u_tilingOffset);
-#endif
+        #ifdef MATERIAL_HAS_BASETEXTURE
+            vec2 simulateUV;
+            #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
+                simulateUV = a_SimulationUV.xy + a_CornerTextureCoordinate.zw * a_SimulationUV.zw;
+                v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
+            #endif
+            #ifdef MESH
+                simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
+                v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
+            #endif
+                v_TextureCoordinate = TransformUV(v_TextureCoordinate, u_tilingOffset);
+        #endif
     } else {
 	    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Discard use out of X(-1,1),Y(-1,1),Z(0,1)
     }

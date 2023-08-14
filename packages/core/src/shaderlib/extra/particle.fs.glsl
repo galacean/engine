@@ -14,7 +14,7 @@ void main() {
 		gl_FragColor = vec4(1.0);	
 	#endif
 		
-	#ifdef BASETEXTURE
+	#ifdef MATERIAL_HAS_BASETEXTURE
 		gl_FragColor *= texture2D(material_BaseTexture,v_TextureCoordinate) * material_BaseColor * 2.0 * v_Color;
 	#else
 		gl_FragColor *= material_BaseColor*2.0*v_Color;
