@@ -50,8 +50,8 @@ uniform mat4 camera_ProjMat;
 #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
     uniform vec3 u_cameraPos;
 #endif
-uniform vec3 u_cameraDirection; // TODO:只有几种广告牌模式需要用
-uniform vec3 u_cameraUp;
+uniform vec3 camera_Direction; // TODO:只有几种广告牌模式需要用
+uniform vec3 camera_Up;
 
 uniform float u_StretchedBillboardLengthScale;
 uniform float u_StretchedBillboardSpeedScale;
