@@ -99,9 +99,7 @@ export function TranscodeWorkerCode() {
           reject(e);
         }
       };
-      self["BASIS"](BasisModule).catch((e) => {
-        console.log(e);
-      });
+      self["BASIS"](BasisModule);
     }).then((BasisModule: any) => {
       BasisModule.initializeBasis();
       return BasisModule.KTX2File;
