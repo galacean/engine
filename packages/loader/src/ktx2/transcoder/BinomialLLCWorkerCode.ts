@@ -92,12 +92,8 @@ export function TranscodeWorkerCode() {
     transcodePromise = new Promise((resolve, reject) => {
       const BasisModule = {
         wasmBinary,
-        onRuntimeInitialized: () => {
-          resolve(BasisModule);
-        },
-        onAbort: (e) => {
-          reject(e);
-        }
+        onRuntimeInitialized: () => resolve(BasisModule),
+        onAbort: reject
       };
       self["BASIS"](BasisModule);
     }).then((BasisModule: any) => {
