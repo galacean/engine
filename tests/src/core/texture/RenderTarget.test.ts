@@ -122,7 +122,7 @@ describe("RenderTarget", async () => {
       renderTarget.destroy();
 
       expect(renderTarget.colorTextureCount).to.eq(0);
-      expect(renderTarget.getColorTexture()).to.be.undefined;
+      expect(renderTarget.getColorTexture()).to.be.null;
     });
   });
 });
