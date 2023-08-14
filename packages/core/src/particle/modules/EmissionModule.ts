@@ -9,9 +9,9 @@ export class EmissionModule {
   /** Specifies whether the EmissionModule is enabled or disabled. */
   enabled: boolean = true;
   /**  The rate of particle emission. */
-  rateOverTime: ParticleCurve = new ParticleCurve();
+  rateOverTime: ParticleCurve = new ParticleCurve(10);
   /**  The rate at which the emitter spawns new particles over distance. */
-  rateOverDistance: ParticleCurve = new ParticleCurve();
+  rateOverDistance: ParticleCurve = new ParticleCurve(0);
 
   private _bursts: Burst[] = [];
 
@@ -28,7 +28,6 @@ export class EmissionModule {
 
   constructor(generator: ParticleGenerator) {
     this._generator = generator;
-    this.rateOverTime.constant = 10;
   }
 
   /**

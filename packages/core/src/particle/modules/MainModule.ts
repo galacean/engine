@@ -11,40 +11,40 @@ export class MainModule {
   loop: boolean = true;
 
   /** Start delay in seconds. */
-  startDelay: ParticleCurve = new ParticleCurve();
+  startDelay: ParticleCurve = new ParticleCurve(0);
   /** The initial lifetime of particles when emitted. */
-  startLifetime: ParticleCurve = new ParticleCurve();
+  startLifetime: ParticleCurve = new ParticleCurve(5);
   /** The initial speed of particles when the Particle System first spawns them. */
-  startSpeed: ParticleCurve = new ParticleCurve();
+  startSpeed: ParticleCurve = new ParticleCurve(5);
 
   /** A flag to enable specifying particle size individually for each axis. */
   startSize3D: boolean = false;
   /** The initial size of particles when the Particle System first spawns them. */
-  startSize: ParticleCurve = new ParticleCurve();
+  startSize: ParticleCurve = new ParticleCurve(1);
   /** The initial size of particles along the x-axis when the Particle System first spawns them. */
-  startSizeX: ParticleCurve = new ParticleCurve();
+  startSizeX: ParticleCurve = new ParticleCurve(1);
   /** The initial size of particles along the y-axis when the Particle System first spawns them. */
-  startSizeY: ParticleCurve = new ParticleCurve();
+  startSizeY: ParticleCurve = new ParticleCurve(1);
   /** The initial size of particles along the z-axis when the Particle System first spawns them. */
-  startSizeZ: ParticleCurve = new ParticleCurve();
+  startSizeZ: ParticleCurve = new ParticleCurve(1);
 
   /** A flag to enable 3D particle rotation. */
   startRotation3D: boolean = false;
   /** The initial rotation of particles when the Particle System first spawns them. */
-  startRotation: ParticleCurve = new ParticleCurve();
+  startRotation: ParticleCurve = new ParticleCurve(0);
   /** The initial rotation of particles around the x-axis when emitted.*/
-  startRotationX: ParticleCurve = new ParticleCurve();
+  startRotationX: ParticleCurve = new ParticleCurve(0);
   /** The initial rotation of particles around the y-axis when emitted. */
-  startRotationY: ParticleCurve = new ParticleCurve();
+  startRotationY: ParticleCurve = new ParticleCurve(0);
   /** The initial rotation of particles around the z-axis when emitted. */
-  startRotationZ: ParticleCurve = new ParticleCurve();
+  startRotationZ: ParticleCurve = new ParticleCurve(0);
   /** Makes some particles spin in the opposite direction. */
   flipRotation: number = 0;
 
   /** The mode of start color */
   startColor: ParticleGradient = new ParticleGradient();
   /** A scale that this Particle System applies to gravity, defined by Physics.gravity. */
-  gravityModifier: ParticleCurve = new ParticleCurve();
+  gravityModifier: ParticleCurve = new ParticleCurve(0);
   /** This selects the space in which to simulate particles. It can be either world or local space. */
   simulationSpace = ParticleSimulationSpace.Local;
   /** Override the default playback speed of the Particle System. */

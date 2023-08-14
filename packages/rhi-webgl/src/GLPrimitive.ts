@@ -1,8 +1,8 @@
-import { GLCapabilityType, Logger, Mesh, SubMesh, Primitive } from "@galacean/engine-core";
+import { GLCapabilityType, Logger, Primitive } from "@galacean/engine-core";
+import { SubPrimitive } from "@galacean/engine-core/types/graphic/SubPrimitive";
 import { IPlatformPrimitive } from "@galacean/engine-design";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";
-import { SubPrimitive } from "@galacean/engine-core/types/graphic/SubPrimitive";
 
 /**
  * Improvement of VAO:
