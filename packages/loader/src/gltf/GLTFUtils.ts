@@ -121,8 +121,8 @@ export class GLTFUtils {
     return context.getBuffers().then((buffers) => {
       const bufferIndex = bufferView.buffer;
       const buffer = buffers[bufferIndex];
-      const bufferByteOffset = bufferView.byteOffset || 0;
-      const byteOffset = accessor.byteOffset || 0;
+      const bufferByteOffset = bufferView.byteOffset ?? 0;
+      const byteOffset = accessor.byteOffset ?? 0;
 
       const TypedArray = GLTFUtils.getComponentType(componentType);
       const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
@@ -162,6 +162,24 @@ export class GLTFUtils {
       }
       return bufferInfo;
     });
+  }
+
+  public static bufferToVector3Array(
+    data: TypedArray,
+    byteStride: number,
+    accessorByteOffset: number,
+    count: number
+  ): Vector3[] {
+    const bytesPerElement = data.BYTES_PER_ELEMENT;
+    const offset = (accessorByteOffset % byteStride) / bytesPerElement;
+    const stride = byteStride / bytesPerElement;
+
+    const vector3s = new Array<Vector3>(count);
+    for (let i = 0; i < count; i++) {
+      const index = offset + i * stride;
+      vector3s[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
+    }
+    return vector3s;
   }
 
   /**
