@@ -126,6 +126,12 @@ export class ParticleRenderer extends Renderer {
     this.shaderData.enableMacro(ParticleRenderer.renderModeBillboardMacro);
   }
 
+  override _onEnable(): void {
+    if (this.generator.main.playOnEnabled) {
+      this.play();
+    }
+  }
+
   /**
    * Play the particle system.
    * @param withChildren - Whether to play the particle system of the child entity
@@ -142,7 +148,9 @@ export class ParticleRenderer extends Renderer {
    * @param withChildren - Whether to stop the particle system of the child entity
    * @param stopMode - Stop mode
    */
-  stop(withChildren: boolean, stopMode: ParticleStopMode): void {}
+  stop(withChildren: boolean, stopMode: ParticleStopMode): void {
+    this._isPlaying = false;
+  }
 
   /**
    * @internal

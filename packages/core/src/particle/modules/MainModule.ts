@@ -54,7 +54,7 @@ export class MainModule {
   /** Control how the Particle System applies its Transform component to the particles it emits. */
   scalingMode = ParticleScaleMode.Local;
   /** If set to true, the Particle System automatically begins to play on startup. */
-  playOnAwake: boolean = true;
+  playOnEnabled: boolean = true;
 
   private _maxParticles: number = 1000;
 
