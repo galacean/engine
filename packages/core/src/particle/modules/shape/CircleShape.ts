@@ -3,6 +3,8 @@ import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeMultiModeValue } from "./enums/ParticleShapeMultiModeValue";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
+import { ParticleGenerator } from "../../ParticleGenerator";
+import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 
 /**
  * Circle Particle Emitter
@@ -17,13 +19,13 @@ export class CircleShape extends BaseShape {
   /** The mode to generate particles around the arc. */
   arcMode = ParticleShapeMultiModeValue.Loop;
 
-  constructor() {
-    super();
+  constructor(generator: ParticleGenerator) {
+    super(generator);
     this.shapeType = ParticleShapeType.Circle;
   }
 
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._rand;
+    const rand = this._generator._getRandAndResetSubSeed(ParticleRandomSubSeeds.Shape);
     const positionPoint: Vector2 = CircleShape._tempPositionPoint;
 
     switch (this.arcMode) {
@@ -59,7 +61,7 @@ export class CircleShape extends BaseShape {
   }
 
   override clone(): CircleShape {
-    const destShape = new CircleShape();
+    const destShape = new CircleShape(null);
     this.cloneTo(destShape);
     return destShape;
   }

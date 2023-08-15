@@ -2,6 +2,8 @@ import { BoundingBox, Rand, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
+import { ParticleGenerator } from "../../ParticleGenerator";
+import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 
 /**
  * Hemisphere emitter
@@ -12,14 +14,13 @@ export class HemisphereShape extends BaseShape {
   /** Whether emit from shell */
   emitFromShell: boolean = false;
 
-  constructor() {
-    super();
+  constructor(generator: ParticleGenerator) {
+    super(generator);
     this.shapeType = ParticleShapeType.Hemisphere;
   }
 
-
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._rand;
+    const rand = this._generator._getRandAndResetSubSeed(ParticleRandomSubSeeds.Shape);
     if (this.emitFromShell) {
       ShapeUtils._randomPointUnitSphere(position, rand);
     } else {
@@ -48,7 +49,7 @@ export class HemisphereShape extends BaseShape {
   }
 
   override clone(): HemisphereShape {
-    const destShape = new HemisphereShape();
+    const destShape = new HemisphereShape(null);
     this.cloneTo(destShape);
     return destShape;
   }

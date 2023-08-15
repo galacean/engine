@@ -2,6 +2,7 @@ import { IClone } from "@galacean/engine-design";
 import { Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
+import { ParticleGenerator } from "../../ParticleGenerator";
 
 /**
  * Base class for all particle shapes.
@@ -14,10 +15,11 @@ export abstract class BaseShape implements IClone {
   /** Randomizes the starting direction of particles. */
   randomDirectionAmount: number = 0;
 
-  /** @internal */
-  _rand: Rand = new Rand(0, ParticleRandomSubSeeds.Shape);
+  protected _generator: ParticleGenerator;
 
-  constructor() {}
+  constructor(generator: ParticleGenerator) {
+    this._generator = generator;
+  }
 
   /**
    * @internal

@@ -16,11 +16,26 @@ export class Rand {
   }
 
   /**
-   * Generate a random number.
+   * Generate a integer 32bit random number.
+   * @returns - A random number
+   */
+  randomInt32(): number {
+    let x = this._state0;
+    const y = this._state1;
+    this._state0 = y;
+    x ^= x << 23;
+    x ^= x >>> 17;
+    x ^= y ^ (y >>> 26);
+    this._state1 = x;
+    return (this._state0 + this._state1) >>> 0;
+  }
+
+  /**
+   * Generate a number between 0 and 1.
    * @returns - A random number
    */
   random(): number {
-    return this._advanceState() / 0xffffffff; // 2^32 - 1
+    return this.randomInt32() / 0xffffffff; // 2^32 - 1
   }
 
   /**
@@ -31,16 +46,5 @@ export class Rand {
   reset(seed0: number, seed1: number): void {
     this._state0 = seed0 >>> 0;
     this._state1 = seed1 >>> 0;
-  }
-
-  private _advanceState(): number {
-    let x = this._state0;
-    const y = this._state1;
-    this._state0 = y;
-    x ^= x << 23;
-    x ^= x >>> 17;
-    x ^= y ^ (y >>> 26);
-    this._state1 = x;
-    return (this._state0 + this._state1) >>> 0;
   }
 }

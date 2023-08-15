@@ -1,4 +1,6 @@
 import { MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
+import { ParticleGenerator } from "../../ParticleGenerator";
+import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -19,13 +21,14 @@ export class ConeShape extends BaseShape {
   /** Cone emitter type. */
   emitType: ConeEmitType = ConeEmitType.Base;
 
-  constructor() {
-    super();
+  constructor(generator: ParticleGenerator) {
+    super(generator);
     this.shapeType = ParticleShapeType.Cone;
   }
 
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._rand;
+    const rand = this._generator._getRandAndResetSubSeed(ParticleRandomSubSeeds.Shape);
+
     const unitPosition = ConeShape._tempPositionPoint;
 
     const angle = MathUtil.degreeToRadian(this.angle);
@@ -40,7 +43,7 @@ export class ConeShape extends BaseShape {
         const unitDirection = ConeShape._tempDirectionPoint;
         ShapeUtils._randomPointInsideUnitCircle(unitDirection, rand);
         Vector2.lerp(unitPosition, unitDirection, this.randomDirectionAmount, unitDirection);
-        direction.set(unitDirection.x * dirSinA, unitDirection.y * dirSinA, dirCosA);
+        direction.set(unitDirection.x * dirSinA, unitDirection.y * dirSinA, -dirCosA);
         break;
       case ConeEmitType.Volume:
         ShapeUtils._randomPointInsideUnitCircle(unitPosition, rand);
@@ -51,7 +54,7 @@ export class ConeShape extends BaseShape {
 
         direction.x = unitPosition.x * dirSinA;
         direction.y = unitPosition.y * dirSinA;
-        direction.z = dirCosA;
+        direction.z = -dirCosA;
 
         Vector3.normalize(direction, direction);
         Vector3.scale(direction, this.length * rand.random(), direction);
@@ -62,8 +65,6 @@ export class ConeShape extends BaseShape {
         }
         break;
     }
-    // reverse to default direction
-    direction.z *= -1.0;
   }
 
   override cloneTo(destShape: ConeShape): void {
@@ -75,7 +76,7 @@ export class ConeShape extends BaseShape {
   }
 
   override clone(): ConeShape {
-    const destShape = new ConeShape();
+    const destShape = new ConeShape(null);
     this.cloneTo(destShape);
     return destShape;
   }

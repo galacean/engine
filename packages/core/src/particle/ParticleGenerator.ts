@@ -1,4 +1,4 @@
-import { Color, Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
@@ -6,6 +6,7 @@ import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleRenderer } from "./ParticleRenderer";
+import { ParticleRandomSubSeeds } from "./enums/ParticleRandomSubSeeds";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./modules/EmissionModule";
@@ -33,7 +34,7 @@ export class ParticleGenerator {
   /** Emission module. */
   readonly emission: EmissionModule = new EmissionModule(this);
   /** Shape module. */
-  readonly shape: ShapeModule = new ShapeModule();
+  readonly shape: ShapeModule = new ShapeModule(this);
 
   /** @internal */
   _currentParticleCount: number = 0;
@@ -60,6 +61,8 @@ export class ParticleGenerator {
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
   private _randomSeed: number = 0;
+  private _rand: Rand = new Rand(0, 0);
+  private _advancedRandSeed: number;
 
   private readonly _renderer: ParticleRenderer;
   private readonly _particleIncreaseCount: number = 128;
@@ -76,8 +79,7 @@ export class ParticleGenerator {
   }
 
   set randomSeed(value: number) {
-    this._randomSeed = value;
-    this.main._resetRandomSeed(value);
+    this._resetGlobalRandSeed(value);
     this.useAutoRandomSeed = false;
   }
 
@@ -254,6 +256,8 @@ export class ParticleGenerator {
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
+    this._advancedRandSeed = this._rand.randomInt32();
+
     const particleUtils = this._renderer.engine._particleBufferUtils;
 
     direction.normalize();
@@ -287,7 +291,8 @@ export class ParticleGenerator {
       rot = transform.worldRotationQuaternion;
     }
 
-    const startSpeed = main.startSpeed.evaluate(undefined, main._startSpeedRand.random());
+    const startSpeedRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartSpeed);
+    const startSpeed = main.startSpeed.evaluate(undefined, startSpeedRand.random());
 
     const instanceVertices = this._instanceVertices;
     const offset = firstFreeElement * particleUtils.instanceVertexFloatStride;
@@ -298,9 +303,10 @@ export class ParticleGenerator {
     instanceVertices[offset + 2] = position.z;
 
     // Start life time
+    const startLifeTimeRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
     instanceVertices[offset + particleUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
       undefined,
-      main._startLifeRand.random()
+      startLifeTimeRand.random()
     );
 
     // Direction
@@ -313,14 +319,15 @@ export class ParticleGenerator {
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
-    main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
+    const startColorRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
+    main.startColor.evaluate(undefined, startColorRand.random(), startColor);
     instanceVertices[offset + 8] = startColor.r;
     instanceVertices[offset + 9] = startColor.g;
     instanceVertices[offset + 10] = startColor.b;
     instanceVertices[offset + 11] = startColor.a;
 
     // Start size
-    const startSizeRand = main._startSizeRand;
+    const startSizeRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
     if (main.startSize3D) {
       instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, startSizeRand.random());
       instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, startSizeRand.random());
@@ -333,7 +340,7 @@ export class ParticleGenerator {
     }
 
     // Start rotation
-    const startRotationRand = main._startRotationRand;
+    const startRotationRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
     if (main.startRotation3D) {
       instanceVertices[offset + 15] = main.startRotationX.evaluate(undefined, startRotationRand.random());
       instanceVertices[offset + 16] = main.startRotationY.evaluate(undefined, startRotationRand.random());
@@ -379,6 +386,23 @@ export class ParticleGenerator {
     instanceVertices[offset + 37] = 0;
 
     this._firstFreeElement = nextFreeElement;
+  }
+
+  /**
+   * @internal
+   */
+  _resetGlobalRandSeed(value: number): void {
+    this._randomSeed = value;
+    this._rand.reset(value, 0);
+  }
+
+  /**
+   * @internal
+   */
+  _getRandAndResetSubSeed(subSeed: number): Rand {
+    const rand = this._rand;
+    rand.reset(this._advancedRandSeed, subSeed);
+    return rand;
   }
 
   private _retireActiveParticles(): void {
