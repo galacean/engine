@@ -115,9 +115,9 @@ export interface IFnMacroUndefineAstContent {
   variable: string;
 }
 
-export interface IFnMacroIncludeAstContent {
-  name: string;
-}
+// export interface IFnMacroIncludeAstContent {
+//   name: string;
+// }
 
 export interface IFnMacroConditionAstContent {
   command: string;

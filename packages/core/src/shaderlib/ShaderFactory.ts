@@ -80,4 +80,4 @@ class ShaderFactory {
   }
 }
 
-export { ShaderFactory };
+export { ShaderFactory, ShaderLib };

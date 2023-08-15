@@ -27,7 +27,7 @@ import {
   IFnMacroConditionElifBranchAstContent,
   IFnMacroConditionElseBranchAstContent,
   IFnMacroDefineAstContent,
-  IFnMacroIncludeAstContent,
+  // IFnMacroIncludeAstContent,
   IFnMacroUndefineAstContent,
   IFnMultiplicationExprAstContent,
   IFnRelationExprAstContent,
@@ -231,7 +231,7 @@ export class FnMacroUndefineAstNode extends AstNode<IFnMacroUndefineAstContent> 
   }
 }
 
-export class FnMacroIncludeAstNode extends AstNode<IFnMacroIncludeAstContent> {}
+// export class FnMacroIncludeAstNode extends AstNode<IFnMacroIncludeAstContent> {}
 
 export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent> {
   override _doSerialization(context: RuntimeContext): string {

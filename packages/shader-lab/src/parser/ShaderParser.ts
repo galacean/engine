@@ -2,6 +2,7 @@ import { CstParser, Lexer, TokenType } from "chevrotain";
 import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords, RenderState, _allTokens } from "./tokens";
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/Value";
 import { Identifier } from "./tokens/Other";
+import { ShaderFactory } from "@galacean/engine";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;
@@ -14,9 +15,9 @@ export class ShaderParser extends CstParser {
   }
 
   parse(text: string) {
-    // TODO: replace include
+    const source = ShaderFactory.parseIncludes(text);
 
-    const lexingResult = this.lexer.tokenize(text);
+    const lexingResult = this.lexer.tokenize(source);
     this.input = lexingResult.tokens;
   }
 
@@ -66,7 +67,7 @@ export class ShaderParser extends CstParser {
         { ALT: () => this.SUBRULE(this._ruleShaderPropertyDeclare) },
         { ALT: () => this.SUBRULE(this._rulePassPropertyAssignment) },
         { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
-        { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
+        // { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
         { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) }
       ]);
     });
@@ -165,7 +166,7 @@ export class ShaderParser extends CstParser {
   private _ruleFnMacro = this.RULE("_ruleFnMacro", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) },
-      { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
+      // { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
       { ALT: () => this.SUBRULE(this._ruleFnMacroCondition) },
       { ALT: () => this.SUBRULE(this._ruleFnMacroUndefine) }
     ]);
@@ -310,10 +311,10 @@ export class ShaderParser extends CstParser {
     this.OR([{ ALT: () => this.CONSUME(Symbols.Multiply) }, { ALT: () => this.CONSUME(Symbols.Divide) }]);
   });
 
-  private _ruleFnMacroInclude = this.RULE("_ruleFnMacroInclude", () => {
-    this.CONSUME(GLKeywords.M_INCLUDE);
-    this.CONSUME(Values.ValueString);
-  });
+  // private _ruleFnMacroInclude = this.RULE("_ruleFnMacroInclude", () => {
+  //   this.CONSUME(GLKeywords.M_INCLUDE);
+  //   this.CONSUME(Values.ValueString);
+  // });
 
   private _ruleDiscardStatement = this.RULE("_ruleDiscardStatement", () => {
     this.CONSUME(GLKeywords.Discard);

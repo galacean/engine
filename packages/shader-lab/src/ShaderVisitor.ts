@@ -16,7 +16,7 @@ import {
   FnConditionStatementAstNode,
   FnMacroConditionAstNode,
   FnMacroDefineAstNode,
-  FnMacroIncludeAstNode,
+  // FnMacroIncludeAstNode,
   FnReturnStatementAstNode,
   FnVariableAstNode,
   MultiplicationOperatorAstNode,
@@ -334,19 +334,19 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     });
   }
 
-  _ruleFnMacroInclude(children: _ruleFnMacroIncludeCstChildren, param?: any) {
-    const position: IPositionRange = {
-      start: AstNodeUtils.getTokenPosition(children.m_include[0]).start,
-      end: AstNodeUtils.getTokenPosition(children.ValueString[0]).end
-    };
+  // _ruleFnMacroInclude(children: _ruleFnMacroIncludeCstChildren, param?: any) {
+  //   const position: IPositionRange = {
+  //     start: AstNodeUtils.getTokenPosition(children.m_include[0]).start,
+  //     end: AstNodeUtils.getTokenPosition(children.ValueString[0]).end
+  //   };
 
-    return new FnMacroIncludeAstNode({
-      position,
-      content: {
-        name: children.ValueString[0].image.replace(/"(.*)"/, "$1")
-      }
-    });
-  }
+  //   return new FnMacroIncludeAstNode({
+  //     position,
+  //     content: {
+  //       name: children.ValueString[0].image.replace(/"(.*)"/, "$1")
+  //     }
+  //   });
+  // }
 
   _ruleFnMacroCondition(children: _ruleFnMacroConditionCstChildren, param?: any) {
     const position: IPositionRange = {

@@ -65,6 +65,8 @@ Shader "Water" {
 
     BlendState = blendState;
 
+    #include <noise_common>
+
     StencilState {
       Enabled = true;
       ReferenceValue = 2;

@@ -1,1 +1,1 @@
-export { ShaderFactory } from "./ShaderFactory";
+export { ShaderFactory, ShaderLib } from "./ShaderFactory";
