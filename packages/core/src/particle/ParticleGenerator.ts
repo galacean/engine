@@ -38,8 +38,6 @@ export class ParticleGenerator {
   /** @internal */
   _currentParticleCount: number = 0;
   /** @internal */
-  _randomSeed: number = 0;
-  /** @internal */
   _playTime: number = 0;
 
   /** @internal */
@@ -61,13 +59,17 @@ export class ParticleGenerator {
   private _waitProcessRetiredElementCount: number = 0;
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
+  private _randomSeed: number = 0;
 
   private readonly _renderer: ParticleRenderer;
   private readonly _particleIncreaseCount: number = 128;
 
   /**
    * Random seed.
-   * @remarks If `useAutoRandomSeed` is true, this value will be random changed when play.
+   *
+   * @remarks
+   * If `useAutoRandomSeed` is true, this value will be random changed when play.
+   * If you set this value custom, `useAutoRandomSeed` will be false.
    */
   get randomSeed(): number {
     return this._randomSeed;
@@ -76,6 +78,7 @@ export class ParticleGenerator {
   set randomSeed(value: number) {
     this._randomSeed = value;
     this.main._resetRandomSeed(value);
+    this.useAutoRandomSeed = false;
   }
 
   constructor(renderer: ParticleRenderer) {

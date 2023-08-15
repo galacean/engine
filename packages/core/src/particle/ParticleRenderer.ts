@@ -132,6 +132,9 @@ export class ParticleRenderer extends Renderer {
    */
   play(withChildren?: boolean): void {
     this._isPlaying = true;
+    if (this.generator.useAutoRandomSeed) {
+      this.generator.randomSeed = Math.floor(Math.random() * 0xffffffff); // 2^32 - 1
+    }
   }
 
   /**
