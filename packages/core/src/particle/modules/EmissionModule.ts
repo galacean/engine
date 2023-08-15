@@ -109,9 +109,9 @@ export class EmissionModule extends ParticleGeneratorModule {
 
       let cumulativeTime = playTime - this._frameRateTime;
       while (cumulativeTime >= emitInterval) {
-        particleSystem._emit(this._frameRateTime, 1);
         cumulativeTime -= emitInterval;
         this._frameRateTime += emitInterval;
+        particleSystem._emit(this._frameRateTime, 1);
       }
     }
   }
