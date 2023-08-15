@@ -1,29 +1,30 @@
 import { expect } from "chai";
 import { Layer, DirectLight, PointLight, SpotLight, AmbientLight, Camera, Entity, AssetType, SkyBoxMaterial, BackgroundMode, PrimitiveMesh, Scene, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
 canvasDOM.height = 1024;
 
-
 describe("Light test", function () {
   let engine: Engine;
   let scene: Scene;
   let lightEntity: Entity;
+  let sunLight: DirectLight;
   let directLight: DirectLight;
   let pointLight: PointLight;
   let spotLight: SpotLight;
-  let ambientLight: AmbientLight;
+  let ambientLightA: AmbientLight;
+  let ambientLightB: AmbientLight;
 
   before(async () => {
     engine = await WebGLEngine.create({ canvas: canvasDOM , colorSpace: 1 });
     const rootEntity = engine.sceneManager.activeScene.createRootEntity(); 
-    const camera = rootEntity.addComponent(Camera);
     scene = engine.sceneManager.activeScene;
  
     lightEntity = rootEntity.createChild("light");
+    sunLight = lightEntity.addComponent(DirectLight);
     directLight = lightEntity.addComponent(DirectLight);
     pointLight = lightEntity.addComponent(PointLight);
     spotLight = lightEntity.addComponent(SpotLight);
@@ -31,7 +32,7 @@ describe("Light test", function () {
     engine.run();
   });
 
-  it("test directLight default values", function () {
+  it("light default values", function () {
     expect(directLight.color).to.deep.equal(new Color(1, 1, 1));
     expect(directLight.intensity).to.equal(1);
     expect(directLight.cullingMask).to.equal(Layer.Everything);
@@ -43,13 +44,14 @@ describe("Light test", function () {
     expect(directLight.reverseDirection).to.deep.equal(new Vector3(0, 0, 1));
   });
 
-  it("should update color correctly", function () {
-    const color = new Color(0.5, 0.5, 0.5);
-    directLight.color = color;
-    expect(directLight.color).to.deep.equal(color);
+  it("update color", function () {
+    const expectColor = new Color(0.5, 0.5, 0.5);
+    directLight.color = expectColor;
+    const currentColor = directLight.color;
+    expect(expectColor).to.deep.equal(currentColor);
   });
 
-  it("should update viewMatrix correctly", function () {
+  it("update viewMatrix", function () {
     const viewMatrix = directLight.viewMatrix.elements;
     const inverseViewMatrix = directLight.inverseViewMatrix.elements;
     
@@ -71,32 +73,53 @@ describe("Light test", function () {
     expect(viewMatrix[15]).to.deep.equal(inverseViewMatrix[15]);
   });
 
-  it("should update intensity correctly", function () {
+  it("update intensity", function () {
     directLight.intensity = 2;
     expect(directLight.intensity).to.equal(2);
+
+    const expectedColor = new Color(1, 1, 1);
+    const calculatedColor = directLight["_lightColor"];
+    expect(calculatedColor).to.deep.equal(expectedColor);
   });
 
-  it("should update shadow type correctly", function () {
+  it("update shadow type", function () {
     directLight.shadowType = 1;
     expect(directLight.shadowType).to.equal(1);
   });
 
-  it("should update shadow bias correctly", function () {
+  it("update shadow bias", function () {
     directLight.shadowBias = 0.1;
     expect(directLight.shadowBias).to.equal(0.1);
   });
 
-  it("should update shadow normal bias correctly", function () {
+  it("update shadow normal bias", function () {
     directLight.shadowNormalBias = 0.6;
     expect(directLight.shadowNormalBias).to.equal(0.6);
   });
 
-  it("should update shadow strength correctly", function () {
-    directLight.shadowStrength = 0.8;
-    expect(directLight.shadowStrength).to.equal(0.8);
+  it("update shadow strength", function () {
+    const expectShadowStrength = 0.8;
+    directLight.shadowStrength = expectShadowStrength;
+    expect(directLight.shadowStrength).to.equal(expectShadowStrength);
+    
+    /*
+    const minusShadowStrength = -1;
+    expect(() => {
+      directLight.shadowStrength = minusShadowStrength;
+    }).to.throw(Error, "Shadow strength must be between 0 and 1");
+
+    const beyondShadowStrength = 2;
+    expect(() => {
+      directLight.shadowStrength = beyondShadowStrength;
+    }).to.throw(Error, "Shadow strength must be between 0 and 1");
+    */
   });
 
-  it("test pointLight position values", function () {
+  it("multiple directlight or sunlight", function () {
+    //expect(sunLight["_lightIndex"]).to.eq(1);
+  });
+
+  it("pointLight position values", function () {
     pointLight.distance = 100;
     pointLight.color.set(0.3, 0.3, 1, 1);
     const expectPositon = new Vector3(-10, 10, 10);
@@ -107,7 +130,7 @@ describe("Light test", function () {
     expect(lightPosition.z).to.deep.eq(expectPositon.z);
   });
 
-  it("test spotLight direction", function () {
+  it("spotLight direction", function () {
     spotLight.angle = Math.PI / 6;
     spotLight.penumbra = Math.PI / 12;
     spotLight.color.set(0.3, 0.3, 1, 1);
@@ -117,33 +140,112 @@ describe("Light test", function () {
     expect(expectDirection).to.deep.eq(reverseDirection);
   });
 
-  it("test component enabled false", function () {
+  it("light component disabled", function () {
     directLight.enabled = false;
     pointLight.enabled = false;
     spotLight.enabled = false;
   });
 
-  it("test ambientLight", function () {
-    ambientLight = scene.ambientLight;
+  it("create ambientLight", function () {
+    ambientLightA = scene.ambientLight;
+    ambientLightA.diffuseSolidColor.set(1, 0, 0, 1);
+    const diffuseIntensity = ambientLightA.diffuseIntensity;
+    expect(diffuseIntensity).to.eq(1);
 
-    ambientLight.diffuseSolidColor.set(1, 0, 0, 1);
-    ambientLight.diffuseIntensity = 0.5;
+    const expectDiffuseIntensity = 0.5;
+    ambientLightA.diffuseIntensity = expectDiffuseIntensity;
+    expect(ambientLightA.diffuseIntensity).to.eq(expectDiffuseIntensity);
 
+    const diffuseSphericalHarmonics = new SphericalHarmonics3();
+    ambientLightA.diffuseSphericalHarmonics = diffuseSphericalHarmonics;
+    const coefficients = ambientLightA.diffuseSphericalHarmonics.coefficients;
+    expect(coefficients).to.have.lengthOf(27);
+  });
+
+  it("ambientLight diffuseSphericalHarmonics", async () => {
     const sky = scene.background.sky;
     const skyMaterial = new SkyBoxMaterial(engine);
     scene.background.mode = BackgroundMode.Sky;
     sky.material = skyMaterial;
     sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
+    ambientLightA = await 
     engine.resourceManager
     .load<AmbientLight>({
         type: AssetType.Env,
         url: 'https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin',
-    })
-    .then((ambientLight) => {
-        scene.ambientLight = ambientLight;
-        skyMaterial.texture = ambientLight.specularTexture;
-        skyMaterial.textureDecodeRGBM = true;
     });
+    if(ambientLightA){
+        scene.ambientLight = ambientLightA;
+        skyMaterial.texture = ambientLightA.specularTexture;
+        skyMaterial.textureDecodeRGBM = true;
+    }
+    
+    const diffuseSphericalHarmonics = ambientLightA.diffuseSphericalHarmonics;
+    expect(diffuseSphericalHarmonics).to.be.instanceOf(SphericalHarmonics3);
+
+    const coefficients = diffuseSphericalHarmonics.coefficients;
+    expect(coefficients).to.have.lengthOf(27);
+    
+    expect(coefficients[0]).to.be.closeTo(0.740, 0.001);
+    expect(coefficients[2]).to.be.closeTo(0.589, 0.001);
+    expect(coefficients[5]).to.be.closeTo(-0.425, 0.001);
+    expect(coefficients[8]).to.be.closeTo(0.170, 0.001);
+    expect(coefficients[11]).to.be.closeTo(-0.419, 0.001);
+    expect(coefficients[14]).to.be.closeTo(0.407, 0.001);
+    expect(coefficients[17]).to.be.closeTo(-0.168, 0.001);
+    expect(coefficients[20]).to.be.closeTo(-0.070, 0.001);
+    expect(coefficients[23]).to.be.closeTo(-0.189, 0.001);
+    expect(coefficients[26]).to.be.closeTo(0.111, 0.001);
+  });
+
+  it("ambientLight diffuseMode", function () {
+    const currentDiffuseMode = 1;
+    const diffuseMode = ambientLightA.diffuseMode;
+    expect(diffuseMode).to.eq(currentDiffuseMode);
+
+    const expectDiffuseMode = 0;
+    ambientLightA.diffuseMode = expectDiffuseMode;
+    expect(ambientLightA.diffuseMode).to.eq(expectDiffuseMode);
+  });
+
+  it("ambientLight diffuseSolidColor", function () {
+    const expectColor = new Color(0.8, 0.2, 0.5);
+    ambientLightA.diffuseSolidColor = expectColor;
+    const currentColor = ambientLightA.diffuseSolidColor;
+    expect(currentColor).to.deep.eq(expectColor);
+  });
+
+  it("ambientLight specularIntensity", function () {
+    const expectIntensity = 0.5;
+    ambientLightA.specularIntensity = expectIntensity;
+    const currentIntensity = ambientLightA.specularIntensity;
+    expect(currentIntensity).to.eq(currentIntensity);
+  });
+
+  it("ambientLight specularTextureDecodeRGBM", async () =>  {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM , colorSpace: 0});
+    const scene = engine.sceneManager.activeScene;
+    const rootEntity = engine.sceneManager.activeScene.createRootEntity();
+    const lightEntity = rootEntity.createChild("light");
+    const directLight = lightEntity.addComponent(DirectLight);
+    const pointLight = lightEntity.addComponent(PointLight);
+    const spotLight = lightEntity.addComponent(SpotLight);
+    ambientLightB = scene.ambientLight;
+
+    engine.run();
+
+    const decodeRGBM = ambientLightB.specularTextureDecodeRGBM;
+    const expectDecodeRGBM = false;
+    expect(decodeRGBM).to.eq(expectDecodeRGBM);
+
+    ambientLightB.specularTextureDecodeRGBM = !expectDecodeRGBM;
+    const currentDecodeRGBM =  ambientLightB.specularTextureDecodeRGBM;
+    expect(currentDecodeRGBM).to.eq(!expectDecodeRGBM);
+  });
+
+  after(function () {
+    engine.resourceManager.gc();
+    engine.destroy();
   });
 });
