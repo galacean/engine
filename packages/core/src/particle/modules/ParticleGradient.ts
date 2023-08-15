@@ -6,23 +6,23 @@ import { ParticleGradientMode } from "../enums/ParticleGradientMode";
  * Particle Gradient.
  */
 export class ParticleGradient implements IClone {
-  /** The curve mode. */
+  /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
-  /* The color used by the curve if mode is set to `Constant`. */
+  /* The constant color used by the gradient if mode is set to `Constant`. */
   constant: Color = new Color();
-  /* The min color value used by the curve if mode is set to `TwoConstants`. */
+  /* The min constant color value used by the gradient if mode is set to `TwoConstants`. */
   constantMin: Color = new Color();
-  /* The max color value used by the curve if mode is set to `TwoConstants`. */
+  /* The max constant color value used by the gradient if mode is set to `TwoConstants`. */
   constantMax: Color = new Color();
 
   /**
-   * Create a curve that generates a constant color.
+   * Create a particle gradient that generates a constant color.
    * @param constant - The constant color
    */
   constructor(constant: Color);
 
   /**
-   * Create a curve that can generate color between a minimum constant and a maximum constant.
+   * Create a particle gradient that can generate color between a minimum constant and a maximum constant.
    * @param constantMin - The min constant value
    * @param constantMax - The max constant value
    */
@@ -42,7 +42,7 @@ export class ParticleGradient implements IClone {
   /**
    * Query the color at the specified time.
    * @param time - Normalized time at which to evaluate the gradient, Valid when `mode` is set to `Gradient` or `TwoGradients`
-   * @param lerpFactor - Lerp factor between two colors or gradients, Valid when `mode` is set to `TwoColors` or `TwoGradients`
+   * @param lerpFactor - Lerp factor between two constants or gradients, Valid when `mode` is set to `TwoConstants` or `TwoGradients`
    * @param out - The result color
    */
 
@@ -73,8 +73,8 @@ export class ParticleGradient implements IClone {
    * @inheritDoc
    */
   clone(): ParticleGradient {
-    const destEmission = new ParticleGradient(this.constant);
-    this.cloneTo(destEmission);
-    return destEmission;
+    const destGradient = new ParticleGradient(this.constant);
+    this.cloneTo(destGradient);
+    return destGradient;
   }
 }

@@ -15,13 +15,13 @@ export class ParticleCurve implements IClone {
   constantMax: number = 0;
 
   /**
-   * Create a curve that generates a constant value.
+   * Create a particle curve that generates a constant value.
    * @param constant - The constant value
    */
   constructor(constant: number);
 
   /**
-   * Create a curve that can generate values between a minimum constant and a maximum constant.
+   * Create a particle curve that can generate values between a minimum constant and a maximum constant.
    * @param constantMin - The min constant value
    * @param constantMax - The max constant value
    */
@@ -39,7 +39,7 @@ export class ParticleCurve implements IClone {
   }
 
   /**
-   * Query the curve value at the specified time.
+   * Query the value at the specified time.
    * @param time - Normalized time at which to evaluate the curve, Valid when `mode` is set to `Curve` or `TwoCurves`
    * @param lerpFactor - Lerp factor between two constants or curves, Valid when `mode` is set to `TwoConstants` or `TwoCurves`
    * @returns - The result curve value
@@ -70,8 +70,8 @@ export class ParticleCurve implements IClone {
    * @inheritDoc
    */
   clone(): ParticleCurve {
-    let destEmission = new ParticleCurve(0);
-    this.cloneTo(destEmission);
-    return destEmission;
+    let destCurve = new ParticleCurve(0);
+    this.cloneTo(destCurve);
+    return destCurve;
   }
 }
