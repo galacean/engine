@@ -1,9 +1,10 @@
-import { Color } from "@galacean/engine-math";
+import { Color, Rand } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCurve } from "./ParticleCurve";
 import { ParticleGradient } from "./ParticleGradient";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 export class MainModule {
   /** The duration of the Particle System in seconds. */
@@ -55,7 +56,19 @@ export class MainModule {
   /** If set to true, the Particle System automatically begins to play on startup. */
   playOnAwake: boolean = true;
 
+  /** @internal */
+  _startSpeedRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
+  /** @internal */
+  _startColorRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartColor);
+  /** @internal */
+  _startLifeRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartLifetime);
+  /** @internal */
+  _startSizeRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartSize);
+  /** @internal */
+  _startRotationRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
+
   private _maxParticles: number = 1000;
+
   private _generator: ParticleGenerator;
 
   /**
@@ -80,5 +93,16 @@ export class MainModule {
 
   constructor(particleSystem: ParticleGenerator) {
     this._generator = particleSystem;
+  }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._startSpeedRand.reset(seed, ParticleRandomSubSeeds.StartSpeed);
+    this._startColorRand.reset(seed, ParticleRandomSubSeeds.StartColor);
+    this._startLifeRand.reset(seed, ParticleRandomSubSeeds.StartLifetime);
+    this._startSizeRand.reset(seed, ParticleRandomSubSeeds.StartSize);
+    this._startRotationRand.reset(seed, ParticleRandomSubSeeds.StartRotation);
   }
 }

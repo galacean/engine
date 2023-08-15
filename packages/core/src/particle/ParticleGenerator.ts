@@ -1,4 +1,4 @@
-import { Color, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
@@ -38,7 +38,7 @@ export class ParticleGenerator {
   /** @internal */
   _currentParticleCount: number = 0;
   /** @internal */
-  _rand: Rand = new Rand(0);
+  _randomSeed: number = 0;
   /** @internal */
   _playTime: number = 0;
 
@@ -70,11 +70,12 @@ export class ParticleGenerator {
    * @remarks If `useAutoRandomSeed` is true, this value will be random changed when play.
    */
   get randomSeed(): number {
-    return this._rand.seed;
+    return this._randomSeed;
   }
 
   set randomSeed(value: number) {
-    this._rand.reset(value);
+    this._randomSeed = value;
+    this.main._resetRandomSeed(value);
   }
 
   constructor(renderer: ParticleRenderer) {
@@ -273,7 +274,6 @@ export class ParticleGenerator {
     }
 
     const main = this.main;
-    const rand = this._rand;
 
     let pos: Vector3, rot: Quaternion;
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
@@ -281,7 +281,7 @@ export class ParticleGenerator {
       rot = transform.worldRotationQuaternion;
     }
 
-    const startSpeed = main.startSpeed.evaluate(undefined, rand.random());
+    const startSpeed = main.startSpeed.evaluate(undefined, main._startSpeedRand.random());
 
     const instanceVertices = this._instanceVertices;
     const offset = firstFreeElement * particleUtils.instanceVertexFloatStride;
@@ -294,7 +294,7 @@ export class ParticleGenerator {
     // Start life time
     instanceVertices[offset + particleUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
       undefined,
-      rand.random()
+      main._startLifeRand.random()
     );
 
     // Direction
@@ -307,47 +307,51 @@ export class ParticleGenerator {
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
-    main.startColor.evaluate(undefined, rand.random(), startColor);
+    main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
     instanceVertices[offset + 8] = startColor.r;
     instanceVertices[offset + 9] = startColor.g;
     instanceVertices[offset + 10] = startColor.b;
     instanceVertices[offset + 11] = startColor.a;
 
     // Start size
+    const startSizeRand = main._startSizeRand;
     if (main.startSize3D) {
-      instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, rand.random());
-      instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, rand.random());
-      instanceVertices[offset + 14] = main.startSizeZ.evaluate(undefined, rand.random());
+      instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, startSizeRand.random());
+      instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, startSizeRand.random());
+      instanceVertices[offset + 14] = main.startSizeZ.evaluate(undefined, startSizeRand.random());
     } else {
-      const size = main.startSize.evaluate(undefined, rand.random());
+      const size = main.startSize.evaluate(undefined, startSizeRand.random());
       instanceVertices[offset + 12] = size;
       instanceVertices[offset + 13] = size;
       instanceVertices[offset + 14] = size;
     }
 
     // Start rotation
+    const startRotationRand = main._startRotationRand;
     if (main.startRotation3D) {
-      instanceVertices[offset + 15] = main.startRotationX.evaluate(undefined, rand.random());
-      instanceVertices[offset + 16] = main.startRotationY.evaluate(undefined, rand.random());
-      instanceVertices[offset + 17] = main.startRotationZ.evaluate(undefined, rand.random());
+      instanceVertices[offset + 15] = main.startRotationX.evaluate(undefined, startRotationRand.random());
+      instanceVertices[offset + 16] = main.startRotationY.evaluate(undefined, startRotationRand.random());
+      instanceVertices[offset + 17] = main.startRotationZ.evaluate(undefined, startRotationRand.random());
     } else {
-      instanceVertices[offset + 15] = main.startRotation.evaluate(undefined, rand.random());
+      instanceVertices[offset + 15] = main.startRotation.evaluate(undefined, startRotationRand.random());
     }
 
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
 
+    // @todo
     // Color, size, rotation, texture animation
-    instanceVertices[offset + 19] = rand.random();
-    instanceVertices[offset + 20] = rand.random();
-    instanceVertices[offset + 21] = rand.random();
-    instanceVertices[offset + 22] = rand.random();
+    // instanceVertices[offset + 19] = rand.random();
+    // instanceVertices[offset + 20] = rand.random();
+    // instanceVertices[offset + 21] = rand.random();
+    // instanceVertices[offset + 22] = rand.random();
 
+    // @todo
     // Velocity random
-    instanceVertices[offset + 23] = rand.random();
-    instanceVertices[offset + 24] = rand.random();
-    instanceVertices[offset + 25] = rand.random();
-    instanceVertices[offset + 26] = rand.random();
+    // instanceVertices[offset + 23] = rand.random();
+    // instanceVertices[offset + 24] = rand.random();
+    // instanceVertices[offset + 25] = rand.random();
+    // instanceVertices[offset + 26] = rand.random();
 
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       // Simulation world position

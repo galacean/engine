@@ -1,6 +1,8 @@
+import { Rand } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { Burst } from "./Burst";
 import { ParticleCurve } from "./ParticleCurve";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * The EmissionModule of a Particle System.
@@ -18,6 +20,7 @@ export class EmissionModule {
   private _frameRateTime: number = 0;
   private _currentBurstIndex: number = 0;
   private _generator: ParticleGenerator;
+  private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
   /**
    * Gets the burst array.
@@ -98,6 +101,13 @@ export class EmissionModule {
     this._emitByBurst(lastPlayTime, playTime);
   }
 
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
+  }
+
   private _emitByRateOverTime(playTime: number): void {
     const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
     if (ratePerSeconds > 0) {
@@ -139,7 +149,7 @@ export class EmissionModule {
 
   private _emitBySubBurst(lastPlayTime: number, playTime: number): void {
     const particleSystem = this._generator;
-    const rand = particleSystem._rand;
+    const rand = this._burstRand;
     const bursts = this.bursts;
 
     // Calculate the relative time of the burst
