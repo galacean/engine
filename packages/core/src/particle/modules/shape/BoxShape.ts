@@ -16,28 +16,6 @@ export class BoxShape extends BaseShape {
   }
 
   /**
-   * @inheritDoc
-   */
-  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
-    Vector3.scale(this.boxThickness, -0.5, boundBox.min);
-    Vector3.scale(this.boxThickness, 0.5, boundBox.max);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = 0.0;
-    min.y = 0.0;
-    min.z = 0.0;
-    const max: Vector3 = boundBox.max;
-    max.x = 0.0;
-    max.y = 1.0;
-    max.z = 0.0;
-  }
-
-  /**
    * @internal
    */
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {

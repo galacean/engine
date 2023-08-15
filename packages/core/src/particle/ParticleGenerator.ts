@@ -106,14 +106,17 @@ export class ParticleGenerator {
     const position = ParticleGenerator._tempVector30;
     const direction = ParticleGenerator._tempVector31;
     if (this.emission.enabled) {
-      if (this.shape.enabled) {
-      } else {
-        const transform = this._renderer.entity.transform;
-        for (let i = 0; i < count; i++) {
+      const transform = this._renderer.entity.transform;
+      const shape = this.shape;
+      const shapeEnabled = shape.enabled;
+      for (let i = 0; i < count; i++) {
+        if (shapeEnabled) {
+          shape.shape._generatePositionAndDirection(position, direction);
+        } else {
           position.set(0, 0, 0);
           direction.set(0, 0, -1);
-          this._addNewParticle(position, direction, transform, time);
         }
+        this._addNewParticle(position, direction, transform, time);
       }
     }
   }

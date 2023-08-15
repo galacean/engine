@@ -17,27 +17,6 @@ export class HemisphereShape extends BaseShape {
     this.shapeType = ParticleShapeType.Hemisphere;
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
-    const min = boundBox.min;
-    min.x = min.y = min.z = -this.radius;
-    const max = boundBox.max;
-    max.x = max.y = this.radius;
-    max.z = 0;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
-    const min = boundBox.min;
-    min.x = min.y = -1;
-    min.z = 0;
-    const max = boundBox.max;
-    max.x = max.y = max.z = 1;
-  }
 
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
     const rand = this._rand;

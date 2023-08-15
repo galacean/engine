@@ -1,10 +1,10 @@
-import { BoundingBox, Rand, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**
- * Sphere emitter
+ * Particle shape that emits particles from a sphere.
  */
 export class SphereShape extends BaseShape {
   /** Radius of the shape to emit particles from. */
@@ -17,26 +17,6 @@ export class SphereShape extends BaseShape {
     this.shapeType = ParticleShapeType.Sphere;
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = min.z = -this.radius;
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = max.z = this.radius;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = min.z = -1;
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = max.z = 1;
-  }
-
   override _generatePositionAndDirection(
     position: Vector3,
     direction: Vector3,
@@ -47,8 +27,8 @@ export class SphereShape extends BaseShape {
       if (this.emitFromShell) ShapeUtils._randomPointUnitSphere(position, rand);
       else ShapeUtils._randomPointInsideUnitSphere(position, rand);
     } else {
-      if (this.emitFromShell) ShapeUtils._randomPointUnitSphere(position);
-      else ShapeUtils._randomPointInsideUnitSphere(position);
+      if (this.emitFromShell) ShapeUtils._randomPointUnitSphere(position, rand);
+      else ShapeUtils._randomPointInsideUnitSphere(position, rand);
     }
 
     Vector3.scale(position, this.radius, position);
@@ -57,7 +37,7 @@ export class SphereShape extends BaseShape {
       if (rand) {
         ShapeUtils._randomPointUnitSphere(direction, rand);
       } else {
-        ShapeUtils._randomPointUnitSphere(direction);
+        ShapeUtils._randomPointUnitSphere(direction, rand);
       }
     } else {
       direction.copyFrom(position);

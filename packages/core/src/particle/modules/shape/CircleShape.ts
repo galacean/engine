@@ -22,30 +22,6 @@ export class CircleShape extends BaseShape {
     this.shapeType = ParticleShapeType.Circle;
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = min.z = -this.radius;
-    min.y = 0;
-    const max: Vector3 = boundBox.max;
-    max.x = max.z = this.radius;
-    max.y = 0;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
-    const min: Vector3 = boundBox.min;
-    min.x = min.y = -1;
-    min.z = 0;
-    const max: Vector3 = boundBox.max;
-    max.x = max.y = 1;
-    max.z = 0;
-  }
-
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
     const rand = this._rand;
     const positionPoint: Vector2 = CircleShape._tempPositionPoint;
