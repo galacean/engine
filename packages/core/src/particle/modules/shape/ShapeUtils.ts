@@ -4,40 +4,41 @@ import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
  * @internal
  */
 export class ShapeUtils {
-  static _randomPointUnitArcCircle(arc: number, out: Vector2, rand: Rand): void {
+  static randomPointUnitArcCircle(arc: number, out: Vector2, rand: Rand): void {
     const angle = rand.random() * arc;
     out.x = Math.cos(angle);
     out.y = Math.sin(angle);
   }
 
-  static _randomPointInsideUnitArcCircle(arc: number, out: Vector2, rand: Rand): void {
-    ShapeUtils._randomPointUnitArcCircle(arc, out, rand);
-    const range = Math.pow(rand.random(), 1.0 / 2.0);
+  static randomPointInsideUnitArcCircle(arc: number, out: Vector2, rand: Rand): void {
+    ShapeUtils.randomPointUnitArcCircle(arc, out, rand);
+    const range = Math.sqrt(rand.random());
     out.x = out.x * range;
     out.y = out.y * range;
   }
 
-  static _randomPointUnitCircle(out: Vector2, rand: Rand): void {
+  static randomPointUnitCircle(out: Vector2, rand: Rand): void {
     const angle = rand.random() * Math.PI * 2;
     out.x = Math.cos(angle);
     out.y = Math.sin(angle);
   }
 
-  static _randomPointInsideUnitCircle(out: Vector2, rand: Rand): void {
-    ShapeUtils._randomPointUnitCircle(out, rand);
-    const range = Math.pow(rand.random(), 1.0 / 2.0);
+  static randomPointInsideUnitCircle(out: Vector2, rand: Rand): void {
+    ShapeUtils.randomPointUnitCircle(out, rand);
+    const range = Math.sqrt(rand.random());
     out.x = out.x * range;
     out.y = out.y * range;
   }
 
   static _randomPointUnitSphere(out: Vector3, rand: Rand): void {
-    const z = (out.z = rand.random() * 2 - 1.0);
+    const z = rand.random() * 2 - 1.0;
     const a = rand.random() * Math.PI * 2;
 
-    const r: number = Math.sqrt(1.0 - z * z);
+    const r = Math.sqrt(1.0 - z * z);
 
     out.x = r * Math.cos(a);
     out.y = r * Math.sin(a);
+    out.z = z;
   }
 
   static _randomPointInsideUnitSphere(out: Vector3, rand: Rand): void {

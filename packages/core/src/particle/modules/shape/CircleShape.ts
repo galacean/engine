@@ -30,10 +30,10 @@ export class CircleShape extends BaseShape {
 
     switch (this.arcMode) {
       case ParticleShapeMultiModeValue.Loop:
-        ShapeUtils._randomPointUnitArcCircle(this.arc, CircleShape._tempPositionPoint, rand);
+        ShapeUtils.randomPointUnitArcCircle(this.arc, CircleShape._tempPositionPoint, rand);
         break;
       case ParticleShapeMultiModeValue.Random:
-        ShapeUtils._randomPointInsideUnitArcCircle(this.arc, CircleShape._tempPositionPoint, rand);
+        ShapeUtils.randomPointInsideUnitArcCircle(this.arc, CircleShape._tempPositionPoint, rand);
         break;
     }
 
