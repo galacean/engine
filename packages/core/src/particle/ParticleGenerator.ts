@@ -12,6 +12,11 @@ import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
 import { ShapeModule } from "./modules/ShapeModule";
+import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
+import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
+import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
+import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
+import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 
 /**
  * Particle System.
@@ -35,6 +40,16 @@ export class ParticleGenerator {
   readonly emission: EmissionModule = new EmissionModule(this);
   /** Shape module. */
   readonly shape: ShapeModule = new ShapeModule(this);
+  /** Velocity over lifetime module. */
+  readonly velocityOverLifetime: VelocityOverLifetimeModule = new VelocityOverLifetimeModule(this);
+  /** Size over lifetime module. */
+  readonly sizeOverLifetime: SizeOverLifetimeModule = new SizeOverLifetimeModule(this);
+  /** Rotation over lifetime module. */
+  readonly rotationOverLifetime: RotationOverLifetimeModule = new RotationOverLifetimeModule(this);
+  /** Color over lifetime module. */
+  readonly colorOverLifetime: ColorOverLifetimeModule = new ColorOverLifetimeModule(this);
+  /** Texture sheet animation module. */
+  readonly textureSheetAnimation: TextureSheetAnimationModule = new TextureSheetAnimationModule(this);
 
   /** @internal */
   _currentParticleCount: number = 0;
