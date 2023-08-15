@@ -10,9 +10,9 @@ export class ParticleGradient implements IClone {
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The constant color used by the gradient if mode is set to `Constant`. */
   constant: Color = new Color();
-  /* The min constant color value used by the gradient if mode is set to `TwoConstants`. */
+  /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
   constantMin: Color = new Color();
-  /* The max constant color value used by the gradient if mode is set to `TwoConstants`. */
+  /* The max constant color used by the gradient if mode is set to `TwoConstants`. */
   constantMax: Color = new Color();
 
   /**
@@ -23,8 +23,8 @@ export class ParticleGradient implements IClone {
 
   /**
    * Create a particle gradient that can generate color between a minimum constant and a maximum constant.
-   * @param constantMin - The min constant value
-   * @param constantMax - The max constant value
+   * @param constantMin - The min constant color
+   * @param constantMax - The max constant color
    */
   constructor(constantMin: Color, constantMax: Color);
 
