@@ -1,8 +1,8 @@
 import { TokenUtils } from "./TokenUtils";
 
 // built-in variable
-export const GLPosition = TokenUtils.createKeywordToken("gl_Position");
-export const GLFragColor = TokenUtils.createKeywordToken("gl_FragColor");
+// export const GLPosition = TokenUtils.createKeywordToken("gl_Position");
+// export const GLFragColor = TokenUtils.createKeywordToken("gl_FragColor");
 
 // function
 export const Pow = TokenUtils.createKeywordToken("pow");
@@ -26,8 +26,9 @@ export const Else = TokenUtils.createKeywordToken("else");
 export const Discard = TokenUtils.createKeywordToken("discard");
 export const Void = TokenUtils.createKeywordToken("void");
 export const Return = TokenUtils.createKeywordToken("return");
+export const For = TokenUtils.createKeywordToken("for");
 
-export const variableTokenList = [GLPosition, GLFragColor];
+// export const variableTokenList = [GLPosition, GLFragColor];
 export const funcTokenList = [Texture2D, Pow];
 export const macroTokenList = [M_DEFINE, M_IFDEF, M_IFNDEF, M_IF, M_ELSE, M_ELIF, M_ENDIF, M_UNDEFINE, M_INCLUDE];
-export const otherTokenList = [Struct, If, Else, Discard, Void, Return];
+export const otherTokenList = [Struct, If, Else, Discard, Void, Return, For];

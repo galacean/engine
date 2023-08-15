@@ -8,7 +8,6 @@ import {
   FnAstNode,
   ReturnTypeAstNode,
   FnArgAstNode,
-  AssignLoAstNode,
   FnVariableAstNode,
   AddOperatorAstNode,
   MultiplicationExprAstNode,
@@ -16,7 +15,6 @@ import {
   FnAtomicExprAstNode,
   ObjectAstNode,
   VariableTypeAstNode,
-  DeclarationAstNode,
   TagAssignmentAstNode,
   RenderStatePropertyItemAstNode,
   RenderStateDeclarationAstNode,
@@ -28,7 +26,17 @@ import {
   FnConditionStatementAstNode,
   FnMacroDefineAstNode,
   FnMacroConditionElifBranchAstNode,
-  FnMacroConditionElseBranchAstNode
+  FnMacroConditionElseBranchAstNode,
+  FnArrayVariableAstNode,
+  DeclarationWithoutAssignAstNode,
+  ConditionExprAstNode,
+  ArrayIndexAstNode,
+  VariablePropertyAstNode,
+  SelfAssignAstNode,
+  SelfAssignOperatorAstNode,
+  FnAssignExprAstNode,
+  PrecisionAstNode,
+  ShaderPropertyDeclareAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -39,7 +47,7 @@ export interface IShaderAstContent {
   renderStates?: Array<RenderStateDeclarationAstNode>;
   structs?: Array<StructAstNode>;
   tags?: TagAstNode;
-  variables?: Array<VariableDeclarationAstNode>;
+  variables?: Array<ShaderPropertyDeclareAstNode>;
 }
 
 export interface IPropertyItemAstContent {
@@ -55,7 +63,7 @@ export interface ISubShaderAstContent {
   functions?: Array<FnAstNode>;
   renderStates?: Array<RenderStateDeclarationAstNode>;
   structs?: Array<StructAstNode>;
-  variables?: Array<VariableDeclarationAstNode>;
+  variables?: Array<ShaderPropertyDeclareAstNode>;
 }
 
 export interface IFunctionAstContent {
@@ -70,7 +78,7 @@ export interface IPassAstContent {
   tags?: TagAstNode;
   properties: Array<PassPropertyAssignmentAstNode>;
   structs?: Array<StructAstNode>;
-  variables: Array<VariableDeclarationAstNode>;
+  variables: Array<ShaderPropertyDeclareAstNode>;
   functions?: Array<FnAstNode>;
   renderStates?: Array<RenderStateDeclarationAstNode>;
   defines?: Array<FnMacroDefineAstNode>;
@@ -157,11 +165,13 @@ export type IFnBlockStatementAstContent = FnBodyAstNode;
 
 export type IRelationOperatorAstContent = string;
 
-export interface IFnAssignStatementAstContent {
-  assignee: AssignLoAstNode | FnVariableAstNode;
+export interface IFnAssignExprAstContent {
+  assignee: SelfAssignAstNode;
   value: AstNode;
   operator: string;
 }
+
+export type IFnAssignStatementAstContent = FnAssignExprAstNode;
 
 export type IFnExpressionAstContent = AstNode<IFnAddExprAstContent>;
 
@@ -192,9 +202,17 @@ export interface IBooleanAstContent {
   text: string;
   value: boolean;
 }
-export type IFnAssignLOAstContent = string;
 
-export type IFnVariableAstContent = Array<string>;
+export type IFnVariableAstContent = {
+  variable: string;
+  indexes?: ArrayIndexAstNode[];
+  properties?: VariablePropertyAstNode[];
+};
+
+export type IArrayIndexAstContent = string | number;
+
+export type IVariablePropertyAstContent = string;
+
 export type IFnReturnStatementAstContent = ObjectAstNode;
 
 export interface IFnArgAstContent {
@@ -205,16 +223,23 @@ export interface IFnArgAstContent {
   };
 }
 
-export interface IRenderStateDeclarationAstContent<T = any> {
+export interface IRenderStateDeclarationAstContent {
   variable: string;
   renderStateType: string;
   properties: Array<RenderStatePropertyItemAstNode>;
 }
 
-export interface IRenderStatePropertyItemAstContent<T = any> {
+export interface IRenderStatePropertyItemAstContent {
   property: string;
   index?: number;
   value: AstNode;
+}
+
+export interface IForLoopAstContent {
+  init: VariableDeclarationAstNode;
+  condition: ConditionExprAstNode;
+  update: AstNode;
+  body: FnBlockStatementAstNode;
 }
 
 export type IAssignableValueAstContent = string;
@@ -226,23 +251,35 @@ export interface IVariableTypeAstContent {
 
 export interface IFnVariableDeclarationAstContent {
   type: VariableTypeAstNode;
-  variable: string;
+  variable: FnArrayVariableAstNode;
   default?: AstNode;
 }
 
-export interface IDeclarationAstContent {
-  type: VariableTypeAstNode;
+export interface IShaderPropertyDeclareAstContent {
+  prefix?: PrecisionAstNode;
+  declare: DeclarationWithoutAssignAstNode;
+}
+
+export type IPrecisionAstContent = string;
+
+export interface IFnArrayVariableAstContent {
   variable: string;
+  indexes?: (number | string)[];
+}
+
+export interface IDeclarationWithoutAssignAstContent {
+  type: VariableTypeAstNode;
+  variableNode: FnVariableAstNode;
 }
 
 export interface IStructAstContent {
   name: string;
-  variables: Array<DeclarationAstNode>;
+  variables: Array<DeclarationWithoutAssignAstNode>;
 }
 
 export interface IPassPropertyAssignmentAstContent {
   type: string;
-  value: string;
+  value: FnArrayVariableAstNode;
 }
 
 export interface ITagAssignmentAstContent {
@@ -263,3 +300,10 @@ export type ICompareFunctionAstContent = string;
 export type IBlendOperationAstContent = string;
 export type IBlendFactorAstContent = string;
 export type ICullModeAstContent = string;
+
+export interface ISelfAssignAstContent {
+  operator: SelfAssignOperatorAstNode;
+  variable: FnVariableAstNode;
+}
+
+export type ISelfAssignOperatorAstContent = string;

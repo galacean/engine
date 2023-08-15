@@ -4,13 +4,10 @@ import { AstNodeUtils } from "./AstNodeUtils";
 import {
   AddExprAstNode,
   AddOperatorAstNode,
-  AssignLoAstNode,
   AssignableValueAstNode,
   AstNode,
   BooleanAstNode,
-  DeclarationAstNode,
   FnArgAstNode,
-  FnAssignStatementAstNode,
   FnAstNode,
   FnAtomicExprAstNode,
   FnBlockStatementAstNode,
@@ -50,7 +47,17 @@ import {
   ConditionExprAstNode,
   FnMacroConditionElifBranchAstNode,
   FnMacroConditionElseBranchAstNode,
-  FnMacroUndefineAstNode
+  FnMacroUndefineAstNode,
+  DeclarationWithoutAssignAstNode,
+  ForLoopAstNode,
+  ArrayIndexAstNode,
+  VariablePropertyAstNode,
+  SelfAssignOperatorAstNode,
+  SelfAssignAstNode,
+  FnAssignExprAstNode,
+  FnAssignStatementAstNode,
+  PrecisionAstNode,
+  ShaderPropertyDeclareAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
@@ -60,11 +67,8 @@ import {
   _ruleAddOperatorCstChildren,
   _ruleAssignableValueCstChildren,
   _ruleBooleanCstChildren,
-  _ruleDeclarationCstChildren,
   _ruleFnAddExprCstChildren,
   _ruleFnArgCstChildren,
-  _ruleFnAssignLOCstChildren,
-  _ruleFnAssignStatementCstChildren,
   _ruleFnAtomicExprCstChildren,
   _ruleFnBlockStatementCstChildren,
   _ruleFnBodyCstChildren,
@@ -125,7 +129,17 @@ import {
   _ruleConditionExprCstChildren,
   _ruleMacroConditionElifBranchCstChildren,
   _ruleFnMacroConditionElseBranchCstChildren,
-  _ruleFnMacroUndefineCstChildren
+  _ruleFnMacroUndefineCstChildren,
+  _ruleDeclarationWithoutAssignCstChildren,
+  _ruleFnAssignExprCstChildren,
+  _ruleForLoopStatementCstChildren,
+  _ruleFnSelfAssignExprCstChildren,
+  _ruleArrayIndexCstChildren,
+  _ruleFnVariablePropertyCstChildren,
+  _ruleFnSelfOperatorCstChildren,
+  _ruleFnAssignStatementCstChildren,
+  _rulePrecisionPrefixCstChildren,
+  _ruleShaderPropertyDeclareCstChildren
 } from "./types";
 
 export const parser = new ShaderParser();
@@ -154,13 +168,24 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
         name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
         editorProperties,
         subShader,
-        variables: ctx._ruleFnVariableDeclaration?.map((item) => this.visit(item)),
+        variables: ctx._ruleShaderPropertyDeclare?.map((item) => this.visit(item) as any),
         functions: ctx._ruleFn?.map((item) => this.visit(item)),
         structs: ctx._ruleStruct?.map((item) => this.visit(item)),
         tags: ctx._ruleTag ? (this.visit(ctx._ruleTag) as TagAstNode) : undefined,
         renderStates: ctx._ruleRenderStateDeclaration?.map((item) => this.visit(item))
       }
     });
+  }
+
+  _ruleShaderPropertyDeclare(children: _ruleShaderPropertyDeclareCstChildren, param?: any) {
+    const declare = this.visit(children._ruleDeclarationWithoutAssign);
+    const precision = this.visit(children._rulePrecisionPrefix);
+    return new ShaderPropertyDeclareAstNode({ position: declare.position, content: { prefix: precision, declare } });
+  }
+
+  _rulePrecisionPrefix(children: _rulePrecisionPrefixCstChildren, param?: any) {
+    const position: IPositionRange = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new PrecisionAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
   }
 
   _ruleSubShader(ctx: _ruleSubShaderCstChildren, param?: any) {
@@ -178,7 +203,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       content: {
         tags,
         pass,
-        variables: ctx._ruleFnVariableDeclaration?.map((item) => this.visit(item)),
+        variables: ctx._ruleShaderPropertyDeclare?.map((item) => this.visit(item) as any),
         functions: ctx._ruleFn?.map((item) => this.visit(item)),
         structs: ctx._ruleStruct?.map((item) => this.visit(item)),
         renderStates: ctx._ruleRenderStateDeclaration?.map((item) => this.visit(item))
@@ -193,7 +218,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       const ret = this.visit(item);
       return ret;
     });
-    const variables: any = ctx._ruleFnVariableDeclaration?.map((item) => {
+    const variables: any = ctx._ruleShaderPropertyDeclare?.map((item) => {
       const ret = this.visit(item);
       return ret;
     });
@@ -480,20 +505,26 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return new FnBlockStatementAstNode({ position, content: this.visit(ctx._ruleFnBody) });
   }
 
-  _ruleFnAssignStatement(ctx: _ruleFnAssignStatementCstChildren) {
-    const assignee = this.visit(ctx._ruleFnAssignLO);
+  _ruleFnAssignStatement(children: _ruleFnAssignStatementCstChildren, param?: any) {
+    const content = this.visit(children._ruleFnAssignExpr);
+    return new FnAssignStatementAstNode({ position: content.position, content });
+  }
+
+  _ruleFnAssignExpr(children: _ruleFnAssignExprCstChildren, param?: any) {
+    const assignee = this.visit(children._ruleFnSelfAssignExpr);
+    const value = this.visit(children._ruleFnExpression);
 
     const position: IPositionRange = {
       start: assignee.position.start,
-      end: AstNodeUtils.getTokenPosition(ctx.Semicolon[0]).end
+      end: value?.position.end ?? assignee.position.end
     };
 
-    return new FnAssignStatementAstNode({
+    return new FnAssignExprAstNode({
       position,
       content: {
-        operator: AstNodeUtils.extractCstToken(ctx._ruleFnAssignmentOperator[0]),
+        operator: AstNodeUtils.extractCstToken(children._ruleFnAssignmentOperator?.[0]),
         assignee,
-        value: this.visit(ctx._ruleFnExpression)
+        value
       }
     });
   }
@@ -576,7 +607,30 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleFnParenthesisExpr(ctx: _ruleFnParenthesisExprCstChildren) {
-    return this.visit(ctx._ruleFnAddExpr);
+    return this.visit(ctx._ruleConditionExpr);
+  }
+
+  _ruleForLoopStatement(children: _ruleForLoopStatementCstChildren, param?: any) {
+    const init = this.visit(children._ruleFnVariableDeclaration);
+    const condition = this.visit(children._ruleConditionExpr);
+    const update = this.visit(children._ruleFnAssignExpr);
+    const body = this.visit(children._ruleFnBlockStatement);
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.for[0]).start,
+      end: body.position.end
+    };
+    return new ForLoopAstNode({ position, content: { init, condition, update, body } });
+  }
+
+  _ruleFnSelfAssignExpr(children: _ruleFnSelfAssignExprCstChildren, param?: any) {
+    const variable = this.visit(children._ruleFnVariable);
+    const operator = this.visit(children._ruleFnSelfOperator);
+    return new SelfAssignAstNode({ position: variable.position, content: { operator, variable } });
+  }
+
+  _ruleFnSelfOperator(children: _ruleFnSelfOperatorCstChildren, param?: any) {
+    const position: IPositionRange = AstNodeUtils.getOrTypeCstNodePosition({ children });
+    return new SelfAssignOperatorAstNode({ position, content: AstNodeUtils.extractCstToken(children) });
   }
 
   _ruleNumber(children: _ruleNumberCstChildren) {
@@ -596,27 +650,36 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     });
   }
 
-  _ruleFnAssignLO(ctx: _ruleFnAssignLOCstChildren) {
-    if (ctx._ruleFnVariable) {
-      return this.visit(ctx._ruleFnVariable);
-    }
-
-    const token = ctx.gl_FragColor ?? ctx.gl_Position;
-    return new AssignLoAstNode({
-      content: token?.[0].image,
-      position: AstNodeUtils.getOrTypeCstNodePosition({ children: ctx })
-    });
-  }
-
   _ruleFnVariable(ctx: _ruleFnVariableCstChildren) {
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(ctx.Identifier[0]).start,
       end: AstNodeUtils.getTokenPosition(ctx.Identifier[ctx.Identifier.length - 1]).end
     };
+    const indexes = ctx._ruleArrayIndex?.map((item) => this.visit(item));
+    const properties = ctx._ruleFnVariableProperty?.map((item) => this.visit(item));
     return new FnVariableAstNode({
-      content: ctx.Identifier.map((item) => item.image),
+      content: { variable: ctx.Identifier[0].image, indexes, properties },
       position
     });
+  }
+
+  _ruleArrayIndex(children: _ruleArrayIndexCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.LSquareBracket[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.RSquareBracket[0]).end
+    };
+    return new ArrayIndexAstNode({
+      position,
+      content: children.ValueInt ? Number(children.ValueInt[0].image) : children.Identifier[0].image
+    });
+  }
+
+  _ruleFnVariableProperty(children: _ruleFnVariablePropertyCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.Dot[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Identifier[0]).end
+    };
+    return new VariablePropertyAstNode({ position, content: children.Identifier[0].image });
   }
 
   _ruleFnReturnStatement(ctx: _ruleFnReturnStatementCstChildren) {
@@ -837,14 +900,14 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: {
         type: this.visit(ctx._ruleVariableType),
-        variable: ctx.Identifier[0].image,
+        variable: this.visit(ctx._ruleFnVariable),
         default: ctx._ruleFnExpression ? this.visit(ctx._ruleFnExpression) : undefined
       }
     });
   }
 
   _ruleStruct(ctx: _ruleStructCstChildren) {
-    const variables = ctx._ruleDeclaration?.map((item) => this.visit(item));
+    const variables = ctx._ruleDeclarationWithoutAssign?.map((item) => this.visit(item));
 
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(ctx.struct[0]).start,
@@ -871,19 +934,20 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     });
   }
 
-  _ruleDeclaration(ctx: _ruleDeclarationCstChildren) {
+  _ruleDeclarationWithoutAssign(ctx: _ruleDeclarationWithoutAssignCstChildren) {
     const type = this.visit(ctx._ruleVariableType);
+    const variable = this.visit(ctx._ruleFnVariable);
 
     const position: IPositionRange = {
       start: type.position.start,
-      end: AstNodeUtils.getTokenPosition(ctx.Identifier[0]).end
+      end: variable.position.end
     };
 
-    return new DeclarationAstNode({
+    return new DeclarationWithoutAssignAstNode({
       position,
       content: {
         type,
-        variable: ctx.Identifier[0].image
+        variableNode: variable
       }
     });
   }
@@ -898,7 +962,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: {
         type: AstNodeUtils.extractCstToken(ctx._ruleShaderPassPropertyType[0]),
-        value: ctx.Identifier[0].image
+        value: this.visit(ctx._ruleFnVariable)
       }
     });
   }

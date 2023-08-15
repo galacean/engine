@@ -1,4 +1,4 @@
-import { CstElement, CstNode, ICstVisitor, IToken, CstChildrenDictionary } from "chevrotain";
+import { CstNode, ICstVisitor, IToken, CstChildrenDictionary } from "chevrotain";
 
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";

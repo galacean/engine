@@ -1,13 +1,14 @@
 import { Ast2GLSLUtils } from "./Ast2GLSLUtils";
 import {
   AstNode,
-  DeclarationAstNode,
+  DeclarationWithoutAssignAstNode,
   FnArgAstNode,
   FnAstNode,
   PassPropertyAssignmentAstNode,
   RenderStateDeclarationAstNode,
   ReturnTypeAstNode,
-  StructAstNode
+  StructAstNode,
+  VariableDeclarationAstNode
 } from "./ast-node/AstNode";
 
 import { IPassAstContent, IShaderAstContent, ISubShaderAstContent, IPositionRange } from "./ast-node";
@@ -45,14 +46,14 @@ interface IReferenceStructInfo {
   objectName?: string;
   structAstNode?: StructAstNode;
   /** reference info */
-  reference?: Array<{ property: DeclarationAstNode; referenced: boolean; text: string }>;
+  reference?: Array<{ property: DeclarationWithoutAssignAstNode; referenced: boolean; text: string }>;
 }
 
 export default class RuntimeContext {
   shaderAst: AstNode<IShaderAstContent>;
   passAst: AstNode<IPassAstContent>;
   subShaderAst: AstNode<ISubShaderAstContent>;
-  functionAstStack: { fnAst: FnAstNode; localDeclaration: DeclarationAstNode[] }[] = [];
+  functionAstStack: { fnAst: FnAstNode; localDeclaration: VariableDeclarationAstNode[] }[] = [];
   /** Diagnostic for linting service. */
   diagnostics: IDiagnostic[] = [];
   /** Varying info. */
@@ -152,6 +153,7 @@ export default class RuntimeContext {
           });
           return;
         }
+        this._initPassGlobalList();
         ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(prop, this);
         break;
       case FRAG_FN_NAME:
@@ -163,12 +165,13 @@ export default class RuntimeContext {
           });
           return;
         }
+        this._initPassGlobalList();
         ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(prop, this);
         break;
       default:
         // Render State
         const variable = prop.content.value;
-        const astNode = this.findGlobal(variable)?.ast;
+        const astNode = this.findGlobal(variable.content.variable)?.ast;
         if (!astNode) {
           this.diagnostics.push({
             severity: DiagnosticSeverity.Error,
@@ -184,7 +187,6 @@ export default class RuntimeContext {
   parsePassInfo(ast: AstNode<IPassAstContent>): IShaderPassInfo {
     this._passReset();
     this.passAst = ast;
-    this._initPassGlobalList();
 
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
@@ -219,8 +221,10 @@ export default class RuntimeContext {
     if (globalLevel === EGlobalLevel.Shader) return this._findShaderGlobal(variable);
   }
 
-  findLocal(variable: string): DeclarationAstNode | undefined {
-    return this.currentFunctionInfo?.localDeclaration.find((declare) => declare.content.variable === variable);
+  findLocal(variable: string): VariableDeclarationAstNode | undefined {
+    return this.currentFunctionInfo?.localDeclaration.find(
+      (declare) => declare.content.variable.content.variable === variable
+    );
   }
 
   getAttribText(): string {
@@ -242,14 +246,29 @@ export default class RuntimeContext {
   }
 
   getGlobalText(): string {
-    return [
-      ...Array.from(this._passGlobalMap.values()),
-      ...Array.from(this._subShaderGlobalMap.values()),
-      ...Array.from(this._shaderGlobalMap.values())
-    ]
-      .filter((item) => item.referenced)
+    let ret: (IGlobal & { str: string })[] = [];
+    let cur: (IGlobal & { str: string })[];
+    const getCurList = () => {
+      cur = [
+        ...Array.from(this._passGlobalMap.values()),
+        ...Array.from(this._subShaderGlobalMap.values()),
+        ...Array.from(this._shaderGlobalMap.values())
+      ].filter((item) => item.referenced) as any;
+
+      cur.forEach((item) => {
+        // @ts-ignore
+        !item.str && (item.str = item.ast.serialize(this, { global: true }));
+      });
+    };
+
+    getCurList();
+    while (cur.length !== ret.length) {
+      ret = cur;
+      getCurList();
+    }
+    return ret
       .sort((a, b) => a.ast.position.start.line - b.ast.position.start.line)
-      .map((item) => item.ast.serialize(this, { global: true }))
+      .map((item) => item.str)
       .join("\n");
   }
 
@@ -286,7 +305,11 @@ export default class RuntimeContext {
       this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
     );
     this.shaderAst.content.variables?.forEach((item) =>
-      this._shaderGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable })
+      this._shaderGlobalMap.set(item.getVariable(), {
+        ast: item,
+        referenced: false,
+        name: item.getVariable()
+      })
     );
   }
 
@@ -305,10 +328,10 @@ export default class RuntimeContext {
       });
     });
     this.subShaderAst.content.variables?.forEach((item) => {
-      this._subShaderGlobalMap.set(item.content.variable, {
+      this._subShaderGlobalMap.set(item.getVariable(), {
         ast: item,
         referenced: false,
-        name: item.content.variable
+        name: item.getVariable()
       });
     });
   }
@@ -321,7 +344,11 @@ export default class RuntimeContext {
       this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
     });
     this.passAst.content.variables?.forEach((item) => {
-      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
+      this._passGlobalMap.set(item.getVariable(), {
+        ast: item,
+        referenced: false,
+        name: item.getVariable()
+      });
     });
     this.passAst.content.defines?.forEach((item) => {
       this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });

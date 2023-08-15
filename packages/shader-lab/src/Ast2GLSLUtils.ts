@@ -5,7 +5,7 @@ import RuntimeContext from "./RuntimeContext";
 export class Ast2GLSLUtils {
   static stringifyVertexFunction(vertexFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
     const vertFnAst = context.passAst.content.functions.find(
-      (fn) => fn.content.name === vertexFnProperty.content.value
+      (fn) => fn.content.name === vertexFnProperty.content.value.content.variable
     );
     if (!vertFnAst) {
       context.diagnostics.push({
@@ -32,7 +32,7 @@ export class Ast2GLSLUtils {
     context.varyingStructInfo.reference = varyingStructAstNode.content.variables.map((v) => ({
       referenced: false,
       property: v,
-      text: `varying ${v.content.type.serialize(context)} ${v.content.variable}`
+      text: `varying ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
     }));
 
     // parsing attribute variables
@@ -51,7 +51,7 @@ export class Ast2GLSLUtils {
           const reference = structAstNode.content.variables.map((v) => ({
             referenced: false,
             property: v,
-            text: `attribute ${v.content.type.serialize(context)} ${v.content.variable}`
+            text: `attribute ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
           }));
           context.attributeStructListInfo.push({ objectName: arg.content.name, structAstNode, reference });
         }
@@ -66,13 +66,12 @@ export class Ast2GLSLUtils {
     });
 
     const vertexFnStr = vertFnAst.serialize(context);
-
-    return [context.getAttribText(), context.getGlobalText(), context.getVaryingText(), vertexFnStr].join("\n");
+    return [context.getAttribText(), context.getVaryingText(), context.getGlobalText(), vertexFnStr].join("\n");
   }
 
   static stringifyFragmentFunction(fragmentFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
     const fragFnAst = context.passAst.content.functions.find(
-      (fn) => fn.content.name === fragmentFnProperty.content.value
+      (fn) => fn.content.name === fragmentFnProperty.content.value.content.variable
     );
     if (!fragFnAst) {
       context.diagnostics.push({
