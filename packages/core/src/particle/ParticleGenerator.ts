@@ -91,6 +91,9 @@ export class ParticleGenerator {
     this._primitive = new Primitive(renderer.engine);
     this._reorganizeGeometryBuffers();
     this._resizeInstanceBuffer(this._particleIncreaseCount);
+
+    this.emission.enabled = true;
+    this.shape.enabled = true;
   }
 
   /**

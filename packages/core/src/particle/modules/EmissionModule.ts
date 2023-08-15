@@ -1,15 +1,13 @@
 import { Rand } from "@galacean/engine-math";
-import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { Burst } from "./Burst";
 import { ParticleCurve } from "./ParticleCurve";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
  * The EmissionModule of a Particle System.
  */
-export class EmissionModule {
-  /** Specifies whether the EmissionModule is enabled or disabled. */
-  enabled: boolean = true;
+export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate of particle emission. */
   rateOverTime: ParticleCurve = new ParticleCurve(10);
   /**  The rate at which the emitter spawns new particles over distance. */
@@ -19,7 +17,6 @@ export class EmissionModule {
 
   private _frameRateTime: number = 0;
   private _currentBurstIndex: number = 0;
-  private _generator: ParticleGenerator;
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
   /**
@@ -27,10 +24,6 @@ export class EmissionModule {
    */
   get bursts(): ReadonlyArray<Burst> {
     return this._bursts;
-  }
-
-  constructor(generator: ParticleGenerator) {
-    this._generator = generator;
   }
 
   /**

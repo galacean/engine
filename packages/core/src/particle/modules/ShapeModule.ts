@@ -1,20 +1,19 @@
 import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { BaseShape } from "./shape/BaseShape";
 import { ConeShape } from "./shape/ConeShape";
 
 /**
  * Shape module of `ParticleGenerator`.
  */
-export class ShapeModule {
-  /** Specifies whether the Shape Module is enabled or disabled. */
-  enabled: boolean = true;
+export class ShapeModule extends ParticleGeneratorModule {
   /** The shape of the emitter. */
   shape: BaseShape;
 
-  private _generator: ParticleGenerator;
-
   constructor(generator: ParticleGenerator) {
-    this._generator = generator;
+    super(generator);
     this.shape = new ConeShape(generator);
   }
+
+  override cloneTo(destRotationOverLifetime: ParticleGeneratorModule) {}
 }
