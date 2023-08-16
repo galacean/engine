@@ -8,19 +8,65 @@ import { ParticleCurve } from "./ParticleCurve";
 export class ParticleCompositeCurve implements IClone {
   /** The curve mode. */
   mode: ParticleCurveMode = ParticleCurveMode.Constant;
-  /* The constant value used by the curve if mode is set to `Constant`. */
-  constant: number = 0;
-  /* The min constant value used by the curve if mode is set to `TwoConstants`. */
-  constantMin: number = 0;
-  /* The max constant value used by the curve if mode is set to`TwoConstants`. */
-  constantMax: number = 0;
 
-  /* The constant value used by the curve if mode is set to `Constant`. */
-  curve: ParticleCurve = new ParticleCurve();
-  /* The min constant value used by the curve if mode is set to `TwoConstants`. */
-  curveMin: ParticleCurve = new ParticleCurve();
-  /* The max constant value used by the curve if mode is set to`TwoConstants`. */
-  curveMax: ParticleCurve = new ParticleCurve();
+  private _constantMin: number = 0;
+  private _constantMax: number = 0;
+  private _curveMin: ParticleCurve = new ParticleCurve();
+  private _curveMax: ParticleCurve = new ParticleCurve();
+
+  /**
+   * The constant value used by the curve if mode is set to `Constant`.
+   */
+  get constant(): number {
+    return this._constantMax;
+  }
+
+  set constant(value: number) {
+    this._constantMax = value;
+  }
+
+  /**
+   * The min constant value used by the curve if mode is set to `TwoConstants`.
+   */
+  get constantMin(): number {
+    return this._constantMin;
+  }
+
+  set constantMin(value: number) {
+    this._constantMin = value;
+  }
+
+  /**
+   * The max constant value used by the curve if mode is set to `TwoConstants`.
+   */
+  get constantMax(): number {
+    return this._constantMax;
+  }
+
+  set constantMax(value: number) {
+    this._constantMax = value;
+  }
+
+  /**
+   * The curve used by the curve if mode is set to `Curve`.
+   */
+  get curve(): ParticleCurve {
+    return this._curveMin;
+  }
+
+  /**
+   * The min curve used by the curve if mode is set to `TwoCurves`.
+   */
+  get curveMin(): ParticleCurve {
+    return this._curveMin;
+  }
+
+  /**
+   * The max curve used by the curve if mode is set to `TwoCurves`.
+   */
+  get curveMax(): ParticleCurve {
+    return this._curveMax;
+  }
 
   /**
    * Create a particle curve that generates a constant value.
