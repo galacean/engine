@@ -1,36 +1,37 @@
 #if defined(RENDERER_SOL_CURVE) || defined(RENDERER_SOL_RANDOM_CURVES)
-    uniform vec2 u_SOLSizeGradient[4]; // x为key,y为尺寸
+    uniform vec2 renderer_SOLMaxCurveX[4]; // x:time y:value
 #endif
+
 #ifdef RENDERER_SOL_RANDOM_CURVES
-    uniform vec2 u_SOLSizeGradientMax[4]; // x为key,y为尺寸
+    uniform vec2 renderer_SOLMinCurveX[4]; // x:time y:value
 #endif
-#if defined(RENDERER_SOL_CURVE_SEPARATE) || defined(SIZE_OVER_LIFETIME_RANDOM_CURVE_SEPARATE)
-    uniform vec2 renderer_SOLMinCurveX[4]; // x为key,y为尺寸
-    uniform vec2 renderer_SOLMinCurveY[4]; // x为key,y为尺寸
-    uniform vec2 renderer_SOLMinCurveZ[4]; // x为key,y为尺寸
+
+#if defined(RENDERER_SOL_CURVE_SEPARATE) || defined(RENDERER_SOL_RANDOM_CURVES_SEPARATE)
+    uniform vec2 renderer_SOLMaxCurveY[4]; // x:time y:value
+    uniform vec2 renderer_SOLMaxCurveZ[4]; // x:time y:value
 #endif
-#ifdef SIZE_OVER_LIFETIME_RANDOM_CURVE_SEPARATE
-    uniform vec2 renderer_SOLMaxCurveX[4]; // x为key,y为尺寸
-    uniform vec2 renderer_SOLMaxCurveY[4]; // x为key,y为尺寸
-    uniform vec2 renderer_SOLMaxCurveZ[4]; // x为key,y为尺寸
+
+#ifdef RENDERER_SOL_RANDOM_CURVES_SEPARATE
+    uniform vec2 renderer_SOLMimCurveY[4]; // x:time y:value
+    uniform vec2 renderer_SOLMinCurveZ[4]; // x:time y:value
 #endif
 
 #if defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE) || defined(RENDERER_SOL_CURVE) || defined(RENDERER_SOL_CURVE_SEPARATE) || defined(RENDERER_SOL_RANDOM_CURVES) || defined(SIZE_OVER_LIFETIME_RANDOM_CURVE_SEPARATE)
-float getCurValueFromGradientFloat(in vec2 gradientNumbers[4], in float normalizedAge) {
-    float curValue;
-    for (int i = 1; i < 4; i++) {
-	vec2 gradientNumber = gradientNumbers[i];
-	float key = gradientNumber.x;
-	if (key >= normalizedAge) {
-	    vec2 lastGradientNumber = gradientNumbers[i - 1];
-	    float lastKey = lastGradientNumber.x;
-	    float age = (normalizedAge - lastKey) / (key - lastKey);
-	    curValue = mix(lastGradientNumber.y, gradientNumber.y, age);
-	    break;
-	}
+    float getCurValueFromGradientFloat(in vec2 gradientNumbers[4], in float normalizedAge) {
+        float curValue;
+        for (int i = 1; i < 4; i++) {
+        vec2 gradientNumber = gradientNumbers[i];
+        float key = gradientNumber.x;
+        if (key >= normalizedAge) {
+            vec2 lastGradientNumber = gradientNumbers[i - 1];
+            float lastKey = lastGradientNumber.x;
+            float age = (normalizedAge - lastKey) / (key - lastKey);
+            curValue = mix(lastGradientNumber.y, gradientNumber.y, age);
+            break;
+        }
+        }
+        return curValue;
     }
-    return curValue;
-}
 #endif
 
 vec2 computeParticleSizeBillboard(in vec2 size, in float normalizedAge) {

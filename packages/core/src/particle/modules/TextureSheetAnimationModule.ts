@@ -32,7 +32,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
 
   private _tiling = new Vector2(1, 1);
-  private _lastFrameOverTimeMacro: ShaderMacro;
+  private _lastFrameMacro: ShaderMacro;
 
   /**
    * Tiling of the texture sheet.
@@ -57,23 +57,23 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   _updateShaderData(shaderData: ShaderData): void {
     const frameOverTime = this.frameOverTime;
     const mode = frameOverTime.mode;
-    const isCurveMode = mode === ParticleCurveMode.Curve;
+    const isFrameCurveMode = mode === ParticleCurveMode.Curve;
 
-    const textureSheetAnimationMacro = this.enabled
-      ? isCurveMode || mode === ParticleCurveMode.TwoCurves
-        ? isCurveMode
+    const frameMacro = this.enabled
+      ? isFrameCurveMode || mode === ParticleCurveMode.TwoCurves
+        ? isFrameCurveMode
           ? TextureSheetAnimationModule._frameCurveMacro
           : TextureSheetAnimationModule._frameRandomCurvesMacro
         : null
       : null;
 
-    if (this._lastFrameOverTimeMacro !== textureSheetAnimationMacro) {
-      this._lastFrameOverTimeMacro && shaderData.disableMacro(this._lastFrameOverTimeMacro);
-      this._lastFrameOverTimeMacro = textureSheetAnimationMacro;
+    if (this._lastFrameMacro !== frameMacro) {
+      this._lastFrameMacro && shaderData.disableMacro(this._lastFrameMacro);
+      this._lastFrameMacro = frameMacro;
     }
 
-    if (textureSheetAnimationMacro) {
-      shaderData.enableMacro(textureSheetAnimationMacro);
+    if (frameMacro) {
+      shaderData.enableMacro(frameMacro);
 
       shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
       shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
@@ -82,7 +82,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
         frameOverTime.curveMax._getTypeArray()
       );
 
-      if (!isCurveMode) {
+      if (!isFrameCurveMode) {
         shaderData.setFloatArray(
           TextureSheetAnimationModule._frameMinCurveProperty,
           frameOverTime.curveMin._getTypeArray()

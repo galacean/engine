@@ -1,11 +1,11 @@
 #if defined(RENDERER_TSA_FRAME_CURVE) || defined(TEXTURE_SHEET_ANIMATION_RANDOM_CURVE)
     uniform float renderer_TSACycles;
-    uniform vec3 renderer_TSATillingParams; // x:subU, y:subV, z:tileCount
-    uniform vec2 renderer_TSAFrameMaxCurve[4]; // x is time, y is value
+    uniform vec3 renderer_TSATillingParams; // x:subU  y:subV z:tileCount
+    uniform vec2 renderer_TSAFrameMaxCurve[4]; // x:time y:value
 #endif
 
 #ifdef TEXTURE_SHEET_ANIMATION_RANDOM_CURVE
-    uniform vec2 renderer_TSAFrameMinCurve[4]; // x is time, y is value
+    uniform vec2 renderer_TSAFrameMinCurve[4]; // x:time y:value
 #endif
 
 
