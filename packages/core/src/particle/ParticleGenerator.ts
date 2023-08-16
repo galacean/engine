@@ -399,10 +399,18 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    instanceVertices[offset + particleUtils.simulationUVOffset] = 1;
-    instanceVertices[offset + 35] = 1;
-    instanceVertices[offset + 36] = 0;
-    instanceVertices[offset + 37] = 0;
+    if (this.textureSheetAnimation.enabled) {
+      const tillingInfo = this.textureSheetAnimation._tillingInfo;
+      instanceVertices[offset + particleUtils.simulationUVOffset] = tillingInfo.x;
+      instanceVertices[offset + 35] = tillingInfo.y;
+      instanceVertices[offset + 36] = 0;
+      instanceVertices[offset + 37] = 0;
+    } else {
+      instanceVertices[offset + particleUtils.simulationUVOffset] = 1;
+      instanceVertices[offset + 35] = 1;
+      instanceVertices[offset + 36] = 0;
+      instanceVertices[offset + 37] = 0;
+    }
 
     this._firstFreeElement = nextFreeElement;
   }

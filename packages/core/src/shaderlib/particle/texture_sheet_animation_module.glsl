@@ -1,6 +1,6 @@
 #if defined(TEXTURE_SHEET_ANIMATION_CURVE) || defined(TEXTURE_SHEET_ANIMATION_RANDOM_CURVE)
     uniform float u_TSACycles;
-    uniform vec2 u_TSASubUVLength;
+    uniform vec3 u_TSATillingInfo; // x:subU, y:subV, z:tileCount
     uniform vec2 u_TSAMaxCurve[4]; // x is time, y is value
 #endif
 
@@ -19,7 +19,7 @@
                 vec2 lastGradientFrame = gradientFrames[i - 1];
                 float lastKey = lastGradientFrame.x;
                 float age = (normalizedAge - lastKey) / (key - lastKey);
-                overTimeFrame = mix(lastGradientFrame.y, gradientFrame.y, age);
+                overTimeFrame = mix(lastGradientFrame.y, gradientFrame.y, age) * u_TSATillingInfo.z;
                 break;
             }
         }
@@ -31,10 +31,10 @@ vec2 computeParticleUV(in vec2 uv, in float normalizedAge) {
     #ifdef TEXTURE_SHEET_ANIMATION_CURVE
         float cycleNormalizedAge = normalizedAge * u_TSACycles;
         float frame = getFrameFromGradient(u_TSAMaxCurve, cycleNormalizedAge - floor(cycleNormalizedAge));
-        float totalULength = frame * u_TSASubUVLength.x;
+        float totalULength = frame * u_TSATillingInfo.x;
         float floorTotalULength = floor(totalULength);
         uv.x += totalULength - floorTotalULength;
-        uv.y += floorTotalULength * u_TSASubUVLength.y;
+        uv.y += floorTotalULength * u_TSATillingInfo.y;
     #endif
 
     #ifdef TEXTURE_SHEET_ANIMATION_RANDOM_CURVE
@@ -42,10 +42,10 @@ vec2 computeParticleUV(in vec2 uv, in float normalizedAge) {
         float uvNormalizedAge = cycleNormalizedAge - floor(cycleNormalizedAge);
         float frame = floor(mix(getFrameFromGradient(u_TSAGradientUVs, uvNormalizedAge),
         getFrameFromGradient(u_TSAMaxCurve, uvNormalizedAge),a_Random1.x));
-        float totalULength = frame * u_TSASubUVLength.x;
+        float totalULength = frame * u_TSATillingInfo.x;
         float floorTotalULength = floor(totalULength);
         uv.x += totalULength - floorTotalULength;
-        uv.y += floorTotalULength * u_TSASubUVLength.y;
+        uv.y += floorTotalULength * u_TSATillingInfo.y;
     #endif
    
     return uv;

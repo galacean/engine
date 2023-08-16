@@ -1,4 +1,4 @@
-import { Vector2 } from "@galacean/engine-math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
@@ -15,7 +15,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static _frameOverTimeRandomCurveMacro: ShaderMacro = ShaderMacro.getByName("TEXTURE_SHEET_ANIMATION_CURVE");
 
   private static _cycleCount: ShaderProperty = ShaderProperty.getByName("u_TSACycles");
-  private static _subUVLength: ShaderProperty = ShaderProperty.getByName("u_TSASubUVLength");
+  private static _tillingInfo: ShaderProperty = ShaderProperty.getByName("u_TSATillingInfo");
   private static _frameOverTimeMinCurve: ShaderProperty = ShaderProperty.getByName("u_TSAMinCurve");
   private static _frameOverTimeMaxCurve: ShaderProperty = ShaderProperty.getByName("u_TSAMaxCurve");
 
@@ -31,8 +31,10 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     new ParticleCurve(new Key(0, 0), new Key(1, 1))
   );
 
+  /** @internal */
+  _tillingInfo: Vector3 = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
+
   private _tiling: Vector2 = new Vector2(1, 1);
-  private _subUVLength: Vector2 = new Vector2(1.0 / this._tiling.x, 1.0 / this._tiling.y);
   private _lastFrameOverTimeMacro: ShaderMacro;
 
   /**
@@ -44,7 +46,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
 
   set tiling(value: Vector2) {
     this._tiling = value;
-    this._subUVLength.set(1 / value.x, 1 / value.y);
+    this._tillingInfo.set(1.0 / value.x, 1.0 / value.y, value.x * value.y);
   }
 
   /**
@@ -77,7 +79,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
       shaderData.enableMacro(textureSheetAnimationMacro);
 
       shaderData.setFloat(TextureSheetAnimationModule._cycleCount, this.cycleCount);
-      shaderData.setVector2(TextureSheetAnimationModule._subUVLength, this._subUVLength);
+      shaderData.setVector3(TextureSheetAnimationModule._tillingInfo, this._tillingInfo);
       shaderData.setFloatArray(
         TextureSheetAnimationModule._frameOverTimeMaxCurve,
         frameOverTime.curveMax._getTypeArray()
