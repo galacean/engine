@@ -17,9 +17,6 @@ export class ParticleShaderProperty {
   static readonly simulationSpace: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
   static readonly currentTime: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
 
-  // TextureSheetAnimation
- 
-
   //VelocityOverLifetime
   static readonly VOLVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConst");
   static readonly VOLVELOCITYGRADIENTX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientX");
@@ -45,15 +42,7 @@ export class ParticleShaderProperty {
     "u_MaxColorOverLifeGradientColors"
   );
 
-  //SizeOverLifetime
-  static readonly SOLSIZEGRADIENT: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradient");
-  static readonly SOLSIZEGRADIENTX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientX");
-  static readonly SOLSIZEGRADIENTY: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientY");
-  static readonly SOLSizeGradientZ: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientZ");
-  static readonly SOLSizeGradientMax: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMax");
-  static readonly SOLSIZEGRADIENTXMAX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMaxX");
-  static readonly SOLSIZEGRADIENTYMAX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMaxY");
-  static readonly SOLSizeGradientZMAX: ShaderProperty = ShaderProperty.getByName("u_SOLSizeGradientMaxZ");
+  
 
   //RotationOverLifetime
   static readonly ROLANGULARVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConst");
@@ -89,6 +78,4 @@ export class ParticleShaderProperty {
   static readonly ROLANGULARVELOCITYGRADIENTWMAX: ShaderProperty = ShaderProperty.getByName(
     "u_ROLAngularVelocityGradientMaxW"
   );
-
-  
 }

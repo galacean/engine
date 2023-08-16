@@ -11,30 +11,27 @@ import { Key, ParticleCurve } from "./ParticleCurve";
  * Texture sheet animation module.
  */
 export class TextureSheetAnimationModule extends ParticleGeneratorModule {
-  private static _frameOverTimeCurveMacro: ShaderMacro = ShaderMacro.getByName("TEXTURE_SHEET_ANIMATION_CURVE");
-  private static _frameOverTimeRandomCurveMacro: ShaderMacro = ShaderMacro.getByName("TEXTURE_SHEET_ANIMATION_CURVE");
+  private static readonly _frameCurveMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CURVE");
+  private static readonly _frameRandomCurvesMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CURVES");
 
-  private static _cycleCount: ShaderProperty = ShaderProperty.getByName("u_TSACycles");
-  private static _tillingInfo: ShaderProperty = ShaderProperty.getByName("u_TSATillingInfo");
-  private static _frameOverTimeMinCurve: ShaderProperty = ShaderProperty.getByName("u_TSAMinCurve");
-  private static _frameOverTimeMaxCurve: ShaderProperty = ShaderProperty.getByName("u_TSAMaxCurve");
-
-  /** Texture sheet animation type. */
-  type: TextureSheetAnimationType = TextureSheetAnimationType.WholeSheet;
-  /** Cycle count. */
-  cycleCount: number = 1;
+  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
+  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
+  private static readonly _frameMinCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMinCurve");
+  private static readonly _frameMaxCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMaxCurve");
 
   /** Start frame of the texture sheet. */
-  readonly startFrame: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  readonly startFrame = new ParticleCompositeCurve(0);
   /** Frame over time curve of the texture sheet. */
-  readonly frameOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(
-    new ParticleCurve(new Key(0, 0), new Key(1, 1))
-  );
+  readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  /** Texture sheet animation type. */
+  type = TextureSheetAnimationType.WholeSheet;
+  /** Cycle count. */
+  cycleCount = 1;
 
   /** @internal */
-  _tillingInfo: Vector3 = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
+  _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
 
-  private _tiling: Vector2 = new Vector2(1, 1);
+  private _tiling = new Vector2(1, 1);
   private _lastFrameOverTimeMacro: ShaderMacro;
 
   /**
@@ -65,8 +62,8 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     const textureSheetAnimationMacro = this.enabled
       ? isCurveMode || mode === ParticleCurveMode.TwoCurves
         ? isCurveMode
-          ? TextureSheetAnimationModule._frameOverTimeCurveMacro
-          : TextureSheetAnimationModule._frameOverTimeRandomCurveMacro
+          ? TextureSheetAnimationModule._frameCurveMacro
+          : TextureSheetAnimationModule._frameRandomCurvesMacro
         : null
       : null;
 
@@ -78,16 +75,16 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     if (textureSheetAnimationMacro) {
       shaderData.enableMacro(textureSheetAnimationMacro);
 
-      shaderData.setFloat(TextureSheetAnimationModule._cycleCount, this.cycleCount);
-      shaderData.setVector3(TextureSheetAnimationModule._tillingInfo, this._tillingInfo);
+      shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
+      shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
       shaderData.setFloatArray(
-        TextureSheetAnimationModule._frameOverTimeMaxCurve,
+        TextureSheetAnimationModule._frameMaxCurveProperty,
         frameOverTime.curveMax._getTypeArray()
       );
 
       if (!isCurveMode) {
         shaderData.setFloatArray(
-          TextureSheetAnimationModule._frameOverTimeMinCurve,
+          TextureSheetAnimationModule._frameMinCurveProperty,
           frameOverTime.curveMin._getTypeArray()
         );
       }
