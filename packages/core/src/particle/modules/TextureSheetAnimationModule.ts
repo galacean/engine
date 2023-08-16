@@ -2,24 +2,36 @@ import { IClone } from "@galacean/engine-design";
 
 import { ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { Vector2 } from "@galacean/engine-math";
 
 /**
- * Rotate particles throughout their lifetime.
+ * Texture sheet animation module.
  */
 export class TextureSheetAnimationModule extends ParticleGeneratorModule {
-  /** Specifies whether the rotation is separate on each axis, when disabled only x axis is used and applied to all axes. */
-  separateAxes: boolean = false;
+  /** Texture sheet animation type. */
+  type: TextureSheetAnimationType = TextureSheetAnimationType.WholeSheet;
+  /** Cycle count. */
+  cycleCount: number = 1;
 
-  /** Rotation over lifetime for z axis. */
-  x: ParticleCurve = new ParticleCurve(0);
-  /** Rotation over lifetime for z axis. */
-  y: ParticleCurve = new ParticleCurve(0);
-  /** Rotation over lifetime for z axis. */
-  z: ParticleCurve = new ParticleCurve(0);
+  /** Tiling of the texture sheet. */
+  readonly tiling: Vector2 = new Vector2(1, 1);
+  /** Start frame of the texture sheet. */
+  readonly startFrame: ParticleCurve = new ParticleCurve(0);
+  /** Frame over time curve of the texture sheet. */
+  readonly frameOverTime: ParticleCurve = new ParticleCurve(0);
 
   /**
-   * @override
    * @inheritDoc
    */
-  cloneTo(destRotationOverLifetime: TextureSheetAnimationModule): void {}
+  cloneTo(dest: TextureSheetAnimationModule): void {}
+}
+
+/**
+ * Texture sheet animation type.
+ */
+export enum TextureSheetAnimationType {
+  /** Animate over the whole texture sheet from left to right, top to bottom. */
+  WholeSheet,
+  /** Animate a single row in the sheet from left to right. */
+  SingleRow
 }
