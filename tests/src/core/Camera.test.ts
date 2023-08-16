@@ -4,8 +4,8 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("camera test", function () {
-  let rootEntity: Entity;
   const canvasDOM = new OffscreenCanvas(256, 256);
+  let rootEntity: Entity;
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 

@@ -1,7 +1,7 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
-import { PipelineStage } from "../RenderPipeline/Index";
+import { PipelineStage } from "../RenderPipeline/index";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";

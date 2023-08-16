@@ -27,18 +27,14 @@ export abstract class AbstractTranscoder {
           type: "init",
           transcoderWasm: wasmBuffer
         };
-        function onSuccess() {
-          worker.removeEventListener("error", reject);
-          worker.removeEventListener("message", onSuccess);
-          resolve(worker);
+        function onMessage(e: MessageEvent<{ error?: Error }>) {
+          if (e.data.error) {
+            reject(e.data.error);
+          } else {
+            resolve(worker);
+          }
         }
-        function onError(e: ErrorEvent) {
-          worker.removeEventListener("error", onError);
-          worker.removeEventListener("message", onSuccess);
-          reject(e);
-        }
-        worker.addEventListener("error", onError);
-        worker.addEventListener("message", onSuccess);
+        worker.addEventListener("message", onMessage);
         worker.postMessage(msg);
       });
     });
