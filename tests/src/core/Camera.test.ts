@@ -3,16 +3,14 @@ import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
-
 describe("camera test", function () {
+  const canvasDOM = new OffscreenCanvas(256, 256);
   let rootEntity: Entity;
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
-  before(async () => {
+  before(async function () {
+    this.timeout(10000);
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();
     camera = rootEntity.addComponent(Camera);

@@ -1,6 +1,10 @@
 {
   "name": "@galacean/engine-design",
+<<<<<<< HEAD
   "version": "1.1.0-alpha.0",
+=======
+  "version": "1.1.0-alpha.1",
+>>>>>>> 7b560416225c35140e0442a6db8e85275be46245
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
