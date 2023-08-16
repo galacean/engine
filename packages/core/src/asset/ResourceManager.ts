@@ -252,7 +252,7 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
+  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
     assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;

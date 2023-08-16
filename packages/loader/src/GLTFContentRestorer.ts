@@ -5,7 +5,8 @@ import {
   ContentRestorer,
   ModelMesh,
   request,
-  Texture2D
+  Texture2D,
+  TypedArray
 } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Vector2 } from "@galacean/engine-math";
@@ -83,17 +84,35 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
 
                 for (const restoreInfo of meshInfo.blendShapes) {
                   const frame = restoreInfo.blendShape.frames[0];
-                  const positionData = this._getBufferData(buffers, restoreInfo.position);
-                  frame.deltaPositions = GLTFUtils.floatBufferToVector3Array(<Float32Array>positionData);
+                  const position = restoreInfo.position;
+                  const positionData = this._getBufferData(buffers, position.buffer);
+                  frame.deltaPositions = GLTFUtils.bufferToVector3Array(
+                    positionData,
+                    position.stride,
+                    position.byteOffset,
+                    position.count
+                  );
 
                   if (restoreInfo.normal) {
-                    const normalData = this._getBufferData(buffers, restoreInfo.normal);
-                    frame.deltaNormals = GLTFUtils.floatBufferToVector3Array(<Float32Array>normalData);
+                    const normal = restoreInfo.normal;
+                    const normalData = this._getBufferData(buffers, normal.buffer);
+                    frame.deltaNormals = GLTFUtils.bufferToVector3Array(
+                      normalData,
+                      normal.stride,
+                      normal.byteOffset,
+                      normal.count
+                    );
                   }
 
                   if (restoreInfo.tangent) {
-                    const tangentData = this._getBufferData(buffers, restoreInfo.tangent);
-                    frame.deltaTangents = GLTFUtils.floatBufferToVector3Array(<Float32Array>tangentData);
+                    const tangent = restoreInfo.tangent;
+                    const tangentData = this._getBufferData(buffers, tangent.buffer);
+                    frame.deltaTangents = GLTFUtils.bufferToVector3Array(
+                      tangentData,
+                      tangent.stride,
+                      tangent.byteOffset,
+                      tangent.count
+                    );
                   }
                 }
                 mesh.uploadData(true);
@@ -106,7 +125,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
     });
   }
 
-  private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): ArrayBufferView {
+  private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): TypedArray {
     const main = restoreInfo.main;
     const buffer = buffers[main.bufferIndex];
     const data = new main.TypedArray(buffer, main.byteOffset, main.length);
@@ -194,7 +213,7 @@ export class BufferDataRestoreInfo {
 export class RestoreDataAccessor {
   constructor(
     public bufferIndex: number,
-    public TypedArray: new (buffer: ArrayBuffer, byteOffset: number, length?: number) => ArrayBufferView,
+    public TypedArray: new (buffer: ArrayBuffer, byteOffset: number, length?: number) => TypedArray,
     public byteOffset: number,
     public length: number
   ) {}
@@ -206,8 +225,20 @@ export class RestoreDataAccessor {
 export class BlendShapeRestoreInfo {
   constructor(
     public blendShape: BlendShape,
-    public position: BufferDataRestoreInfo,
-    public normal?: BufferDataRestoreInfo,
-    public tangent?: BufferDataRestoreInfo
+    public position: BlendShapeDataRestoreInfo,
+    public normal?: BlendShapeDataRestoreInfo,
+    public tangent?: BlendShapeDataRestoreInfo
+  ) {}
+}
+
+/**
+ * @internal
+ */
+export class BlendShapeDataRestoreInfo {
+  constructor(
+    public buffer: BufferDataRestoreInfo,
+    public stride: number,
+    public byteOffset: number,
+    public count: number
   ) {}
 }
