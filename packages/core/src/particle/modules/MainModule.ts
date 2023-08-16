@@ -2,7 +2,7 @@ import { Color, Rand } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
-import { ParticleCurve } from "./ParticleCurve";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGradient } from "./ParticleGradient";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
@@ -13,40 +13,40 @@ export class MainModule {
   loop: boolean = true;
 
   /** Start delay in seconds. */
-  startDelay: ParticleCurve = new ParticleCurve(0);
+  startDelay: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** The initial lifetime of particles when emitted. */
-  startLifetime: ParticleCurve = new ParticleCurve(5);
+  startLifetime: ParticleCompositeCurve = new ParticleCompositeCurve(5);
   /** The initial speed of particles when the Particle System first spawns them. */
-  startSpeed: ParticleCurve = new ParticleCurve(5);
+  startSpeed: ParticleCompositeCurve = new ParticleCompositeCurve(5);
 
   /** A flag to enable specifying particle size individually for each axis. */
   startSize3D: boolean = false;
   /** The initial size of particles when the Particle System first spawns them. */
-  startSize: ParticleCurve = new ParticleCurve(1);
+  startSize: ParticleCompositeCurve = new ParticleCompositeCurve(1);
   /** The initial size of particles along the x-axis when the Particle System first spawns them. */
-  startSizeX: ParticleCurve = new ParticleCurve(1);
+  startSizeX: ParticleCompositeCurve = new ParticleCompositeCurve(1);
   /** The initial size of particles along the y-axis when the Particle System first spawns them. */
-  startSizeY: ParticleCurve = new ParticleCurve(1);
+  startSizeY: ParticleCompositeCurve = new ParticleCompositeCurve(1);
   /** The initial size of particles along the z-axis when the Particle System first spawns them. */
-  startSizeZ: ParticleCurve = new ParticleCurve(1);
+  startSizeZ: ParticleCompositeCurve = new ParticleCompositeCurve(1);
 
   /** A flag to enable 3D particle rotation. */
   startRotation3D: boolean = false;
   /** The initial rotation of particles when the Particle System first spawns them. */
-  startRotation: ParticleCurve = new ParticleCurve(0);
+  startRotation: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the x-axis when emitted.*/
-  startRotationX: ParticleCurve = new ParticleCurve(0);
+  startRotationX: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the y-axis when emitted. */
-  startRotationY: ParticleCurve = new ParticleCurve(0);
+  startRotationY: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the z-axis when emitted. */
-  startRotationZ: ParticleCurve = new ParticleCurve(0);
+  startRotationZ: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Makes some particles spin in the opposite direction. */
   flipRotation: number = 0;
 
   /** The mode of start color */
   startColor: ParticleGradient = new ParticleGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle System applies to gravity, defined by Physics.gravity. */
-  gravityModifier: ParticleCurve = new ParticleCurve(0);
+  gravityModifier: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** This selects the space in which to simulate particles. It can be either world or local space. */
   simulationSpace = ParticleSimulationSpace.Local;
   /** Override the default playback speed of the Particle System. */

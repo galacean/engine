@@ -1,7 +1,7 @@
 import { Rand } from "@galacean/engine-math";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { Burst } from "./Burst";
-import { ParticleCurve } from "./ParticleCurve";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
@@ -9,9 +9,9 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  */
 export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate of particle emission. */
-  rateOverTime: ParticleCurve = new ParticleCurve(10);
+  rateOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(10);
   /**  The rate at which the emitter spawns new particles over distance. */
-  rateOverDistance: ParticleCurve = new ParticleCurve(0);
+  rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
   private _bursts: Burst[] = [];
 

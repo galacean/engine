@@ -1,5 +1,5 @@
 import { IClone } from "@galacean/engine-design";
-import { ParticleCurve } from "./ParticleCurve";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 
 /**
  * A burst is a particle emission event, where a number of particles are all emitted at the same time
@@ -12,7 +12,7 @@ export class Burst implements IClone {
    */
   constructor(
     public time: number,
-    public count: ParticleCurve
+    public count: ParticleCompositeCurve
   ) {}
 
   /**

@@ -1,6 +1,6 @@
 import { IClone } from "@galacean/engine-design";
 
-import { ParticleCurve } from "./ParticleCurve";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { Vector2 } from "@galacean/engine-math";
 
@@ -16,9 +16,9 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   /** Tiling of the texture sheet. */
   readonly tiling: Vector2 = new Vector2(1, 1);
   /** Start frame of the texture sheet. */
-  readonly startFrame: ParticleCurve = new ParticleCurve(0);
+  readonly startFrame: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Frame over time curve of the texture sheet. */
-  readonly frameOverTime: ParticleCurve = new ParticleCurve(0);
+  readonly frameOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
   /**
    * @inheritDoc

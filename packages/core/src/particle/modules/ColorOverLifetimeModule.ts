@@ -1,6 +1,6 @@
 import { IClone } from "@galacean/engine-design";
 
-import { ParticleCurve } from "./ParticleCurve";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { ParticleGradient } from "./ParticleGradient";
 import { Color } from "@galacean/engine-math";

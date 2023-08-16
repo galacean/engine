@@ -1,6 +1,6 @@
 import { IClone } from "@galacean/engine-design";
 
-import { ParticleCurve } from "./ParticleCurve";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
@@ -11,11 +11,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   separateAxes: boolean = false;
 
   /** Rotation over lifetime for z axis. */
-  x: ParticleCurve = new ParticleCurve(0);
+  x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
-  y: ParticleCurve = new ParticleCurve(0);
+  y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
-  z: ParticleCurve = new ParticleCurve(45);
+  z: ParticleCompositeCurve = new ParticleCompositeCurve(45);
 
   /**
    * @override
