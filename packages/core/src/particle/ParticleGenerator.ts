@@ -4,17 +4,18 @@ import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
+import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleRenderer } from "./ParticleRenderer";
 import { ParticleRandomSubSeeds } from "./enums/ParticleRandomSubSeeds";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
+import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
-import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
-import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 
@@ -398,7 +399,7 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    instanceVertices[offset + particleUtils.simulationOffset] = 1;
+    instanceVertices[offset + particleUtils.simulationUVOffset] = 1;
     instanceVertices[offset + 35] = 1;
     instanceVertices[offset + 36] = 0;
     instanceVertices[offset + 37] = 0;
@@ -448,6 +449,14 @@ export class ParticleGenerator {
       // Record wait process retired element count
       this._waitProcessRetiredElementCount++;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _updateShaderData(shaderData: ShaderData): void {
+    // Texture sheet animation
+    this.textureSheetAnimation._updateShaderData(shaderData);
   }
 
   private _freeRetiredParticles(): void {

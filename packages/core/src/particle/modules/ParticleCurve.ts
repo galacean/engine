@@ -5,6 +5,8 @@ import { IClone } from "@galacean/engine-design";
  */
 export class ParticleCurve implements IClone {
   private _keys: Key[] = [];
+  private _typeArray: Float32Array;
+  private _typeArrayDirty: boolean = false;
 
   /**
    * The keys of the curve.
@@ -13,7 +15,16 @@ export class ParticleCurve implements IClone {
     return this._keys;
   }
 
-  constructor() {}
+  /**
+   * Create a new particle curve.
+   * @param keys - The keys of the curve
+   */
+  constructor(...keys: Key[]) {
+    for (let i = 0, n = keys.length; i < n; i++) {
+      const key = keys[i];
+      this.addKey(key.time, key.value);
+    }
+  }
 
   /**
    * Add a key to the curve.
@@ -24,6 +35,10 @@ export class ParticleCurve implements IClone {
     const keys = this._keys;
     const length = keys.length;
 
+    if (length === 4) {
+      throw new Error("Curve can only have 4 keys");
+    }
+
     const key = new Key(time, value);
     const duration = length ? keys[length - 1].time : 0;
     if (time >= duration) {
@@ -33,6 +48,7 @@ export class ParticleCurve implements IClone {
       while (--index >= 0 && time < keys[index].time);
       keys.splice(index + 1, 0, key);
     }
+    this._typeArrayDirty = true;
   }
 
   /**
@@ -41,6 +57,7 @@ export class ParticleCurve implements IClone {
    */
   removeKey(index: number): void {
     this._keys.splice(index, 1);
+    this._typeArrayDirty = true;
   }
 
   /**
@@ -56,9 +73,28 @@ export class ParticleCurve implements IClone {
     this.cloneTo(destCurve);
     return destCurve;
   }
+
+  /**
+   * @internal
+   */
+  _getTypeArray(): Float32Array {
+    const typeArray = (this._typeArray ||= new Float32Array(4 * 2));
+    if (this._typeArrayDirty) {
+      const keys = this._keys;
+      for (let i = 0, n = Math.min(keys.length, 4); i < n; i++) {
+        const offset = i * 2;
+        const key = keys[i];
+        typeArray[offset] = key.time;
+        typeArray[offset + 1] = key.value;
+      }
+      this._typeArrayDirty = false;
+    }
+
+    return typeArray;
+  }
 }
 
-class Key {
+export class Key {
   constructor(
     public time: number,
     public value: number

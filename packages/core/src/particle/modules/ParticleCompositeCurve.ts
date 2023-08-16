@@ -11,8 +11,8 @@ export class ParticleCompositeCurve implements IClone {
 
   private _constantMin: number = 0;
   private _constantMax: number = 0;
-  private _curveMin: ParticleCurve = new ParticleCurve();
-  private _curveMax: ParticleCurve = new ParticleCurve();
+  private _curveMin: ParticleCurve;
+  private _curveMax: ParticleCurve;
 
   /**
    * The constant value used by the curve if mode is set to `Constant`.
@@ -51,7 +51,11 @@ export class ParticleCompositeCurve implements IClone {
    * The curve used by the curve if mode is set to `Curve`.
    */
   get curve(): ParticleCurve {
-    return this._curveMin;
+    return this._curveMax;
+  }
+
+  set curve(value: ParticleCurve) {
+    this._curveMax = value;
   }
 
   /**
@@ -61,11 +65,19 @@ export class ParticleCompositeCurve implements IClone {
     return this._curveMin;
   }
 
+  set curveMin(value: ParticleCurve) {
+    this._curveMin = value;
+  }
+
   /**
    * The max curve used by the curve if mode is set to `TwoCurves`.
    */
   get curveMax(): ParticleCurve {
     return this._curveMax;
+  }
+
+  set curveMax(value: ParticleCurve) {
+    this._curveMax = value;
   }
 
   /**
@@ -81,14 +93,38 @@ export class ParticleCompositeCurve implements IClone {
    */
   constructor(constantMin: number, constantMax: number);
 
-  constructor(constantOrConstantMin: number, constantMax?: number) {
-    if (constantMax) {
-      this.constantMin = constantOrConstantMin;
-      this.constantMax = constantMax;
-      this.mode = ParticleCurveMode.TwoConstants;
+  /**
+   * Create a particle composite curve by a curve.
+   * @param curve - The curve
+   */
+  constructor(curve: ParticleCurve);
+
+  /**
+   * Create a particle composite curve by min and max curves.
+   * @param curveMin - The min curve
+   * @param curveMax - The max curve
+   */
+  constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
+
+  constructor(constantOrConstantMin: number | ParticleCurve, constantMax?: number | ParticleCurve) {
+    if (typeof constantOrConstantMin === "number") {
+      if (constantMax) {
+        this._constantMin = constantOrConstantMin;
+        this._constantMax = <number>constantMax;
+        this.mode = ParticleCurveMode.TwoConstants;
+      } else {
+        this._constantMax = constantOrConstantMin;
+        this.mode = ParticleCurveMode.Constant;
+      }
     } else {
-      this.constant = constantOrConstantMin;
-      this.mode = ParticleCurveMode.Constant;
+      if (constantMax) {
+        this._curveMin = constantOrConstantMin;
+        this._curveMax = <ParticleCurve>constantMax;
+        this.mode = ParticleCurveMode.TwoCurves;
+      } else {
+        this._curveMax = constantOrConstantMin;
+        this.mode = ParticleCurveMode.Curve;
+      }
     }
   }
 

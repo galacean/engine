@@ -40,7 +40,7 @@ export class ParticleBufferUtils {
 
   readonly startLifeTimeOffset = 3;
   readonly timeOffset = 7;
-  readonly simulationOffset = 34;
+  readonly simulationUVOffset = 34;
 
   readonly billboardIndexCount = 6;
 

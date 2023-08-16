@@ -4,7 +4,7 @@ import { ShaderProperty } from "../shader";
  * @internal
  */
 export class ParticleShaderProperty {
-  //Base
+  // Base
   static readonly worldPosition: ShaderProperty = ShaderProperty.getByName("u_WorldPosition");
   static readonly worldRotation: ShaderProperty = ShaderProperty.getByName("u_WorldRotation");
   static readonly positionScale: ShaderProperty = ShaderProperty.getByName("u_PositionScale");
@@ -16,6 +16,9 @@ export class ParticleShaderProperty {
   static readonly speedScale: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
   static readonly simulationSpace: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
   static readonly currentTime: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
+
+  // TextureSheetAnimation
+ 
 
   //VelocityOverLifetime
   static readonly VOLVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConst");
@@ -87,9 +90,5 @@ export class ParticleShaderProperty {
     "u_ROLAngularVelocityGradientMaxW"
   );
 
-  //TextureSheetAnimation
-  static readonly TEXTURESHEETANIMATIONCYCLES: ShaderProperty = ShaderProperty.getByName("u_TSACycles");
-  static readonly TEXTURESHEETANIMATIONSUBUVLENGTH: ShaderProperty = ShaderProperty.getByName("u_TSASubUVLength");
-  static readonly TEXTURESHEETANIMATIONGRADIENTUVS: ShaderProperty = ShaderProperty.getByName("u_TSAGradientUVs");
-  static readonly TEXTURESHEETANIMATIONGRADIENTMAXUVS: ShaderProperty = ShaderProperty.getByName("u_TSAMaxGradientUVs");
+  
 }

@@ -10,6 +10,7 @@ import { ParticleShaderProperty } from "./ParticleShaderProperty";
 import { Entity } from "../Entity";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleScaleMode } from "./enums/ParticleScaleMode";
+import { ParticleShaderMacro } from "./ParticleShaderMacro";
 
 /**
  * Particle Renderer Component.
@@ -21,17 +22,6 @@ export class ParticleRenderer extends Renderer {
   private static _tempVector40: Vector4 = new Vector4();
   /** @internal */
   private static _vector3One: Vector3 = new Vector3(1, 1, 1);
-
-  /**@internal */
-  static renderModeBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
-  /**@internal */
-  static renderModeStretchedBillboardMode = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
-  /**@internal */
-  static renderModeHorizontalBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
-  /**@internal */
-  static renderModeVerticalBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
-  /**@internal */
-  static renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
@@ -95,19 +85,19 @@ export class ParticleRenderer extends Renderer {
       shaderData.disableMacro(this._currentRenderModeMacro);
       switch (value) {
         case ParticleRenderMode.Billboard:
-          this._currentRenderModeMacro = ParticleRenderer.renderModeBillboardMacro;
+          this._currentRenderModeMacro = ParticleShaderMacro.renderModeBillboardMacro;
           break;
         case ParticleRenderMode.Stretch:
-          this._currentRenderModeMacro = ParticleRenderer.renderModeStretchedBillboardMode;
+          this._currentRenderModeMacro = ParticleShaderMacro.renderModeStretchedBillboardMode;
           break;
         case ParticleRenderMode.HorizontalBillboard:
-          this._currentRenderModeMacro = ParticleRenderer.renderModeHorizontalBillboardMacro;
+          this._currentRenderModeMacro = ParticleShaderMacro.renderModeHorizontalBillboardMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:
-          this._currentRenderModeMacro = ParticleRenderer.renderModeVerticalBillboardMacro;
+          this._currentRenderModeMacro = ParticleShaderMacro.renderModeVerticalBillboardMacro;
           break;
         case ParticleRenderMode.Mesh:
-          this._currentRenderModeMacro = ParticleRenderer.renderModeMeshMacro;
+          this._currentRenderModeMacro = ParticleShaderMacro.renderModeMeshMacro;
           break;
       }
       shaderData.enableMacro(this._currentRenderModeMacro);
@@ -123,7 +113,7 @@ export class ParticleRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this.shaderData.enableMacro(ParticleRenderer.renderModeBillboardMacro);
+    this.shaderData.enableMacro(ParticleShaderMacro.renderModeBillboardMacro);
   }
 
   override _onEnable(): void {
@@ -216,6 +206,8 @@ export class ParticleRenderer extends Renderer {
     shaderData.setFloat(ParticleShaderProperty.lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleShaderProperty.speedScale, this.velocityScale);
     shaderData.setFloat(ParticleShaderProperty.currentTime, particleSystem._playTime);
+
+    this.generator._updateShaderData(shaderData);
   }
 
   protected override _render(context: RenderContext): void {
