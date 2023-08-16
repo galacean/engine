@@ -35,31 +35,6 @@
 #endif
 
 vec2 computeParticleSizeBillboard(in vec2 size, in float normalizedAge) {
-#ifdef RENDERER_SOL_CURVE
-    size *= getCurValueFromGradientFloat(u_SOLSizeGradient, normalizedAge);
-#endif
-#ifdef RENDERER_SOL_RANDOM_CURVES
-    size *= mix(getCurValueFromGradientFloat(u_SOLSizeGradient, normalizedAge),
-	getCurValueFromGradientFloat(u_SOLSizeGradientMax, normalizedAge),
-	a_Random0.z);
-#endif
-#ifdef RENDERER_SOL_CURVE_SEPARATE
-    size *= vec2(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
-	getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge));
-#endif
-#ifdef SIZE_OVER_LIFETIME_RANDOM_CURVE_SEPARATE
-    size *= vec2(mix(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
-		     getCurValueFromGradientFloat(renderer_SOLMaxCurveX, normalizedAge),
-		     a_Random0.z),
-	mix(getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge),
-	    getCurValueFromGradientFloat(renderer_SOLMaxCurveY, normalizedAge),
-	    a_Random0.z));
-#endif
-    return size;
-}
-
-#ifdef RENDERER_MODE_MESH
-vec3 computeParticleSizeMesh(in vec3 size, in float normalizedAge) {
     #ifdef RENDERER_SOL_CURVE
         size *= getCurValueFromGradientFloat(u_SOLSizeGradient, normalizedAge);
     #endif
@@ -69,21 +44,46 @@ vec3 computeParticleSizeMesh(in vec3 size, in float normalizedAge) {
         a_Random0.z);
     #endif
     #ifdef RENDERER_SOL_CURVE_SEPARATE
-        size *= vec3(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
-        getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge),
-        getCurValueFromGradientFloat(renderer_SOLMinCurveZ, normalizedAge));
+        size *= vec2(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
+        getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge));
     #endif
     #ifdef RENDERER_SOL_RANDOM_CURVES_SEPARATE
-        size *= vec3(mix(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
-                 getCurValueFromGradientFloat(renderer_SOLMaxCurveX, normalizedAge),
-                 a_Random0.z),
+        size *= vec2(mix(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
+                getCurValueFromGradientFloat(renderer_SOLMaxCurveX, normalizedAge),
+                a_Random0.z),
         mix(getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge),
             getCurValueFromGradientFloat(renderer_SOLMaxCurveY, normalizedAge),
-            a_Random0.z),
-        mix(getCurValueFromGradientFloat(renderer_SOLMinCurveZ, normalizedAge),
-            getCurValueFromGradientFloat(renderer_SOLMaxCurveZ, normalizedAge),
             a_Random0.z));
     #endif
-    return size;
+        return size;
 }
+
+#ifdef RENDERER_MODE_MESH
+    vec3 computeParticleSizeMesh(in vec3 size, in float normalizedAge) {
+        #ifdef RENDERER_SOL_CURVE
+            size *= getCurValueFromGradientFloat(u_SOLSizeGradient, normalizedAge);
+        #endif
+        #ifdef RENDERER_SOL_RANDOM_CURVES
+            size *= mix(getCurValueFromGradientFloat(u_SOLSizeGradient, normalizedAge),
+            getCurValueFromGradientFloat(u_SOLSizeGradientMax, normalizedAge),
+            a_Random0.z);
+        #endif
+        #ifdef RENDERER_SOL_CURVE_SEPARATE
+            size *= vec3(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
+            getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge),
+            getCurValueFromGradientFloat(renderer_SOLMinCurveZ, normalizedAge));
+        #endif
+        #ifdef RENDERER_SOL_RANDOM_CURVES_SEPARATE
+            size *= vec3(mix(getCurValueFromGradientFloat(renderer_SOLMinCurveX, normalizedAge),
+                    getCurValueFromGradientFloat(renderer_SOLMaxCurveX, normalizedAge),
+                    a_Random0.z),
+            mix(getCurValueFromGradientFloat(renderer_SOLMinCurveY, normalizedAge),
+                getCurValueFromGradientFloat(renderer_SOLMaxCurveY, normalizedAge),
+                a_Random0.z),
+            mix(getCurValueFromGradientFloat(renderer_SOLMinCurveZ, normalizedAge),
+                getCurValueFromGradientFloat(renderer_SOLMaxCurveZ, normalizedAge),
+                a_Random0.z));
+        #endif
+        return size;
+    }
 #endif
