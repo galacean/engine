@@ -9,8 +9,13 @@ import {
   VertexElement
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
-import type { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
+import {
+  BlendShapeDataRestoreInfo,
+  BlendShapeRestoreInfo,
+  BufferRestoreInfo,
+  ModelMeshRestoreInfo
+} from "../../GLTFContentRestorer";
+import type { IAccessor, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { BufferInfo, GLTFParserContext } from "./GLTFParserContext";
@@ -146,7 +151,9 @@ export class GLTFMeshParser extends GLTFParser {
 
       // BlendShapes
       if (targets) {
-        promises.push(GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData));
+        promises.push(
+          GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, accessors, targets, getBlendShapeData)
+        );
       }
 
       return Promise.all(promises).then(() => {
@@ -164,6 +171,7 @@ export class GLTFMeshParser extends GLTFParser {
     mesh: ModelMesh,
     meshRestoreInfo: ModelMeshRestoreInfo,
     glTFMesh: IMesh,
+    accessors: IAccessor[],
     glTFTargets: {
       [name: string]: number;
     }[],
@@ -179,28 +187,75 @@ export class GLTFMeshParser extends GLTFParser {
         getBlendShapeData("NORMAL", i),
         getBlendShapeData("TANGENT", i)
       ]).then((infos) => {
-        const deltaPosBufferInfo = infos[0];
-        const deltaNorBufferInfo = infos[1];
-        const deltaTanBufferInfo = infos[2];
-        const deltaPositions = deltaPosBufferInfo.data
-          ? GLTFUtils.floatBufferToVector3Array(<Float32Array>deltaPosBufferInfo.data)
-          : null;
-        const deltaNormals = deltaNorBufferInfo?.data
-          ? GLTFUtils.floatBufferToVector3Array(<Float32Array>deltaNorBufferInfo?.data)
-          : null;
-        const deltaTangents = deltaTanBufferInfo?.data
-          ? GLTFUtils.floatBufferToVector3Array(<Float32Array>deltaTanBufferInfo?.data)
-          : null;
+        const posBufferInfo = infos[0];
+        const norBufferInfo = infos[1];
+        const tanBufferInfo = infos[2];
+        const target = glTFTargets[i];
+        let posAccessor: IAccessor;
+        let norAccessor: IAccessor;
+        let tanAccessor: IAccessor;
+
+        let positions: Vector3[] = null;
+        if (posBufferInfo) {
+          posAccessor = accessors[target["POSITION"]];
+          positions = GLTFUtils.bufferToVector3Array(
+            posBufferInfo.data,
+            posBufferInfo.stride,
+            posAccessor.byteOffset ?? 0,
+            posAccessor.count
+          );
+        }
+
+        let normals: Vector3[] = null;
+        if (norBufferInfo) {
+          norAccessor = accessors[target["NORMAL"]];
+          normals = GLTFUtils.bufferToVector3Array(
+            norBufferInfo.data,
+            norBufferInfo.stride,
+            norAccessor.byteOffset ?? 0,
+            norAccessor.count
+          );
+        }
+
+        let tangents: Vector3[] = null;
+        if (tanBufferInfo) {
+          tanAccessor = accessors[target["NORMAL"]];
+          tangents = GLTFUtils.bufferToVector3Array(
+            tanBufferInfo.data,
+            tanBufferInfo.stride,
+            tanAccessor.byteOffset ?? 0,
+            tanAccessor.count
+          );
+        }
 
         const blendShape = new BlendShape(name);
-        blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
+        blendShape.addFrame(1.0, positions, normals, tangents);
         mesh.addBlendShape(blendShape);
         meshRestoreInfo.blendShapes.push(
           new BlendShapeRestoreInfo(
             blendShape,
-            deltaPosBufferInfo.restoreInfo,
-            deltaNorBufferInfo?.restoreInfo,
-            deltaTanBufferInfo?.restoreInfo
+            new BlendShapeDataRestoreInfo(
+              posBufferInfo.restoreInfo,
+              posBufferInfo.stride,
+              posAccessor.byteOffset ?? 0,
+              posAccessor.count
+            ),
+            norBufferInfo
+              ? new BlendShapeDataRestoreInfo(
+                  norBufferInfo.restoreInfo,
+                  norBufferInfo.stride,
+                  norAccessor.byteOffset ?? 0,
+                  norAccessor.count
+                )
+              : null,
+            tanBufferInfo
+              ? new BlendShapeDataRestoreInfo(
+                  tanBufferInfo.restoreInfo,
+                  tanBufferInfo.stride,
+                  tanAccessor.byteOffset ?? 0,
+                  tanAccessor.count
+                )
+              : null
           )
         );
       });
