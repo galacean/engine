@@ -107,7 +107,7 @@ export class ResourceManager {
    * @param type - Resource type
    * @returns - Resource collection
    */
-  findResourcesByType<T extends EngineObject>(type: new (...args) => T): T[] | null {
+  findResourcesByType<T extends EngineObject>(type: new (...args) => T): T[] {
     const resources = new Array<T>();
     const referResourcePool = this._referResourcePool;
     for (const k in referResourcePool) {
