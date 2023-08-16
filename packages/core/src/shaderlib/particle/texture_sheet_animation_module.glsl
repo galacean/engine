@@ -14,11 +14,11 @@
         float overTimeFrame;
         for (int i = 1; i < 4; i++) {
             vec2 gradientFrame = gradientFrames[i];
-            float key = gradientFrame.x;
-            if (key >= normalizedAge) {
+            float time = gradientFrame.x;
+            if (time >= normalizedAge) {
                 vec2 lastGradientFrame = gradientFrames[i - 1];
-                float lastKey = lastGradientFrame.x;
-                float age = (normalizedAge - lastKey) / (key - lastKey);
+                float lastTime = lastGradientFrame.x;
+                float age = (normalizedAge - lastTime) / (time - lastTime);
                 overTimeFrame = mix(lastGradientFrame.y, gradientFrame.y, age) * u_TSATillingInfo.z;
                 break;
             }
