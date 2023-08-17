@@ -22,7 +22,10 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Color gradient over lifetime. */
   color = new ParticleCompositeGradient(
-    new ParticleGradient([new ColorKey(0.5, new Color(1, 0, 0))], [new AlphaKey(0, 1), new AlphaKey(1, 0)])
+    new ParticleGradient(
+      [new ColorKey(0.0, new Color(1, 1, 1)), new ColorKey(1.0, new Color(1, 1, 1))],
+      [new AlphaKey(0, 1), new AlphaKey(1, 0)]
+    )
   );
 
   private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysCount, y: minAlphaKeysCount, z: maxColorKeysCount, w: maxAlphaKeysCount
