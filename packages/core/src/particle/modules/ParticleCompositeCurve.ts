@@ -8,76 +8,35 @@ import { ParticleCurve } from "./ParticleCurve";
 export class ParticleCompositeCurve implements IClone {
   /** The curve mode. */
   mode: ParticleCurveMode = ParticleCurveMode.Constant;
-
-  private _constantMin: number = 0;
-  private _constantMax: number = 0;
-  private _curveMin: ParticleCurve;
-  private _curveMax: ParticleCurve;
+  /** The min constant value used by the curve if mode is set to `TwoConstants`.*/
+  constantMin: number;
+  /** The max constant value used by the curve if mode is set to `TwoConstants`.*/
+  constantMax: number;
+  /** The min curve used by the curve if mode is set to `TwoCurves`. */
+  curveMin: ParticleCurve;
+  /** The max curve used by the curve if mode is set to `TwoCurves`. */
+  curveMax: ParticleCurve;
 
   /**
    * The constant value used by the curve if mode is set to `Constant`.
    */
   get constant(): number {
-    return this._constantMax;
+    return this.constantMax;
   }
 
   set constant(value: number) {
-    this._constantMax = value;
-  }
-
-  /**
-   * The min constant value used by the curve if mode is set to `TwoConstants`.
-   */
-  get constantMin(): number {
-    return this._constantMin;
-  }
-
-  set constantMin(value: number) {
-    this._constantMin = value;
-  }
-
-  /**
-   * The max constant value used by the curve if mode is set to `TwoConstants`.
-   */
-  get constantMax(): number {
-    return this._constantMax;
-  }
-
-  set constantMax(value: number) {
-    this._constantMax = value;
+    this.constantMax = value;
   }
 
   /**
    * The curve used by the curve if mode is set to `Curve`.
    */
   get curve(): ParticleCurve {
-    return this._curveMax;
+    return this.curveMax;
   }
 
   set curve(value: ParticleCurve) {
-    this._curveMax = value;
-  }
-
-  /**
-   * The min curve used by the curve if mode is set to `TwoCurves`.
-   */
-  get curveMin(): ParticleCurve {
-    return this._curveMin;
-  }
-
-  set curveMin(value: ParticleCurve) {
-    this._curveMin = value;
-  }
-
-  /**
-   * The max curve used by the curve if mode is set to `TwoCurves`.
-   */
-  get curveMax(): ParticleCurve {
-    return this._curveMax;
-  }
-
-  set curveMax(value: ParticleCurve) {
-    this._curveMax = value;
+    this.curveMax = value;
   }
 
   /**
@@ -106,23 +65,23 @@ export class ParticleCompositeCurve implements IClone {
    */
   constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
 
-  constructor(constantOrConstantMin: number | ParticleCurve, constantMax?: number | ParticleCurve) {
-    if (typeof constantOrConstantMin === "number") {
-      if (constantMax) {
-        this._constantMin = constantOrConstantMin;
-        this._constantMax = <number>constantMax;
+  constructor(constantOrCurve: number | ParticleCurve, constantMaxOrCurveMax?: number | ParticleCurve) {
+    if (typeof constantOrCurve === "number") {
+      if (constantMaxOrCurveMax) {
+        this.constantMin = constantOrCurve;
+        this.constantMax = <number>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoConstants;
       } else {
-        this._constantMax = constantOrConstantMin;
+        this.constant = constantOrCurve;
         this.mode = ParticleCurveMode.Constant;
       }
     } else {
-      if (constantMax) {
-        this._curveMin = constantOrConstantMin;
-        this._curveMax = <ParticleCurve>constantMax;
+      if (constantMaxOrCurveMax) {
+        this.curveMin = constantOrCurve;
+        this.curveMax = <ParticleCurve>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoCurves;
       } else {
-        this._curveMax = constantOrConstantMin;
+        this.curve = constantOrCurve;
         this.mode = ParticleCurveMode.Curve;
       }
     }

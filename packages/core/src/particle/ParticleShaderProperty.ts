@@ -28,22 +28,6 @@ export class ParticleShaderProperty {
   static readonly VOLVELOCITYGRADIENTZMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxZ");
   static readonly VOLSPACETYPE: ShaderProperty = ShaderProperty.getByName("u_VOLSpaceType");
 
-  //ColorOverLifetime
-  static readonly COLOROVERLIFEGRADIENTALPHAS: ShaderProperty = ShaderProperty.getByName(
-    "u_ColorOverLifeGradientAlphas"
-  );
-  static readonly COLOROVERLIFEGRADIENTCOLORS: ShaderProperty = ShaderProperty.getByName(
-    "u_ColorOverLifeGradientColors"
-  );
-  static readonly MAXCOLOROVERLIFEGRADIENTALPHAS: ShaderProperty = ShaderProperty.getByName(
-    "u_MaxColorOverLifeGradientAlphas"
-  );
-  static readonly MAXCOLOROVERLIFEGRADIENTCOLORS: ShaderProperty = ShaderProperty.getByName(
-    "u_MaxColorOverLifeGradientColors"
-  );
-
-  
-
   //RotationOverLifetime
   static readonly ROLANGULARVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConst");
   static readonly ROLANGULARVELOCITYCONSTSEPRARATE: ShaderProperty = ShaderProperty.getByName(

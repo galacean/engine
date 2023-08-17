@@ -15,12 +15,12 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _randomCurvesMacro = ShaderMacro.getByName("RENDERER_SOL_RANDOM_CURVES");
   static readonly _randomCurvesSeparateMacro = ShaderMacro.getByName("RENDERER_SOL_RANDOM_CURVES_SEPARATE");
 
-  static readonly _sizeCurveMinXProperty = ShaderProperty.getByName("renderer_SOLMinCurveX");
-  static readonly _sizeCurveMinYProperty = ShaderProperty.getByName("renderer_SOLMinCurveY");
-  static readonly _sizeCurveMinZProperty = ShaderProperty.getByName("renderer_SOLMinCurveZ");
-  static readonly _sizeCurveMaxXProperty = ShaderProperty.getByName("renderer_SOLMaxCurveX");
-  static readonly _sizeCurveMaxYProperty = ShaderProperty.getByName("renderer_SOLMaxCurveY");
-  static readonly _sizeCurveMaxZProperty = ShaderProperty.getByName("renderer_SOLMaxCurveZ");
+  static readonly _minCurveXProperty = ShaderProperty.getByName("renderer_SOLMinCurveX");
+  static readonly _minCurveYProperty = ShaderProperty.getByName("renderer_SOLMinCurveY");
+  static readonly _minCurveZProperty = ShaderProperty.getByName("renderer_SOLMinCurveZ");
+  static readonly _maxCurveXProperty = ShaderProperty.getByName("renderer_SOLMaxCurveX");
+  static readonly _maxCurveYProperty = ShaderProperty.getByName("renderer_SOLMaxCurveY");
+  static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_SOLMaxCurveZ");
 
   /** Specifies whether the Size is separate on each axis. */
   separateAxes = false;
@@ -108,18 +108,18 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     if (sizeMacro) {
       shaderData.enableMacro(sizeMacro);
 
-      shaderData.setFloatArray(SizeOverLifetimeModule._sizeCurveMaxXProperty, this._sizeX.curveMax._getTypeArray());
+      shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveXProperty, this._sizeX.curveMax._getTypeArray());
       if (isRandomMode) {
-        shaderData.setFloatArray(SizeOverLifetimeModule._sizeCurveMinXProperty, this._sizeX.curveMin._getTypeArray());
+        shaderData.setFloatArray(SizeOverLifetimeModule._minCurveXProperty, this._sizeX.curveMin._getTypeArray());
       }
 
       if (this.separateAxes) {
-        shaderData.setFloatArray(SizeOverLifetimeModule._sizeCurveMaxYProperty, this._sizeY.curveMax._getTypeArray());
-        shaderData.setFloatArray(SizeOverLifetimeModule._sizeCurveMaxZProperty, this._sizeZ.curveMax._getTypeArray());
+        shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveYProperty, this._sizeY.curveMax._getTypeArray());
+        shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveZProperty, this._sizeZ.curveMax._getTypeArray());
 
         if (isSeparateRandomMode) {
-          shaderData.setFloatArray(SizeOverLifetimeModule._sizeCurveMinYProperty, this._sizeY.curveMin._getTypeArray());
-          shaderData.setFloatArray(SizeOverLifetimeModule._sizeCurveMinZProperty, this._sizeZ.curveMin._getTypeArray());
+          shaderData.setFloatArray(SizeOverLifetimeModule._minCurveYProperty, this._sizeY.curveMin._getTypeArray());
+          shaderData.setFloatArray(SizeOverLifetimeModule._minCurveZProperty, this._sizeZ.curveMin._getTypeArray());
         }
       }
     }

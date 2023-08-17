@@ -22,16 +22,24 @@ export class ParticleCurve implements IClone {
   constructor(...keys: Key[]) {
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
-      this.addKey(key.time, key.value);
+      this.addKey(key);
     }
   }
 
   /**
-   * Add a key to the curve.
+   * Add an key to the curve.
+   * @param key - The key
+   */
+  addKey(key: Key): void;
+
+  /**
+   * Add an key to the curve.
    * @param time - The key time
    * @param value - The key value
    */
-  addKey(time: number, value: number): void {
+  addKey(time: number, value: number): void;
+
+  addKey(timeOrKey: number | Key, value?: number): void {
     const keys = this._keys;
     const length = keys.length;
 
@@ -39,7 +47,8 @@ export class ParticleCurve implements IClone {
       throw new Error("Curve can only have 4 keys");
     }
 
-    const key = new Key(time, value);
+    const key = typeof timeOrKey === "number" ? new Key(timeOrKey, value) : timeOrKey;
+    const time = key.time;
     const duration = length ? keys[length - 1].time : 0;
     if (time >= duration) {
       keys.push(key);
@@ -94,9 +103,19 @@ export class ParticleCurve implements IClone {
   }
 }
 
+/**
+ * The key of the curve.
+ */
 export class Key {
+  /**
+   * Create a new key.
+   */
   constructor(
+    /** The key time. */
     public time: number,
+    /** The key value. */
     public value: number
-  ) {}
+  ) {
+    this.time;
+  }
 }

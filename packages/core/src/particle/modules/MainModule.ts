@@ -1,10 +1,9 @@
-import { Color, Rand } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
-import { ParticleGradient } from "./ParticleGradient";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
 export class MainModule {
   /** The duration of the Particle System in seconds. */
@@ -44,7 +43,7 @@ export class MainModule {
   flipRotation: number = 0;
 
   /** The mode of start color */
-  startColor: ParticleGradient = new ParticleGradient(new Color(1, 1, 1, 1));
+  startColor: ParticleCompositeGradient = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle System applies to gravity, defined by Physics.gravity. */
   gravityModifier: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** This selects the space in which to simulate particles. It can be either world or local space. */

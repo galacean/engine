@@ -11,9 +11,7 @@ export class ParticleShaderMacro {
   static readonly renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
 
-  // static readonly SHADERDEFINE_COLORKEYCOUNT_8 = ShaderMacro.getByName("COLORKEYCOUNT_8");
-  // static readonly SHADERDEFINE_COLOROVERLIFETIME = ShaderMacro.getByName("COLOROVERLIFETIME");
-  // static readonly SHADERDEFINE_RANDOMCOLOROVERLIFETIME = ShaderMacro.getByName("RANDOMCOLOROVERLIFETIME");
+
   // static readonly SHADERDEFINE_VELOCITYOVERLIFETIMECONSTANT = ShaderMacro.getByName("VELOCITYOVERLIFETIMECONSTANT");
   // static readonly SHADERDEFINE_VELOCITYOVERLIFETIMECURVE = ShaderMacro.getByName("VELOCITYOVERLIFETIMECURVE");
   // static readonly SHADERDEFINE_VELOCITYOVERLIFETIMERANDOMCONSTANT = ShaderMacro.getByName(

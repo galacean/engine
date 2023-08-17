@@ -1,19 +1,15 @@
-#ifdef COLOR_KEY_COUNT_8
-    #define COLOR_COUNT 8
-#else
-    #define COLOR_COUNT 4
-#endif
+
 #ifdef COLOR_OVER_LIFETIME
-    uniform vec4 u_ColorOverLifeGradientColors[COLOR_COUNT]; // x为key,yzw为Color
-    uniform vec2 u_ColorOverLifeGradientAlphas[COLOR_COUNT]; // x为key,y为Alpha
+    uniform vec4 u_ColorOverLifeGradientColors[4]; // x为key,yzw为Color
+    uniform vec2 u_ColorOverLifeGradientAlphas[4]; // x为key,y为Alpha
     uniform vec4 u_ColorOverLifeGradientRanges;
 #endif
 #ifdef RANDOM_COLOR_OVER_LIFETIME
-    uniform vec4 u_ColorOverLifeGradientColors[COLOR_COUNT]; // x为key,yzw为Color
-    uniform vec2 u_ColorOverLifeGradientAlphas[COLOR_COUNT]; // x为key,y为Alpha
+    uniform vec4 u_ColorOverLifeGradientColors[4]; // x为key,yzw为Color
+    uniform vec2 u_ColorOverLifeGradientAlphas[4]; // x为key,y为Alpha
     uniform vec4 u_ColorOverLifeGradientRanges;
-    uniform vec4 u_MaxColorOverLifeGradientColors[COLOR_COUNT]; // x为key,yzw为Color
-    uniform vec2 u_MaxColorOverLifeGradientAlphas[COLOR_COUNT]; // x为key,y为Alpha
+    uniform vec4 u_MaxColorOverLifeGradientColors[4]; // x为key,yzw为Color
+    uniform vec2 u_MaxColorOverLifeGradientAlphas[4]; // x为key,y为Alpha
     uniform vec4 u_MaxColorOverLifeGradientRanges;
 #endif
 
