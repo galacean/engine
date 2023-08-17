@@ -24,59 +24,28 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Specifies whether the Size is separate on each axis. */
   separateAxes = false;
-
-  private _sizeX = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
-  private _sizeY = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
-  private _sizeZ = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  /** Size curve over lifetime for x axis. */
+  sizeX = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  /** Size curve over lifetime for y axis. */
+  sizeY = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  /** Size curve over lifetime for z axis. */
+  sizeZ = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
 
   /**
-   * Size over lifetime.
+   * Size curve over lifetime.
    */
   get size(): ParticleCompositeCurve {
-    return this._sizeY;
+    return this.sizeX;
   }
 
   set size(value: ParticleCompositeCurve) {
-    this._sizeY = value;
-  }
-
-  /**
-   * Size over lifetime for x axis.
-   */
-  get sizeX(): ParticleCompositeCurve {
-    return this._sizeX;
-  }
-
-  set sizeX(value: ParticleCompositeCurve) {
-    this._sizeX = value;
-  }
-
-  /**
-   * Size over lifetime for y axis.
-   */
-  get sizeY(): ParticleCompositeCurve {
-    return this._sizeY;
-  }
-
-  set sizeY(value: ParticleCompositeCurve) {
-    this._sizeY = value;
-  }
-
-  /**
-   * Size over lifetime for z axis.
-   */
-  get sizeZ(): ParticleCompositeCurve {
-    return this._sizeZ;
-  }
-
-  set sizeZ(value: ParticleCompositeCurve) {
-    this._sizeZ = value;
+    this.sizeX = value;
   }
 
   /**
    * @inheritDoc
    */
-  cloneTo(destRotationOverLifetime: SizeOverLifetimeModule): void {}
+  cloneTo(dest: SizeOverLifetimeModule): void {}
 
   /**
    * @internal
@@ -84,9 +53,9 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   _updateShaderData(shaderData: ShaderData): void {
     let sizeMacro = <ShaderMacro>null;
     if (this.enabled) {
-      const sizeX = this._sizeX;
-      const sizeY = this._sizeY;
-      const sizeZ = this._sizeZ;
+      const sizeX = this.sizeX;
+      const sizeY = this.sizeY;
+      const sizeZ = this.sizeZ;
 
       const separateAxes = this.separateAxes;
       const canSeparateCurveSingleMode =

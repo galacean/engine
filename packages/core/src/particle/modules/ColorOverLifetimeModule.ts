@@ -7,7 +7,7 @@ import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
- * Rotate particles throughout their lifetime.
+ * Color over lifetime module.
  */
 export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _gradientMacro = ShaderMacro.getByName("RENDERER_COL_GRADIENT");
@@ -18,9 +18,7 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientColor = ShaderProperty.getByName("renderer_COLMaxGradientColor");
   static readonly _maxGradientAlpha = ShaderProperty.getByName("renderer_COLMaxGradientAlpha");
 
-  /** Specifies whether the rotation is separate on each axis, when disabled only x axis is used and applied to all axes. */
-  separateAxes: boolean = false;
-  /** Rotation over lifetime for z axis. */
+  /** Color gradient over lifetime. */
   color: ParticleCompositeGradient = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
 
   /**
