@@ -463,8 +463,8 @@ export class ParticleGenerator {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    // Texture sheet animation
     this.textureSheetAnimation._updateShaderData(shaderData);
+    this.sizeOverLifetime._updateShaderData(shaderData);
   }
 
   private _freeRetiredParticles(): void {
