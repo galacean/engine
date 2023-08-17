@@ -24,7 +24,10 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (!this._engine._canSpriteBatch || curElement.shaderPass.getTagValue(Basic2DBatcher._disableBatchTag) === true) {
+    if (
+      !this._engine._canSpriteBatch ||
+      curElement.shaderPasses[0].getTagValue(Basic2DBatcher._disableBatchTag) === true
+    ) {
       return false;
     }
 
@@ -107,7 +110,7 @@ export class SpriteBatcher extends Basic2DBatcher {
         compileMacros
       );
 
-      const shaderPass = spriteElement.shaderPass;
+      const shaderPass = spriteElement.shaderPasses[0];
       const program = shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
@@ -122,7 +125,7 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      spriteElement.renderState._apply(engine, false, shaderPass._renderStateDataMap, material.shaderData);
+      material.renderState._apply(engine, false, shaderPass._renderStateDataMap, material.shaderData);
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 
       maskManager.postRender(renderer);

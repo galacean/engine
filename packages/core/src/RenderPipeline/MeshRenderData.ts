@@ -2,12 +2,13 @@ import { Mesh } from "../graphic/Mesh";
 import { SubMesh } from "../graphic/SubMesh";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { IPoolElement } from "./IPoolElement";
 import { RenderData } from "./RenderData";
 
 /**
  * Render element.
  */
-export class MeshRenderData extends RenderData {
+export class MeshRenderData extends RenderData implements IPoolElement {
   /** Mesh. */
   mesh: Mesh;
   /** Sub mesh. */
@@ -19,5 +20,9 @@ export class MeshRenderData extends RenderData {
 
     this.mesh = mesh;
     this.subMesh = subMesh;
+  }
+
+  dispose(): void {
+    this.component = this.material = this.mesh = this.subMesh = null;
   }
 }

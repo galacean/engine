@@ -48,6 +48,8 @@ export class Background {
 
   set texture(value: Texture2D) {
     if (this._texture !== value) {
+      value?._addReferCount(1);
+      this._texture?._addReferCount(-1);
       this._texture = value;
       this._engine._backgroundTextureMaterial.shaderData.setTexture("material_BaseTexture", value);
     }
@@ -71,6 +73,17 @@ export class Background {
   }
 
   /**
+   * @internal
+   */
+  destroy(): void {
+    this._mesh._addReferCount(-1);
+    this._mesh = null;
+    this.texture = null;
+    this.solidColor = null;
+    this.sky.destroy();
+  }
+
+  /**
    * Constructor of Background.
    * @param _engine Engine Which the background belongs to.
    */
@@ -84,6 +97,7 @@ export class Background {
    */
   _initMesh(engine): void {
     this._mesh = this._createPlane(engine);
+    this._mesh._addReferCount(1);
   }
 
   /**

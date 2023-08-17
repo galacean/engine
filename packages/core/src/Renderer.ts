@@ -30,10 +30,6 @@ export class Renderer extends Component implements ICustomClone {
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
   private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
-  /** ShaderData related to renderer. */
-  @deepClone
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
-
   /** @internal */
   @ignoreClone
   _distanceForSort: number;
@@ -59,6 +55,8 @@ export class Renderer extends Component implements ICustomClone {
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
 
+  @deepClone
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -76,6 +74,13 @@ export class Renderer extends Component implements ICustomClone {
 
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+
+  /**
+   * ShaderData related to renderer.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -332,7 +337,7 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: Renderer): void {
+  _cloneTo(target: Renderer, srcRoot: Entity, targetRoot: Entity): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);
@@ -352,6 +357,18 @@ export class Renderer extends Component implements ICustomClone {
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addReferCount(-1);
     }
+
+    this._entity = null;
+    this._globalShaderMacro = null;
+    this._bounds = null;
+    this._materials = null;
+    this._shaderData = null;
+    this._mvMatrix = null;
+    this._mvpMatrix = null;
+    this._mvInvMatrix = null;
+    this._normalMatrix = null;
+    this._materialsInstanced = null;
+    this._rendererLayer = null;
   }
 
   /**

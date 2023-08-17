@@ -87,6 +87,8 @@ export class Engine extends EventDispatcher {
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
+  _whiteTexture2D: Texture2D;
+  /* @internal */
   _magentaTexture2D: Texture2D;
   /* @internal */
   _magentaTextureCube: TextureCube;
@@ -130,6 +132,7 @@ export class Engine extends EventDispatcher {
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
+  private _waitingGC: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -232,7 +235,7 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
-    this._textDefaultFont.isGCIgnored = false;
+    this._textDefaultFont.isGCIgnored = true;
 
     this.inputManager = new InputManager(this);
 
@@ -247,6 +250,7 @@ export class Engine extends EventDispatcher {
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
+    magentaMaterial.isGCIgnored = true;
     magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
 
@@ -370,6 +374,10 @@ export class Engine extends EventDispatcher {
     if (this._waitingDestroy) {
       this._destroy();
     }
+    if (this._waitingGC) {
+      this._gc();
+      this._waitingGC = false;
+    }
     this._frameInProcess = false;
   }
 
@@ -401,6 +409,7 @@ export class Engine extends EventDispatcher {
     this._sceneManager._destroyAllScene();
 
     this._resourceManager._destroy();
+    this._whiteTexture2D.destroy(true);
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
     this._textDefaultFont = null;
@@ -503,8 +512,12 @@ export class Engine extends EventDispatcher {
    * Standalone for CanvasRenderer plugin.
    */
   _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
+    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    whiteTexture2D.setPixelBuffer(whitePixel);
+    whiteTexture2D.isGCIgnored = true;
 
+    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
     const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
     magentaTexture2D.setPixelBuffer(magentaPixel);
     magentaTexture2D.isGCIgnored = true;
@@ -539,6 +552,7 @@ export class Engine extends EventDispatcher {
       })()
     );
 
+    this._whiteTexture2D = whiteTexture2D;
     this._magentaTexture2D = magentaTexture2D;
     this._magentaTextureCube = magentaTextureCube;
 
@@ -557,6 +571,17 @@ export class Engine extends EventDispatcher {
         })()
       );
       this._magentaTexture2DArray = magentaTexture2DArray;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _pendingGC() {
+    if (this._frameInProcess) {
+      this._waitingGC = true;
+    } else {
+      this._gc();
     }
   }
 
@@ -645,6 +670,14 @@ export class Engine extends EventDispatcher {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  private _gc(): void {
+    this._renderElementPool.garbageCollection();
+    this._meshRenderDataPool.garbageCollection();
+    this._spriteRenderDataPool.garbageCollection();
+    this._spriteMaskRenderDataPool.garbageCollection();
+    this._textRenderDataPool.garbageCollection();
   }
 
   /**

@@ -164,9 +164,11 @@ export class RenderTarget extends GraphicsResource {
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
-        if (colorTextures[i]._isDepthTexture) {
+        const colorTexture = colorTextures[i];
+        if (colorTexture._isDepthTexture) {
           throw "Render texture can't use depth format.";
         }
+        colorTexture._addReferCount(1);
       }
       this._colorTextures = colorTextures;
     } else {
@@ -178,18 +180,18 @@ export class RenderTarget extends GraphicsResource {
         throw "Depth texture must use depth format.";
       }
       this._depthTexture = depth;
+      this._depthTexture._addReferCount(1);
     }
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
   }
 
   /**
-   *
    * Get the render color texture by index.
-   * @param index
+   * @param index - Render color texture index
    */
   getColorTexture(index: number = 0): Texture | null {
-    return this._colorTextures[index];
+    return this._colorTextures[index] ?? null;
   }
 
   /**
@@ -212,7 +214,12 @@ export class RenderTarget extends GraphicsResource {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._platformRenderTarget.destroy();
-    this._colorTextures.length = 0;
+    const { _colorTextures: colorTextures } = this;
+    for (let i = 0, n = colorTextures.length; i < n; i++) {
+      colorTextures[i]._addReferCount(-1);
+    }
+    colorTextures.length = 0;
+    this._depthTexture?._addReferCount(-1);
     this._depthTexture = null;
     this._depth = null;
   }

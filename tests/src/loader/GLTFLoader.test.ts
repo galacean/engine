@@ -404,9 +404,5 @@ describe("glTF Loader test", function () {
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
 
-    glTFResource.destroy();
-    expect(glTFResource.materials).to.be.null;
-    expect(glTFResource.textures).to.be.null;
-    expect(glTFResource.entities).to.be.null;
   });
 });

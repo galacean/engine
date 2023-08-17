@@ -132,9 +132,13 @@ export class SpriteMask extends Renderer {
   set sprite(value: Sprite | null) {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
-      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      if (lastSprite) {
+        lastSprite._addReferCount(-1);
+        lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      }
       this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
       if (value) {
+        value._addReferCount(1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
@@ -173,8 +177,8 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
+  override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
   }
 
@@ -218,8 +222,7 @@ export class SpriteMask extends Renderer {
     renderData.set(this, material, this._verticesData);
 
     const renderElement = this._engine._renderElementPool.getFromPool();
-    const pass = material.shader.subShaders[0].passes[0];
-    renderElement.set(renderData, pass, pass._renderState ?? material.renderStates[0]);
+    renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }
 
@@ -229,7 +232,12 @@ export class SpriteMask extends Renderer {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    const sprite = this._sprite;
+    if (sprite) {
+      sprite._addReferCount(-1);
+      sprite._updateFlagManager.removeListener(this._onSpriteChange);
+    }
+    this._entity = null;
     this._sprite = null;
     this._verticesData = null;
   }

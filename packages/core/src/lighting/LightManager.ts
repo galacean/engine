@@ -70,32 +70,19 @@ export class LightManager {
   /**
    * @internal
    */
-  _getSunLightIndex(): number {
+  _updateSunLightIndex(): void {
     const directLights = this._directLights;
+    const index = this._getSunLightIndex();
+    // -1 means no sun light, 0 means the first direct light already is sun light
+    if (index > 0) {
+      const firstLight = directLights.get(0);
+      const sunLight = directLights.get(index);
+      directLights.set(0, sunLight);
+      directLights.set(index, firstLight);
 
-    let sunLightIndex = -1;
-    let maxIntensity = Number.NEGATIVE_INFINITY;
-    let hasShadowLight = false;
-    for (let i = 0, n = directLights.length; i < n; i++) {
-      const directLight = directLights.get(i);
-      if (directLight.shadowType !== ShadowType.None && !hasShadowLight) {
-        maxIntensity = Number.NEGATIVE_INFINITY;
-        hasShadowLight = true;
-      }
-      const intensity = directLight.intensity * directLight.color.getBrightness();
-      if (hasShadowLight) {
-        if (directLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
-          maxIntensity = intensity;
-          sunLightIndex = i;
-        }
-      } else {
-        if (maxIntensity < intensity) {
-          maxIntensity = intensity;
-          sunLightIndex = i;
-        }
-      }
+      sunLight._lightIndex = 0;
+      firstLight._lightIndex = index;
     }
-    return sunLightIndex;
   }
 
   /**
@@ -144,5 +131,42 @@ export class LightManager {
     } else {
       shaderData.disableMacro("SCENE_SPOT_LIGHT_COUNT");
     }
+  }
+
+  /**
+   * @internal
+   */
+  _gc() {
+    this._spotLights.garbageCollection();
+    this._pointLights.garbageCollection();
+    this._directLights.garbageCollection();
+  }
+
+  private _getSunLightIndex(): number {
+    const directLights = this._directLights;
+
+    let sunLightIndex = -1;
+    let maxIntensity = Number.NEGATIVE_INFINITY;
+    let hasShadowLight = false;
+    for (let i = 0, n = directLights.length; i < n; i++) {
+      const directLight = directLights.get(i);
+      if (directLight.shadowType !== ShadowType.None && !hasShadowLight) {
+        maxIntensity = Number.NEGATIVE_INFINITY;
+        hasShadowLight = true;
+      }
+      const intensity = directLight.intensity * directLight.color.getBrightness();
+      if (hasShadowLight) {
+        if (directLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
+          maxIntensity = intensity;
+          sunLightIndex = i;
+        }
+      } else {
+        if (maxIntensity < intensity) {
+          maxIntensity = intensity;
+          sunLightIndex = i;
+        }
+      }
+    }
+    return sunLightIndex;
   }
 }

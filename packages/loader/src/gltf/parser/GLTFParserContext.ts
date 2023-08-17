@@ -144,7 +144,6 @@ export class GLTFParserContext {
 export class BufferInfo {
   vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
-
   restoreInfo: BufferDataRestoreInfo;
 
   constructor(

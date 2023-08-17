@@ -14,10 +14,46 @@ export class Sky {
   private static _viewProjMatrix: Matrix = new Matrix();
   private static _projectionMatrix: Matrix = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, Sky._epsilon - 1, -1, 0, 0, 0, 0);
 
-  /** Material of the sky. */
-  material: Material;
-  /** Mesh of the sky. */
-  mesh: Mesh;
+  private _material: Material;
+  private _mesh: Mesh;
+
+  /**
+   *  Material of the sky.
+   */
+  get material() {
+    return this._material;
+  }
+
+  set material(value: Material) {
+    if (this._material !== value) {
+      value?._addReferCount(1);
+      this._material?._addReferCount(-1);
+      this._material = value;
+    }
+  }
+
+  /**
+   *  Mesh of the sky.
+   */
+  get mesh() {
+    return this._mesh;
+  }
+
+  set mesh(value: Mesh) {
+    if (this._mesh !== value) {
+      value?._addReferCount(1);
+      this._mesh?._addReferCount(-1);
+      this._mesh = value;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  destroy(): void {
+    this.mesh = null;
+    this.material = null;
+  }
 
   /**
    * @internal

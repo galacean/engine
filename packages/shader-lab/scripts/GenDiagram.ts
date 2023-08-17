@@ -7,7 +7,7 @@ import path from "path";
 import fs from "fs";
 
 function generateDiagram(opts?: { outDir?: string; pattern?: RegExp }) {
-  const out = opts?.outDir ?? path.join(__dirname, "../output");
+  const out = opts?.outDir ?? path.join(__dirname, "../doc");
   if (!fs.existsSync(out)) {
     fs.mkdirSync(out);
   }

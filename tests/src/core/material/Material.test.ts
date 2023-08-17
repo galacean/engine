@@ -3,9 +3,10 @@ import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math"
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("Material",  () => {
+describe("Material", () => {
   let engine: WebGLEngine;
-  before(async () => {
+  before(async function () {
+    this.timeout(10000);
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

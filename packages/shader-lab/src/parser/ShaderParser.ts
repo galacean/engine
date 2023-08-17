@@ -1,30 +1,14 @@
 import { CstParser, Lexer, TokenType } from "chevrotain";
-import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords } from "./tokens";
-import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/value";
-
-const allTokens = [
-  Others.WhiteSpace,
-  Others.CommentLine,
-  Others.CommentMultiLine,
-  ...Symbols.tokenList,
-  ...Keywords.tokenList,
-  ...GLKeywords.variableTokenList,
-  ...GLKeywords.funcTokenList,
-  ...GLKeywords.macroTokenList,
-  ...GLKeywords.otherTokenList,
-  ...Keywords.tagTokenList,
-  ...Values.tokenList,
-  ...Types.tokenList,
-  ...EditorTypes.tokenList,
-  Others.Identifier
-];
+import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords, RenderState, _allTokens } from "./tokens";
+import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/Value";
+import { Identifier } from "./tokens/Other";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;
 
   constructor() {
-    super(allTokens, { maxLookahead: 8 });
-    this.lexer = new Lexer(allTokens);
+    super(_allTokens, { maxLookahead: 8 });
+    this.lexer = new Lexer(_allTokens, { ensureOptimizations: true });
 
     this.performSelfAnalysis();
   }
@@ -41,7 +25,15 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Values.ValueString);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.OR([{ ALT: () => this.SUBRULE(this._ruleProperty) }, { ALT: () => this.SUBRULE(this._ruleSubShader) }]);
+      this.OR([
+        { ALT: () => this.SUBRULE(this._ruleProperty) },
+        { ALT: () => this.SUBRULE(this._ruleSubShader) },
+        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
+        { ALT: () => this.SUBRULE(this._ruleTag) },
+        { ALT: () => this.SUBRULE(this._ruleStruct) },
+        { ALT: () => this.SUBRULE(this._ruleFn) },
+        { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) }
+      ]);
     });
     this.CONSUME(Symbols.RCurly);
   });
@@ -53,7 +45,10 @@ export class ShaderParser extends CstParser {
       this.OR([
         { ALT: () => this.SUBRULE(this._ruleShaderPass) },
         { ALT: () => this.SUBRULE(this._ruleTag) },
-        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) }
+        { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
+        { ALT: () => this.SUBRULE(this._ruleStruct) },
+        { ALT: () => this.SUBRULE(this._ruleFn) },
+        { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) }
       ]);
     });
     this.CONSUME(Symbols.RCurly);
@@ -69,7 +64,7 @@ export class ShaderParser extends CstParser {
         { ALT: () => this.SUBRULE(this._ruleStruct) },
         { ALT: () => this.SUBRULE(this._ruleFn) },
         { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
-        { ALT: () => this.SUBRULE(this._ruleSubShaderPassPropertyAssignment) },
+        { ALT: () => this.SUBRULE(this._rulePassPropertyAssignment) },
         { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
         { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
         { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) }
@@ -115,17 +110,17 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleTagAssignment = this.RULE("_ruleTagAssignment", () => {
-    this.SUBRULE(this._ruleTagType);
+    this.CONSUME(Others.Identifier);
     this.CONSUME(Symbols.Equal);
-    this.CONSUME(Values.ValueString);
+    this.SUBRULE(this._ruleTagAssignableValue);
   });
 
-  private _ruleTagType = this.RULE("_ruleTagType", () => {
-    this.OR(
-      Keywords.tagTokenList.map((kw) => ({
-        ALT: () => this.CONSUME(kw)
-      }))
-    );
+  private _ruleTagAssignableValue = this.RULE("_ruleTagAssignableValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.CONSUME(Values.ValueString) }
+    ]);
   });
 
   private _ruleFn = this.RULE("_ruleFn", () => {
@@ -161,34 +156,41 @@ export class ShaderParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnMacroDefine) },
       { ALT: () => this.SUBRULE(this._ruleFnMacroInclude) },
-      { ALT: () => this.SUBRULE(this._ruleFnMacroCondition) }
+      { ALT: () => this.SUBRULE(this._ruleFnMacroCondition) },
+      { ALT: () => this.SUBRULE(this._ruleFnMacroUndefine) }
     ]);
   });
 
   private _ruleFnMacroCondition = this.RULE("_ruleFnMacroCondition", () => {
     this.SUBRULE(this._ruleFnMacroConditionDeclare);
-    this.CONSUME(Others.Identifier);
+    this.SUBRULE(this._ruleConditionExpr);
     this.SUBRULE(this._ruleFnBody);
     this.OPTION(() => {
-      this.SUBRULE(this._ruleFnMacroConditionBranch);
+      this.SUBRULE(this._ruleMacroConditionElifBranch);
     });
     this.OPTION1(() => {
-      this.SUBRULE1(this._ruleFnBody);
+      this.SUBRULE(this._ruleFnMacroConditionElseBranch);
     });
     this.CONSUME(GLKeywords.M_ENDIF);
   });
 
   private _ruleFnMacroConditionDeclare = this.RULE("_ruleFnMacroConditionDeclare", () => {
-    this.OR([{ ALT: () => this.CONSUME(GLKeywords.M_IFDEF) }, { ALT: () => this.CONSUME(GLKeywords.M_IFNDEF) }]);
+    this.OR([
+      { ALT: () => this.CONSUME(GLKeywords.M_IFDEF) },
+      { ALT: () => this.CONSUME(GLKeywords.M_IFNDEF) },
+      { ALT: () => this.CONSUME(GLKeywords.M_IF) }
+    ]);
   });
 
-  private _ruleFnMacroConditionBranch = this.RULE("_ruleFnMacroConditionBranch", () => {
-    this.SUBRULE(this._ruleFnMacroConditionBranchDeclare);
+  private _ruleFnMacroConditionElseBranch = this.RULE("_ruleFnMacroConditionElseBranch", () => {
+    this.CONSUME(GLKeywords.M_ELSE);
     this.SUBRULE(this._ruleFnBody);
   });
 
-  private _ruleFnMacroConditionBranchDeclare = this.RULE("_ruleFnMacroConditionBranchDeclare", () => {
-    this.OR([{ ALT: () => this.CONSUME(GLKeywords.M_ELSE) }]);
+  private _ruleMacroConditionElifBranch = this.RULE("_ruleMacroConditionElifBranch", () => {
+    this.CONSUME(GLKeywords.M_ELIF);
+    this.SUBRULE(this._ruleConditionExpr);
+    this.SUBRULE(this._ruleFnBody);
   });
 
   private _ruleFnMacroDefine = this.RULE("_ruleFnMacroDefine", () => {
@@ -199,10 +201,14 @@ export class ShaderParser extends CstParser {
     });
   });
 
+  private _ruleFnMacroUndefine = this.RULE("_ruleFnMacroUndefine", () => {
+    this.CONSUME(GLKeywords.M_UNDEFINE);
+    this.CONSUME(Others.Identifier);
+  });
+
   private _ruleAssignableValue = this.RULE("_ruleAssignableValue", () => {
     this.OR([
-      { ALT: () => this.CONSUME(Values.ValueTrue) },
-      { ALT: () => this.CONSUME(Values.ValueFalse) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) },
       { ALT: () => this.SUBRULE(this._ruleFnAddExpr) },
       { ALT: () => this.CONSUME(GLKeywords.GLFragColor) },
@@ -288,6 +294,11 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Values.ValueString);
   });
 
+  private _ruleDiscardStatement = this.RULE("_ruleDiscardStatement", () => {
+    this.CONSUME(GLKeywords.Discard);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
   private _ruleFnStatement = this.RULE("_ruleFnStatement", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnCall) },
@@ -295,24 +306,23 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
       { ALT: () => this.SUBRULE(this._ruleFnConditionStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnAssignStatement) },
-      {
-        ALT: () => {
-          this.CONSUME(GLKeywords.Discard);
-          this.CONSUME(Symbols.Semicolon);
-        }
-      }
+      { ALT: () => this.SUBRULE(this._ruleDiscardStatement) }
     ]);
   });
 
   private _ruleFnReturnStatement = this.RULE("_ruleFnReturnStatement", () => {
     this.CONSUME(GLKeywords.Return);
+    this.SUBRULE(this._ruleReturnBody);
+
+    this.CONSUME(Symbols.Semicolon);
+  });
+
+  private _ruleReturnBody = this.RULE("_ruleReturnBody", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnExpression) },
       { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) }
     ]);
-
-    this.CONSUME(Symbols.Semicolon);
   });
 
   private _ruleFnExpression = this.RULE("_ruleFnExpression", () => {
@@ -336,7 +346,7 @@ export class ShaderParser extends CstParser {
   private _ruleFnConditionStatement = this.RULE("_ruleFnConditionStatement", () => {
     this.CONSUME(GLKeywords.If);
     this.CONSUME1(Symbols.LBracket);
-    this.SUBRULE(this._ruleFnRelationExpr);
+    this.SUBRULE(this._ruleConditionExpr);
     this.CONSUME(Symbols.RBracket);
     this.SUBRULE(this._ruleFnBlockStatement);
     this.MANY(() => {
@@ -349,14 +359,24 @@ export class ShaderParser extends CstParser {
     });
   });
 
+  private _ruleConditionExpr = this.RULE("_ruleConditionExpr", () => {
+    this.SUBRULE(this._ruleFnRelationExpr);
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleRelationOperator);
+      this.SUBRULE1(this._ruleFnRelationExpr);
+    });
+  });
+
   private _ruleFnRelationExpr = this.RULE("_ruleFnRelationExpr", () => {
     this.SUBRULE(this._ruleFnAddExpr);
-    this.SUBRULE(this._ruleRelationOperator);
-    this.SUBRULE1(this._ruleFnAddExpr);
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleRelationOperator);
+      this.SUBRULE1(this._ruleFnAddExpr);
+    });
   });
 
   private _ruleRelationOperator = this.RULE("_ruleRelationOperator", () => {
-    this.OR([{ ALT: () => this.CONSUME(Symbols.GreaterThan) }, { ALT: () => this.CONSUME(Symbols.LessThan) }]);
+    this.OR(Symbols.RelationTokenList.map((item) => ({ ALT: () => this.CONSUME(item) })));
   });
 
   private _ruleFnBlockStatement = this.RULE("_ruleFnBlockStatement", () => {
@@ -390,7 +410,7 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
-  private _ruleSubShaderPassPropertyAssignment = this.RULE("_ruleSubShaderPassPropertyAssignment", () => {
+  private _rulePassPropertyAssignment = this.RULE("_rulePassPropertyAssignment", () => {
     this.SUBRULE(this._ruleShaderPassPropertyType);
     this.CONSUME(Symbols.Equal);
     this.CONSUME(Others.Identifier);
@@ -406,37 +426,202 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleRenderStateType = this.RULE("_ruleRenderStateType", () => {
-    this.OR([
-      { ALT: () => this.CONSUME(Keywords.BlendState) },
-      { ALT: () => this.CONSUME(Keywords.DepthState) },
-      { ALT: () => this.CONSUME(Keywords.RasterState) },
-      { ALT: () => this.CONSUME(Keywords.StencilState) }
-    ]);
+    this.OR(Object.values(RenderState.RenderStateTypeTokens).map((item) => ({ ALT: () => this.CONSUME(item) })));
   });
 
   private _ruleRenderStateDeclaration = this.RULE("_ruleRenderStateDeclaration", () => {
-    this.SUBRULE(this._ruleRenderStateType);
-    this.CONSUME(Others.Identifier);
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleBlendStatePropertyDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleDepthSatePropertyDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleStencilStatePropertyDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleRasterStatePropertyDeclaration) }
+    ]);
+  });
+
+  private _ruleBlendStateProperty = this.RULE("_ruleBlendStateProperty", () => {
+    this.OR(
+      [
+        ...Object.values(RenderState.BlendStatePropertyTokens),
+        ...Object.values(RenderState.BlendStatePropertyTokensWithoutIndex),
+        RenderState.Enabled
+      ].map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleBlendStateValue = this.RULE("_ruleBlendStateValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleBlendFactor) },
+      { ALT: () => this.SUBRULE(this._ruleBlendOperation) },
+      { ALT: () => this.SUBRULE(this._ruleFnCall) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.CONSUME(Identifier) }
+    ]);
+  });
+
+  private _ruleBlendFactor = this.RULE("_ruleBlendFactor", () => {
+    this.OR(
+      RenderState.BlendFactorTokenList.map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleBlendOperation = this.RULE("_ruleBlendOperation", () => {
+    this.OR(
+      RenderState.BlendOperationTokenList.map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleBlendPropertyItem = this.RULE("_ruleBlendPropertyItem", () => {
+    this.SUBRULE(this._ruleBlendStateProperty);
+    this.OPTION(() => {
+      this.CONSUME(Symbols.LSquareBracket);
+      this.CONSUME(ValueInt);
+      this.CONSUME(Symbols.RSquareBracket);
+    });
+    this.CONSUME(Symbols.Equal);
+    this.SUBRULE(this._ruleBlendStateValue);
+  });
+
+  private _ruleBlendStatePropertyDeclaration = this.RULE("_ruleBlendStatePropertyDeclaration", () => {
+    this.CONSUME(RenderState.RenderStateTypeTokens.BlendState);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
     this.CONSUME(Symbols.LCurly);
+
     this.MANY(() => {
-      this.SUBRULE(this._ruleStatePropertyAssign);
+      this.SUBRULE(this._ruleBlendPropertyItem);
       this.CONSUME(Symbols.Semicolon);
     });
+
     this.CONSUME(Symbols.RCurly);
   });
 
-  private _ruleStatePropertyAssign = this.RULE("_ruleStatePropertyAssign", () => {
-    this.SUBRULE(this._ruleStateProperty);
-    this.CONSUME(Symbols.Equal);
-    this.SUBRULE(this._ruleAssignableValue);
+  private _ruleDepthStateProperty = this.RULE("_ruleDepthStateProperty", () => {
+    this.OR(
+      [...Object.values(RenderState.DepthStatePropertyTokens), RenderState.Enabled].map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
   });
 
-  private _ruleStateProperty = this.RULE("_ruleStateProperty", () => {
+  private _ruleDepthStateValue = this.RULE("_ruleDepthStateValue", () => {
     this.OR([
-      { ALT: () => this.CONSUME(Keywords.Enabled) },
-      { ALT: () => this.CONSUME(Keywords.DestColorBlendFactor) },
-      { ALT: () => this.CONSUME(Keywords.SrcColorBlendFactor) }
+      { ALT: () => this.SUBRULE(this._ruleCompareFunction) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.CONSUME(Identifier) }
     ]);
+  });
+
+  private _ruleCompareFunction = this.RULE("_ruleCompareFunction", () => {
+    this.OR(RenderState.CompareFunctionTokenList.map((token) => ({ ALT: () => this.CONSUME(token) })));
+  });
+
+  private _ruleDepthStatePropertyItem = this.RULE("_ruleDepthStatePropertyItem", () => {
+    this.SUBRULE(this._ruleDepthStateProperty);
+    this.CONSUME(Symbols.Equal);
+    this.SUBRULE(this._ruleDepthStateValue);
+  });
+
+  private _ruleDepthSatePropertyDeclaration = this.RULE("_ruleDepthSatePropertyDeclaration", () => {
+    this.CONSUME(RenderState.RenderStateTypeTokens.DepthState);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
+    this.CONSUME(Symbols.LCurly);
+
+    this.MANY(() => {
+      this.SUBRULE(this._ruleDepthStatePropertyItem);
+      this.CONSUME(Symbols.Semicolon);
+    });
+
+    this.CONSUME(Symbols.RCurly);
+  });
+
+  private _ruleStencilStateProperty = this.RULE("_ruleStencilStateProperty", () => {
+    this.OR(
+      [...Object.values(RenderState.StencilStatePropertyTokens), RenderState.Enabled].map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleStencilStateValue = this.RULE("_ruleStencilStateValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleCompareFunction) },
+      { ALT: () => this.SUBRULE(this._ruleStencilOperation) },
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleBoolean) },
+      { ALT: () => this.CONSUME(Identifier) }
+    ]);
+  });
+
+  private _ruleStencilOperation = this.RULE("_ruleStencilOperation", () => {
+    this.OR(
+      RenderState.StencilOperationTokenList.map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleStencilStatePropertyItem = this.RULE("_ruleStencilStatePropertyItem", () => {
+    this.SUBRULE(this._ruleStencilStateProperty);
+    this.CONSUME(Symbols.Equal);
+    this.SUBRULE(this._ruleStencilStateValue);
+  });
+
+  private _ruleStencilStatePropertyDeclaration = this.RULE("_ruleStencilStatePropertyDeclaration", () => {
+    this.CONSUME(RenderState.RenderStateTypeTokens.StencilState);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
+    this.CONSUME(Symbols.LCurly);
+
+    this.MANY(() => {
+      this.SUBRULE(this._ruleStencilStatePropertyItem);
+      this.CONSUME(Symbols.Semicolon);
+    });
+
+    this.CONSUME(Symbols.RCurly);
+  });
+
+  private _ruleRasterStateProperty = this.RULE("_ruleRasterStateProperty", () => {
+    this.OR(
+      [...Object.values(RenderState.RasterStatePropertyTokens), RenderState.Enabled].map((token) => ({
+        ALT: () => this.CONSUME(token)
+      }))
+    );
+  });
+
+  private _ruleRasterStateValue = this.RULE("_ruleRasterStateValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleNumber) },
+      { ALT: () => this.SUBRULE(this._ruleCullMode) },
+      { ALT: () => this.CONSUME(Identifier) }
+    ]);
+  });
+
+  private _ruleCullMode = this.RULE("_ruleCullMode", () => {
+    this.OR(RenderState.CullModeTokenList.map((token) => ({ ALT: () => this.CONSUME(token) })));
+  });
+
+  private _ruleRasterStatePropertyItem = this.RULE("_ruleRasterStatePropertyItem", () => {
+    this.SUBRULE(this._ruleRasterStateProperty);
+    this.CONSUME(Symbols.Equal);
+    this.SUBRULE(this._ruleRasterStateValue);
+  });
+
+  private _ruleRasterStatePropertyDeclaration = this.RULE("_ruleRasterStatePropertyDeclaration", () => {
+    this.CONSUME(RenderState.RenderStateTypeTokens.RasterState);
+    this.OPTION(() => this.CONSUME(Others.Identifier));
+    this.CONSUME(Symbols.LCurly);
+
+    this.MANY(() => {
+      this.SUBRULE(this._ruleRasterStatePropertyItem);
+      this.CONSUME(Symbols.Semicolon);
+    });
+
+    this.CONSUME(Symbols.RCurly);
   });
 
   private _ruleProperty = this.RULE("_ruleProperty", () => {

@@ -146,6 +146,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
           break;
       }
     }
+
+    evaluateData.value = value;
+
     return value;
   }
 
