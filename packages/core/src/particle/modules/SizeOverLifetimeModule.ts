@@ -28,7 +28,6 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   private _sizeX = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
   private _sizeY = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
   private _sizeZ = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
-  private _lastSizeMacro: ShaderMacro;
 
   /**
    * Size over lifetime.
@@ -83,45 +82,57 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    const isRandomMode = this._sizeX.mode === ParticleCurveMode.TwoCurves;
-    const isSeparateRandomMode =
-      isRandomMode &&
-      this._sizeY.mode === ParticleCurveMode.TwoCurves &&
-      this._sizeZ.mode === ParticleCurveMode.TwoCurves;
+    let sizeMacro = <ShaderMacro>null;
+    if (this.enabled) {
+      const sizeX = this._sizeX;
+      const sizeY = this._sizeY;
+      const sizeZ = this._sizeZ;
 
-    const sizeMacro = this.enabled
-      ? this.separateAxes
-        ? isSeparateRandomMode
-          ? SizeOverLifetimeModule._randomCurvesSeparateMacro
-          : SizeOverLifetimeModule._curveSeparateMacro
-        : isRandomMode
-        ? SizeOverLifetimeModule._randomCurvesMacro
-        : SizeOverLifetimeModule._curveMacro
-      : null;
+      const canSeparateCurveMode =
+        sizeX.mode === ParticleCurveMode.Curve &&
+        sizeY.mode === ParticleCurveMode.Curve &&
+        sizeZ.mode === ParticleCurveMode.Curve;
+      const canSeparateRandomCurveMode =
+        sizeX.mode === ParticleCurveMode.TwoCurves &&
+        sizeY.mode === ParticleCurveMode.TwoCurves &&
+        sizeZ.mode === ParticleCurveMode.TwoCurves;
 
-    const lastSizeMacro = this._lastSizeMacro;
-    if (lastSizeMacro !== sizeMacro) {
-      lastSizeMacro && shaderData.disableMacro(lastSizeMacro);
-      this._lastSizeMacro = sizeMacro;
-    }
+      if (
+        (!this.separateAxes &&
+          (sizeX.mode === ParticleCurveMode.Curve || sizeX.mode === ParticleCurveMode.TwoCurves)) ||
+        (this.separateAxes && (canSeparateCurveMode || canSeparateRandomCurveMode))
+      ) {
+        shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveXProperty, sizeX.curveMax._getTypeArray());
+        if (
+          (!this.separateAxes && sizeX.mode == ParticleCurveMode.TwoCurves) ||
+          (this.separateAxes && canSeparateRandomCurveMode)
+        ) {
+          shaderData.setFloatArray(SizeOverLifetimeModule._minCurveXProperty, sizeX.curveMin._getTypeArray());
+        }
 
-    if (sizeMacro) {
-      shaderData.enableMacro(sizeMacro);
+        if (this.separateAxes) {
+          if (canSeparateCurveMode || canSeparateRandomCurveMode) {
+            shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveYProperty, sizeY.curveMax._getTypeArray());
+            shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveZProperty, sizeZ.curveMax._getTypeArray());
 
-      shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveXProperty, this._sizeX.curveMax._getTypeArray());
-      if (isRandomMode) {
-        shaderData.setFloatArray(SizeOverLifetimeModule._minCurveXProperty, this._sizeX.curveMin._getTypeArray());
-      }
-
-      if (this.separateAxes) {
-        shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveYProperty, this._sizeY.curveMax._getTypeArray());
-        shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveZProperty, this._sizeZ.curveMax._getTypeArray());
-
-        if (isSeparateRandomMode) {
-          shaderData.setFloatArray(SizeOverLifetimeModule._minCurveYProperty, this._sizeY.curveMin._getTypeArray());
-          shaderData.setFloatArray(SizeOverLifetimeModule._minCurveZProperty, this._sizeZ.curveMin._getTypeArray());
+            if (canSeparateCurveMode) {
+              sizeMacro = SizeOverLifetimeModule._randomCurvesSeparateMacro;
+            } else {
+              shaderData.setFloatArray(SizeOverLifetimeModule._minCurveYProperty, sizeY.curveMin._getTypeArray());
+              shaderData.setFloatArray(SizeOverLifetimeModule._minCurveZProperty, sizeZ.curveMin._getTypeArray());
+              sizeMacro = SizeOverLifetimeModule._curveSeparateMacro;
+            }
+          }
+        } else {
+          if (sizeX.mode === ParticleCurveMode.Curve) {
+            sizeMacro = SizeOverLifetimeModule._curveMacro;
+          } else {
+            sizeMacro = SizeOverLifetimeModule._randomCurvesMacro;
+          }
         }
       }
     }
+
+    this._enableModuleMacro(shaderData, sizeMacro);
   }
 }

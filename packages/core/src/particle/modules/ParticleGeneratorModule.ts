@@ -1,4 +1,4 @@
-
+import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 
 /**
@@ -10,9 +10,20 @@ export abstract class ParticleGeneratorModule {
 
   protected _generator: ParticleGenerator;
 
+  private _lastMacro: ShaderMacro;
+
   constructor(generator: ParticleGenerator) {
     this._generator = generator;
   }
 
   abstract cloneTo(destRotationOverLifetime: ParticleGeneratorModule);
+
+  protected _enableModuleMacro(shaderData: ShaderData, enableMacro: ShaderMacro): void {
+    const lastMacro = this._lastMacro;
+    if (lastMacro !== enableMacro) {
+      lastMacro && shaderData.disableMacro(lastMacro);
+      enableMacro && shaderData.enableMacro(enableMacro);
+      this._lastMacro = enableMacro;
+    }
+  }
 }

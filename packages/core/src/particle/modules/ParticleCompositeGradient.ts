@@ -62,7 +62,7 @@ export class ParticleCompositeGradient implements IClone {
   /**
    * Create a particle gradient that can generate color from a minimum gradient and a maximum gradient.
    * @param gradientMin - The min gradient
-   * @param gradientMax - The max gradient
+   *
    */
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 

@@ -1,11 +1,11 @@
 import { Vector2, Vector3 } from "@galacean/engine-math";
+import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
-import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ShaderData } from "../../shader/ShaderData";
 import { Key, ParticleCurve } from "./ParticleCurve";
+import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
  * Texture sheet animation module.
@@ -32,7 +32,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
 
   private _tiling = new Vector2(1, 1);
-  private _lastFrameMacro: ShaderMacro;
 
   /**
    * Tiling of the texture sheet.
@@ -55,40 +54,31 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    const frameOverTime = this.frameOverTime;
-    const mode = frameOverTime.mode;
-    const isFrameCurveMode = mode === ParticleCurveMode.Curve;
-
-    const frameMacro = this.enabled
-      ? isFrameCurveMode || mode === ParticleCurveMode.TwoCurves
-        ? isFrameCurveMode
-          ? TextureSheetAnimationModule._frameCurveMacro
-          : TextureSheetAnimationModule._frameRandomCurvesMacro
-        : null
-      : null;
-
-    if (this._lastFrameMacro !== frameMacro) {
-      this._lastFrameMacro && shaderData.disableMacro(this._lastFrameMacro);
-      this._lastFrameMacro = frameMacro;
-    }
-
-    if (frameMacro) {
-      shaderData.enableMacro(frameMacro);
-
-      shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
-      shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
-      shaderData.setFloatArray(
-        TextureSheetAnimationModule._frameMaxCurveProperty,
-        frameOverTime.curveMax._getTypeArray()
-      );
-
-      if (!isFrameCurveMode) {
+    let frameMacro = <ShaderMacro>null;
+    if (this.enabled) {
+      const mode = this.frameOverTime.mode;
+      if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
+        const frameOverTime = this.frameOverTime;
         shaderData.setFloatArray(
-          TextureSheetAnimationModule._frameMinCurveProperty,
-          frameOverTime.curveMin._getTypeArray()
+          TextureSheetAnimationModule._frameMaxCurveProperty,
+          frameOverTime.curveMax._getTypeArray()
         );
+        if (mode === ParticleCurveMode.Curve) {
+          frameMacro = TextureSheetAnimationModule._frameCurveMacro;
+        } else {
+          shaderData.setFloatArray(
+            TextureSheetAnimationModule._frameMinCurveProperty,
+            frameOverTime.curveMin._getTypeArray()
+          );
+          frameMacro = TextureSheetAnimationModule._frameRandomCurvesMacro;
+        }
+
+        shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
+        shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
       }
     }
+
+    this._enableModuleMacro(shaderData, frameMacro);
   }
 }
 
