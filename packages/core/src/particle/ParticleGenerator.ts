@@ -1,4 +1,4 @@
-import { Color, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, MathUtil, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
@@ -361,11 +361,19 @@ export class ParticleGenerator {
     // Start rotation
     const startRotationRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
     if (main.startRotation3D) {
-      instanceVertices[offset + 15] = main.startRotationX.evaluate(undefined, startRotationRand.random());
-      instanceVertices[offset + 16] = main.startRotationY.evaluate(undefined, startRotationRand.random());
-      instanceVertices[offset + 17] = main.startRotationZ.evaluate(undefined, startRotationRand.random());
+      instanceVertices[offset + 15] = MathUtil.degreeToRadian(
+        main.startRotationX.evaluate(undefined, startRotationRand.random())
+      );
+      instanceVertices[offset + 16] = MathUtil.degreeToRadian(
+        main.startRotationY.evaluate(undefined, startRotationRand.random())
+      );
+      instanceVertices[offset + 17] = MathUtil.degreeToRadian(
+        main.startRotationZ.evaluate(undefined, startRotationRand.random())
+      );
     } else {
-      instanceVertices[offset + 15] = main.startRotation.evaluate(undefined, startRotationRand.random());
+      instanceVertices[offset + 15] = MathUtil.degreeToRadian(
+        main.startRotation.evaluate(undefined, startRotationRand.random())
+      );
     }
 
     // Start speed
