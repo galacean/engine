@@ -465,6 +465,7 @@ export class ParticleGenerator {
   _updateShaderData(shaderData: ShaderData): void {
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
+    this.colorOverLifetime._updateShaderData(shaderData);
   }
 
   private _freeRetiredParticles(): void {
