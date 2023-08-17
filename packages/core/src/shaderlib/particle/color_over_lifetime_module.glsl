@@ -43,11 +43,11 @@
 
 
 vec4 computeParticleColor(in vec4 color, in float normalizedAge) {
-    #ifdef COLOR_OVER_LIFETIME
+    #ifdef RENDERER_COL_GRADIENT
         color *= evaluateParticleGradient(renderer_COLMaxGradientAlpha, renderer_COLMaxGradientColor, normalizedAge);
     #endif
 
-    #ifdef RANDOM_COLOR_OVER_LIFETIME
+    #ifdef RENDERER_COL_RANDOM_GRADIENTS
         color *= mix(evaluateParticleGradient(renderer_COLMinGradientAlpha, renderer_COLMinGradientColor, normalizedAge), evaluateParticleGradient(renderer_COLMaxGradientAlpha, renderer_COLMaxGradientColor, normalizedAge), a_Random0.y);
     #endif
     return color;

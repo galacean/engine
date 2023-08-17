@@ -7,8 +7,10 @@ import { Color } from "@galacean/engine-math";
 export class ParticleGradient implements IClone {
   private _colorKeys: ColorKey[] = [];
   private _alphaKeys: AlphaKey[] = [];
-  private _typeArray: Float32Array;
-  private _typeArrayDirty: boolean = false;
+  private _colorTypeArray: Float32Array;
+  private _alphaTypeArray: Float32Array;
+  private _colorTypeArrayDirty: boolean = false;
+  private _alphaTypeArrayDirty: boolean = false;
 
   /**
    * The color keys of the gradient.
@@ -128,11 +130,11 @@ export class ParticleGradient implements IClone {
    * @internal
    */
   _getColorTypeArray(): Float32Array {
-    const typeArray = (this._typeArray ||= new Float32Array(4 * 4));
-    if (this._typeArrayDirty) {
+    const typeArray = (this._colorTypeArray ||= new Float32Array(4 * 4));
+    if (this._colorTypeArrayDirty) {
       const keys = this._colorKeys;
       for (let i = 0, n = Math.min(keys.length, 4); i < n; i++) {
-        const offset = i * 2;
+        const offset = i * 4;
         const key = keys[i];
         typeArray[offset] = key.time;
         const color = key.color;
@@ -140,7 +142,7 @@ export class ParticleGradient implements IClone {
         typeArray[offset + 2] = color.g;
         typeArray[offset + 3] = color.b;
       }
-      this._typeArrayDirty = false;
+      this._colorTypeArrayDirty = false;
     }
 
     return typeArray;
@@ -150,8 +152,8 @@ export class ParticleGradient implements IClone {
    * @internal
    */
   _getAlphaTypeArray(): Float32Array {
-    const typeArray = (this._typeArray ||= new Float32Array(4 * 2));
-    if (this._typeArrayDirty) {
+    const typeArray = (this._alphaTypeArray ||= new Float32Array(4 * 2));
+    if (this._alphaTypeArrayDirty) {
       const keys = this._alphaKeys;
       for (let i = 0, n = Math.min(keys.length, 4); i < n; i++) {
         const offset = i * 2;
@@ -159,7 +161,7 @@ export class ParticleGradient implements IClone {
         typeArray[offset] = key.time;
         typeArray[offset + 1] = key.alpha;
       }
-      this._typeArrayDirty = false;
+      this._alphaTypeArrayDirty = false;
     }
 
     return typeArray;
@@ -175,12 +177,14 @@ export class ParticleGradient implements IClone {
       while (--index >= 0 && time < keys[index].time);
       keys.splice(index + 1, 0, key);
     }
-    this._typeArrayDirty = true;
+    this._colorTypeArrayDirty = true;
+    this._alphaTypeArrayDirty = true;
   }
 
   private _removeKey<T extends { time: number }>(keys: T[], index: number): void {
     keys.splice(index, 1);
-    this._typeArrayDirty = true;
+    this._colorTypeArrayDirty = true;
+    this._alphaTypeArrayDirty = true;
   }
 }
 
