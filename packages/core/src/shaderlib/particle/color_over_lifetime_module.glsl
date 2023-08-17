@@ -8,7 +8,7 @@
         uniform vec2 renderer_COLMinGradientAlpha[4]; // x:time y:alpha
     #endif
 
-    uniform ivec4 renderer_COLGradientKeysLength; // x: minColorKeysLength, y: minAlphaKeysLength, z: maxColorKeysLength, w: maxAlphaKeysLength
+    uniform ivec4 renderer_COLGradientKeysCount; // x: minColorKeysCount, y: minAlphaKeysCount, z: maxColorKeysCount, w: maxAlphaKeysCount
 #endif
 
 
@@ -64,11 +64,11 @@
 
 vec4 computeParticleColor(in vec4 color, in float normalizedAge) {
     #ifdef RENDERER_COL_GRADIENT
-        color *= evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysLength.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysLength.w, normalizedAge);
+        color *= evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysCount.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysCount.w, normalizedAge);
     #endif
 
     #ifdef RENDERER_COL_RANDOM_GRADIENTS
-        color *= mix(evaluateParticleGradient(renderer_COLMinGradientColor,renderer_COLGradientKeysLength.x,renderer_COLMinGradientAlpha, renderer_COLGradientKeysLength.y, normalizedAge), evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysLength.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysLength.w, normalizedAge), a_Random0.y);
+        color *= mix(evaluateParticleGradient(renderer_COLMinGradientColor,renderer_COLGradientKeysCount.x,renderer_COLMinGradientAlpha, renderer_COLGradientKeysCount.y, normalizedAge), evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysCount.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysCount.w, normalizedAge), a_Random0.y);
     #endif
     return color;
 }

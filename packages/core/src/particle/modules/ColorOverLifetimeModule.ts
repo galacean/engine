@@ -18,14 +18,14 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _minGradientAlpha = ShaderProperty.getByName("renderer_COLMinGradientAlpha");
   static readonly _maxGradientColor = ShaderProperty.getByName("renderer_COLMaxGradientColor");
   static readonly _maxGradientAlpha = ShaderProperty.getByName("renderer_COLMaxGradientAlpha");
-  static readonly _gradientKeysLength = ShaderProperty.getByName("renderer_COLGradientKeysLength");
+  static readonly _gradientKeysCount = ShaderProperty.getByName("renderer_COLGradientKeysCount");
 
   /** Color gradient over lifetime. */
   color = new ParticleCompositeGradient(
     new ParticleGradient([new ColorKey(0.5, new Color(1, 0, 0))], [new AlphaKey(0, 1), new AlphaKey(1, 0)])
   );
 
-  private _gradientKeysLength = new Vector4(0, 0, 0, 0); // x: minColorKeysLength, y: minAlphaKeysLength, z: maxColorKeysLength, w: maxAlphaKeysLength
+  private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysCount, y: minAlphaKeysCount, z: maxColorKeysCount, w: maxAlphaKeysCount
 
   /**
    * @inheritDoc
@@ -53,13 +53,13 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
           colorMacro = ColorOverLifetimeModule._randomGradientsMacro;
         }
 
-        this._gradientKeysLength.set(
+        this._gradientKeysCount.set(
           color.gradientMin.colorKeys.length,
           color.gradientMin.alphaKeys.length,
           color.gradientMax.colorKeys.length,
           color.gradientMax.alphaKeys.length
         );
-        shaderData.setVector4(ColorOverLifetimeModule._gradientKeysLength, this._gradientKeysLength);
+        shaderData.setVector4(ColorOverLifetimeModule._gradientKeysCount, this._gradientKeysCount);
       }
     }
 
