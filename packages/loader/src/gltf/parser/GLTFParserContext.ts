@@ -45,8 +45,7 @@ export class GLTFParserContext {
   /** @internal */
   _buffers?: ArrayBuffer[];
 
-  /** @internal */
-  _cache = new Map<string, any>();
+  private _resourceCache = new Map<string, any>();
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
@@ -65,7 +64,7 @@ export class GLTFParserContext {
    */
   get<T>(type: GLTFParserType, index?: number): Promise<T> {
     const cacheKey = `${type}:${index}`;
-    const cache = this._cache;
+    const cache = this._resourceCache;
     let promise: Promise<T> = cache.get(cacheKey);
 
     if (!promise) {
@@ -83,12 +82,14 @@ export class GLTFParserContext {
     return promise;
   }
 
+
   /** @internal */
   _parse(): Promise<GLTFResource> {
     return this.get<IGLTF>(GLTFParserType.JSON).then((json) => {
       this.glTF = json;
 
       return Promise.all([
+        this.get<void>(GLTFParserType.Validator),
         this.get<Texture2D[]>(GLTFParserType.Texture),
         this.get<Material[]>(GLTFParserType.Material),
         this.get<ModelMesh[][]>(GLTFParserType.Mesh),
@@ -96,8 +97,7 @@ export class GLTFParserContext {
         this.get<Skin[]>(GLTFParserType.Skin),
         this.get<AnimationClip[]>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene),
-        this.get<void>(GLTFParserType.Validator)
-      ]).then(([textures, materials, meshes, entities, skins, animations, defaultSceneRoot]) => {
+      ]).then(([_,textures, materials, meshes, entities, skins, animations, defaultSceneRoot]) => {
         const {
           materialsPromiseInfo,
           defaultSceneRootPromiseInfo,

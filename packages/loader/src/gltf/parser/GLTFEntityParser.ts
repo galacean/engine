@@ -23,11 +23,11 @@ export class GLTFEntityParser extends GLTFParser {
         }
       );
     } else {
-      return this._parserSingleEntity(context, nodes[index], index);
+      return  Promise.resolve(this._parserSingleEntity(context, nodes[index], index));
     }
   }
 
-  private _parserSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Promise<Entity> {
+  private _parserSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Entity {
     const engine = context.glTFResource.engine;
     const { matrix, translation, rotation, scale } = entityInfo;
     const entity = new Entity(engine, entityInfo.name || `${GLTFEntityParser._defaultName}${index}`);
@@ -49,7 +49,7 @@ export class GLTFEntityParser extends GLTFParser {
       }
     }
 
-    return Promise.resolve(entity);
+    return entity;
   }
 
   private _buildEntityTree(context: GLTFParserContext, entities: Entity[]): void {

@@ -44,8 +44,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
 
-      return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
-        const buffer = buffers[bufferView.buffer];
+      return context.get<ArrayBuffer>(GLTFParserType.Buffer,bufferView.buffer).then((buffer) => {
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
         return KTX2Loader._parseBuffer(imageBuffer, engine)
