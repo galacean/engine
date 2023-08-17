@@ -25,9 +25,9 @@ vec3 computeParticleLifeVelocity(in float normalizedAge) {
         outLifeVelocity = u_VOLVelocityConst;
     #endif
     #ifdef VELOCITY_OVER_LIFETIME_CURVE
-        outLifeVelocity = vec3(getCurValueFromGradientFloat(u_VOLVelocityGradientX, normalizedAge),
-        getCurValueFromGradientFloat(u_VOLVelocityGradientY, normalizedAge),
-        getCurValueFromGradientFloat(u_VOLVelocityGradientZ, normalizedAge));
+        outLifeVelocity = vec3(evaluateParticleCurve(u_VOLVelocityGradientX, normalizedAge),
+        evaluateParticleCurve(u_VOLVelocityGradientY, normalizedAge),
+        evaluateParticleCurve(u_VOLVelocityGradientZ, normalizedAge));
     #endif
     #ifdef VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT
         outLifeVelocity = mix(u_VOLVelocityConst,
@@ -36,14 +36,14 @@ vec3 computeParticleLifeVelocity(in float normalizedAge) {
     #endif
     #ifdef VELOCITY_OVER_LIFETIME_RANDOM_CURVE
         outLifeVelocity = vec3(
-        mix(getCurValueFromGradientFloat(u_VOLVelocityGradientX, normalizedAge),
-            getCurValueFromGradientFloat(u_VOLVelocityGradientMaxX, normalizedAge),
+        mix(evaluateParticleCurve(u_VOLVelocityGradientX, normalizedAge),
+            evaluateParticleCurve(u_VOLVelocityGradientMaxX, normalizedAge),
             a_Random1.y),
-        mix(getCurValueFromGradientFloat(u_VOLVelocityGradientY, normalizedAge),
-            getCurValueFromGradientFloat(u_VOLVelocityGradientMaxY, normalizedAge),
+        mix(evaluateParticleCurve(u_VOLVelocityGradientY, normalizedAge),
+            evaluateParticleCurve(u_VOLVelocityGradientMaxY, normalizedAge),
             a_Random1.z),
-        mix(getCurValueFromGradientFloat(u_VOLVelocityGradientZ, normalizedAge),
-            getCurValueFromGradientFloat(u_VOLVelocityGradientMaxZ, normalizedAge),
+        mix(evaluateParticleCurve(u_VOLVelocityGradientZ, normalizedAge),
+            evaluateParticleCurve(u_VOLVelocityGradientMaxZ, normalizedAge),
             a_Random1.w));
     #endif
 

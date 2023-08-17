@@ -10,20 +10,8 @@
 
 
 #if defined(RENDERER_TSA_FRAME_CURVE) || defined(TEXTURE_SHEET_ANIMATION_RANDOM_CURVE)
-    float getFrameFromGradient(in vec2 gradientFrames[4], in float normalizedAge) {
-        float overTimeFrame;
-        for (int i = 1; i < 4; i++) {
-            vec2 gradientFrame = gradientFrames[i];
-            float time = gradientFrame.x;
-            if (time >= normalizedAge) {
-                vec2 lastGradientFrame = gradientFrames[i - 1];
-                float lastTime = lastGradientFrame.x;
-                float age = (normalizedAge - lastTime) / (time - lastTime);
-                overTimeFrame = mix(lastGradientFrame.y, gradientFrame.y, age) * renderer_TSATillingParams.z;
-                break;
-            }
-        }
-        return floor(overTimeFrame);
+    float getFrameFromGradient(in vec2 gradientFrames[4], in float normalizedAge) {    
+        return floor(evaluateParticleCurve(gradientFrames,normalizedAge) * renderer_TSATillingParams.z);
     }
 #endif
 

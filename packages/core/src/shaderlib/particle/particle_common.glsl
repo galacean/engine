@@ -74,3 +74,20 @@ vec3 rotationByAxis(in vec3 vector, in vec3 axis, in float angle) {
 vec3 rotationByQuaternions(in vec3 v, in vec4 q) {
     return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 }
+
+
+float evaluateParticleCurve(in vec2 keys[4], in float normalizedAge) {
+    float value;
+    for (int i = 1; i < 4; i++) {
+        vec2 key = keys[i];
+        float time = key.x;
+        if (time >= normalizedAge) {
+            vec2 lastKey = keys[i - 1];
+            float lastTime = lastKey.x;
+            float age = (normalizedAge - lastTime) / (time - lastTime);
+            value = mix(lastKey.y, key.y, age);
+            break;
+        }
+    }
+    return value;
+}
