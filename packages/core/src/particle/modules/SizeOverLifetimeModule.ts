@@ -88,7 +88,8 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
       const sizeY = this._sizeY;
       const sizeZ = this._sizeZ;
 
-      const canSeparateCurveMode =
+      const separateAxes = this.separateAxes;
+      const canSeparateCurveSingleMode =
         sizeX.mode === ParticleCurveMode.Curve &&
         sizeY.mode === ParticleCurveMode.Curve &&
         sizeZ.mode === ParticleCurveMode.Curve;
@@ -96,32 +97,30 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
         sizeX.mode === ParticleCurveMode.TwoCurves &&
         sizeY.mode === ParticleCurveMode.TwoCurves &&
         sizeZ.mode === ParticleCurveMode.TwoCurves;
+      const separateCurveMode = separateAxes && (canSeparateCurveSingleMode || canSeparateRandomCurveMode);
 
       if (
-        (!this.separateAxes &&
-          (sizeX.mode === ParticleCurveMode.Curve || sizeX.mode === ParticleCurveMode.TwoCurves)) ||
-        (this.separateAxes && (canSeparateCurveMode || canSeparateRandomCurveMode))
+        separateCurveMode ||
+        (!separateAxes && (sizeX.mode === ParticleCurveMode.Curve || sizeX.mode === ParticleCurveMode.TwoCurves))
       ) {
         shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveXProperty, sizeX.curveMax._getTypeArray());
         if (
-          (!this.separateAxes && sizeX.mode == ParticleCurveMode.TwoCurves) ||
-          (this.separateAxes && canSeparateRandomCurveMode)
+          (!separateAxes && sizeX.mode == ParticleCurveMode.TwoCurves) ||
+          (separateAxes && canSeparateRandomCurveMode)
         ) {
           shaderData.setFloatArray(SizeOverLifetimeModule._minCurveXProperty, sizeX.curveMin._getTypeArray());
         }
 
-        if (this.separateAxes) {
-          if (canSeparateCurveMode || canSeparateRandomCurveMode) {
-            shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveYProperty, sizeY.curveMax._getTypeArray());
-            shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveZProperty, sizeZ.curveMax._getTypeArray());
+        if (separateCurveMode) {
+          shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveYProperty, sizeY.curveMax._getTypeArray());
+          shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveZProperty, sizeZ.curveMax._getTypeArray());
 
-            if (canSeparateCurveMode) {
-              sizeMacro = SizeOverLifetimeModule._randomCurvesSeparateMacro;
-            } else {
-              shaderData.setFloatArray(SizeOverLifetimeModule._minCurveYProperty, sizeY.curveMin._getTypeArray());
-              shaderData.setFloatArray(SizeOverLifetimeModule._minCurveZProperty, sizeZ.curveMin._getTypeArray());
-              sizeMacro = SizeOverLifetimeModule._curveSeparateMacro;
-            }
+          if (canSeparateCurveSingleMode) {
+            sizeMacro = SizeOverLifetimeModule._randomCurvesSeparateMacro;
+          } else {
+            shaderData.setFloatArray(SizeOverLifetimeModule._minCurveYProperty, sizeY.curveMin._getTypeArray());
+            shaderData.setFloatArray(SizeOverLifetimeModule._minCurveZProperty, sizeZ.curveMin._getTypeArray());
+            sizeMacro = SizeOverLifetimeModule._curveSeparateMacro;
           }
         } else {
           if (sizeX.mode === ParticleCurveMode.Curve) {
