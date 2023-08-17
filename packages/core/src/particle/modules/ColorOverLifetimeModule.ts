@@ -1,4 +1,4 @@
-import { Color } from "@galacean/engine-math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -18,14 +18,14 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _minGradientAlpha = ShaderProperty.getByName("renderer_COLMinGradientAlpha");
   static readonly _maxGradientColor = ShaderProperty.getByName("renderer_COLMaxGradientColor");
   static readonly _maxGradientAlpha = ShaderProperty.getByName("renderer_COLMaxGradientAlpha");
+  static readonly _gradientKeysLength = ShaderProperty.getByName("renderer_COLGradientKeysLength");
 
   /** Color gradient over lifetime. */
   color = new ParticleCompositeGradient(
-    new ParticleGradient(
-      [new ColorKey(0, new Color(1, 1, 1)), new ColorKey(1, new Color(1, 1, 1))],
-      [new AlphaKey(0, 1), new AlphaKey(1, 1)]
-    )
+    new ParticleGradient([new ColorKey(0.5, new Color(1, 0, 0))], [new AlphaKey(0, 1), new AlphaKey(1, 0)])
   );
+
+  private _gradientKeysLength = new Vector4(0, 0, 0, 0); // x: minColorKeysLength, y: minAlphaKeysLength, z: maxColorKeysLength, w: maxAlphaKeysLength
 
   /**
    * @inheritDoc
@@ -52,6 +52,14 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
           shaderData.setFloatArray(ColorOverLifetimeModule._minGradientAlpha, color.gradientMin._getAlphaTypeArray());
           colorMacro = ColorOverLifetimeModule._randomGradientsMacro;
         }
+
+        this._gradientKeysLength.set(
+          color.gradientMin.colorKeys.length,
+          color.gradientMin.alphaKeys.length,
+          color.gradientMax.colorKeys.length,
+          color.gradientMax.alphaKeys.length
+        );
+        shaderData.setVector4(ColorOverLifetimeModule._gradientKeysLength, this._gradientKeysLength);
       }
     }
 
