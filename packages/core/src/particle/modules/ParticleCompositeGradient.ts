@@ -67,7 +67,7 @@ export class ParticleCompositeGradient implements IClone {
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 
   constructor(constantOrGradient: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
-    if ((constantOrGradient.constructor = Color)) {
+    if (constantOrGradient.constructor === Color) {
       if (constantMaxOrGradientMax) {
         this.constantMin.copyFrom(<Color>constantOrGradient);
         this.constantMax.copyFrom(<Color>constantMaxOrGradientMax);

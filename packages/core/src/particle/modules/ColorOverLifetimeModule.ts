@@ -5,6 +5,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { AlphaKey, ColorKey, ParticleGradient } from "./ParticleGradient";
 
 /**
  * Color over lifetime module.
@@ -19,7 +20,12 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientAlpha = ShaderProperty.getByName("renderer_COLMaxGradientAlpha");
 
   /** Color gradient over lifetime. */
-  color: ParticleCompositeGradient = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
+  color = new ParticleCompositeGradient(
+    new ParticleGradient(
+      [new ColorKey(0, new Color(1, 1, 1)), new ColorKey(1, new Color(1, 1, 1))],
+      [new AlphaKey(0, 1), new AlphaKey(1, 1)]
+    )
+  );
 
   /**
    * @inheritDoc

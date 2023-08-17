@@ -1,68 +1,54 @@
 
-#ifdef COLOR_OVER_LIFETIME
-    uniform vec4 u_ColorOverLifeGradientColors[4]; // x为key,yzw为Color
-    uniform vec2 u_ColorOverLifeGradientAlphas[4]; // x为key,y为Alpha
-    uniform vec4 u_ColorOverLifeGradientRanges;
-#endif
-#ifdef RANDOM_COLOR_OVER_LIFETIME
-    uniform vec4 u_ColorOverLifeGradientColors[4]; // x为key,yzw为Color
-    uniform vec2 u_ColorOverLifeGradientAlphas[4]; // x为key,y为Alpha
-    uniform vec4 u_ColorOverLifeGradientRanges;
-    uniform vec4 u_MaxColorOverLifeGradientColors[4]; // x为key,yzw为Color
-    uniform vec2 u_MaxColorOverLifeGradientAlphas[4]; // x为key,y为Alpha
-    uniform vec4 u_MaxColorOverLifeGradientRanges;
+#if defined(RENDERER_COL_GRADIENT) || defined(RENDERER_COL_RANDOM_GRADIENTS)
+    uniform vec4 renderer_COLMaxGradientColor[4]; // x:time y:r z:g w:b
+    uniform vec2 renderer_COLMaxGradientAlpha[4]; // x:time y:alpha
+
+    #ifdef RANDOM_COLOR_OVER_LIFETIME
+        uniform vec4 renderer_COLMinGradientColor[4]; // x:time y:r z:g w:b
+        uniform vec2 renderer_COLMinGradientAlpha[4]; // x:time y:alpha
+    #endif
 #endif
 
-#if defined(COLOR_OVER_LIFETIME) || defined(RANDOM_COLOR_OVER_LIFETIME)
-vec4 getColorFromGradient(in vec2 gradientAlphas[COLOR_COUNT],
-    in vec4 gradientColors[COLOR_COUNT],
-    in float normalizedAge, in vec4 keyRanges) {
-    float alphaAge = clamp(normalizedAge, keyRanges.z, keyRanges.w);
-    vec4 overTimeColor;
-    for (int i = 1; i < COLOR_COUNT; i++) {
-        vec2 gradientAlpha = gradientAlphas[i];
-        float alphaKey = gradientAlpha.x;
-        if (alphaKey >= alphaAge) {
-            vec2 lastGradientAlpha = gradientAlphas[i - 1];
-            float lastAlphaKey = lastGradientAlpha.x;
-            float age = (alphaAge - lastAlphaKey) / (alphaKey - lastAlphaKey);
-            overTimeColor.a = mix(lastGradientAlpha.y, gradientAlpha.y, age);
-            break;
-        }
-    }
 
-    float colorAge = clamp(normalizedAge, keyRanges.x, keyRanges.y);
-    for (int i = 1; i < COLOR_COUNT; i++) {
-        vec4 gradientColor = gradientColors[i];
-        float colorKey = gradientColor.x;
-        if (colorKey >= colorAge) {
-            vec4 lastGradientColor = gradientColors[i - 1];
-            float lastColorKey = lastGradientColor.x;
-            float age = (colorAge - lastColorKey) / (colorKey - lastColorKey);
-            overTimeColor.rgb = mix(gradientColors[i - 1].yzw, gradientColor.yzw, age);
-            break;
+
+#if defined(RENDERER_COL_GRADIENT) || defined(RENDERER_COL_RANDOM_GRADIENTS)
+    vec4 evaluateParticleGradient(in vec2 alphaKeys[4], in vec4 colorKeys[4], in float normalizedAge){
+        vec4 value;
+        for(int i = 1; i < 4; i++){
+            vec2 key = alphaKeys[i];
+            float time = key.x;
+            if(time >= normalizedAge){
+                vec2 lastKey = alphaKeys[i-1];
+                float lastTime = lastKey.x;
+                float age = (normalizedAge - lastTime) / (time - lastTime);
+                value.a = mix(lastKey.y, key.y, age);
+                break;
+            }
         }
+        
+        for(int i = 1; i < 4 ; i++){
+            vec4 key = colorKeys[i];
+            float time = key.x;
+            if(time >= normalizedAge){
+                vec4 lastKey = colorKeys[i-1];
+                float lastTime = lastKey.x;
+                float age = (normalizedAge - lastTime) / (time-lastTime);
+                value.rgb = mix(lastKey.yzw, key.yzw, age);
+                break;
+            }
+        }
+        return value;
     }
-    return overTimeColor;
-}
 #endif
+
 
 vec4 computeParticleColor(in vec4 color, in float normalizedAge) {
-#ifdef COLOR_OVER_LIFETIME
-    color *= getColorFromGradient(u_ColorOverLifeGradientAlphas,
-	u_ColorOverLifeGradientColors,
-	normalizedAge, u_ColorOverLifeGradientRanges);
-#endif
+    #ifdef COLOR_OVER_LIFETIME
+        color *= evaluateParticleGradient(renderer_COLMaxGradientAlpha, renderer_COLMaxGradientColor, normalizedAge);
+    #endif
 
-#ifdef RANDOM_COLOR_OVER_LIFETIME
-    color *= mix(getColorFromGradient(u_ColorOverLifeGradientAlphas,
-		     u_ColorOverLifeGradientColors,
-		     normalizedAge, u_ColorOverLifeGradientRanges),
-	getColorFromGradient(u_MaxColorOverLifeGradientAlphas,
-	    u_MaxColorOverLifeGradientColors,
-	    normalizedAge, u_MaxColorOverLifeGradientRanges),
-	a_Random0.y);
-#endif
-
+    #ifdef RANDOM_COLOR_OVER_LIFETIME
+        color *= mix(evaluateParticleGradient(renderer_COLMinGradientAlpha, renderer_COLMinGradientColor, normalizedAge), evaluateParticleGradient(renderer_COLMaxGradientAlpha, renderer_COLMaxGradientColor, normalizedAge), a_Random0.y);
+    #endif
     return color;
 }
