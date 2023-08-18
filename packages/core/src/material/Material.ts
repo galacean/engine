@@ -100,6 +100,7 @@ export class Material extends ReferResource implements IClone {
   }
 
   override _addReferCount(value: number): void {
+    if (this._destroyed) return;
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
   }
