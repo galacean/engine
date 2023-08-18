@@ -64,24 +64,20 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
     vec3 lifePosition;
 #if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
     #ifdef VELOCITY_OVER_LIFETIME_CONSTANT
-        //startPosition = startVelocity * age;
         lifePosition = lifeVelocity * age;
     #endif
 
     #ifdef VELOCITY_OVER_LIFETIME_CURVE
-        //startPosition = startVelocity * age;
         lifePosition = vec3(getTotalValueFromGradientFloat(u_VOLVelocityGradientX, normalizedAge),
         getTotalValueFromGradientFloat(u_VOLVelocityGradientY, normalizedAge),
         getTotalValueFromGradientFloat(u_VOLVelocityGradientZ, normalizedAge));
     #endif
 
     #ifdef VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT
-        //startPosition = startVelocity * age;
         lifePosition = lifeVelocity * age;
     #endif
 
     #ifdef VELOCITY_OVER_LIFETIME_RANDOM_CURVE
-        //startPosition = startVelocity * age;
         lifePosition = vec3(
         mix(getTotalValueFromGradientFloat(u_VOLVelocityGradientX, normalizedAge),
             getTotalValueFromGradientFloat(u_VOLVelocityGradientMaxX, normalizedAge),
@@ -96,7 +92,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
 
     vec3 finalPosition;
     if (u_VOLSpaceType == 0) {
-        if (u_ScalingMode != 2) {
+        if (u_SimulationSpace == 0 && u_ScalingMode != 2) {
             finalPosition = rotationByQuaternions(
             u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition + lifePosition),
             worldRotation);
@@ -106,7 +102,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
             worldRotation);
         }
     } else {
-        if (u_ScalingMode != 2) {
+        if (u_SimulationSpace == 0 && u_ScalingMode != 2) {
             finalPosition = rotationByQuaternions(
                     u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition),
                     worldRotation)
@@ -119,16 +115,11 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
         }
     }
 #else
-    //startPosition = startVelocity * age;
     vec3 finalPosition;
-    if (u_ScalingMode != 2) {
-        finalPosition = rotationByQuaternions(
-            u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition),
-            worldRotation);
+    if (u_SimulationSpace == 0 && u_ScalingMode != 2) {
+        finalPosition = rotationByQuaternions( u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition), worldRotation);
     } else {
-        finalPosition = rotationByQuaternions(
-            u_PositionScale * a_ShapePositionStartLifeTime.xyz + startPosition,
-            worldRotation);
+        finalPosition = rotationByQuaternions( u_PositionScale * a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation);
     }
 #endif
 
