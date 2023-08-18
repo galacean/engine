@@ -1,9 +1,10 @@
-import { Color } from "@galacean/engine-math";
+import { Color, Rand } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 export class MainModule {
   /** The duration of the Particle System in seconds. */
@@ -59,6 +60,17 @@ export class MainModule {
 
   private _generator: ParticleGenerator;
 
+  /** @internal */
+  _startSpeedRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
+  /** @internal */
+  _startLifeTimeRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartLifetime);
+  /** @internal */
+  _startColorRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartColor);
+  /** @internal */
+  _startSizeRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartSize);
+  /** @internal */
+  _startRotationRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
+
   /**
    * Max particles count.
    */
@@ -79,7 +91,7 @@ export class MainModule {
     // this._updateParticlesSimulationRestart(0);
   }
 
-  constructor(particleSystem: ParticleGenerator) {
-    this._generator = particleSystem;
+  constructor(generator: ParticleGenerator) {
+    this._generator = generator;
   }
 }

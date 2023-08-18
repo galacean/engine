@@ -15,6 +15,7 @@ export abstract class BaseShape implements IClone {
   /** Randomizes the starting direction of particles. */
   randomDirectionAmount: number = 0;
 
+  protected _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
   protected _generator: ParticleGenerator;
 
   constructor(generator: ParticleGenerator) {

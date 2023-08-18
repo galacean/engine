@@ -310,8 +310,7 @@ export class ParticleGenerator {
       rot = transform.worldRotationQuaternion;
     }
 
-    const startSpeedRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartSpeed);
-    const startSpeed = main.startSpeed.evaluate(undefined, startSpeedRand.random());
+    const startSpeed = main.startSpeed.evaluate(undefined, main._startSpeedRand.random());
 
     const instanceVertices = this._instanceVertices;
     const offset = firstFreeElement * particleUtils.instanceVertexFloatStride;
@@ -322,10 +321,9 @@ export class ParticleGenerator {
     instanceVertices[offset + 2] = position.z;
 
     // Start life time
-    const startLifeTimeRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
     instanceVertices[offset + particleUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
       undefined,
-      startLifeTimeRand.random()
+      main._startLifeTimeRand.random()
     );
 
     // Direction
@@ -338,15 +336,14 @@ export class ParticleGenerator {
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
-    const startColorRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
-    main.startColor.evaluate(undefined, startColorRand.random(), startColor);
+    main.startColor.evaluate(undefined, this.main._startColorRand.random(), startColor);
     instanceVertices[offset + 8] = startColor.r;
     instanceVertices[offset + 9] = startColor.g;
     instanceVertices[offset + 10] = startColor.b;
     instanceVertices[offset + 11] = startColor.a;
 
     // Start size
-    const startSizeRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
+    const startSizeRand = this.main._startSizeRand;
     if (main.startSize3D) {
       instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, startSizeRand.random());
       instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, startSizeRand.random());
@@ -359,7 +356,7 @@ export class ParticleGenerator {
     }
 
     // Start rotation
-    const startRotationRand = this._getRandAndResetSubSeed(ParticleRandomSubSeeds.StartLifetime);
+    const startRotationRand = this.main._startRotationRand;
     if (main.startRotation3D) {
       instanceVertices[offset + 15] = MathUtil.degreeToRadian(
         main.startRotationX.evaluate(undefined, startRotationRand.random())
@@ -429,15 +426,6 @@ export class ParticleGenerator {
   _resetGlobalRandSeed(value: number): void {
     this._randomSeed = value;
     this._rand.reset(value, 0);
-  }
-
-  /**
-   * @internal
-   */
-  _getRandAndResetSubSeed(subSeed: number): Rand {
-    const rand = this._rand;
-    rand.reset(this._advancedRandSeed, subSeed);
-    return rand;
   }
 
   private _retireActiveParticles(): void {

@@ -21,7 +21,7 @@ export class BoxShape extends BaseShape {
    * @internal
    */
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._generator._getRandAndResetSubSeed(ParticleRandomSubSeeds.Shape);
+    const rand = this._shapeRand;
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
 
     position.multiply(this.boxThickness);
