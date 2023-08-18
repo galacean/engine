@@ -15,7 +15,9 @@ export abstract class BaseShape implements IClone {
   /** Randomizes the starting direction of particles. */
   randomDirectionAmount: number = 0;
 
-  protected _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
+  /** @internal */
+  _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
+
   protected _generator: ParticleGenerator;
 
   constructor(generator: ParticleGenerator) {
@@ -47,12 +49,5 @@ export abstract class BaseShape implements IClone {
    */
   clone(): BaseShape {
     return null;
-  }
-
-  /**
-   * @internal
-   */
-  _resetRandomSeed(randomSeed: number): void {
-    this._shapeRand.reset(randomSeed, ParticleRandomSubSeeds.Shape);
   }
 }

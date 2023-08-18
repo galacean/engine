@@ -1,4 +1,4 @@
-import { Color, MathUtil, Quaternion, Rand, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, MathUtil, Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
@@ -7,7 +7,6 @@ import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleRenderer } from "./ParticleRenderer";
-import { ParticleRandomSubSeeds } from "./enums/ParticleRandomSubSeeds";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
@@ -459,6 +458,7 @@ export class ParticleGenerator {
     this._randomSeed = seed;
     this.main._resetRandomSeed(seed);
     this.emission._resetRandomSeed(seed);
+    this.shape._resetRandomSeed(seed);
   }
 
   private _freeRetiredParticles(): void {

@@ -1,4 +1,5 @@
 import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { BaseShape } from "./shape/BaseShape";
 import { ConeShape } from "./shape/ConeShape";
@@ -16,4 +17,11 @@ export class ShapeModule extends ParticleGeneratorModule {
   }
 
   override cloneTo(destRotationOverLifetime: ParticleGeneratorModule) {}
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(randomSeed: number): void {
+    this.shape._shapeRand.reset(randomSeed, ParticleRandomSubSeeds.Shape);
+  }
 }
