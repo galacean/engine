@@ -14,19 +14,19 @@ export class GLTFTextureParser extends GLTFParser {
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFParserContext, index?: number): Promise<Texture[] | Texture> {
+  parse(context: GLTFParserContext, index: number): Promise<Texture> {
     const textures = context.glTF.textures;
 
     if (!textures) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(textures.map((textureInfo) => this._parseSingleTexture(context, textureInfo)));
-    } else {
-      return this._parseSingleTexture(context, textures[index]);
-    }
+    return this._parseSingleTexture(context, textures[index], index);
   }
 
-  private _parseSingleTexture(context: GLTFParserContext, textureInfo: ITexture): Promise<Texture> {
+  private _parseSingleTexture(
+    context: GLTFParserContext,
+    textureInfo: ITexture,
+    textureIndex: number
+  ): Promise<Texture> {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
     const { sampler, source = 0, name: textureName, extensions } = textureInfo;
@@ -53,7 +53,7 @@ export class GLTFTextureParser extends GLTFParser {
           })
           .then<Texture2D>((texture) => {
             if (!texture.name) {
-              texture.name = textureName || imageName;
+              texture.name = textureName || imageName || `texture_${textureIndex}`;
             }
             if (sampler !== undefined) {
               GLTFUtils.parseSampler(texture, samplerInfo);
@@ -71,7 +71,8 @@ export class GLTFTextureParser extends GLTFParser {
             const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
             texture.setImageSource(image);
             texture.generateMipmaps();
-            texture.name = textureName || imageName;
+
+            texture.name = textureName || imageName || `texture_${textureIndex}`;
             if (sampler !== undefined) {
               GLTFUtils.parseSampler(texture, samplerInfo);
             }

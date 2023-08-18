@@ -5,7 +5,6 @@ import {
   Entity,
   Material,
   ModelMesh,
-  Skin,
   Texture2D,
   TypedArray
 } from "@galacean/engine-core";
@@ -136,14 +135,13 @@ export class GLTFParserContext {
             meshesPromiseInfo,
             animationClipsPromiseInfo
           } = this;
-          console.log(this);
           const glTFResource = this.glTFResource;
 
-          // texturesPromiseInfo.resolve(textures);
-          // materialsPromiseInfo.resolve(materials);
-          // meshesPromiseInfo.resolve(meshes);
-          // animationClipsPromiseInfo.resolve(animations);
-          // defaultSceneRootPromiseInfo.resolve(defaultSceneRoot);
+          texturesPromiseInfo.resolve(this.get<Promise<Texture2D[]>>(GLTFParserType.Texture));
+          materialsPromiseInfo.resolve(this.get<Promise<Material[]>>(GLTFParserType.Material));
+          meshesPromiseInfo.resolve(this.get<Promise<ModelMesh[][]>>(GLTFParserType.Mesh));
+          animationClipsPromiseInfo.resolve(this.get<Promise<AnimationClip[]>>(GLTFParserType.Animation));
+          defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
 
           return glTFResource;
         }
