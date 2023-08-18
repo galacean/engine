@@ -77,8 +77,6 @@ export class ParticleGenerator {
   private _instanceVertexBufferBinding: VertexBufferBinding;
   private _instanceVertices: Float32Array;
   private _randomSeed: number = 0;
-  private _rand: Rand = new Rand(0, 0);
-  private _advancedRandSeed: number;
 
   private readonly _renderer: ParticleRenderer;
   private readonly _particleIncreaseCount: number = 128;
@@ -275,8 +273,6 @@ export class ParticleGenerator {
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
-    this._advancedRandSeed = this._rand.randomInt32();
-
     const particleUtils = this._renderer.engine._particleBufferUtils;
 
     direction.normalize();
@@ -420,14 +416,6 @@ export class ParticleGenerator {
     this._firstFreeElement = nextFreeElement;
   }
 
-  /**
-   * @internal
-   */
-  _resetGlobalRandSeed(value: number): void {
-    this._randomSeed = value;
-    this._rand.reset(value, 0);
-  }
-
   private _retireActiveParticles(): void {
     const particleUtils = this._renderer.engine._particleBufferUtils;
 
@@ -462,6 +450,15 @@ export class ParticleGenerator {
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
+  }
+
+  /**
+   * @internal
+   */
+  _resetGlobalRandSeed(seed: number): void {
+    this._randomSeed = seed;
+    this.main._resetRandomSeed(seed);
+    this.emission._resetRandomSeed(seed);
   }
 
   private _freeRetiredParticles(): void {

@@ -25,7 +25,7 @@ export class CircleShape extends BaseShape {
   }
 
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._generator._getRandAndResetSubSeed(ParticleRandomSubSeeds.Shape);
+    const rand = this._shapeRand;
     const positionPoint: Vector2 = CircleShape._tempPositionPoint;
 
     switch (this.arcMode) {

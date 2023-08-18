@@ -48,4 +48,11 @@ export abstract class BaseShape implements IClone {
   clone(): BaseShape {
     return null;
   }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(randomSeed: number): void {
+    this._shapeRand.reset(randomSeed, ParticleRandomSubSeeds.Shape);
+  }
 }

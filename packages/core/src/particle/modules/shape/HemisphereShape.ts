@@ -20,7 +20,7 @@ export class HemisphereShape extends BaseShape {
   }
 
   override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._generator._getRandAndResetSubSeed(ParticleRandomSubSeeds.Shape);
+    const rand = this._shapeRand;
     if (this.emitFromShell) {
       ShapeUtils._randomPointUnitSphere(position, rand);
     } else {

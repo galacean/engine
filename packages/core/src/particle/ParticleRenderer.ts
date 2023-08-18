@@ -157,6 +157,8 @@ export class ParticleRenderer extends Renderer {
     super._prepareRender(context);
   }
 
+
+
   /**
    * @internal
    */

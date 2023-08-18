@@ -61,15 +61,15 @@ export class MainModule {
   private _generator: ParticleGenerator;
 
   /** @internal */
-  _startSpeedRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
+  readonly _startSpeedRand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
   /** @internal */
-  _startLifeTimeRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartLifetime);
+  readonly _startLifeTimeRand = new Rand(0, ParticleRandomSubSeeds.StartLifetime);
   /** @internal */
-  _startColorRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartColor);
+  readonly _startColorRand = new Rand(0, ParticleRandomSubSeeds.StartColor);
   /** @internal */
-  _startSizeRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartSize);
+  readonly _startSizeRand = new Rand(0, ParticleRandomSubSeeds.StartSize);
   /** @internal */
-  _startRotationRand: Rand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
+  readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
 
   /**
    * Max particles count.
@@ -93,5 +93,16 @@ export class MainModule {
 
   constructor(generator: ParticleGenerator) {
     this._generator = generator;
+  }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(randomSeed: number): void {
+    this._startSpeedRand.reset(randomSeed, ParticleRandomSubSeeds.StartSpeed);
+    this._startLifeTimeRand.reset(randomSeed, ParticleRandomSubSeeds.StartLifetime);
+    this._startColorRand.reset(randomSeed, ParticleRandomSubSeeds.StartColor);
+    this._startSizeRand.reset(randomSeed, ParticleRandomSubSeeds.StartSize);
+    this._startRotationRand.reset(randomSeed, ParticleRandomSubSeeds.StartRotation);
   }
 }
