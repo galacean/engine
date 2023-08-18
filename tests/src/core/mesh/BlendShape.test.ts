@@ -19,6 +19,66 @@ describe("BlendShape", () => {
     expect(blendShape.name).to.be.eq("Test Object of BlendShape");
   });
 
+  it("BlendShapeFrame constructor", () => {
+    const deltaPositions = [new Vector3(1, 0, -1), new Vector3(0, 2, 7), new Vector3(3, 0, 2), new Vector3(-1, 2, -3)];
+    const deltaNormals = [new Vector3(3, 3, 3), new Vector3(0, 1, 2), new Vector3(-1, -2, 1), new Vector3(-2, 0, 0)];
+    const deltaTangents = [new Vector3(0, 1, 0), new Vector3(1, 1, 1), new Vector3(3, 2, 3), new Vector3(0, 2, 0)];
+
+    const blendShapeFrame = new BlendShapeFrame(0.5, deltaPositions, deltaNormals, deltaTangents);
+
+    // Test that constructor of BlendShapeFrame works correctly.
+    expect(blendShapeFrame.weight).to.be.eq(0.5);
+    expect(blendShapeFrame.deltaPositions[0]).to.deep.include({ x: 1, y: 0, z: -1 });
+    expect(blendShapeFrame.deltaPositions[1]).to.deep.include({ x: 0, y: 2, z: 7 });
+    expect(blendShapeFrame.deltaNormals[0]).to.deep.include({ x: 3, y: 3, z: 3 });
+    expect(blendShapeFrame.deltaNormals[1]).to.deep.include({ x: 0, y: 1, z: 2 });
+    expect(blendShapeFrame.deltaTangents[0]).to.deep.include({ x: 0, y: 1, z: 0 });
+    expect(blendShapeFrame.deltaTangents[1]).to.deep.include({ x: 1, y: 1, z: 1 });
+
+    const deltaNormalsLess = [new Vector3(3, 3, 3), new Vector3(0, 1, 2)];
+    const deltaNormalsBigger = [...deltaNormals, new Vector3(1, 0, 1)];
+    const deltaTangentsLess = [new Vector3(0, 1, 0), new Vector3(1, 1, 1)];
+    const deltaTangentsBigger = [...deltaTangents, new Vector3(1, 3, 3), new Vector3(0, 0, 0)];
+
+    // Test that deltaPositions length not same with deltaNormals and deltaTangents.
+    expect(() => {
+      const blendShapeFrameLess = new BlendShapeFrame(0.5, deltaPositions, deltaNormalsLess);
+      const blendShapeFrameBigger = new BlendShapeFrame(0.5, deltaPositions, deltaNormalsBigger);
+    }).to.throw("deltaNormals length must same with deltaPositions length.");
+    expect(() => {
+      const blendShapeFrameLess = new BlendShapeFrame(0.5, deltaPositions, null, deltaTangentsLess);
+      const blendShapeFrameBigger = new BlendShapeFrame(0.5, deltaPositions, null, deltaTangentsBigger);
+    }).to.throw("deltaTangents length must same with deltaPositions length.");
+  });
+
+  it("set deltaPositions", () => {
+    const deltaPositions = [new Vector3(1, 1, -1)];
+    const blendShapeFrame = new BlendShapeFrame(0.5, deltaPositions);
+    blendShapeFrame.deltaPositions = [...deltaPositions, new Vector3(-3, 0, 3)];
+
+    // Test that set deltaPositions works correctly.
+    expect(blendShapeFrame.deltaPositions[0]).to.deep.include({ x: 1, y: 1, z: -1 });
+    expect(blendShapeFrame.deltaPositions[1]).to.deep.include({ x: -3, y: 0, z: 3 });
+  });
+
+  it("set deltaNormals", () => {
+    const deltaPositions = [new Vector3(1, 1, -1)];
+    const blendShapeFrame = new BlendShapeFrame(0.5, deltaPositions);
+    blendShapeFrame.deltaNormals = [new Vector3(-3, 0, 3)];
+
+    // Test that set deltaNormals works correctly.
+    expect(blendShapeFrame.deltaNormals[0]).to.deep.include({ x: -3, y: 0, z: 3 });
+  });
+
+  it("set deltaTangents", () => {
+    const deltaPositions = [new Vector3(1, 1, -1)];
+    const blendShapeFrame = new BlendShapeFrame(0.5, deltaPositions);
+    blendShapeFrame.deltaTangents = [new Vector3(0, 2, 0)];
+
+    // Test that set deltaTangents works correctly.
+    expect(blendShapeFrame.deltaTangents[0]).to.deep.include({ x: 0, y: 2, z: 0 });
+  });
+
   it("addFrame", () => {
     const blendShape = new BlendShape("BlendShape");
 
