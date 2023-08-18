@@ -101,22 +101,10 @@ describe("Light test", function () {
     const expectShadowStrength = 0.8;
     directLight.shadowStrength = expectShadowStrength;
     expect(directLight.shadowStrength).to.equal(expectShadowStrength);
-    
-    /*
-    const minusShadowStrength = -1;
-    expect(() => {
-      directLight.shadowStrength = minusShadowStrength;
-    }).to.throw(Error, "Shadow strength must be between 0 and 1");
-
-    const beyondShadowStrength = 2;
-    expect(() => {
-      directLight.shadowStrength = beyondShadowStrength;
-    }).to.throw(Error, "Shadow strength must be between 0 and 1");
-    */
   });
 
   it("multiple directlight or sunlight", function () {
-    //expect(sunLight["_lightIndex"]).to.eq(1);
+    expect(sunLight["_lightIndex"]).to.eq(0);
   });
 
   it("pointLight position values", function () {
