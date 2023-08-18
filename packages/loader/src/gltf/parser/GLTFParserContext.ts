@@ -59,70 +59,95 @@ export class GLTFParserContext {
 
   /**
    * Get the resource of the specified type.
+   * @remarks Except for Entity, all other parsers are asynchronous
    * @param type - The type of resource
    * @param index - The index of resource, default all
    */
-  get<T>(type: GLTFParserType, index?: number): Promise<T> {
-    const cacheKey = `${type}:${index}`;
+  get<T>(type: GLTFParserType, index?: number): T {
     const cache = this._resourceCache;
-    let promise: Promise<T> = cache.get(cacheKey);
+    const isOnlyOne = [GLTFParserType.JSON, GLTFParserType.Validator].indexOf(type) !== -1;
+    let cacheKey: string;
+    let needOnlyOne = true;
 
-    if (!promise) {
-      if (index !== undefined) {
-        const allPromise: Promise<T> = cache.get(`${type}:${undefined}`);
-        if (allPromise) {
-          return allPromise.then((res) => res[index]);
+    if (isOnlyOne) {
+      cacheKey = `${type}`;
+    } else if (index >= 0) {
+      cacheKey = `${type}:${index}`;
+    } else {
+      cacheKey = `${type}`;
+      needOnlyOne = false;
+    }
+
+    let resource: T = cache.get(cacheKey);
+
+    if (!resource) {
+      if (needOnlyOne) {
+        resource = GLTFParserContext._parsers[type].parse(this, index);
+        if (!isOnlyOne) {
+          if (type === GLTFParserType.Entity) {
+            if (!this.glTFResource["entities"]) {
+              this.glTFResource["entities"] = [];
+            }
+
+            this.glTFResource["entities"][index] = <Entity>resource;
+          } else {
+            if (!this.glTFResource[type]) {
+              this.glTFResource[type] = [];
+            }
+            (<Promise<T>>resource).then((item: T) => {
+              if (!this.glTFResource[type]) {
+                this.glTFResource[type] = [];
+              }
+
+              this.glTFResource[type][index] = item;
+            });
+          }
+        }
+      } else {
+        const items = this.glTF[type];
+        if (items) {
+          if (type === GLTFParserType.Entity) {
+            resource = items.map((_, index) => this.get<T>(type, index));
+          } else {
+            resource = <T>Promise.all(items.map((_, index) => this.get<T>(type, index)));
+          }
+        } else {
+          resource = <T>Promise.resolve(null);
         }
       }
 
-      promise = GLTFParserContext._parsers[type].parse(this, index);
-      cache.set(cacheKey, promise);
+      cache.set(cacheKey, resource);
     }
 
-    return promise;
+    return resource;
   }
-
 
   /** @internal */
   _parse(): Promise<GLTFResource> {
-    return this.get<IGLTF>(GLTFParserType.JSON).then((json) => {
+    return this.get<Promise<IGLTF>>(GLTFParserType.JSON).then((json) => {
       this.glTF = json;
 
-      return Promise.all([
-        this.get<void>(GLTFParserType.Validator),
-        this.get<Texture2D[]>(GLTFParserType.Texture),
-        this.get<Material[]>(GLTFParserType.Material),
-        this.get<ModelMesh[][]>(GLTFParserType.Mesh),
-        this.get<Entity[]>(GLTFParserType.Entity),
-        this.get<Skin[]>(GLTFParserType.Skin),
-        this.get<AnimationClip[]>(GLTFParserType.Animation),
-        this.get<Entity>(GLTFParserType.Scene),
-      ]).then(([_,textures, materials, meshes, entities, skins, animations, defaultSceneRoot]) => {
-        const {
-          materialsPromiseInfo,
-          defaultSceneRootPromiseInfo,
-          texturesPromiseInfo,
-          meshesPromiseInfo,
-          animationClipsPromiseInfo
-        } = this;
+      return Promise.all([this.get<void>(GLTFParserType.Validator), this.get<Entity>(GLTFParserType.Scene)]).then(
+        () => {
+          const {
+            materialsPromiseInfo,
+            defaultSceneRootPromiseInfo,
+            texturesPromiseInfo,
+            meshesPromiseInfo,
+            animationClipsPromiseInfo
+          } = this;
+          console.log(this);
+          const glTFResource = this.glTFResource;
 
-        const glTFResource = this.glTFResource;
+          // texturesPromiseInfo.resolve(textures);
+          // materialsPromiseInfo.resolve(materials);
+          // meshesPromiseInfo.resolve(meshes);
+          // animationClipsPromiseInfo.resolve(animations);
+          // defaultSceneRootPromiseInfo.resolve(defaultSceneRoot);
 
-        glTFResource.textures = textures;
-        glTFResource.materials = materials;
-        glTFResource.meshes = meshes;
-        glTFResource.entities = entities;
-        glTFResource.skins = skins;
-        glTFResource.animations = animations;
-
-        texturesPromiseInfo.resolve(textures);
-        materialsPromiseInfo.resolve(materials);
-        meshesPromiseInfo.resolve(meshes);
-        animationClipsPromiseInfo.resolve(animations);
-        defaultSceneRootPromiseInfo.resolve(defaultSceneRoot);
-        
-        return glTFResource;
-      });
+          return glTFResource;
+        }
+      );
     });
   }
 
@@ -165,16 +190,16 @@ export class PromiseInfo<T> {
 }
 
 export enum GLTFParserType {
-  JSON,
-  Buffer,
-  Texture,
-  Material,
-  Mesh,
-  Entity,
-  Skin,
-  Animation,
-  Scene,
-  Validator
+  JSON = "JSON",
+  Validator = "Validator",
+  Scene = "scenes",
+  Buffer = "buffers",
+  Texture = "textures",
+  Material = "materials",
+  Mesh = "meshes",
+  Entity = "nodes",
+  Skin = "skins",
+  Animation = "animations"
 }
 
 export function registerGLTFParser(pipeline: GLTFParserType) {

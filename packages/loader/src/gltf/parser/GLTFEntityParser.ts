@@ -5,32 +5,19 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Entity)
 export class GLTFEntityParser extends GLTFParser {
-  /** @internal */
-  static _defaultName: String = "_GLTF_ENTITY_";
-
-  parse(context: GLTFParserContext, index?: number): Promise<Entity[] | Entity> {
+  parse(context: GLTFParserContext, index: number): Entity {
     const nodes = context.glTF.nodes;
 
-    if (!nodes) return Promise.resolve(null);
+    if (!nodes) return null;
 
-    if (index === undefined) {
-      return Promise.all(nodes.map((entityInfo, index) => this._parserSingleEntity(context, entityInfo, index))).then(
-        (entities) => {
-          this._buildEntityTree(context, entities);
-          this._createSceneRoots(context, entities);
-
-          return entities;
-        }
-      );
-    } else {
-      return  Promise.resolve(this._parserSingleEntity(context, nodes[index], index));
-    }
+    return this._parseSingleEntity(context, nodes[index], index);
   }
 
-  private _parserSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Entity {
-    const engine = context.glTFResource.engine;
+  private _parseSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Entity {
+    const glTFResource = context.glTFResource;
+    const engine = glTFResource.engine;
     const { matrix, translation, rotation, scale } = entityInfo;
-    const entity = new Entity(engine, entityInfo.name || `${GLTFEntityParser._defaultName}${index}`);
+    const entity = new Entity(engine, entityInfo.name || `_GLTF_ENTITY_${index}`);
 
     const { transform } = entity;
     if (matrix) {
@@ -49,55 +36,15 @@ export class GLTFEntityParser extends GLTFParser {
       }
     }
 
+    const children = entityInfo.children;
+    if (children) {
+      for (let i = 0; i < children.length; i++) {
+        const childIndex = children[i];
+        const childEntity = context.get<Entity>(GLTFParserType.Entity, childIndex);
+        entity.addChild(childEntity);
+      }
+    }
+
     return entity;
-  }
-
-  private _buildEntityTree(context: GLTFParserContext, entities: Entity[]): void {
-    const nodes = context.glTF.nodes;
-
-    for (let i = 0; i < nodes.length; i++) {
-      const { children } = nodes[i];
-      const entity = entities[i];
-
-      if (children) {
-        for (let j = 0; j < children.length; j++) {
-          const childEntity = entities[children[j]];
-
-          entity.addChild(childEntity);
-        }
-      }
-    }
-  }
-
-  private _createSceneRoots(context: GLTFParserContext, entities: Entity[]): void {
-    const { glTFResource, glTF } = context;
-    const { scene: sceneID = 0, scenes } = glTF;
-
-    if (!scenes) return;
-
-    const sceneRoots: Entity[] = [];
-
-    for (let i = 0; i < scenes.length; i++) {
-      const { nodes } = scenes[i];
-
-      if (!nodes) continue;
-
-      if (nodes.length === 1) {
-        sceneRoots[i] = entities[nodes[0]];
-      } else {
-        const rootEntity = new Entity(glTFResource.engine, "GLTF_ROOT");
-        for (let j = 0; j < nodes.length; j++) {
-          rootEntity.addChild(entities[nodes[j]]);
-        }
-        sceneRoots[i] = rootEntity;
-      }
-    }
-
-    glTFResource.sceneRoots = sceneRoots;
-    glTFResource.defaultSceneRoot = sceneRoots[sceneID];
-    // @ts-ignore
-    glTFResource.defaultSceneRoot._hookResource = glTFResource;
-    // @ts-ignore
-    glTFResource._addReferCount(1);
   }
 }

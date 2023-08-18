@@ -264,15 +264,11 @@ export class GLTFMeshParser extends GLTFParser {
     return Promise.all(promises);
   }
 
-  parse(context: GLTFParserContext, index?: number): Promise<ModelMesh[][] | ModelMesh[]> {
+  parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
     const meshes = context.glTF.meshes;
     if (!meshes) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(meshes.map((meshInfo) => this._parseSingleMesh(context, meshInfo)));
-    } else {
-      return this._parseSingleMesh(context, meshes[index]);
-    }
+    return this._parseSingleMesh(context, meshes[index]);
   }
 
   private _parseSingleMesh(context: GLTFParserContext, meshInfo: IMesh): Promise<ModelMesh[]> {
@@ -280,7 +276,7 @@ export class GLTFMeshParser extends GLTFParser {
       glTF,
       glTFResource: { engine }
     } = context;
-    const primitivePromises: Promise<ModelMesh>[] = [];
+    const primitivePromises = new Array<Promise<ModelMesh>>();
 
     for (let i = 0, length = meshInfo.primitives.length; i < length; i++) {
       const gltfPrimitive = meshInfo.primitives[i];
@@ -325,7 +321,7 @@ export class GLTFMeshParser extends GLTFParser {
             },
             () => {
               const indexAccessor = glTF.accessors[gltfPrimitive.indices];
-              return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
+              return context.get<Promise<ArrayBuffer[]>>(GLTFParserType.Buffer).then((buffers) => {
                 return GLTFUtils.getAccessorData(glTF, indexAccessor, buffers);
               });
             },

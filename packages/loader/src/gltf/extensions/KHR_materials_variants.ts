@@ -27,15 +27,15 @@ class KHR_materials_variants extends GLTFExtensionParser {
     const extensionData: IGLTFExtensionVariants = [];
     glTFResource.extensionsData.variants = extensionData;
 
-    context.get<Material[]>(GLTFParserType.Material).then((materials) => {
-      for (let i = 0; i < mappings.length; i++) {
-        const { material, variants } = mappings[i];
+    for (let i = 0; i < mappings.length; i++) {
+      const { material: materialIndex, variants } = mappings[i];
+      context.get<Promise<Material>>(GLTFParserType.Material, materialIndex).then((material) => {
         extensionData.push({
           renderer,
-          material: materials[material],
+          material,
           variants: variants.map((index) => variantNames[index].name)
         });
-      }
-    });
+      });
+    }
   }
 }

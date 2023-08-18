@@ -22,21 +22,21 @@ class KHR_materials_clearcoat extends GLTFExtensionParser {
     if (clearcoatTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(clearcoatTexture, "Clear coat");
 
-      context.get<Texture2D>(GLTFParserType.Texture, clearcoatTexture.index).then((texture) => {
+      context.get<Promise<Texture2D>>(GLTFParserType.Texture, clearcoatTexture.index).then((texture) => {
         material.clearCoatTexture = texture;
       });
     }
     if (clearcoatRoughnessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(clearcoatRoughnessTexture, "Clear coat roughness");
 
-      context.get<Texture2D>(GLTFParserType.Texture, clearcoatRoughnessTexture.index).then((texture) => {
+      context.get<Promise<Texture2D>>(GLTFParserType.Texture, clearcoatRoughnessTexture.index).then((texture) => {
         material.clearCoatRoughnessTexture = texture;
       });
     }
     if (clearcoatNormalTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(clearcoatNormalTexture, "Clear coat normal");
 
-      context.get<Texture2D>(GLTFParserType.Texture, clearcoatNormalTexture.index).then((texture) => {
+      context.get<Promise<Texture2D>>(GLTFParserType.Texture, clearcoatNormalTexture.index).then((texture) => {
         material.clearCoatNormalTexture = texture;
       });
     }

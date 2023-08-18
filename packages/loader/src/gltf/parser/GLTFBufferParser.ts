@@ -7,17 +7,13 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Buffer)
 export class GLTFBufferParser extends GLTFParser {
-  parse(context: GLTFParserContext, index?: number): Promise<ArrayBuffer | ArrayBuffer[]> {
+  parse(context: GLTFParserContext, index: number): Promise<ArrayBuffer> {
     const buffers = context.glTF.buffers;
 
     if (context._buffers) {
-      return Promise.resolve(index === undefined ? context._buffers : context._buffers[index]);
+      return Promise.resolve(context._buffers[index]);
     } else {
-      if (index === undefined) {
-        return Promise.all(buffers.map((bufferInfo) => this._parseSingleBuffer(context, bufferInfo)));
-      } else {
-        return this._parseSingleBuffer(context, buffers[index]);
-      }
+      return this._parseSingleBuffer(context, buffers[index]);
     }
   }
 

@@ -36,12 +36,11 @@ export class GLTFAnimationParser extends GLTFParser {
     const { glTF } = context;
     const { accessors, bufferViews } = glTF;
     const { channels, samplers } = animationInfo;
-
     const sampleDataCollection = new Array<SampleData>();
+    const entities = context.get<Entity[]>(GLTFParserType.Entity);
 
     let duration = -1;
-    let promises = new Array<Promise<Entity[] | void>>();
-    promises.push(context.get<Entity[]>(GLTFParserType.Entity));
+    let promises = new Array<Promise<void>>();
 
     // parse samplers
     for (let j = 0, m = samplers.length; j < m; j++) {
@@ -96,9 +95,7 @@ export class GLTFAnimationParser extends GLTFParser {
       promises.push(promise);
     }
 
-    return Promise.all(promises).then((res) => {
-      const entities = res[0] as Entity[];
-
+    return Promise.all(promises).then(() => {
       for (let j = 0, m = channels.length; j < m; j++) {
         const gltfChannel = channels[j];
         const { target } = gltfChannel;
@@ -213,17 +210,11 @@ export class GLTFAnimationParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext, index?: number): Promise<AnimationClip[] | AnimationClip> {
+  parse(context: GLTFParserContext, index: number): Promise<AnimationClip> {
     const animations = context.glTF.animations;
     if (!animations) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(
-        animations.map((animationInfo, index) => this._parseSingleAnimation(context, animationInfo, index))
-      );
-    } else {
-      return this._parseSingleAnimation(context, animations[index], index);
-    }
+    return this._parseSingleAnimation(context, animations[index], index);
   }
 
   private _parseSingleAnimation(

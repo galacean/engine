@@ -63,7 +63,7 @@ export class GLTFTextureParser extends GLTFParser {
       } else {
         const bufferView = glTF.bufferViews[bufferViewIndex];
 
-        texture = context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
+        texture = context.get<Promise<ArrayBuffer[]>>(GLTFParserType.Buffer).then((buffers) => {
           const buffer = buffers[bufferView.buffer];
           const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 

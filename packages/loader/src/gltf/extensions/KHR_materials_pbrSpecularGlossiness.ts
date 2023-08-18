@@ -28,7 +28,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     }
 
     if (diffuseTexture) {
-      context.get<Texture2D>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
+      context.get<Promise<Texture2D>>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
         material.baseTexture = texture;
         GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
       });
@@ -49,7 +49,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     if (specularGlossinessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
 
-      context.get<Texture2D>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
+      context.get<Promise<Texture2D>>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
         material.specularGlossinessTexture = texture;
       });
     }

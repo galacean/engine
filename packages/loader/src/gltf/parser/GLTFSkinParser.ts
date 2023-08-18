@@ -7,16 +7,12 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Skin)
 export class GLTFSkinParser extends GLTFParser {
-  parse(context: GLTFParserContext, index?: number): Promise<Skin[] | Skin> {
+  parse(context: GLTFParserContext, index: number): Promise<Skin> {
     const gltfSkins = context.glTF.skins;
 
     if (!gltfSkins) return Promise.resolve(null);
 
-    if (index === undefined) {
-      return Promise.all(gltfSkins.map((skinInfo, index) => this._parseSingleSkin(context, skinInfo, index)));
-    } else {
-      return this._parseSingleSkin(context, gltfSkins[index], index);
-    }
+    return this._parseSingleSkin(context, gltfSkins[index], index);
   }
 
   private _parseSingleSkin(context: GLTFParserContext, skinInfo: ISkin, index: number): Promise<Skin> {
@@ -31,35 +27,34 @@ export class GLTFSkinParser extends GLTFParser {
     // parse IBM
     const accessor = glTF.accessors[inverseBindMatrices];
     const skinPromise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
-      return context.get<Entity[]>(GLTFParserType.Entity).then((entities) => {
-        const buffer = bufferInfo.data;
-        for (let i = 0; i < jointCount; i++) {
-          const inverseBindMatrix = new Matrix();
-          inverseBindMatrix.copyFromArray(buffer, i * 16);
-          skin.inverseBindMatrices[i] = inverseBindMatrix;
+      const entities = context.get<Entity[]>(GLTFParserType.Entity);
+      const buffer = bufferInfo.data;
+      for (let i = 0; i < jointCount; i++) {
+        const inverseBindMatrix = new Matrix();
+        inverseBindMatrix.copyFromArray(buffer, i * 16);
+        skin.inverseBindMatrices[i] = inverseBindMatrix;
 
-          // Get bones
-          const bone = entities[joints[i]];
-          skin._bones[i] = bone;
-          skin.joints[i] = bone.name;
+        // Get bones
+        const bone = entities[joints[i]];
+        skin._bones[i] = bone;
+        skin.joints[i] = bone.name;
 
-          // Get skeleton
-          if (skeleton !== undefined) {
-            const rootBone = entities[skeleton];
+        // Get skeleton
+        if (skeleton !== undefined) {
+          const rootBone = entities[skeleton];
+          skin._rootBone = rootBone;
+          skin.skeleton = rootBone.name;
+        } else {
+          const rootBone = this._findSkeletonRootBone(joints, entities);
+          if (rootBone) {
             skin._rootBone = rootBone;
             skin.skeleton = rootBone.name;
           } else {
-            const rootBone = this._findSkeletonRootBone(joints, entities);
-            if (rootBone) {
-              skin._rootBone = rootBone;
-              skin.skeleton = rootBone.name;
-            } else {
-              throw "Failed to find skeleton root bone.";
-            }
+            throw "Failed to find skeleton root bone.";
           }
         }
-        return skin;
-      });
+      }
+      return skin;
     });
 
     return Promise.resolve(skinPromise);

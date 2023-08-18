@@ -14,8 +14,6 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   private static _decoder: DRACODecoder;
   private static _tempVector3 = new Vector3();
 
-
-
   override createAndParse(
     context: GLTFParserContext,
     schema: IKHRDracoMeshCompression,
@@ -50,7 +48,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       indexType
     };
 
-    return context.get<ArrayBuffer[]>(GLTFParserType.Buffer).then((buffers) => {
+    return context.get<Promise<ArrayBuffer[]>>(GLTFParserType.Buffer).then((buffers) => {
       const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
       return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
         const mesh = new ModelMesh(engine, glTFMesh.name);
@@ -84,7 +82,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       KHR_draco_mesh_compression._decoder = new DRACODecoder();
     }
   }
-  
+
   private _parseMeshFromGLTFPrimitiveDraco(
     mesh: ModelMesh,
     gltfMesh: IMesh,
