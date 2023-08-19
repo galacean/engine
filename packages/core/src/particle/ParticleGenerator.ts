@@ -7,6 +7,7 @@ import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleRenderer } from "./ParticleRenderer";
+import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
@@ -17,7 +18,6 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 
 /**
  * Particle System.
@@ -71,6 +71,8 @@ export class ParticleGenerator {
   _vertexBufferBindings: VertexBufferBinding[] = [];
   /** @internal */
   _subPrimitive: SubMesh = new SubMesh(0, 0, MeshTopology.Triangles);
+  /** @internal */
+  readonly _renderer: ParticleRenderer;
 
   private _instanceBufferResized: boolean = false;
   private _waitProcessRetiredElementCount: number = 0;
@@ -78,7 +80,6 @@ export class ParticleGenerator {
   private _instanceVertices: Float32Array;
   private _randomSeed: number = 0;
 
-  private readonly _renderer: ParticleRenderer;
   private readonly _particleIncreaseCount: number = 128;
 
   /**
@@ -131,6 +132,9 @@ export class ParticleGenerator {
       for (let i = 0; i < count; i++) {
         if (shapeEnabled) {
           shape.shape._generatePositionAndDirection(position, direction);
+          const positionScale = this.main._getPositionScale();
+          position.multiply(positionScale);
+          direction.normalize().multiply(positionScale);
         } else {
           position.set(0, 0, 0);
           direction.set(0, 0, -1);
@@ -274,8 +278,6 @@ export class ParticleGenerator {
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
     const particleUtils = this._renderer.engine._particleBufferUtils;
-
-    direction.normalize();
 
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;

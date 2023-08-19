@@ -92,35 +92,12 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
 
     vec3 finalPosition;
     if (u_VOLSpaceType == 0) {
-        if (u_SimulationSpace == 0 && u_ScalingMode != 2) {
-            finalPosition = rotationByQuaternions(
-            u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition + lifePosition),
-            worldRotation);
-        } else {
-            finalPosition = rotationByQuaternions(
-            u_PositionScale * a_ShapePositionStartLifeTime.xyz + startPosition + lifePosition,
-            worldRotation);
-        }
+        finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition + lifePosition, worldRotation);
     } else {
-        if (u_SimulationSpace == 0 && u_ScalingMode != 2) {
-            finalPosition = rotationByQuaternions(
-                    u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition),
-                    worldRotation)
-            + lifePosition;
-        } else {
-            finalPosition = rotationByQuaternions(
-                    u_PositionScale * a_ShapePositionStartLifeTime.xyz + startPosition,
-                    worldRotation)
-            + lifePosition;
-        }
+        finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation) + lifePosition;
     }
 #else
-    vec3 finalPosition;
-    if (u_SimulationSpace == 0 && u_ScalingMode != 2) {
-        finalPosition = rotationByQuaternions( u_PositionScale * (a_ShapePositionStartLifeTime.xyz + startPosition), worldRotation);
-    } else {
-        finalPosition = rotationByQuaternions( u_PositionScale * a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation);
-    }
+    vec3 finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation);
 #endif
 
     if (u_SimulationSpace == 0) {

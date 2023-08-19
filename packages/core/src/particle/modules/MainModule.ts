@@ -1,4 +1,4 @@
-import { Color, Rand } from "@galacean/engine-math";
+import { Color, Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
@@ -104,5 +104,19 @@ export class MainModule {
     this._startColorRand.reset(randomSeed, ParticleRandomSubSeeds.StartColor);
     this._startSizeRand.reset(randomSeed, ParticleRandomSubSeeds.StartSize);
     this._startRotationRand.reset(randomSeed, ParticleRandomSubSeeds.StartRotation);
+  }
+
+  /**
+   * @internal
+   */
+  _getPositionScale(): Vector3 {
+    const transform = this._generator._renderer.entity.transform;
+    switch (this.scalingMode) {
+      case ParticleScaleMode.Hierarchy:
+      case ParticleScaleMode.World:
+        return transform.lossyWorldScale;
+      case ParticleScaleMode.Local:
+        return transform.scale;
+    }
   }
 }
