@@ -1,5 +1,6 @@
 import { IClone } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
+import { ColorSpace } from "../../enums/ColorSpace";
 
 /**
  * Particle gradient.
@@ -129,7 +130,7 @@ export class ParticleGradient implements IClone {
   /**
    * @internal
    */
-  _getColorTypeArray(): Float32Array {
+  _getColorTypeArray(colorSpace: ColorSpace): Float32Array {
     const typeArray = (this._colorTypeArray ||= new Float32Array(4 * 4));
     if (this._colorTypeArrayDirty) {
       const keys = this._colorKeys;
@@ -138,9 +139,15 @@ export class ParticleGradient implements IClone {
         const key = keys[i];
         typeArray[offset] = key.time;
         const color = key.color;
-        typeArray[offset + 1] = color.r;
-        typeArray[offset + 2] = color.g;
-        typeArray[offset + 3] = color.b;
+        if (colorSpace === ColorSpace.Linear) {
+          typeArray[offset + 1] = Color.gammaToLinearSpace(color.r);
+          typeArray[offset + 2] = Color.gammaToLinearSpace(color.g);
+          typeArray[offset + 3] = Color.gammaToLinearSpace(color.b);
+        } else {
+          typeArray[offset + 1] = color.r;
+          typeArray[offset + 2] = color.g;
+          typeArray[offset + 3] = color.b;
+        }
       }
       this._colorTypeArrayDirty = false;
     }

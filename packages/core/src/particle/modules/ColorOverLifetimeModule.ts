@@ -45,13 +45,20 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
 
       if (mode === ParticleGradientMode.Gradient || mode === ParticleGradientMode.TwoGradients) {
         const color = this.color;
-        shaderData.setFloatArray(ColorOverLifetimeModule._maxGradientColor, color.gradientMax._getColorTypeArray());
+        const colorSpace = this._generator._renderer.engine.settings.colorSpace;
+        shaderData.setFloatArray(
+          ColorOverLifetimeModule._maxGradientColor,
+          color.gradientMax._getColorTypeArray(colorSpace)
+        );
         shaderData.setFloatArray(ColorOverLifetimeModule._maxGradientAlpha, color.gradientMax._getAlphaTypeArray());
 
         if (mode === ParticleGradientMode.Gradient) {
           colorMacro = ColorOverLifetimeModule._gradientMacro;
         } else {
-          shaderData.setFloatArray(ColorOverLifetimeModule._minGradientColor, color.gradientMin._getColorTypeArray());
+          shaderData.setFloatArray(
+            ColorOverLifetimeModule._minGradientColor,
+            color.gradientMin._getColorTypeArray(colorSpace)
+          );
           shaderData.setFloatArray(ColorOverLifetimeModule._minGradientAlpha, color.gradientMin._getAlphaTypeArray());
           colorMacro = ColorOverLifetimeModule._randomGradientsMacro;
         }
