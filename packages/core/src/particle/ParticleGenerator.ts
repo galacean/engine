@@ -18,6 +18,7 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { ColorSpace } from "../enums/ColorSpace";
 
 /**
  * Particle System.
@@ -335,6 +336,10 @@ export class ParticleGenerator {
     // Color
     const startColor = ParticleGenerator._tempColor0;
     main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
+    if (this._renderer.engine.settings.colorSpace === ColorSpace.Linear) {
+      startColor.toLinear(startColor);
+    }
+
     instanceVertices[offset + 8] = startColor.r;
     instanceVertices[offset + 9] = startColor.g;
     instanceVertices[offset + 10] = startColor.b;
