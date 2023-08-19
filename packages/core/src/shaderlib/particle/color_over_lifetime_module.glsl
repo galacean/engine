@@ -63,13 +63,16 @@
 
 
 vec4 computeParticleColor(in vec4 color, in float normalizedAge) {
-    #ifdef RENDERER_COL_GRADIENT
-        color *= evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysCount.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysCount.w, normalizedAge);
+    #if defined(RENDERER_COL_GRADIENT) || defined(RENDERER_COL_RANDOM_GRADIENTS)
+       vec4 gradientColor = evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysCount.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysCount.w, normalizedAge);
     #endif
 
     #ifdef RENDERER_COL_RANDOM_GRADIENTS
-        color *= mix(evaluateParticleGradient(renderer_COLMinGradientColor,renderer_COLGradientKeysCount.x,renderer_COLMinGradientAlpha, renderer_COLGradientKeysCount.y, normalizedAge), 
-        evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysCount.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysCount.w, normalizedAge), a_Random0.y);
+        gradientColor = mix(evaluateParticleGradient(renderer_COLMinGradientColor,renderer_COLGradientKeysCount.x,renderer_COLMinGradientAlpha, renderer_COLGradientKeysCount.y, normalizedAge), gradientColor, a_Random0.y);
+    #endif
+
+    #if defined(RENDERER_COL_GRADIENT) || defined(RENDERER_COL_RANDOM_GRADIENTS)
+       color * gradientColor;
     #endif
 
     return color;

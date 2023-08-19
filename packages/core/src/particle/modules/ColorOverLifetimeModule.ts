@@ -33,7 +33,7 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * @inheritDoc
    */
-  cloneTo(destRotationOverLifetime: ColorOverLifetimeModule): void {}
+  cloneTo(dest: ColorOverLifetimeModule): void {}
 
   /**
    * @internal
