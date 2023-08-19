@@ -169,11 +169,12 @@ export class ParticleGradient implements IClone {
 
   private _addKey<T extends { time: number }>(keys: T[], key: T): void {
     const time = key.time;
-    const duration = length ? keys[length - 1].time : 0;
+    const count = keys.length;
+    const duration = count ? keys[count - 1].time : 0;
     if (time >= duration) {
       keys.push(key);
     } else {
-      let index = length;
+      let index = count;
       while (--index >= 0 && time < keys[index].time);
       keys.splice(index + 1, 0, key);
     }

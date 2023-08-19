@@ -41,19 +41,19 @@ export class ParticleCurve implements IClone {
 
   addKey(timeOrKey: number | Key, value?: number): void {
     const keys = this._keys;
-    const length = keys.length;
+    const count = keys.length;
 
-    if (length === 4) {
+    if (count === 4) {
       throw new Error("Curve can only have 4 keys");
     }
 
     const key = typeof timeOrKey === "number" ? new Key(timeOrKey, value) : timeOrKey;
     const time = key.time;
-    const duration = length ? keys[length - 1].time : 0;
+    const duration = count ? keys[count - 1].time : 0;
     if (time >= duration) {
       keys.push(key);
     } else {
-      let index = length;
+      let index = count;
       while (--index >= 0 && time < keys[index].time);
       keys.splice(index + 1, 0, key);
     }
