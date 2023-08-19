@@ -17,6 +17,7 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 
 /**
  * Particle System.
@@ -300,7 +301,7 @@ export class ParticleGenerator {
     const main = this.main;
 
     let pos: Vector3, rot: Quaternion;
-    if (this.main.simulationSpace === ParticleSimulationSpace.World) {
+    if (main.simulationSpace === ParticleSimulationSpace.World) {
       pos = transform.worldPosition;
       rot = transform.worldRotationQuaternion;
     }
@@ -331,14 +332,14 @@ export class ParticleGenerator {
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
-    main.startColor.evaluate(undefined, this.main._startColorRand.random(), startColor);
+    main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
     instanceVertices[offset + 8] = startColor.r;
     instanceVertices[offset + 9] = startColor.g;
     instanceVertices[offset + 10] = startColor.b;
     instanceVertices[offset + 11] = startColor.a;
 
     // Start size
-    const startSizeRand = this.main._startSizeRand;
+    const startSizeRand = main._startSizeRand;
     if (main.startSize3D) {
       instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, startSizeRand.random());
       instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, startSizeRand.random());
@@ -351,7 +352,7 @@ export class ParticleGenerator {
     }
 
     // Start rotation
-    const startRotationRand = this.main._startRotationRand;
+    const startRotationRand = main._startRotationRand;
     if (main.startRotation3D) {
       instanceVertices[offset + 15] = MathUtil.degreeToRadian(
         main.startRotationX.evaluate(undefined, startRotationRand.random())
@@ -371,16 +372,19 @@ export class ParticleGenerator {
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
 
-    // @todo
-    // Color, size, rotation, texture animation
+    // Unused, Color, size, rotation,
     // instanceVertices[offset + 19] = rand.random();
     // instanceVertices[offset + 20] = rand.random();
     // instanceVertices[offset + 21] = rand.random();
     // instanceVertices[offset + 22] = rand.random();
 
-    // @todo
+    // Texture sheet animation
+    const textureSheetAnimation = this.textureSheetAnimation;
+    if (textureSheetAnimation.enabled && textureSheetAnimation.frameOverTime.mode === ParticleCurveMode.TwoCurves) {
+      instanceVertices[offset + 23] = textureSheetAnimation._frameOverTimeRand.random();
+    }
+
     // Velocity random
-    // instanceVertices[offset + 23] = rand.random();
     // instanceVertices[offset + 24] = rand.random();
     // instanceVertices[offset + 25] = rand.random();
     // instanceVertices[offset + 26] = rand.random();
@@ -459,6 +463,7 @@ export class ParticleGenerator {
     this.main._resetRandomSeed(seed);
     this.emission._resetRandomSeed(seed);
     this.shape._resetRandomSeed(seed);
+    this.textureSheetAnimation._resetRandomSeed(seed);
   }
 
   private _freeRetiredParticles(): void {

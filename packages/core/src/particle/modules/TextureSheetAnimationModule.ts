@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -6,6 +6,7 @@ import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { Key, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * Texture sheet animation module.
@@ -30,6 +31,8 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
 
   /** @internal */
   _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
+  /** @internal */
+  _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
 
   private _tiling = new Vector2(1, 1);
 
@@ -58,18 +61,12 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     if (this.enabled) {
       const mode = this.frameOverTime.mode;
       if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
-        const frameOverTime = this.frameOverTime;
-        shaderData.setFloatArray(
-          TextureSheetAnimationModule._frameMaxCurveProperty,
-          frameOverTime.curveMax._getTypeArray()
-        );
+        const frame = this.frameOverTime;
+        shaderData.setFloatArray(TextureSheetAnimationModule._frameMaxCurveProperty, frame.curveMax._getTypeArray());
         if (mode === ParticleCurveMode.Curve) {
           frameMacro = TextureSheetAnimationModule._frameCurveMacro;
         } else {
-          shaderData.setFloatArray(
-            TextureSheetAnimationModule._frameMinCurveProperty,
-            frameOverTime.curveMin._getTypeArray()
-          );
+          shaderData.setFloatArray(TextureSheetAnimationModule._frameMinCurveProperty, frame.curveMin._getTypeArray());
           frameMacro = TextureSheetAnimationModule._frameRandomCurvesMacro;
         }
 
@@ -79,6 +76,13 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     }
 
     this._enableModuleMacro(shaderData, frameMacro);
+  }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(randomSeed: number): void {
+    this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
   }
 }
 
