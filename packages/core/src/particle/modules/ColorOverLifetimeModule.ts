@@ -18,7 +18,7 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _minGradientAlpha = ShaderProperty.getByName("renderer_COLMinGradientAlpha");
   static readonly _maxGradientColor = ShaderProperty.getByName("renderer_COLMaxGradientColor");
   static readonly _maxGradientAlpha = ShaderProperty.getByName("renderer_COLMaxGradientAlpha");
-  static readonly _gradientKeysCount = ShaderProperty.getByName("renderer_COLGradientKeysCount");
+  static readonly _gradientKeysCount = ShaderProperty.getByName("renderer_COLGradientKeysMaxTime");
 
   /** Color gradient over lifetime. */
   color = new ParticleCompositeGradient(
@@ -28,8 +28,8 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
     )
   );
 
-  private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysCount, y: minAlphaKeysCount, z: maxColorKeysCount, w: maxAlphaKeysCount
-
+  private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysMaxTime, y: minAlphaKeysMaxTime, z: maxColorKeysMaxTime, w: maxAlphaKeysMaxTime
+  
   /**
    * @inheritDoc
    */
@@ -56,11 +56,16 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
           colorMacro = ColorOverLifetimeModule._randomGradientsMacro;
         }
 
+        const colorMinKeys = color.gradientMin.colorKeys;
+        const alphaMinKeys = color.gradientMin.alphaKeys;
+        const colorMaxKeys = color.gradientMax.colorKeys;
+        const alphaMaxKeys = color.gradientMax.alphaKeys;
+
         this._gradientKeysCount.set(
-          color.gradientMin.colorKeys.length,
-          color.gradientMin.alphaKeys.length,
-          color.gradientMax.colorKeys.length,
-          color.gradientMax.alphaKeys.length
+          colorMinKeys.length ? colorMinKeys[colorMinKeys.length - 1].time : 0,
+          alphaMinKeys.length ? alphaMinKeys[alphaMinKeys.length - 1].time : 0,
+          colorMaxKeys.length ? colorMaxKeys[colorMaxKeys.length - 1].time : 0,
+          alphaMaxKeys.length ? alphaMaxKeys[alphaMaxKeys.length - 1].time : 0
         );
         shaderData.setVector4(ColorOverLifetimeModule._gradientKeysCount, this._gradientKeysCount);
       }
