@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -18,8 +18,7 @@ export class BoxShape extends BaseShape {
   /**
    * @internal
    */
-  override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._shapeRand;
+  override _generatePositionAndDirection(rand: Rand,position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
 
     position.multiply(this.boxThickness);

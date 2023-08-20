@@ -178,7 +178,7 @@ export class ParticleRenderer extends Renderer {
       case ParticleSimulationSpace.World:
         break;
       default:
-        throw new Error("ShurikenParticleMaterial: SimulationSpace value is invalid.");
+        throw new Error("ParticleRenderer: SimulationSpace value is invalid.");
     }
 
     switch (particleSystem.main.scalingMode) {

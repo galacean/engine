@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -17,8 +17,7 @@ export class HemisphereShape extends BaseShape {
     this.shapeType = ParticleShapeType.Hemisphere;
   }
 
-  override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._shapeRand;
+  override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
     if (this.emitFromShell) {
       ShapeUtils._randomPointUnitSphere(position, rand);
     } else {

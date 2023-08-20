@@ -14,13 +14,10 @@ export abstract class BaseShape implements IClone {
   /** Randomizes the starting direction of particles. */
   randomDirectionAmount: number = 0;
 
-  /** @internal */
-  _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
-
   /**
    * @internal
    */
-  _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
+  _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
     throw new Error("BaseShape: must override it.");
   }
 

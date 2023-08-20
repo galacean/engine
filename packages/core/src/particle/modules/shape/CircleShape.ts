@@ -1,10 +1,8 @@
-import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeMultiModeValue } from "./enums/ParticleShapeMultiModeValue";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
-import { ParticleGenerator } from "../../ParticleGenerator";
-import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 
 /**
  * Circle Particle Emitter
@@ -24,8 +22,7 @@ export class CircleShape extends BaseShape {
     this.shapeType = ParticleShapeType.Circle;
   }
 
-  override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
-    const rand = this._shapeRand;
+  override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
     const positionPoint: Vector2 = CircleShape._tempPositionPoint;
 
     switch (this.arcMode) {

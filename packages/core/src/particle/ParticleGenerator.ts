@@ -1,5 +1,6 @@
 import { Color, MathUtil, Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
+import { ColorSpace } from "../enums/ColorSpace";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -18,7 +19,6 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ColorSpace } from "../enums/ColorSpace";
 
 /**
  * Particle System.
@@ -129,10 +129,10 @@ export class ParticleGenerator {
     if (this.emission.enabled) {
       const transform = this._renderer.entity.transform;
       const shape = this.shape;
-      const shapeEnabled = shape.enabled;
+      const shapeEnabled = shape.enabled && shape.shape;
       for (let i = 0; i < count; i++) {
         if (shapeEnabled) {
-          shape.shape._generatePositionAndDirection(position, direction);
+          shape.shape._generatePositionAndDirection(shape._shapeRand, position, direction);
           const positionScale = this.main._getPositionScale();
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
