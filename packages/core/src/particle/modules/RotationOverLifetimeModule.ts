@@ -10,11 +10,10 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Rotate particles throughout their lifetime.
  */
 export class RotationOverLifetimeModule extends ParticleGeneratorModule {
-  static readonly _uniformMacro = ShaderMacro.getByName("renderer_ROL_ENABLE_UNIFORM");
-  static readonly _separateMacro = ShaderMacro.getByName("renderer_ROL_ENABLE_SEPARATE");
-  static readonly _constantMacro = ShaderMacro.getByName("renderer_ROL_CONSTANT");
-  static readonly _curveMacro = ShaderMacro.getByName("renderer_ROL_CURVE");
-  static readonly _randomConstantMacro = ShaderMacro.getByName("renderer_ROL_ENABLE_RANDOM_TWO");
+  static readonly _constantModeMacro = ShaderMacro.getByName("renderer_ROL_CONSTANT_MODE");
+  static readonly _curveModeMacro = ShaderMacro.getByName("renderer_ROL_CURVE_MODE");
+  static readonly _isSeparateMacro = ShaderMacro.getByName("renderer_ROL_IS_SEPARATE");
+  static readonly _isRandomMacro = ShaderMacro.getByName("renderer_ROL_IS_RANDOM_TWO");
 
   static readonly _minConstantProperty = ShaderProperty.getByName("renderer_ROLMinConst");
   static readonly _minCurveXProperty = ShaderProperty.getByName("renderer_ROLMinCurveX");
@@ -24,7 +23,6 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxCurveXProperty = ShaderProperty.getByName("renderer_ROLMaxCurveX");
   static readonly _maxCurveYProperty = ShaderProperty.getByName("renderer_ROLMaxCurveY");
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_ROLMaxCurveZ");
-  static readonly _maxCurveWProperty = ShaderProperty.getByName("renderer_ROLMaxCurveW");
 
   /** Specifies whether the rotation is separate on each axis, when disabled only z axis is used. */
   separateAxes: boolean = false;
@@ -59,6 +57,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
       const rotationX = this.x;
       const rotationY = this.y;
       const rotationZ = this.z;
+      const separateAxes = this.separateAxes;
 
       const isRandomCurveMode =
         rotationX.mode === ParticleCurveMode.TwoCurves &&
@@ -72,17 +71,19 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
           rotationZ.mode === ParticleCurveMode.Curve);
       if (isCurveMode) {
         shaderData.setFloatArray(RotationOverLifetimeModule._maxCurveZProperty, rotationZ.curveMax._getTypeArray());
-        if (this.separateAxes) {
+        if (separateAxes) {
           shaderData.setFloatArray(RotationOverLifetimeModule._maxCurveXProperty, rotationX.curveMax._getTypeArray());
           shaderData.setFloatArray(RotationOverLifetimeModule._maxCurveYProperty, rotationY.curveMax._getTypeArray());
         }
         if (isRandomCurveMode) {
           shaderData.setFloatArray(RotationOverLifetimeModule._minCurveZProperty, rotationZ.curveMin._getTypeArray());
-          if (this.separateAxes) {
+          if (separateAxes) {
             shaderData.setFloatArray(RotationOverLifetimeModule._minCurveXProperty, rotationX.curveMin._getTypeArray());
             shaderData.setFloatArray(RotationOverLifetimeModule._minCurveYProperty, rotationY.curveMin._getTypeArray());
           }
+          isRandomTwoMacro = RotationOverLifetimeModule._isRandomMacro;
         }
+        isCurveMacro = RotationOverLifetimeModule._curveModeMacro;
       } else {
         const constantMax = this._rotationMaxConstant;
         constantMax.set(rotationX.constantMax, rotationY.constantMax, rotationZ.constantMax);
@@ -96,14 +97,14 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
           const constantMin = this._rotationMinConstant;
           constantMin.set(rotationX.constantMin, rotationY.constantMin, rotationZ.constantMin);
           shaderData.setVector3(RotationOverLifetimeModule._minConstantProperty, constantMin);
-          isRandomTwoMacro = RotationOverLifetimeModule._randomConstantMacro;
+          isRandomTwoMacro = RotationOverLifetimeModule._isRandomMacro;
         }
+        isCurveMacro = RotationOverLifetimeModule._constantModeMacro;
       }
 
-      enableSeparateMacro = this.separateAxes
-        ? RotationOverLifetimeModule._separateMacro
-        : RotationOverLifetimeModule._uniformMacro;
-      isCurveMacro = isCurveMode ? RotationOverLifetimeModule._curveMacro : RotationOverLifetimeModule._constantMacro;
+      if (separateAxes) {
+        enableSeparateMacro = RotationOverLifetimeModule._isSeparateMacro;
+      }
     }
     this._enableSeparateMacro = this._enableModuleMacroX(shaderData, this._enableSeparateMacro, enableSeparateMacro);
     this._isCurveMacro = this._enableModuleMacroX(shaderData, this._isCurveMacro, isCurveMacro);

@@ -5,9 +5,7 @@
 	corner *= computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);
     #if defined(ROTATION_OVER_LIFETIME) || defined(ROTATION_OVER_LIFETIME_SEPARATE)
         if (u_ThreeDStartRotation) {
-            vec3 rotation = vec3(
-            a_StartRotation0.xy,
-            computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
+            vec3 rotation = vec3(a_StartRotation0.xy, computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
             center += u_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, rotation);
         } else {
             float rot = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
