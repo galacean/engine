@@ -42,6 +42,7 @@ uniform bool u_ThreeDStartRotation;
 uniform int u_ScalingMode;
 uniform vec3 u_PositionScale;
 uniform vec3 u_SizeScale;
+uniform vec3 renderer_PivotOffset;
 
 uniform mat4 camera_ViewMat;
 uniform mat4 camera_ProjMat;

@@ -1,16 +1,17 @@
 import { Vector3, Vector4 } from "@galacean/engine-math";
+import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleGenerator } from "./ParticleGenerator";
-import { ParticleRenderMode } from "./enums/ParticleRenderMode";
-import { ParticleStopMode } from "./enums/ParticleStopMode";
-import { ParticleShaderProperty } from "./ParticleShaderProperty";
-import { Entity } from "../Entity";
-import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
-import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 import { ParticleShaderMacro } from "./ParticleShaderMacro";
+import { ParticleShaderProperty } from "./ParticleShaderProperty";
+import { ParticleRenderMode } from "./enums/ParticleRenderMode";
+import { ParticleScaleMode } from "./enums/ParticleScaleMode";
+import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { ParticleStopMode } from "./enums/ParticleStopMode";
 
 /**
  * Particle Renderer Component.
@@ -20,6 +21,8 @@ export class ParticleRenderer extends Renderer {
   private static _tempVector40: Vector4 = new Vector4();
   /** @internal */
   private static _vector3One: Vector3 = new Vector3(1, 1, 1);
+
+  static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
 
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
@@ -34,6 +37,8 @@ export class ParticleRenderer extends Renderer {
   velocityScale: number = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
   lengthScale: number = 2;
+  /** The pivot of particle. */
+  pivot: Vector3 = new Vector3();
 
   /**
    * Whether the particle system is contain alive or is still creating particles.
@@ -205,6 +210,9 @@ export class ParticleRenderer extends Renderer {
     shaderData.setFloat(ParticleShaderProperty.lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleShaderProperty.speedScale, this.velocityScale);
     shaderData.setFloat(ParticleShaderProperty.currentTime, particleSystem._playTime);
+
+    // @todo: mesh is not simple pivot
+    shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
 
     this.generator._updateShaderData(shaderData);
   }
