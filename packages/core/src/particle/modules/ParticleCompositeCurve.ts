@@ -9,9 +9,9 @@ export class ParticleCompositeCurve implements IClone {
   /** The curve mode. */
   mode: ParticleCurveMode = ParticleCurveMode.Constant;
   /** The min constant value used by the curve if mode is set to `TwoConstants`.*/
-  constantMin: number;
+  constantMin: number = 0;
   /** The max constant value used by the curve if mode is set to `TwoConstants`.*/
-  constantMax: number;
+  constantMax: number = 0;
   /** The min curve used by the curve if mode is set to `TwoCurves`. */
   curveMin: ParticleCurve;
   /** The max curve used by the curve if mode is set to `TwoCurves`. */

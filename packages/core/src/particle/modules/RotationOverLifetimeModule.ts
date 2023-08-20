@@ -1,4 +1,4 @@
-import { Rand, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -93,7 +93,11 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
         isCurveMacro = RotationOverLifetimeModule._curveModeMacro;
       } else {
         const constantMax = this._rotationMaxConstant;
-        constantMax.set(rotationX.constantMax, rotationY.constantMax, rotationZ.constantMax);
+        constantMax.set(
+          MathUtil.degreeToRadian(rotationX.constantMax),
+          MathUtil.degreeToRadian(rotationY.constantMax),
+          MathUtil.degreeToRadian(rotationZ.constantMax)
+        );
         shaderData.setVector3(RotationOverLifetimeModule._maxConstantProperty, constantMax);
 
         if (
@@ -104,7 +108,11 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
             : rotationZ.mode === ParticleCurveMode.TwoConstants
         ) {
           const constantMin = this._rotationMinConstant;
-          constantMin.set(rotationX.constantMin, rotationY.constantMin, rotationZ.constantMin);
+          constantMin.set(
+            MathUtil.degreeToRadian(rotationX.constantMin),
+            MathUtil.degreeToRadian(rotationY.constantMin),
+            MathUtil.degreeToRadian(rotationZ.constantMin)
+          );
           shaderData.setVector3(RotationOverLifetimeModule._minConstantProperty, constantMin);
           isRandomTwoMacro = RotationOverLifetimeModule._isRandomTwoMacro;
         }
@@ -120,10 +128,10 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
     this._isRandomTwoMacro = this._enableModuleMacroX(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
   }
 
-   /**
+  /**
    * @internal
    */
-   _resetRandomSeed(seed: number): void {
+  _resetRandomSeed(seed: number): void {
     this._rotationRand.reset(seed, ParticleRandomSubSeeds.RotationOverLifetime);
   }
 }

@@ -1,6 +1,6 @@
 #ifdef RENDERER_MODE_MESH
 	vec3 size = computeParticleSizeMesh(a_StartSize, normalizedAge);
-    #if defined(ROTATION_OVER_LIFETIME) || defined(ROTATION_OVER_LIFETIME_SEPARATE)
+    #if defined(renderer_ROL_CONSTANT_MODE) || defined(renderer_ROL_CURVE_MODE)
         if (u_ThreeDStartRotation) {
             vec3 rotation = vec3(
             a_StartRotation0.xy,
@@ -9,7 +9,7 @@
             u_SizeScale * rotationByEuler(a_MeshPosition * size, rotation),
             worldRotation);
         } else {
-        #ifdef ROTATION_OVER_LIFETIME
+        #ifdef renderer_ROL_IS_SEPARATE
             float angle = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
             if (a_ShapePositionStartLifeTime.x != 0.0 || a_ShapePositionStartLifeTime.y != 0.0) {
             center += (rotationByQuaternions(
