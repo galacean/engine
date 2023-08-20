@@ -33,9 +33,8 @@ export class EmissionModule extends ParticleGeneratorModule {
   addBurst(burst: Burst): void {
     const bursts = this._bursts;
     let burstIndex = bursts.length;
-    while (--burstIndex >= 0 && burst.time < bursts[burstIndex].time) {
-      bursts.splice(burstIndex + 1, 0, burst);
-    }
+    while (--burstIndex >= 0 && burst.time < bursts[burstIndex].time);
+    bursts.splice(burstIndex + 1, 0, burst);
   }
 
   /**
@@ -119,10 +118,10 @@ export class EmissionModule extends ParticleGeneratorModule {
   private _emitByBurst(lastPlayTime: number, playTime: number): void {
     const main = this._generator.main;
     const duration = main.duration;
-    const cycleCount = Math.floor(playTime - lastPlayTime / duration);
+    const cycleCount = Math.floor((playTime - lastPlayTime) / duration);
 
     // Across one cycle
-    if (main.loop && (cycleCount > 0 || playTime < lastPlayTime)) {
+    if (main.loop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
       this._emitBySubBurst(lastPlayTime, middleTime);
       this._currentBurstIndex = 0;
