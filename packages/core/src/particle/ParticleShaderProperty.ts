@@ -17,16 +17,7 @@ export class ParticleShaderProperty {
   static readonly simulationSpace: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
   static readonly currentTime: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
 
-  //VelocityOverLifetime
-  static readonly VOLVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConst");
-  static readonly VOLVELOCITYGRADIENTX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientX");
-  static readonly VOLVELOCITYGRADIENTY: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientY");
-  static readonly VOLVELOCITYGRADIENTZ: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientZ");
-  static readonly VOLVELOCITYCONSTMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityConstMax");
-  static readonly VOLVELOCITYGRADIENTXMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxX");
-  static readonly VOLVELOCITYGRADIENTYMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxY");
-  static readonly VOLVELOCITYGRADIENTZMAX: ShaderProperty = ShaderProperty.getByName("u_VOLVelocityGradientMaxZ");
-  static readonly VOLSPACETYPE: ShaderProperty = ShaderProperty.getByName("u_VOLSpaceType");
+ 
 
   //RotationOverLifetime
   static readonly ROLANGULARVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConst");
