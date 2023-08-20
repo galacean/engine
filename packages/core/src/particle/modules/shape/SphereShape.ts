@@ -9,7 +9,7 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class SphereShape extends BaseShape {
   /** Radius of the shape to emit particles from. */
   radius: number = 1.0;
-  /** Whether emit from shell */
+  /** Whether emit from shell. */
   emitFromShell: boolean = false;
 
   constructor() {
@@ -18,33 +18,16 @@ export class SphereShape extends BaseShape {
   }
 
   override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
-    if (rand) {
-      if (this.emitFromShell) {
-        ShapeUtils._randomPointUnitSphere(position, rand);
-      } else {
-        ShapeUtils._randomPointInsideUnitSphere(position, rand);
-      }
+    if (this.emitFromShell) {
+      ShapeUtils._randomPointUnitSphere(position, rand);
     } else {
-      if (this.emitFromShell) {
-        ShapeUtils._randomPointUnitSphere(position, rand);
-      } else {
-        ShapeUtils._randomPointInsideUnitSphere(position, rand);
-      }
+      ShapeUtils._randomPointInsideUnitSphere(position, rand);
     }
 
-    Vector3.scale(position, this.radius, position);
+    position.scale(this.radius);
 
-    if (this.randomDirectionAmount) {
-      if (rand) {
-        ShapeUtils._randomPointUnitSphere(direction, rand);
-      } else {
-        ShapeUtils._randomPointUnitSphere(direction, rand);
-      }
-    } else {
-      direction.copyFrom(position);
-    }
-    // reverse to default direction
-    direction.z *= -1.0;
+    ShapeUtils._randomPointUnitSphere(direction, rand);
+    Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
   override cloneTo(destShape: SphereShape): void {
