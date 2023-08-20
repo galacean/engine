@@ -1,8 +1,7 @@
-import { Rand, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
-import { ParticleGenerator } from "../../ParticleGenerator";
 
 /**
  * Particle shape that emits particles from a sphere.
@@ -13,17 +12,13 @@ export class SphereShape extends BaseShape {
   /** Whether emit from shell */
   emitFromShell: boolean = false;
 
-  constructor(generator: ParticleGenerator) {
-    super(generator);
+  constructor() {
+    super();
     this.shapeType = ParticleShapeType.Sphere;
   }
 
-  override _generatePositionAndDirection(
-    position: Vector3,
-    direction: Vector3,
-    rand: Rand = null,
-    randomSeeds: Uint32Array = null
-  ): void {
+  override _generatePositionAndDirection(position: Vector3, direction: Vector3): void {
+    const rand = this._shapeRand;
     if (rand) {
       if (this.emitFromShell) {
         ShapeUtils._randomPointUnitSphere(position, rand);
@@ -61,7 +56,7 @@ export class SphereShape extends BaseShape {
   }
 
   override clone(): SphereShape {
-    const destShape = new SphereShape(null);
+    const destShape = new SphereShape();
     this.cloneTo(destShape);
     return destShape;
   }

@@ -19,8 +19,8 @@ export class CircleShape extends BaseShape {
   /** The mode to generate particles around the arc. */
   arcMode = ParticleShapeMultiModeValue.Loop;
 
-  constructor(generator: ParticleGenerator) {
-    super(generator);
+  constructor() {
+    super();
     this.shapeType = ParticleShapeType.Circle;
   }
 
@@ -61,7 +61,7 @@ export class CircleShape extends BaseShape {
   }
 
   override clone(): CircleShape {
-    const destShape = new CircleShape(null);
+    const destShape = new CircleShape();
     this.cloneTo(destShape);
     return destShape;
   }

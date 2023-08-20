@@ -1,6 +1,4 @@
 import { MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
-import { ParticleGenerator } from "../../ParticleGenerator";
-import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -23,8 +21,8 @@ export class ConeShape extends BaseShape {
   /** Cone emitter type. */
   emitType: ConeEmitType = ConeEmitType.Base;
 
-  constructor(generator: ParticleGenerator) {
-    super(generator);
+  constructor() {
+    super();
     this.shapeType = ParticleShapeType.Cone;
   }
 
@@ -73,7 +71,7 @@ export class ConeShape extends BaseShape {
   }
 
   override clone(): ConeShape {
-    const destShape = new ConeShape(null);
+    const destShape = new ConeShape();
     this.cloneTo(destShape);
     return destShape;
   }

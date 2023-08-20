@@ -1,9 +1,7 @@
-import { BoundingBox, Rand, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
-import { ParticleGenerator } from "../../ParticleGenerator";
-import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 
 /**
  * Hemisphere emitter
@@ -14,8 +12,8 @@ export class HemisphereShape extends BaseShape {
   /** Whether emit from shell */
   emitFromShell: boolean = false;
 
-  constructor(generator: ParticleGenerator) {
-    super(generator);
+  constructor() {
+    super();
     this.shapeType = ParticleShapeType.Hemisphere;
   }
 
@@ -49,7 +47,7 @@ export class HemisphereShape extends BaseShape {
   }
 
   override clone(): HemisphereShape {
-    const destShape = new HemisphereShape(null);
+    const destShape = new HemisphereShape();
     this.cloneTo(destShape);
     return destShape;
   }

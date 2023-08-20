@@ -13,7 +13,7 @@ export class ShapeModule extends ParticleGeneratorModule {
 
   constructor(generator: ParticleGenerator) {
     super(generator);
-    this.shape = new ConeShape(generator);
+    this.shape = new ConeShape();
   }
 
   override cloneTo(destRotationOverLifetime: ParticleGeneratorModule) {}

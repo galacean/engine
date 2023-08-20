@@ -1,9 +1,7 @@
-import { BoundingBox, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
-import { ParticleGenerator } from "../../ParticleGenerator";
-import { ParticleRandomSubSeeds } from "../../enums/ParticleRandomSubSeeds";
 
 /**
  * Box emitter shape
@@ -12,8 +10,8 @@ export class BoxShape extends BaseShape {
   /** Thickness of the box to emit particles from. */
   boxThickness: Vector3 = new Vector3(1, 1, 1);
 
-  constructor(generator: ParticleGenerator) {
-    super(generator);
+  constructor() {
+    super();
     this.shapeType = ParticleShapeType.Box;
   }
 
@@ -43,7 +41,7 @@ export class BoxShape extends BaseShape {
   }
 
   override clone(): BoxShape {
-    const destShape = new BoxShape(null);
+    const destShape = new BoxShape();
     this.cloneTo(destShape);
     return destShape;
   }
