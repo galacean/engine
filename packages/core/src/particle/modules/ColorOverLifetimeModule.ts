@@ -1,8 +1,9 @@
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Color, Rand, Vector4 } from "@galacean/engine-math";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { AlphaKey, ColorKey, ParticleGradient } from "./ParticleGradient";
@@ -27,6 +28,9 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
       [new AlphaKey(0, 1), new AlphaKey(1, 1)]
     )
   );
+
+  /** @internal */
+  _colorGradientRand = new Rand(0, ParticleRandomSubSeeds.ColorOverLifetime);
 
   private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysMaxTime, y: minAlphaKeysMaxTime, z: maxColorKeysMaxTime, w: maxAlphaKeysMaxTime
 

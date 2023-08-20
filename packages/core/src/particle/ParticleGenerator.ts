@@ -19,6 +19,7 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 
 /**
  * Particle System.
@@ -381,7 +382,11 @@ export class ParticleGenerator {
 
     // Unused, Color, size, rotation,
     // instanceVertices[offset + 19] = rand.random();
-    // instanceVertices[offset + 20] = rand.random();
+    const colorOverLifetime = this.colorOverLifetime;
+    if (colorOverLifetime.enabled && colorOverLifetime.color.mode === ParticleGradientMode.TwoGradients) {
+      instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
+    }
+
     // instanceVertices[offset + 21] = rand.random();
     // instanceVertices[offset + 22] = rand.random();
 
