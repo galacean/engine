@@ -27,13 +27,13 @@ float computeParticleRotationFloat(in float rotation, in float age, in float nor
             #ifdef renderer_ROL_IS_RANDOM_TWO
                 lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge), lifeRotation, a_Random0.w);
             #endif
-            rotation += lifeRotation * age;
+            rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
         #else
             float lifeRotation = renderer_ROLMaxConst.z;
             #ifdef renderer_ROL_IS_RANDOM_TWO
                 lifeRotation = mix(renderer_ROLMinConst.z, lifeRotation, a_Random0.w);
             #endif
-            rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
+            rotation += lifeRotation * age;
         #endif
     #endif
     return rotation;
