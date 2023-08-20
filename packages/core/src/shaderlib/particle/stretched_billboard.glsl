@@ -1,8 +1,8 @@
 #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy; // Billboard模式z轴无效
 	vec3 velocity;
-    #if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
-        if (u_VOLSpaceType == 0)
+    #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+        if (renderer_VOLSpaceType == 0)
             velocity = rotationByQuaternions(u_SizeScale * (startVelocity + lifeVelocity),
                    worldRotation)
             + gravityVelocity;

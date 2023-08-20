@@ -32,7 +32,7 @@
     #endif
 #endif
 
-#if defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE) || defined(ROTATION_OVER_LIFETIME_CURVE) || defined(ROTATION_OVER_LIFETIME_RANDOM_CURVES)
+#if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE) || defined(ROTATION_OVER_LIFETIME_CURVE) || defined(ROTATION_OVER_LIFETIME_RANDOM_CURVES)
 float getTotalValueFromGradientFloat(in vec2 gradientNumbers[4], in float normalizedAge) {
     float totalValue = 0.0;
     for (int i = 1; i < 4; i++) {

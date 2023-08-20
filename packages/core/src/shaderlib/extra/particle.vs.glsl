@@ -20,7 +20,7 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random0;
 //#endif
 
-#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
+#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 
@@ -69,7 +69,7 @@ void main() {
     vec3 lifeVelocity;
     if (normalizedAge < 1.0) {
         vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
-        #if defined(VELOCITY_OVER_LIFETIME_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_CURVE) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CONSTANT) || defined(VELOCITY_OVER_LIFETIME_RANDOM_CURVE)
+        #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
             lifeVelocity = computeParticleLifeVelocity(normalizedAge); //计算粒子生命周期速度
         #endif
         vec3 gravityVelocity = u_Gravity * age;
