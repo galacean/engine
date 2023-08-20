@@ -3,7 +3,7 @@
     uniform vec4 renderer_COLMaxGradientColor[4]; // x:time y:r z:g w:b
     uniform vec2 renderer_COLMaxGradientAlpha[4]; // x:time y:alpha
 
-    #ifdef RANDOM_COLOR_OVER_LIFETIME
+    #ifdef RENDERER_COL_RANDOM_GRADIENTS
         uniform vec4 renderer_COLMinGradientColor[4]; // x:time y:r z:g w:b
         uniform vec2 renderer_COLMinGradientAlpha[4]; // x:time y:alpha
     #endif
