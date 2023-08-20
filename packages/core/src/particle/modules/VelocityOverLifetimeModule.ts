@@ -1,11 +1,13 @@
+import { Vector3 } from "@galacean/engine-math";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
+import { ShaderProperty } from "../../shader/ShaderProperty";
+import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ShaderProperty } from "../../shader/ShaderProperty";
 
 /**
- * Rotate particles throughout their lifetime.
+ * Velocity over lifetime module.
  */
 export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _constantMacro = ShaderMacro.getByName("RENDERER_VOL_CONSTANT");
@@ -23,12 +25,15 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
   static readonly _spaceTypeProperty = ShaderProperty.getByName("renderer_VOLSpaceType");
 
-  /** Rotation over lifetime for z axis. */
+  /** Velocity over lifetime for x axis. */
   x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
-  /** Rotation over lifetime for z axis. */
+  /** Velocity over lifetime for z axis. */
   y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
-  /** Rotation over lifetime for z axis. */
-  z: ParticleCompositeCurve = new ParticleCompositeCurve(45);
+  /** Velocity over lifetime for z axis. */
+  z: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+
+  private _velocityMinConstant = new Vector3();
+  private _velocityMaxConstant = new Vector3();
 
   /**
    * @override
@@ -39,5 +44,62 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _updateShaderData(shaderData: ShaderData): void {}
+  _updateShaderData(shaderData: ShaderData): void {
+    let velocityMacro = <ShaderMacro>null;
+    if (this.enabled) {
+      const velocityX = this.x;
+      const velocityY = this.y;
+      const velocityZ = this.z;
+
+      const canRandomCurveMode =
+        velocityX.mode === ParticleCurveMode.TwoCurves &&
+        velocityY.mode === ParticleCurveMode.TwoCurves &&
+        velocityZ.mode === ParticleCurveMode.TwoCurves;
+
+      if (
+        canRandomCurveMode ||
+        (velocityX.mode === ParticleCurveMode.Curve &&
+          velocityY.mode === ParticleCurveMode.Curve &&
+          velocityZ.mode === ParticleCurveMode.Curve)
+      ) {
+        shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientXProperty, velocityX.curveMax._getTypeArray());
+        shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientYProperty, velocityY.curveMax._getTypeArray());
+        shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientZProperty, velocityZ.curveMax._getTypeArray());
+        if (canRandomCurveMode) {
+          shaderData.setFloatArray(
+            VelocityOverLifetimeModule._minGradientXProperty,
+            velocityX.curveMin._getTypeArray()
+          );
+          shaderData.setFloatArray(
+            VelocityOverLifetimeModule._minGradientYProperty,
+            velocityY.curveMin._getTypeArray()
+          );
+          shaderData.setFloatArray(
+            VelocityOverLifetimeModule._minGradientZProperty,
+            velocityZ.curveMin._getTypeArray()
+          );
+          velocityMacro = VelocityOverLifetimeModule._randomCurveMacro;
+        } else {
+          velocityMacro = VelocityOverLifetimeModule._curveMacro;
+        }
+      } else {
+        const constantMax = this._velocityMaxConstant;
+        constantMax.set(velocityX.constantMax, velocityY.constantMax, velocityZ.constantMax);
+        shaderData.setVector3(VelocityOverLifetimeModule._maxConstantProperty, constantMax);
+        if (
+          velocityX.mode === ParticleCurveMode.TwoConstants &&
+          velocityY.mode === ParticleCurveMode.TwoConstants &&
+          velocityZ.mode === ParticleCurveMode.TwoConstants
+        ) {
+          const constantMin = this._velocityMinConstant;
+          constantMin.set(velocityX.constantMin, velocityY.constantMin, velocityZ.constantMin);
+          shaderData.setVector3(VelocityOverLifetimeModule._minConstantProperty, constantMin);
+          velocityMacro = VelocityOverLifetimeModule._randomConstantMacro;
+        } else {
+          velocityMacro = VelocityOverLifetimeModule._constantMacro;
+        }
+      }
+      this._enableModuleMacro(shaderData, velocityMacro);
+    }
+  }
 }
