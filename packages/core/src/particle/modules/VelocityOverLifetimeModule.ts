@@ -51,13 +51,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
       const velocityY = this.y;
       const velocityZ = this.z;
 
-      const canRandomCurveMode =
+      const isRandomCurveMode =
         velocityX.mode === ParticleCurveMode.TwoCurves &&
         velocityY.mode === ParticleCurveMode.TwoCurves &&
         velocityZ.mode === ParticleCurveMode.TwoCurves;
 
       if (
-        canRandomCurveMode ||
+        isRandomCurveMode ||
         (velocityX.mode === ParticleCurveMode.Curve &&
           velocityY.mode === ParticleCurveMode.Curve &&
           velocityZ.mode === ParticleCurveMode.Curve)
@@ -65,7 +65,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
         shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientXProperty, velocityX.curveMax._getTypeArray());
         shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientYProperty, velocityY.curveMax._getTypeArray());
         shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientZProperty, velocityZ.curveMax._getTypeArray());
-        if (canRandomCurveMode) {
+        if (isRandomCurveMode) {
           shaderData.setFloatArray(
             VelocityOverLifetimeModule._minGradientXProperty,
             velocityX.curveMin._getTypeArray()
