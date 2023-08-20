@@ -17,8 +17,6 @@ import { ParticleShaderMacro } from "./ParticleShaderMacro";
  */
 export class ParticleRenderer extends Renderer {
   /** @internal */
-  private static _tempVector30: Vector3 = new Vector3();
-  /** @internal */
   private static _tempVector40: Vector4 = new Vector4();
   /** @internal */
   private static _vector3One: Vector3 = new Vector3(1, 1, 1);
@@ -27,6 +25,7 @@ export class ParticleRenderer extends Renderer {
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
   private _isPlaying: boolean = false;
+  private _gravity: Vector3 = new Vector3();
 
   /** Particle generator. */
   readonly generator: ParticleGenerator = new ParticleGenerator(this);
@@ -157,8 +156,6 @@ export class ParticleRenderer extends Renderer {
     super._prepareRender(context);
   }
 
-
-
   /**
    * @internal
    */
@@ -198,7 +195,7 @@ export class ParticleRenderer extends Renderer {
         break;
     }
 
-    const particleGravity = ParticleRenderer._tempVector30;
+    const particleGravity = this._gravity;
     const gravityModifierValue = particleSystem.main.gravityModifier.evaluate(undefined, undefined);
     Vector3.scale(this.scene.physics.gravity, gravityModifierValue, particleGravity);
     shaderData.setVector3(ParticleShaderProperty.gravity, particleGravity);

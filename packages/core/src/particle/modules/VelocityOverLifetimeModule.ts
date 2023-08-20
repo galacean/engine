@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3 } from "@galacean/engine-math";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -6,6 +6,7 @@ import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * Velocity over lifetime module.
@@ -35,6 +36,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Velocity space. */
   space = ParticleSimulationSpace.Local;
+
+  /** @internal */
+  _velocityRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
 
   private _velocityMinConstant = new Vector3();
   private _velocityMaxConstant = new Vector3();

@@ -397,9 +397,18 @@ export class ParticleGenerator {
     }
 
     // Velocity random
-    // instanceVertices[offset + 24] = rand.random();
-    // instanceVertices[offset + 25] = rand.random();
-    // instanceVertices[offset + 26] = rand.random();
+    const velocityOverLifetime = this.velocityOverLifetime;
+    if (
+      velocityOverLifetime.enabled &&
+      velocityOverLifetime.x.mode === ParticleCurveMode.TwoConstants &&
+      velocityOverLifetime.y.mode === ParticleCurveMode.TwoConstants &&
+      velocityOverLifetime.z.mode === ParticleCurveMode.TwoConstants
+    ) {
+      const rand = velocityOverLifetime._velocityRand;
+      instanceVertices[offset + 24] = rand.random();
+      instanceVertices[offset + 25] = rand.random();
+      instanceVertices[offset + 26] = rand.random();
+    }
 
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       // Simulation world position
