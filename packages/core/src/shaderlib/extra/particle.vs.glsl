@@ -70,8 +70,9 @@ void main() {
     if (normalizedAge < 1.0) {
         vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
         #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
-            lifeVelocity = computeParticleLifeVelocity(normalizedAge); //计算粒子生命周期速度
+            lifeVelocity = computeParticleLifeVelocity(normalizedAge); 
         #endif
+        
         vec3 gravityVelocity = u_Gravity * age;
 
         vec4 worldRotation;

@@ -5,6 +5,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 
 /**
  * Velocity over lifetime module.
@@ -23,7 +24,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientXProperty = ShaderProperty.getByName("renderer_VOLMaxGradientX");
   static readonly _maxGradientYProperty = ShaderProperty.getByName("renderer_VOLMaxGradientY");
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
-  static readonly _spaceTypeProperty = ShaderProperty.getByName("renderer_VOLSpaceType");
+  static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
   /** Velocity over lifetime for x axis. */
   x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
@@ -31,6 +32,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
   z: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+
+  /** Velocity space. */
+  space = ParticleSimulationSpace.Local;
 
   private _velocityMinConstant = new Vector3();
   private _velocityMaxConstant = new Vector3();
@@ -100,6 +104,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
         }
       }
       this._enableModuleMacro(shaderData, velocityMacro);
+      shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
     }
   }
 }
