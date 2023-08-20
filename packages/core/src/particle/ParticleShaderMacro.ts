@@ -10,16 +10,7 @@ export class ParticleShaderMacro {
   static readonly renderModeVerticalBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
   static readonly renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
-  // static readonly SHADERDEFINE_ROTATIONOVERLIFETIME = ShaderMacro.getByName("ROTATIONOVERLIFETIME");
-  // static readonly SHADERDEFINE_ROTATIONOVERLIFETIMESEPERATE = ShaderMacro.getByName("ROTATIONOVERLIFETIMESEPERATE");
-  // static readonly SHADERDEFINE_ROTATIONOVERLIFETIMECONSTANT = ShaderMacro.getByName("ROTATIONOVERLIFETIMECONSTANT");
-  // static readonly SHADERDEFINE_ROTATIONOVERLIFETIMECURVE = ShaderMacro.getByName("ROTATIONOVERLIFETIMECURVE");
-  // static readonly SHADERDEFINE_ROTATIONOVERLIFETIMERANDOMCONSTANTS = ShaderMacro.getByName(
-  //   "ROTATIONOVERLIFETIMERANDOMCONSTANTS"
-  // );
-  // static readonly SHADERDEFINE_ROTATIONOVERLIFETIMERANDOMCURVES = ShaderMacro.getByName(
-  //   "ROTATIONOVERLIFETIMERANDOMCURVES"
-  // );
+  
   
   // static readonly SHADERDEFINE_RENDERMODE_MESH = ShaderMacro.getByName("RENDERMODE_MESH");
   // static readonly SHADERDEFINE_SHAPE = ShaderMacro.getByName("SHAPE");

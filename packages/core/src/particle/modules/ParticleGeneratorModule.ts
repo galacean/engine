@@ -26,4 +26,16 @@ export abstract class ParticleGeneratorModule {
       this._lastMacro = enableMacro;
     }
   }
+
+  protected _enableModuleMacroX(
+    shaderData: ShaderData,
+    lastEnableMacro: ShaderMacro,
+    enableMacro: ShaderMacro
+  ): ShaderMacro {
+    if (lastEnableMacro !== enableMacro) {
+      lastEnableMacro && shaderData.disableMacro(lastEnableMacro);
+      enableMacro && shaderData.enableMacro(enableMacro);
+    }
+    return enableMacro;
+  }
 }

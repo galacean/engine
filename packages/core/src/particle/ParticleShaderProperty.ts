@@ -16,41 +16,4 @@ export class ParticleShaderProperty {
   static readonly speedScale: ShaderProperty = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
   static readonly simulationSpace: ShaderProperty = ShaderProperty.getByName("u_SimulationSpace");
   static readonly currentTime: ShaderProperty = ShaderProperty.getByName("u_CurrentTime");
-
- 
-
-  //RotationOverLifetime
-  static readonly ROLANGULARVELOCITYCONST: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConst");
-  static readonly ROLANGULARVELOCITYCONSTSEPRARATE: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityConstSeprarate"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENT: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityGradient");
-  static readonly ROLANGULARVELOCITYGRADIENTX: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientX"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTY: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientY"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTZ: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientZ"
-  );
-  static readonly ROLANGULARVELOCITYCONSTMAX: ShaderProperty = ShaderProperty.getByName("u_ROLAngularVelocityConstMax");
-  static readonly ROLANGULARVELOCITYCONSTMAXSEPRARATE: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityConstMaxSeprarate"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTMAX: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientMax"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTXMAX: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientMaxX"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTYMAX: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientMaxY"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTZMAX: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientMaxZ"
-  );
-  static readonly ROLANGULARVELOCITYGRADIENTWMAX: ShaderProperty = ShaderProperty.getByName(
-    "u_ROLAngularVelocityGradientMaxW"
-  );
 }
