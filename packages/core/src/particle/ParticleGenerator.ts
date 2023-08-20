@@ -462,6 +462,7 @@ export class ParticleGenerator {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
+    this.velocityOverLifetime._updateShaderData(shaderData);
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
