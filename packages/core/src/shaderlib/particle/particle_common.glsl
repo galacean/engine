@@ -108,7 +108,7 @@ float evaluateParticleCurveCumulative(in vec2 keys[4], in float normalizedAge){
 		    break;
 		}
 	    else{
-		    cumulativeValue += (lastValue + key.y) * 0.5 * (key - lastKey.x);
+		    cumulativeValue += (lastValue + key.y) * 0.5 * (time - lastKey.x);
 		}
 	}
     return cumulativeValue;
