@@ -388,7 +388,11 @@ export class ParticleGenerator {
     }
 
     // instanceVertices[offset + 21] = rand.random();
-    // instanceVertices[offset + 22] = rand.random();
+
+    const rotationOverLifetime = this.rotationOverLifetime;
+    if (rotationOverLifetime.enabled && rotationOverLifetime.z.mode === ParticleCurveMode.TwoConstants) {
+      instanceVertices[offset + 22] = rotationOverLifetime._rotationRand.random();
+    }
 
     // Texture sheet animation
     const textureSheetAnimation = this.textureSheetAnimation;
@@ -474,6 +478,7 @@ export class ParticleGenerator {
     this.velocityOverLifetime._updateShaderData(shaderData);
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
+    this.rotationOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
   }
 
@@ -486,6 +491,9 @@ export class ParticleGenerator {
     this.emission._resetRandomSeed(seed);
     this.shape._resetRandomSeed(seed);
     this.textureSheetAnimation._resetRandomSeed(seed);
+    this.velocityOverLifetime._resetRandomSeed(seed);
+    this.rotationOverLifetime._resetRandomSeed(seed);
+    this.colorOverLifetime._resetRandomSeed(seed);
   }
 
   private _freeRetiredParticles(): void {

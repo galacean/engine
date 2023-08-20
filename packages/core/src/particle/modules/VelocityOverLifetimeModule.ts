@@ -111,4 +111,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
     }
   }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._velocityRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
+  }
 }

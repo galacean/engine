@@ -84,4 +84,11 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
 
     this._enableModuleMacro(shaderData, colorMacro);
   }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._colorGradientRand.reset(seed, ParticleRandomSubSeeds.ColorOverLifetime);
+  }
 }
