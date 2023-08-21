@@ -300,6 +300,9 @@ export class ParticleGenerator {
 
       this._resizeInstanceBuffer(increaseCount);
 
+      // Recalculate nextFreeElement after resize
+      nextFreeElement = firstFreeElement + 1;
+
       // Maintain expanded pointers
       this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
       this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
