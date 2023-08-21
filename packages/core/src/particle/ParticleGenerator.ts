@@ -245,37 +245,41 @@ export class ParticleGenerator {
 
     const particleUtils = this._renderer.engine._particleBufferUtils;
     const stride = particleUtils.instanceVertexStride;
-    const particleCount = this._currentParticleCount + increaseCount;
-    const byteLength = stride * particleCount;
+    const newParticleCount = this._currentParticleCount + increaseCount;
+    const newByteLength = stride * newParticleCount;
     const engine = this._renderer.engine;
     const vertexInstanceBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
-      byteLength,
+      newByteLength,
       BufferUsage.Dynamic,
       false
     );
 
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
-    const instanceVertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
+    const vertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
 
-    const instanceVertices = new Float32Array(byteLength / 4);
+    const instanceVertices = new Float32Array(newByteLength / 4);
     const lastInstanceVertices = this._instanceVertices;
     if (lastInstanceVertices) {
-      const stride = particleUtils.instanceVertexFloatStride;
+      const floatStride = particleUtils.instanceVertexFloatStride;
 
-      const freeOffset = this._firstFreeElement * stride;
+      const freeOffset = this._firstFreeElement * floatStride;
       instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
-      const freeEndOffset = (this._firstFreeElement + increaseCount) * stride;
-      instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset), freeEndOffset);
+      const freeEndOffset = (this._firstFreeElement + increaseCount) * floatStride;
+      instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset * 4), freeEndOffset);
 
       this._instanceBufferResized = true;
     }
-    this._primitive.setVertexBufferBinding(vertexBufferBindings.length, instanceVertexBufferBinding);
+    // Instance buffer always at last
+    this._primitive.setVertexBufferBinding(
+      lastInstanceVertices ? vertexBufferBindings.length - 1 : vertexBufferBindings.length,
+      vertexBufferBinding
+    );
 
     this._instanceVertices = instanceVertices;
-    this._instanceVertexBufferBinding = instanceVertexBufferBinding;
-    this._currentParticleCount = particleCount;
+    this._instanceVertexBufferBinding = vertexBufferBinding;
+    this._currentParticleCount = newParticleCount;
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
