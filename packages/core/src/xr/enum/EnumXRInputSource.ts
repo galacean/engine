@@ -4,5 +4,6 @@ export enum EnumXRInputSource {
   RightController,
   Viewer,
   LeftViewer,
-  RightViewer
+  RightViewer,
+  Length
 }

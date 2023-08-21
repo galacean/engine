@@ -9,8 +9,8 @@ import { XRFeature } from "./feature/XRFeature";
 import { IXRPlatform } from "./interface/IXRPlatform";
 import { IXRSession } from "./interface/IXRSession";
 import { XRViewer } from "./input/XRViewer";
-import { XRInputManager } from "./XRInputManager";
-import { IXRFeatureProvider } from "./interface/IXRFeatureProvider";
+import { XRInputManager } from "./input/XRInputManager";
+import { IXRFeatureProvider } from "./feature/IXRFeatureProvider";
 
 type FeatureConstructor = new (engine: Engine, descriptor: IXRFeatureDescriptor) => XRFeature;
 type ProviderConstructor = new (session: IXRSession) => IXRFeatureProvider;
@@ -82,7 +82,7 @@ export class XRManager {
         reject(new Error("There is a running xr session, destroy it first and try again."));
         return;
       }
-      this._xrPlatform.createSession(sessionDescriptor).then((session) => {
+      this._xrPlatform.createSession(this._engine, sessionDescriptor).then((session) => {
         this._session = session;
         const { _engine: engine, _features: features } = this;
         const { _featureMap: featureMap, _providerMap: providerMap } = XRManager;
@@ -114,13 +114,23 @@ export class XRManager {
   }
 
   start(): Promise<void> {
-    return this._session.start().then(() => {
+    const { _session: session, inputManager } = this;
+    return session.start().then(() => {
+      inputManager._provider.attach(session, inputManager._inputs);
+      const { _features: features } = this;
+      for (let i = 0, n = features.length; i < n; i++) {
+        features[i]?.onEnable();
+      }
       this._isPaused = false;
     });
   }
 
   stop(): Promise<void> {
     return this._session.stop().then(() => {
+      const { _features: features } = this;
+      for (let i = 0, n = features.length; i < n; i++) {
+        features[i]?.onDisable();
+      }
       this._isPaused = true;
     });
   }
@@ -140,6 +150,7 @@ export class XRManager {
    */
   _update(): void {
     if (this._isPaused) return;
+    this.inputManager._provider.update();
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       features[i]?.onUpdate();
@@ -149,7 +160,8 @@ export class XRManager {
   constructor(engine: Engine, xrPlatform: new (engine: Engine) => IXRPlatform) {
     this._engine = engine;
     this._xrPlatform = new xrPlatform(engine);
-    this.inputManager = new XRInputManager();
+    this.inputManager = new XRInputManager(engine);
+    this.inputManager.initialize(new this._xrPlatform.inputProvider(engine));
   }
 }
 

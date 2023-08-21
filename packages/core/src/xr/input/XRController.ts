@@ -1,8 +1,8 @@
 import { DisorderedArray } from "../../DisorderedArray";
 import { EnumXRButton } from "../enum/EnumXRButton";
-import { XRInput } from "./XRInput";
+import { XRInputDevice } from "./XRInputDevice";
 
-export class XRController extends XRInput {
+export class XRController extends XRInputDevice {
   pressedButtons: EnumXRButton;
   upMap: number[] = [];
   downMap: number[] = [];
@@ -10,12 +10,12 @@ export class XRController extends XRInput {
   downList: DisorderedArray<EnumXRButton> = new DisorderedArray();
 
   isButtonDown(button: EnumXRButton): boolean {
-    return false;
+    return this.downMap[button] === this._engine.time.frameCount;
   }
   isButtonUp(button: EnumXRButton): boolean {
-    return false;
+    return this.upMap[button] === this._engine.time.frameCount;
   }
   isButtonHeldDown(button: EnumXRButton): boolean {
-    return false;
+    return (this.pressedButtons & button) !== 0;
   }
 }

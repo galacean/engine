@@ -1,16 +1,8 @@
-import {
-  Engine,
-  EnumXRFeature,
-  IXRFeatureDescriptor,
-  IXRSession,
-  IXRSessionDescriptor,
-  WebGLGraphicDevice
-} from "@galacean/engine";
+import { Engine, IXRFeatureDescriptor, IXRSession, IXRSessionDescriptor, WebGLGraphicDevice } from "@galacean/engine";
 import { EnumWebXRSpaceType } from "./enum/EnumWebXRSpaceType";
 import { parseXRMode } from "./util";
 
 export class WebXRSession implements IXRSession {
-
   // @internal
   _platformSession: XRSession;
   // @internal
@@ -25,6 +17,53 @@ export class WebXRSession implements IXRSession {
   private _preRequestAnimationFrame: any;
   private _preCancelAnimationFrame: any;
   private _preAnimationLoop: any;
+
+  initialize(descriptor: IXRSessionDescriptor): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const mode = parseXRMode(descriptor.mode);
+      if (!mode) {
+        reject(new Error("Mode must be a value from the XRMode."));
+        return;
+      }
+      const requiredFeatures = this._parseFeatures(descriptor.requestFeatures, [EnumWebXRSpaceType.Local]);
+      navigator.xr.requestSession(mode, { requiredFeatures }).then((session) => {
+        this._platformSession = session;
+        const { _rhi: rhi } = this;
+        const { gl } = rhi;
+        const attributes = gl.getContextAttributes();
+        if (!attributes) {
+          reject(Error("GetContextAttributes Error!"));
+        }
+        gl.makeXRCompatible().then(() => {
+          const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
+          if (session.renderState.layers === undefined || !!!rhi.isWebGL2) {
+            const layerInit = {
+              antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+              alpha: true,
+              depth: attributes.depth,
+              stencil: attributes.stencil,
+              framebufferScaleFactor: scaleFactor
+            };
+            this._platformLayer = new XRWebGLLayer(session, gl, layerInit);
+            session.updateRenderState({
+              baseLayer: this._platformLayer
+            });
+          } else {
+            this._platformLayer = new XRWebGLLayer(session, gl);
+            session.updateRenderState({
+              layers: [this._platformLayer]
+            });
+          }
+          session
+            .requestReferenceSpace(EnumWebXRSpaceType.Local)
+            .then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
+              this._platformSpace = value;
+              resolve();
+            }, reject);
+        }, reject);
+      }, reject);
+    });
+  }
 
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -99,53 +138,7 @@ export class WebXRSession implements IXRSession {
     this._engine = engine;
     // @ts-ignore
     this._rhi = engine._hardwareRenderer;
-  }
-
-  initialize(descriptor: IXRSessionDescriptor): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const mode = parseXRMode(descriptor.mode);
-      if (!mode) {
-        reject(new Error("Mode must be a value from the XRMode."));
-        return;
-      }
-      const requiredFeatures = this._parseFeatures(descriptor.requestFeatures, [EnumWebXRSpaceType.Local]);
-      navigator.xr.requestSession(mode, { requiredFeatures }).then((session) => {
-        this._platformSession = session;
-        const { _rhi: rhi } = this;
-        const { gl } = rhi;
-        const attributes = gl.getContextAttributes();
-        if (!attributes) {
-          reject(Error("GetContextAttributes Error!"));
-        }
-        gl.makeXRCompatible().then(() => {
-          const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
-          if (session.renderState.layers === undefined || !!!rhi.isWebGL2) {
-            const layerInit = {
-              antialias: session.renderState.layers === undefined ? attributes.antialias : true,
-              alpha: true,
-              depth: attributes.depth,
-              stencil: attributes.stencil,
-              framebufferScaleFactor: scaleFactor
-            };
-            this._platformLayer = new XRWebGLLayer(session, gl, layerInit);
-            session.updateRenderState({
-              baseLayer: this._platformLayer
-            });
-          } else {
-            this._platformLayer = new XRWebGLLayer(session, gl);
-            session.updateRenderState({
-              layers: [this._platformLayer]
-            });
-          }
-          session
-            .requestReferenceSpace(EnumWebXRSpaceType.Local)
-            .then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
-              this._platformSpace = value;
-              resolve();
-            }, reject);
-        }, reject);
-      }, reject);
-    });
+    this._webXRUpdate = this._webXRUpdate.bind(this);
   }
 
   private _parseFeatures(descriptor: IXRFeatureDescriptor[], out: string[]): string[] {

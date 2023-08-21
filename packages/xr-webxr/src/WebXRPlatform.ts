@@ -1,8 +1,20 @@
-import { EnumXRMode, IXRSessionDescriptor, IXRFeatureDescriptor, IXRPlatform, IXRSession } from "@galacean/engine";
+import {
+  EnumXRMode,
+  IXRSessionDescriptor,
+  IXRFeatureDescriptor,
+  IXRPlatform,
+  IXRSession,
+  Engine
+} from "@galacean/engine";
 import { WebXRSession } from "./WebXRSession";
 import { parseXRMode } from "./util";
+import { WebXRInputProvider } from "./provider/WebXRInputProvider";
 
 export class WebXRPlatform implements IXRPlatform {
+  get inputProvider(): new (engine: Engine) => WebXRInputProvider {
+    return WebXRInputProvider;
+  }
+
   isSupported(mode: EnumXRMode): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (window.isSecureContext === false) {
@@ -18,14 +30,9 @@ export class WebXRPlatform implements IXRPlatform {
         reject(new Error("mode must be a value from the XRMode."));
         return;
       }
-      navigator.xr.isSessionSupported(sessionMode).then(
-        (isSupported: boolean) => {
-          isSupported ? resolve() : reject(new Error("The current context doesn't support WebXR."));
-        },
-        (reason) => {
-          reject(reason);
-        }
-      );
+      navigator.xr.isSessionSupported(sessionMode).then((isSupported: boolean) => {
+        isSupported ? resolve() : reject(new Error("The current context doesn't support WebXR."));
+      });
     });
   }
 
@@ -35,13 +42,17 @@ export class WebXRPlatform implements IXRPlatform {
     });
   }
 
-  createSession(descriptor: IXRSessionDescriptor): Promise<IXRSession> {
-    const session = new WebXRSession(null);
+  createSession(engine: Engine, descriptor: IXRSessionDescriptor): Promise<IXRSession> {
+    const session = new WebXRSession(engine);
     return new Promise((resolve, reject) => {
       session.initialize(descriptor).then(() => {
         resolve(session);
       }, reject);
     });
+  }
+
+  createInputProvider(engine: Engine): WebXRInputProvider {
+    return new WebXRInputProvider(engine);
   }
 
   destroySession(session: WebXRSession): Promise<void> {

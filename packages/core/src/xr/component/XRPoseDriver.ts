@@ -1,5 +1,5 @@
 import { Script } from "../../Script";
-import { XRInputManager } from "../XRInputManager";
+import { XRInputManager } from "../input/XRInputManager";
 import { EnumXRInputSource } from "../enum/EnumXRInputSource";
 import { XRImageTrackingMode } from "../enum/XRImageTrackingMode";
 

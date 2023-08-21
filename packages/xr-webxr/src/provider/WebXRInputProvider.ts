@@ -4,40 +4,73 @@ import {
   EnumXRInputState,
   EnumXRInputSource,
   XRController,
-  XRInput,
   XRViewer,
-  IXRFeatureProvider
+  IXRInputProvider,
+  XRInputDevice
 } from "@galacean/engine";
 import { WebXRSession } from "../WebXRSession";
 
 type FlowXREvent = XRInputSourceEvent | XRInputSourceChangeEvent;
 
-export class WebXRInputProvider implements IXRFeatureProvider {
+export class WebXRInputProvider implements IXRInputProvider {
+  private _engine: Engine;
   private _session: WebXRSession;
+  private _inputs: XRInputDevice[];
   private _flowEventList: {
     event: FlowXREvent;
-    handle: (frameCount: number, event: FlowXREvent, inputs: XRInput[]) => void;
+    handle: (frameCount: number, event: FlowXREvent, inputs: XRInputDevice[]) => void;
   }[] = [];
 
-  attach(): void {
-    this._addListener();
+  attach(session: WebXRSession, inputs: XRInputDevice[]): void {
+    if (this._session !== session) {
+      this._session = session;
+      const { _platformSession: platformSession } = session;
+      const { _onSessionEvent: onSessionEvent } = this;
+      platformSession.addEventListener("select", onSessionEvent);
+      platformSession.addEventListener("selectstart", onSessionEvent);
+      platformSession.addEventListener("selectend", onSessionEvent);
+      platformSession.addEventListener("squeeze", onSessionEvent);
+      platformSession.addEventListener("squeezestart", onSessionEvent);
+      platformSession.addEventListener("squeezeend", onSessionEvent);
+      platformSession.addEventListener("inputsourceschange", this._onInputSourcesChange);
+    }
+    if (this._inputs !== inputs) this._inputs = inputs;
   }
 
   detach(): void {
-    this._removeListener();
+    if (!this._session) {
+      return;
+    }
+    const { _platformSession: platformSession } = this._session;
+    const { _onSessionEvent: onSessionEvent } = this;
+    platformSession.removeEventListener("select", onSessionEvent);
+    platformSession.removeEventListener("selectstart", onSessionEvent);
+    platformSession.removeEventListener("selectend", onSessionEvent);
+    platformSession.removeEventListener("squeeze", onSessionEvent);
+    platformSession.removeEventListener("squeezestart", onSessionEvent);
+    platformSession.removeEventListener("squeezeend", onSessionEvent);
+    platformSession.removeEventListener("inputsourceschange", this._onInputSourcesChange);
+    this._session = null;
+    this._inputs = null;
+    this._flowEventList.length = 0;
   }
 
   destroy(): void {
-    this._removeListener();
+    this.detach();
   }
 
-  maintain(engine: Engine, inputs: XRInput[]) {
+  update() {
     const { _session: session } = this;
-    const { _platformSession, _platformFrame, _platformLayer, _platformSpace } = session;
-    if (!_platformSession) {
+    if (!session) {
       return;
     }
-    const { frameCount } = engine.time;
+
+    const { _inputs: inputs } = this;
+    const { _platformSession, _platformFrame, _platformLayer, _platformSpace } = session;
+    if (!_platformSession || !_platformFrame) {
+      return;
+    }
+    const { frameCount } = this._engine.time;
     const { _flowEventList: flowEventList } = this;
     for (let i = 0, n = flowEventList.length; i < n; i++) {
       const flowEvent = flowEventList[i];
@@ -82,30 +115,6 @@ export class WebXRInputProvider implements IXRFeatureProvider {
     }
   }
 
-  private _addListener() {
-    const { _platformSession: session } = this._session;
-    const { _onSessionEvent: onSessionEvent } = this;
-    session.addEventListener("select", onSessionEvent);
-    session.addEventListener("selectstart", onSessionEvent);
-    session.addEventListener("selectend", onSessionEvent);
-    session.addEventListener("squeeze", onSessionEvent);
-    session.addEventListener("squeezestart", onSessionEvent);
-    session.addEventListener("squeezeend", onSessionEvent);
-    session.addEventListener("inputsourceschange", this._onInputSourcesChange);
-  }
-
-  private _removeListener() {
-    const { _platformSession: session } = this._session;
-    const { _onSessionEvent: onSessionEvent } = this;
-    session.removeEventListener("select", onSessionEvent);
-    session.removeEventListener("selectstart", onSessionEvent);
-    session.removeEventListener("selectend", onSessionEvent);
-    session.removeEventListener("squeeze", onSessionEvent);
-    session.removeEventListener("squeezestart", onSessionEvent);
-    session.removeEventListener("squeezeend", onSessionEvent);
-    session.removeEventListener("inputsourceschange", this._onInputSourcesChange);
-  }
-
   private _onSessionEvent(event: XRInputSourceEvent) {
     this._flowEventList.push({ event, handle: this._handleButtonEvent });
   }
@@ -114,7 +123,7 @@ export class WebXRInputProvider implements IXRFeatureProvider {
     this._flowEventList.push({ event, handle: this._handleInputSourceEvent });
   }
 
-  private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInput[]): void {
+  private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInputDevice[]): void {
     const input = inputs[this._handednessToInputSource(event.inputSource.handedness)] as XRController;
     switch (event.type) {
       case "selectstart":
@@ -142,7 +151,7 @@ export class WebXRInputProvider implements IXRFeatureProvider {
     }
   }
 
-  private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
+  private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInputDevice[]): void {
     const { removed, added } = event;
     for (let i = 0, n = removed.length; i < n; i++) {
       inputs[this._handednessToInputSource(removed[i].handedness)].state = EnumXRInputState.Inactive;
@@ -174,9 +183,11 @@ export class WebXRInputProvider implements IXRFeatureProvider {
     }
   }
 
-  constructor(session: WebXRSession) {
-    this._session = session;
+  constructor(engine: Engine) {
+    this._engine = engine;
     this._onSessionEvent = this._onSessionEvent.bind(this);
     this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
+    this._handleButtonEvent = this._handleButtonEvent.bind(this);
+    this._handleInputSourceEvent = this._handleInputSourceEvent.bind(this);
   }
 }

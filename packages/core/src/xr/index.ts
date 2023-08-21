@@ -1,5 +1,6 @@
 // manager
 export { XRManager, registerXRFeature, registerXRProvider } from "./XRManager";
+export { XRInputManager } from "./input/XRInputManager";
 
 // feature
 export { XRMovementTracking } from "./feature/movementTracking/XRMovementTracking";
@@ -21,11 +22,15 @@ export { XRImageTrackingMode } from "./enum/XRImageTrackingMode";
 export { XRPlaneTrackingMode } from "./enum/XRPlaneTrackingMode";
 
 // input
-export type { XRInput } from "./input/XRInput";
-export type { XRViewer } from "./input/XRViewer";
-export type { XRController } from "./input/XRController";
+export { XRInputDevice } from "./input/XRInputDevice";
+export { XRViewer } from "./input/XRViewer";
+export { XRController } from "./input/XRController";
+export type { IXRInputProvider } from "./input/IXRInputProvider";
 
 // interface
 export type { IXRSession } from "./interface/IXRSession";
 export type { IXRPlatform } from "./interface/IXRPlatform";
-export type { IXRFeatureProvider } from "./interface/IXRFeatureProvider";
+export type { IXRFeatureProvider } from "./feature/IXRFeatureProvider";
+
+// component
+export { XRPoseDriver } from "./component/XRPoseDriver";

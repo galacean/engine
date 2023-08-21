@@ -1,6 +1,6 @@
 import { Engine } from "../../Engine";
 import { IXRFeatureDescriptor } from "../descriptor/IXRFeatureDescriptor";
-import { IXRFeatureProvider } from "../interface/IXRFeatureProvider";
+import { IXRFeatureProvider } from "./IXRFeatureProvider";
 
 export abstract class XRFeature {
   protected _engine: Engine;
