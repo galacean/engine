@@ -1,15 +1,20 @@
+import { SpriteMask } from "../2d";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Camera } from "../Camera";
+import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
-import { SpriteMaskBatcher } from "./SpriteMaskBatcher";
-import { SpriteMaskRenderData } from "./SpriteMaskRenderData";
+import { StencilOperation } from "../shader";
+import { SpriteMaskBatcher } from "./batcher/SpriteMaskBatcher";
 
 /**
  * @internal
  */
 export class SpriteMaskManager {
+  /** @internal */
   _batcher: SpriteMaskBatcher;
+  /** @internal */
+  _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
   private _preMaskLayer: number = 0;
 
@@ -17,7 +22,12 @@ export class SpriteMaskManager {
     this._batcher = new SpriteMaskBatcher(engine);
   }
 
+  addMask(mask: SpriteMask): void {
+    this._allSpriteMasks.add(mask);
+  }
+
   clear(): void {
+    this._allSpriteMasks.length = 0;
     this._preMaskLayer = 0;
     this._batcher.clear();
   }
@@ -41,6 +51,7 @@ export class SpriteMaskManager {
   }
 
   destroy(): void {
+    this._allSpriteMasks.length = 0;
     this._batcher.destroy();
     this._batcher = null;
   }
@@ -49,13 +60,13 @@ export class SpriteMaskManager {
     const preMaskLayer = this._preMaskLayer;
     const curMaskLayer = renderer.maskLayer;
     if (preMaskLayer !== curMaskLayer) {
-      const allMasks = camera._renderPipeline._allSpriteMasks;
+      const { _allSpriteMasks: masks } = this;
       const commonLayer = preMaskLayer & curMaskLayer;
       const addLayer = curMaskLayer & ~preMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
 
-      const allMaskElements = allMasks._elements;
-      for (let i = 0, n = allMasks.length; i < n; i++) {
+      const allMaskElements = masks._elements;
+      for (let i = 0, n = masks.length; i < n; i++) {
         const mask = allMaskElements[i];
         const influenceLayers = mask.influenceLayers;
 
@@ -65,15 +76,13 @@ export class SpriteMaskManager {
 
         if (influenceLayers & addLayer) {
           const maskRenderElement = mask._maskElement;
-          (<SpriteMaskRenderData>maskRenderElement.data).isAdd = true;
-          this._batcher.drawElement(maskRenderElement, camera);
+          this._batcher.drawElement(maskRenderElement, camera, StencilOperation.IncrementSaturate);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const maskRenderElement = mask._maskElement;
-          (<SpriteMaskRenderData>maskRenderElement.data).isAdd = false;
-          this._batcher.drawElement(maskRenderElement, camera);
+          this._batcher.drawElement(maskRenderElement, camera, StencilOperation.DecrementSaturate);
         }
       }
     }

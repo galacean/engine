@@ -9,9 +9,7 @@ import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
-import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
 import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
-import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -72,10 +70,6 @@ export class Engine extends EventDispatcher {
   _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
   /* @internal */
   _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
-  /* @internal */
-  _spriteMaskRenderDataPool: ClassPool<SpriteMaskRenderData> = new ClassPool(SpriteMaskRenderData);
-  /* @internal */
-  _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
 
   /* @internal */
   _spriteDefaultMaterial: Material;
@@ -103,8 +97,6 @@ export class Engine extends EventDispatcher {
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
-  /** @internal */
-  _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _canSpriteBatch: boolean = true;
   /** @internal */
@@ -229,7 +221,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
@@ -308,8 +299,6 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.resetPool();
     this._meshRenderDataPool.resetPool();
     this._spriteRenderDataPool.resetPool();
-    this._spriteMaskRenderDataPool.resetPool();
-    this._textRenderDataPool.resetPool();
 
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
@@ -418,7 +407,6 @@ export class Engine extends EventDispatcher {
     // Cancel animation
     this.pause();
 
-    this._spriteMaskManager.destroy();
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
@@ -668,8 +656,6 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.garbageCollection();
     this._meshRenderDataPool.garbageCollection();
     this._spriteRenderDataPool.garbageCollection();
-    this._spriteMaskRenderDataPool.garbageCollection();
-    this._textRenderDataPool.garbageCollection();
   }
 
   /**

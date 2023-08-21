@@ -18,6 +18,7 @@ import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { BatcherManager } from "./RenderPipeline/batcher/BatcherManager";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -59,6 +60,9 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
+  /** @internal */
+  @ignoreClone
+  _batcherManager: BatcherManager;
   /** @internal */
   @ignoreClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
@@ -306,6 +310,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = transform.registerWorldChangeFlag();
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
+    this._batcherManager = new BatcherManager(this.engine);
     this.shaderData._addReferCount(1);
   }
 
@@ -556,6 +561,7 @@ export class Camera extends Component {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._renderPipeline?.destroy();
+    this._batcherManager?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this.shaderData._addReferCount(-1);
@@ -564,6 +570,7 @@ export class Camera extends Component {
     this._globalShaderMacro = null;
     this._frustum = null;
     this._renderPipeline = null;
+    this._batcherManager = null;
     this._virtualCamera = null;
     this._shaderData = null;
     this._frustumViewChangeFlag = null;

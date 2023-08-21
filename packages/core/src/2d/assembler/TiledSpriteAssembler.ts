@@ -2,11 +2,11 @@ import { MathUtil, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { DisorderedArray } from "../../DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
-import { Basic2DBatcher } from "../../RenderPipeline/Basic2DBatcher";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { Logger } from "../../base";
+import { Batcher2D } from "../../RenderPipeline/batcher/Batcher2D";
 
 /**
  * @internal
@@ -188,12 +188,12 @@ export class TiledSpriteAssembler {
       }
     }
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Batcher2D.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
-      Logger.warn(`The number of vertices exceeds the upper limit(${Basic2DBatcher.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${Batcher2D.MAX_VERTEX_COUNT}).`);
       return;
     }
 
@@ -308,12 +308,12 @@ export class TiledSpriteAssembler {
       }
     }
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Batcher2D.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
-      Logger.warn(`The number of vertices exceeds the upper limit(${Basic2DBatcher.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${Batcher2D.MAX_VERTEX_COUNT}).`);
       return;
     }
 

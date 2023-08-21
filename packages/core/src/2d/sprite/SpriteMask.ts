@@ -10,6 +10,7 @@ import { VertexData2D } from "../data/VertexData2D";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
+import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 
 /**
  * A component for masking Sprites.
@@ -215,11 +216,12 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    context.camera._renderPipeline._allSpriteMasks.add(this);
+    context.camera._renderPipeline._spriteMaskManager.addMask(this);
 
-    const renderData = this._engine._spriteMaskRenderDataPool.getFromPool();
+    const renderData = this._engine._spriteRenderDataPool.getFromPool();
     const material = this.getMaterial();
-    renderData.set(this, material, this._verticesData);
+    renderData.set(this, material, this._verticesData, this.sprite.texture);
+    renderData.usage = RenderDataUsage.SpriteMask;
 
     const renderElement = this._engine._renderElementPool.getFromPool();
     const pass = material.shader.subShaders[0].passes[0];

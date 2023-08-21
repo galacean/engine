@@ -16,6 +16,7 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
+import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -322,10 +323,10 @@ export class SpriteRenderer extends Renderer {
 
     // Push primitive
     const material = this.getMaterial();
-    const texture = this.sprite.texture;
     const renderData = this._engine._spriteRenderDataPool.getFromPool();
-    renderData.set(this, material, this._verticesData, texture);
-    context.camera._renderPipeline.pushRenderData(context, renderData);
+    renderData.set(this, material, this._verticesData, this.sprite.texture);
+    renderData.usage = RenderDataUsage.Sprite;
+    context.camera._batcherManager.commitRenderData(context, renderData);
   }
 
   /**

@@ -1,8 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
-import { SpriteMask } from "../2d";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
-import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
@@ -21,6 +19,7 @@ import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { PipelineStage } from "./enums/PipelineStage";
+import { SpriteMaskManager } from "./SpriteMaskManager";
 
 /**
  * Basic render pipeline.
@@ -36,7 +35,7 @@ export class BasicRenderPipeline {
   /** @internal */
   _alphaTestQueue: RenderQueue;
   /** @internal */
-  _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
+  _spriteMaskManager: SpriteMaskManager;
 
   private _camera: Camera;
   private _defaultPass: RenderPass;
@@ -50,11 +49,11 @@ export class BasicRenderPipeline {
    */
   constructor(camera: Camera) {
     this._camera = camera;
-    const { engine } = camera;
-    this._opaqueQueue = new RenderQueue(engine);
-    this._alphaTestQueue = new RenderQueue(engine);
-    this._transparentQueue = new RenderQueue(engine);
+    this._opaqueQueue = new RenderQueue();
+    this._alphaTestQueue = new RenderQueue();
+    this._transparentQueue = new RenderQueue();
     this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
+    this._spriteMaskManager = new SpriteMaskManager(camera.engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -129,7 +128,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue.destroy();
     this._alphaTestQueue.destroy();
     this._transparentQueue.destroy();
-    this._allSpriteMasks = null;
+    this._spriteMaskManager.destroy();
     this._renderPassArray = null;
     this._defaultPass = null;
     this._camera = null;
@@ -147,8 +146,7 @@ export class BasicRenderPipeline {
     const opaqueQueue = this._opaqueQueue;
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
-
-    camera.engine._spriteMaskManager.clear();
+    const batcherManager = camera._batcherManager;
 
     context.pipelineStageTagValue = BasicRenderPipeline._shadowCasterPipelineStageTagValue;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
@@ -157,12 +155,15 @@ export class BasicRenderPipeline {
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
-    this._allSpriteMasks.length = 0;
+    batcherManager.clear();
+    this._spriteMaskManager.clear();
 
     context.applyVirtualCamera(camera._virtualCamera);
 
     context.pipelineStageTagValue = BasicRenderPipeline._forwardPipelineStageTagValue;
     this._callRender(context);
+    batcherManager.flush();
+    batcherManager.uploadBuffer();
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
