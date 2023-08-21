@@ -8,21 +8,22 @@ export class GLTFSkinParser extends GLTFParser {
   parse(context: GLTFParserContext): AssetPromise<void> {
     const { glTFResource, glTF } = context;
     const { entities } = glTFResource;
-    const gltfSkins = glTF.skins;
+    const glTFSkins = glTF.skins;
 
-    if (!gltfSkins) return;
+    if (!glTFSkins) return;
 
-    const count = gltfSkins.length;
+    const count = glTFSkins.length;
     const promises = new Array<Promise<Skin>>();
 
     for (let i = 0; i < count; i++) {
-      const { inverseBindMatrices, skeleton, joints, name = `SKIN_${i}` } = gltfSkins[i];
+      const { inverseBindMatrices, skeleton, joints, name = `SKIN_${i}` } = glTFSkins[i];
       const jointCount = joints.length;
 
       const skin = new Skin(name);
       skin.inverseBindMatrices.length = jointCount;
+      skin._bones.length = jointCount;
 
-      // parse IBM
+      // Parse IBM
       const accessor = glTF.accessors[inverseBindMatrices];
       const promise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
         const buffer = bufferInfo.data;
@@ -30,25 +31,21 @@ export class GLTFSkinParser extends GLTFParser {
           const inverseBindMatrix = new Matrix();
           inverseBindMatrix.copyFromArray(buffer, i * 16);
           skin.inverseBindMatrices[i] = inverseBindMatrix;
-          // get joints
-          for (let i = 0; i < jointCount; i++) {
-            const jointIndex = joints[i];
-            const jointName = entities[jointIndex].name;
-            skin.joints[i] = jointName;
-            // @todo Temporary solution, but it can alleviate the current BUG, and the skinning data mechanism of SkinnedMeshRenderer will be completely refactored in the future
-            for (let j = entities.length - 1; j >= 0; j--) {
-              if (jointIndex !== j && entities[j].name === jointName) {
-                entities[j].name = `${jointName}_${j}`;
-              }
-            }
-          }
 
-          // get skeleton
+          // Get bones
+          const bone = entities[joints[i]];
+          skin._bones[i] = bone;
+          skin.joints[i] = bone.name;
+
+          // Get skeleton
           if (skeleton !== undefined) {
-            skin.skeleton = entities[skeleton].name;
+            const rootBone = entities[skeleton];
+            skin._rootBone = rootBone;
+            skin.skeleton = rootBone.name;
           } else {
             const rootBone = this._findSkeletonRootBone(joints, entities);
             if (rootBone) {
+              skin._rootBone = rootBone;
               skin.skeleton = rootBone.name;
             } else {
               throw "Failed to find skeleton root bone.";

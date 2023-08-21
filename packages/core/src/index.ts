@@ -26,7 +26,7 @@ export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";
 
-export * from "./RenderPipeline/Index";
+export * from "./RenderPipeline/index";
 export * from "./base";
 
 export { Background } from "./Background";

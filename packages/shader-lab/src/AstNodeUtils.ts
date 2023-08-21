@@ -62,28 +62,6 @@ export class AstNodeUtils {
     return new ObjectAstNode({ position: { start, end }, content });
   }
 
-  /**
-   * order not guaranteed
-   */
-  static extractCstString(node: CstElement): string[] {
-    const ret: string[] = [];
-    // @ts-ignore IToken
-    if (node.image) return [node.image];
-    // @ts-ignore CstNode
-    if (node.name) {
-      const $ = node as CstNode;
-      for (const k in $.children) {
-        // @ts-ignore
-        const n: CstElement[] = $.children[k];
-        if (!n) continue;
-        for (const item of n) {
-          ret.push(...AstNodeUtils.extractCstString(item));
-        }
-      }
-    }
-    return ret;
-  }
-
   static getTokenPosition(token: IToken): IPositionRange {
     return {
       start: {
@@ -136,6 +114,10 @@ export class AstNodeUtils {
     const context = new RuntimeContext();
     const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
     shaderInfo.diagnostics = context.diagnostics;
+
+    // @ts-ignore DEBUG & DELETE
+    shaderInfo.ast = ast;
+
     return shaderInfo;
   }
 }
