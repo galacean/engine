@@ -126,26 +126,31 @@ export class GLTFParserContext {
     return this.get<Promise<IGLTF>>(GLTFParserType.JSON).then((json) => {
       this.glTF = json;
 
-      return Promise.all([this.get<void>(GLTFParserType.Validator), this.get<Entity>(GLTFParserType.Scene)]).then(
-        () => {
-          const {
-            materialsPromiseInfo,
-            defaultSceneRootPromiseInfo,
-            texturesPromiseInfo,
-            meshesPromiseInfo,
-            animationClipsPromiseInfo
-          } = this;
-          const glTFResource = this.glTFResource;
+      return Promise.all([
+        this.get<void>(GLTFParserType.Validator),
+        this.get<Entity>(GLTFParserType.Scene),
+        this.get<Promise<Texture2D[]>>(GLTFParserType.Texture),
+        this.get<Promise<Material[]>>(GLTFParserType.Material),
+        this.get<Promise<ModelMesh[][]>>(GLTFParserType.Mesh),
+        this.get<Promise<AnimationClip[]>>(GLTFParserType.Animation)
+      ]).then(([_, __, textures, materials, meshes, animations]) => {
+        const {
+          materialsPromiseInfo,
+          defaultSceneRootPromiseInfo,
+          texturesPromiseInfo,
+          meshesPromiseInfo,
+          animationClipsPromiseInfo
+        } = this;
+        const glTFResource = this.glTFResource;
 
-          texturesPromiseInfo.resolve(this.get<Promise<Texture2D[]>>(GLTFParserType.Texture));
-          materialsPromiseInfo.resolve(this.get<Promise<Material[]>>(GLTFParserType.Material));
-          meshesPromiseInfo.resolve(this.get<Promise<ModelMesh[][]>>(GLTFParserType.Mesh));
-          animationClipsPromiseInfo.resolve(this.get<Promise<AnimationClip[]>>(GLTFParserType.Animation));
-          defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
+        texturesPromiseInfo.resolve(textures);
+        materialsPromiseInfo.resolve(materials);
+        meshesPromiseInfo.resolve(meshes);
+        animationClipsPromiseInfo.resolve(animations);
+        defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
 
-          return glTFResource;
-        }
-      );
+        return glTFResource;
+      });
     });
   }
 
