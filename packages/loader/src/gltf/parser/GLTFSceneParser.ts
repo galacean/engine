@@ -44,7 +44,7 @@ export class GLTFSceneParser extends GLTFParser {
   private _parseSingleScene(context: GLTFParserContext, sceneInfo: IScene, index: number): Promise<Entity> {
     const { glTF, glTFResource } = context;
     const engine = glTFResource.engine;
-    const isDefaultScene = glTF.scene === index;
+    const isDefaultScene = (glTF.scene ?? 0) === index;
     const sceneNodes = sceneInfo.nodes;
     let sceneRoot: Entity;
 
@@ -67,7 +67,7 @@ export class GLTFSceneParser extends GLTFParser {
       glTFResource.defaultSceneRoot = sceneRoot;
     }
 
-    const promises = new Array<Promise<void>>();
+    const promises = new Array<Promise<void[]>>();
 
     for (let i = 0; i < sceneNodes.length; i++) {
       promises.push(this._parseEntityComponent(context, sceneNodes[i]));
@@ -85,12 +85,12 @@ export class GLTFSceneParser extends GLTFParser {
     });
   }
 
-  private _parseEntityComponent(context: GLTFParserContext, index: number): Promise<void> {
+  private _parseEntityComponent(context: GLTFParserContext, index: number): Promise<void[]> {
     const { glTF, glTFResource } = context;
     const entityInfo = glTF.nodes[index];
     const { camera: cameraID, mesh: meshID, extensions } = entityInfo;
     const entity = context.get<Entity>(GLTFParserType.Entity, index);
-    let promise: Promise<void>;
+    let promise: Promise<void[]>;
 
     if (cameraID !== undefined) {
       this._createCamera(glTFResource, glTF.cameras[cameraID], entity);
@@ -112,7 +112,7 @@ export class GLTFSceneParser extends GLTFParser {
 
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, entityInfo);
 
-      return Promise.all(promises).then(null);
+      return Promise.all(promises);
     });
   }
 
@@ -156,7 +156,7 @@ export class GLTFSceneParser extends GLTFParser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void> {
+  private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void[]> {
     const { glTFResource, glTF } = context;
     const { meshes: glTFMeshes } = glTF;
     const engine = glTFResource.engine;
@@ -217,7 +217,7 @@ export class GLTFSceneParser extends GLTFParser {
       );
     }
 
-    return Promise.all(promises).then(null);
+    return Promise.all(promises);
   }
 
   private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {
