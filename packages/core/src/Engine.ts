@@ -336,7 +336,7 @@ export class Engine extends EventDispatcher {
 
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
-    this.xrManager._update();
+    this.xrManager?._update();
 
     const loopScenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = loopScenes.length;

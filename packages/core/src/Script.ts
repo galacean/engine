@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { ComponentsManager } from "./ComponentsManager";
 import { Pointer } from "./input";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
@@ -223,8 +224,7 @@ export class Script extends Component {
   /**
    * @internal
    */
-  _handlingInValid(): void {
-    const componentsManager = this.scene._componentsManager;
+  _handlingInValid(componentsManager: ComponentsManager): void {
     const { prototype } = Script;
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
