@@ -282,7 +282,6 @@ describe("Script", () => {
       const entity = rootEntity.createChild("entity");
       const script = entity.addComponent(Script);
       rootEntity.removeChild(entity);
-      // expect(camera).to.not.null;
       setTimeout(() => {
         script._waitHandlingInValid = false;
       }, 100);
