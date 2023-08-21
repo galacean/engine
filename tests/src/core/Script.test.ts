@@ -278,13 +278,12 @@ describe("Script", () => {
       const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
-      engine.run();
       const entity = rootEntity.createChild("entity");
-      const script = entity.addComponent(Script);
+      entity.addComponent(Script);
       rootEntity.removeChild(entity);
-      setTimeout(() => {
-        script._waitHandlingInValid = false;
-      }, 100);
+      expect(() => {
+        engine.update();
+      }).to.not.throw();
     });
   });
 });
