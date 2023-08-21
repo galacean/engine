@@ -31,7 +31,9 @@ export class GLTFMaterialParser extends GLTFParser {
     context: GLTFParserContext,
     material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial,
     materialInfo: IMaterial
-  ) {
+  ): Promise<void[]> {
+    const promises = new Array<Promise<void>>();
+
     const {
       pbrMetallicRoughness,
       normalTexture,
@@ -56,15 +58,17 @@ export class GLTFMaterialParser extends GLTFParser {
         );
       }
       if (baseColorTexture) {
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
-          material.baseTexture = texture;
-          GLTFParser.executeExtensionsAdditiveAndParse(
-            baseColorTexture.extensions,
-            context,
-            material,
-            baseColorTexture
-          );
-        });
+        promises.push(
+          context.get<Promise<Texture2D>>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
+            material.baseTexture = texture;
+            GLTFParser.executeExtensionsAdditiveAndParse(
+              baseColorTexture.extensions,
+              context,
+              material,
+              baseColorTexture
+            );
+          })
+        );
       }
 
       if (material.constructor === PBRMaterial) {
@@ -73,9 +77,11 @@ export class GLTFMaterialParser extends GLTFParser {
         if (metallicRoughnessTexture) {
           GLTFMaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
 
-          context.get<Promise<Texture2D>>(GLTFParserType.Texture, metallicRoughnessTexture.index).then((texture) => {
-            material.roughnessMetallicTexture = texture;
-          });
+          promises.push(
+            context.get<Promise<Texture2D>>(GLTFParserType.Texture, metallicRoughnessTexture.index).then((texture) => {
+              material.roughnessMetallicTexture = texture;
+            })
+          );
         }
       }
     }
@@ -84,9 +90,11 @@ export class GLTFMaterialParser extends GLTFParser {
       if (emissiveTexture) {
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
 
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
-          material.emissiveTexture = texture;
-        });
+        promises.push(
+          context.get<Promise<Texture2D>>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
+            material.emissiveTexture = texture;
+          })
+        );
       }
 
       if (emissiveFactor) {
@@ -101,9 +109,11 @@ export class GLTFMaterialParser extends GLTFParser {
         const { index, scale } = normalTexture;
         GLTFMaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
 
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, index).then((texture) => {
-          material.normalTexture = texture;
-        });
+        promises.push(
+          context.get<Promise<Texture2D>>(GLTFParserType.Texture, index).then((texture) => {
+            material.normalTexture = texture;
+          })
+        );
 
         if (scale !== undefined) {
           material.normalTextureIntensity = scale;
@@ -114,9 +124,11 @@ export class GLTFMaterialParser extends GLTFParser {
         const { index, strength, texCoord } = occlusionTexture;
         GLTFMaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
 
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, index).then((texture) => {
-          material.occlusionTexture = texture;
-        });
+        promises.push(
+          context.get<Promise<Texture2D>>(GLTFParserType.Texture, index).then((texture) => {
+            material.occlusionTexture = texture;
+          })
+        );
 
         if (strength !== undefined) {
           material.occlusionTextureIntensity = strength;
@@ -146,6 +158,8 @@ export class GLTFMaterialParser extends GLTFParser {
         material.alphaCutoff = alphaCutoff ?? 0.5;
         break;
     }
+
+    return Promise.all(promises);
   }
 
   parse(context: GLTFParserContext, index: number): Promise<Material> {
@@ -158,6 +172,7 @@ export class GLTFMaterialParser extends GLTFParser {
   private _parseSingleMaterial(context: GLTFParserContext, materialInfo: IMaterial): Promise<Material> {
     const engine = context.glTFResource.engine;
 
+    let parserPromise: Promise<void[]>;
     let material = <Material | Promise<Material>>(
       GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
     );
@@ -165,10 +180,10 @@ export class GLTFMaterialParser extends GLTFParser {
     if (!material) {
       material = new PBRMaterial(engine);
       material.name = materialInfo.name;
-      GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
+      parserPromise = GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
     }
 
-    return Promise.resolve(material).then((material) => {
+    return Promise.all([material, parserPromise]).then(([material]) => {
       GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
       return material;
     });

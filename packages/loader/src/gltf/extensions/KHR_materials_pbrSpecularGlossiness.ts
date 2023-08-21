@@ -13,10 +13,11 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     context: GLTFParserContext,
     schema: IKHRMaterialsPbrSpecularGlossiness,
     ownerSchema: IMaterial
-  ): PBRSpecularMaterial {
+  ): Promise<PBRSpecularMaterial> {
     const engine = context.glTFResource.engine;
     const material = new PBRSpecularMaterial(engine);
     const { diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture } = schema;
+    const promises = new Array<Promise<void | void[]>>();
 
     if (diffuseFactor) {
       material.baseColor = new Color(
@@ -28,10 +29,12 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     }
 
     if (diffuseTexture) {
-      context.get<Promise<Texture2D>>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
-        material.baseTexture = texture;
-        GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
-      });
+      promises.push(
+        context.get<Promise<Texture2D>>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
+          material.baseTexture = texture;
+          GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
+        })
+      );
     }
 
     if (specularFactor) {
@@ -49,13 +52,15 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     if (specularGlossinessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
 
-      context.get<Promise<Texture2D>>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
-        material.specularGlossinessTexture = texture;
-      });
+      promises.push(
+        context.get<Promise<Texture2D>>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
+          material.specularGlossinessTexture = texture;
+        })
+      );
     }
 
     material.name = ownerSchema.name;
-    GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema);
-    return material;
+    promises.push(GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema));
+    return Promise.all(promises).then(() => material);
   }
 }
