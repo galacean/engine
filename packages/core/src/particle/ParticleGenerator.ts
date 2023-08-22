@@ -223,8 +223,8 @@ export class ParticleGenerator {
 
     if (this.emission.enabled && this._isPlaying) {
       this.emission._emit(lastPlayTime, this._playTime);
-      
-      if (this.main.isLoop && this._playTime > this.main.duration) {
+
+      if (!this.main.isLoop && this._playTime > this.main.duration) {
         this._isPlaying = false;
       }
     }
