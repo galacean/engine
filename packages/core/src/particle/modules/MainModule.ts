@@ -53,7 +53,7 @@ export class MainModule {
   simulationSpeed: number = 1.0;
   /** Control how the Particle System applies its Transform component to the particles it emits. */
   scalingMode = ParticleScaleMode.Local;
-  /** If set to true, the Particle System automatically begins to play on startup. */
+  /** If set to true, the Particle Generator automatically begins to play on startup. */
   playOnEnabled: boolean = true;
 
   private _maxParticles: number = 1000;

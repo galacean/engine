@@ -11,24 +11,15 @@ import { ParticleShaderProperty } from "./ParticleShaderProperty";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
-import { ParticleStopMode } from "./enums/ParticleStopMode";
 
 /**
  * Particle Renderer Component.
  */
 export class ParticleRenderer extends Renderer {
-  /** @internal */
   private static _tempVector40: Vector4 = new Vector4();
-  /** @internal */
   private static _vector3One: Vector3 = new Vector3(1, 1, 1);
 
-  static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
-
-  private _renderMode: ParticleRenderMode;
-  private _currentRenderModeMacro: ShaderMacro;
-  private _mesh: ModelMesh;
-  private _isPlaying: boolean = false;
-  private _gravity: Vector3 = new Vector3();
+  private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
 
   /** Particle generator. */
   readonly generator: ParticleGenerator = new ParticleGenerator(this);
@@ -40,17 +31,10 @@ export class ParticleRenderer extends Renderer {
   /** The pivot of particle. */
   pivot: Vector3 = new Vector3();
 
-  /**
-   * Whether the particle system is contain alive or is still creating particles.
-   */
-  get isAlive(): boolean {
-    if (this._isPlaying) {
-      return true;
-    }
-
-    const particleSystem = this.generator;
-    return particleSystem._firstActiveElement !== particleSystem._firstNewElement;
-  }
+  private _renderMode: ParticleRenderMode;
+  private _currentRenderModeMacro: ShaderMacro;
+  private _mesh: ModelMesh;
+  private _gravity: Vector3 = new Vector3();
 
   /**
    * The mesh of particle.
@@ -122,28 +106,8 @@ export class ParticleRenderer extends Renderer {
 
   override _onEnable(): void {
     if (this.generator.main.playOnEnabled) {
-      this.play();
+      this.generator.play();
     }
-  }
-
-  /**
-   * Play the particle system.
-   * @param withChildren - Whether to play the particle system of the child entity
-   */
-  play(withChildren?: boolean): void {
-    this._isPlaying = true;
-    if (this.generator.useAutoRandomSeed) {
-      this.generator._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
-    }
-  }
-
-  /**
-   * Stop the particle system.
-   * @param withChildren - Whether to stop the particle system of the child entity
-   * @param stopMode - Stop mode
-   */
-  stop(withChildren: boolean, stopMode: ParticleStopMode): void {
-    this._isPlaying = false;
   }
 
   /**

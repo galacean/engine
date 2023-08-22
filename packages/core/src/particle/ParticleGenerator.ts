@@ -9,8 +9,10 @@ import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleRenderer } from "./ParticleRenderer";
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
+import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
@@ -19,7 +21,6 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 
 /**
  * Particle System.
@@ -76,6 +77,7 @@ export class ParticleGenerator {
   /** @internal */
   readonly _renderer: ParticleRenderer;
 
+  private _isPlaying: boolean = false;
   private _instanceBufferResized: boolean = false;
   private _waitProcessRetiredElementCount: number = 0;
   private _instanceVertexBufferBinding: VertexBufferBinding;
@@ -83,6 +85,17 @@ export class ParticleGenerator {
   private _randomSeed: number = 0;
 
   private readonly _particleIncreaseCount: number = 128;
+
+  /**
+   * Whether the particle system is contain alive or is still creating particles.
+   */
+  get isAlive(): boolean {
+    if (this._isPlaying) {
+      return true;
+    }
+
+    return this._firstActiveElement !== this._firstNewElement;
+  }
 
   /**
    * Random seed.
@@ -111,6 +124,26 @@ export class ParticleGenerator {
 
     this.emission.enabled = true;
     this.shape.enabled = true;
+  }
+
+  /**
+   * Start emitting particles.
+   * @param withChildren - Whether to play the `ParticleRenderers` of the children
+   */
+  play(withChildren: boolean = true): void {
+    this._isPlaying = true;
+    if (this.useAutoRandomSeed) {
+      this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
+    }
+  }
+
+  /**
+   * Stop emitting particles.
+   * @param withChildren - Whether to stop the particle system of the child entity
+   * @param stopMode - Stop mode
+   */
+  stop(withChildren: boolean, stopMode: ParticleStopMode): void {
+    this._isPlaying = false;
   }
 
   /**
@@ -156,7 +189,7 @@ export class ParticleGenerator {
     this._retireActiveParticles();
     this._freeRetiredParticles();
 
-    if (this.emission.enabled && this._playTime) {
+    if (this.emission.enabled && this._isPlaying) {
       this.emission._emit(lastPlayTime, this._playTime);
     }
 
