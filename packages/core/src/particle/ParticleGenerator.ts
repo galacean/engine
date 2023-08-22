@@ -166,6 +166,7 @@ export class ParticleGenerator {
     } else {
       this._isPlaying = false;
       if (stopMode === ParticleStopMode.StopEmittingAndClear) {
+        // Move the pointer to free immediately
         const firstFreeElement = this._firstFreeElement;
         this._firstRetiredElement = firstFreeElement;
         this._firstActiveElement = firstFreeElement;
