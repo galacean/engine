@@ -147,7 +147,7 @@ export class ParticleGenerator {
   }
 
   /**
-   * Emit a certain number of particles.
+   * Manually emit certain number of particles immediately.
    * @param count - Number of particles to emit
    */
   emit(count: number): void {
