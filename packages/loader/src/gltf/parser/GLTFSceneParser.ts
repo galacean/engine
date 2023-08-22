@@ -4,9 +4,7 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  BlinnPhongMaterial,
   Camera,
-  Engine,
   Entity,
   Material,
   Mesh,
@@ -20,19 +18,10 @@ import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode, IScene } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
+import { GLTFMaterialParser } from "./GLTFMaterialParser";
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
-  private static _defaultMaterial: BlinnPhongMaterial;
-
-  private static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
-    if (!GLTFSceneParser._defaultMaterial) {
-      GLTFSceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
-    }
-
-    return GLTFSceneParser._defaultMaterial;
-  }
-
   parse(context: GLTFParserContext, index: number): Promise<Entity> {
     const scenes = context.glTF.scenes;
 
@@ -157,9 +146,7 @@ export class GLTFSceneParser extends GLTFParser {
   }
 
   private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void[]> {
-    const { glTFResource, glTF } = context;
-    const { meshes: glTFMeshes } = glTF;
-    const engine = glTFResource.engine;
+    const glTFMeshes = context.glTF.meshes;
     const { mesh: meshID, skin: skinID } = entityInfo;
     const glTFMesh = glTFMeshes[meshID];
     const glTFMeshPrimitives = glTFMesh.primitives;
@@ -180,7 +167,7 @@ export class GLTFSceneParser extends GLTFParser {
           let renderer: MeshRenderer | SkinnedMeshRenderer;
 
           if (!material) {
-            material = GLTFSceneParser._getDefaultMaterial(engine);
+            material = GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
           }
 
           if (skin || blendShapeWeights) {

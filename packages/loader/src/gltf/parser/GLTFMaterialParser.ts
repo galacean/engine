@@ -1,4 +1,6 @@
 import {
+  BlinnPhongMaterial,
+  Engine,
   Logger,
   Material,
   PBRMaterial,
@@ -15,6 +17,16 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Material)
 export class GLTFMaterialParser extends GLTFParser {
+  /** @internal */
+  static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
+    if (!GLTFMaterialParser._defaultMaterial) {
+      GLTFMaterialParser._defaultMaterial = new BlinnPhongMaterial(engine);
+    }
+
+    return GLTFMaterialParser._defaultMaterial;
+  }
+  private static _defaultMaterial: BlinnPhongMaterial;
+
   /**
    * @internal
    */
@@ -166,7 +178,13 @@ export class GLTFMaterialParser extends GLTFParser {
     const materials = context.glTF.materials;
     if (!materials) return Promise.resolve(null);
 
-    return this._parseSingleMaterial(context, materials[index]);
+    return this._parseSingleMaterial(context, materials[index]).then((material) => {
+      if (!material) {
+        material = GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
+      }
+
+      return material;
+    });
   }
 
   private _parseSingleMaterial(context: GLTFParserContext, materialInfo: IMaterial): Promise<Material> {

@@ -1,13 +1,4 @@
-import {
-  AnimationClip,
-  AssetPromise,
-  Buffer,
-  Entity,
-  Material,
-  ModelMesh,
-  Texture2D,
-  TypedArray
-} from "@galacean/engine-core";
+import { Buffer, Entity, ModelMesh, ResourceManager, Texture2D, TypedArray } from "@galacean/engine-core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
 import type { IGLTF } from "../GLTFSchema";
@@ -25,20 +16,8 @@ export class GLTFParserContext {
   }
 
   glTF: IGLTF;
-  glTFResource: GLTFResource;
-  keepMeshData: boolean;
   hasSkinned: boolean = false;
-  chainPromises: AssetPromise<any>[] = [];
   accessorBufferCache: Record<string, BufferInfo> = {};
-
-  texturesPromiseInfo: PromiseInfo<Texture2D[]> = new PromiseInfo<Texture2D[]>();
-  materialsPromiseInfo: PromiseInfo<Material[]> = new PromiseInfo<Material[]>();
-  meshesPromiseInfo: PromiseInfo<ModelMesh[][]> = new PromiseInfo<ModelMesh[][]>();
-  animationClipsPromiseInfo: PromiseInfo<AnimationClip[]> = new PromiseInfo<AnimationClip[]>();
-  defaultSceneRootPromiseInfo: PromiseInfo<Entity> = new PromiseInfo<Entity>();
-  masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
-  promiseMap: Record<string, AssetPromise<any>> = {};
-
   contentRestorer: GLTFContentRestorer;
 
   /** @internal */
@@ -46,14 +25,13 @@ export class GLTFParserContext {
 
   private _resourceCache = new Map<string, any>();
 
-  constructor(url: string) {
-    const promiseMap = this.promiseMap;
-    promiseMap[`${url}?q=textures`] = this._initPromiseInfo(this.texturesPromiseInfo);
-    promiseMap[`${url}?q=materials`] = this._initPromiseInfo(this.materialsPromiseInfo);
-    promiseMap[`${url}?q=meshes`] = this._initPromiseInfo(this.meshesPromiseInfo);
-    promiseMap[`${url}?q=animations`] = this._initPromiseInfo(this.animationClipsPromiseInfo);
-    promiseMap[`${url}?q=defaultSceneRoot`] = this._initPromiseInfo(this.defaultSceneRootPromiseInfo);
-    promiseMap[`${url}`] = this._initPromiseInfo(this.masterPromiseInfo);
+  constructor(
+    public glTFResource: GLTFResource,
+    public resourceManager: ResourceManager,
+    public keepMeshData: boolean,
+    public url: string
+  ) {
+    this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }
 
   /**
@@ -82,6 +60,8 @@ export class GLTFParserContext {
     if (!resource) {
       if (needOnlyOne) {
         resource = GLTFParserContext._parsers[type].parse(this, index);
+
+        // store glTFResource
         if (!isOnlyOne) {
           if (type === GLTFParserType.Entity) {
             if (!this.glTFResource["entities"]) {
@@ -93,13 +73,29 @@ export class GLTFParserContext {
             if (!this.glTFResource[type]) {
               this.glTFResource[type] = [];
             }
-            (<Promise<T>>resource).then((item: T) => {
-              if (!this.glTFResource[type]) {
-                this.glTFResource[type] = [];
-              }
+            (<Promise<T>>resource)
+              .then((item: T) => {
+                if (!this.glTFResource[type]) {
+                  this.glTFResource[type] = [];
+                }
 
-              this.glTFResource[type][index] = item;
-            });
+                this.glTFResource[type][index] = item;
+
+                if (type === GLTFParserType.Mesh) {
+                  for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
+                    const mesh = item[i] as ModelMesh;
+                    this.resourceManager.onSubAssetSuccess<ModelMesh>(`${this.url}?q=${type}[${index}][${i}]`, mesh);
+                  }
+                } else {
+                  this.resourceManager.onSubAssetSuccess<T>(`${this.url}?q=${type}[${index}]`, item);
+                  if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
+                    this.resourceManager.onSubAssetSuccess<Entity>(`${this.url}?q=defaultSceneRoot`, item as Entity);
+                  }
+                }
+              })
+              .catch((e) => {
+                this.resourceManager.onSubAssetFail(`${this.url}?q=${type}[${index}]`, e);
+              });
           }
         }
       } else {
@@ -128,41 +124,13 @@ export class GLTFParserContext {
 
       return Promise.all([
         this.get<void>(GLTFParserType.Validator),
-        this.get<Entity>(GLTFParserType.Scene),
-        this.get<Promise<Texture2D[]>>(GLTFParserType.Texture),
-        this.get<Promise<Material[]>>(GLTFParserType.Material),
-        this.get<Promise<ModelMesh[][]>>(GLTFParserType.Mesh),
-        this.get<Promise<AnimationClip[]>>(GLTFParserType.Animation)
-      ]).then(([_, __, textures, materials, meshes, animations]) => {
-        const {
-          materialsPromiseInfo,
-          defaultSceneRootPromiseInfo,
-          texturesPromiseInfo,
-          meshesPromiseInfo,
-          animationClipsPromiseInfo
-        } = this;
-        const glTFResource = this.glTFResource;
-
-        texturesPromiseInfo.resolve(textures);
-        materialsPromiseInfo.resolve(materials);
-        meshesPromiseInfo.resolve(meshes);
-        animationClipsPromiseInfo.resolve(animations);
-        defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
-
-        return glTFResource;
+        this.get<Texture2D[]>(GLTFParserType.Texture),
+        this.get<Entity>(GLTFParserType.Scene)
+      ]).then(() => {
+        this.resourceManager.addContentRestorer(this.contentRestorer);
+        return this.glTFResource;
       });
     });
-  }
-
-  private _initPromiseInfo(promiseInfo: PromiseInfo<any>): AssetPromise<any> {
-    const promise = new AssetPromise<any>((resolve, reject, setProgress, onCancel) => {
-      promiseInfo.resolve = resolve;
-      promiseInfo.reject = reject;
-      promiseInfo.setProgress = setProgress;
-      promiseInfo.onCancel = onCancel;
-    });
-    promiseInfo.promise = promise;
-    return promise;
   }
 }
 
@@ -179,17 +147,6 @@ export class BufferInfo {
     public interleaved: boolean,
     public stride: number
   ) {}
-}
-
-/**
- * @internal
- */
-export class PromiseInfo<T> {
-  public promise: AssetPromise<T>;
-  public resolve: (value?: T | PromiseLike<T>) => void;
-  public reject: (reason?: any) => void;
-  public setProgress: (progress: number) => void;
-  public onCancel: (callback: () => void) => void;
 }
 
 export enum GLTFParserType {

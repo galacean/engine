@@ -9,47 +9,20 @@ import {
 } from "@galacean/engine-core";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
-import { GLTFContentRestorer } from "./GLTFContentRestorer";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-  override load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
     const params = <GLTFParams>item.params;
-    const context = new GLTFParserContext(url);
     const glTFResource = new GLTFResource(resourceManager.engine, url);
-    const restorer = new GLTFContentRestorer(glTFResource);
-    const masterPromiseInfo = context.masterPromiseInfo;
+    const context = new GLTFParserContext(glTFResource, resourceManager, params?.keepMeshData ?? false, url);
 
-    context.contentRestorer = restorer;
-    context.glTFResource = glTFResource;
-    context.keepMeshData = params?.keepMeshData ?? false;
-
-    masterPromiseInfo.onCancel(() => {
-      const { chainPromises } = context;
-      for (const promise of chainPromises) {
-        promise.cancel();
-      }
+    return <AssetPromise<GLTFResource>>context._parse().catch((e) => {
+      const msg = `Error loading glTF model from ${url} : ${e}`;
+      Logger.error(msg);
+      throw e;
     });
-
-    context
-      ._parse()
-      .then((glTFResource) => {
-        resourceManager.addContentRestorer(restorer);
-        masterPromiseInfo.resolve(glTFResource);
-      })
-      .catch((e) => {
-        const msg = `Error loading glTF model from ${url} : ${e}`;
-        Logger.error(msg);
-        masterPromiseInfo.reject(msg);
-        context.defaultSceneRootPromiseInfo.reject(e);
-        context.texturesPromiseInfo.reject(e);
-        context.materialsPromiseInfo.reject(e);
-        context.meshesPromiseInfo.reject(e);
-        context.animationClipsPromiseInfo.reject(e);
-      });
-
-    return context.promiseMap;
   }
 }
 

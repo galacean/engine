@@ -177,6 +177,26 @@ export class ResourceManager {
   }
 
   /**
+   * Callback sub asset on success.
+   * @param assetURL - The url of sub asset
+   * @param value - Sub asset
+   */
+  onSubAssetSuccess<T>(assetURL: string, value: T): void {
+    this._pendingPromise[assetURL]?.resolve(value);
+    delete this._pendingPromise[assetURL];
+  }
+
+  /**
+   * Callback sub asset on fail.
+   * @param assetURL - The url of sub asset
+   * @param value - Fail reason
+   */
+  onSubAssetFail(assetURL: string, value: (reason: any) => void): void {
+    this._pendingPromise[assetURL]?.reject(value);
+    delete this._pendingPromise[assetURL];
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: EngineObject): void {
@@ -304,6 +324,11 @@ export class ResourceManager {
     let assetURL = assetBaseURL;
     if (queryPath) {
       assetURL += "?q=" + paths.shift();
+
+      let index: string;
+      while ((index = paths.shift())) {
+        assetURL += `[${index}]`;
+      }
     }
 
     // Check is loading
@@ -313,7 +338,7 @@ export class ResourceManager {
       return new AssetPromise((resolve, reject) => {
         loadingPromise
           .then((resource: EngineObject) => {
-            resolve(this._getResolveResource(resource, paths) as T);
+            resolve(resource as T);
           })
           .catch((error: Error) => {
             reject(error);
@@ -329,42 +354,51 @@ export class ResourceManager {
 
     // Load asset
     item.url = assetBaseURL;
-    const promise = loader.load(item, this);
-    if (promise instanceof AssetPromise) {
-      loadingPromises[assetBaseURL] = promise;
-      promise.then(
-        (resource: EngineObject) => {
-          if (loader.useCache) {
-            this._addAsset(assetBaseURL, resource);
-          }
-          delete loadingPromises[assetBaseURL];
+    const promise = <AssetPromise<T>>loader.load(item, this);
+    loadingPromises[assetBaseURL] = promise;
+
+    promise.then(
+      (resource: T) => {
+        if (loader.useCache) {
+          this._addAsset(assetBaseURL, resource as EngineObject);
+        }
+        delete loadingPromises[assetBaseURL];
+      },
+      () => delete loadingPromises[assetBaseURL]
+    );
+
+    if (queryPath) {
+      const subPromise: AssetPromise<T> = new AssetPromise((resolve, reject) => {
+        this._pendingSubAssetPromise(assetURL, resolve, reject);
+      });
+
+      loadingPromises[assetURL] = subPromise;
+      subPromise.then(
+        () => {
+          delete loadingPromises[assetURL];
         },
-        () => delete loadingPromises[assetBaseURL]
+        () => delete loadingPromises[assetURL]
       );
-      return promise;
-    } else {
-      for (let subURL in promise) {
-        const subPromise = promise[subURL];
-        const isMaster = assetBaseURL === subURL;
-        loadingPromises[subURL] = subPromise;
 
-        subPromise.then(
-          (resource: EngineObject) => {
-            if (isMaster) {
-              if (loader.useCache) {
-                this._addAsset(subURL, resource);
-                for (let k in promise) delete loadingPromises[k];
-              }
-            }
-          },
-          () => {
-            for (let k in promise) delete loadingPromises[k];
-          }
-        );
-      }
-
-      return promise[assetURL].then((resource: EngineObject) => this._getResolveResource(resource, paths) as T);
+      return subPromise;
     }
+
+    return promise;
+  }
+
+  private _pendingPromise: Record<
+    string,
+    {
+      resolve: (value: any) => void;
+      reject: (reason: any) => void;
+    }
+  > = {};
+
+  private _pendingSubAssetPromise(assetURL: string, resolve: (value: any) => void, reject: (reason: any) => void) {
+    this._pendingPromise[assetURL] = {
+      resolve,
+      reject
+    };
   }
 
   private _gc(forceDestroy: boolean): void {
