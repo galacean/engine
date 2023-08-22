@@ -166,10 +166,11 @@ export class ParticleGenerator {
     } else {
       this._isPlaying = false;
       if (stopMode === ParticleStopMode.StopEmittingAndClear) {
-        this._firstActiveElement = 0;
-        this._firstFreeElement = 0;
-        this._firstNewElement = 0;
-        this._firstRetiredElement = 0;
+        const firstFreeElement = this._firstFreeElement;
+        this._firstRetiredElement = firstFreeElement;
+        this._firstActiveElement = firstFreeElement;
+        this._firstNewElement = firstFreeElement;
+
         this.emission._resetBurst();
       }
     }
