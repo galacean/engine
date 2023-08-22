@@ -9,8 +9,8 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 export class MainModule {
   /** The duration of the Particle System in seconds. */
   duration: number = 5.0;
-  /** Specifies whether the Particle System is looping. */
-  loop: boolean = true;
+  /** Specifies whether the Particle System loops. */
+  isLoop: boolean = true;
 
   /** Start delay in seconds. */
   startDelay: ParticleCompositeCurve = new ParticleCompositeCurve(0);

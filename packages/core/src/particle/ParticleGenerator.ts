@@ -94,7 +94,7 @@ export class ParticleGenerator {
       return true;
     }
 
-    return this._firstActiveElement !== this._firstNewElement;
+    return this._firstActiveElement !== this._firstFreeElement;
   }
 
   /**
@@ -223,10 +223,14 @@ export class ParticleGenerator {
 
     if (this.emission.enabled && this._isPlaying) {
       this.emission._emit(lastPlayTime, this._playTime);
+      
+      if (this.main.isLoop && this._playTime > this.main.duration) {
+        this._isPlaying = false;
+      }
     }
 
     // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
-    if (!this._isPlaying && this._firstActiveElement == this._firstFreeElement) {
+    if (!this.isAlive) {
       this._playTime = 0;
     }
 

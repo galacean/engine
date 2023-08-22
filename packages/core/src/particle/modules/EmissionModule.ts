@@ -128,7 +128,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     const cycleCount = Math.floor((playTime - lastPlayTime) / duration);
 
     // Across one cycle
-    if (main.loop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
+    if (main.isLoop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
       this._emitBySubBurst(lastPlayTime, middleTime, duration);
       this._currentBurstIndex = 0;
