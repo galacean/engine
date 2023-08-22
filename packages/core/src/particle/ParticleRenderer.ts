@@ -11,6 +11,7 @@ import { ParticleShaderProperty } from "./ParticleShaderProperty";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { ParticleStopMode } from "./enums/ParticleStopMode";
 
 /**
  * Particle Renderer Component.
@@ -35,27 +36,6 @@ export class ParticleRenderer extends Renderer {
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
   private _gravity: Vector3 = new Vector3();
-
-  /**
-   * The mesh of particle.
-   * @remarks Valid when `renderMode` is `Mesh`.
-   */
-  get mesh(): ModelMesh {
-    return this._mesh;
-  }
-
-  set mesh(value: ModelMesh) {
-    const lastMesh = this._mesh;
-    if (lastMesh !== value) {
-      this._mesh = value;
-
-      lastMesh?._addReferCount(-1);
-      value?._addReferCount(1);
-      if (this.renderMode === ParticleRenderMode.Mesh) {
-        this.generator._reorganizeGeometryBuffers();
-      }
-    }
-  }
 
   /**
    * Specifies how the system draws particles.
@@ -97,6 +77,27 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
+   * The mesh of particle.
+   * @remarks Valid when `renderMode` is `Mesh`.
+   */
+  get mesh(): ModelMesh {
+    return this._mesh;
+  }
+
+  set mesh(value: ModelMesh) {
+    const lastMesh = this._mesh;
+    if (lastMesh !== value) {
+      this._mesh = value;
+
+      lastMesh?._addReferCount(-1);
+      value?._addReferCount(1);
+      if (this.renderMode === ParticleRenderMode.Mesh) {
+        this.generator._reorganizeGeometryBuffers();
+      }
+    }
+  }
+
+  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -104,10 +105,20 @@ export class ParticleRenderer extends Renderer {
     this.shaderData.enableMacro(ParticleShaderMacro.renderModeBillboardMacro);
   }
 
+  /**
+   * @internal
+   */
   override _onEnable(): void {
     if (this.generator.main.playOnEnabled) {
-      this.generator.play();
+      this.generator.play(false);
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisable(): void {
+    this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
   }
 
   /**

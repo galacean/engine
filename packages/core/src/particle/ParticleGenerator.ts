@@ -142,7 +142,7 @@ export class ParticleGenerator {
    * @param withChildren - Whether to stop the particle system of the child entity
    * @param stopMode - Stop mode
    */
-  stop(withChildren: boolean, stopMode: ParticleStopMode): void {
+  stop(withChildren: boolean = true, stopMode: ParticleStopMode = ParticleStopMode.StopEmitting): void {
     this._isPlaying = false;
   }
 
