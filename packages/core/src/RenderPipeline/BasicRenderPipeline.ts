@@ -1,8 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
-import { SpriteMask } from "../2d";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
-import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
@@ -49,7 +47,7 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
-    this._cullingResults = new CullingResults(engine);
+    this._cullingResults = new CullingResults();
     this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._spriteMaskManager = new SpriteMaskManager(camera.engine);

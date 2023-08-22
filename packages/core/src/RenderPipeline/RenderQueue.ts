@@ -69,9 +69,7 @@ export class RenderQueue {
       const isSprite = data.usage === RenderDataUsage.Sprite;
       const meshData = <MeshRenderData>data;
       const renderer = meshData.component;
-      if (isSprite) {
-        _spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
-      }
+      isSprite && _spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
 
       const compileMacros = Shader._compileMacros;
       const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
@@ -152,9 +150,7 @@ export class RenderQueue {
         );
 
         rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
-        if (isSprite) {
-          _spriteMaskManager.postRender(<SpriteRenderer>renderer);
-        }
+        isSprite && _spriteMaskManager.postRender(<SpriteRenderer>renderer);
       }
     }
   }

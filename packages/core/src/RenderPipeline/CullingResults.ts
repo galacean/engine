@@ -1,4 +1,3 @@
-import { Engine } from "../Engine";
 import { RenderQueue } from "./RenderQueue";
 
 /**
@@ -10,10 +9,10 @@ export class CullingResults {
   readonly transparentQueue: RenderQueue;
   readonly alphaTestQueue: RenderQueue;
 
-  constructor(engine: Engine) {
-    this.opaqueQueue = new RenderQueue(engine);
-    this.transparentQueue = new RenderQueue(engine);
-    this.alphaTestQueue = new RenderQueue(engine);
+  constructor() {
+    this.opaqueQueue = new RenderQueue();
+    this.transparentQueue = new RenderQueue();
+    this.alphaTestQueue = new RenderQueue();
   }
 
   reset(): void {
