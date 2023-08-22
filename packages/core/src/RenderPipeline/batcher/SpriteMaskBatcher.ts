@@ -82,6 +82,7 @@ export class SpriteMaskBatcher {
     }
 
     batchedQueue.length = 0;
+    this._stencilOps.length = 0;
     this._subMeshPool.resetPool();
     this._vertexCount = 0;
     this._elementCount = 0;
@@ -215,8 +216,8 @@ export class SpriteMaskBatcher {
    */
   _initMeshes(engine: Engine) {
     const { MAX_VERTEX_COUNT } = SpriteMaskBatcher;
-    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
-    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
+    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 5);
+    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 1.5);
 
     const { _meshes, _meshCount } = this;
     for (let i = 0; i < _meshCount; i++) {
@@ -243,7 +244,7 @@ export class SpriteMaskBatcher {
     const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 6,
+      MAX_VERTEX_COUNT * 3,
       BufferUsage.Dynamic
     ));
     indiceBuffer.isGCIgnored = true;
