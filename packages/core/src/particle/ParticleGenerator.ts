@@ -31,9 +31,9 @@ export class ParticleGenerator {
   /** @internal */
   private static _tempVector31: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVector40: Vector4 = new Vector4();
-  /** @internal */
   private static _tempColor0: Color = new Color();
+  /** @internal */
+  private static _tempParticleRenderers: ParticleRenderer[] = [];
 
   /** Use auto random seed. */
   useAutoRandomSeed: boolean = true;
@@ -131,9 +131,20 @@ export class ParticleGenerator {
    * @param withChildren - Whether to play the `ParticleRenderers` of the children
    */
   play(withChildren: boolean = true): void {
-    this._isPlaying = true;
-    if (this.useAutoRandomSeed) {
-      this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
+    if (withChildren) {
+      const particleRenderers = this._renderer.entity.getComponentsIncludeChildren(
+        ParticleRenderer,
+        ParticleGenerator._tempParticleRenderers
+      );
+      for (let i = 0, n = particleRenderers.length; i < n; i++) {
+        const particleRenderer = particleRenderers[i];
+        particleRenderer.generator.play(false);
+      }
+    } else {
+      this._isPlaying = true;
+      if (this.useAutoRandomSeed) {
+        this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
+      }
     }
   }
 
@@ -143,7 +154,18 @@ export class ParticleGenerator {
    * @param stopMode - Stop mode
    */
   stop(withChildren: boolean = true, stopMode: ParticleStopMode = ParticleStopMode.StopEmitting): void {
-    this._isPlaying = false;
+    if (withChildren) {
+      const particleRenderers = this._renderer.entity.getComponentsIncludeChildren(
+        ParticleRenderer,
+        ParticleGenerator._tempParticleRenderers
+      );
+      for (let i = 0, n = particleRenderers.length; i < n; i++) {
+        const particleRenderer = particleRenderers[i];
+        particleRenderer.generator.stop(false, stopMode);
+      }
+    } else {
+      this._isPlaying = false;
+    }
   }
 
   /**
