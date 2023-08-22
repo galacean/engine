@@ -1,4 +1,4 @@
-import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
@@ -10,6 +10,7 @@ import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
+import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -33,9 +34,11 @@ class MathTemp {
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
+  static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
+
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
-  /** @internal */
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
+  private static _cameraDepthBufferParamsProperty = ShaderProperty.getByName("camera_DepthBufferParams");
 
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;
@@ -51,6 +54,12 @@ export class Camera extends Component {
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
   cullingMask: Layer = Layer.Everything;
+
+  /**
+   * Depth texture mode.
+   * @defaultValue `DepthTextureMode.None`
+   */
+  depthTextureMode: DepthTextureMode = DepthTextureMode.None;
 
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
@@ -83,6 +92,7 @@ export class Camera extends Component {
   private _isFrustumProjectDirty: boolean = true;
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
+  private _depthBufferParams: Vector4 = new Vector4();
 
   @ignoreClone
   private _frustumViewChangeFlag: BoolUpdateFlag;
@@ -94,6 +104,8 @@ export class Camera extends Component {
   private _isInvViewProjDirty: BoolUpdateFlag;
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
+  @deepClone
+  private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
   @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
@@ -159,7 +171,8 @@ export class Camera extends Component {
   }
 
   /**
-   * Viewport, normalized expression, the upper left corner is (0, 0), and the lower right corner is (1, 1).
+   * The viewport of the camera in normalized coordinates on the screen.
+   * In normalized screen coordinates, the upper-left corner is (0, 0), and the lower-right corner is (1.0, 1.0).
    * @remarks Re-assignment is required after modification to ensure that the modification takes effect.
    */
   get viewport(): Vector4 {
@@ -171,6 +184,15 @@ export class Camera extends Component {
       this._viewport.copyFrom(value);
     }
     this._projMatChange();
+    this._updatePixelViewport();
+  }
+
+  /**
+   * The viewport of the camera in pixel coordinates on the screen.
+   * In pixel screen coordinates, the upper-left corner is (0, 0), and the lower-right corner is (1.0, 1.0).
+   */
+  get pixelViewport(): Rect {
+    return this._pixelViewport;
   }
 
   /**
@@ -295,6 +317,7 @@ export class Camera extends Component {
       value?._addReferCount(1);
       this._renderTarget?._addReferCount(-1);
       this._renderTarget = value;
+      this._updatePixelViewport();
     }
   }
 
@@ -312,6 +335,7 @@ export class Camera extends Component {
     this._renderPipeline = new BasicRenderPipeline(this);
     this._batcherManager = new BatcherManager(this.engine);
     this.shaderData._addReferCount(1);
+    this._updatePixelViewport();
   }
 
   /**
@@ -583,6 +607,14 @@ export class Camera extends Component {
     this._invViewProjMat = null;
   }
 
+  private _updatePixelViewport(): void {
+    const viewport = this._viewport;
+    const width = this._renderTarget?.width ?? this.engine.canvas.width;
+    const height = this._renderTarget?.height ?? this.engine.canvas.height;
+
+    this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
+  }
+
   private _projMatChange(): void {
     this._isFrustumProjectDirty = true;
     this._isProjectionDirty = true;
@@ -600,9 +632,14 @@ export class Camera extends Component {
   }
 
   private _updateShaderData(): void {
+    const depthBufferParams = this._depthBufferParams;
+    const farDivideNear = this._farClipPlane / this._nearClipPlane;
+    depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
+
     const shaderData = this.shaderData;
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
+    shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 
   /**

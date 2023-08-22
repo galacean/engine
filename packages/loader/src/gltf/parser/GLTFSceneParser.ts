@@ -8,9 +8,11 @@ import {
   Camera,
   Engine,
   Entity,
+  Mesh,
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@galacean/engine-core";
+import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
@@ -112,7 +114,7 @@ export class GLTFSceneParser extends GLTFParser {
     const blendShapeWeights = glTFNode.weights || glTFMesh.weights;
 
     for (let i = 0; i < glTFMeshPrimitives.length; i++) {
-      const gltfPrimitive = glTFMeshPrimitives[i];
+      const glTFPrimitive = glTFMeshPrimitives[i];
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
@@ -121,7 +123,12 @@ export class GLTFSceneParser extends GLTFParser {
         const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
-          skinRenderer.skin = skins[skinID];
+          const skin = skins[skinID];
+          skinRenderer.rootBone = skin._rootBone;
+          skinRenderer.bones = skin._bones;
+          this._computeLocalBounds(skinRenderer, mesh, skin._bones, skin._rootBone, skin.inverseBindMatrices);
+
+          skinRenderer.skin = skin;
         }
         if (blendShapeWeights) {
           skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
@@ -132,7 +139,7 @@ export class GLTFSceneParser extends GLTFParser {
         renderer.mesh = mesh;
       }
 
-      const materialIndex = gltfPrimitive.material;
+      const materialIndex = glTFPrimitive.material;
       const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
@@ -143,7 +150,7 @@ export class GLTFSceneParser extends GLTFParser {
         }
       });
 
-      GLTFParser.executeExtensionsAdditiveAndParse(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
+      GLTFParser.executeExtensionsAdditiveAndParse(glTFPrimitive.extensions, context, renderer, glTFPrimitive);
     }
   }
 
@@ -172,5 +179,62 @@ export class GLTFSceneParser extends GLTFParser {
         animatorState.clip = animationClip;
       }
     }
+  }
+
+  private _computeLocalBounds(
+    skinnedMeshRenderer: SkinnedMeshRenderer,
+    mesh: Mesh,
+    bones: Entity[],
+    rootBone: Entity,
+    inverseBindMatrices: Matrix[]
+  ): void {
+    const rootBoneIndex = bones.indexOf(rootBone);
+    if (rootBoneIndex !== -1) {
+      BoundingBox.transform(mesh.bounds, inverseBindMatrices[rootBoneIndex], skinnedMeshRenderer.localBounds);
+    } else {
+      // Root bone is not in joints list, we can only compute approximate inverse bind matrix
+      // Average all root bone's children inverse bind matrix
+      const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      let subRootBoneCount = this._computeApproximateBindMatrix(
+        bones,
+        inverseBindMatrices,
+        rootBone,
+        approximateBindMatrix
+      );
+
+      if (subRootBoneCount !== 0) {
+        Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
+        BoundingBox.transform(mesh.bounds, approximateBindMatrix, skinnedMeshRenderer.localBounds);
+      } else {
+        skinnedMeshRenderer.localBounds.copyFrom(mesh.bounds);
+      }
+    }
+  }
+
+  private _computeApproximateBindMatrix(
+    jointEntities: Entity[],
+    inverseBindMatrices: Matrix[],
+    rootEntity: Entity,
+    approximateBindMatrix: Matrix
+  ): number {
+    let subRootBoneCount = 0;
+    const children = rootEntity.children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const rootChild = children[i];
+      const index = jointEntities.indexOf(rootChild);
+      if (index !== -1) {
+        Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
+        subRootBoneCount++;
+      } else {
+        subRootBoneCount += this._computeApproximateBindMatrix(
+          jointEntities,
+          inverseBindMatrices,
+          rootChild,
+          approximateBindMatrix
+        );
+      }
+    }
+
+    return subRootBoneCount;
   }
 }

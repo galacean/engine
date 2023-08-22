@@ -313,8 +313,8 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: TextRenderer): void {
-    super._cloneTo(target);
+  override _cloneTo(target: TextRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
     target._subFont = this._subFont;
   }

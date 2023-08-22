@@ -1,7 +1,32 @@
 Shader "Water" {
+
+  DepthState depthState {
+    Enabled = true;
+    WriteEnabled = false;
+    CompareFunction = CompareFunction.Greater;
+  }
+
+  RasterState rasterState {
+    CullMode = CullMode.Front;
+    DepthBias = 0.1;
+    SlopeScaledDepthBias = 0.8;
+  }
+
   SubShader {
+    Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
+
+    BlendFactor material_SrcBlend;
+
+    BlendState blendState {
+      SourceAlphaBlendFactor = material_SrcBlend;
+      Enabled[0] = true;
+      ColorWriteMask[0] = 0.8;
+      BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
+      AlphaBlendOperation = BlendOperation.Max;
+    }
 
     Pass "default" {
+      Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
 
       struct a2v {
        vec4 POSITION;
@@ -28,6 +53,22 @@ Shader "Water" {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
     }
 
+    BlendState = blendState;
+
+    StencilState {
+      Enabled = true;
+      ReferenceValue = 2;
+      Mask = 1.3; // 0xffffffff
+      WriteMask = 0.32; // 0xffffffff
+      CompareFunctionFront = CompareFunction.Less;
+      PassOperationBack = StencilOperation.Zero;
+    }
+
+    DepthState = depthState;
+    RasterState = rasterState;
+
+    #define SCENE_SHADOW_TYPE 3
+
       v2f vert(a2v v) {
         v2f o;
 
@@ -48,6 +89,27 @@ Shader "Water" {
         #ifndef ENGINE_IS_COLORSPACE_GAMMA
           gl_FragColor = linearToGamma(gl_FragColor);
         #endif
+
+        // For testing only (macro)
+        #if SCENE_SHADOW_TYPE == 2 || defined(XX_Macro)
+          gl_FragColor = linearToGamma(gl_FragColor);
+        #elif SCENE_SHADOW_TYPE == 3
+          gl_FragColor = linearToGamma(gl_FragColor);
+        #else 
+          gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
+        #endif
+
+        #undef SCENE_SHADOW_TYPE
+
+        #ifndef SCENE_SHADOW_TYPE
+          gl_FragColor = linearToGamma(gl_FragColor);
+        #else
+          gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
+        #endif 
+
+        #ifdef SCENE_SHADOW_TYPE
+          gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
+        #endif 
       }
     }
   }

@@ -317,7 +317,7 @@ export class Scene extends EngineObject {
 
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       Entity._traverseSetOwnerScene(entity, null);
     }

@@ -187,12 +187,11 @@ export class RenderTarget extends GraphicsResource {
   }
 
   /**
-   *
    * Get the render color texture by index.
-   * @param index
+   * @param index - Render color texture index
    */
   getColorTexture(index: number = 0): Texture | null {
-    return this._colorTextures[index];
+    return this._colorTextures[index] ?? null;
   }
 
   /**
