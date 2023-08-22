@@ -100,6 +100,13 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
   }
 
+  /**
+   * @internal
+   */
+  _resetBurst(): void {
+    this._currentBurstIndex = 0;
+  }
+
   private _emitByRateOverTime(playTime: number): void {
     const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
     if (ratePerSeconds > 0) {

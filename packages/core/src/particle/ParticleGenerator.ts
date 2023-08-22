@@ -1,4 +1,4 @@
-import { Color, MathUtil, Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { ColorSpace } from "../enums/ColorSpace";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
@@ -128,7 +128,7 @@ export class ParticleGenerator {
 
   /**
    * Start emitting particles.
-   * @param withChildren - Whether to play the `ParticleRenderers` of the children
+   * @param withChildren - Whether to start the particle system of the child entity
    */
   play(withChildren: boolean = true): void {
     if (withChildren) {
@@ -165,6 +165,13 @@ export class ParticleGenerator {
       }
     } else {
       this._isPlaying = false;
+      if (stopMode === ParticleStopMode.StopEmittingAndClear) {
+        this._firstActiveElement = 0;
+        this._firstFreeElement = 0;
+        this._firstNewElement = 0;
+        this._firstRetiredElement = 0;
+        this.emission._resetBurst();
+      }
     }
   }
 
