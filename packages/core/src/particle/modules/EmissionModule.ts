@@ -130,44 +130,44 @@ export class EmissionModule extends ParticleGeneratorModule {
     // Across one cycle
     if (main.loop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
-      this._emitBySubBurst(lastPlayTime, middleTime);
+      this._emitBySubBurst(lastPlayTime, middleTime, duration);
       this._currentBurstIndex = 0;
 
       for (let i = 0; i < cycleCount; i++) {
         const lastMiddleTime = middleTime;
         middleTime += duration;
-        this._emitBySubBurst(lastMiddleTime, middleTime);
+        this._emitBySubBurst(lastMiddleTime, middleTime, duration);
         this._currentBurstIndex = 0;
       }
 
-      this._emitBySubBurst(middleTime, playTime);
+      this._emitBySubBurst(middleTime, playTime, duration);
     } else {
-      this._emitBySubBurst(lastPlayTime, playTime);
+      this._emitBySubBurst(lastPlayTime, playTime, duration);
     }
   }
 
-  private _emitBySubBurst(lastPlayTime: number, playTime: number): void {
+  private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number): void {
     const particleSystem = this._generator;
     const rand = this._burstRand;
     const bursts = this.bursts;
 
     // Calculate the relative time of the burst
-    const burstDuration = playTime - lastPlayTime;
-    const burstStart = lastPlayTime % particleSystem.main.duration;
-    const burstEnd = burstStart + burstDuration;
+    const baseTime = Math.floor(lastPlayTime / duration) * duration;
+    const startTime = lastPlayTime % duration;
+    const endTime = startTime + (playTime - lastPlayTime);
 
     let index = this._currentBurstIndex;
     for (let n = bursts.length; index < n; index++) {
       const burst = bursts[index];
       const burstTime = burst.time;
 
-      if (burstTime > burstEnd) {
+      if (burstTime > endTime) {
         break;
       }
 
-      if (burstTime >= burstStart) {
+      if (burstTime >= startTime) {
         const count = burst.count.evaluate(undefined, rand.random());
-        particleSystem._emit(lastPlayTime + burstTime, count);
+        particleSystem._emit(baseTime + burstTime, count);
       }
     }
     this._currentBurstIndex = index;

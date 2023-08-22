@@ -224,11 +224,6 @@ export class ParticleGenerator {
       this.emission._emit(lastPlayTime, this._playTime);
     }
 
-    // Reset play time when no active particles to avoid float precision problem, especially in GPU
-    if (this._firstActiveElement === this._firstFreeElement) {
-      this._playTime = 0;
-    }
-
     // Add new particles to vertex buffer when has wait process retired element or new particle
     // @todo: just update new particle buffer to instance buffer, ignore retired particle in shader, especially billboard
     if (
