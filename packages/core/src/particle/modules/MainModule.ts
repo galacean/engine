@@ -1,6 +1,6 @@
-import { IClone } from "@galacean/engine-design";
 import { Color, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
@@ -8,7 +8,7 @@ import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
-export class MainModule implements IClone {
+export class MainModule implements ICustomClone {
   /** The duration of the Particle System in seconds. */
   duration: number = 5.0;
   /** Specifies whether the Particle System loops. */
@@ -145,15 +145,7 @@ export class MainModule implements IClone {
   /**
    * @internal
    */
-  clone(): Object {
-    return null;
-  }
-
-  /**
-   * @internal
-   */
-  cloneTo(target: MainModule): void {
+  _cloneTo(target: MainModule): void {
     target.maxParticles = this.maxParticles;
-    console.log("dsd",this._generator._renderer.engine.time.frameCount);
   }
 }

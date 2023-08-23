@@ -1,3 +1,4 @@
+import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 type TypeArray =
@@ -155,8 +156,8 @@ export class CloneManager {
           }
 
           // Custom clone
-          if ((<any>sourceProperty)._cloneTo) {
-            (<any>sourceProperty)._cloneTo(targetOProperty);
+          if ((<ICustomClone>sourceProperty)._cloneTo) {
+            (<ICustomClone>sourceProperty)._cloneTo(<ICustomClone>targetOProperty);
           }
           break;
       }

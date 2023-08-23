@@ -1,7 +1,6 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { CloneManager } from "./CloneManager";
-import { CloneMode } from "./enums/CloneMode";
 
 /**
  * Custom clone interface.
@@ -10,7 +9,14 @@ export interface ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: ICustomClone, srcRoot: Entity, targetRoot: Entity): void;
+  _cloneTo(target: ICustomClone): void;
+}
+
+export interface IComponentCustomClone {
+  /**
+   * @internal
+   */
+  _cloneTo(target: IComponentCustomClone, srcRoot: Entity, targetRoot: Entity): void;
 }
 
 export class ComponentCloner {
@@ -26,8 +32,12 @@ export class ComponentCloner {
       CloneManager.cloneProperty(source, target, k, cloneModes[k]);
     }
 
-    if ((<any>source)._cloneTo) {
-      (<any>source)._cloneTo(target, srcRoot, targetRoot);
+    if ((<IComponentCustomClone>(source as unknown))._cloneTo) {
+      (<IComponentCustomClone>(source as unknown))._cloneTo(
+        <IComponentCustomClone>(target as unknown),
+        srcRoot,
+        targetRoot
+      );
     }
   }
 }
