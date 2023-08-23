@@ -1,7 +1,7 @@
 import { Matrix } from "@galacean/engine-math";
-import { registerXRFeature } from "../../XRManager";
-import { XRFeature } from "../XRFeature";
-import { EnumXRFeature } from "../../enum/EnumXRFeature";
+import { registerXRFeature } from "../XRManager";
+import { XRFeature } from "./XRFeature";
+import { EnumXRFeature } from "../enum/EnumXRFeature";
 
 @registerXRFeature(EnumXRFeature.HitTest)
 export class XRHitTest extends XRFeature {

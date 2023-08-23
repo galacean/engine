@@ -2,15 +2,13 @@ import { Engine, XRController, XRViewer, XRInputDevice, EnumXRInputSource, EnumX
 import { IXRInputProvider } from "@galacean/engine-design";
 import { WebXRSession } from "../WebXRSession";
 
-type FlowXREvent = XRInputSourceEvent | XRInputSourceChangeEvent;
-
 export class WebXRInputProvider implements IXRInputProvider {
   private _engine: Engine;
   private _session: WebXRSession;
   private _inputs: XRInputDevice[];
-  private _flowEventList: {
-    event: FlowXREvent;
-    handle: (frameCount: number, event: FlowXREvent, inputs: XRInputDevice[]) => void;
+  private _eventList: {
+    event: Event;
+    handle: (frameCount: number, event: Event, inputs: XRInputDevice[]) => void;
   }[] = [];
 
   attach(session: WebXRSession, inputs: XRInputDevice[]): void {
@@ -44,7 +42,7 @@ export class WebXRInputProvider implements IXRInputProvider {
     platformSession.removeEventListener("inputsourceschange", this._onInputSourcesChange);
     this._session = null;
     this._inputs = null;
-    this._flowEventList.length = 0;
+    this._eventList.length = 0;
   }
 
   destroy(): void {
@@ -63,12 +61,12 @@ export class WebXRInputProvider implements IXRInputProvider {
       return;
     }
     const { frameCount } = this._engine.time;
-    const { _flowEventList: flowEventList } = this;
-    for (let i = 0, n = flowEventList.length; i < n; i++) {
-      const flowEvent = flowEventList[i];
-      flowEvent.handle(frameCount, flowEvent.event, inputs);
+    const { _eventList: eventList } = this;
+    for (let i = 0, n = eventList.length; i < n; i++) {
+      const event = eventList[i];
+      event.handle(frameCount, event.event, inputs);
     }
-    flowEventList.length = 0;
+    eventList.length = 0;
 
     const { inputSources } = _platformSession;
     for (let i = 0, n = inputSources.length; i < n; i++) {
@@ -118,11 +116,11 @@ export class WebXRInputProvider implements IXRInputProvider {
   }
 
   private _onSessionEvent(event: XRInputSourceEvent) {
-    this._flowEventList.push({ event, handle: this._handleButtonEvent });
+    this._eventList.push({ event, handle: this._handleButtonEvent });
   }
 
   private _onInputSourcesChange(event: XRInputSourceChangeEvent) {
-    this._flowEventList.push({ event, handle: this._handleInputSourceEvent });
+    this._eventList.push({ event, handle: this._handleInputSourceEvent });
   }
 
   private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInputDevice[]): void {

@@ -1,3 +1,3 @@
-import { XRFeature } from "../XRFeature";
+import { XRFeature } from "./XRFeature";
 
 export class XRHandTracking extends XRFeature {}

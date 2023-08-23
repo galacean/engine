@@ -1,21 +1,11 @@
-import { EnumXRFeature, registerXRProvider } from "@galacean/engine";
+import { EnumXRFeature, XRFeatureProvider, registerXRProvider } from "@galacean/engine";
 import { WebXRSession } from "../WebXRSession";
 import { IXRFeatureProvider } from "@galacean/engine-design";
 
 @registerXRProvider(EnumXRFeature.PlaneTracking)
-export class WebXRPlaneTrackingProvider implements IXRFeatureProvider {
-  private _session: WebXRSession;
-
-  attach(session: WebXRSession): void {
-    this._session = session;
-  }
-
+export class WebXRPlaneTrackingProvider extends XRFeatureProvider {
   onXRFrame(): void {
-    const { _platformFrame: platformFrame } = this._session;
-    const detectedPlanes = platformFrame.worldInformation.detectedPlanes;
+    const { _platformFrame: platformFrame } = <WebXRSession>this._session;
+    const { detectedPlanes } = platformFrame.worldInformation;
   }
-
-  detach(): void {}
-
-  destroy(): void {}
 }

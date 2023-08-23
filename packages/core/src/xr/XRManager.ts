@@ -2,7 +2,7 @@ import { IXRFeatureProvider, IXRSession } from "@galacean/engine-design";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { XRFeature } from "./feature/XRFeature";
-import { IXRPlatform } from "./interface/IXRPlatform";
+import { IXRPlatform } from "./IXRPlatform";
 import { XRViewer } from "./input/XRViewer";
 import { XRInputManager } from "./input/XRInputManager";
 import { CameraClearFlags } from "../enums/CameraClearFlags";

@@ -1,8 +1,8 @@
-import { Engine } from "../../Engine";
+import { Engine } from "../Engine";
 import { IXRInputProvider, IXRSession } from "@galacean/engine-design";
-import { EnumXRMode } from "../enum/EnumXRMode";
-import { IXRFeatureDescriptor } from "../descriptor/IXRFeatureDescriptor";
-import { IXRSessionDescriptor } from "../descriptor/IXRSessionDescriptor";
+import { EnumXRMode } from "./enum/EnumXRMode";
+import { IXRFeatureDescriptor } from "./descriptor/IXRFeatureDescriptor";
+import { IXRSessionDescriptor } from "./descriptor/IXRSessionDescriptor";
 
 export interface IXRPlatform {
   get inputProvider(): new (engine: Engine) => IXRInputProvider;

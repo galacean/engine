@@ -1,4 +1,3 @@
-import { IXRSession } from "@galacean/engine-design";
 import {
   Engine,
   EnumXRFeature,
@@ -6,6 +5,7 @@ import {
   IXRSessionDescriptor,
   WebGLGraphicDevice
 } from "@galacean/engine";
+import { IXRSession } from "@galacean/engine-design";
 import { EnumWebXRSpaceType } from "./enum/EnumWebXRSpaceType";
 import { parseXRMode } from "./util";
 
@@ -17,7 +17,7 @@ export class WebXRSession implements IXRSession {
   // @internal
   _platformLayer: XRWebGLLayer;
   // @internal
-  _platformSpace: XRReferenceSpace | XRBoundedReferenceSpace;
+  _platformSpace: XRReferenceSpace;
 
   private _engine: Engine;
   private _rhi: WebGLGraphicDevice;
@@ -61,12 +61,10 @@ export class WebXRSession implements IXRSession {
               layers: [this._platformLayer]
             });
           }
-          session
-            .requestReferenceSpace(EnumWebXRSpaceType.Local)
-            .then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
-              this._platformSpace = value;
-              resolve();
-            }, reject);
+          session.requestReferenceSpace(EnumWebXRSpaceType.Local).then((value: XRReferenceSpace) => {
+            this._platformSpace = value;
+            resolve();
+          }, reject);
         }, reject);
       }, reject);
     });
@@ -117,10 +115,6 @@ export class WebXRSession implements IXRSession {
 
   getTracking(): void {}
 
-  on(eventName: string, fn: (...args: any[]) => any): void {}
-
-  off(eventName: string, fn: (...args: any[]) => any): void {}
-
   private _webXRUpdate(time: DOMHighResTimeStamp, frame: XRFrame) {
     const { _platformLayer: platformLayer, _rhi: rhi } = this;
     this._platformFrame = frame;
@@ -154,6 +148,9 @@ export class WebXRSession implements IXRSession {
       switch (feature.type) {
         case EnumXRFeature.HandTracking:
           out.push("hand-tracking");
+          break;
+        case EnumXRFeature.HitTest:
+          out.push("hit-test");
           break;
         default:
           break;

@@ -1,7 +1,7 @@
-import { XRFeature } from "../XRFeature";
-import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { registerXRFeature } from "../../XRManager";
-import { EnumXRFeature } from "../../enum/EnumXRFeature";
+import { XRFeature } from "./XRFeature";
+import { UpdateFlagManager } from "../../UpdateFlagManager";
+import { registerXRFeature } from "../XRManager";
+import { EnumXRFeature } from "../enum/EnumXRFeature";
 
 @registerXRFeature(EnumXRFeature.PlaneTracking)
 export class XRPlaneTracking extends XRFeature {
