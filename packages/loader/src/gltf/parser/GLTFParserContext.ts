@@ -1,4 +1,14 @@
-import { Buffer, Entity, ModelMesh, ResourceManager, Texture2D, TypedArray } from "@galacean/engine-core";
+import {
+  AnimationClip,
+  Buffer,
+  Entity,
+  Material,
+  ModelMesh,
+  ResourceManager,
+  Skin,
+  Texture2D,
+  TypedArray
+} from "@galacean/engine-core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
 import type { IGLTF } from "../GLTFSchema";
@@ -124,8 +134,12 @@ export class GLTFParserContext {
 
       return Promise.all([
         this.get<void>(GLTFParserType.Validator),
-        this.get<Texture2D[]>(GLTFParserType.Texture),
-        this.get<Entity>(GLTFParserType.Scene)
+        this.get<Promise<Texture2D[]>>(GLTFParserType.Texture),
+        this.get<Promise<Material[]>>(GLTFParserType.Material),
+        this.get<Promise<ModelMesh[][]>>(GLTFParserType.Mesh),
+        this.get<Promise<Skin[]>>(GLTFParserType.Skin),
+        this.get<Promise<AnimationClip[]>>(GLTFParserType.Animation),
+        this.get<Promise<Entity>>(GLTFParserType.Scene)
       ]).then(() => {
         this.resourceManager.addContentRestorer(this.contentRestorer);
         return this.glTFResource;
