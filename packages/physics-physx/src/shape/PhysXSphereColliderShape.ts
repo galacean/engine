@@ -36,7 +36,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
 
-    this._maxScale = Math.max(scale.x, Math.max(scale.x, scale.y));
+    this._maxScale = Math.max(scale.x, scale.y);
     this._pxGeometry.radius = this._radius * this._maxScale;
     this._pxShape.setGeometry(this._pxGeometry);
   }

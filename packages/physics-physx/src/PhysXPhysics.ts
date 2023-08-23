@@ -13,7 +13,7 @@ import {
   ISpringJoint,
   IStaticCollider
 } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3, version } from "@galacean/engine";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
@@ -87,11 +87,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/1.0.0-alpha.4/libs/physx.release.js.js";
+        script.src = `https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/${version}/libs/physx.release.js.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/1.0.0-alpha.4/libs/physx.release.js";
+        script.src = `https://gw.alipayobjects.com/os/lib/galacean/engine-physics-physx/${version}/libs/physx.release.js`;
       }
     });
 

@@ -301,7 +301,6 @@ export class DynamicCollider extends Collider {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
-    this._updateFlag.flag = false;
   }
 
   private _setLinearVelocity(): void {
