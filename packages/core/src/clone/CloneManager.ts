@@ -1,15 +1,6 @@
+import { TypedArray } from "../base/Constant";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
-
-type TypeArray =
-  | Uint8Array
-  | Uint16Array
-  | Uint32Array
-  | Int8Array
-  | Int16Array
-  | Int32Array
-  | Float32Array
-  | Float64Array;
 
 /**
  * Property decorator, ignore the property when cloning.
@@ -124,11 +115,11 @@ export class CloneManager {
         case Int32Array:
         case Float32Array:
         case Float64Array:
-          let targetPropertyT = <TypeArray>target[k];
-          if (targetPropertyT == null || targetPropertyT.length !== (<TypeArray>sourceProperty).length) {
-            target[k] = (<TypeArray>sourceProperty).slice();
+          let targetPropertyT = <TypedArray>target[k];
+          if (targetPropertyT == null || targetPropertyT.length !== (<TypedArray>sourceProperty).length) {
+            target[k] = (<TypedArray>sourceProperty).slice();
           } else {
-            targetPropertyT.set(<TypeArray>sourceProperty);
+            targetPropertyT.set(<TypedArray>sourceProperty);
           }
           break;
         case Array:
