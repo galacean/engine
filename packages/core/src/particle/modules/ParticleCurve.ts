@@ -1,10 +1,12 @@
 import { IClone } from "@galacean/engine-design";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
 export class ParticleCurve implements IClone {
   private _keys: Key[] = [];
+  @ignoreClone
   private _typeArray: Float32Array;
   private _typeArrayDirty: boolean = false;
 

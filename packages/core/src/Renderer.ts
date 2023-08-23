@@ -67,7 +67,7 @@ export class Renderer extends Component implements ICustomClone {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @ignoreClone
+  @assignmentClone
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;

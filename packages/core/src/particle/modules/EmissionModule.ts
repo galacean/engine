@@ -1,4 +1,5 @@
 import { Rand } from "@galacean/engine-math";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { Burst } from "./Burst";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
@@ -9,14 +10,19 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  */
 export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate of particle emission. */
+  @deepClone
   rateOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(10);
   /**  The rate at which the emitter spawns new particles over distance. */
+  @deepClone
   rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
+  @deepClone
   private _bursts: Burst[] = [];
 
   private _frameRateTime: number = 0;
   private _currentBurstIndex: number = 0;
+
+  @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
   /**
@@ -61,28 +67,6 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   clearBurst(): void {
     this._bursts.length = 0;
-  }
-
-  /**
-   * @override
-   */
-  cloneTo(destEmission: EmissionModule): void {
-    destEmission.enabled = this.enabled;
-    destEmission.rateOverTime = this.rateOverTime;
-    destEmission.rateOverDistance = this.rateOverDistance;
-
-    const srcBursts = this._bursts;
-    const destBursts = destEmission._bursts;
-    const burstCount = srcBursts.length;
-    destBursts.length = burstCount;
-    for (let i = 0; i < burstCount; i++) {
-      const destBurst = destBursts[i];
-      if (destBurst) {
-        srcBursts[i].cloneTo(destBurst);
-      } else {
-        destBursts[i] = srcBursts[i].clone();
-      }
-    }
   }
 
   /**

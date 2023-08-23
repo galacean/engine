@@ -1,12 +1,13 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * Velocity over lifetime module.
@@ -28,26 +29,26 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
   /** Velocity over lifetime for x axis. */
+  @deepClone
   x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
+  @deepClone
   y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
+  @deepClone
   z: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
   /** Velocity space. */
   space = ParticleSimulationSpace.Local;
 
   /** @internal */
+  @ignoreClone
   _velocityRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
 
+  @ignoreClone
   private _velocityMinConstant = new Vector3();
+  @ignoreClone
   private _velocityMaxConstant = new Vector3();
-
-  /**
-   * @override
-   * @inheritDoc
-   */
-  cloneTo(destRotationOverLifetime: VelocityOverLifetimeModule): void {}
 
   /**
    * @internal

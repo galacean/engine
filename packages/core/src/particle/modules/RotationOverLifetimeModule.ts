@@ -1,11 +1,12 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * Rotate particles throughout their lifetime.
@@ -29,13 +30,17 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   separateAxes: boolean = false;
 
   /** Rotation over lifetime for z axis. */
+  @deepClone
   x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
+  @deepClone
   y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
+  @deepClone
   z: ParticleCompositeCurve = new ParticleCompositeCurve(45);
 
   /** @internal */
+  @ignoreClone
   _rotationRand = new Rand(0, ParticleRandomSubSeeds.RotationOverLifetime);
 
   private _rotationMinConstant = new Vector3();
@@ -43,12 +48,6 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   private _enableSeparateMacro: ShaderMacro;
   private _isCurveMacro: ShaderMacro;
   private _isRandomTwoMacro: ShaderMacro;
-
-  /**
-   * @override
-   * @inheritDoc
-   */
-  cloneTo(destRotationOverLifetime: RotationOverLifetimeModule): void {}
 
   /**
    * @internal

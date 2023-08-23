@@ -118,26 +118,60 @@ export class CloneManager {
       case Int32Array:
       case Float32Array:
       case Float64Array:
-        // Type array clone.
+        // Type array clone
         (<TypeArray>target).set(<TypeArray>source);
         break;
       case Array:
-        // Array clone.
+        // Array clone
         for (let i = 0, n = (<[]>source).length; i < n; i++) {
           CloneManager._deepCloneObjectItem(source, target, i);
         }
         break;
       default:
+        // Object or other class not implements custom clone
+        const cloneModes = CloneManager.getCloneMode(source.constructor);
+        const keys = Object.keys(source);
+        for (let i = 0, n = keys.length; i < n; i++) {
+          const k = keys[i];
+          const cloneMode = cloneModes[k];
+          switch (cloneMode) {
+            case undefined:
+            case CloneMode.Assignment:
+              target[k] = source[k];
+              break;
+            case CloneMode.Shallow:
+              const sourcePropS = source[k];
+              if (sourcePropS instanceof Object) {
+                const tarProp = (target[k] ||= new sourcePropS.constructor());
+                Object.assign(tarProp, sourcePropS);
+              } else {
+                // Null, undefined or primitive type
+                target[k] = sourcePropS;
+              }
+              break;
+            case CloneMode.Deep:
+              const sourcePropD = source[k];
+              if (sourcePropD instanceof Object) {
+                const tarProp = (target[k] ||= new sourcePropD.constructor());
+                console.log("tarProp:  " + tarProp);
+                if (tarProp == undefined) {
+                  debugger;
+                }
+                CloneManager.deepCloneObject(sourcePropD, tarProp);
+              } else {
+                // Null, undefined or primitive type
+                target[k] = sourcePropD;
+              }
+
+              // CloneManager._deepCloneObjectItem(source, target, k);
+              break;
+          }
+        }
+
+        // Custom clone
         const customSource = <IClone>source;
         if (customSource.clone && customSource.cloneTo) {
-          // Custom clone.
           customSource.cloneTo(target);
-        } else {
-          // Object or other class not implements custom clone.
-          const keys = Object.keys(source);
-          for (let i = 0, n = keys.length; i < n; i++) {
-            CloneManager._deepCloneObjectItem(source, target, keys[i]);
-          }
         }
     }
   }
@@ -155,7 +189,7 @@ export class CloneManager {
         case Int32Array:
         case Float32Array:
         case Float64Array:
-          // Type array clone.
+          // Type array clone
           const sourceTypeArrayItem = <TypeArray>sourceItem;
           let targetTypeArrayItem = <TypeArray>target[k];
           if (targetTypeArrayItem == null) {
@@ -165,7 +199,7 @@ export class CloneManager {
           }
           break;
         case Array:
-          // Array clone.
+          // Array clone
           const sourceArrayItem = <[]>sourceItem;
           let targetArrayItem = <[]>target[k];
           if (targetArrayItem == null) {
@@ -176,22 +210,9 @@ export class CloneManager {
           CloneManager.deepCloneObject(sourceArrayItem, targetArrayItem);
           break;
         default:
-          if (sourceItem.clone && sourceItem.cloneTo) {
-            // Custom clone.
-            let sourceCustomItem = <IClone>sourceItem;
-            let targetCustomItem = <IClone>target[k];
-            if (targetCustomItem) {
-              sourceCustomItem.cloneTo(targetCustomItem);
-            } else {
-              target[k] = sourceCustomItem.clone();
-            }
-          } else {
-            // Object or other class not implements custom clone.
-            let targetItem = <Object>target[k];
-            targetItem == null && (target[k] = targetItem = new sourceItem.constructor());
-            CloneManager.deepCloneObject(sourceItem, targetItem);
-            break;
-          }
+          let targetItem = <Object>target[k];
+          targetItem == null && (target[k] = targetItem = new sourceItem.constructor());
+          CloneManager.deepCloneObject(sourceItem, targetItem);
       }
     } else {
       // Null or undefined and primitive type.

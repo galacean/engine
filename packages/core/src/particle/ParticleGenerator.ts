@@ -1,5 +1,6 @@
 import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
 import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
@@ -39,51 +40,74 @@ export class ParticleGenerator {
   useAutoRandomSeed: boolean = true;
 
   /** Main module. */
+  @deepClone
   readonly main: MainModule = new MainModule(this);
   /** Emission module. */
+  @deepClone
   readonly emission: EmissionModule = new EmissionModule(this);
   /** Shape module. */
+  @deepClone
   readonly shape: ShapeModule = new ShapeModule(this);
   /** Velocity over lifetime module. */
+  @deepClone
   readonly velocityOverLifetime: VelocityOverLifetimeModule = new VelocityOverLifetimeModule(this);
   /** Size over lifetime module. */
+  @deepClone
   readonly sizeOverLifetime: SizeOverLifetimeModule = new SizeOverLifetimeModule(this);
   /** Rotation over lifetime module. */
+  @deepClone
   readonly rotationOverLifetime: RotationOverLifetimeModule = new RotationOverLifetimeModule(this);
   /** Color over lifetime module. */
+  @deepClone
   readonly colorOverLifetime: ColorOverLifetimeModule = new ColorOverLifetimeModule(this);
   /** Texture sheet animation module. */
+  @deepClone
   readonly textureSheetAnimation: TextureSheetAnimationModule = new TextureSheetAnimationModule(this);
 
   /** @internal */
   _currentParticleCount: number = 0;
   /** @internal */
+  @ignoreClone
   _playTime: number = 0;
 
   /** @internal */
+  @ignoreClone
   _firstNewElement: number = 0;
   /** @internal */
+  @ignoreClone
   _firstActiveElement: number = 0;
   /** @internal */
+  @ignoreClone
   _firstFreeElement: number = 0;
   /** @internal */
+  @ignoreClone
   _firstRetiredElement: number = 0;
   /** @internal */
+  @ignoreClone
   _primitive: Primitive;
   /** @internal */
+  @ignoreClone
   _vertexBufferBindings: VertexBufferBinding[] = [];
   /** @internal */
+  @ignoreClone
   _subPrimitive: SubMesh = new SubMesh(0, 0, MeshTopology.Triangles);
   /** @internal */
+  @ignoreClone
   readonly _renderer: ParticleRenderer;
 
+  @ignoreClone
   private _isPlaying: boolean = false;
+  @ignoreClone
   private _instanceBufferResized: boolean = false;
+  @ignoreClone
   private _waitProcessRetiredElementCount: number = 0;
+  @ignoreClone
   private _instanceVertexBufferBinding: VertexBufferBinding;
+  @ignoreClone
   private _instanceVertices: Float32Array;
   private _randomSeed: number = 0;
 
+  @ignoreClone
   private readonly _particleIncreaseCount: number = 128;
 
   /**

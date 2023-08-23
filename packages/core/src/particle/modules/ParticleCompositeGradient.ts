@@ -1,21 +1,26 @@
-import { IClone } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleGradient } from "./ParticleGradient";
+import { deepClone } from "../../clone/CloneManager";
+import { shallowClone } from "oasis-engine";
 
 /**
  * Particle composite gradient.
  */
-export class ParticleCompositeGradient implements IClone {
+export class ParticleCompositeGradient {
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
+  @shallowClone
   constantMin: Color = new Color();
   /* The max constant color used by the gradient if mode is set to `TwoConstants`. */
+  @shallowClone
   constantMax: Color = new Color();
   /** The min gradient used by the gradient if mode is set to `Gradient`. */
+  @deepClone
   gradientMin: ParticleGradient = new ParticleGradient();
   /** The max gradient used by the gradient if mode is set to `Gradient`. */
+  @deepClone
   gradientMax: ParticleGradient = new ParticleGradient();
 
   /**
@@ -106,24 +111,5 @@ export class ParticleCompositeGradient implements IClone {
       default:
         break;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  cloneTo(destEmission: ParticleCompositeGradient): void {
-    destEmission.mode = this.mode;
-    destEmission.constant.copyFrom(this.constant);
-    destEmission.constantMin.copyFrom(this.constantMin);
-    destEmission.constantMax.copyFrom(this.constantMax);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  clone(): ParticleCompositeGradient {
-    const destGradient = new ParticleCompositeGradient(this.constant);
-    this.cloneTo(destGradient);
-    return destGradient;
   }
 }

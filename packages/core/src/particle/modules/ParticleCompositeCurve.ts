@@ -1,11 +1,11 @@
-import { IClone } from "@galacean/engine-design";
+import { deepClone } from "../../clone/CloneManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCurve } from "./ParticleCurve";
 
 /**
  * Particle composite curve.
  */
-export class ParticleCompositeCurve implements IClone {
+export class ParticleCompositeCurve {
   /** The curve mode. */
   mode: ParticleCurveMode = ParticleCurveMode.Constant;
   /** The min constant value used by the curve if mode is set to `TwoConstants`.*/
@@ -13,8 +13,10 @@ export class ParticleCompositeCurve implements IClone {
   /** The max constant value used by the curve if mode is set to `TwoConstants`.*/
   constantMax: number = 0;
   /** The min curve used by the curve if mode is set to `TwoCurves`. */
+  @deepClone
   curveMin: ParticleCurve;
   /** The max curve used by the curve if mode is set to `TwoCurves`. */
+  @deepClone
   curveMax: ParticleCurve;
 
   /**
@@ -103,24 +105,5 @@ export class ParticleCompositeCurve implements IClone {
       default:
         break;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  cloneTo(destEmission: ParticleCompositeCurve): void {
-    destEmission.mode = this.mode;
-    destEmission.constant = this.constant;
-    destEmission.constantMin = this.constantMin;
-    destEmission.constantMax = this.constantMax;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  clone(): ParticleCompositeCurve {
-    let destCurve = new ParticleCompositeCurve(0);
-    this.cloneTo(destCurve);
-    return destCurve;
   }
 }

@@ -1,3 +1,4 @@
+import { deepClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -25,10 +26,13 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   /** Specifies whether the Size is separate on each axis. */
   separateAxes = false;
   /** Size curve over lifetime for x axis. */
+  @deepClone
   sizeX = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
   /** Size curve over lifetime for y axis. */
+  @deepClone
   sizeY = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
   /** Size curve over lifetime for z axis. */
+  @deepClone
   sizeZ = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
 
   /**
@@ -41,11 +45,6 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   set size(value: ParticleCompositeCurve) {
     this.sizeX = value;
   }
-
-  /**
-   * @inheritDoc
-   */
-  cloneTo(dest: SizeOverLifetimeModule): void {}
 
   /**
    * @internal

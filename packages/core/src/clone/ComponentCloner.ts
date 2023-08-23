@@ -31,24 +31,22 @@ export class ComponentCloner {
           target[k] = source[k];
           break;
         case CloneMode.Shallow:
-          const sourcePropS: Object = source[k];
+          const sourcePropS = source[k];
           if (sourcePropS instanceof Object) {
-            let tarProp = <Object>target[k];
-            tarProp == null && (tarProp = target[k] = sourcePropS.constructor());
+            const tarProp = (target[k] ||= new sourcePropS.constructor());
             Object.assign(tarProp, sourcePropS);
           } else {
-            // Null or undefined and primitive type.
+            // Null, undefined or primitive type
             target[k] = sourcePropS;
           }
           break;
         case CloneMode.Deep:
-          const sourcePropD: Object = source[k];
+          const sourcePropD = source[k];
           if (sourcePropD instanceof Object) {
-            let tarProp = <Object>target[k];
-            tarProp == null && (tarProp = target[k] = sourcePropD.constructor());
+            const tarProp = (target[k] ||= new sourcePropD.constructor());
             CloneManager.deepCloneObject(sourcePropD, tarProp);
           } else {
-            // Null or undefined and primitive type.
+            // Null, undefined or primitive type
             target[k] = sourcePropD;
           }
           break;

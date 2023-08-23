@@ -1,5 +1,5 @@
 import { Rand } from "@galacean/engine-math";
-import { ParticleGenerator } from "../ParticleGenerator";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { BaseShape } from "./shape/BaseShape";
@@ -9,16 +9,12 @@ import { BaseShape } from "./shape/BaseShape";
  */
 export class ShapeModule extends ParticleGeneratorModule {
   /** The shape of the emitter. */
+  @deepClone
   shape: BaseShape;
 
   /** @internal */
+  @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
-
-  constructor(generator: ParticleGenerator) {
-    super(generator);
-  }
-
-  override cloneTo(destRotationOverLifetime: ParticleGeneratorModule) {}
 
   /**
    * @internal

@@ -1,12 +1,14 @@
 import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { shallowClone } from "oasis-engine";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { Key, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * Texture sheet animation module.
@@ -21,8 +23,10 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static readonly _frameMaxCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMaxCurve");
 
   /** Start frame of the texture sheet. */
+  @deepClone
   readonly startFrame = new ParticleCompositeCurve(0);
   /** Frame over time curve of the texture sheet. */
+  @deepClone
   readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
   /** Texture sheet animation type. */
   type = TextureSheetAnimationType.WholeSheet;
@@ -30,10 +34,13 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   cycleCount = 1;
 
   /** @internal */
+  @shallowClone
   _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
   /** @internal */
+  @ignoreClone
   _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
 
+  @shallowClone
   private _tiling = new Vector2(1, 1);
 
   /**

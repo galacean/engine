@@ -12,6 +12,7 @@ import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 
 /**
  * Particle Renderer Component.
@@ -23,18 +24,22 @@ export class ParticleRenderer extends Renderer {
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
 
   /** Particle generator. */
+  @deepClone
   readonly generator: ParticleGenerator = new ParticleGenerator(this);
 
   /** Specifies how much particles stretch depending on their velocity. */
   velocityScale: number = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
   lengthScale: number = 2;
+
   /** The pivot of particle. */
+  @shallowClone
   pivot: Vector3 = new Vector3();
 
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
+  @ignoreClone
   private _gravity: Vector3 = new Vector3();
 
   /**
