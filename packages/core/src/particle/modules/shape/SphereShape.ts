@@ -29,17 +29,4 @@ export class SphereShape extends BaseShape {
     ShapeUtils._randomPointUnitSphere(direction, rand);
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
-
-  override cloneTo(destShape: SphereShape): void {
-    super.cloneTo(destShape);
-    destShape.radius = this.radius;
-    destShape.emitFromShell = this.emitFromShell;
-    destShape.randomDirectionAmount = this.randomDirectionAmount;
-  }
-
-  override clone(): SphereShape {
-    const destShape = new SphereShape();
-    this.cloneTo(destShape);
-    return destShape;
-  }
 }

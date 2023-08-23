@@ -59,20 +59,6 @@ export class ConeShape extends BaseShape {
         break;
     }
   }
-
-  override cloneTo(destShape: ConeShape): void {
-    super.cloneTo(destShape);
-    destShape.angle = this.angle;
-    destShape.radius = this.radius;
-    destShape.length = this.length;
-    destShape.emitType = this.emitType;
-  }
-
-  override clone(): ConeShape {
-    const destShape = new ConeShape();
-    this.cloneTo(destShape);
-    return destShape;
-  }
 }
 
 /**

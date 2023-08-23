@@ -48,18 +48,4 @@ export class CircleShape extends BaseShape {
     // reverse to default direction
     direction.z *= -1.0;
   }
-
-  override cloneTo(destShape: CircleShape): void {
-    super.cloneTo(destShape);
-    destShape.radius = this.radius;
-    destShape.arc = this.arc;
-    destShape.arcMode = this.arcMode;
-    destShape.randomDirectionAmount = this.randomDirectionAmount;
-  }
-
-  override clone(): CircleShape {
-    const destShape = new CircleShape();
-    this.cloneTo(destShape);
-    return destShape;
-  }
 }

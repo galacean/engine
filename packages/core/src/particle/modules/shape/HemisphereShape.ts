@@ -37,17 +37,4 @@ export class HemisphereShape extends BaseShape {
     // reverse to default direction
     direction.z *= -1.0;
   }
-
-  override cloneTo(destShape: HemisphereShape): void {
-    super.cloneTo(destShape);
-    destShape.radius = this.radius;
-    destShape.emitFromShell = this.emitFromShell;
-    destShape.randomDirectionAmount = this.randomDirectionAmount;
-  }
-
-  override clone(): HemisphereShape {
-    const destShape = new HemisphereShape();
-    this.cloneTo(destShape);
-    return destShape;
-  }
 }

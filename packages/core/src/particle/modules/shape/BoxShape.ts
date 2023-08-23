@@ -18,7 +18,7 @@ export class BoxShape extends BaseShape {
   /**
    * @internal
    */
-  override _generatePositionAndDirection(rand: Rand,position: Vector3, direction: Vector3): void {
+  override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
 
     position.multiply(this.boxThickness);
@@ -31,17 +31,5 @@ export class BoxShape extends BaseShape {
     }
     // reverse to default direction
     direction.z *= -1.0;
-  }
-
-  override cloneTo(destShape: BoxShape): void {
-    super.cloneTo(destShape);
-    destShape.boxThickness.copyFrom(this.boxThickness);
-    destShape.randomDirectionAmount = this.randomDirectionAmount;
-  }
-
-  override clone(): BoxShape {
-    const destShape = new BoxShape();
-    this.cloneTo(destShape);
-    return destShape;
   }
 }
