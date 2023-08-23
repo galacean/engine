@@ -1,6 +1,6 @@
 import { IXRFeatureDescriptor } from "../../descriptor/IXRFeatureDescriptor";
-import { XRPlaneTrackingMode } from "../../enum/XRPlaneTrackingMode";
+import { EnumXRPlaneTrackingMode } from "../../enum/EnumXRPlaneTrackingMode";
 
 export interface IXRPlaneTrackingDescriptor extends IXRFeatureDescriptor {
-  mode: XRPlaneTrackingMode;
+  mode: EnumXRPlaneTrackingMode;
 }

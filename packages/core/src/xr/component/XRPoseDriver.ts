@@ -1,11 +1,11 @@
 import { Script } from "../../Script";
 import { XRInputManager } from "../input/XRInputManager";
+import { EnumXRTrackingMode } from "../enum/EnumXRTrackingMode";
 import { EnumXRInputSource } from "../enum/EnumXRInputSource";
-import { XRImageTrackingMode } from "../enum/XRImageTrackingMode";
 
 export class XRPoseDriver extends Script {
   source: EnumXRInputSource = EnumXRInputSource.Viewer;
-  updateType: XRImageTrackingMode = XRImageTrackingMode.RotationAndPosition;
+  updateType: EnumXRTrackingMode = EnumXRTrackingMode.RotationAndPosition;
 
   private _inputManager: XRInputManager;
 
@@ -14,13 +14,13 @@ export class XRPoseDriver extends Script {
     const pose = inputManager.getInput(this.source);
     if (pose) {
       switch (this.updateType) {
-        case XRImageTrackingMode.RotationOnly:
+        case EnumXRTrackingMode.RotationOnly:
           this.entity.transform.rotationQuaternion = pose.quaternion;
           break;
-        case XRImageTrackingMode.PositionOnly:
+        case EnumXRTrackingMode.PositionOnly:
           this.entity.transform.position = pose.position;
           break;
-        case XRImageTrackingMode.RotationAndPosition:
+        case EnumXRTrackingMode.RotationAndPosition:
           this.entity.transform.localMatrix = pose.matrix;
           break;
         default:

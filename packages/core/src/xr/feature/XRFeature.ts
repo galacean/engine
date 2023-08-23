@@ -1,6 +1,6 @@
 import { Engine } from "../../Engine";
+import { IXRFeatureProvider } from "@galacean/engine-design";
 import { IXRFeatureDescriptor } from "../descriptor/IXRFeatureDescriptor";
-import { IXRFeatureProvider } from "./IXRFeatureProvider";
 
 export abstract class XRFeature {
   protected _engine: Engine;

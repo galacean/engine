@@ -1,3 +1,4 @@
+
 import { EnumXRMode } from "../enum/EnumXRMode";
 import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
 

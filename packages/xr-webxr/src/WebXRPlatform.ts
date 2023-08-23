@@ -1,14 +1,8 @@
-import {
-  EnumXRMode,
-  IXRSessionDescriptor,
-  IXRFeatureDescriptor,
-  IXRPlatform,
-  IXRSession,
-  Engine
-} from "@galacean/engine";
+import { IXRPlatform, Engine, EnumXRMode, IXRFeatureDescriptor, IXRSessionDescriptor } from "@galacean/engine";
 import { WebXRSession } from "./WebXRSession";
 import { parseXRMode } from "./util";
 import { WebXRInputProvider } from "./provider/WebXRInputProvider";
+import { IXRSession } from "@galacean/engine-design";
 
 export class WebXRPlatform implements IXRPlatform {
   get inputProvider(): new (engine: Engine) => WebXRInputProvider {
@@ -49,10 +43,6 @@ export class WebXRPlatform implements IXRPlatform {
         resolve(session);
       }, reject);
     });
-  }
-
-  createInputProvider(engine: Engine): WebXRInputProvider {
-    return new WebXRInputProvider(engine);
   }
 
   destroySession(session: WebXRSession): Promise<void> {

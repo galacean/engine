@@ -1,13 +1,5 @@
-import {
-  Engine,
-  EnumXRButton,
-  EnumXRInputState,
-  EnumXRInputSource,
-  XRController,
-  XRViewer,
-  IXRInputProvider,
-  XRInputDevice
-} from "@galacean/engine";
+import { Engine, XRController, XRViewer, XRInputDevice, EnumXRInputSource, EnumXRButton } from "@galacean/engine";
+import { IXRInputProvider } from "@galacean/engine-design";
 import { WebXRSession } from "../WebXRSession";
 
 type FlowXREvent = XRInputSourceEvent | XRInputSourceChangeEvent;
@@ -59,7 +51,7 @@ export class WebXRInputProvider implements IXRInputProvider {
     this.detach();
   }
 
-  update() {
+  onXRFrame() {
     const { _session: session } = this;
     if (!session) {
       return;
@@ -81,14 +73,24 @@ export class WebXRInputProvider implements IXRInputProvider {
     const { inputSources } = _platformSession;
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
-      const controller = inputs[this._handednessToInputSource(inputSource.handedness)];
-      const { transform } = _platformFrame.getPose(inputSource.gripSpace, _platformSpace);
-      if (transform) {
-        controller.matrix.copyFromArray(transform.matrix);
-        controller.position.copyFrom(transform.position);
-        controller.quaternion.copyFrom(transform.orientation);
+      const type = this._getInputSource(inputSource);
+      const controller = inputs[type];
+      switch (type) {
+        case EnumXRInputSource.LeftController:
+        case EnumXRInputSource.RightController:
+          const { transform } = _platformFrame.getPose(inputSource.gripSpace, _platformSpace);
+          if (transform) {
+            controller.matrix.copyFromArray(transform.matrix);
+            controller.position.copyFrom(transform.position);
+            controller.quaternion.copyFrom(transform.orientation);
+          }
+          break;
+        case EnumXRInputSource.Gamepad:
+          break;
+        default:
+          break;
       }
-      controller.state = EnumXRInputState.Active;
+      controller.connected = true;
     }
 
     const viewerPose = _platformFrame.getViewerPose(_platformSpace);
@@ -124,7 +126,7 @@ export class WebXRInputProvider implements IXRInputProvider {
   }
 
   private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInputDevice[]): void {
-    const input = inputs[this._handednessToInputSource(event.inputSource.handedness)] as XRController;
+    const input = inputs[this._getInputSource(event.inputSource)] as XRController;
     switch (event.type) {
       case "selectstart":
         input.downList.add(EnumXRButton.Select);
@@ -154,22 +156,33 @@ export class WebXRInputProvider implements IXRInputProvider {
   private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInputDevice[]): void {
     const { removed, added } = event;
     for (let i = 0, n = removed.length; i < n; i++) {
-      inputs[this._handednessToInputSource(removed[i].handedness)].state = EnumXRInputState.Inactive;
+      inputs[this._getInputSource(removed[i])].connected = false;
     }
     for (let i = 0, n = added.length; i < n; i++) {
-      inputs[this._handednessToInputSource(added[i].handedness)].state = EnumXRInputState.Active;
+      inputs[this._getInputSource(added[i])].connected = true;
     }
   }
 
-  private _handednessToInputSource(handedness: XRHandedness): EnumXRInputSource {
-    switch (handedness) {
-      case "left":
-        return EnumXRInputSource.LeftController;
-      case "right":
-        return EnumXRInputSource.RightController;
-      default:
-        return EnumXRInputSource.Controller;
+  private _getInputSource(inputSource: XRInputSource): EnumXRInputSource {
+    let type: EnumXRInputSource;
+    if (inputSource.gamepad) {
+      type = EnumXRInputSource.Gamepad;
+    } else if (inputSource.hand) {
+      switch (inputSource.handedness) {
+        case "left":
+          return EnumXRInputSource.LeftHand;
+        case "right":
+          return EnumXRInputSource.RightHand;
+      }
+    } else {
+      switch (inputSource.handedness) {
+        case "left":
+          return EnumXRInputSource.LeftController;
+        case "right":
+          return EnumXRInputSource.RightController;
+      }
     }
+    return type;
   }
 
   private _eyeToInputSource(eye: XREye): EnumXRInputSource {

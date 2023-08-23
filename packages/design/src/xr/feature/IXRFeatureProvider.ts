@@ -1,8 +1,8 @@
-import { IXRSession } from "../interface/IXRSession";
+import { IXRSession } from "../IXRSession";
 
 export interface IXRFeatureProvider {
   attach(session: IXRSession): void;
   detach(): void;
   destroy(): void;
-  update(): void;
+  onXRFrame(): void;
 }

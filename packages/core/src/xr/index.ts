@@ -7,30 +7,33 @@ export { XRMovementTracking } from "./feature/movementTracking/XRMovementTrackin
 export { XRPlaneTracking } from "./feature/planeTracking/XRPlaneTracking";
 
 // descriptor
-export type { IXRSessionDescriptor } from "./descriptor/IXRSessionDescriptor";
-export type { IXRFeatureDescriptor } from "./descriptor/IXRFeatureDescriptor";
 export type { IXRPlaneTrackingDescriptor } from "./feature/planeTracking/IXRPlaneTrackingDescriptor";
 export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
+export type { IXRHandTrackingDescriptor } from "./feature/handTracking/IXRHandTrackingDescriptor";
+export type { IXRFeatureDescriptor } from "./descriptor/IXRFeatureDescriptor";
+export type { IXRSessionDescriptor } from "./descriptor/IXRSessionDescriptor";
 
 // enum
-export { EnumXRMode } from "./enum/EnumXRMode";
+export { EnumXRAnchorTrackingMode } from "./enum/EnumXRAnchorTrackingMode";
 export { EnumXRButton } from "./enum/EnumXRButton";
 export { EnumXRFeature } from "./enum/EnumXRFeature";
-export { EnumXRInputState } from "./enum/EnumXRInputState";
+export { EnumXRHandTrackingMode } from "./enum/EnumXRHandTrackingMode";
+export { EnumXRHitTestMode } from "./enum/EnumXRHitTestMode";
+export { EnumXRImageTrackingMode } from "./enum/EnumXRImageTrackingMode";
 export { EnumXRInputSource } from "./enum/EnumXRInputSource";
-export { XRImageTrackingMode } from "./enum/XRImageTrackingMode";
-export { XRPlaneTrackingMode } from "./enum/XRPlaneTrackingMode";
+export { EnumXRMode } from "./enum/EnumXRMode";
+export { EnumXRPlaneTrackingMode } from "./enum/EnumXRPlaneTrackingMode";
+export { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
 
 // input
 export { XRInputDevice } from "./input/XRInputDevice";
 export { XRViewer } from "./input/XRViewer";
 export { XRController } from "./input/XRController";
-export type { IXRInputProvider } from "./input/IXRInputProvider";
+export { XRHand } from "./input/XRHand";
+export { XRGamepad } from "./input/XRGamepad";
 
 // interface
-export type { IXRSession } from "./interface/IXRSession";
 export type { IXRPlatform } from "./interface/IXRPlatform";
-export type { IXRFeatureProvider } from "./feature/IXRFeatureProvider";
 
 // component
 export { XRPoseDriver } from "./component/XRPoseDriver";

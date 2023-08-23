@@ -1,4 +1,11 @@
-import { Engine, IXRFeatureDescriptor, IXRSession, IXRSessionDescriptor, WebGLGraphicDevice } from "@galacean/engine";
+import { IXRSession } from "@galacean/engine-design";
+import {
+  Engine,
+  EnumXRFeature,
+  IXRFeatureDescriptor,
+  IXRSessionDescriptor,
+  WebGLGraphicDevice
+} from "@galacean/engine";
 import { EnumWebXRSpaceType } from "./enum/EnumWebXRSpaceType";
 import { parseXRMode } from "./util";
 
@@ -115,16 +122,16 @@ export class WebXRSession implements IXRSession {
   off(eventName: string, fn: (...args: any[]) => any): void {}
 
   private _webXRUpdate(time: DOMHighResTimeStamp, frame: XRFrame) {
-    const { _platformLayer: layer, _rhi: rhi } = this;
+    const { _platformLayer: platformLayer, _rhi: rhi } = this;
     this._platformFrame = frame;
-    const frameBuffer = this._platformLayer?.framebuffer;
-    if (frameBuffer && layer.framebufferWidth && layer.framebufferHeight) {
+    const frameBuffer = platformLayer?.framebuffer;
+    if (frameBuffer && platformLayer.framebufferWidth && platformLayer.framebufferHeight) {
       // @ts-ignore
-      rhi._mainFrameBuffer = frame;
+      rhi._mainFrameBuffer = frameBuffer;
       // @ts-ignore
-      rhi._mainFrameWidth = layer.framebufferWidth;
+      rhi._mainFrameWidth = platformLayer.framebufferWidth;
       // @ts-ignore
-      rhi._mainFrameHeight = layer.framebufferHeight;
+      rhi._mainFrameHeight = platformLayer.framebufferHeight;
     } else {
       // @ts-ignore
       rhi._mainFrameBuffer = null;
@@ -141,17 +148,17 @@ export class WebXRSession implements IXRSession {
     this._webXRUpdate = this._webXRUpdate.bind(this);
   }
 
-  private _parseFeatures(descriptor: IXRFeatureDescriptor[], out: string[]): string[] {
-    // for (let i = 0, n = subsystems.length; i < n; i++) {
-    //   const feature = subsystems[i];
-    //   switch (feature) {
-    //     case EnumXRSubsystem.imageTracking:
-    //       out.push()
-    //       break;
-    //     default:
-    //       break;
-    //   }
-    // }
+  private _parseFeatures(descriptors: IXRFeatureDescriptor[], out: string[]): string[] {
+    for (let i = 0, n = descriptors.length; i < n; i++) {
+      const feature = descriptors[i];
+      switch (feature.type) {
+        case EnumXRFeature.HandTracking:
+          out.push("hand-tracking");
+          break;
+        default:
+          break;
+      }
+    }
     return out;
   }
 }

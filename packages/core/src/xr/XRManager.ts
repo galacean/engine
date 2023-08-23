@@ -1,16 +1,16 @@
+import { IXRFeatureProvider, IXRSession } from "@galacean/engine-design";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { IXRFeatureDescriptor } from "./descriptor/IXRFeatureDescriptor";
-import { IXRSessionDescriptor } from "./descriptor/IXRSessionDescriptor";
-import { EnumXRFeature } from "./enum/EnumXRFeature";
-import { EnumXRInputSource } from "./enum/EnumXRInputSource";
-import { EnumXRMode } from "./enum/EnumXRMode";
 import { XRFeature } from "./feature/XRFeature";
 import { IXRPlatform } from "./interface/IXRPlatform";
-import { IXRSession } from "./interface/IXRSession";
 import { XRViewer } from "./input/XRViewer";
 import { XRInputManager } from "./input/XRInputManager";
-import { IXRFeatureProvider } from "./feature/IXRFeatureProvider";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { IXRFeatureDescriptor } from "./descriptor/IXRFeatureDescriptor";
+import { EnumXRMode } from "./enum/EnumXRMode";
+import { EnumXRInputSource } from "./enum/EnumXRInputSource";
+import { EnumXRFeature } from "./enum/EnumXRFeature";
+import { IXRSessionDescriptor } from "./descriptor/IXRSessionDescriptor";
 
 type FeatureConstructor = new (engine: Engine, descriptor: IXRFeatureDescriptor) => XRFeature;
 type ProviderConstructor = new (session: IXRSession) => IXRFeatureProvider;
@@ -69,6 +69,7 @@ export class XRManager {
   }
 
   attachCamera(source: EnumXRInputSource, camera: Camera): void {
+    camera.clearFlags = CameraClearFlags.None;
     this.inputManager.getInput<XRViewer>(source).attachCamera(camera);
   }
 
@@ -150,7 +151,7 @@ export class XRManager {
    */
   _update(): void {
     if (this._isPaused) return;
-    this.inputManager._provider.update();
+    this.inputManager._provider.onXRFrame();
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       features[i]?.onUpdate();

@@ -1,9 +1,11 @@
 export enum EnumXRInputSource {
-  Controller,
+  Gamepad,
   LeftController,
   RightController,
   Viewer,
   LeftViewer,
   RightViewer,
+  LeftHand,
+  RightHand,
   Length
 }

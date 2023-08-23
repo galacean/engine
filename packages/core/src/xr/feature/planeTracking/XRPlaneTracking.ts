@@ -12,9 +12,7 @@ export class XRPlaneTracking extends XRFeature {
     this._updateFlagManager.addListener(fun);
   }
 
-  override onUpdate(): void {
-    
-  }
+  override onUpdate(): void {}
 }
 
 export enum XRTrackingChangeFlags {
