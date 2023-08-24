@@ -144,7 +144,7 @@ export class GLTFSceneParser extends GLTFParser {
       }
     }
 
-    if (!resource.cameras) resource.cameras = [];
+    resource.cameras ||= [];
     resource.cameras.push(camera);
     // @todo: use engine camera by default
     camera.enabled = false;

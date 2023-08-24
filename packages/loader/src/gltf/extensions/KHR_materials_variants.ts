@@ -23,7 +23,7 @@ class KHR_materials_variants extends GLTFExtensionParser {
     } = context;
     const { mappings } = schema;
 
-    if (!glTFResource.extensionsData) glTFResource.extensionsData = {};
+    glTFResource.extensionsData ||= {};
     const extensionData: IGLTFExtensionVariants = [];
     glTFResource.extensionsData.variants = extensionData;
 
