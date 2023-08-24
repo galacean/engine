@@ -25,7 +25,6 @@ export class GLTFParserContext {
   }
 
   glTF: IGLTF;
-  hasSkinned: boolean = false;
   accessorBufferCache: Record<string, BufferInfo> = {};
   contentRestorer: GLTFContentRestorer;
   buffers?: ArrayBuffer[];

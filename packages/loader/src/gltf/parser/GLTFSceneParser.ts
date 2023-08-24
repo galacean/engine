@@ -64,8 +64,13 @@ export class GLTFSceneParser extends GLTFParser {
 
     return Promise.all(promises).then(() => {
       if (isDefaultScene) {
-        return context.get<AnimationClip>(GLTFParserType.Animation).then((animations) => {
-          this._createAnimator(context, animations);
+        return Promise.all([
+          context.get<Skin>(GLTFParserType.Skin),
+          context.get<AnimationClip>(GLTFParserType.Animation)
+        ]).then(([skins, animations]) => {
+          if (skins || animations) {
+            this._createAnimator(context, animations);
+          }
           return sceneRoot;
         });
       }
@@ -169,7 +174,6 @@ export class GLTFSceneParser extends GLTFParser {
           material ||= GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
 
           if (skin || blendShapeWeights) {
-            context.hasSkinned = true;
             const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
             skinRenderer.mesh = mesh;
             if (skin) {
@@ -206,10 +210,6 @@ export class GLTFSceneParser extends GLTFParser {
   }
 
   private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {
-    if (!context.hasSkinned && !animations) {
-      return;
-    }
-
     const defaultSceneRoot = context.glTFResource.defaultSceneRoot;
     const animator = defaultSceneRoot.addComponent(Animator);
     const animatorController = new AnimatorController();
