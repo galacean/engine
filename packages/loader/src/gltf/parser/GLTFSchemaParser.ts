@@ -30,7 +30,7 @@ export class GLTFSchemaParser extends GLTFParser {
           type: "json"
         });
 
-    return Promise.resolve(promise);
+    return promise;
   }
 
   private _isGLB(url: string): boolean {

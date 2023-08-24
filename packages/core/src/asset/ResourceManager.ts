@@ -377,6 +377,10 @@ export class ResourceManager {
         () => delete loadingPromises[assetURL]
       );
 
+      promise.catch((e) => {
+        this._onSubAssetFail(assetURL, e);
+      });
+
       return subPromise;
     }
 
