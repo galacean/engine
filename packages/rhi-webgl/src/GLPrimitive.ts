@@ -70,7 +70,7 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (this._canUseInstancedArrays) {
         if (indexBufferBinding) {
           if (useVao) {
-            console.log(start + " " + count + " " + instanceCount);
+            // console.log(start + " " + count + " " + instanceCount);
             gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, instanceCount);
           } else {
             const { _glBuffer } = indexBufferBinding.buffer._platformBuffer;

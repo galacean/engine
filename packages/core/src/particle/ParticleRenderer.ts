@@ -215,17 +215,17 @@ export class ParticleRenderer extends Renderer {
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
 
-    console.log(
-      "Retired:" +
-        particleSystem._firstRetiredElement +
-        " Active:" +
-        particleSystem._firstActiveElement +
-        " New:" +
-        particleSystem._firstNewElement +
-        " Free:" +
-        particleSystem._firstFreeElement +
-        " InstanceCount:" +
-        primitive.instanceCount
-    );
+    // console.log(
+    //   "Retired:" +
+    //     particleSystem._firstRetiredElement +
+    //     " Active:" +
+    //     particleSystem._firstActiveElement +
+    //     " New:" +
+    //     particleSystem._firstNewElement +
+    //     " Free:" +
+    //     particleSystem._firstFreeElement +
+    //     " InstanceCount:" +
+    //     primitive.instanceCount
+    // );
   }
 }
