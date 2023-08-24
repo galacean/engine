@@ -48,6 +48,7 @@ export class ResourceManager {
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
   private _contentRestorerPool: Record<number, ContentRestorer<any>> = Object.create(null);
+  private _subAssetPromiseCallbacks: SubAssetPromiseCallbacks = {};
 
   /**
    * Create a ResourceManager.
@@ -177,23 +178,19 @@ export class ResourceManager {
   }
 
   /**
-   * Callback sub asset on success.
-   * @param assetURL - The url of sub asset
-   * @param value - Sub asset
+   * @internal
    */
-  onSubAssetSuccess<T>(assetURL: string, value: T): void {
-    this._pendingPromise[assetURL]?.resolve(value);
-    delete this._pendingPromise[assetURL];
+  _onSubAssetSuccess<T>(assetURL: string, value: T): void {
+    this._subAssetPromiseCallbacks[assetURL]?.resolve(value);
+    delete this._subAssetPromiseCallbacks[assetURL];
   }
 
   /**
-   * Callback sub asset on fail.
-   * @param assetURL - The url of sub asset
-   * @param value - Fail reason
+   * @internal
    */
-  onSubAssetFail(assetURL: string, value: (reason: any) => void): void {
-    this._pendingPromise[assetURL]?.reject(value);
-    delete this._pendingPromise[assetURL];
+  _onSubAssetFail(assetURL: string, value: (reason: any) => void): void {
+    this._subAssetPromiseCallbacks[assetURL]?.reject(value);
+    delete this._subAssetPromiseCallbacks[assetURL];
   }
 
   /**
@@ -347,14 +344,14 @@ export class ResourceManager {
     }
 
     // Check loader
-    const loader = ResourceManager._loaders[item.type];
+    const loader = <Loader<T>>ResourceManager._loaders[item.type];
     if (!loader) {
       throw `loader not found: ${item.type}`;
     }
 
     // Load asset
     item.url = assetBaseURL;
-    const promise = <AssetPromise<T>>loader.load(item, this);
+    const promise = loader.load(item, this);
     loadingPromises[assetBaseURL] = promise;
 
     promise.then(
@@ -368,8 +365,8 @@ export class ResourceManager {
     );
 
     if (queryPath) {
-      const subPromise: AssetPromise<T> = new AssetPromise((resolve, reject) => {
-        this._pendingSubAssetPromise(assetURL, resolve, reject);
+      const subPromise = new AssetPromise<T>((resolve, reject) => {
+        this._pushSubAssetPromiseCallback(assetURL, resolve, reject);
       });
 
       loadingPromises[assetURL] = subPromise;
@@ -386,16 +383,8 @@ export class ResourceManager {
     return promise;
   }
 
-  private _pendingPromise: Record<
-    string,
-    {
-      resolve: (value: any) => void;
-      reject: (reason: any) => void;
-    }
-  > = {};
-
-  private _pendingSubAssetPromise(assetURL: string, resolve: (value: any) => void, reject: (reason: any) => void) {
-    this._pendingPromise[assetURL] = {
+  private _pushSubAssetPromiseCallback(assetURL: string, resolve: (value: any) => void, reject: (reason: any) => void) {
+    this._subAssetPromiseCallbacks[assetURL] = {
       resolve,
       reject
     };
@@ -537,3 +526,10 @@ const rePropName = RegExp(
 
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
+type SubAssetPromiseCallbacks = Record<
+  string,
+  {
+    resolve: (value: any) => void;
+    reject: (reason: any) => void;
+  }
+>;

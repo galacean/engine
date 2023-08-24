@@ -32,12 +32,12 @@ export class GLTFAnimationParser extends GLTFParser {
     context: GLTFParserContext,
     animationClip: AnimationClip,
     animationInfo: IAnimation
-  ): Promise<void> {
+  ): Promise<AnimationClip> {
     const { glTF } = context;
     const { accessors, bufferViews } = glTF;
     const { channels, samplers } = animationInfo;
     const sampleDataCollection = new Array<SampleData>();
-    const entities = context.get<Entity[]>(GLTFParserType.Entity);
+    const entities = context.get<Entity>(GLTFParserType.Entity);
 
     let duration = -1;
     let promises = new Array<Promise<void>>();
@@ -133,6 +133,7 @@ export class GLTFAnimationParser extends GLTFParser {
         const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
         animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
       }
+      return animationClip;
     });
   }
 
@@ -224,22 +225,18 @@ export class GLTFAnimationParser extends GLTFParser {
   ): Promise<AnimationClip> {
     const { name = `AnimationClip${index}` } = animationInfo;
 
-    let animationClip = <Promise<AnimationClip> | AnimationClip>(
-      GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
-    );
+    const animationClipPromise =
+      <Promise<AnimationClip> | AnimationClip>(
+        GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
+      ) || GLTFAnimationParser._parseStandardProperty(context, new AnimationClip(name), animationInfo);
 
-    let parseStandardPropertyPromise;
-
-    if (!animationClip) {
-      animationClip = new AnimationClip(name);
-      parseStandardPropertyPromise = GLTFAnimationParser._parseStandardProperty(context, animationClip, animationInfo);
-    }
-    return Promise.all([animationClip, parseStandardPropertyPromise]).then(([animationClip]) => {
+    return Promise.resolve(animationClipPromise).then((animationClip) => {
       GLTFParser.executeExtensionsAdditiveAndParse(animationInfo.extensions, context, animationClip, animationInfo);
       return animationClip;
     });
   }
 }
+
 interface SampleData {
   type: AccessorType;
   input: TypedArray;

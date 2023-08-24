@@ -64,7 +64,7 @@ export class GLTFSceneParser extends GLTFParser {
 
     return Promise.all(promises).then(() => {
       if (isDefaultScene) {
-        return context.get<Promise<AnimationClip[]>>(GLTFParserType.Animation).then((animations) => {
+        return context.get<AnimationClip>(GLTFParserType.Animation).then((animations) => {
           this._createAnimator(context, animations);
           return sceneRoot;
         });
@@ -159,22 +159,20 @@ export class GLTFSceneParser extends GLTFParser {
 
       promises.push(
         Promise.all([
-          context.get<Promise<ModelMesh[]>>(GLTFParserType.Mesh, meshID),
-          skinID !== undefined && context.get<Promise<Skin>>(GLTFParserType.Skin, skinID),
-          materialIndex !== undefined && context.get<Promise<Material>>(GLTFParserType.Material, materialIndex)
+          context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),
+          skinID !== undefined && context.get<Skin>(GLTFParserType.Skin, skinID),
+          materialIndex !== undefined && context.get<Material>(GLTFParserType.Material, materialIndex)
         ]).then(([meshes, skin, material]) => {
           const mesh = meshes[i];
           let renderer: MeshRenderer | SkinnedMeshRenderer;
 
-          if (!material) {
-            material = GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
-          }
+          material ||= GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
 
           if (skin || blendShapeWeights) {
             context.hasSkinned = true;
             const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
             skinRenderer.mesh = mesh;
-            if (skinID !== undefined) {
+            if (skin) {
               skinRenderer.rootBone = skin._rootBone;
               skinRenderer.bones = skin._bones;
               this._computeLocalBounds(skinRenderer, mesh, skin._bones, skin._rootBone, skin.inverseBindMatrices);

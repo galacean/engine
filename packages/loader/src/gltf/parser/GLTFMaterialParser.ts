@@ -68,7 +68,7 @@ export class GLTFMaterialParser extends GLTFParser {
         );
       }
       if (baseColorTexture) {
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
+        context.get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
           material.baseTexture = texture;
           GLTFParser.executeExtensionsAdditiveAndParse(
             baseColorTexture.extensions,
@@ -85,7 +85,7 @@ export class GLTFMaterialParser extends GLTFParser {
         if (metallicRoughnessTexture) {
           GLTFMaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
 
-          context.get<Promise<Texture2D>>(GLTFParserType.Texture, metallicRoughnessTexture.index).then((texture) => {
+          context.get<Texture2D>(GLTFParserType.Texture, metallicRoughnessTexture.index).then((texture) => {
             material.roughnessMetallicTexture = texture;
           });
         }
@@ -96,7 +96,7 @@ export class GLTFMaterialParser extends GLTFParser {
       if (emissiveTexture) {
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
 
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
+        context.get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
           material.emissiveTexture = texture;
         });
       }
@@ -113,7 +113,7 @@ export class GLTFMaterialParser extends GLTFParser {
         const { index, scale } = normalTexture;
         GLTFMaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
 
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, index).then((texture) => {
+        context.get<Texture2D>(GLTFParserType.Texture, index).then((texture) => {
           material.normalTexture = texture;
         });
 
@@ -126,7 +126,7 @@ export class GLTFMaterialParser extends GLTFParser {
         const { index, strength, texCoord } = occlusionTexture;
         GLTFMaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
 
-        context.get<Promise<Texture2D>>(GLTFParserType.Texture, index).then((texture) => {
+        context.get<Texture2D>(GLTFParserType.Texture, index).then((texture) => {
           material.occlusionTexture = texture;
         });
 
@@ -165,9 +165,7 @@ export class GLTFMaterialParser extends GLTFParser {
     if (!materials) return Promise.resolve(null);
 
     return this._parseSingleMaterial(context, materials[index]).then((material) => {
-      if (!material) {
-        material = GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
-      }
+      material ||= GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
 
       return material;
     });

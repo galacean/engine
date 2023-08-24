@@ -16,6 +16,5 @@ import "./GALACEAN_materials_remap";
 import "./GALACEAN_animation_event";
 
 export { GLTFExtensionParser, GLTFExtensionMode } from "./GLTFExtensionParser";
-export type { IGLTFExtensionVariants } from "./KHR_materials_variants";
 
 export * from "./GLTFExtensionSchema";

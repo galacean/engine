@@ -6,8 +6,8 @@ import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
-@registerGLTFParser(GLTFParserType.JSON)
-export class GLTFJSONParser extends GLTFParser {
+@registerGLTFParser(GLTFParserType.Schema)
+export class GLTFSchemaParser extends GLTFParser {
   parse(context: GLTFParserContext): Promise<IGLTF> {
     const { glTFResource, contentRestorer } = context;
     const url = glTFResource.url;
@@ -23,7 +23,7 @@ export class GLTFJSONParser extends GLTFParser {
             return GLTFUtils.parseGLB(context, glb);
           })
           .then(({ glTF, buffers }) => {
-            context._buffers = buffers;
+            context.buffers = buffers;
             return glTF;
           })
       : request(url, {

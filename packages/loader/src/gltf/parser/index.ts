@@ -1,4 +1,4 @@
-export { GLTFJSONParser } from "./GLTFJSONParser";
+export { GLTFSchemaParser } from "./GLTFSchemaParser";
 export { GLTFAnimationParser } from "./GLTFAnimationParser";
 export { GLTFBufferParser } from "./GLTFBufferParser";
 export { GLTFEntityParser } from "./GLTFEntityParser";

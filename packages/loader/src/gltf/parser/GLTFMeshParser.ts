@@ -321,7 +321,7 @@ export class GLTFMeshParser extends GLTFParser {
             },
             () => {
               const indexAccessor = glTF.accessors[gltfPrimitive.indices];
-              return context.get<Promise<ArrayBuffer[]>>(GLTFParserType.Buffer).then((buffers) => {
+              return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
                 return GLTFUtils.getAccessorData(glTF, indexAccessor, buffers);
               });
             },

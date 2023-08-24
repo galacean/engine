@@ -10,11 +10,7 @@ export class GLTFBufferParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): Promise<ArrayBuffer> {
     const buffers = context.glTF.buffers;
 
-    if (context._buffers) {
-      return Promise.resolve(context._buffers[index]);
-    } else {
-      return this._parseSingleBuffer(context, buffers[index]);
-    }
+    return context.buffers ? Promise.resolve(context.buffers[index]) : this._parseSingleBuffer(context, buffers[index]);
   }
 
   private _parseSingleBuffer(context: GLTFParserContext, bufferInfo: IBuffer): Promise<ArrayBuffer> {

@@ -34,7 +34,7 @@ export class GLTFResource extends ReferResource {
   /** Export lights in extension KHR_lights_punctual. */
   lights?: Light[];
   /** RootEntities after SceneParser. */
-  scenes: Entity[];
+  sceneRoots: Entity[];
   /** RootEntity after SceneParser. */
   defaultSceneRoot: Entity;
   /** Extensions data. */
