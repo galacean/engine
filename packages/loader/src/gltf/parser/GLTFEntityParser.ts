@@ -6,16 +6,8 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Entity)
 export class GLTFEntityParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): Entity {
-    const nodes = context.glTF.nodes;
-
-    if (!nodes) return null;
-
-    return this._parseSingleEntity(context, nodes[index], index);
-  }
-
-  private _parseSingleEntity(context: GLTFParserContext, entityInfo: INode, index: number): Entity {
-    const glTFResource = context.glTFResource;
-    const engine = glTFResource.engine;
+    const entityInfo = context.glTF.nodes[index];
+    const engine = context.glTFResource.engine;
     const { matrix, translation, rotation, scale } = entityInfo;
     const entity = new Entity(engine, entityInfo.name || `_GLTF_ENTITY_${index}`);
 

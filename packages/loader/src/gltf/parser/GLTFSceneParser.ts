@@ -23,17 +23,14 @@ import { GLTFMaterialParser } from "./GLTFMaterialParser";
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): Promise<Entity> {
-    const scenes = context.glTF.scenes;
+    const {
+      glTF: { scenes, scene = 0 },
+      glTFResource
+    } = context;
+    const sceneInfo = scenes[index];
 
-    if (!scenes) return Promise.resolve(null);
-
-    return this._parseSingleScene(context, scenes[index], index);
-  }
-
-  private _parseSingleScene(context: GLTFParserContext, sceneInfo: IScene, index: number): Promise<Entity> {
-    const { glTF, glTFResource } = context;
     const engine = glTFResource.engine;
-    const isDefaultScene = (glTF.scene ?? 0) === index;
+    const isDefaultScene = scene === index;
     const sceneNodes = sceneInfo.nodes;
     let sceneRoot: Entity;
 
@@ -156,7 +153,7 @@ export class GLTFSceneParser extends GLTFParser {
     const glTFMesh = glTFMeshes[meshID];
     const glTFMeshPrimitives = glTFMesh.primitives;
     const blendShapeWeights = entityInfo.weights || glTFMesh.weights;
-    const promises = [];
+    const promises = new Array<Promise<void>>();
 
     for (let i = 0; i < glTFMeshPrimitives.length; i++) {
       const glTFPrimitive = glTFMeshPrimitives[i];

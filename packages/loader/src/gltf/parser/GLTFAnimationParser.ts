@@ -212,17 +212,7 @@ export class GLTFAnimationParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, index: number): Promise<AnimationClip> {
-    const animations = context.glTF.animations;
-    if (!animations) return Promise.resolve(null);
-
-    return this._parseSingleAnimation(context, animations[index], index);
-  }
-
-  private _parseSingleAnimation(
-    context: GLTFParserContext,
-    animationInfo: IAnimation,
-    index: number
-  ): Promise<AnimationClip> {
+    const animationInfo = context.glTF.animations[index];
     const { name = `AnimationClip${index}` } = animationInfo;
 
     const animationClipPromise =

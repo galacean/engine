@@ -157,13 +157,7 @@ export class GLTFMaterialParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, index: number): Promise<Material> {
-    const materials = context.glTF.materials;
-    if (!materials) return Promise.resolve(null);
-
-    return this._parseSingleMaterial(context, materials[index]);
-  }
-
-  private _parseSingleMaterial(context: GLTFParserContext, materialInfo: IMaterial): Promise<Material> {
+    const materialInfo = context.glTF.materials[index];
     const engine = context.glTFResource.engine;
 
     let material = <Material | Promise<Material>>(

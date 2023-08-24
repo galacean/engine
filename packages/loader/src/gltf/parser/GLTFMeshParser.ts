@@ -265,13 +265,8 @@ export class GLTFMeshParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
-    const meshes = context.glTF.meshes;
-    if (!meshes) return Promise.resolve(null);
+    const meshInfo = context.glTF.meshes[index];
 
-    return this._parseSingleMesh(context, meshes[index]);
-  }
-
-  private _parseSingleMesh(context: GLTFParserContext, meshInfo: IMesh): Promise<ModelMesh[]> {
     const {
       glTF,
       glTFResource: { engine }

@@ -15,18 +15,7 @@ export class GLTFTextureParser extends GLTFParser {
   };
 
   parse(context: GLTFParserContext, index: number): Promise<Texture> {
-    const textures = context.glTF.textures;
-
-    if (!textures) return Promise.resolve(null);
-
-    return this._parseSingleTexture(context, textures[index], index);
-  }
-
-  private _parseSingleTexture(
-    context: GLTFParserContext,
-    textureInfo: ITexture,
-    textureIndex: number
-  ): Promise<Texture> {
+    const textureInfo = context.glTF.textures[index];
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
     const { sampler, source = 0, name: textureName, extensions } = textureInfo;
@@ -37,27 +26,24 @@ export class GLTFTextureParser extends GLTFParser {
     );
 
     if (!texture) {
+      const useSampler = sampler !== undefined;
       const samplerInfo = sampler !== undefined && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
       if (uri) {
         // TODO: deleted in 2.0
-        const index = uri.lastIndexOf(".");
-        const ext = uri.substring(index + 1);
+        const extIndex = uri.lastIndexOf(".");
+        const ext = uri.substring(extIndex + 1);
         const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
         texture = engine.resourceManager
           .load<Texture2D>({
             url: Utils.resolveAbsoluteUrl(url, uri),
-            type: type,
+            type,
             params: {
               mipmap: samplerInfo?.mipmap
             }
           })
           .then<Texture2D>((texture) => {
-            if (!texture.name) {
-              texture.name = textureName || imageName || `texture_${textureIndex}`;
-            }
-            if (sampler !== undefined) {
-              GLTFUtils.parseSampler(texture, samplerInfo);
-            }
+            texture.name ||= textureName || imageName || `texture_${index}`;
+            useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
             return texture;
           });
       } else {
@@ -72,10 +58,9 @@ export class GLTFTextureParser extends GLTFParser {
             texture.setImageSource(image);
             texture.generateMipmaps();
 
-            texture.name = textureName || imageName || `texture_${textureIndex}`;
-            if (sampler !== undefined) {
-              GLTFUtils.parseSampler(texture, samplerInfo);
-            }
+            texture.name = textureName || imageName || `texture_${index}`;
+            useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
+
             const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
             context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
 

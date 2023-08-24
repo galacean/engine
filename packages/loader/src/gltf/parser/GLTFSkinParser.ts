@@ -8,15 +8,8 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Skin)
 export class GLTFSkinParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): Promise<Skin> {
-    const gltfSkins = context.glTF.skins;
-
-    if (!gltfSkins) return Promise.resolve(null);
-
-    return this._parseSingleSkin(context, gltfSkins[index], index);
-  }
-
-  private _parseSingleSkin(context: GLTFParserContext, skinInfo: ISkin, index: number): Promise<Skin> {
     const glTF = context.glTF;
+    const skinInfo = glTF.skins[index];
     const { inverseBindMatrices, skeleton, joints, name = `SKIN_${index}` } = skinInfo;
     const jointCount = joints.length;
 
