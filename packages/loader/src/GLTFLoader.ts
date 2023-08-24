@@ -1,12 +1,4 @@
-import {
-  AssetPromise,
-  AssetType,
-  Loader,
-  LoadItem,
-  Logger,
-  resourceLoader,
-  ResourceManager
-} from "@galacean/engine-core";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
 
@@ -18,11 +10,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const glTFResource = new GLTFResource(resourceManager.engine, url);
     const context = new GLTFParserContext(glTFResource, resourceManager, !!params?.keepMeshData);
 
-    return <AssetPromise<GLTFResource>>context.parse().catch((e) => {
-      const msg = `Error loading glTF model from ${url} : ${e}`;
-      Logger.error(msg);
-      throw e;
-    });
+    return <AssetPromise<GLTFResource>>context.parse();
   }
 }
 
