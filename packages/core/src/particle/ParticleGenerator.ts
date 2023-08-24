@@ -2,15 +2,6 @@ import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
-import {
-  BufferBindFlag,
-  BufferUsage,
-  MeshTopology,
-  SetDataOptions,
-  SubMesh,
-  VertexBufferBinding,
-  VertexElement
-} from "../graphic";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
@@ -30,6 +21,13 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { SubMesh } from "../graphic/SubMesh";
+import { VertexElement } from "../graphic/VertexElement";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 
 /**
  * Particle System.
