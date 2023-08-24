@@ -47,74 +47,35 @@ export class GLTFParserContext {
   get<T>(type: GLTFParserType): Promise<T[]>;
   get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | Promise<T> | Promise<T[]> {
     const parser = GLTFParserContext._parsers[type];
+
     if (!parser) return Promise.resolve(null);
 
     const cache = this._resourceCache;
-    const glTFSchemaKey = glTFSchemaMap[type];
-    const glTFResourceKey = glTFResourceMap[type];
-    const isSchemaParser = type === GLTFParserType.Schema;
-    const isValidatorParser = type === GLTFParserType.Validator;
-    const cacheKey = isSchemaParser || isValidatorParser || index === undefined ? `${type}` : `${type}:${index}`;
+    const isOnlyOne = type === GLTFParserType.Schema || type === GLTFParserType.Validator;
+    const cacheKey = isOnlyOne || index === undefined ? `${type}` : `${type}:${index}`;
     let resource: Entity | Entity[] | Promise<T> | Promise<T[]> = cache.get(cacheKey);
 
-    if (!resource) {
-      if (isSchemaParser || isValidatorParser) {
-        resource = parser.parse(this);
+    if (resource) return resource;
+
+    if (isOnlyOne) {
+      resource = parser.parse(this);
+    } else {
+      const glTFItems = this.glTF[glTFSchemaMap[type]];
+
+      if (!glTFItems || (index >= 0 && !glTFItems[index])) {
+        resource = Promise.resolve<T>(null);
+      } else if (index >= 0) {
+        resource = parser.parse(this, index);
+        this._handleSubAsset(resource, type, index);
       } else {
-        const isEntityParser = type === GLTFParserType.Entity;
-        const glTFItems = this.glTF[glTFSchemaKey];
-        if (!glTFItems || (index >= 0 && !glTFItems[index])) {
-          resource = Promise.resolve<T>(null);
-        } else if (index >= 0) {
-          resource = parser.parse(this, index);
-
-          // store glTF sub assets
-          if (glTFResourceKey) {
-            if (isEntityParser) {
-              this.glTFResource[glTFResourceKey] ||= [];
-              this.glTFResource[glTFResourceKey][index] = <Entity>resource;
-            } else {
-              const url = this.glTFResource.url;
-
-              (<Promise<T>>resource)
-                .then((item: T) => {
-                  this.glTFResource[glTFResourceKey] ||= [];
-                  this.glTFResource[glTFResourceKey][index] = item;
-
-                  if (type === GLTFParserType.Mesh) {
-                    for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
-                      const mesh = item[i] as ModelMesh;
-                      // @ts-ignore
-                      this.resourceManager._onSubAssetSuccess<ModelMesh>(
-                        `${url}?q=${glTFResourceKey}[${index}][${i}]`,
-                        mesh
-                      );
-                    }
-                  } else {
-                    // @ts-ignore
-                    this.resourceManager._onSubAssetSuccess<T>(`${url}?q=${glTFResourceKey}[${index}]`, item);
-                    if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
-                      // @ts-ignore
-                      this.resourceManager._onSubAssetSuccess<Entity>(`${url}?q=defaultSceneRoot`, item as Entity);
-                    }
-                  }
-                })
-                .catch((e) => {
-                  // @ts-ignore
-                  this.resourceManager._onSubAssetFail(`${url}?q=${glTFResourceKey}[${index}]`, e);
-                });
-            }
-          }
-        } else {
-          resource = isEntityParser
+        resource =
+          type === GLTFParserType.Entity
             ? <Entity[]>glTFItems.map((_, index) => this.get<T>(type, index))
             : Promise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
-        }
       }
-
-      cache.set(cacheKey, resource);
     }
 
+    cache.set(cacheKey, resource);
     return resource;
   }
 
@@ -135,6 +96,49 @@ export class GLTFParserContext {
         return this.glTFResource;
       });
     });
+  }
+
+  private _handleSubAsset<T>(
+    resource: Entity | Entity[] | Promise<T> | Promise<T[]>,
+    type: GLTFParserType,
+    index: number
+  ): void {
+    const glTFResourceKey = glTFResourceMap[type];
+    if (!glTFResourceKey) return;
+
+    if (glTFResourceKey) {
+      if (type === GLTFParserType.Entity) {
+        this.glTFResource[glTFResourceKey] ||= [];
+        this.glTFResource[glTFResourceKey][index] = <Entity>resource;
+      } else {
+        const url = this.glTFResource.url;
+
+        (<Promise<T>>resource)
+          .then((item: T) => {
+            this.glTFResource[glTFResourceKey] ||= [];
+            this.glTFResource[glTFResourceKey][index] = item;
+
+            if (type === GLTFParserType.Mesh) {
+              for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
+                const mesh = item[i] as ModelMesh;
+                // @ts-ignore
+                this.resourceManager._onSubAssetSuccess<ModelMesh>(`${url}?q=${glTFResourceKey}[${index}][${i}]`, mesh);
+              }
+            } else {
+              // @ts-ignore
+              this.resourceManager._onSubAssetSuccess<T>(`${url}?q=${glTFResourceKey}[${index}]`, item);
+              if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
+                // @ts-ignore
+                this.resourceManager._onSubAssetSuccess<Entity>(`${url}?q=defaultSceneRoot`, item as Entity);
+              }
+            }
+          })
+          .catch((e) => {
+            // @ts-ignore
+            this.resourceManager._onSubAssetFail(`${url}?q=${glTFResourceKey}[${index}]`, e);
+          });
+      }
+    }
   }
 }
 

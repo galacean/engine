@@ -36,7 +36,7 @@ before(async () => {
   engine = await WebGLEngine.create({ canvas: canvasDOM });
 });
 
-@registerGLTFParser(GLTFParserType.JSON)
+@registerGLTFParser(GLTFParserType.Schema)
 class GLTFCustomJSONParser extends GLTFParser {
   parse(context: GLTFParserContext) {
     const glTF = <any>{
@@ -300,7 +300,7 @@ class GLTFCustomJSONParser extends GLTFParser {
       0, 0, 0, 0, 7, 9, 255, 196, 0, 20, 17, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 218, 0, 12, 3, 1,
       0, 2, 17, 3, 17, 0, 63, 0, 157, 0, 6, 42, 155, 255, 217
     ]);
-    context._buffers = [buffer];
+    context.buffers = [buffer];
 
     return Promise.resolve(glTF);
   }
@@ -403,6 +403,5 @@ describe("glTF Loader test", function () {
     const renderer = entities[1].getComponent(SkinnedMeshRenderer);
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
-
   });
 });
