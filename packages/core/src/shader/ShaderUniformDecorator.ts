@@ -54,8 +54,8 @@ export function uniform(type: ShaderUniformType, options?: UniformOptions) {
         type === ShaderUniformType.Vector3 ||
         type === ShaderUniformType.Vector4 ||
         type === ShaderUniformType.Matrix ||
-        type === ShaderUniformType.Color)
-      {
+        type === ShaderUniformType.Color
+      ) {
         setFunc = function (value: any) {
           let data = this.shaderData[get](shaderProp);
           if (!data) {
@@ -79,7 +79,7 @@ export function uniform(type: ShaderUniformType, options?: UniformOptions) {
       },
       set: setFunc!,
       enumerable: false,
-      configurable: true,
+      configurable: true
     });
   };
 }
