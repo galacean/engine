@@ -2,7 +2,15 @@ import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
-import { BufferBindFlag, BufferUsage, MeshTopology, SubMesh, VertexBufferBinding, VertexElement } from "../graphic";
+import {
+  BufferBindFlag,
+  BufferUsage,
+  MeshTopology,
+  SetDataOptions,
+  SubMesh,
+  VertexBufferBinding,
+  VertexElement
+} from "../graphic";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexAttribute } from "../mesh";
@@ -632,10 +640,16 @@ export class ParticleGenerator {
     const dataBuffer = this._instanceVertices.buffer;
 
     if (firstActiveElement < firstFreeElement) {
-      instanceBuffer.setData(dataBuffer, 0, start, (firstFreeElement - firstActiveElement) * byteStride);
+      instanceBuffer.setData(
+        dataBuffer,
+        0,
+        start,
+        (firstFreeElement - firstActiveElement) * byteStride,
+        SetDataOptions.Discard
+      );
     } else {
       const firstSegmentCount = (this._currentParticleCount - firstActiveElement) * byteStride;
-      instanceBuffer.setData(dataBuffer, 0, start, firstSegmentCount);
+      instanceBuffer.setData(dataBuffer, 0, start, firstSegmentCount, SetDataOptions.Discard);
 
       if (firstFreeElement > 0) {
         instanceBuffer.setData(dataBuffer, firstSegmentCount, 0, firstFreeElement * byteStride);
