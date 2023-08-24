@@ -33,10 +33,10 @@ export class GLTFParserContext {
   private _resourceCache = new Map<string, any>();
 
   constructor(
+    public url: string,
     public glTFResource: GLTFResource,
     public resourceManager: ResourceManager,
-    public keepMeshData: boolean,
-    public url: string
+    public keepMeshData: boolean
   ) {
     this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }
