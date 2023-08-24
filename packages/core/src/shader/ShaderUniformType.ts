@@ -9,5 +9,5 @@ export enum ShaderUniformType {
   Vector3 = "Vector3",
   Vector4 = "Vector4",
   Color = "Color",
-  Matrix = "Matrix",
+  Matrix = "Matrix"
 }
