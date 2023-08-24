@@ -106,38 +106,36 @@ export class GLTFParserContext {
     const glTFResourceKey = glTFResourceMap[type];
     if (!glTFResourceKey) return;
 
-    if (glTFResourceKey) {
-      if (type === GLTFParserType.Entity) {
-        this.glTFResource[glTFResourceKey] ||= [];
-        this.glTFResource[glTFResourceKey][index] = <Entity>resource;
-      } else {
-        const url = this.glTFResource.url;
+    if (type === GLTFParserType.Entity) {
+      this.glTFResource[glTFResourceKey] ||= [];
+      this.glTFResource[glTFResourceKey][index] = <Entity>resource;
+    } else {
+      const url = this.glTFResource.url;
 
-        (<Promise<T>>resource)
-          .then((item: T) => {
-            this.glTFResource[glTFResourceKey] ||= [];
-            this.glTFResource[glTFResourceKey][index] = item;
+      (<Promise<T>>resource)
+        .then((item: T) => {
+          this.glTFResource[glTFResourceKey] ||= [];
+          this.glTFResource[glTFResourceKey][index] = item;
 
-            if (type === GLTFParserType.Mesh) {
-              for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
-                const mesh = item[i] as ModelMesh;
-                // @ts-ignore
-                this.resourceManager._onSubAssetSuccess<ModelMesh>(`${url}?q=${glTFResourceKey}[${index}][${i}]`, mesh);
-              }
-            } else {
+          if (type === GLTFParserType.Mesh) {
+            for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
+              const mesh = item[i] as ModelMesh;
               // @ts-ignore
-              this.resourceManager._onSubAssetSuccess<T>(`${url}?q=${glTFResourceKey}[${index}]`, item);
-              if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
-                // @ts-ignore
-                this.resourceManager._onSubAssetSuccess<Entity>(`${url}?q=defaultSceneRoot`, item as Entity);
-              }
+              this.resourceManager._onSubAssetSuccess<ModelMesh>(`${url}?q=${glTFResourceKey}[${index}][${i}]`, mesh);
             }
-          })
-          .catch((e) => {
+          } else {
             // @ts-ignore
-            this.resourceManager._onSubAssetFail(`${url}?q=${glTFResourceKey}[${index}]`, e);
-          });
-      }
+            this.resourceManager._onSubAssetSuccess<T>(`${url}?q=${glTFResourceKey}[${index}]`, item);
+            if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
+              // @ts-ignore
+              this.resourceManager._onSubAssetSuccess<Entity>(`${url}?q=defaultSceneRoot`, item as Entity);
+            }
+          }
+        })
+        .catch((e) => {
+          // @ts-ignore
+          this.resourceManager._onSubAssetFail(`${url}?q=${glTFResourceKey}[${index}]`, e);
+        });
     }
   }
 }
