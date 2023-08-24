@@ -3,6 +3,8 @@ import { Layer, DirectLight, PointLight, SpotLight, AmbientLight, Camera, Entity
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 
+import { lightResource } from "./model/ambientLight";
+
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
 canvasDOM.height = 1024;
@@ -161,7 +163,7 @@ describe("Light test", function () {
     engine.resourceManager
     .load<AmbientLight>({
         type: AssetType.Env,
-        url: 'https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin',
+        url: lightResource,//'https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin'
     });
     if(ambientLightA){
         scene.ambientLight = ambientLightA;

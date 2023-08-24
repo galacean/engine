@@ -4,7 +4,7 @@ import { Quaternion } from "@galacean/engine-math";
 import { GLTFResource } from "@galacean/engine-loader";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
-import { glbResource } from "./model";
+import { glbResource } from "./model/fox";
 
 chai.use(spies);
 
