@@ -3,7 +3,14 @@ import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
 import { Primitive } from "../graphic/Primitive";
+import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
@@ -21,13 +28,6 @@ import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { MeshTopology } from "../graphic/enums/MeshTopology";
-import { SubMesh } from "../graphic/SubMesh";
-import { VertexElement } from "../graphic/VertexElement";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 
 /**
  * Particle System.
@@ -108,11 +108,11 @@ export class ParticleGenerator {
   private _instanceBufferResized = false;
   @ignoreClone
   private _waitProcessRetiredElementCount = 0;
-  private _randomSeed = 0;
   @ignoreClone
   private _instanceVertexBufferBinding: VertexBufferBinding;
   @ignoreClone
   private _instanceVertices: Float32Array;
+  private _randomSeed = 0;
 
   /**
    * Whether the particle system is contain alive or is still creating particles.
@@ -263,7 +263,9 @@ export class ParticleGenerator {
     }
 
     // Add new particles to vertex buffer when has wait process retired element or new particle
-    // @todo: just update new particle buffer to instance buffer, ignore retired particle in shader, especially billboard
+    //
+    // Another choice is just add new particles to vertex buffer and render all particles ignore the retired particle in shader, especially billboards
+    // But webgl don't support map buffer range, so this choice don't have performance advantage even less set data to GPU
     if (
       this._firstNewElement != this._firstFreeElement ||
       this._waitProcessRetiredElementCount > 0 ||
@@ -630,9 +632,15 @@ export class ParticleGenerator {
   }
 
   private _addNewParticlesToVertexBuffer(): void {
-    const byteStride = this._renderer.engine._particleBufferUtils.instanceVertexStride;
     const firstActiveElement = this._firstActiveElement;
     const firstFreeElement = this._firstFreeElement;
+
+    // firstActiveElement == firstFreeElement should not update
+    if (firstActiveElement === firstFreeElement) {
+      return;
+    }
+    
+    const byteStride = this._renderer.engine._particleBufferUtils.instanceVertexStride;
     const start = firstActiveElement * byteStride;
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
     const dataBuffer = this._instanceVertices.buffer;
