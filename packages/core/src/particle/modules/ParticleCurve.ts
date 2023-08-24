@@ -1,6 +1,5 @@
 import { IClone } from "@galacean/engine-design";
-import { ignoreClone } from "../../clone/CloneManager";
-import { deepClone } from "oasis-engine";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle curve.

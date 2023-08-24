@@ -1,8 +1,7 @@
 import { IClone } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { ColorSpace } from "../../enums/ColorSpace";
-import { deepClone } from "../../clone/CloneManager";
-import { ignoreClone } from "oasis-engine";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle gradient.

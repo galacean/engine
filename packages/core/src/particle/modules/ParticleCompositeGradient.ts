@@ -1,8 +1,7 @@
 import { Color } from "@galacean/engine-math";
+import { deepClone } from "../../clone/CloneManager";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleGradient } from "./ParticleGradient";
-import { deepClone } from "../../clone/CloneManager";
-import { shallowClone } from "oasis-engine";
 
 /**
  * Particle composite gradient.
