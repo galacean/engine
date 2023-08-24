@@ -16,9 +16,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const url = item.url;
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, url);
-    const context = new GLTFParserContext(url, glTFResource, resourceManager, params?.keepMeshData ?? false);
+    const context = new GLTFParserContext(glTFResource, resourceManager, !!params?.keepMeshData);
 
-    return <AssetPromise<GLTFResource>>context._parse().catch((e) => {
+    return <AssetPromise<GLTFResource>>context.parse().catch((e) => {
       const msg = `Error loading glTF model from ${url} : ${e}`;
       Logger.error(msg);
       throw e;

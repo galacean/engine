@@ -32,7 +32,6 @@ export class GLTFParserContext {
   private _resourceCache = new Map<string, any>();
 
   constructor(
-    public url: string,
     public glTFResource: GLTFResource,
     public resourceManager: ResourceManager,
     public keepMeshData: boolean
@@ -70,6 +69,8 @@ export class GLTFParserContext {
             this.glTFResource[glTFResourceKey] ||= [];
             this.glTFResource[glTFResourceKey][index] = <Entity>resource;
           } else {
+            const url = this.glTFResource.url;
+
             (<Promise<T>>resource)
               .then((item: T) => {
                 this.glTFResource[glTFResourceKey] ||= [];
@@ -80,22 +81,22 @@ export class GLTFParserContext {
                     const mesh = item[i] as ModelMesh;
                     // @ts-ignore
                     this.resourceManager._onSubAssetSuccess<ModelMesh>(
-                      `${this.url}?q=${glTFResourceKey}[${index}][${i}]`,
+                      `${url}?q=${glTFResourceKey}[${index}][${i}]`,
                       mesh
                     );
                   }
                 } else {
                   // @ts-ignore
-                  this.resourceManager._onSubAssetSuccess<T>(`${this.url}?q=${glTFResourceKey}[${index}]`, item);
+                  this.resourceManager._onSubAssetSuccess<T>(`${url}?q=${glTFResourceKey}[${index}]`, item);
                   if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
                     // @ts-ignore
-                    this.resourceManager._onSubAssetSuccess<Entity>(`${this.url}?q=defaultSceneRoot`, item as Entity);
+                    this.resourceManager._onSubAssetSuccess<Entity>(`${url}?q=defaultSceneRoot`, item as Entity);
                   }
                 }
               })
               .catch((e) => {
                 // @ts-ignore
-                this.resourceManager._onSubAssetFail(`${this.url}?q=${glTFResourceKey}[${index}]`, e);
+                this.resourceManager._onSubAssetFail(`${url}?q=${glTFResourceKey}[${index}]`, e);
               });
           }
         }
@@ -116,8 +117,7 @@ export class GLTFParserContext {
     return resource;
   }
 
-  /** @internal */
-  _parse(): Promise<GLTFResource> {
+  parse(): Promise<GLTFResource> {
     return this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
