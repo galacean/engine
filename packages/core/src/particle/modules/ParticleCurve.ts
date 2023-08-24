@@ -1,10 +1,12 @@
 import { IClone } from "@galacean/engine-design";
 import { ignoreClone } from "../../clone/CloneManager";
+import { deepClone } from "oasis-engine";
 
 /**
  * Particle curve.
  */
 export class ParticleCurve implements IClone {
+  @deepClone
   private _keys: Key[] = [];
   @ignoreClone
   private _typeArray: Float32Array;
@@ -117,7 +119,5 @@ export class Key {
     public time: number,
     /** The key value. */
     public value: number
-  ) {
-    this.time;
-  }
+  ) {}
 }

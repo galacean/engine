@@ -28,87 +28,85 @@ import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule
  */
 export class ParticleGenerator {
   /** @internal */
-  private static _tempVector30: Vector3 = new Vector3();
+  private static _tempVector30 = new Vector3();
   /** @internal */
-  private static _tempVector31: Vector3 = new Vector3();
+  private static _tempVector31 = new Vector3();
   /** @internal */
-  private static _tempColor0: Color = new Color();
+  private static _tempColor0 = new Color();
   /** @internal */
-  private static _tempParticleRenderers: ParticleRenderer[] = [];
+  private static _tempParticleRenderers = new Array<ParticleRenderer>();
+  private static readonly _particleIncreaseCount = 128;
 
   /** Use auto random seed. */
-  useAutoRandomSeed: boolean = true;
+  useAutoRandomSeed = true;
 
   /** Main module. */
   @deepClone
-  readonly main: MainModule = new MainModule(this);
+  readonly main = new MainModule(this);
   /** Emission module. */
   @deepClone
-  readonly emission: EmissionModule = new EmissionModule(this);
+  readonly emission = new EmissionModule(this);
   /** Shape module. */
   @deepClone
-  readonly shape: ShapeModule = new ShapeModule(this);
+  readonly shape = new ShapeModule(this);
   /** Velocity over lifetime module. */
   @deepClone
-  readonly velocityOverLifetime: VelocityOverLifetimeModule = new VelocityOverLifetimeModule(this);
+  readonly velocityOverLifetime = new VelocityOverLifetimeModule(this);
   /** Size over lifetime module. */
   @deepClone
-  readonly sizeOverLifetime: SizeOverLifetimeModule = new SizeOverLifetimeModule(this);
+  readonly sizeOverLifetime = new SizeOverLifetimeModule(this);
   /** Rotation over lifetime module. */
   @deepClone
-  readonly rotationOverLifetime: RotationOverLifetimeModule = new RotationOverLifetimeModule(this);
+  readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
   /** Color over lifetime module. */
   @deepClone
-  readonly colorOverLifetime: ColorOverLifetimeModule = new ColorOverLifetimeModule(this);
+  readonly colorOverLifetime = new ColorOverLifetimeModule(this);
   /** Texture sheet animation module. */
   @deepClone
-  readonly textureSheetAnimation: TextureSheetAnimationModule = new TextureSheetAnimationModule(this);
+  readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
 
   /** @internal */
-  _currentParticleCount: number = 0;
+  _currentParticleCount = 0;
   /** @internal */
   @ignoreClone
-  _playTime: number = 0;
+  _playTime = 0;
 
   /** @internal */
   @ignoreClone
-  _firstNewElement: number = 0;
+  _firstNewElement = 0;
   /** @internal */
   @ignoreClone
-  _firstActiveElement: number = 0;
+  _firstActiveElement = 0;
   /** @internal */
   @ignoreClone
-  _firstFreeElement: number = 0;
+  _firstFreeElement = 0;
   /** @internal */
   @ignoreClone
-  _firstRetiredElement: number = 0;
+  _firstRetiredElement = 0;
   /** @internal */
   @ignoreClone
   _primitive: Primitive;
   /** @internal */
   @ignoreClone
-  _vertexBufferBindings: VertexBufferBinding[] = [];
+  _vertexBufferBindings = new Array<VertexBufferBinding>();
   /** @internal */
   @ignoreClone
-  _subPrimitive: SubMesh = new SubMesh(0, 0, MeshTopology.Triangles);
+  _subPrimitive = new SubMesh(0, 0, MeshTopology.Triangles);
   /** @internal */
   @ignoreClone
   readonly _renderer: ParticleRenderer;
 
   @ignoreClone
-  private _isPlaying: boolean = false;
+  private _isPlaying = false;
   @ignoreClone
-  private _instanceBufferResized: boolean = false;
+  private _instanceBufferResized = false;
   @ignoreClone
-  private _waitProcessRetiredElementCount: number = 0;
+  private _waitProcessRetiredElementCount = 0;
+  private _randomSeed = 0;
   @ignoreClone
   private _instanceVertexBufferBinding: VertexBufferBinding;
   @ignoreClone
   private _instanceVertices: Float32Array;
-  private _randomSeed: number = 0;
-
-  @ignoreClone
-  private readonly _particleIncreaseCount: number = 128;
 
   /**
    * Whether the particle system is contain alive or is still creating particles.
@@ -144,7 +142,7 @@ export class ParticleGenerator {
 
     this._primitive = new Primitive(renderer.engine);
     this._reorganizeGeometryBuffers();
-    this._resizeInstanceBuffer(this._particleIncreaseCount);
+    this._resizeInstanceBuffer(ParticleGenerator._particleIncreaseCount);
 
     this.emission.enabled = true;
     this.shape.enabled = true;
@@ -391,7 +389,10 @@ export class ParticleGenerator {
 
     // Check if can be expanded
     if (nextFreeElement === this._firstRetiredElement) {
-      const increaseCount = Math.min(this._particleIncreaseCount, this.main.maxParticles - this._currentParticleCount);
+      const increaseCount = Math.min(
+        ParticleGenerator._particleIncreaseCount,
+        this.main.maxParticles - this._currentParticleCount
+      );
       if (increaseCount === 0) {
         return;
       }

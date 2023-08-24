@@ -11,10 +11,10 @@ export class ParticleCompositeGradient {
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
-  @shallowClone
+  @deepClone
   constantMin: Color = new Color();
   /* The max constant color used by the gradient if mode is set to `TwoConstants`. */
-  @shallowClone
+  @deepClone
   constantMax: Color = new Color();
   /** The min gradient used by the gradient if mode is set to `Gradient`. */
   @deepClone

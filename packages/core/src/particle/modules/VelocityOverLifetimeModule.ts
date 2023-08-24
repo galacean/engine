@@ -30,13 +30,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Velocity over lifetime for x axis. */
   @deepClone
-  x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  x = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
   @deepClone
-  y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  y = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
   @deepClone
-  z: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  z = new ParticleCompositeCurve(0);
 
   /** Velocity space. */
   space = ParticleSimulationSpace.Local;

@@ -40,7 +40,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   @ignoreClone
   _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
 
-  @shallowClone
+  @deepClone
   private _tiling = new Vector2(1, 1);
 
   /**

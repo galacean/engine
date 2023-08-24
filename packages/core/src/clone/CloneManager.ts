@@ -137,13 +137,7 @@ export class CloneManager {
           const targetOProperty = <Object>(target[k] ||= new sourceProperty.constructor());
           const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
           for (let k in sourceProperty) {
-            const propertyCloneMode = cloneModes[k];
-            CloneManager.cloneProperty(
-              <Object>sourceProperty,
-              targetOProperty,
-              k,
-              cloneMode == CloneMode.Deep && propertyCloneMode == undefined ? CloneMode.Deep : propertyCloneMode
-            );
+            CloneManager.cloneProperty(<Object>sourceProperty, targetOProperty, k, cloneModes[k]);
           }
 
           // Custom clone

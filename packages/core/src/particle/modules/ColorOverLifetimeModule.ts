@@ -35,6 +35,7 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   _colorGradientRand = new Rand(0, ParticleRandomSubSeeds.ColorOverLifetime);
 
+  @ignoreClone
   private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysMaxTime, y: minAlphaKeysMaxTime, z: maxColorKeysMaxTime, w: maxAlphaKeysMaxTime
 
   /**

@@ -1,14 +1,20 @@
 import { IClone } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { ColorSpace } from "../../enums/ColorSpace";
+import { deepClone } from "../../clone/CloneManager";
+import { ignoreClone } from "oasis-engine";
 
 /**
  * Particle gradient.
  */
 export class ParticleGradient implements IClone {
+  @deepClone
   private _colorKeys: ColorKey[] = [];
+  @deepClone
   private _alphaKeys: AlphaKey[] = [];
+  @ignoreClone
   private _colorTypeArray: Float32Array;
+  @ignoreClone
   private _alphaTypeArray: Float32Array;
   private _colorTypeArrayDirty: boolean = false;
   private _alphaTypeArrayDirty: boolean = false;

@@ -31,22 +31,27 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Rotation over lifetime for z axis. */
   @deepClone
-  x: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  x = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
   @deepClone
-  y: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  y = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
   @deepClone
-  z: ParticleCompositeCurve = new ParticleCompositeCurve(45);
+  z = new ParticleCompositeCurve(45);
 
   /** @internal */
   @ignoreClone
   _rotationRand = new Rand(0, ParticleRandomSubSeeds.RotationOverLifetime);
 
+  @ignoreClone
   private _rotationMinConstant = new Vector3();
+  @ignoreClone
   private _rotationMaxConstant = new Vector3();
+  @ignoreClone
   private _enableSeparateMacro: ShaderMacro;
+  @ignoreClone
   private _isCurveMacro: ShaderMacro;
+  @ignoreClone
   private _isRandomTwoMacro: ShaderMacro;
 
   /**

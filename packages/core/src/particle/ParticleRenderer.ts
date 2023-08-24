@@ -18,29 +18,27 @@ import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
  * Particle Renderer Component.
  */
 export class ParticleRenderer extends Renderer {
-  private static _tempVector40: Vector4 = new Vector4();
-  private static _vector3One: Vector3 = new Vector3(1, 1, 1);
+  private static _tempVector40 = new Vector4();
+  private static _vector3One = new Vector3(1, 1, 1);
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
 
   /** Particle generator. */
   @deepClone
-  readonly generator: ParticleGenerator = new ParticleGenerator(this);
-
+  readonly generator = new ParticleGenerator(this);
   /** Specifies how much particles stretch depending on their velocity. */
-  velocityScale: number = 0;
+  velocityScale = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
-  lengthScale: number = 2;
-
+  lengthScale = 2;
   /** The pivot of particle. */
   @shallowClone
-  pivot: Vector3 = new Vector3();
+  pivot = new Vector3();
 
+  @ignoreClone
+  private _gravity = new Vector3();
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
-  @ignoreClone
-  private _gravity: Vector3 = new Vector3();
 
   /**
    * Specifies how the system draws particles.
