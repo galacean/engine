@@ -48,32 +48,26 @@ export class GLTFParserContext {
   get<T>(type: GLTFParserType, index: number): Promise<T>;
   get<T>(type: GLTFParserType): Promise<T[]>;
   get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | Promise<T> | Promise<T[]> {
+    const parser = GLTFParserContext._parsers[type];
+    if (!parser) return Promise.resolve(null);
+
     const cache = this._resourceCache;
     const glTFSchemaKey = glTFSchemaMap[type];
     const glTFResourceKey = glTFResourceMap[type];
-    const isOnlyOne = !glTFSchemaMap[type];
-
-    let cacheKey: string;
-    let needOnlyOne = true;
-
-    if (isOnlyOne) {
-      cacheKey = `${type}`;
-    } else if (index >= 0) {
-      cacheKey = `${type}:${index}`;
-    } else {
-      cacheKey = `${type}`;
-      needOnlyOne = false;
-    }
-
+    const isSchemaParser = type === GLTFParserType.Schema;
+    const isValidatorParser = type === GLTFParserType.Validator;
+    const cacheKey = isSchemaParser || isValidatorParser || index === undefined ? `${type}` : `${type}:${index}`;
     let resource: Entity | Entity[] | Promise<T> | Promise<T[]> = cache.get(cacheKey);
 
     if (!resource) {
-      if (needOnlyOne) {
-        resource = GLTFParserContext._parsers[type].parse(this, index);
+      const isEntityParser = type === GLTFParserType.Entity;
 
-        // store glTFResource
-        if (!isOnlyOne) {
-          if (type === GLTFParserType.Entity) {
+      if (index >= 0 || isSchemaParser || isValidatorParser) {
+        resource = parser.parse(this, index);
+
+        // store glTF sub assets
+        if (glTFResourceKey) {
+          if (isEntityParser) {
             this.glTFResource[glTFResourceKey] ||= [];
             this.glTFResource[glTFResourceKey][index] = <Entity>resource;
           } else {
@@ -109,11 +103,9 @@ export class GLTFParserContext {
       } else {
         const items = this.glTF[glTFSchemaKey];
         if (items) {
-          if (type === GLTFParserType.Entity) {
-            resource = <Entity[]>items.map((_, index) => this.get<T>(type, index));
-          } else {
-            resource = Promise.all<T>(items.map((_, index) => this.get<T>(type, index)));
-          }
+          resource = isEntityParser
+            ? <Entity[]>items.map((_, index) => this.get<T>(type, index))
+            : Promise.all<T>(items.map((_, index) => this.get<T>(type, index)));
         } else {
           resource = Promise.resolve<T>(null);
         }
@@ -140,7 +132,6 @@ export class GLTFParserContext {
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
         this.resourceManager.addContentRestorer(this.contentRestorer);
-        console.log(this);
         return this.glTFResource;
       });
     });
