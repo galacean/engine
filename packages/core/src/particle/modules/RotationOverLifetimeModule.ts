@@ -31,13 +31,13 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Rotation over lifetime for z axis. */
   @deepClone
-  x = new ParticleCompositeCurve(0);
+  rotationX = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
   @deepClone
-  y = new ParticleCompositeCurve(0);
+  rotationY = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis. */
   @deepClone
-  z = new ParticleCompositeCurve(45);
+  rotationZ = new ParticleCompositeCurve(45);
 
   /** @internal */
   @ignoreClone
@@ -62,9 +62,9 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
     let isCurveMacro = <ShaderMacro>null;
     let isRandomTwoMacro = <ShaderMacro>null;
     if (this.enabled) {
-      const rotationX = this.x;
-      const rotationY = this.y;
-      const rotationZ = this.z;
+      const rotationX = this.rotationX;
+      const rotationY = this.rotationY;
+      const rotationZ = this.rotationZ;
       const separateAxes = this.separateAxes;
 
       const isRandomCurveMode = separateAxes

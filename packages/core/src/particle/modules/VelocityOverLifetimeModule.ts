@@ -30,13 +30,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Velocity over lifetime for x axis. */
   @deepClone
-  x = new ParticleCompositeCurve(0);
+  velocityX = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
   @deepClone
-  y = new ParticleCompositeCurve(0);
+  velocityY = new ParticleCompositeCurve(0);
   /** Velocity over lifetime for z axis. */
   @deepClone
-  z = new ParticleCompositeCurve(0);
+  velocityZ = new ParticleCompositeCurve(0);
 
   /** Velocity space. */
   space = ParticleSimulationSpace.Local;
@@ -56,9 +56,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   _updateShaderData(shaderData: ShaderData): void {
     let velocityMacro = <ShaderMacro>null;
     if (this.enabled) {
-      const velocityX = this.x;
-      const velocityY = this.y;
-      const velocityZ = this.z;
+      const velocityX = this.velocityX;
+      const velocityY = this.velocityY;
+      const velocityZ = this.velocityZ;
 
       const isRandomCurveMode =
         velocityX.mode === ParticleCurveMode.TwoCurves &&

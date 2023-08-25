@@ -4,6 +4,7 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { Burst } from "./Burst";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { BaseShape } from "./shape/BaseShape";
 
 /**
  * The EmissionModule of a Particle System.
@@ -15,6 +16,13 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate at which the emitter spawns new particles over distance. */
   @deepClone
   rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
+  /** The shape of the emitter. */
+  @deepClone
+  shape: BaseShape;
+
+  /** @internal */
+  @ignoreClone
+  _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
 
   @deepClone
   private _bursts: Burst[] = [];
@@ -82,6 +90,7 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
+    this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
   }
 
   /**

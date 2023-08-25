@@ -24,7 +24,6 @@ import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
-import { ShapeModule } from "./modules/ShapeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
@@ -52,9 +51,6 @@ export class ParticleGenerator {
   /** Emission module. */
   @deepClone
   readonly emission = new EmissionModule(this);
-  /** Shape module. */
-  @deepClone
-  readonly shape = new ShapeModule(this);
   /** Velocity over lifetime module. */
   @deepClone
   readonly velocityOverLifetime = new VelocityOverLifetimeModule(this);
@@ -151,7 +147,6 @@ export class ParticleGenerator {
     this._resizeInstanceBuffer(ParticleGenerator._particleIncreaseCount);
 
     this.emission.enabled = true;
-    this.shape.enabled = true;
   }
 
   /**
@@ -222,11 +217,10 @@ export class ParticleGenerator {
     const direction = ParticleGenerator._tempVector31;
     if (this.emission.enabled) {
       const transform = this._renderer.entity.transform;
-      const shape = this.shape;
-      const shapeEnabled = shape.enabled && shape.shape;
+      const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
-        if (shapeEnabled) {
-          shape.shape._generatePositionAndDirection(shape._shapeRand, position, direction);
+        if (shape) {
+          shape._generatePositionAndDirection(this.emission._shapeRand, position, direction);
           const positionScale = this.main._getPositionScale();
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
@@ -504,7 +498,7 @@ export class ParticleGenerator {
     // instanceVertices[offset + 21] = rand.random();
 
     const rotationOverLifetime = this.rotationOverLifetime;
-    if (rotationOverLifetime.enabled && rotationOverLifetime.z.mode === ParticleCurveMode.TwoConstants) {
+    if (rotationOverLifetime.enabled && rotationOverLifetime.rotationZ.mode === ParticleCurveMode.TwoConstants) {
       instanceVertices[offset + 22] = rotationOverLifetime._rotationRand.random();
     }
 
@@ -518,9 +512,9 @@ export class ParticleGenerator {
     const velocityOverLifetime = this.velocityOverLifetime;
     if (
       velocityOverLifetime.enabled &&
-      velocityOverLifetime.x.mode === ParticleCurveMode.TwoConstants &&
-      velocityOverLifetime.y.mode === ParticleCurveMode.TwoConstants &&
-      velocityOverLifetime.z.mode === ParticleCurveMode.TwoConstants
+      velocityOverLifetime.velocityX.mode === ParticleCurveMode.TwoConstants &&
+      velocityOverLifetime.velocityY.mode === ParticleCurveMode.TwoConstants &&
+      velocityOverLifetime.velocityZ.mode === ParticleCurveMode.TwoConstants
     ) {
       const rand = velocityOverLifetime._velocityRand;
       instanceVertices[offset + 24] = rand.random();
@@ -604,7 +598,6 @@ export class ParticleGenerator {
     this._randomSeed = seed;
     this.main._resetRandomSeed(seed);
     this.emission._resetRandomSeed(seed);
-    this.shape._resetRandomSeed(seed);
     this.textureSheetAnimation._resetRandomSeed(seed);
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
@@ -639,7 +632,7 @@ export class ParticleGenerator {
     if (firstActiveElement === firstFreeElement) {
       return;
     }
-    
+
     const byteStride = this._renderer.engine._particleBufferUtils.instanceVertexStride;
     const start = firstActiveElement * byteStride;
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
