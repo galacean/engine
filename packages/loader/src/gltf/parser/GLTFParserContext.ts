@@ -48,23 +48,27 @@ export class GLTFParserContext {
   get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | Promise<T> | Promise<T[]> {
     const parser = GLTFParserContext._parsers[type];
 
-    if (!parser) return Promise.resolve(null);
+    if (!parser) {
+      return Promise.resolve(null);
+    }
 
     const cache = this._resourceCache;
     const isOnlyOne = type === GLTFParserType.Schema || type === GLTFParserType.Validator;
     const cacheKey = isOnlyOne || index === undefined ? `${type}` : `${type}:${index}`;
     let resource: Entity | Entity[] | Promise<T> | Promise<T[]> = cache.get(cacheKey);
 
-    if (resource) return resource;
+    if (resource) {
+      return resource;
+    }
 
     if (isOnlyOne) {
       resource = parser.parse(this);
     } else {
       const glTFItems = this.glTF[glTFSchemaMap[type]];
 
-      if (!glTFItems || (index >= 0 && !glTFItems[index])) {
+      if (!glTFItems || (index !== undefined && !glTFItems[index])) {
         resource = Promise.resolve<T>(null);
-      } else if (index >= 0) {
+      } else if (index !== undefined) {
         resource = parser.parse(this, index);
         this._handleSubAsset(resource, type, index);
       } else {
