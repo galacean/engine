@@ -5,6 +5,7 @@ import { WebXRSession } from "../WebXRSession";
 export class WebXRInputProvider implements IXRInputProvider {
   private _engine: Engine;
   private _session: WebXRSession;
+  private;
   private _inputs: XRInputDevice[];
   private _eventList: {
     event: Event;
@@ -67,28 +68,37 @@ export class WebXRInputProvider implements IXRInputProvider {
       event.handle(frameCount, event.event, inputs);
     }
     eventList.length = 0;
-
     const { inputSources } = _platformSession;
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
       const type = this._getInputSource(inputSource);
-      const controller = inputs[type];
-      switch (type) {
-        case EnumXRInputSource.LeftController:
-        case EnumXRInputSource.RightController:
-          const { transform } = _platformFrame.getPose(inputSource.gripSpace, _platformSpace);
-          if (transform) {
-            controller.matrix.copyFromArray(transform.matrix);
-            controller.position.copyFrom(transform.position);
-            controller.quaternion.copyFrom(transform.orientation);
-          }
+      switch (inputSource.targetRayMode) {
+        case "gaze":
           break;
-        case EnumXRInputSource.Gamepad:
+        case "screen":
+        case "tracked-pointer":
+          const input = <XRController>inputs[type];
+          // 位姿
+          const { gripSpace, gamepad } = inputSource;
+          if (gripSpace) {
+            const { transform } = _platformFrame.getPose(inputSource.gripSpace, _platformSpace);
+            if (transform) {
+              input.matrix.copyFromArray(transform.matrix);
+              input.position.copyFrom(transform.position);
+              input.quaternion.copyFrom(transform.orientation);
+            }
+          }
+          // 摇杆
+          if (gamepad) {
+            const [, , x, y] = gamepad.axes;
+            input.stick.set(x || 0, y || 0);
+          }
+
+          input.connected = true;
           break;
         default:
           break;
       }
-      controller.connected = true;
     }
 
     const viewerPose = _platformFrame.getViewerPose(_platformSpace);
@@ -110,6 +120,11 @@ export class WebXRInputProvider implements IXRInputProvider {
           const x = xrViewport.x / framebufferWidth;
           const y = 1 - xrViewport.y / framebufferHeight - height;
           xrCamera.viewport.set(x, y, width, height);
+          if (xrCamera.camera) {
+            const vec4 = xrCamera.camera.viewport;
+            vec4.set(x, y, width, height);
+            xrCamera.camera.viewport = vec4;
+          }
         }
       }
     }
@@ -124,32 +139,96 @@ export class WebXRInputProvider implements IXRInputProvider {
   }
 
   private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInputDevice[]): void {
-    const input = inputs[this._getInputSource(event.inputSource)] as XRController;
-    switch (event.type) {
-      case "selectstart":
-        input.downList.add(EnumXRButton.Select);
-        input.downMap[EnumXRButton.Select] = frameCount;
-        input.pressedButtons |= EnumXRButton.Select;
+    const { inputSource } = event;
+    const input = inputs[this._getInputSource(inputSource)] as XRController;
+    switch (inputSource.targetRayMode) {
+      case "tracked-pointer":
+        switch (event.type) {
+          case "selectstart":
+            input.downList.add(EnumXRButton.Select);
+            input.downMap[EnumXRButton.Select] = frameCount;
+            input.pressedButtons |= EnumXRButton.Select;
+            break;
+          case "selectend":
+            input.upList.add(EnumXRButton.Select);
+            input.upMap[EnumXRButton.Select] = frameCount;
+            input.pressedButtons &= ~EnumXRButton.Select;
+            break;
+          case "squeezestart":
+            input.downList.add(EnumXRButton.Squeeze);
+            input.downMap[EnumXRButton.Squeeze] = frameCount;
+            input.pressedButtons |= EnumXRButton.Squeeze;
+            break;
+          case "squeezeend":
+            input.upList.add(EnumXRButton.Squeeze);
+            input.upMap[EnumXRButton.Squeeze] = frameCount;
+            input.pressedButtons &= ~EnumXRButton.Squeeze;
+            break;
+          default:
+            break;
+        }
         break;
-      case "selectend":
-        input.upList.add(EnumXRButton.Select);
-        input.upMap[EnumXRButton.Select] = frameCount;
-        input.pressedButtons &= ~EnumXRButton.Select;
-        break;
-      case "squeezestart":
-        input.downList.add(EnumXRButton.Squeeze);
-        input.downMap[EnumXRButton.Squeeze] = frameCount;
-        input.pressedButtons |= EnumXRButton.Squeeze;
-        break;
-      case "squeezeend":
-        input.upList.add(EnumXRButton.Squeeze);
-        input.upMap[EnumXRButton.Squeeze] = frameCount;
-        input.pressedButtons &= ~EnumXRButton.Squeeze;
+      case "screen":
+        const { gamepad } = inputSource;
+        if (!gamepad) {
+          return;
+        }
+        // @ts-ignore
+        // const canvas = this._engine._canvas._webCanvas;
+        const [screenX, screenY, stickX, stickY] = gamepad.axes;
+        console.log("screen position", screenX, screenY);
+        console.log("stick position", stickX, stickY);
+        switch (event.type) {
+          case "selectstart":
+            input.pressedButtons |= EnumXRButton.Select;
+            break;
+          case "select":
+            // move ?
+            break;
+          case "selectend":
+            const { pointers } = input;
+            let pressedButtons = 0;
+            for (let i = 0, n = pointers.length; i < n; i++) {
+              pressedButtons |= pointers[i].buttons;
+            }
+            input.pressedButtons = pressedButtons;
+            break;
+          default:
+            break;
+        }
         break;
       default:
         break;
     }
   }
+
+  // private makeUpPointerEvent(type: string, position: any): PointerEvent {
+  //   const outPos = new Vec3();
+  //   this._camera?.worldToScreen(worldPosition, outPos);
+
+  //   const touchInitDict: TouchInit = {
+  //     identifier: 0,
+  //     target: this._gl?.canvas as EventTarget,
+  //     clientX: outPos.x,
+  //     clientY: outPos.y,
+  //     pageX: outPos.x,
+  //     pageY: outPos.y,
+  //     screenX: outPos.x,
+  //     screenY: outPos.y,
+  //     force: 1,
+  //     radiusX: 1,
+  //     radiusY: 1
+  //   };
+
+  //   const touch = new Touch(touchInitDict);
+  //   const touches: Touch[] = [touch];
+  //   const eventInitDict: PointerEventInit = {
+  //     touches,
+  //     targetTouches: touches,
+  //     changedTouches: touches
+  //   };
+  //   return new PointerEvent(type, eventInitDict);
+  // }
 
   private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInputDevice[]): void {
     const { removed, added } = event;
@@ -163,24 +242,32 @@ export class WebXRInputProvider implements IXRInputProvider {
 
   private _getInputSource(inputSource: XRInputSource): EnumXRInputSource {
     let type: EnumXRInputSource;
-    if (inputSource.gamepad) {
-      type = EnumXRInputSource.Gamepad;
-    } else if (inputSource.hand) {
-      switch (inputSource.handedness) {
-        case "left":
-          return EnumXRInputSource.LeftHand;
-        case "right":
-          return EnumXRInputSource.RightHand;
-      }
-    } else {
-      switch (inputSource.handedness) {
-        case "left":
-          return EnumXRInputSource.LeftController;
-        case "right":
-          return EnumXRInputSource.RightController;
-      }
+    switch (inputSource.targetRayMode) {
+      case "gaze":
+        // 眼睛
+        break;
+      case "screen":
+        return EnumXRInputSource.Controller;
+      case "tracked-pointer":
+        if (inputSource.hand) {
+          switch (inputSource.handedness) {
+            case "left":
+              return EnumXRInputSource.LeftHand;
+            case "right":
+              return EnumXRInputSource.RightHand;
+          }
+        } else {
+          switch (inputSource.handedness) {
+            case "left":
+              return EnumXRInputSource.LeftController;
+            case "right":
+              return EnumXRInputSource.RightController;
+          }
+        }
+        break;
+      default:
+        break;
     }
-    return type;
   }
 
   private _eyeToInputSource(eye: XREye): EnumXRInputSource {

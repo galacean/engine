@@ -16,7 +16,9 @@ export abstract class XRFeature {
    * This method needs to be override.
    * @returns
    */
-  onEnable(): void {}
+  onEnable(): void {
+    this._provider.attach(this._engine.xrManager.session);
+  }
 
   /**
    * Disable an instance of a feature.
@@ -30,7 +32,9 @@ export abstract class XRFeature {
    * This method needs to be override.
    * @returns
    */
-  onUpdate(): void {}
+  onUpdate(): void {
+    this._provider.onXRFrame();
+  }
 
   /**
    * Destroy an instance of a feature.

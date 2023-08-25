@@ -1,5 +1,5 @@
 export enum EnumXRInputSource {
-  Gamepad,
+  Controller,
   LeftController,
   RightController,
   Viewer,

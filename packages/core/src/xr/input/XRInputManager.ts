@@ -1,7 +1,6 @@
 import { IXRInputProvider } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
-import { XRGamepad } from "./XRGamepad";
 import { XRHand } from "./XRHand";
 import { XRInputDevice } from "./XRInputDevice";
 import { XRViewer } from "./XRViewer";
@@ -22,9 +21,7 @@ export class XRInputManager {
     const { _engine: engine, _inputs: inputs } = this;
     for (let i = EnumXRInputSource.Length - 1; i >= 0; i--) {
       switch (i) {
-        case EnumXRInputSource.Gamepad:
-          inputs[i] = new XRGamepad(engine);
-          break;
+        case EnumXRInputSource.Controller:
         case EnumXRInputSource.LeftController:
         case EnumXRInputSource.RightController:
           inputs[i] = new XRController(engine);

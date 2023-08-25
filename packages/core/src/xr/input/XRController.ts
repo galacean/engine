@@ -1,8 +1,12 @@
+import { Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { EnumXRButton } from "../enum/EnumXRButton";
 import { XRInputDevice } from "./XRInputDevice";
+import { XRPointer } from "./XRPointer";
 
 export class XRController extends XRInputDevice {
+  pointers: XRPointer[] = [];
+  stick: Vector2 = new Vector2();
   pressedButtons: EnumXRButton;
   upMap: number[] = [];
   downMap: number[] = [];

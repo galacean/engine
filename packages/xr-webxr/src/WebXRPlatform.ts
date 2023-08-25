@@ -1,7 +1,7 @@
 import { IXRPlatform, Engine, EnumXRMode, IXRFeatureDescriptor, IXRSessionDescriptor } from "@galacean/engine";
 import { WebXRSession } from "./WebXRSession";
 import { parseXRMode } from "./util";
-import { WebXRInputProvider } from "./provider/WebXRInputProvider";
+import { WebXRInputProvider } from "./input/WebXRInputProvider";
 import { IXRSession } from "@galacean/engine-design";
 
 export class WebXRPlatform implements IXRPlatform {

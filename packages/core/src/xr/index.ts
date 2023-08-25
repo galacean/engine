@@ -1,10 +1,10 @@
 // manager
 export { XRManager, registerXRFeature, registerXRProvider } from "./XRManager";
-export { XRInputManager } from "./input/XRInputManager";
 
 // feature
-export { XRMovementTracking } from "./feature/XRMovementTracking";
 export { XRFeatureProvider } from "./feature/XRFeatureProvider";
+export { XRHitTest } from "./feature/XRHitTest";
+export { XRMovementTracking } from "./feature/XRMovementTracking";
 export { XRPlaneTracking } from "./feature/XRPlaneTracking";
 
 // descriptor
@@ -28,11 +28,12 @@ export { EnumXRPlaneTrackingMode } from "./enum/EnumXRPlaneTrackingMode";
 export { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
 
 // input
-export { XRInputDevice } from "./input/XRInputDevice";
-export { XRViewer } from "./input/XRViewer";
 export { XRController } from "./input/XRController";
 export { XRHand } from "./input/XRHand";
-export { XRGamepad } from "./input/XRGamepad";
+export { XRInputDevice } from "./input/XRInputDevice";
+export { XRInputManager } from "./input/XRInputManager";
+export { XRPointer } from "./input/XRPointer";
+export { XRViewer } from "./input/XRViewer";
 
 // interface
 export type { IXRPlatform } from "./IXRPlatform";

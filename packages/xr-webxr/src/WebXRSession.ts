@@ -6,7 +6,6 @@ import {
   WebGLGraphicDevice
 } from "@galacean/engine";
 import { IXRSession } from "@galacean/engine-design";
-import { EnumWebXRSpaceType } from "./enum/EnumWebXRSpaceType";
 import { parseXRMode } from "./util";
 
 export class WebXRSession implements IXRSession {
@@ -32,7 +31,7 @@ export class WebXRSession implements IXRSession {
         reject(new Error("Mode must be a value from the XRMode."));
         return;
       }
-      const requiredFeatures = this._parseFeatures(descriptor.requestFeatures, [EnumWebXRSpaceType.Local]);
+      const requiredFeatures = this._parseFeatures(descriptor.requestFeatures, ["local", "local-floor"]);
       navigator.xr.requestSession(mode, { requiredFeatures }).then((session) => {
         this._platformSession = session;
         const { _rhi: rhi } = this;
@@ -61,7 +60,7 @@ export class WebXRSession implements IXRSession {
               layers: [this._platformLayer]
             });
           }
-          session.requestReferenceSpace(EnumWebXRSpaceType.Local).then((value: XRReferenceSpace) => {
+          session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
             this._platformSpace = value;
             resolve();
           }, reject);
@@ -115,31 +114,37 @@ export class WebXRSession implements IXRSession {
 
   getTracking(): void {}
 
-  private _webXRUpdate(time: DOMHighResTimeStamp, frame: XRFrame) {
-    const { _platformLayer: platformLayer, _rhi: rhi } = this;
-    this._platformFrame = frame;
-    const frameBuffer = platformLayer?.framebuffer;
-    if (frameBuffer && platformLayer.framebufferWidth && platformLayer.framebufferHeight) {
-      // @ts-ignore
-      rhi._mainFrameBuffer = frameBuffer;
-      // @ts-ignore
-      rhi._mainFrameWidth = platformLayer.framebufferWidth;
-      // @ts-ignore
-      rhi._mainFrameHeight = platformLayer.framebufferHeight;
-    } else {
-      // @ts-ignore
-      rhi._mainFrameBuffer = null;
-      // @ts-ignore
-      rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
-    }
-    this._engine.update();
-  }
-
   constructor(engine: Engine) {
     this._engine = engine;
     // @ts-ignore
     this._rhi = engine._hardwareRenderer;
     this._webXRUpdate = this._webXRUpdate.bind(this);
+  }
+
+  private _webXRUpdate(time: DOMHighResTimeStamp, frame: XRFrame) {
+    this._platformFrame = frame;
+    this._setMainFBO();
+    this._engine.update();
+  }
+
+  private _setMainFBO(): void {
+    const { framebuffer, framebufferWidth, framebufferHeight } = this._platformLayer;
+    const { _rhi: rhi } = this;
+    if (framebuffer && framebufferWidth && framebufferHeight) {
+      // @ts-ignore
+      rhi._mainFrameBuffer = framebuffer;
+      // @ts-ignore
+      rhi._mainFrameWidth = framebufferWidth;
+      // @ts-ignore
+      rhi._mainFrameHeight = framebufferHeight;
+    } else {
+      // @ts-ignore
+      rhi._mainFrameBuffer = null;
+      // @ts-ignore
+      rhi._mainFrameWidth = 0;
+      // @ts-ignore
+      rhi._mainFrameHeight = 0;
+    }
   }
 
   private _parseFeatures(descriptors: IXRFeatureDescriptor[], out: string[]): string[] {

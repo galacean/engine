@@ -5,7 +5,6 @@ import { XRFeature } from "./feature/XRFeature";
 import { IXRPlatform } from "./IXRPlatform";
 import { XRViewer } from "./input/XRViewer";
 import { XRInputManager } from "./input/XRInputManager";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { IXRFeatureDescriptor } from "./descriptor/IXRFeatureDescriptor";
 import { EnumXRMode } from "./enum/EnumXRMode";
 import { EnumXRInputSource } from "./enum/EnumXRInputSource";
@@ -21,10 +20,10 @@ export class XRManager {
   // @internal
   static _providerMap: ProviderConstructor[] = [];
 
+  session: IXRSession;
   inputManager: XRInputManager;
 
   private _engine: Engine;
-  private _session: IXRSession;
   private _xrPlatform: IXRPlatform;
   private _features: XRFeature[] = [];
   private _isPaused: boolean = true;
@@ -61,7 +60,7 @@ export class XRManager {
   getFeature<T extends XRFeature>(type: new (engine: Engine, descriptor: IXRFeatureDescriptor) => T): T {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features;
+      const feature = features[i];
       if (feature instanceof type) {
         return feature;
       }
@@ -69,7 +68,6 @@ export class XRManager {
   }
 
   attachCamera(source: EnumXRInputSource, camera: Camera): void {
-    camera.clearFlags = CameraClearFlags.None;
     this.inputManager.getInput<XRViewer>(source).attachCamera(camera);
   }
 
@@ -79,12 +77,12 @@ export class XRManager {
 
   createSession(sessionDescriptor: IXRSessionDescriptor): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this._session) {
+      if (this.session) {
         reject(new Error("There is a running xr session, destroy it first and try again."));
         return;
       }
       this._xrPlatform.createSession(this._engine, sessionDescriptor).then((session) => {
-        this._session = session;
+        this.session = session;
         const { _engine: engine, _features: features } = this;
         const { _featureMap: featureMap, _providerMap: providerMap } = XRManager;
         const { requestFeatures } = sessionDescriptor;
@@ -102,12 +100,12 @@ export class XRManager {
 
   destroySession(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this._session) {
+      if (!this.session) {
         reject(new Error("没有正在运行的 XR 会话"));
         return;
       }
-      this._xrPlatform.destroySession(this._session).then(() => {
-        this._session = null;
+      this._xrPlatform.destroySession(this.session).then(() => {
+        this.session = null;
         this._isPaused = true;
         resolve();
       }, reject);
@@ -115,7 +113,7 @@ export class XRManager {
   }
 
   start(): Promise<void> {
-    const { _session: session, inputManager } = this;
+    const { session, inputManager } = this;
     return session.start().then(() => {
       inputManager._provider.attach(session, inputManager._inputs);
       const { _features: features } = this;
@@ -127,7 +125,7 @@ export class XRManager {
   }
 
   stop(): Promise<void> {
-    return this._session.stop().then(() => {
+    return this.session.stop().then(() => {
       const { _features: features } = this;
       for (let i = 0, n = features.length; i < n; i++) {
         features[i]?.onDisable();
@@ -143,7 +141,7 @@ export class XRManager {
     }
     features.length = 0;
     this._isPaused = true;
-    this._session?.destroy();
+    this.session?.destroy();
   }
 
   /**
