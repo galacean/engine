@@ -19,8 +19,8 @@ import {
   TextureMagFilter,
   TextureMinFilter
 } from "./GLTFSchema";
-import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
 import { GLTFTextureParser } from "./parser";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "./parser/GLTFParserContext";
 
 /**
  * @internal
@@ -136,7 +136,7 @@ export class GLTFUtils {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    return context.getBuffers().then((buffers) => {
+    return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
       const bufferIndex = bufferView.buffer;
       const buffer = buffers[bufferIndex];
       const bufferByteOffset = bufferView.byteOffset ?? 0;
