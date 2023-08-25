@@ -65,17 +65,18 @@ export class GLTFParserContext {
       resource = parser.parse(this);
     } else {
       const glTFItems = this.glTF[glTFSchemaMap[type]];
-
-      if (!glTFItems || (index !== undefined && !glTFItems[index])) {
-        resource = Promise.resolve<T>(null);
-      } else if (index !== undefined) {
-        resource = parser.parse(this, index);
-        this._handleSubAsset(resource, type, index);
+      if (glTFItems && (index === undefined || glTFItems[index])) {
+        if (index === undefined) {
+          resource =
+            type === GLTFParserType.Entity
+              ? <Entity[]>glTFItems.map((_, index) => this.get<T>(type, index))
+              : Promise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
+        } else {
+          resource = parser.parse(this, index);
+          this._handleSubAsset(resource, type, index);
+        }
       } else {
-        resource =
-          type === GLTFParserType.Entity
-            ? <Entity[]>glTFItems.map((_, index) => this.get<T>(type, index))
-            : Promise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
+        resource = Promise.resolve<T>(null);
       }
     }
 
@@ -111,14 +112,12 @@ export class GLTFParserContext {
     if (!glTFResourceKey) return;
 
     if (type === GLTFParserType.Entity) {
-      this.glTFResource[glTFResourceKey] ||= [];
-      this.glTFResource[glTFResourceKey][index] = <Entity>resource;
+      (this.glTFResource[glTFResourceKey] ||= [])[index] = <Entity>resource;
     } else {
       const url = this.glTFResource.url;
 
       (<Promise<T>>resource).then((item: T) => {
-        this.glTFResource[glTFResourceKey] ||= [];
-        this.glTFResource[glTFResourceKey][index] = item;
+        (this.glTFResource[glTFResourceKey] ||= [])[index] = item;
 
         if (type === GLTFParserType.Mesh) {
           for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
