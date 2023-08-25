@@ -353,6 +353,7 @@ export class ParticleGenerator {
       BufferUsage.Dynamic,
       false
     );
+    vertexInstanceBuffer.isGCIgnored = true;
 
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const vertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
@@ -602,6 +603,14 @@ export class ParticleGenerator {
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._instanceVertexBufferBinding.buffer.destroy();
+    this._primitive.destroy();
   }
 
   private _freeRetiredParticles(): void {

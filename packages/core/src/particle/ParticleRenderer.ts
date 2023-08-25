@@ -2,6 +2,7 @@ import { Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -12,7 +13,6 @@ import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 
 /**
  * Particle Renderer Component.
@@ -91,7 +91,6 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-
       lastMesh?._addReferCount(-1);
       value?._addReferCount(1);
       if (this.renderMode === ParticleRenderMode.Mesh) {
@@ -227,5 +226,9 @@ export class ParticleRenderer extends Renderer {
     //     " InstanceCount:" +
     //     primitive.instanceCount
     // );
+  }
+
+  protected override _onDestroy(): void {
+    this.generator._destroy();
   }
 }
