@@ -1,4 +1,4 @@
-import { deepClone } from "../../clone/CloneManager";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -34,6 +34,9 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   /** Size curve over lifetime for z axis. */
   @deepClone
   sizeZ = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+
+  @ignoreClone
+  private _sizeMacro: ShaderMacro;
 
   /**
    * Size curve over lifetime.
@@ -100,6 +103,6 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
       }
     }
 
-    this._enableModuleMacro(shaderData, sizeMacro);
+    this._sizeMacro = this._enableMacro(shaderData, this._sizeMacro, sizeMacro);
   }
 }

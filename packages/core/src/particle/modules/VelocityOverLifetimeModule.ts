@@ -49,6 +49,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _velocityMinConstant = new Vector3();
   @ignoreClone
   private _velocityMaxConstant = new Vector3();
+  @ignoreClone
+  private _velocityMacro: ShaderMacro;
 
   /**
    * @internal
@@ -108,9 +110,10 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
           velocityMacro = VelocityOverLifetimeModule._constantMacro;
         }
       }
-      this._enableModuleMacro(shaderData, velocityMacro);
+
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
     }
+    this._velocityMacro = this._enableMacro(shaderData, this._velocityMacro, velocityMacro);
   }
 
   /**

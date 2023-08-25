@@ -37,6 +37,8 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
 
   @ignoreClone
   private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysMaxTime, y: minAlphaKeysMaxTime, z: maxColorKeysMaxTime, w: maxAlphaKeysMaxTime
+  @ignoreClone
+  private _colorMacro: ShaderMacro;
 
   /**
    * @internal
@@ -81,7 +83,7 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
       }
     }
 
-    this._enableModuleMacro(shaderData, colorMacro);
+    this._colorMacro = this._enableMacro(shaderData, this._colorMacro, colorMacro);
   }
 
   /**

@@ -127,9 +127,9 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
         enableSeparateMacro = RotationOverLifetimeModule._isSeparateMacro;
       }
     }
-    this._enableSeparateMacro = this._enableModuleMacroX(shaderData, this._enableSeparateMacro, enableSeparateMacro);
-    this._isCurveMacro = this._enableModuleMacroX(shaderData, this._isCurveMacro, isCurveMacro);
-    this._isRandomTwoMacro = this._enableModuleMacroX(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
+    this._enableSeparateMacro = this._enableMacro(shaderData, this._enableSeparateMacro, enableSeparateMacro);
+    this._isCurveMacro = this._enableMacro(shaderData, this._isCurveMacro, isCurveMacro);
+    this._isRandomTwoMacro = this._enableMacro(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
   }
 
   /**

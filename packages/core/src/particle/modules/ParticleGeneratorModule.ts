@@ -12,22 +12,11 @@ export abstract class ParticleGeneratorModule {
   @ignoreClone
   protected _generator: ParticleGenerator;
 
-  private _lastMacro: ShaderMacro;
-
   constructor(generator: ParticleGenerator) {
     this._generator = generator;
   }
 
-  protected _enableModuleMacro(shaderData: ShaderData, enableMacro: ShaderMacro): void {
-    const lastMacro = this._lastMacro;
-    if (lastMacro !== enableMacro) {
-      lastMacro && shaderData.disableMacro(lastMacro);
-      enableMacro && shaderData.enableMacro(enableMacro);
-      this._lastMacro = enableMacro;
-    }
-  }
-
-  protected _enableModuleMacroX(
+  protected _enableMacro(
     shaderData: ShaderData,
     lastEnableMacro: ShaderMacro,
     enableMacro: ShaderMacro
