@@ -1,16 +1,15 @@
-import { IClone } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { ColorSpace } from "../../enums/ColorSpace";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ColorSpace } from "../../enums/ColorSpace";
 
 /**
  * Particle gradient.
  */
-export class ParticleGradient implements IClone {
+export class ParticleGradient {
   @deepClone
-  private _colorKeys: ColorKey[] = [];
+  private _colorKeys: GradientColorKey[] = [];
   @deepClone
-  private _alphaKeys: AlphaKey[] = [];
+  private _alphaKeys: GradientAlphaKey[] = [];
   @ignoreClone
   private _colorTypeArray: Float32Array;
   @ignoreClone
@@ -21,14 +20,14 @@ export class ParticleGradient implements IClone {
   /**
    * The color keys of the gradient.
    */
-  get colorKeys(): ReadonlyArray<ColorKey> {
+  get colorKeys(): ReadonlyArray<GradientColorKey> {
     return this._colorKeys;
   }
 
   /**
    * The alpha keys of the gradient.
    */
-  get alphaKeys(): ReadonlyArray<AlphaKey> {
+  get alphaKeys(): ReadonlyArray<GradientAlphaKey> {
     return this._alphaKeys;
   }
 
@@ -37,7 +36,7 @@ export class ParticleGradient implements IClone {
    * @param colorKeys - The color keys of the gradient
    * @param alphaKeys - The alpha keys of the gradient
    */
-  constructor(colorKeys: ColorKey[] = null, alphaKeys: AlphaKey[] = null) {
+  constructor(colorKeys: GradientColorKey[] = null, alphaKeys: GradientAlphaKey[] = null) {
     if (colorKeys) {
       for (let i = 0, n = colorKeys.length; i < n; i++) {
         const key = colorKeys[i];
@@ -57,7 +56,7 @@ export class ParticleGradient implements IClone {
    * Add a color key to the gradient.
    * @param key - The key
    */
-  addColorKey(key: ColorKey): void;
+  addColorKey(key: GradientColorKey): void;
   /**
    * Add a color key to the gradient.
    * @param time - The key time
@@ -65,23 +64,23 @@ export class ParticleGradient implements IClone {
    */
   addColorKey(time: number, color: Color): void;
 
-  addColorKey(timeOrKey: number | ColorKey, color?: Color): void {
+  addColorKey(timeOrKey: number | GradientColorKey, color?: Color): void {
     const colorKeys = this._colorKeys;
-    const length = colorKeys.length;
 
-    if (length === 4) {
+    if (colorKeys.length === 4) {
       throw new Error("Gradient can only have 4 color keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new ColorKey(timeOrKey, color) : timeOrKey;
+    const key = typeof timeOrKey === "number" ? new GradientColorKey(timeOrKey, color) : timeOrKey;
     this._addKey(colorKeys, key);
+    this._colorTypeArrayDirty = true;
   }
 
   /**
    * Add an alpha key to the gradient.
    * @param key - The key
    */
-  addAlphaKey(key: AlphaKey): void;
+  addAlphaKey(key: GradientAlphaKey): void;
 
   /**
    * Add an alpha key to the gradient.
@@ -90,16 +89,16 @@ export class ParticleGradient implements IClone {
    */
   addAlphaKey(time: number, alpha: number): void;
 
-  addAlphaKey(timeOrKey: number | AlphaKey, alpha?: number): void {
+  addAlphaKey(timeOrKey: number | GradientAlphaKey, alpha?: number): void {
     const alphaKeys = this._alphaKeys;
-    const length = alphaKeys.length;
 
-    if (length === 4) {
+    if (alphaKeys.length === 4) {
       throw new Error("Gradient can only have 4 color keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new AlphaKey(timeOrKey, alpha) : timeOrKey;
+    const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha) : timeOrKey;
     this._addKey(alphaKeys, key);
+    this._alphaTypeArrayDirty = true;
   }
 
   /**
@@ -108,6 +107,7 @@ export class ParticleGradient implements IClone {
    */
   removeColorKey(index: number): void {
     this._removeKey(this._colorKeys, index);
+    this._colorTypeArrayDirty = true;
   }
 
   /**
@@ -116,20 +116,25 @@ export class ParticleGradient implements IClone {
    */
   removeAlphaKey(index: number): void {
     this._removeKey(this._alphaKeys, index);
+    this._alphaTypeArrayDirty = true;
   }
 
   /**
-   * @inheritDoc
+   * Set the keys of the gradient.
+   * @param colorKeys - The color keys
+   * @param alphaKeys - The alpha keys
    */
-  cloneTo(dest: ParticleGradient): void {}
-
-  /**
-   * @inheritDoc
-   */
-  clone(): ParticleGradient {
-    let destCurve = new ParticleGradient();
-    this.cloneTo(destCurve);
-    return destCurve;
+  setKeys(colorKeys: GradientColorKey[], alphaKeys: GradientAlphaKey[]): void {
+    this._alphaKeys.length = 0;
+    this._colorKeys.length = 0;
+    for (let i = 0, n = colorKeys.length; i < n; i++) {
+      this._addKey(this._colorKeys, colorKeys[i]);
+    }
+    for (let i = 0, n = alphaKeys.length; i < n; i++) {
+      this._addKey(this._alphaKeys, alphaKeys[i]);
+    }
+    this._alphaTypeArrayDirty = true;
+    this._colorTypeArrayDirty = true;
   }
 
   /**
@@ -190,21 +195,17 @@ export class ParticleGradient implements IClone {
       while (--index >= 0 && time < keys[index].time);
       keys.splice(index + 1, 0, key);
     }
-    this._colorTypeArrayDirty = true;
-    this._alphaTypeArrayDirty = true;
   }
 
   private _removeKey<T extends { time: number }>(keys: T[], index: number): void {
     keys.splice(index, 1);
-    this._colorTypeArrayDirty = true;
-    this._alphaTypeArrayDirty = true;
   }
 }
 
 /**
  * The color key of the particle gradient.
  */
-export class ColorKey {
+export class GradientColorKey {
   constructor(
     /** The key time. */
     public time: number,
@@ -216,7 +217,7 @@ export class ColorKey {
 /**
  * The alpha key of the particle gradient.
  */
-export class AlphaKey {
+export class GradientAlphaKey {
   constructor(
     /** The key time. */
     public time: number,

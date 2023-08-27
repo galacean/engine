@@ -4,7 +4,7 @@ import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
-import { Key, ParticleCurve } from "./ParticleCurve";
+import { CurveKey, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
@@ -27,13 +27,13 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   separateAxes = false;
   /** Size curve over lifetime for x axis. */
   @deepClone
-  sizeX = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  sizeX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
   /** Size curve over lifetime for y axis. */
   @deepClone
-  sizeY = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  sizeY = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
   /** Size curve over lifetime for z axis. */
   @deepClone
-  sizeZ = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  sizeZ = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
 
   @ignoreClone
   private _sizeMacro: ShaderMacro;

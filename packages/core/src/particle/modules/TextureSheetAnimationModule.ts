@@ -6,7 +6,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
-import { Key, ParticleCurve } from "./ParticleCurve";
+import { CurveKey, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
@@ -26,7 +26,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   readonly startFrame = new ParticleCompositeCurve(0);
   /** Frame over time curve of the texture sheet. */
   @deepClone
-  readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new Key(0, 0), new Key(1, 1)));
+  readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
   /** Texture sheet animation type. */
   type = TextureSheetAnimationType.WholeSheet;
   /** Cycle count. */

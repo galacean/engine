@@ -1,12 +1,11 @@
-import { IClone } from "@galacean/engine-design";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
-export class ParticleCurve implements IClone {
+export class ParticleCurve {
   @deepClone
-  private _keys: Key[] = [];
+  private _keys: CurveKey[] = [];
   @ignoreClone
   private _typeArray: Float32Array;
   private _typeArrayDirty: boolean = false;
@@ -14,7 +13,7 @@ export class ParticleCurve implements IClone {
   /**
    * The keys of the curve.
    */
-  get keys(): ReadonlyArray<Key> {
+  get keys(): ReadonlyArray<CurveKey> {
     return this._keys;
   }
 
@@ -22,7 +21,7 @@ export class ParticleCurve implements IClone {
    * Create a new particle curve.
    * @param keys - The keys of the curve
    */
-  constructor(...keys: Key[]) {
+  constructor(...keys: CurveKey[]) {
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
       this.addKey(key);
@@ -33,7 +32,7 @@ export class ParticleCurve implements IClone {
    * Add an key to the curve.
    * @param key - The key
    */
-  addKey(key: Key): void;
+  addKey(key: CurveKey): void;
 
   /**
    * Add an key to the curve.
@@ -42,24 +41,15 @@ export class ParticleCurve implements IClone {
    */
   addKey(time: number, value: number): void;
 
-  addKey(timeOrKey: number | Key, value?: number): void {
+  addKey(timeOrKey: number | CurveKey, value?: number): void {
     const keys = this._keys;
-    const count = keys.length;
 
-    if (count === 4) {
+    if (keys.length === 4) {
       throw new Error("Curve can only have 4 keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new Key(timeOrKey, value) : timeOrKey;
-    const time = key.time;
-    const duration = count ? keys[count - 1].time : 0;
-    if (time >= duration) {
-      keys.push(key);
-    } else {
-      let index = count;
-      while (--index >= 0 && time < keys[index].time);
-      keys.splice(index + 1, 0, key);
-    }
+    const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
+    this._addKey(keys, key);
     this._typeArrayDirty = true;
   }
 
@@ -73,17 +63,15 @@ export class ParticleCurve implements IClone {
   }
 
   /**
-   * @inheritDoc
+   * Set the keys of the curve.
+   * @param keys - The keys
    */
-  cloneTo(dest: ParticleCurve): void {}
-
-  /**
-   * @inheritDoc
-   */
-  clone(): ParticleCurve {
-    let destCurve = new ParticleCurve();
-    this.cloneTo(destCurve);
-    return destCurve;
+  setKeys(keys: CurveKey[]): void {
+    this._keys.length = 0;
+    for (let i = 0, n = keys.length; i < n; i++) {
+      this.addKey(keys[i]);
+    }
+    this._typeArrayDirty = true;
   }
 
   /**
@@ -101,15 +89,27 @@ export class ParticleCurve implements IClone {
       }
       this._typeArrayDirty = false;
     }
-
     return typeArray;
+  }
+
+  private _addKey(keys: CurveKey[], key: CurveKey): void {
+    const count = keys.length;
+    const time = key.time;
+    const duration = count ? keys[count - 1].time : 0;
+    if (time >= duration) {
+      keys.push(key);
+    } else {
+      let index = count;
+      while (--index >= 0 && time < keys[index].time);
+      keys.splice(index + 1, 0, key);
+    }
   }
 }
 
 /**
  * The key of the curve.
  */
-export class Key {
+export class CurveKey {
   /**
    * Create a new key.
    */

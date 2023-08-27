@@ -7,7 +7,7 @@ import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { AlphaKey, ColorKey, ParticleGradient } from "./ParticleGradient";
+import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "./ParticleGradient";
 
 /**
  * Color over lifetime module.
@@ -26,8 +26,8 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   @deepClone
   color = new ParticleCompositeGradient(
     new ParticleGradient(
-      [new ColorKey(0.0, new Color(1, 1, 1)), new ColorKey(1.0, new Color(1, 1, 1))],
-      [new AlphaKey(0, 1), new AlphaKey(1, 1)]
+      [new GradientColorKey(0.0, new Color(1, 1, 1)), new GradientColorKey(1.0, new Color(1, 1, 1))],
+      [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
     )
   );
 
