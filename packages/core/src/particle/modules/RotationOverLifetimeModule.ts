@@ -12,10 +12,10 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Rotate particles throughout their lifetime.
  */
 export class RotationOverLifetimeModule extends ParticleGeneratorModule {
-  static readonly _constantModeMacro = ShaderMacro.getByName("renderer_ROL_CONSTANT_MODE");
-  static readonly _curveModeMacro = ShaderMacro.getByName("renderer_ROL_CURVE_MODE");
-  static readonly _isSeparateMacro = ShaderMacro.getByName("renderer_ROL_IS_SEPARATE");
-  static readonly _isRandomTwoMacro = ShaderMacro.getByName("renderer_ROL_IS_RANDOM_TWO");
+  static readonly _constantModeMacro = ShaderMacro.getByName("RENDERER_ROL_CONSTANT_MODE");
+  static readonly _curveModeMacro = ShaderMacro.getByName("RENDERER_ROL_CURVE_MODE");
+  static readonly _isSeparateMacro = ShaderMacro.getByName("RENDERER_ROL_IS_SEPARATE");
+  static readonly _isRandomTwoMacro = ShaderMacro.getByName("RENDERER_ROL_IS_RANDOM_TWO");
 
   static readonly _minConstantProperty = ShaderProperty.getByName("renderer_ROLMinConst");
   static readonly _minCurveXProperty = ShaderProperty.getByName("renderer_ROLMinCurveX");

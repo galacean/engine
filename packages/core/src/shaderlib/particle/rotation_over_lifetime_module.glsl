@@ -1,36 +1,36 @@
-#if defined(renderer_ROL_CONSTANT_MODE) || defined(renderer_ROL_CURVE_MODE)
-    #ifdef renderer_ROL_CURVE_MODE
+#if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
+    #ifdef RENDERER_ROL_CURVE_MODE
         uniform vec2 renderer_ROLMaxCurveZ[4];
-        // #ifdef renderer_ROL_IS_SEPARATE
+        // #ifdef RENDERER_ROL_IS_SEPARATE
         //     uniform vec2 renderer_ROLMaxCurveX[4];
         //     uniform vec2 renderer_ROLMaxCurveY[4];
         // #endif
-        #ifdef renderer_ROL_IS_RANDOM_TWO
+        #ifdef RENDERER_ROL_IS_RANDOM_TWO
             uniform vec2 renderer_ROLMinCurveZ[4];
-            // #ifdef renderer_ROL_IS_SEPARATE
+            // #ifdef RENDERER_ROL_IS_SEPARATE
             //     uniform vec2 renderer_ROLMinCurveX[4];
             //     uniform vec2 renderer_ROLMinCurveY[4];
             // #endif
         #endif
     #else
         uniform vec3 renderer_ROLMaxConst;
-        #ifdef renderer_ROL_IS_RANDOM_TWO
+        #ifdef RENDERER_ROL_IS_RANDOM_TWO
             uniform vec3 renderer_ROLMinConst;
         #endif
     #endif
 #endif
 
 float computeParticleRotationFloat(in float rotation, in float age, in float normalizedAge) {
-    #if defined(renderer_ROL_CONSTANT_MODE) || defined(renderer_ROL_CURVE_MODE)
-        #ifdef renderer_ROL_CURVE_MODE
+    #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
+        #ifdef RENDERER_ROL_CURVE_MODE
             float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge);
-            #ifdef renderer_ROL_IS_RANDOM_TWO
+            #ifdef RENDERER_ROL_IS_RANDOM_TWO
                 lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge), lifeRotation, a_Random0.w);
             #endif
             rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
         #else
             float lifeRotation = renderer_ROLMaxConst.z;
-            #ifdef renderer_ROL_IS_RANDOM_TWO
+            #ifdef RENDERER_ROL_IS_RANDOM_TWO
                 lifeRotation = mix(renderer_ROLMinConst.z, lifeRotation, a_Random0.w);
             #endif
             rotation += lifeRotation * age;

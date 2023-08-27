@@ -3,7 +3,7 @@
 	vec3 sideVector = normalize(cross(camera_Direction, camera_Up));
 	vec3 upVector = normalize(cross(sideVector, camera_Direction));
 	corner *= computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);
-    #if defined(renderer_ROL_CONSTANT_MODE) || defined(renderer_ROL_CURVE_MODE)
+    #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
         if (u_ThreeDStartRotation) {
             vec3 rotation = vec3(a_StartRotation0.xy, computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
             center += u_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, rotation);
