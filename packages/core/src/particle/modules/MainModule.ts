@@ -1,6 +1,8 @@
-import { Color, Rand, Vector3 } from "@galacean/engine-math";
+import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { ShaderData } from "../../shader/ShaderData";
+import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
@@ -9,6 +11,18 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
 export class MainModule implements ICustomClone {
+  private static _tempVector40 = new Vector4();
+  private static _vector3One = new Vector3(1, 1, 1);
+
+  private static readonly _positionScale = ShaderProperty.getByName("renderer_PositionScale");
+  private static readonly _sizeScale = ShaderProperty.getByName("renderer_SizeScale");
+  private static readonly _worldPosition = ShaderProperty.getByName("renderer_WorldPosition");
+  private static readonly _worldRotation = ShaderProperty.getByName("renderer_WorldRotation");
+  private static readonly _gravity = ShaderProperty.getByName("renderer_Gravity");
+  private static readonly _simulationSpace = ShaderProperty.getByName("renderer_SimulationSpace");
+  private static readonly _startRotation3D = ShaderProperty.getByName("renderer_ThreeDStartRotation");
+  private static readonly _scaleMode = ShaderProperty.getByName("renderer_ScalingMode");
+
   /** The duration of the Particle System in seconds. */
   duration = 5.0;
   /** Specifies whether the Particle System loops. */
@@ -76,6 +90,8 @@ export class MainModule implements ICustomClone {
   private _maxParticles = 1000;
   @ignoreClone
   private _generator: ParticleGenerator;
+  @ignoreClone
+  private _gravity = new Vector3();
 
   /** @internal */
   @ignoreClone
@@ -141,6 +157,54 @@ export class MainModule implements ICustomClone {
       case ParticleScaleMode.Local:
         return transform.scale;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _updateShaderData(shaderData: ShaderData): void {
+    const renderer = this._generator._renderer;
+    const transform = renderer.entity.transform;
+
+    switch (this.simulationSpace) {
+      case ParticleSimulationSpace.Local:
+        shaderData.setVector3(MainModule._worldPosition, transform.worldPosition);
+        const worldRotation = transform.worldRotationQuaternion;
+        const worldRotationV4 = MainModule._tempVector40;
+        worldRotationV4.copyFrom(worldRotation);
+        shaderData.setVector4(MainModule._worldRotation, worldRotationV4);
+        break;
+      case ParticleSimulationSpace.World:
+        break;
+      default:
+        throw new Error("ParticleRenderer: SimulationSpace value is invalid.");
+    }
+
+    switch (this.scalingMode) {
+      case ParticleScaleMode.Hierarchy:
+        var scale = transform.lossyWorldScale;
+        shaderData.setVector3(MainModule._positionScale, scale);
+        shaderData.setVector3(MainModule._sizeScale, scale);
+        break;
+      case ParticleScaleMode.Local:
+        var scale = transform.scale;
+        shaderData.setVector3(MainModule._positionScale, scale);
+        shaderData.setVector3(MainModule._sizeScale, scale);
+        break;
+      case ParticleScaleMode.World:
+        shaderData.setVector3(MainModule._positionScale, transform.lossyWorldScale);
+        shaderData.setVector3(MainModule._sizeScale, MainModule._vector3One);
+        break;
+    }
+
+    const particleGravity = this._gravity;
+    const gravityModifierValue = this.gravityModifier.evaluate(undefined, undefined);
+    Vector3.scale(renderer.scene.physics.gravity, gravityModifierValue, particleGravity);
+
+    shaderData.setVector3(MainModule._gravity, particleGravity);
+    shaderData.setInt(MainModule._simulationSpace, this.simulationSpace);
+    shaderData.setFloat(MainModule._startRotation3D, +this.startRotation3D);
+    shaderData.setInt(MainModule._scaleMode, this.scalingMode);
   }
 
   /**
