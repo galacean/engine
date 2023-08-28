@@ -2,9 +2,9 @@ import { Entity, CapsuleColliderShape, CharacterController } from "@galacean/eng
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
+import { expect } from "chai";
 
-describe.only("physics collider test", () => {
+describe("physics collider test", () => {
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let controllerEntity: Entity;

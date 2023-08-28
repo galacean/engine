@@ -5,10 +5,9 @@ import {
   SphereColliderShape,
   DynamicCollider,
   PlaneColliderShape,
-  Script,
-  Collider
+  Script
 } from "@galacean/engine-core";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
