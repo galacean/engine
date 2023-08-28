@@ -37,7 +37,7 @@ export class Camera extends Component {
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
-  private static _cameraDirectionProperty = ShaderProperty.getByName("camera_Direction");
+  private static _cameraDirectionProperty = ShaderProperty.getByName("camera_Forward");
   private static _cameraUpProperty = ShaderProperty.getByName("camera_Up");
   private static _cameraDepthBufferParamsProperty = ShaderProperty.getByName("camera_DepthBufferParams");
 

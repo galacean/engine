@@ -1,7 +1,7 @@
 #ifdef RENDERER_MODE_VERTICAL_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy; // Billboard模式z轴无效
 	const vec3 cameraUpVector = vec3(0.0, 1.0, 0.0);
-	vec3 sideVector = normalize(cross(camera_Direction, cameraUpVector));
+	vec3 sideVector = normalize(cross(camera_Forward, cameraUpVector));
 
 	float rot = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
 	float c = cos(rot);
