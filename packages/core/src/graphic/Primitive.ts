@@ -38,20 +38,6 @@ export class Primitive extends GraphicsResource {
     return this._indexBufferBinding;
   }
 
-  set indexBufferBinding(value: IndexBufferBinding) {
-    const lastBinding = this._indexBufferBinding;
-    if (lastBinding !== value) {
-      this._indexBufferBinding = value;
-      if (value) {
-        this._glIndexType = BufferUtil._getGLIndexType(value.format);
-        this._glIndexByteCount = BufferUtil._getGLIndexByteCount(value.format);
-      } else {
-        this._glIndexType = undefined;
-      }
-      this._bufferStructChanged = lastBinding?.buffer !== value?.buffer;
-    }
-  }
-
   constructor(engine: Engine) {
     super(engine);
     this._platformPrimitive = engine._hardwareRenderer.createPlatformPrimitive(this);
@@ -146,11 +132,19 @@ export class Primitive extends GraphicsResource {
   setIndexBufferBinding(binding: IndexBufferBinding | null): void {
     const lastBinding = this.indexBufferBinding;
     const referCount = this._getReferCount();
-    if (referCount > 0) {
-      lastBinding?.buffer._addReferCount(-referCount);
-      binding?.buffer._addReferCount(referCount);
+
+    if (lastBinding !== binding) {
+      this._indexBufferBinding = binding;
+      referCount > 0 && lastBinding?.buffer._addReferCount(-referCount);
+      if (binding) {
+        referCount > 0 && binding.buffer._addReferCount(referCount);
+        this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+        this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+      } else {
+        this._glIndexType = undefined;
+      }
+      this._bufferStructChanged = lastBinding?.buffer !== binding?.buffer;
     }
-    this.indexBufferBinding = binding;
   }
 
   draw(shaderProgram: ShaderProgram, subMesh: SubPrimitive): void {
