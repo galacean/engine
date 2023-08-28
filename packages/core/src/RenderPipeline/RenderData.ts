@@ -24,5 +24,6 @@ export class RenderData implements IPoolElement {
     this.component = null;
     this.material = null;
     this.primitive = null;
+    this.subPrimitive = null;
   }
 }
