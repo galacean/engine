@@ -22,7 +22,7 @@ export class BoxShape extends BaseShape {
   /**
    * @internal
    */
-  override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
+  override _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
     position.multiply(this.size);
 

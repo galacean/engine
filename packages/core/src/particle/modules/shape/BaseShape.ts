@@ -15,7 +15,7 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
+  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     throw new Error("BaseShape: must override it.");
   }
 }

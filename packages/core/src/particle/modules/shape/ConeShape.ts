@@ -29,7 +29,7 @@ export class ConeShape extends BaseShape {
   /**
    * @internal
    */
-  override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
+  override _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const unitPosition = ConeShape._tempVector20;
     const radian = MathUtil.degreeToRadian(this.angle);
     const dirSinA = Math.sin(radian);
