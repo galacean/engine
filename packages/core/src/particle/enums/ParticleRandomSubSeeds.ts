@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export enum ParticleRandomSubSeeds {
   Burst = 0x23571a3e,
   StartDelay = 0x13371337,
