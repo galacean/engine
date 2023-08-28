@@ -52,30 +52,34 @@ export class ParticleRenderer extends Renderer {
       const lastRenderMode = this._renderMode;
       this._renderMode = value;
 
+      let renderModeMacro = <ShaderMacro>null;
       const shaderData = this.shaderData;
-      shaderData.disableMacro(this._currentRenderModeMacro);
       switch (value) {
         case ParticleRenderMode.Billboard:
-          this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
+          renderModeMacro = ParticleRenderer._billboardModeMacro;
           break;
-        case ParticleRenderMode.Stretch:
-          throw "Not implemented";
-          this._currentRenderModeMacro = ParticleRenderer._stretchedBillboardModeMacro;
+        case ParticleRenderMode.StretchBillboard:
+          renderModeMacro = ParticleRenderer._stretchedBillboardModeMacro;
           break;
         case ParticleRenderMode.HorizontalBillboard:
           throw "Not implemented";
-          this._currentRenderModeMacro = ParticleRenderer._horizontalBillboardModeMacro;
+          renderModeMacro = ParticleRenderer._horizontalBillboardModeMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:
           throw "Not implemented";
-          this._currentRenderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
+          renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
           break;
         case ParticleRenderMode.Mesh:
           throw "Not implemented";
-          this._currentRenderModeMacro = ParticleRenderer._renderModeMeshMacro;
+          renderModeMacro = ParticleRenderer._renderModeMeshMacro;
           break;
       }
-      shaderData.enableMacro(this._currentRenderModeMacro);
+
+      if (this._currentRenderModeMacro !== renderModeMacro) {
+        this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
+        renderModeMacro && shaderData.enableMacro(renderModeMacro);
+        this._currentRenderModeMacro = renderModeMacro;
+      }
 
       // @ts-ignore
       if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
@@ -109,6 +113,8 @@ export class ParticleRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+
+    this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
   }
 

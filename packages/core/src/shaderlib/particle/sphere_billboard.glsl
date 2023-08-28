@@ -1,5 +1,5 @@
 #ifdef RENDERER_MODE_SPHERE_BILLBOARD
-	vec2 corner = a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy; // Billboard模式z轴无效
+	vec2 corner = a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
 	vec3 sideVector = normalize(cross(camera_Forward, camera_Up));
 	vec3 upVector = normalize(cross(sideVector, camera_Forward));
 	corner *= computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);

@@ -48,7 +48,7 @@ uniform mat4 camera_ViewMat;
 uniform mat4 camera_ProjMat;
 
 #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
-    uniform vec3 u_cameraPos;
+    uniform vec3 camera_Position;
 #endif
 uniform vec3 camera_Forward; // TODO:只有几种广告牌模式需要用
 uniform vec3 camera_Up;
