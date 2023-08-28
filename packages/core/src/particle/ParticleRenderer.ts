@@ -59,15 +59,19 @@ export class ParticleRenderer extends Renderer {
           this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
           break;
         case ParticleRenderMode.Stretch:
+          throw "Not implemented";
           this._currentRenderModeMacro = ParticleRenderer._stretchedBillboardModeMacro;
           break;
         case ParticleRenderMode.HorizontalBillboard:
+          throw "Not implemented";
           this._currentRenderModeMacro = ParticleRenderer._horizontalBillboardModeMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:
+          throw "Not implemented";
           this._currentRenderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
           break;
         case ParticleRenderMode.Mesh:
+          throw "Not implemented";
           this._currentRenderModeMacro = ParticleRenderer._renderModeMeshMacro;
           break;
       }
