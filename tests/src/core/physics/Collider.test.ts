@@ -13,20 +13,12 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 
 class CollisionScript extends Script {
-  onTriggerEnter(other): void {
-    console.log("trigger enter", other);
-  }
+  onTriggerEnter(): void {}
   onTriggerStay(): void {}
-  onTriggerExit(other): void {
-    console.log("trigger exit", other);
-  }
-  onCollisionEnter(other) {
-    console.log("collision enter", other);
-  }
-  onCollisionStay(other) {}
-  onCollisionExit(other) {
-    console.log("collision exit", other);
-  }
+  onTriggerExit(): void {}
+  onCollisionEnter() {}
+  onCollisionStay() {}
+  onCollisionExit() {}
 }
 
 class MoveScript extends Script {
