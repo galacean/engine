@@ -5,12 +5,14 @@ import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**
- * Box emitter shape
+ * Particle shape that emits particles from a box.
  */
 export class BoxShape extends BaseShape {
-  /** Thickness of the box to emit particles from. */
+  private static _tempVector30 = new Vector3();
+
+  /** The size of the box. */
   @deepClone
-  boxThickness: Vector3 = new Vector3(1, 1, 1);
+  size = new Vector3(1, 1, 1);
 
   constructor() {
     super();
@@ -22,16 +24,11 @@ export class BoxShape extends BaseShape {
    */
   override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
+    position.multiply(this.size);
 
-    position.multiply(this.boxThickness);
-    if (this.randomDirectionAmount) {
-      ShapeUtils._randomPointUnitSphere(direction, rand);
-    } else {
-      direction.x = 0.0;
-      direction.y = 0.0;
-      direction.z = 1.0;
-    }
-    // reverse to default direction
-    direction.z *= -1.0;
+    const defaultDirection = BoxShape._tempVector30;
+    defaultDirection.set(0.0, 0.0, -1.0);
+    ShapeUtils._randomPointUnitSphere(direction, rand);
+    Vector3.lerp(defaultDirection, direction, this.randomDirectionAmount, direction);
   }
 }

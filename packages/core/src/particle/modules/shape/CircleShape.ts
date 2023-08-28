@@ -1,51 +1,48 @@
-import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
-import { ParticleShapeMultiModeValue } from "./enums/ParticleShapeMultiModeValue";
+import { ParticleShapeArcMode } from "./enums/ParticleShapeArcMode";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**
- * Circle Particle Emitter
+ * Particle shape that emits particles from a circle.
  */
 export class CircleShape extends BaseShape {
-  protected static _tempPositionPoint: Vector2 = new Vector2();
+  private static _tempPositionPoint: Vector2 = new Vector2();
 
   /** Radius of the shape to emit particles from. */
-  radius: number = 1.0;
+  radius = 1.0;
   /** Angle of the circle arc to emit particles from. */
-  arc: number = (360.0 / 180.0) * Math.PI;
-  /** The mode to generate particles around the arc. */
-  arcMode = ParticleShapeMultiModeValue.Loop;
+  arc = 360.0;
+  // /** The mode to generate particles around the arc. */
+  // arcMode = ParticleShapeArcMode.Random;
+  /** The speed at which the arc is traversed. */
+  arcSpeed = 1.0;
 
   constructor() {
     super();
     this.shapeType = ParticleShapeType.Circle;
   }
 
+  /**
+   * @internal
+   */
   override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
-    const positionPoint: Vector2 = CircleShape._tempPositionPoint;
+    const positionPoint = CircleShape._tempPositionPoint;
 
-    switch (this.arcMode) {
-      case ParticleShapeMultiModeValue.Loop:
-        ShapeUtils.randomPointUnitArcCircle(this.arc, CircleShape._tempPositionPoint, rand);
-        break;
-      case ParticleShapeMultiModeValue.Random:
-        ShapeUtils.randomPointInsideUnitArcCircle(this.arc, CircleShape._tempPositionPoint, rand);
-        break;
-    }
+    // switch (this.arcMode) {
+    //   case ParticleShapeArcMode.Loop:
+    //     ShapeUtils.randomPointUnitArcCircle(MathUtil.degreeToRadian(this.arc), positionPoint, rand);
+    //     break;
+    //   case ParticleShapeArcMode.Random:
+    ShapeUtils.randomPointInsideUnitArcCircle(MathUtil.degreeToRadian(this.arc), positionPoint, rand);
+    //     break;
+    // }
 
-    position.x = -positionPoint.x;
-    position.y = positionPoint.y;
-    position.z = 0;
+    position.set(positionPoint.x, positionPoint.y, 0);
+    position.scale(this.radius);
 
-    Vector3.scale(position, this.radius, position);
-
-    if (this.randomDirectionAmount) {
-      ShapeUtils._randomPointUnitSphere(direction, rand);
-    } else {
-      direction.copyFrom(position);
-    }
-    // reverse to default direction
-    direction.z *= -1.0;
+    ShapeUtils._randomPointUnitSphere(direction, rand);
+    Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 }

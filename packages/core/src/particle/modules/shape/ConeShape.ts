@@ -7,25 +7,28 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Cone shape.
  */
 export class ConeShape extends BaseShape {
-  private static _tempVector20: Vector2 = new Vector2();
-  private static _tempVector21: Vector2 = new Vector2();
-  private static _tempVector30: Vector3 = new Vector3();
-  private static _tempVector31: Vector3 = new Vector3();
+  private static _tempVector20 = new Vector2();
+  private static _tempVector21 = new Vector2();
+  private static _tempVector30 = new Vector3();
+  private static _tempVector31 = new Vector3();
 
   /** Angle of the cone to emit particles from. */
-  angle: number = 25.0;
+  angle = 25.0;
   /** Radius of the shape to emit particles from. */
-  radius: number = 1.0;
+  radius = 1.0;
   /** Length of the cone to emit particles from. */
-  length: number = 5.0;
+  length = 5.0;
   /** Cone emitter type. */
-  emitType: ConeEmitType = ConeEmitType.Base;
+  emitType = ConeEmitType.Base;
 
   constructor() {
     super();
     this.shapeType = ParticleShapeType.Cone;
   }
 
+  /**
+   * @internal
+   */
   override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
     const unitPosition = ConeShape._tempVector20;
     const radian = MathUtil.degreeToRadian(this.angle);

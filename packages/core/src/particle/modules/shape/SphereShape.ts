@@ -8,22 +8,18 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  */
 export class SphereShape extends BaseShape {
   /** Radius of the shape to emit particles from. */
-  radius: number = 1.0;
-  /** Whether emit from shell. */
-  emitFromShell: boolean = false;
+  radius = 1.0;
 
   constructor() {
     super();
     this.shapeType = ParticleShapeType.Sphere;
   }
 
+  /**
+   * @internal
+   */
   override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
-    if (this.emitFromShell) {
-      ShapeUtils._randomPointUnitSphere(position, rand);
-    } else {
-      ShapeUtils._randomPointInsideUnitSphere(position, rand);
-    }
-
+    ShapeUtils._randomPointInsideUnitSphere(position, rand);
     position.scale(this.radius);
 
     ShapeUtils._randomPointUnitSphere(direction, rand);

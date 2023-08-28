@@ -4,37 +4,28 @@ import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**
- * Hemisphere emitter
+ * Particle shape that emits particles from a hemisphere.
  */
 export class HemisphereShape extends BaseShape {
   /** Radius of the shape to emit particles from. */
-  radius: number = 1.0;
-  /** Whether emit from shell */
-  emitFromShell: boolean = false;
+  radius = 1.0;
 
   constructor() {
     super();
     this.shapeType = ParticleShapeType.Hemisphere;
   }
 
+  /**
+   * @internal
+   */
   override _generatePositionAndDirection(rand: Rand, position: Vector3, direction: Vector3): void {
-    if (this.emitFromShell) {
-      ShapeUtils._randomPointUnitSphere(position, rand);
-    } else {
-      ShapeUtils._randomPointInsideUnitSphere(position, rand);
-    }
-
-    Vector3.scale(position, this.radius, position);
+    ShapeUtils._randomPointInsideUnitSphere(position, rand);
+    position.scale(this.radius);
 
     const z = position.z;
-    z < 0.0 && (position.z = z * -1.0);
+    z > 0.0 && (position.z = -z);
 
-    if (this.randomDirectionAmount) {
-      ShapeUtils._randomPointUnitSphere(direction, rand);
-    } else {
-      direction.copyFrom(position);
-    }
-    // reverse to default direction
-    direction.z *= -1.0;
+    ShapeUtils._randomPointUnitSphere(direction, rand);
+    Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 }
