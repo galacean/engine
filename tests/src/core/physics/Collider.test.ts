@@ -13,12 +13,12 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 
 class CollisionScript extends Script {
-  onTriggerEnter(other): void {}
+  onTriggerEnter(): void {}
   onTriggerStay(): void {}
-  onTriggerExit(other): void {}
-  onCollisionEnter(other) {}
-  onCollisionStay(other) {}
-  onCollisionExit(other) {}
+  onTriggerExit(): void {}
+  onCollisionEnter() {}
+  onCollisionStay() {}
+  onCollisionExit() {}
 }
 
 class MoveScript extends Script {
