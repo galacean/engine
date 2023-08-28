@@ -30,17 +30,17 @@ export class ParticleRenderer extends Renderer {
   private static readonly _renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
-  private static readonly _worldPosition = ShaderProperty.getByName("u_WorldPosition");
-  private static readonly _worldRotation = ShaderProperty.getByName("u_WorldRotation");
-  private static readonly _positionScale = ShaderProperty.getByName("u_PositionScale");
-  private static readonly _sizeScale = ShaderProperty.getByName("u_SizeScale");
-  private static readonly _scaleMode = ShaderProperty.getByName("u_ScalingMode");
-  private static readonly _gravity = ShaderProperty.getByName("u_Gravity");
-  private static readonly _startRotation3D = ShaderProperty.getByName("u_ThreeDStartRotation");
-  private static readonly _lengthScale = ShaderProperty.getByName("u_StretchedBillboardLengthScale");
-  private static readonly _speedScale = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
-  private static readonly _simulationSpace = ShaderProperty.getByName("u_SimulationSpace");
-  private static readonly _currentTime = ShaderProperty.getByName("u_CurrentTime");
+  private static readonly _worldPosition = ShaderProperty.getByName("renderer_WorldPosition");
+  private static readonly _worldRotation = ShaderProperty.getByName("renderer_WorldRotation");
+  private static readonly _positionScale = ShaderProperty.getByName("renderer_PositionScale");
+  private static readonly _sizeScale = ShaderProperty.getByName("renderer_SizeScale");
+  private static readonly _scaleMode = ShaderProperty.getByName("renderer_ScalingMode");
+  private static readonly _gravity = ShaderProperty.getByName("renderer_Gravity");
+  private static readonly _startRotation3D = ShaderProperty.getByName("renderer_ThreeDStartRotation");
+  private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
+  private static readonly _speedScale = ShaderProperty.getByName("renderer_StretchedBillboardSpeedScale");
+  private static readonly _simulationSpace = ShaderProperty.getByName("renderer_SimulationSpace");
+  private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Particle generator. */
   @deepClone

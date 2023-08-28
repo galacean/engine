@@ -33,15 +33,15 @@ varying vec4 v_Color;
     varying vec2 v_TextureCoordinate;
 #endif
 
-uniform float u_CurrentTime;
-uniform vec3 u_Gravity;
+uniform float renderer_CurrentTime;
+uniform vec3 renderer_Gravity;
 uniform vec2 u_DragConstant;
-uniform vec3 u_WorldPosition;
-uniform vec4 u_WorldRotation;
-uniform bool u_ThreeDStartRotation;
-uniform int u_ScalingMode;
-uniform vec3 u_PositionScale;
-uniform vec3 u_SizeScale;
+uniform vec3 renderer_WorldPosition;
+uniform vec4 renderer_WorldRotation;
+uniform bool renderer_ThreeDStartRotation;
+uniform int renderer_ScalingMode;
+uniform vec3 renderer_PositionScale;
+uniform vec3 renderer_SizeScale;
 uniform vec3 renderer_PivotOffset;
 
 uniform mat4 camera_ViewMat;
@@ -53,9 +53,9 @@ uniform mat4 camera_ProjMat;
 uniform vec3 camera_Forward; // TODO:只有几种广告牌模式需要用
 uniform vec3 camera_Up;
 
-uniform float u_StretchedBillboardLengthScale;
-uniform float u_StretchedBillboardSpeedScale;
-uniform int u_SimulationSpace;
+uniform float renderer_StretchedBillboardLengthScale;
+uniform float renderer_StretchedBillboardSpeedScale;
+uniform int renderer_SimulationSpace;
 
 #include <particle_common>
 #include <velocity_over_lifetime_module>
@@ -65,7 +65,7 @@ uniform int u_SimulationSpace;
 #include <texture_sheet_animation_module>
 
 void main() {
-    float age = u_CurrentTime - a_DirectionTime.w;
+    float age = renderer_CurrentTime - a_DirectionTime.w;
     float normalizedAge = age / a_ShapePositionStartLifeTime.w;
     vec3 lifeVelocity;
     if (normalizedAge < 1.0) {
@@ -74,11 +74,11 @@ void main() {
             lifeVelocity = computeParticleLifeVelocity(normalizedAge); 
         #endif
         
-        vec3 gravityVelocity = u_Gravity * age;
+        vec3 gravityVelocity = renderer_Gravity * age;
 
         vec4 worldRotation;
-        if (u_SimulationSpace == 0) {
-            worldRotation = u_WorldRotation;
+        if (renderer_SimulationSpace == 0) {
+            worldRotation = renderer_WorldRotation;
         } else {
             worldRotation = a_SimulationWorldRotation;
         }

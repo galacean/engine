@@ -9,5 +9,5 @@
 	mat2 rotation = mat2(c, -s, s, c);
 	corner = rotation * corner * cos(0.78539816339744830961566084581988); // TODO:临时缩小cos45,不确定U3D原因
 	corner *= computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);
-	center += u_SizeScale.xzy * (corner.x * sideVector + corner.y * cameraUpVector);
+	center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * cameraUpVector);
 #endif

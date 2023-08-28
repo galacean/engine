@@ -3,20 +3,20 @@
 	vec3 velocity;
     #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
         if (renderer_VOLSpace == 0)
-            velocity = rotationByQuaternions(u_SizeScale * (startVelocity + lifeVelocity),
+            velocity = rotationByQuaternions(renderer_SizeScale * (startVelocity + lifeVelocity),
                    worldRotation)
             + gravityVelocity;
         else
-            velocity = rotationByQuaternions(u_SizeScale * startVelocity, worldRotation) + lifeVelocity + gravityVelocity;
+            velocity = rotationByQuaternions(renderer_SizeScale * startVelocity, worldRotation) + lifeVelocity + gravityVelocity;
     #else
-	    velocity = rotationByQuaternions(u_SizeScale * startVelocity, worldRotation) + gravityVelocity;
+	    velocity = rotationByQuaternions(renderer_SizeScale * startVelocity, worldRotation) + gravityVelocity;
     #endif
 	vec3 cameraUpVector = normalize(velocity);
 	vec3 direction = normalize(center - u_cameraPos);
 	vec3 sideVector = normalize(cross(direction, normalize(velocity)));
 
-	sideVector = u_SizeScale.xzy * sideVector;
-	cameraUpVector = length(vec3(u_SizeScale.x, 0.0, 0.0)) * cameraUpVector;
+	sideVector = renderer_SizeScale.xzy * sideVector;
+	cameraUpVector = length(vec3(renderer_SizeScale.x, 0.0, 0.0)) * cameraUpVector;
 
 	vec2 size = computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);
 
@@ -25,6 +25,6 @@
 	corner.y = corner.y - abs(corner.y);
 
 	float speed = length(velocity); // TODO:
-	center += sign(u_SizeScale.x) * (sign(u_StretchedBillboardLengthScale) * size.x * corner.x * sideVector
-	        + (speed * u_StretchedBillboardSpeedScale + size.y * u_StretchedBillboardLengthScale) * corner.y * cameraUpVector);
+	center += sign(renderer_SizeScale.x) * (sign(renderer_StretchedBillboardLengthScale) * size.x * corner.x * sideVector
+	        + (speed * renderer_StretchedBillboardSpeedScale + size.y * renderer_StretchedBillboardLengthScale) * corner.y * cameraUpVector);
 #endif
