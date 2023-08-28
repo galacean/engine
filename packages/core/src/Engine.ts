@@ -334,9 +334,9 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
+    this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
-    this.xrManager?._update();
 
     const loopScenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = loopScenes.length;

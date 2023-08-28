@@ -5,8 +5,8 @@ import { WebXRSession } from "../WebXRSession";
 export class WebXRInputProvider implements IXRInputProvider {
   private _engine: Engine;
   private _session: WebXRSession;
-  private;
   private _inputs: XRInputDevice[];
+  private _gamePadStore: XRInputSource[] = [];
   private _eventList: {
     event: Event;
     handle: (frameCount: number, event: Event, inputs: XRInputDevice[]) => void;
@@ -230,13 +230,36 @@ export class WebXRInputProvider implements IXRInputProvider {
   //   return new PointerEvent(type, eventInitDict);
   // }
 
+  private _removeInputFromStore(inputSource: XRInputSource): void {
+    const { _gamePadStore: gamePadStore } = this;
+    const idx = gamePadStore.indexOf(inputSource);
+    if (idx >= 0) {
+      gamePadStore.splice(idx, 1);
+    }
+  }
+
+  private _addInputToStore(inputSource: XRInputSource): void {
+    const { _gamePadStore: gamePadStore } = this;
+    const idx = gamePadStore.indexOf(inputSource);
+    if (idx < 0) {
+      gamePadStore.push(inputSource);
+    }
+  }
+
   private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInputDevice[]): void {
     const { removed, added } = event;
-    for (let i = 0, n = removed.length; i < n; i++) {
-      inputs[this._getInputSource(removed[i])].connected = false;
-    }
     for (let i = 0, n = added.length; i < n; i++) {
-      inputs[this._getInputSource(added[i])].connected = true;
+      const inputSource = added[i];
+      const type = this._getInputSource(inputSource);
+      type === EnumXRInputSource.Controller && this._addInputToStore(inputSource);
+      inputs[type].connected = true;
+    }
+
+    for (let i = 0, n = removed.length; i < n; i++) {
+      const inputSource = removed[i];
+      const type = this._getInputSource(inputSource);
+      type === EnumXRInputSource.Controller && this._removeInputFromStore(inputSource);
+      inputs[type].connected = false;
     }
   }
 
