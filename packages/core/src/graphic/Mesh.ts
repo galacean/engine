@@ -7,7 +7,6 @@ import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
-import { ShaderProgram } from "../shader/ShaderProgram";
 import { Primitive } from "./Primitive";
 
 /**
@@ -164,13 +163,6 @@ export abstract class Mesh extends ReferResource {
    */
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
     this._primitive.setVertexBufferBinding(index, binding);
-  }
-
-  /**
-   * @internal
-   */
-  _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
-    this._primitive.draw(shaderProgram, subMesh);
   }
 
   override _addReferCount(value: number): void {

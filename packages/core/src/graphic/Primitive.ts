@@ -23,11 +23,12 @@ export class Primitive extends GraphicsResource {
   _glIndexType: number;
   /** @internal */
   _glIndexByteCount: number;
+  /** @internal */
+  _bufferStructChanged: boolean = false;
 
   private _vertexElements: VertexElement[] = [];
   private _indexBufferBinding: IndexBufferBinding;
   private _platformPrimitive: IPlatformPrimitive;
-  private _bufferStructChanged: boolean = false;
 
   get vertexElements(): VertexElement[] {
     return this._vertexElements;
