@@ -77,6 +77,7 @@ export class ParticleRenderer extends Renderer {
       }
       shaderData.enableMacro(this._currentRenderModeMacro);
 
+      // @ts-ignore
       if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
         this.generator._reorganizeGeometryBuffers();
       }
@@ -159,8 +160,6 @@ export class ParticleRenderer extends Renderer {
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
     shaderData.setFloat(ParticleRenderer._currentTime, this.generator._playTime);
-
-    // @todo: mesh is not simple pivot
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
 
     this.generator._updateShaderData(shaderData);
