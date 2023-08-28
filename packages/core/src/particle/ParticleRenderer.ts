@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
@@ -121,6 +121,14 @@ export class ParticleRenderer extends Renderer {
    */
   override _onDisable(): void {
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
   }
 
   /**
