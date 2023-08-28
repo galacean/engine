@@ -7,8 +7,6 @@ import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleGenerator } from "./ParticleGenerator";
-import { ParticleShaderMacro } from "./ParticleShaderMacro";
-import { ParticleShaderProperty } from "./ParticleShaderProperty";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleScaleMode } from "./enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
@@ -21,7 +19,28 @@ export class ParticleRenderer extends Renderer {
   private static _tempVector40 = new Vector4();
   private static _vector3One = new Vector3(1, 1, 1);
 
+  private static readonly _renderModeBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
+  private static readonly _renderModeStretchedBillboardMode = ShaderMacro.getByName(
+    "RENDERER_MODE_STRETCHED_BILLBOARD"
+  );
+  private static readonly _renderModeHorizontalBillboardMacro = ShaderMacro.getByName(
+    "RENDERER_MODE_HORIZONTAL_BILLBOARD"
+  );
+  private static readonly _renderModeVerticalBillboardMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
+  private static readonly _renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
+
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
+  private static readonly _worldPosition = ShaderProperty.getByName("u_WorldPosition");
+  private static readonly _worldRotation = ShaderProperty.getByName("u_WorldRotation");
+  private static readonly _positionScale = ShaderProperty.getByName("u_PositionScale");
+  private static readonly _sizeScale = ShaderProperty.getByName("u_SizeScale");
+  private static readonly _scaleMode = ShaderProperty.getByName("u_ScalingMode");
+  private static readonly _gravity = ShaderProperty.getByName("u_Gravity");
+  private static readonly _startRotation3D = ShaderProperty.getByName("u_ThreeDStartRotation");
+  private static readonly _lengthScale = ShaderProperty.getByName("u_StretchedBillboardLengthScale");
+  private static readonly _speedScale = ShaderProperty.getByName("u_StretchedBillboardSpeedScale");
+  private static readonly _simulationSpace = ShaderProperty.getByName("u_SimulationSpace");
+  private static readonly _currentTime = ShaderProperty.getByName("u_CurrentTime");
 
   /** Particle generator. */
   @deepClone
@@ -56,19 +75,19 @@ export class ParticleRenderer extends Renderer {
       shaderData.disableMacro(this._currentRenderModeMacro);
       switch (value) {
         case ParticleRenderMode.Billboard:
-          this._currentRenderModeMacro = ParticleShaderMacro.renderModeBillboardMacro;
+          this._currentRenderModeMacro = ParticleRenderer._renderModeBillboardMacro;
           break;
         case ParticleRenderMode.Stretch:
-          this._currentRenderModeMacro = ParticleShaderMacro.renderModeStretchedBillboardMode;
+          this._currentRenderModeMacro = ParticleRenderer._renderModeStretchedBillboardMode;
           break;
         case ParticleRenderMode.HorizontalBillboard:
-          this._currentRenderModeMacro = ParticleShaderMacro.renderModeHorizontalBillboardMacro;
+          this._currentRenderModeMacro = ParticleRenderer._renderModeHorizontalBillboardMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:
-          this._currentRenderModeMacro = ParticleShaderMacro.renderModeVerticalBillboardMacro;
+          this._currentRenderModeMacro = ParticleRenderer._renderModeVerticalBillboardMacro;
           break;
         case ParticleRenderMode.Mesh:
-          this._currentRenderModeMacro = ParticleShaderMacro.renderModeMeshMacro;
+          this._currentRenderModeMacro = ParticleRenderer._renderModeMeshMacro;
           break;
       }
       shaderData.enableMacro(this._currentRenderModeMacro);
@@ -104,7 +123,7 @@ export class ParticleRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this.shaderData.enableMacro(ParticleShaderMacro.renderModeBillboardMacro);
+    this.shaderData.enableMacro(ParticleRenderer._renderModeBillboardMacro);
   }
 
   /**
@@ -148,11 +167,11 @@ export class ParticleRenderer extends Renderer {
 
     switch (particleSystem.main.simulationSpace) {
       case ParticleSimulationSpace.Local:
-        shaderData.setVector3(ParticleShaderProperty.worldPosition, transform.worldPosition);
+        shaderData.setVector3(ParticleRenderer._worldPosition, transform.worldPosition);
         const worldRotation = transform.worldRotationQuaternion;
         const worldRotationV4 = ParticleRenderer._tempVector40;
         worldRotationV4.copyFrom(worldRotation);
-        shaderData.setVector4(ParticleShaderProperty.worldRotation, worldRotationV4);
+        shaderData.setVector4(ParticleRenderer._worldRotation, worldRotationV4);
         break;
       case ParticleSimulationSpace.World:
         break;
@@ -163,30 +182,30 @@ export class ParticleRenderer extends Renderer {
     switch (particleSystem.main.scalingMode) {
       case ParticleScaleMode.Hierarchy:
         var scale = transform.lossyWorldScale;
-        shaderData.setVector3(ParticleShaderProperty.positionScale, scale);
-        shaderData.setVector3(ParticleShaderProperty.sizeScale, scale);
+        shaderData.setVector3(ParticleRenderer._positionScale, scale);
+        shaderData.setVector3(ParticleRenderer._sizeScale, scale);
         break;
       case ParticleScaleMode.Local:
         var scale = transform.scale;
-        shaderData.setVector3(ParticleShaderProperty.positionScale, scale);
-        shaderData.setVector3(ParticleShaderProperty.sizeScale, scale);
+        shaderData.setVector3(ParticleRenderer._positionScale, scale);
+        shaderData.setVector3(ParticleRenderer._sizeScale, scale);
         break;
       case ParticleScaleMode.World:
-        shaderData.setVector3(ParticleShaderProperty.positionScale, transform.lossyWorldScale);
-        shaderData.setVector3(ParticleShaderProperty.sizeScale, ParticleRenderer._vector3One);
+        shaderData.setVector3(ParticleRenderer._positionScale, transform.lossyWorldScale);
+        shaderData.setVector3(ParticleRenderer._sizeScale, ParticleRenderer._vector3One);
         break;
     }
 
     const particleGravity = this._gravity;
     const gravityModifierValue = particleSystem.main.gravityModifier.evaluate(undefined, undefined);
     Vector3.scale(this.scene.physics.gravity, gravityModifierValue, particleGravity);
-    shaderData.setVector3(ParticleShaderProperty.gravity, particleGravity);
-    shaderData.setInt(ParticleShaderProperty.simulationSpace, particleSystem.main.simulationSpace);
-    shaderData.setFloat(ParticleShaderProperty.startRotation3D, +particleSystem.main.startRotation3D);
-    shaderData.setInt(ParticleShaderProperty.scaleMode, particleSystem.main.scalingMode);
-    shaderData.setFloat(ParticleShaderProperty.lengthScale, this.lengthScale);
-    shaderData.setFloat(ParticleShaderProperty.speedScale, this.velocityScale);
-    shaderData.setFloat(ParticleShaderProperty.currentTime, particleSystem._playTime);
+    shaderData.setVector3(ParticleRenderer._gravity, particleGravity);
+    shaderData.setInt(ParticleRenderer._simulationSpace, particleSystem.main.simulationSpace);
+    shaderData.setFloat(ParticleRenderer._startRotation3D, +particleSystem.main.startRotation3D);
+    shaderData.setInt(ParticleRenderer._scaleMode, particleSystem.main.scalingMode);
+    shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
+    shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
+    shaderData.setFloat(ParticleRenderer._currentTime, particleSystem._playTime);
 
     // @todo: mesh is not simple pivot
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
