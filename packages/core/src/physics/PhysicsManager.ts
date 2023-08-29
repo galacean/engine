@@ -23,6 +23,7 @@ export class PhysicsManager {
 
   private _engine: Engine;
   private _restTime: number = 0;
+  private _fixedTimeStep: number = 1 / 60;
 
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
@@ -152,9 +153,6 @@ export class PhysicsManager {
     }
   };
 
-  /** The fixed time step in seconds at which physics are performed. */
-  fixedTimeStep: number = 1 / 60;
-
   /**
    * The gravity of physics scene.
    */
@@ -166,6 +164,19 @@ export class PhysicsManager {
     const gravity = this._gravity;
     if (gravity !== value) {
       gravity.copyFrom(value);
+    }
+  }
+
+  /** The fixed time step in seconds at which physics are performed. */
+  get fixedTimeStep(): number {
+    return this._fixedTimeStep;
+  }
+
+  set fixedTimeStep(value: number) {
+    if (value > 0) {
+      this._fixedTimeStep = value;
+    } else {
+      console.warn("fixedTimeStep must be greater than 0.");
     }
   }
 
@@ -302,7 +313,7 @@ export class PhysicsManager {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
+    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentsManager = this._engine._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
