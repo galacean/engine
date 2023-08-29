@@ -144,6 +144,13 @@ export class XRManager {
     this.session?.destroy();
   }
 
+  constructor(engine: Engine, xrPlatform: new (engine: Engine) => IXRPlatform) {
+    this._engine = engine;
+    this._xrPlatform = new xrPlatform(engine);
+    this.inputManager = new XRInputManager(engine);
+    this.inputManager.initialize(new this._xrPlatform.inputProvider(engine));
+  }
+  
   /**
    * @internal
    */
@@ -154,13 +161,6 @@ export class XRManager {
     for (let i = 0, n = features.length; i < n; i++) {
       features[i]?.onUpdate();
     }
-  }
-
-  constructor(engine: Engine, xrPlatform: new (engine: Engine) => IXRPlatform) {
-    this._engine = engine;
-    this._xrPlatform = new xrPlatform(engine);
-    this.inputManager = new XRInputManager(engine);
-    this.inputManager.initialize(new this._xrPlatform.inputProvider(engine));
   }
 }
 
