@@ -402,7 +402,7 @@ export class TextRenderer extends Renderer {
       renderData.usage = RenderDataUsage.Sprite;
       spriteRenderDatas.push(renderData);
     }
-    engine.batcherManager.commitRenderData(context, spriteRenderDatas);
+    engine._batcherManager.commitRenderData(context, spriteRenderDatas);
   }
 
   private _updateStencilState(): void {

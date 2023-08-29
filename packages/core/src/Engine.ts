@@ -53,10 +53,11 @@ export class Engine extends EventDispatcher {
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
-  /** batcher manager of Engine. */
-  readonly batcherManager: BatcherManager;
-  /** sprite mask manager of Engine. */
-  readonly spriteMaskManager: SpriteMaskManager;
+
+  /** @internal */
+  _batcherManager: BatcherManager;
+  /** @internal */
+  _spriteMaskManager: SpriteMaskManager;
 
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -234,8 +235,8 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this.inputManager = new InputManager(this);
-    this.batcherManager = new BatcherManager(this);
-    this.spriteMaskManager = new SpriteMaskManager(this);
+    this._batcherManager = new BatcherManager(this);
+    this._spriteMaskManager = new SpriteMaskManager(this);
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -412,8 +413,8 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
-    this.batcherManager.destroy();
-    this.spriteMaskManager.destroy();
+    this._batcherManager.destroy();
+    this._spriteMaskManager.destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation

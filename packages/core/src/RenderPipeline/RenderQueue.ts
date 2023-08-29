@@ -48,7 +48,7 @@ export class RenderQueue {
     }
 
     const { engine, scene } = camera;
-    const { spriteMaskManager } = camera.engine;
+    const { _spriteMaskManager: spriteMaskManager } = camera.engine;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const sceneData = scene.shaderData;

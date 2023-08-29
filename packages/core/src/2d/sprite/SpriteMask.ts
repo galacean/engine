@@ -217,7 +217,7 @@ export class SpriteMask extends Renderer {
     }
 
     const { engine } = context.camera;
-    engine.spriteMaskManager.addMask(this);
+    engine._spriteMaskManager.addMask(this);
     const renderData = engine._spriteRenderDataPool.getFromPool();
     const material = this.getMaterial();
     renderData.set(this, material, this._verticesData, this.sprite.texture);

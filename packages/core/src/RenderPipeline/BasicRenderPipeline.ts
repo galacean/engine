@@ -133,7 +133,7 @@ export class BasicRenderPipeline {
     const camera = this._camera;
     const scene = camera.scene;
     const cullingResults = this._cullingResults;
-    const batcherManager = camera.engine.batcherManager;
+    const batcherManager = camera.engine._batcherManager;
 
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster.onRender(context);
@@ -141,7 +141,7 @@ export class BasicRenderPipeline {
 
     cullingResults.reset();
     batcherManager.clear();
-    camera.engine.spriteMaskManager.clear();
+    camera.engine._spriteMaskManager.clear();
 
     context.applyVirtualCamera(camera._virtualCamera);
 
