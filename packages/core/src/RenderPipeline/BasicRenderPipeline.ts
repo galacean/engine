@@ -29,7 +29,6 @@ import { SpriteMaskManager } from "./SpriteMaskManager";
 export class BasicRenderPipeline {
   /** @internal */
   _cullingResults: CullingResults;
-
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
 
@@ -50,7 +49,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._spriteMaskManager = new SpriteMaskManager(camera.engine);
+    this._spriteMaskManager = new SpriteMaskManager(engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
