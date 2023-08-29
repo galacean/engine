@@ -132,7 +132,6 @@ export class ComponentsManager {
           script.onStart();
         }
       }
-      onStartScripts.length = 0;
     }
   }
 
@@ -182,16 +181,7 @@ export class ComponentsManager {
   }
 
   handlingInvalidScripts(): void {
-    const { _disableScripts: disableScripts } = this;
-    let length = disableScripts.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        const disableScript = disableScripts[i];
-        disableScript._waitHandlingInValid && disableScript._handlingInValid();
-      }
-      disableScripts.length = 0;
-    }
-
+    this._handlingDisableScripts();
     const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
     this._disposeDestroyScripts = disposeDestroyScripts;
     this._pendingDestroyScripts = pendingDestroyScripts;
@@ -229,10 +219,23 @@ export class ComponentsManager {
     this._componentsContainerPool.push(componentContainer);
   }
 
+  private _handlingDisableScripts() {
+    const { _disableScripts: disableScripts } = this;
+    let length = disableScripts.length;
+    if (length > 0) {
+      for (let i = length - 1; i >= 0; i--) {
+        const disableScript = disableScripts[i];
+        disableScript._waitHandlingInValid && disableScript._handlingInValid();
+      }
+      disableScripts.length = 0;
+    }
+  }
+
   /**
    * @internal
    */
   _gc() {
+    this._handlingDisableScripts();
     this._renderers.garbageCollection();
     this._onStartScripts.garbageCollection();
     this._onUpdateScripts.garbageCollection();

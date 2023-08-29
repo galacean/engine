@@ -110,6 +110,15 @@ export class SceneManager {
   }
 
   /**
+   * @internal
+   */
+  _gc(): void {
+    this._allCreatedScenes.forEach((scene) => {
+      scene._gc();
+    });
+  }
+
+  /**
    * @deprecated
    * Please use `scenes` instead.
    *
