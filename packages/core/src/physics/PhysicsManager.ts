@@ -1,5 +1,5 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@galacean/engine-design";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { Ray, Vector3, MathUtil } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -173,11 +173,7 @@ export class PhysicsManager {
   }
 
   set fixedTimeStep(value: number) {
-    if (value > 0) {
-      this._fixedTimeStep = value;
-    } else {
-      console.warn("fixedTimeStep must be greater than 0.");
-    }
+    this._fixedTimeStep = Math.max(value, MathUtil.zeroTolerance);
   }
 
   constructor(engine: Engine) {
