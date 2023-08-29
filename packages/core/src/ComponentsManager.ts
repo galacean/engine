@@ -235,7 +235,6 @@ export class ComponentsManager {
    * @internal
    */
   _gc() {
-    this._handlingDisableScripts();
     this._renderers.garbageCollection();
     this._onStartScripts.garbageCollection();
     this._onUpdateScripts.garbageCollection();

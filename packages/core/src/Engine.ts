@@ -58,6 +58,8 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
+  _frameInProcess: boolean = false;
+  /** @internal */
   _physicalObjectsMap: Record<number, ColliderShape> = {};
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
@@ -129,7 +131,6 @@ export class Engine extends EventDispatcher {
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
-  private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;

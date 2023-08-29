@@ -216,8 +216,12 @@ export class Script extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    this._waitHandlingInValid = true;
-    this.scene._componentsManager.addDisableScript(this);
+    if (this._engine._frameInProcess) {
+      this._waitHandlingInValid = true;
+      this.scene._componentsManager.addDisableScript(this);
+    } else {
+      this._handlingInValid();
+    }
   }
 
   /**
@@ -248,6 +252,10 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.scene._componentsManager.addPendingDestroyScript(this);
+    if (this._engine._frameInProcess) {
+      this.scene._componentsManager.addPendingDestroyScript(this);
+    } else {
+      this.onDestroy();
+    }
   }
 }
