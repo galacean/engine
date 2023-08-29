@@ -21,8 +21,6 @@ export class BatcherManager {
   }
 
   commitRenderData(context: RenderContext, data: RenderData | Array<RenderData>): void {
-    if (!data) return;
-
     if (data instanceof Array) {
       for (let i = 0, l = data.length; i < l; ++i) {
         this._handleRenderData(context, data[i]);

@@ -21,7 +21,6 @@ import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
 import { PipelineStage } from "./enums/PipelineStage";
-import { SpriteMaskManager } from "./SpriteMaskManager";
 
 /**
  * Basic render pipeline.
@@ -29,8 +28,6 @@ import { SpriteMaskManager } from "./SpriteMaskManager";
 export class BasicRenderPipeline {
   /** @internal */
   _cullingResults: CullingResults;
-  /** @internal */
-  _spriteMaskManager: SpriteMaskManager;
 
   private _camera: Camera;
   private _defaultPass: RenderPass;
@@ -49,7 +46,6 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._spriteMaskManager = new SpriteMaskManager(engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -122,7 +118,6 @@ export class BasicRenderPipeline {
    */
   destroy(): void {
     this._cullingResults.destroy();
-    this._spriteMaskManager.destroy();
     this._renderPassArray = null;
     this._defaultPass = null;
     this._camera = null;
@@ -138,7 +133,7 @@ export class BasicRenderPipeline {
     const camera = this._camera;
     const scene = camera.scene;
     const cullingResults = this._cullingResults;
-    const batcherManager = camera._batcherManager;
+    const batcherManager = camera.engine.batcherManager;
 
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster.onRender(context);
@@ -146,7 +141,7 @@ export class BasicRenderPipeline {
 
     cullingResults.reset();
     batcherManager.clear();
-    this._spriteMaskManager.clear();
+    camera.engine.spriteMaskManager.clear();
 
     context.applyVirtualCamera(camera._virtualCamera);
 

@@ -48,7 +48,7 @@ export class RenderQueue {
     }
 
     const { engine, scene } = camera;
-    const { _spriteMaskManager } = camera._renderPipeline;
+    const { spriteMaskManager } = camera.engine;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const sceneData = scene.shaderData;
@@ -69,7 +69,7 @@ export class RenderQueue {
       const isSprite = data.usage === RenderDataUsage.Sprite;
       const meshData = <MeshRenderData>data;
       const renderer = meshData.component;
-      isSprite && _spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
+      isSprite && spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
 
       const compileMacros = Shader._compileMacros;
       const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
@@ -150,7 +150,7 @@ export class RenderQueue {
         );
 
         rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
-        isSprite && _spriteMaskManager.postRender(<SpriteRenderer>renderer);
+        isSprite && spriteMaskManager.postRender(<SpriteRenderer>renderer);
       }
     }
   }

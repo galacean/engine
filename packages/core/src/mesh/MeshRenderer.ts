@@ -145,7 +145,7 @@ export class MeshRenderer extends Renderer {
 
     const materials = this._materials;
     const subMeshes = mesh.subMeshes;
-    const batcherManager = context.camera._batcherManager;
+    const batcherManager = context.camera.engine.batcherManager;
     const meshRenderDataPool = this._engine._meshRenderDataPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       const material = materials[i];

@@ -216,14 +216,14 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    context.camera._renderPipeline._spriteMaskManager.addMask(this);
-
-    const renderData = this._engine._spriteRenderDataPool.getFromPool();
+    const { engine } = context.camera;
+    engine.spriteMaskManager.addMask(this);
+    const renderData = engine._spriteRenderDataPool.getFromPool();
     const material = this.getMaterial();
     renderData.set(this, material, this._verticesData, this.sprite.texture);
     renderData.usage = RenderDataUsage.SpriteMask;
 
-    const renderElement = this._engine._renderElementPool.getFromPool();
+    const renderElement = engine._renderElementPool.getFromPool();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }

@@ -17,6 +17,7 @@ import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
+import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 
 /**
  * Renders a text for 2D graphics.
@@ -387,7 +388,8 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const spriteRenderDataPool = this._engine._spriteRenderDataPool;
+    const { engine } = context.camera;
+    const spriteRenderDataPool = engine._spriteRenderDataPool;
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
@@ -395,11 +397,12 @@ export class TextRenderer extends Renderer {
     let spriteRenderDatas: Array<SpriteRenderData> = [];
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteRenderData = spriteRenderDataPool.getFromPool();
-      spriteRenderData.set(this, material, charRenderData.renderData, charRenderData.texture);
-      spriteRenderDatas.push(spriteRenderData);
+      const renderData = spriteRenderDataPool.getFromPool();
+      renderData.set(this, material, charRenderData.renderData, charRenderData.texture);
+      renderData.usage = RenderDataUsage.Sprite;
+      spriteRenderDatas.push(renderData);
     }
-    context.camera._batcherManager.commitRenderData(context, spriteRenderDatas);
+    engine.batcherManager.commitRenderData(context, spriteRenderDatas);
   }
 
   private _updateStencilState(): void {

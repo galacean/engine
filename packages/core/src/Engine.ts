@@ -35,6 +35,8 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { BatcherManager } from "./RenderPipeline/batcher/BatcherManager";
+import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 
 ShaderPool.init();
 
@@ -51,6 +53,10 @@ export class Engine extends EventDispatcher {
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
+  /** batcher manager of Engine. */
+  readonly batcherManager: BatcherManager;
+  /** sprite mask manager of Engine. */
+  readonly spriteMaskManager: SpriteMaskManager;
 
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -228,6 +234,8 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this.inputManager = new InputManager(this);
+    this.batcherManager = new BatcherManager(this);
+    this.spriteMaskManager = new SpriteMaskManager(this);
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -404,6 +412,8 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
+    this.batcherManager.destroy();
+    this.spriteMaskManager.destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation

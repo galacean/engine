@@ -322,11 +322,12 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Push primitive
+    const { engine } = context.camera;
     const material = this.getMaterial();
-    const renderData = this._engine._spriteRenderDataPool.getFromPool();
+    const renderData = engine._spriteRenderDataPool.getFromPool();
     renderData.set(this, material, this._verticesData, this.sprite.texture);
     renderData.usage = RenderDataUsage.Sprite;
-    context.camera._batcherManager.commitRenderData(context, renderData);
+    engine.batcherManager.commitRenderData(context, renderData);
   }
 
   /**
