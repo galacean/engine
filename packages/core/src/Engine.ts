@@ -679,7 +679,6 @@ export class Engine extends EventDispatcher {
     this._spriteRenderDataPool.garbageCollection();
     this._spriteMaskRenderDataPool.garbageCollection();
     this._textRenderDataPool.garbageCollection();
-    this._sceneManager._gc();
   }
 
   /**

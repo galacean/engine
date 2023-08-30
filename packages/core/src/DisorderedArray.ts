@@ -52,6 +52,7 @@ export class DisorderedArray<T> {
       end = elements[lastIndex];
       elements[index] = end;
     }
+    elements[lastIndex] = null;
     this.length--;
     return end;
   }

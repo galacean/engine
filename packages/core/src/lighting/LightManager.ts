@@ -133,15 +133,6 @@ export class LightManager {
     }
   }
 
-  /**
-   * @internal
-   */
-  _gc() {
-    this._spotLights.garbageCollection();
-    this._pointLights.garbageCollection();
-    this._directLights.garbageCollection();
-  }
-
   private _getSunLightIndex(): number {
     const directLights = this._directLights;
 
