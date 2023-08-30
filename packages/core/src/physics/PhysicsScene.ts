@@ -1,5 +1,5 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsScene } from "@galacean/engine-design";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
@@ -20,6 +20,7 @@ export class PhysicsScene {
 
   private _scene: Scene;
   private _restTime: number = 0;
+  private _fixedTimeStep: number = 1 / 60;
 
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
@@ -155,9 +156,6 @@ export class PhysicsScene {
     }
   };
 
-  /** The fixed time step in seconds at which physics are performed. */
-  fixedTimeStep: number = 1 / 60;
-
   /**
    * The gravity of physics scene.
    */
@@ -170,6 +168,17 @@ export class PhysicsScene {
     if (gravity !== value) {
       gravity.copyFrom(value);
     }
+  }
+
+  /**
+   * The fixed time step in seconds at which physics are performed.
+   */
+  get fixedTimeStep(): number {
+    return this._fixedTimeStep;
+  }
+
+  set fixedTimeStep(value: number) {
+    this._fixedTimeStep = Math.max(value, MathUtil.zeroTolerance);
   }
 
   constructor(scene: Scene) {
@@ -302,7 +311,7 @@ export class PhysicsScene {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
+    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
     const componentsManager = this._scene._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
