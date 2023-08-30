@@ -56,6 +56,11 @@ describe("MeshRenderer", async function () {
     // Test that repeated assignment works correctly.
     mr.enableVertexColor = true;
     expect(mr.enableVertexColor).to.be.true;
+
+    // Test that set inverse value works correctly.
+    const inverseValue = !mr.enableVertexColor;
+    mr.enableVertexColor = inverseValue;
+    expect(mr.enableVertexColor).to.be.equal(inverseValue);
   });
 
   it("bounds", () => {
