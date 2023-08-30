@@ -84,6 +84,7 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
 
         DirectLight directionalLight;
         for ( int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i ++ ) {
+            // warning: use `continue` syntax may trigger flickering bug in safri 16.1.
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])){
                 directionalLight.color = scene_DirectLightColor[i];
                 #ifdef SCENE_IS_CALCULATE_SHADOWS
