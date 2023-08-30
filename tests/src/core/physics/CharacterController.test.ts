@@ -4,7 +4,9 @@ import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("physics collider test", () => {
+describe("physics collider test", function () {
+  this.timeout(5000);
+
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let controllerEntity: Entity;

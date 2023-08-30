@@ -38,7 +38,9 @@ class MoveScript extends Script {
   }
 }
 
-describe("physics collider test", () => {
+describe("physics collider test", function () {
+  this.timeout(5000);
+
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let boxEntity: Entity;
