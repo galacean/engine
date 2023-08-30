@@ -230,7 +230,7 @@ export class Script extends Component {
   _handlingInValid(): void {
     const componentsManager = this.scene._componentsManager;
     const { prototype } = Script;
-    if (!this._started) {
+    if (this._onStartIndex !== -1) {
       componentsManager.removeOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
