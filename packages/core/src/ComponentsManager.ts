@@ -128,10 +128,11 @@ export class ComponentsManager {
         const script = elements[i];
         if (!script._waitHandlingInValid) {
           script._started = true;
-          script._onStartIndex = -1;
           script.onStart();
         }
+        script._onStartIndex = -1;
       }
+      onStartScripts.length = 0;
     }
   }
 
@@ -226,5 +227,18 @@ export class ComponentsManager {
   putActiveChangedTempList(componentContainer: Component[]): void {
     componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
+  }
+
+  /**
+   * @internal
+   */
+  _gc() {
+    this._renderers.garbageCollection();
+    this._onStartScripts.garbageCollection();
+    this._onUpdateScripts.garbageCollection();
+    this._onLateUpdateScripts.garbageCollection();
+    this._onPhysicsUpdateScripts.garbageCollection();
+    this._onUpdateAnimations.garbageCollection();
+    this._onUpdateRenderers.garbageCollection();
   }
 }

@@ -471,6 +471,15 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
+  _gc(): void {
+    this._componentsManager._gc();
+    this._lightManager._gc();
+    this.physics._gc();
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
 
