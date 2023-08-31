@@ -140,7 +140,6 @@ before(async () => {
             translation: [1, 0, 0],
             rotation: [Math.PI, 0, 0, 0],
             scale: [2, 2, 2],
-            children: [1],
             mesh: 0,
             extensions: {
               Custom_Light: {}
