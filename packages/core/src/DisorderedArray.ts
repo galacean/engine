@@ -85,6 +85,11 @@ export class DisorderedArray<T> {
     }
   }
 
+  endLoopAndClear(): void {
+    this._isLooping = false;
+    this.length = 0;
+  }
+
   garbageCollection(): void {
     this._elements.length = this.length;
   }

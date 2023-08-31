@@ -211,7 +211,6 @@ export class Script extends Component {
    */
   override _onDisableInScene(): void {
     const componentsManager = this.scene._componentsManager;
-
     const { prototype } = Script;
 
     if (!this._started) {

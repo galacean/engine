@@ -124,11 +124,11 @@ export class ComponentsManager {
         const script = elements[i];
         if (script) {
           script._started = true;
-          this.removeOnStartScript(script);
+          script._onStartIndex = -1;
           script.onStart();
         }
       }
-      onStartScripts.endLoop();
+      onStartScripts.endLoopAndClear();
     }
   }
 
@@ -136,7 +136,7 @@ export class ComponentsManager {
     const onUpdateScripts = this._onUpdateScripts;
     onUpdateScripts.startLoop();
     const elements = onUpdateScripts._elements;
-    for (let i = onUpdateScripts.length - 1; i >= 0; --i) {
+    for (let i = 0; i < onUpdateScripts.length; i++) {
       const element = elements[i];
       if (element?._started) {
         element.onUpdate(deltaTime);
@@ -149,7 +149,7 @@ export class ComponentsManager {
     const onLateUpdateScripts = this._onLateUpdateScripts;
     onLateUpdateScripts.startLoop();
     const elements = onLateUpdateScripts._elements;
-    for (let i = onLateUpdateScripts.length - 1; i >= 0; --i) {
+    for (let i = 0; i < onLateUpdateScripts.length; i++) {
       const element = elements[i];
       if (element?._started) {
         element.onLateUpdate(deltaTime);
@@ -162,7 +162,7 @@ export class ComponentsManager {
     const onPhysicsUpdateScripts = this._onPhysicsUpdateScripts;
     onPhysicsUpdateScripts.startLoop();
     const elements = onPhysicsUpdateScripts._elements;
-    for (let i = onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
+    for (let i = 0; i < onPhysicsUpdateScripts.length; i++) {
       const element = elements[i];
       if (element?._started) {
         element.onPhysicsUpdate();
@@ -172,18 +172,24 @@ export class ComponentsManager {
   }
 
   callAnimationUpdate(deltaTime: number): void {
-    const elements = this._onUpdateAnimations._elements;
-    for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
+    const onUpdateAnimations = this._onUpdateAnimations;
+    onUpdateAnimations.startLoop();
+    const elements = onUpdateAnimations._elements;
+    for (let i = 0; i < onUpdateAnimations.length; i++) {
       //@ts-ignore
       elements[i].update(deltaTime);
     }
+    onUpdateAnimations.endLoop();
   }
 
   callRendererOnUpdate(deltaTime: number): void {
-    const elements = this._onUpdateRenderers._elements;
-    for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
+    const onUpdateRenderers = this._onUpdateRenderers;
+    onUpdateRenderers.startLoop();
+    const elements = onUpdateRenderers._elements;
+    for (let i = 0; i < onUpdateRenderers.length; i++) {
       elements[i].update(deltaTime);
     }
+    onUpdateRenderers.endLoop();
   }
 
   handlingInvalidScripts(): void {
