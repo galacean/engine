@@ -122,16 +122,14 @@ export class PhysicsScene {
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script?.onTriggerEnter(shape2);
+      scripts.get(i)?.onTriggerEnter(shape2);
     }
     scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script?.onTriggerEnter(shape1);
+      scripts.get(i)?.onTriggerEnter(shape1);
     }
     scripts.endLoop();
   };
@@ -144,16 +142,14 @@ export class PhysicsScene {
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
     for (let i = 0, n = scripts.length; i < n; i++) {
-      const script = scripts.get(i);
-      script?.onTriggerExit(shape2);
+      scripts.get(i)?.onTriggerExit(shape2);
     }
     scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
     for (let i = 0, n = scripts.length; i < n; i++) {
-      const script = scripts.get(i);
-      script?.onTriggerExit(shape1);
+      scripts.get(i)?.onTriggerExit(shape1);
     }
     scripts.endLoop();
   };
@@ -166,16 +162,14 @@ export class PhysicsScene {
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script?.onTriggerStay(shape2);
+      scripts.get(i)?.onTriggerStay(shape2);
     }
     scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script?.onTriggerStay(shape1);
+      scripts.get(i)?.onTriggerStay(shape1);
     }
     scripts.endLoop();
   };

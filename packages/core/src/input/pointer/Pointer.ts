@@ -48,8 +48,7 @@ export class Pointer {
         const scripts = this._currentEnteredEntity._scripts;
         scripts.startLoop();
         for (let i = scripts.length - 1; i >= 0; i--) {
-          const script = scripts.get(i);
-          script?.onPointerExit(this);
+          scripts.get(i)?.onPointerExit(this);
         }
         scripts.endLoop();
       }
@@ -57,8 +56,7 @@ export class Pointer {
         const scripts = rayCastEntity._scripts;
         scripts.startLoop();
         for (let i = scripts.length - 1; i >= 0; i--) {
-          const script = scripts.get(i);
-          script?.onPointerEnter(this);
+          scripts.get(i)?.onPointerEnter(this);
         }
         scripts.endLoop();
       }
@@ -74,8 +72,7 @@ export class Pointer {
       const scripts = rayCastEntity._scripts;
       scripts.startLoop();
       for (let i = scripts.length - 1; i >= 0; i--) {
-        const script = scripts.get(i);
-        script?.onPointerDown(this);
+        scripts.get(i)?.onPointerDown(this);
       }
       scripts.endLoop();
     }
@@ -90,8 +87,7 @@ export class Pointer {
       const scripts = this._currentPressedEntity._scripts;
       scripts.startLoop();
       for (let i = scripts.length - 1; i >= 0; i--) {
-        const script = scripts.get(i);
-        script?.onPointerDrag(this);
+        scripts.get(i)?.onPointerDrag(this);
       }
       scripts.endLoop();
     }

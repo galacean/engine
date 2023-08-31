@@ -203,8 +203,7 @@ export class ComponentsManager {
     const scripts = camera.entity._scripts;
     scripts.startLoop();
     for (let i = scripts.length - 1; i >= 0; --i) {
-      const script = scripts.get(i);
-      script?.onBeginRender(camera);
+      scripts.get(i)?.onBeginRender(camera);
     }
     scripts.endLoop();
   }
@@ -213,8 +212,7 @@ export class ComponentsManager {
     const scripts = camera.entity._scripts;
     scripts.startLoop();
     for (let i = scripts.length - 1; i >= 0; --i) {
-      const script = scripts.get(i);
-      script?.onEndRender(camera);
+      scripts.get(i)?.onEndRender(camera);
     }
     scripts.endLoop();
   }
