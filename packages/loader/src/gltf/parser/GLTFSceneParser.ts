@@ -79,7 +79,7 @@ export class GLTFSceneParser extends GLTFParser {
   private _parseEntityComponent(context: GLTFParserContext, index: number): Promise<void[]> {
     const { glTF, glTFResource } = context;
     const entityInfo = glTF.nodes[index];
-    const { camera: cameraID, mesh: meshID, extensions } = entityInfo;
+    const { camera: cameraID, mesh: meshID } = entityInfo;
     const entity = context.get<Entity>(GLTFParserType.Entity, index);
     let promise: Promise<void[]>;
 
@@ -100,8 +100,6 @@ export class GLTFSceneParser extends GLTFParser {
           promises.push(this._parseEntityComponent(context, children[i]));
         }
       }
-
-      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, entityInfo);
 
       return Promise.all(promises);
     });
