@@ -55,6 +55,9 @@ export class DisorderedArray<T> {
     const elements = this._elements;
     let end: T;
     if (this._isLooping) {
+      this._elements[index] = null;
+      this._blankCount++;
+    } else {
       const endIndex = this.length - 1;
       if (index !== endIndex) {
         end = elements[endIndex];
@@ -62,9 +65,6 @@ export class DisorderedArray<T> {
       }
       elements[endIndex] = null;
       this.length--;
-    } else {
-      this._elements[index] = null;
-      this._blankCount++;
     }
 
     return end;
@@ -73,14 +73,16 @@ export class DisorderedArray<T> {
   endLoop(): void {
     this._isLooping = false;
 
-    const elements = this._elements;
-    for (let i = 0, j = 0, n = this.length; i < n; i++) {
-      const element = elements[i];
-      if (element) {
-        elements[j++] = element;
+    if (this._blankCount) {
+      const elements = this._elements;
+      for (let i = 0, j = 0, n = this.length; i < n; i++) {
+        const element = elements[i];
+        if (element) {
+          elements[j++] = element;
+        }
       }
+      this.length -= this._blankCount;
     }
-    this.length -= this._blankCount;
   }
 
   garbageCollection(): void {
