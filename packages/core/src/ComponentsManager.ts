@@ -208,7 +208,7 @@ export class ComponentsManager {
   callCameraOnBeginRender(camera: Camera): void {
     const scripts = camera.entity._scripts;
     scripts.startLoop();
-    for (let i = scripts.length - 1; i >= 0; --i) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onBeginRender(camera);
     }
     scripts.endLoop();
@@ -217,7 +217,7 @@ export class ComponentsManager {
   callCameraOnEndRender(camera: Camera): void {
     const scripts = camera.entity._scripts;
     scripts.startLoop();
-    for (let i = scripts.length - 1; i >= 0; --i) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onEndRender(camera);
     }
     scripts.endLoop();
