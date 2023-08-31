@@ -124,7 +124,7 @@ export class ComponentsManager {
         const script = elements[i];
         if (script) {
           script._started = true;
-          script._onStartIndex = -1;
+          this.removeOnStartScript(script);
           script.onStart();
         }
       }

@@ -82,12 +82,14 @@ export class DisorderedArray<T> {
         }
       }
       this.length -= this._blankCount;
+      this._blankCount = 0;
     }
   }
 
   endLoopAndClear(): void {
     this._isLooping = false;
     this.length = 0;
+    this._blankCount = 0;
   }
 
   garbageCollection(): void {
