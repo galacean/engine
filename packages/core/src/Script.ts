@@ -213,6 +213,10 @@ export class Script extends Component {
     const componentsManager = this.scene._componentsManager;
 
     const { prototype } = Script;
+
+    if (!this._started) {
+      componentsManager.removeOnStartScript(this);
+    }
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
     }

@@ -124,6 +124,7 @@ class GLTFCustomJSONParser extends GLTFParser {
           translation: [1, 0, 0],
           rotation: [Math.PI, 0, 0, 0],
           scale: [2, 2, 2],
+          children: [1],
           extensions: {
             KHR_lights_punctual: {
               light: 0

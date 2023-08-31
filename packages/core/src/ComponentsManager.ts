@@ -117,17 +117,18 @@ export class ComponentsManager {
   callScriptOnStart(): void {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
+      onStartScripts.startLoop();
       const elements = onStartScripts._elements;
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
       for (let i = 0; i < onStartScripts.length; i++) {
         const script = elements[i];
         if (script) {
           script._started = true;
-          script._onStartIndex = -1;
+          this.removeOnStartScript(script);
           script.onStart();
         }
       }
-      onStartScripts.length = 0;
+      onStartScripts.endLoop();
     }
   }
 
@@ -154,7 +155,7 @@ export class ComponentsManager {
         element.onLateUpdate(deltaTime);
       }
     }
-    onLateUpdateScripts.startLoop();
+    onLateUpdateScripts.endLoop();
   }
 
   callScriptOnPhysicsUpdate(): void {
@@ -167,7 +168,7 @@ export class ComponentsManager {
         element.onPhysicsUpdate();
       }
     }
-    onPhysicsUpdateScripts.startLoop();
+    onPhysicsUpdateScripts.endLoop();
   }
 
   callAnimationUpdate(deltaTime: number): void {
