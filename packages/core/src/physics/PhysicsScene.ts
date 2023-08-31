@@ -34,7 +34,7 @@ export class PhysicsScene {
 
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       const script = scripts.get(i);
       if (script) {
         let collision = PhysicsScene._collision;
@@ -46,7 +46,7 @@ export class PhysicsScene {
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       const script = scripts.get(i);
       if (script) {
         let collision = PhysicsScene._collision;
@@ -63,7 +63,7 @@ export class PhysicsScene {
 
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       const script = scripts.get(i);
       if (script) {
         let collision = PhysicsScene._collision;
@@ -75,7 +75,7 @@ export class PhysicsScene {
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       const script = scripts.get(i);
       if (script) {
         let collision = PhysicsScene._collision;
@@ -92,7 +92,7 @@ export class PhysicsScene {
 
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       const script = scripts.get(i);
       if (script) {
         let collision = PhysicsScene._collision;
@@ -104,7 +104,7 @@ export class PhysicsScene {
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       const script = scripts.get(i);
       if (script) {
         let collision = PhysicsScene._collision;
@@ -121,14 +121,14 @@ export class PhysicsScene {
 
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onTriggerEnter(shape2);
     }
     scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onTriggerEnter(shape1);
     }
     scripts.endLoop();
@@ -141,14 +141,14 @@ export class PhysicsScene {
 
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, n = scripts.length; i < n; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onTriggerExit(shape2);
     }
     scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, n = scripts.length; i < n; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onTriggerExit(shape1);
     }
     scripts.endLoop();
@@ -161,14 +161,14 @@ export class PhysicsScene {
 
     let scripts = shape1.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onTriggerStay(shape2);
     }
     scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
     scripts.startLoop();
-    for (let i = 0, len = scripts.length; i < len; i++) {
+    for (let i = 0; i < scripts.length; i++) {
       scripts.get(i)?.onTriggerStay(shape1);
     }
     scripts.endLoop();

@@ -47,7 +47,7 @@ export class Pointer {
       if (this._currentEnteredEntity) {
         const scripts = this._currentEnteredEntity._scripts;
         scripts.startLoop();
-        for (let i = scripts.length - 1; i >= 0; i--) {
+        for (let i = 0; i < scripts.length; i++) {
           scripts.get(i)?.onPointerExit(this);
         }
         scripts.endLoop();
@@ -55,7 +55,7 @@ export class Pointer {
       if (rayCastEntity) {
         const scripts = rayCastEntity._scripts;
         scripts.startLoop();
-        for (let i = scripts.length - 1; i >= 0; i--) {
+        for (let i = 0; i < scripts.length; i++) {
           scripts.get(i)?.onPointerEnter(this);
         }
         scripts.endLoop();
@@ -71,7 +71,7 @@ export class Pointer {
     if (rayCastEntity) {
       const scripts = rayCastEntity._scripts;
       scripts.startLoop();
-      for (let i = scripts.length - 1; i >= 0; i--) {
+      for (let i = 0; i < scripts.length; i++) {
         scripts.get(i)?.onPointerDown(this);
       }
       scripts.endLoop();
@@ -86,7 +86,7 @@ export class Pointer {
     if (this._currentPressedEntity) {
       const scripts = this._currentPressedEntity._scripts;
       scripts.startLoop();
-      for (let i = scripts.length - 1; i >= 0; i--) {
+      for (let i = 0; i < scripts.length; i++) {
         scripts.get(i)?.onPointerDrag(this);
       }
       scripts.endLoop();
@@ -102,7 +102,7 @@ export class Pointer {
       const sameTarget = pressedEntity === rayCastEntity;
       const scripts = pressedEntity._scripts;
       scripts.startLoop();
-      for (let i = scripts.length - 1; i >= 0; i--) {
+      for (let i = 0; i < scripts.length; i++) {
         const script = scripts.get(i);
         if (script) {
           sameTarget && script.onPointerClick(this);
