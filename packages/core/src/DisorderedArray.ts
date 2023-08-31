@@ -2,9 +2,12 @@
  * High-performance unordered array, delete uses exchange method to improve performance, internal capacity only increases.
  */
 export class DisorderedArray<T> {
+  length = 0;
+
   _elements: T[];
 
-  length: number = 0;
+  private _isLooping = false;
+  private _blankCount = 0;
 
   constructor(count: number = 0) {
     this._elements = new Array<T>(count);
@@ -39,21 +42,45 @@ export class DisorderedArray<T> {
     return this._elements[index];
   }
 
+  startLoop(): void {
+    this._isLooping = true;
+  }
+
   /**
    * Delete the element at the specified index.
    * @param index - The index of the element to be deleted
    * @returns The replaced item is used to reset its index
    */
   deleteByIndex(index: number): T {
-    var elements: T[] = this._elements;
-    let end: T = null;
-    const lastIndex = this.length - 1;
-    if (index !== lastIndex) {
-      end = elements[lastIndex];
-      elements[index] = end;
+    const elements = this._elements;
+    let end: T;
+    if (this._isLooping) {
+      const endIndex = this.length - 1;
+      if (index !== endIndex) {
+        end = elements[endIndex];
+        elements[index] = end;
+      }
+      elements[endIndex] = null;
+      this.length--;
+    } else {
+      this._elements[index] = null;
+      this._blankCount++;
     }
-    this.length--;
+
     return end;
+  }
+
+  endLoop(): void {
+    this._isLooping = false;
+
+    const elements = this._elements;
+    for (let i = 0, j = 0, n = this.length; i < n; i++) {
+      const element = elements[i];
+      if (element) {
+        elements[j++] = element;
+      }
+    }
+    this.length -= this._blankCount;
   }
 
   garbageCollection(): void {

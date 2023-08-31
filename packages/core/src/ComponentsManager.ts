@@ -16,7 +16,6 @@ export class ComponentsManager {
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _disableScripts: Script[] = [];
 
   private _pendingDestroyScripts: Script[] = [];
   private _disposeDestroyScripts: Script[] = [];
@@ -111,10 +110,6 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addDisableScript(component: Script): void {
-    this._disableScripts.push(component);
-  }
-
   addPendingDestroyScript(component: Script): void {
     this._pendingDestroyScripts.push(component);
   }
@@ -126,7 +121,7 @@ export class ComponentsManager {
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
       for (let i = 0; i < onStartScripts.length; i++) {
         const script = elements[i];
-        if (!script._waitHandlingInValid) {
+        if (script) {
           script._started = true;
           script._onStartIndex = -1;
           script.onStart();
@@ -137,33 +132,42 @@ export class ComponentsManager {
   }
 
   callScriptOnUpdate(deltaTime: number): void {
-    const elements = this._onUpdateScripts._elements;
-    for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
+    const onUpdateScripts = this._onUpdateScripts;
+    onUpdateScripts.startLoop();
+    const elements = onUpdateScripts._elements;
+    for (let i = onUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (!element._waitHandlingInValid && element._started) {
+      if (element?._started) {
         element.onUpdate(deltaTime);
       }
     }
+    onUpdateScripts.endLoop();
   }
 
   callScriptOnLateUpdate(deltaTime: number): void {
-    const elements = this._onLateUpdateScripts._elements;
-    for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
+    const onLateUpdateScripts = this._onLateUpdateScripts;
+    onLateUpdateScripts.startLoop();
+    const elements = onLateUpdateScripts._elements;
+    for (let i = onLateUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (!element._waitHandlingInValid && element._started) {
+      if (element?._started) {
         element.onLateUpdate(deltaTime);
       }
     }
+    onLateUpdateScripts.startLoop();
   }
 
   callScriptOnPhysicsUpdate(): void {
-    const elements = this._onPhysicsUpdateScripts._elements;
-    for (let i = this._onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
+    const onPhysicsUpdateScripts = this._onPhysicsUpdateScripts;
+    onPhysicsUpdateScripts.startLoop();
+    const elements = onPhysicsUpdateScripts._elements;
+    for (let i = onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (!element._waitHandlingInValid && element._started) {
+      if (element?._started) {
         element.onPhysicsUpdate();
       }
     }
+    onPhysicsUpdateScripts.startLoop();
   }
 
   callAnimationUpdate(deltaTime: number): void {
@@ -182,16 +186,6 @@ export class ComponentsManager {
   }
 
   handlingInvalidScripts(): void {
-    const { _disableScripts: disableScripts } = this;
-    let length = disableScripts.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        const disableScript = disableScripts[i];
-        disableScript._waitHandlingInValid && disableScript._handlingInValid(this);
-      }
-      disableScripts.length = 0;
-    }
-
     const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
     this._disposeDestroyScripts = disposeDestroyScripts;
     this._pendingDestroyScripts = pendingDestroyScripts;
@@ -206,18 +200,22 @@ export class ComponentsManager {
 
   callCameraOnBeginRender(camera: Camera): void {
     const scripts = camera.entity._scripts;
+    scripts.startLoop();
     for (let i = scripts.length - 1; i >= 0; --i) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onBeginRender(camera);
+      script?.onBeginRender(camera);
     }
+    scripts.endLoop();
   }
 
   callCameraOnEndRender(camera: Camera): void {
     const scripts = camera.entity._scripts;
+    scripts.startLoop();
     for (let i = scripts.length - 1; i >= 0; --i) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onEndRender(camera);
+      script?.onEndRender(camera);
     }
+    scripts.endLoop();
   }
 
   getActiveChangedTempList(): Component[] {

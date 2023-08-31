@@ -46,17 +46,21 @@ export class Pointer {
     if (this._currentEnteredEntity !== rayCastEntity) {
       if (this._currentEnteredEntity) {
         const scripts = this._currentEnteredEntity._scripts;
+        scripts.startLoop();
         for (let i = scripts.length - 1; i >= 0; i--) {
           const script = scripts.get(i);
-          script._waitHandlingInValid || script.onPointerExit(this);
+          script?.onPointerExit(this);
         }
+        scripts.endLoop();
       }
       if (rayCastEntity) {
         const scripts = rayCastEntity._scripts;
+        scripts.startLoop();
         for (let i = scripts.length - 1; i >= 0; i--) {
           const script = scripts.get(i);
-          script._waitHandlingInValid || script.onPointerEnter(this);
+          script?.onPointerEnter(this);
         }
+        scripts.endLoop();
       }
       this._currentEnteredEntity = rayCastEntity;
     }
@@ -68,10 +72,12 @@ export class Pointer {
   _firePointerDown(rayCastEntity: Entity): void {
     if (rayCastEntity) {
       const scripts = rayCastEntity._scripts;
+      scripts.startLoop();
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        script._waitHandlingInValid || script.onPointerDown(this);
+        script?.onPointerDown(this);
       }
+      scripts.endLoop();
     }
     this._currentPressedEntity = rayCastEntity;
   }
@@ -82,10 +88,12 @@ export class Pointer {
   _firePointerDrag(): void {
     if (this._currentPressedEntity) {
       const scripts = this._currentPressedEntity._scripts;
+      scripts.startLoop();
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        script._waitHandlingInValid || script.onPointerDrag(this);
+        script?.onPointerDrag(this);
       }
+      scripts.endLoop();
     }
   }
 
@@ -97,13 +105,15 @@ export class Pointer {
     if (pressedEntity) {
       const sameTarget = pressedEntity === rayCastEntity;
       const scripts = pressedEntity._scripts;
+      scripts.startLoop();
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        if (!script._waitHandlingInValid) {
+        if (script) {
           sameTarget && script.onPointerClick(this);
           script.onPointerUp(this);
         }
       }
+      scripts.endLoop();
       this._currentPressedEntity = null;
     }
   }

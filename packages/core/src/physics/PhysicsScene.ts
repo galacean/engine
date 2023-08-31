@@ -33,24 +33,28 @@ export class PhysicsScene {
     const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+      if (script) {
         let collision = PhysicsScene._collision;
         collision.shape = shape2;
         script.onCollisionEnter(collision);
       }
     }
+    scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+      if (script) {
         let collision = PhysicsScene._collision;
         collision.shape = shape1;
         script.onCollisionEnter(collision);
       }
     }
+    scripts.endLoop();
   };
   private _onContactExit = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
@@ -58,24 +62,28 @@ export class PhysicsScene {
     const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+      if (script) {
         let collision = PhysicsScene._collision;
         collision.shape = shape2;
         script.onCollisionExit(collision);
       }
     }
+    scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+      if (script) {
         let collision = PhysicsScene._collision;
         collision.shape = shape1;
         script.onCollisionExit(collision);
       }
     }
+    scripts.endLoop();
   };
   private _onContactStay = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
@@ -83,24 +91,28 @@ export class PhysicsScene {
     const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+      if (script) {
         let collision = PhysicsScene._collision;
         collision.shape = shape2;
         script.onCollisionStay(collision);
       }
     }
+    scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+      if (script) {
         let collision = PhysicsScene._collision;
         collision.shape = shape1;
         script.onCollisionStay(collision);
       }
     }
+    scripts.endLoop();
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
@@ -108,16 +120,20 @@ export class PhysicsScene {
     const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerEnter(shape2);
+      script?.onTriggerEnter(shape2);
     }
+    scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerEnter(shape1);
+      script?.onTriggerEnter(shape1);
     }
+    scripts.endLoop();
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
@@ -126,16 +142,20 @@ export class PhysicsScene {
     const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, n = scripts.length; i < n; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerExit(shape2);
+      script?.onTriggerExit(shape2);
     }
+    scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, n = scripts.length; i < n; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerExit(shape1);
+      script?.onTriggerExit(shape1);
     }
+    scripts.endLoop();
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
@@ -144,16 +164,20 @@ export class PhysicsScene {
     const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerStay(shape2);
+      script?.onTriggerStay(shape2);
     }
+    scripts.endLoop();
 
     scripts = shape2.collider.entity._scripts;
+    scripts.startLoop();
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerStay(shape1);
+      script?.onTriggerStay(shape1);
     }
+    scripts.endLoop();
   };
 
   /**
