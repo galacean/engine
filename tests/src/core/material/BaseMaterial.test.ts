@@ -4,9 +4,8 @@ import { expect } from "chai";
 
 describe("BaseMaterial", () => {
   let engine: WebGLEngine;
-  before(async (done) => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    done();
   });
 
   class TestMaterial extends BaseMaterial {
