@@ -28,11 +28,16 @@ export function uniform(type: ShaderUniformType, options?: UniformOptions) {
     const set = "set" + type;
 
     let setFunc: (value: any) => void;
-    if (type === ShaderUniformType.Float || type === ShaderUniformType.Int || type === ShaderUniformType.Texture || type === ShaderUniformType.TextureArray) {
+    if (
+      type === ShaderUniformType.Float ||
+      type === ShaderUniformType.Int ||
+      type === ShaderUniformType.Texture ||
+      type === ShaderUniformType.TextureArray
+    ) {
       setFunc = function (value: any) {
         this.shaderData[set](shaderProp, value);
         handleMacro.call(this, value, options?.macroName);
-      }
+      };
     } else if (options?.keepRef) {
       if (type === ShaderUniformType.FloatArray || type === ShaderUniformType.IntArray) {
         setFunc = function (value: any) {
@@ -43,8 +48,14 @@ export function uniform(type: ShaderUniformType, options?: UniformOptions) {
           }
           data.set(value);
           handleMacro.call(this, value, options?.macroName);
-        }
-      } else if (type === ShaderUniformType.Vector2 || type === ShaderUniformType.Vector3 || type === ShaderUniformType.Vector4 || type === ShaderUniformType.Matrix || type === ShaderUniformType.Color) {
+        };
+      } else if (
+        type === ShaderUniformType.Vector2 ||
+        type === ShaderUniformType.Vector3 ||
+        type === ShaderUniformType.Vector4 ||
+        type === ShaderUniformType.Matrix ||
+        type === ShaderUniformType.Color
+      ) {
         setFunc = function (value: any) {
           let data = this.shaderData[get](shaderProp);
           if (!data) {
@@ -53,13 +64,13 @@ export function uniform(type: ShaderUniformType, options?: UniformOptions) {
           }
           data.copyFrom(value);
           handleMacro.call(this, value, options?.macroName);
-        }
+        };
       }
     } else {
       setFunc = function (value: any) {
         this.shaderData[set](shaderProp, value);
         handleMacro.call(this, value, options?.macroName);
-      }
+      };
     }
 
     Reflect.defineProperty(target, propertyKey, {
