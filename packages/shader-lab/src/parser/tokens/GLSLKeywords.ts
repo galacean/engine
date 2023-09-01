@@ -5,7 +5,6 @@ import { TokenUtils } from "./TokenUtils";
 // export const GLFragColor = TokenUtils.createKeywordToken("gl_FragColor");
 
 // function
-export const Pow = TokenUtils.createKeywordToken("pow");
 export const Texture2D = TokenUtils.createKeywordToken("texture2D");
 
 // macro
@@ -29,6 +28,6 @@ export const Return = TokenUtils.createKeywordToken("return");
 export const For = TokenUtils.createKeywordToken("for");
 
 // export const variableTokenList = [GLPosition, GLFragColor];
-export const funcTokenList = [Texture2D, Pow];
+export const funcTokenList = [Texture2D];
 export const macroTokenList = [M_DEFINE, M_IFDEF, M_IFNDEF, M_IF, M_ELSE, M_ELIF, M_ENDIF, M_UNDEFINE, M_INCLUDE];
 export const otherTokenList = [Struct, If, Else, Discard, Void, Return, For];

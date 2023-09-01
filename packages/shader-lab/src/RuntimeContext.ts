@@ -222,8 +222,8 @@ export default class RuntimeContext {
   }
 
   findLocal(variable: string): VariableDeclarationAstNode | undefined {
-    return this.currentFunctionInfo?.localDeclaration.find(
-      (declare) => declare.content.variable.content.variable === variable
+    return this.currentFunctionInfo?.localDeclaration.find((declare) =>
+      declare.content.variableList.find((item) => item.getVariableName() === variable)
     );
   }
 
@@ -351,7 +351,11 @@ export default class RuntimeContext {
       });
     });
     this.passAst.content.defines?.forEach((item) => {
-      this._passGlobalMap.set(item.content.variable, { ast: item, referenced: false, name: item.content.variable });
+      this._passGlobalMap.set(item.content.variable.getVariableName(), {
+        ast: item,
+        referenced: false,
+        name: item.content.variable.getVariableName()
+      });
     });
   }
 

@@ -1,5 +1,5 @@
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { CompareFunction, BlendOperation, CullMode, RenderStateDataKey } from "@galacean/engine-core";
+import { CompareFunction, BlendOperation, CullMode, RenderStateDataKey, ShaderLib } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { ISubShaderInfo, IShaderPassInfo } from "@galacean/engine-design";
 import { glslValidate } from "./ShaderValidate";

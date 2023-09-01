@@ -36,7 +36,10 @@ import {
   SelfAssignOperatorAstNode,
   FnAssignExprAstNode,
   PrecisionAstNode,
-  ShaderPropertyDeclareAstNode
+  ShaderPropertyDeclareAstNode,
+  FnCallAstNode,
+  FnMacroDefineVariableAstNode,
+  FnVariableDeclareUnitAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -107,17 +110,15 @@ export interface IFnBodyAstContent {
 }
 
 export interface IFnMacroDefineAstContent {
-  variable: string;
+  variable: FnMacroDefineVariableAstNode;
   value?: AstNode;
 }
+
+export type IFnMacroDefineVariableAstContent = string | FnCallAstNode;
 
 export interface IFnMacroUndefineAstContent {
   variable: string;
 }
-
-// export interface IFnMacroIncludeAstContent {
-//   name: string;
-// }
 
 export interface IFnMacroConditionAstContent {
   command: string;
@@ -251,8 +252,7 @@ export interface IVariableTypeAstContent {
 
 export interface IFnVariableDeclarationAstContent {
   type: VariableTypeAstNode;
-  variable: FnArrayVariableAstNode;
-  default?: AstNode;
+  variableList: FnVariableDeclareUnitAstNode[];
 }
 
 export interface IShaderPropertyDeclareAstContent {
@@ -265,6 +265,11 @@ export type IPrecisionAstContent = string;
 export interface IFnArrayVariableAstContent {
   variable: string;
   indexes?: (number | string)[];
+}
+
+export interface IFnVariableDeclareUnitAstContent {
+  variable: FnArrayVariableAstNode;
+  default?: AddExprAstNode;
 }
 
 export interface IDeclarationWithoutAssignAstContent {

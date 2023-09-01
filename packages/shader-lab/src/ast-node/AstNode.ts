@@ -27,7 +27,7 @@ import {
   IFnMacroConditionElifBranchAstContent,
   IFnMacroConditionElseBranchAstContent,
   IFnMacroDefineAstContent,
-  // IFnMacroIncludeAstContent,
+  IFnMacroDefineVariableAstContent,
   IFnMacroUndefineAstContent,
   IFnMultiplicationExprAstContent,
   IFnRelationExprAstContent,
@@ -35,6 +35,7 @@ import {
   IFnReturnTypeAstContent,
   IFnVariableAstContent,
   IFnVariableDeclarationAstContent,
+  IFnVariableDeclareUnitAstContent,
   IForLoopAstContent,
   IMultiplicationOperatorAstContent,
   INumberAstContent,
@@ -220,8 +221,20 @@ export class FnBodyAstNode extends AstNode<IFnBodyAstContent> {
 
 export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
-    context.referenceGlobal(this.content.variable);
-    return `#define ${this.content.variable} ${this.content.value.serialize(context) ?? ""}`;
+    if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
+    return `#define ${this.content.variable.serialize(context)} ${this.content.value.serialize(context) ?? ""}`;
+  }
+}
+
+export class FnMacroDefineVariableAstNode extends AstNode<IFnMacroDefineVariableAstContent> {
+  getVariableName(): string {
+    if (typeof this.content === "string") return this.content;
+    return this.content.content.function;
+  }
+
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    if (typeof this.content === "string") return this.content;
+    return this.content.serialize(context);
   }
 }
 
@@ -230,8 +243,6 @@ export class FnMacroUndefineAstNode extends AstNode<IFnMacroUndefineAstContent> 
     return `#undef ${this.content.variable}`;
   }
 }
-
-// export class FnMacroIncludeAstNode extends AstNode<IFnMacroIncludeAstContent> {}
 
 export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent> {
   override _doSerialization(context: RuntimeContext): string {
@@ -476,7 +487,17 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
       new VariableDeclarationAstNode({
         position: this.position,
         content: {
-          variable: new FnArrayVariableAstNode({ position: this.position, content: { variable: this.content.name } }),
+          variableList: [
+            new FnVariableDeclareUnitAstNode({
+              position: this.position,
+              content: {
+                variable: new FnArrayVariableAstNode({
+                  position: this.position,
+                  content: { variable: this.content.name }
+                })
+              }
+            })
+          ],
           type: new VariableTypeAstNode({ position: this.position, content: this.content.type })
         }
       })
@@ -569,14 +590,7 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
     }
     const typeNode = this.content.type;
     if (typeNode.content.text === context.varyingTypeAstNode.content.text) {
-      if (this.content.default) {
-        context.diagnostics.push({
-          severity: DiagnosticSeverity.Error,
-          message: "should not assign values to varying objects",
-          token: this.content.default.position
-        });
-      }
-      context.varyingStructInfo.objectName = this.content.variable.content.variable;
+      context.varyingStructInfo.objectName = this.content.variableList[0].getVariableName();
 
       return "";
     }
@@ -589,14 +603,23 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
         });
       }
     }
-    let ret = `${typeNode.content.text} ${this.content.variable.serialize(context)}`;
-    // if (opts?.global) {
-    //   ret = "uniform " + ret;
-    // }
-    if (this.content.default) {
-      ret += " = " + this.content.default.serialize(context);
-    }
+    const variableList = this.content.variableList.map((item) => item.serialize(context));
+    let ret = `${typeNode.content.text} ${variableList.join(",")}`;
     return ret + ";";
+  }
+}
+
+export class FnVariableDeclareUnitAstNode extends AstNode<IFnVariableDeclareUnitAstContent> {
+  getVariableName() {
+    return this.content.variable.content.variable;
+  }
+
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    const variable = this.content.variable.serialize(context);
+    if (this.content.default) {
+      return `${variable} = ${this.content.default.serialize(context)}`;
+    }
+    return variable;
   }
 }
 

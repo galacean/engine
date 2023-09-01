@@ -50,6 +50,8 @@ export const Divide = createToken({ name: "SymbolDivide", pattern: /\//, label: 
 export const SelfAdd = createToken({ name: "SelfAdd", pattern: /\+\+/, label: "++" });
 export const SelfMinus = createToken({ name: "SelfMinus", pattern: /\-\-/, label: "--" });
 
+export const Exp = createToken({ name: "Expo", pattern: /e[-+]?\d+/, label: "exp" });
+
 export const tokenList = [
   SelfAdd,
   SelfMinus,
@@ -71,7 +73,8 @@ export const tokenList = [
   Minus,
   Multiply,
   Divide,
-  Dot
+  Dot,
+  Exp
 ];
 
 const GreaterThan = createToken({

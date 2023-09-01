@@ -13,6 +13,9 @@ export const _allTokens = [
   Others.WhiteSpace,
   Others.CommentLine,
   Others.CommentMultiLine,
+  ...GLKeywords.funcTokenList,
+  ...GLKeywords.macroTokenList,
+  ...GLKeywords.otherTokenList,
   ...Symbols.RelationTokenList,
   ...Symbols.tokenList,
   ...Values.tokenList,
@@ -32,9 +35,5 @@ export const _allTokens = [
   ...Object.values(RenderState.RenderStateTypeTokens),
   ...RenderState.StencilOperationTokenList,
   ...Keywords.tokenList,
-  // ...GLKeywords.variableTokenList,
-  ...GLKeywords.funcTokenList,
-  ...GLKeywords.macroTokenList,
-  ...GLKeywords.otherTokenList,
   Others.Identifier
 ];
