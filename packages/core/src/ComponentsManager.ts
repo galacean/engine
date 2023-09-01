@@ -172,7 +172,9 @@ export class ComponentsManager {
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       //@ts-ignore
       const animator: Animator = elements[i];
-      animator._playFrameCount === animator.engine.time.frameCount -1 ? animator.update(0) : animator.update(deltaTime);
+      animator._playFrameCount === animator.engine.time.frameCount - 1
+        ? animator.update(0)
+        : animator.update(deltaTime);
     }
   }
 

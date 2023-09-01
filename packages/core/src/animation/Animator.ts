@@ -33,7 +33,6 @@ export class Animator extends Component {
   /** @internal */
   _playFrameCount: number;
 
-
   protected _animatorController: AnimatorController;
 
   @ignoreClone
@@ -88,7 +87,7 @@ export class Animator extends Component {
       this._reset();
     }
 
-    this._playFrameCount = this.engine.time.frameCount
+    this._playFrameCount = this.engine.time.frameCount;
 
     const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
     const { state, layerIndex: playLayerIndex } = stateInfo;
@@ -100,7 +99,6 @@ export class Animator extends Component {
       Logger.warn(`The state named ${stateName} has no AnimationClip data.`);
       return;
     }
-
 
     const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
     const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData, playLayerIndex);
@@ -128,7 +126,7 @@ export class Animator extends Component {
       this._reset();
     }
 
-    this._playFrameCount = this.engine.time.frameCount
+    this._playFrameCount = this.engine.time.frameCount;
 
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
@@ -448,7 +446,7 @@ export class Animator extends Component {
     const { curveLayerOwner, eventHandlers } = playData.stateData;
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
     const { _curveBindings: curveBindings } = state.clip;
-    
+
     const speed = state.speed * this.speed;
     playData.frameTime += speed * delta;
 
@@ -500,7 +498,7 @@ export class Animator extends Component {
     additive: boolean,
     aniUpdate: boolean
   ) {
-    const { speed} = this;
+    const { speed } = this;
     const { crossLayerOwnerCollection } = layerData;
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: srcState, stateData: srcStateData, playState: lastSrcPlayState } = srcPlayData;
@@ -515,8 +513,8 @@ export class Animator extends Component {
     let crossWeight = Math.abs(destPlayData.frameTime) / duration;
     (crossWeight >= 1.0 || duration === 0) && (crossWeight = 1.0);
 
-    const srcSpeed = srcState.speed * speed
-    const destSpeed = destState.speed * speed
+    const srcSpeed = srcState.speed * speed;
+    const destSpeed = destState.speed * speed;
 
     srcPlayData.frameTime += srcSpeed * delta;
     destPlayData.frameTime += destSpeed * delta;
@@ -576,7 +574,6 @@ export class Animator extends Component {
     } else {
       this._callAnimatorScriptOnUpdate(destState, layerIndex);
     }
-
   }
 
   private _updateCrossFadeFromPose(
@@ -598,7 +595,7 @@ export class Animator extends Component {
     let crossWeight = Math.abs(destPlayData.frameTime) / duration;
     (crossWeight >= 1.0 || duration === 0) && (crossWeight = 1.0);
 
-    const speed = state.speed * this.speed
+    const speed = state.speed * this.speed;
 
     destPlayData.frameTime += speed * delta;
     destPlayData.update(speed < 0);
@@ -644,7 +641,6 @@ export class Animator extends Component {
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
-
   }
 
   private _updateFinishedState(
@@ -685,7 +681,7 @@ export class Animator extends Component {
     }
   }
 
-  private _preparePlay(layerData: AnimatorLayerData, playState: AnimatorState): void {    
+  private _preparePlay(layerData: AnimatorLayerData, playState: AnimatorState): void {
     if (layerData.layerState === LayerState.Playing) {
       const srcPlayData = layerData.srcPlayData;
       if (srcPlayData.state !== playState) {
