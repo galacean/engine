@@ -6,7 +6,7 @@ export type UniformOptions = {
   varName?: string; // the variable name in glsl
   macroName?: string; // whether enable or disable a macro in glsl depends on setting value
   keepRef?: boolean; // whether setting a value to a property will change reference or just copy value. Only available for vector or matrix type
-}
+};
 
 function handleMacro(value: any, macroName?: string) {
   if (macroName) {
@@ -79,7 +79,7 @@ export function uniform(type: ShaderUniformType, options?: UniformOptions) {
       },
       set: setFunc!,
       enumerable: false,
-      configurable: true,
+      configurable: true
     });
   };
 }
