@@ -23,7 +23,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Base texture.
    */
   @uniform(ShaderUniformType.Texture, {
-    varName: "material_BaseColor",
+    varName: "material_BaseTexture",
     macroName: "MATERIAL_HAS_BASETEXTURE"
   })
   baseTexture: Texture2D;
