@@ -167,7 +167,7 @@ export class ComponentsManager {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       const animator = elements[i];
-      animator._playFrameCount === animator.engine.time.frameCount - 1
+      animator._playFrameCount === animator.engine.time.frameCount
         ? animator.update(0)
         : animator.update(deltaTime);
     }
