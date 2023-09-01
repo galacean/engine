@@ -267,12 +267,15 @@ export class Entity extends EngineObject {
       if (!this._isActiveInHierarchy) {
         child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
-      if (this._isActiveInScene) {
-        // cross scene should inActive first and then active
-        child._isActiveInScene && oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      } else {
-        child._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      if (child._isActiveInScene) {
+        if (this._isActiveInScene) {
+          // Cross scene should inActive first and then active
+          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+        } else {
+          inActiveChangeFlag |= ActiveChangeFlag.Scene;
+        }
       }
+
       inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
 
       if (child._scene !== newScene) {
