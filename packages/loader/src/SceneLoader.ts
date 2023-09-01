@@ -21,8 +21,6 @@ class SceneLoader extends Loader<Scene> {
     return new AssetPromise((resolve, reject) => {
       this.request<IScene>(item.url, { type: "json" })
         .then((data) => {
-          // @ts-ignore
-          engine.resourceManager.initVirtualResources(data.files);
           return SceneParser.parse(engine, data).then((scene) => {
             const promises = [];
             // parse ambient light
