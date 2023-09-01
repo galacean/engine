@@ -3,6 +3,7 @@ import { Component } from "./Component";
 import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
+import { Animator } from "./animation";
 
 /**
  * The manager of the components.
@@ -170,7 +171,8 @@ export class ComponentsManager {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       //@ts-ignore
-      elements[i].update(deltaTime);
+      const animator: Animator = elements[i];
+      animator._playFrameCount === animator.engine.time.frameCount -1 ? animator.update(0) : animator.update(deltaTime);
     }
   }
 
