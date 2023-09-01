@@ -19,7 +19,7 @@ export class Ast2GLSLUtils {
     context.varyingTypeAstNode = vertFnAst.content.returnType;
 
     // parse varying variables
-    const varyingStructAstNode = context.findGlobal(vertFnAst.content.returnType.content.text).ast as StructAstNode;
+    const varyingStructAstNode = context.findGlobal(vertFnAst.content.returnType.content.text)?.ast as StructAstNode;
     if (!varyingStructAstNode) {
       context.diagnostics.push({
         severity: DiagnosticSeverity.Error,

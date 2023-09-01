@@ -240,7 +240,7 @@ export default class RuntimeContext {
 
   getVaryingText(): string {
     return this.varyingStructInfo.reference
-      .filter((item) => item.referenced)
+      ?.filter((item) => item.referenced)
       .map((item) => `${item.text};`)
       .join("\n");
   }

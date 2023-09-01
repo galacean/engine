@@ -17,9 +17,9 @@ function addLineNum(str: string) {
     .join("\n");
 }
 
-const shaderLab = new ShaderLab();
+export function glslValidate(shaderSource, _shaderLab?: ShaderLab) {
+  const shaderLab = _shaderLab ?? new ShaderLab();
 
-export function glslValidate(shaderSource) {
   const shader = shaderLab.parseShader(shaderSource);
   expect(shader).not.be.null;
   const pass = shader.subShaders[0].passes[0];
