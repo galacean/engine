@@ -114,6 +114,8 @@ export class BlinnPhongMaterial extends BaseMaterial {
 
     shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
     shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
+
+    shaderData.setFloat(BlinnPhongMaterial._shininessProp, 16);
   }
 
   override clone(): BlinnPhongMaterial {
