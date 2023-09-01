@@ -56,8 +56,6 @@ export class ParticleBufferUtils {
       BufferUsage.Static,
       false
     );
-    const billboardVertices = new Float32Array([-0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0]);
-    billboardGeometryBuffer.setData(billboardVertices);
     this.billboardVertexBufferBinding = new VertexBufferBinding(billboardGeometryBuffer, stride);
 
     const indexBuffer = new Buffer(
@@ -67,8 +65,15 @@ export class ParticleBufferUtils {
       BufferUsage.Static,
       false
     );
-    const billboardIndices = new Uint8Array([0, 2, 3, 0, 1, 2]);
-    indexBuffer.setData(billboardIndices);
     this.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);
+
+    this.setBufferData();
+  }
+
+  setBufferData(): void {
+    this.billboardVertexBufferBinding.buffer.setData(
+      new Float32Array([-0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0])
+    );
+    this.billboardIndexBufferBinding.buffer.setData(new Uint8Array([0, 2, 3, 0, 1, 2]));
   }
 }

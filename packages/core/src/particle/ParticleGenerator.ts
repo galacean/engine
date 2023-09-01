@@ -263,9 +263,10 @@ export class ParticleGenerator {
     if (
       this._firstNewElement != this._firstFreeElement ||
       this._waitProcessRetiredElementCount > 0 ||
-      this._instanceBufferResized
+      this._instanceBufferResized ||
+      this._instanceVertexBufferBinding._buffer.isContentLost
     ) {
-      this._addNewParticlesToVertexBuffer();
+      this._addActiveParticlesToVertexBuffer();
     }
   }
 
@@ -390,11 +391,13 @@ export class ParticleGenerator {
       nextFreeElement = 0;
     }
 
+    const main = this.main;
+
     // Check if can be expanded
     if (nextFreeElement === this._firstRetiredElement) {
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
-        this.main.maxParticles - this._currentParticleCount
+        main.maxParticles - this._currentParticleCount
       );
       if (increaseCount === 0) {
         return;
@@ -410,8 +413,6 @@ export class ParticleGenerator {
       this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
       this._firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
     }
-
-    const main = this.main;
 
     let pos: Vector3, rot: Quaternion;
     if (main.simulationSpace === ParticleSimulationSpace.World) {
@@ -634,7 +635,7 @@ export class ParticleGenerator {
     }
   }
 
-  private _addNewParticlesToVertexBuffer(): void {
+  private _addActiveParticlesToVertexBuffer(): void {
     const firstActiveElement = this._firstActiveElement;
     const firstFreeElement = this._firstFreeElement;
 
