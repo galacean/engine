@@ -10,6 +10,8 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
+  private static _shininessProp = ShaderProperty.getByName("material_Shininess");
+
   /**
    * Base color.
    */
@@ -84,10 +86,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
   /**
    * Set the specular reflection coefficient, the larger the value, the more convergent the specular reflection effect.
    */
-  @uniform(ShaderUniformType.Float, {
-    varName: "material_Shininess"
-  })
-  shininess: number = 16;
+  get shininess(): number {
+    return this.shaderData.getFloat(BlinnPhongMaterial._shininessProp);
+  }
+
+  set shininess(value: number) {
+    this.shaderData.setFloat(BlinnPhongMaterial._shininessProp, Math.max(value, 1e-4));
+  }
 
   /**
    * Tiling and offset of main textures.
