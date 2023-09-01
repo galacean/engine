@@ -553,7 +553,7 @@ export class Animator extends Component {
       }
     }
 
-    this._updateCrossFadeData(layerData, crossWeight, delta, false);
+    this._updateCrossFadeData(layerData, crossWeight);
 
     srcEventHandlers.length && this._fireAnimationEvents(srcPlayData, srcEventHandlers, lastSrcClipTime, srcClipTime);
     destEventHandlers.length &&
@@ -602,9 +602,7 @@ export class Animator extends Component {
     destPlayData.frameTime += speed * delta;
     destPlayData.update(speed < 0);
 
-    const { playState } = destPlayData;
-
-    const { clipTime: destClipTime } = destPlayData;
+    const { clipTime: destClipTime, playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
 
     // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly.
@@ -630,7 +628,7 @@ export class Animator extends Component {
       }
     }
 
-    this._updateCrossFadeData(layerData, crossWeight, delta, true);
+    this._updateCrossFadeData(layerData, crossWeight);
 
     //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
@@ -670,7 +668,7 @@ export class Animator extends Component {
     }
   }
 
-  private _updateCrossFadeData(layerData: AnimatorLayerData, crossWeight: number, delta: number, fixed: boolean): void {
+  private _updateCrossFadeData(layerData: AnimatorLayerData, crossWeight: number): void {
     const { destPlayData } = layerData;
     if (crossWeight === 1.0) {
       if (destPlayData.playState === AnimatorStatePlayState.Finished) {
