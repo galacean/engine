@@ -128,6 +128,7 @@ before(async () => {
             name: "entity1",
             translation: [1, 0, 0],
             rotation: [Math.PI, 0, 0, 0],
+            children: [1],
             scale: [2, 2, 2],
             extensions: {
               KHR_lights_punctual: {
