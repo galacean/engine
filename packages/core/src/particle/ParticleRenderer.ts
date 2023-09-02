@@ -41,7 +41,7 @@ export class ParticleRenderer extends Renderer {
   private _mesh: ModelMesh;
 
   /**
-   * Specifies how the system draws particles.
+   * Specifies how particles are rendered.
    */
   get renderMode(): ParticleRenderMode {
     return this._renderMode;
@@ -137,14 +137,6 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-  }
-
-  /**
-   * @internal
-   */
   override _prepareRender(context: RenderContext): void {
     const particleSystem = this.generator;
     particleSystem._update(this.engine.time.deltaTime);
@@ -155,6 +147,14 @@ export class ParticleRenderer extends Renderer {
     }
 
     super._prepareRender(context);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
   }
 
   /**
@@ -172,21 +172,20 @@ export class ParticleRenderer extends Renderer {
   }
 
   protected override _render(context: RenderContext): void {
-    const particleSystem = this.generator;
-    const primitive = particleSystem._primitive;
+    const generator = this.generator;
+    const primitive = generator._primitive;
 
-    if (particleSystem._firstActiveElement < particleSystem._firstFreeElement) {
-      primitive.instanceCount = particleSystem._firstFreeElement - particleSystem._firstActiveElement;
+    if (generator._firstActiveElement < generator._firstFreeElement) {
+      primitive.instanceCount = generator._firstFreeElement - generator._firstActiveElement;
     } else {
-      let instanceCount = particleSystem._currentParticleCount - particleSystem._firstActiveElement;
-      if (particleSystem._firstFreeElement > 0) {
-        instanceCount += particleSystem._firstFreeElement;
+      let instanceCount = generator._currentParticleCount - generator._firstActiveElement;
+      if (generator._firstFreeElement > 0) {
+        instanceCount += generator._firstFreeElement;
       }
       primitive.instanceCount = instanceCount;
     }
 
     const material = this.getMaterial();
-    const generator = this.generator;
     const renderData = this._engine._renderDataPool.getFromPool();
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
