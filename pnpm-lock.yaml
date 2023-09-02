@@ -223,6 +223,9 @@ importers:
       '@galacean/engine-physics-lite':
         specifier: workspace:*
         version: link:../packages/physics-lite
+      '@galacean/engine-physics-physx':
+        specifier: workspace:*
+        version: link:../packages/physics-physx
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl

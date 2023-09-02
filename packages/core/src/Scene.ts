@@ -286,12 +286,13 @@ export class Scene extends EngineObject {
 
     // Process entity active/inActive
     let inActiveChangeFlag = ActiveChangeFlag.None;
-    if (this._isActiveInEngine) {
-      // Cross scene should inActive first and then active
-      entity._isActiveInHierarchy && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-    } else {
-      entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+    if (entity._isActiveInHierarchy) {
+      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
     }
+
+    // Cross scene should inActive first and then active
+    entity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+
     inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
 
     if (oldScene !== this) {
@@ -299,8 +300,10 @@ export class Scene extends EngineObject {
     }
 
     let activeChangeFlag = ActiveChangeFlag.None;
-    if (this._isActiveInEngine && entity._isActive) {
-      !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+    if (entity._isActive) {
+      if (this._isActiveInEngine) {
+        !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+      }
       (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
     activeChangeFlag && entity._processActive(activeChangeFlag);

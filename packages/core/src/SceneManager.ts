@@ -1,6 +1,7 @@
 import { Engine } from "./Engine";
 import { Scene } from "./Scene";
 import { AssetPromise } from "./asset/AssetPromise";
+import { AssetType } from "./asset/AssetType";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
@@ -73,10 +74,10 @@ export class SceneManager {
    * @returns scene promise
    */
   loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
-    const scenePromise = this.engine.resourceManager.load<Scene>(url);
+    const scenePromise = this.engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
     scenePromise.then((scene: Scene) => {
-      const scenes = this._scenes;
       if (destroyOldScene) {
+        const scenes = this._scenes.getArray();
         for (let i = 0, n = scenes.length; i < n; i++) {
           scenes[i].destroy();
         }
