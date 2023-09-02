@@ -16,11 +16,7 @@ export abstract class ParticleGeneratorModule {
     this._generator = generator;
   }
 
-  protected _enableMacro(
-    shaderData: ShaderData,
-    lastEnableMacro: ShaderMacro,
-    enableMacro: ShaderMacro
-  ): ShaderMacro {
+  protected _enableMacro(shaderData: ShaderData, lastEnableMacro: ShaderMacro, enableMacro: ShaderMacro): ShaderMacro {
     if (lastEnableMacro !== enableMacro) {
       lastEnableMacro && shaderData.disableMacro(lastEnableMacro);
       enableMacro && shaderData.enableMacro(enableMacro);
