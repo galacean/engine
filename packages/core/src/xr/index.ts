@@ -22,6 +22,7 @@ export { EnumXRInputSource } from "./enum/EnumXRInputSource";
 export { EnumXRMode } from "./enum/EnumXRMode";
 export { EnumXRPlaneTrackingMode } from "./enum/EnumXRPlaneTrackingMode";
 export { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
+export { SessionStateChangeFlags } from "./enum/SessionStateChangeFlags";
 
 // input
 export { XRController } from "./input/XRController";
@@ -30,6 +31,9 @@ export { XRInput } from "./input/XRInput";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRPointer } from "./input/XRPointer";
 export { XRViewer } from "./input/XRViewer";
+
+// session
+export { XRSessionManager } from "./session/XRSessionManager";
 
 // interface
 export type { IXRDevice } from "./IXRDevice";

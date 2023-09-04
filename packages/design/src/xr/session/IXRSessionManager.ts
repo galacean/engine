@@ -5,4 +5,7 @@ export interface IXRSessionManager {
   start(): Promise<void>;
   stop(): Promise<void>;
   destroy(): Promise<void>;
+
+  addStateChangeListener(listener: Function): void;
+  removeStateChangeListener(listener: Function): void;
 }

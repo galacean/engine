@@ -1,8 +1,8 @@
-import { IXRFeatureDescriptor, IXRSessionManager } from "@galacean/engine-design";
-import { Engine, EnumXRMode, WebGLGraphicDevice } from "@galacean/engine";
+import { IXRFeatureDescriptor } from "@galacean/engine-design";
+import { Engine, EnumXRMode, SessionStateChangeFlags, WebGLGraphicDevice, XRSessionManager } from "@galacean/engine";
 import { parseFeatures, parseXRMode } from "../util";
 
-export class WebXRSessionManager implements IXRSessionManager {
+export class WebXRSessionManager extends XRSessionManager {
   // @internal
   _platformSession: XRSession;
   // @internal
@@ -79,6 +79,7 @@ export class WebXRSessionManager implements IXRSessionManager {
       ticker.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
       ticker.animationLoop = this._webXRUpdate;
       ticker.resume();
+      this._dispatchStateChange(SessionStateChangeFlags.start);
       resolve();
     });
   }
@@ -94,6 +95,7 @@ export class WebXRSessionManager implements IXRSessionManager {
       ticker.requestAnimationFrame = this._preRequestAnimationFrame;
       ticker.cancelAnimationFrame = this._preCancelAnimationFrame;
       ticker.animationLoop = this._preAnimationLoop;
+      this._dispatchStateChange(SessionStateChangeFlags.stop);
       resolve();
     });
   }
@@ -103,6 +105,7 @@ export class WebXRSessionManager implements IXRSessionManager {
   }
 
   constructor(engine: Engine) {
+    super();
     this._engine = engine;
     // @ts-ignore
     this._rhi = engine._hardwareRenderer;

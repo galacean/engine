@@ -20,7 +20,7 @@ export class WebXRInputManager extends XRInputManager {
   _onSessionStart(): void {
     const session = (<WebXRSessionManager>this._engine.xrModule.sessionManager)._platformSession;
     if (this._listeningSession !== session) {
-      this._removeListener(this._listeningSession);
+      this._listeningSession && this._removeListener(this._listeningSession);
       this._addListener(session);
       this._listeningSession = session;
     }

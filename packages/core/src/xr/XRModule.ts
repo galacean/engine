@@ -8,6 +8,7 @@ import { XRInputManager } from "./input/XRInputManager";
 import { EnumXRMode } from "./enum/EnumXRMode";
 import { EnumXRInputSource } from "./enum/EnumXRInputSource";
 import { EnumXRFeature } from "./enum/EnumXRFeature";
+import { XRSessionManager } from "./session/XRSessionManager";
 
 type FeatureConstructor = new (engine: Engine) => XRFeatureManager;
 
@@ -17,7 +18,7 @@ export class XRModule {
 
   xrDevice: IXRDevice;
   inputManager: XRInputManager;
-  sessionManager: IXRSessionManager;
+  sessionManager: XRSessionManager;
 
   private _engine: Engine;
   private _features: XRFeatureManager[] = [];
@@ -79,8 +80,10 @@ export class XRModule {
         for (let i = 0, n = requestFeatures.length; i < n; i++) {
           const featureDescriptor = requestFeatures[i];
           const { type } = featureDescriptor;
-          const feature = (features[type] ||= new featureMap[type](engine));
-          promiseArr.push(feature.initialize(featureDescriptor));
+          if (type !== EnumXRFeature.MovementTracking) {
+            const feature = (features[type] ||= new featureMap[type](engine));
+            promiseArr.push(feature.initialize(featureDescriptor));
+          }
         }
         Promise.all(promiseArr).then(() => {
           resolve();
@@ -102,7 +105,7 @@ export class XRModule {
     });
   }
 
-  start(): Promise<void> {
+  startSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { sessionManager: session, inputManager } = this;
       session.start().then(() => {
@@ -117,7 +120,7 @@ export class XRModule {
     });
   }
 
-  stop(): Promise<void> {
+  stopSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { sessionManager: session, inputManager } = this;
       session.stop().then(() => {
