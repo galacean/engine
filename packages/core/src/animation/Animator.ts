@@ -109,6 +109,8 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
+
+    this.update(0);
   }
 
   /**
@@ -135,7 +137,7 @@ export class Animator extends Component {
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
-    this._crossFadeByTransition(manuallyTransition, layerIndex);
+    this._crossFadeByTransition(manuallyTransition, layerIndex, true);
   }
 
   /**
@@ -710,12 +712,12 @@ export class Animator extends Component {
     for (let i = 0, n = transitions.length; i < n; ++i) {
       const transition = transitions[i];
       if (duration * transition.exitTime <= clipTime) {
-        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
+        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex, false);
       }
     }
   }
 
-  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
+  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number, isFirstFrame: boolean): void {
     const { name } = transition.destinationState;
     const stateInfo = this._getAnimatorStateInfo(name, layerIndex);
     const { state: crossState, layerIndex: playLayerIndex } = stateInfo;
@@ -758,6 +760,8 @@ export class Animator extends Component {
     }
 
     animatorLayerData.crossFadeTransition = transition;
+
+    isFirstFrame && this.update(0);
   }
 
   private _fireAnimationEvents(
