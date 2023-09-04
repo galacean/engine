@@ -1,10 +1,10 @@
-import { XRFeature } from "./XRFeature";
+import { XRFeatureManager } from "./XRFeatureManager";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { registerXRFeature } from "../XRManager";
+import { registerXRFeatureManager } from "../XRModule";
 import { EnumXRFeature } from "../enum/EnumXRFeature";
 
-@registerXRFeature(EnumXRFeature.PlaneTracking)
-export class XRPlaneTracking extends XRFeature {
+@registerXRFeatureManager(EnumXRFeature.PlaneTracking)
+export class XRPlaneTrackingManager extends XRFeatureManager {
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -12,7 +12,7 @@ export class XRPlaneTracking extends XRFeature {
     this._updateFlagManager.addListener(fun);
   }
 
-  override onUpdate(): void {}
+  override _onUpdate(): void {}
 }
 
 export enum XRTrackingChangeFlags {

@@ -1,9 +1,14 @@
-import { Matrix } from "@galacean/engine";
-import { IXRHitTest } from "@galacean/engine-design";
-import { WebXRSession } from "../WebXRSession";
+import { Engine, EnumXRFeature, Matrix } from "@galacean/engine";
+import { IXRFeatureDescriptor, IXRHitTest } from "@galacean/engine-design";
+import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 
+@registerXRPlatformFeature(EnumXRFeature.HitTest)
 export class WebXRHitTest implements IXRHitTest {
-  private _session: WebXRSession;
+  descriptor: IXRFeatureDescriptor;
+
+  private _engine: Engine;
+  private _sessionManager: WebXRSessionManager;
   private _state: HitTestState = HitTestState.Free;
   private _x: number;
   private _y: number;
@@ -19,15 +24,15 @@ export class WebXRHitTest implements IXRHitTest {
         element.failures.push(reject);
       } else {
         waitingList.push({ x, y, successes: [resolve], failures: [reject] });
-        this._state === HitTestState.Free && this.request(x, y, this._session);
+        this._state === HitTestState.Free && this.request(x, y, this._sessionManager);
       }
     });
   }
 
-  onXRFrame(session: WebXRSession): void {
+  _onUpdate(): void {
     if (this._state !== HitTestState.HitTesting) return;
-    const { _hitTestSource: hitTestSource } = this;
-    const hitTestResults = session._platformFrame.getHitTestResults(hitTestSource);
+    const { _hitTestSource: hitTestSource, _sessionManager: sessionManager } = this;
+    const hitTestResults = sessionManager._platformFrame.getHitTestResults(hitTestSource);
     const resLength = hitTestResults.length;
     const { _hitTestList: waitingList, _x: x, _y: y } = this;
     const idx = waitingList.findIndex((value) => value.x === x && value.y === y);
@@ -35,7 +40,7 @@ export class WebXRHitTest implements IXRHitTest {
     waitingList.splice(idx, 1);
     if (resLength >= 0) {
       const results = [];
-      const { _platformSpace: platformSpace } = <WebXRSession>session;
+      const { _platformSpace: platformSpace } = sessionManager;
       for (let i = 0; i < resLength; i++) {
         const { transform } = hitTestResults[i].getPose(platformSpace);
         if (transform) {
@@ -52,13 +57,20 @@ export class WebXRHitTest implements IXRHitTest {
     }
     if (waitingList.length > 0) {
       const { x, y } = waitingList[0];
-      this.request(x, y, session);
+      this.request(x, y, sessionManager);
     } else {
       this._state = HitTestState.Free;
     }
   }
 
-  onDestroy(): void {
+  _initialize(descriptor: IXRFeatureDescriptor): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.descriptor = descriptor;
+      resolve();
+    });
+  }
+
+  _onDestroy(): void {
     this._hitTestList.length = 0;
     if (this._hitTestSource) {
       this._hitTestSource.cancel();
@@ -67,7 +79,12 @@ export class WebXRHitTest implements IXRHitTest {
     this._state = HitTestState.Free;
   }
 
-  private request(x: number, y: number, session: WebXRSession): void {
+  constructor(engine: Engine) {
+    this._engine = engine;
+    this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
+  }
+
+  private request(x: number, y: number, session: WebXRSessionManager): void {
     const { _platformSession: platformSession, _platformSpace: platformSpace } = session;
     const option: XRHitTestOptionsInit = { space: platformSpace, offsetRay: new XRRay({ x, y }) };
     this._state = HitTestState.Requesting;

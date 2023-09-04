@@ -38,9 +38,9 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { XRManager } from "./xr/XRManager";
+import { XRModule } from "./xr/XRModule";
 import { Ticker } from "./Ticker";
-import { IXRPlatform } from "./xr";
+import { IXRDevice } from "./xr";
 
 ShaderPool.init();
 
@@ -58,7 +58,7 @@ export class Engine extends EventDispatcher {
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
   /** XR manager of Engine. */
-  readonly xrManager: XRManager;
+  readonly xrModule: XRModule;
 
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -257,8 +257,8 @@ export class Engine extends EventDispatcher {
 
     this.inputManager = new InputManager(this);
 
-    const { xrProvider: xr } = configuration;
-    xr && (this.xrManager = new XRManager(this, xr));
+    const { xr } = configuration;
+    xr && (this.xrModule = new XRModule(this, xr));
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -334,7 +334,7 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    this.xrManager?._update();
+    this.xrModule?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
@@ -718,7 +718,7 @@ export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
   /** XR. */
-  xrProvider?: new () => IXRPlatform;
+  xr?: IXRDevice;
   /** Color space. */
   colorSpace?: ColorSpace;
   /** Shader lab */

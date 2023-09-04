@@ -1,24 +1,42 @@
-import { IXRInputProvider } from "@galacean/engine-design";
+import { IXRInputManager } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
 import { XRHand } from "./XRHand";
-import { XRInputDevice } from "./XRInputDevice";
+import { XRInput } from "./XRInput";
 import { XRViewer } from "./XRViewer";
 import { EnumXRInputSource } from "../enum/EnumXRInputSource";
 
-export class XRInputManager {
-  // @internal
-  _provider: IXRInputProvider;
-  // @internal
-  _inputs: XRInputDevice[] = [];
+export abstract class XRInputManager implements IXRInputManager {
+  protected _engine: Engine;
+  protected _inputs: XRInput[] = [];
 
-  getInput<T extends XRInputDevice>(inputSource: EnumXRInputSource): T {
+  getInput<T extends XRInput>(inputSource: EnumXRInputSource): T {
     return this._inputs[inputSource] as T;
   }
 
-  initialize(provider: IXRInputProvider) {
-    this._provider = provider;
-    const { _engine: engine, _inputs: inputs } = this;
+  /**
+   * @internal
+   */
+  _onSessionStart(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionStop(): void {}
+
+  /**
+   * @internal
+   */
+  _onUpdate(): void {}
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {}
+
+  constructor(engine: Engine) {
+    this._engine = engine;
+    const { _inputs: inputs } = this;
     for (let i = EnumXRInputSource.Length - 1; i >= 0; i--) {
       switch (i) {
         case EnumXRInputSource.Controller:
@@ -38,6 +56,4 @@ export class XRInputManager {
       }
     }
   }
-
-  constructor(private _engine: Engine) {}
 }

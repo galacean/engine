@@ -1,14 +1,8 @@
-import {
-  Engine,
-  EnumXRFeature,
-  IXRFeatureDescriptor,
-  IXRSessionDescriptor,
-  WebGLGraphicDevice
-} from "@galacean/engine";
-import { IXRSession } from "@galacean/engine-design";
-import { parseXRMode } from "./util";
+import { IXRSessionDescriptor, IXRSessionManager } from "@galacean/engine-design";
+import { Engine, WebGLGraphicDevice } from "@galacean/engine";
+import { parseFeatures, parseXRMode } from "../util";
 
-export class WebXRSession implements IXRSession {
+export class WebXRSessionManager implements IXRSessionManager {
   // @internal
   _platformSession: XRSession;
   // @internal
@@ -31,7 +25,7 @@ export class WebXRSession implements IXRSession {
         reject(new Error("Mode must be a value from the XRMode."));
         return;
       }
-      const requiredFeatures = this._parseFeatures(descriptor.requestFeatures, ["local", "local-floor"]);
+      const requiredFeatures = parseFeatures(descriptor.requestFeatures, ["local", "local-floor"]);
       navigator.xr.requestSession(mode, { requiredFeatures }).then((session) => {
         this._platformSession = session;
         const { _rhi: rhi } = this;
@@ -108,12 +102,6 @@ export class WebXRSession implements IXRSession {
     return new Promise((resolve, reject) => {});
   }
 
-  addTracking(): void {}
-
-  delTracking(): void {}
-
-  getTracking(): void {}
-
   constructor(engine: Engine) {
     this._engine = engine;
     // @ts-ignore
@@ -145,22 +133,5 @@ export class WebXRSession implements IXRSession {
       // @ts-ignore
       rhi._mainFrameHeight = 0;
     }
-  }
-
-  private _parseFeatures(descriptors: IXRFeatureDescriptor[], out: string[]): string[] {
-    for (let i = 0, n = descriptors.length; i < n; i++) {
-      const feature = descriptors[i];
-      switch (feature.type) {
-        case EnumXRFeature.HandTracking:
-          out.push("hand-tracking");
-          break;
-        case EnumXRFeature.HitTest:
-          out.push("hit-test");
-          break;
-        default:
-          break;
-      }
-    }
-    return out;
   }
 }

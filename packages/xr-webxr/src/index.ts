@@ -1,6 +1,4 @@
-import "./input/WebXRInputProvider";
-import "./feature/WebXRHitTestProvider";
-import "./feature/WebXRMovementTrackingProvider";
-import "./feature/WebXRPlaneTrackingProvider";
+import "./feature/WebXRHitTest";
+import "./feature/WebXRPlaneTracking";
 
-export { WebXRPlatform } from "./WebXRPlatform";
+export { WebXRDevice } from "./WebXRDevice";

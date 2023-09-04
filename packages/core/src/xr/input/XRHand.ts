@@ -1,5 +1,3 @@
-import { XRInputDevice } from "./XRInputDevice";
+import { XRInput } from "./XRInput";
 
-export class XRHand extends XRInputDevice {
-    
-}
+export class XRHand extends XRInput {}

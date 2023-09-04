@@ -1,26 +1,19 @@
 import { Matrix, Rect } from "@galacean/engine-math";
-import { XRInputDevice } from "./XRInputDevice";
+import { XRInput } from "./XRInput";
 import { Camera } from "../../Camera";
+import { Texture2D } from "../../texture";
 
-export class XRViewer extends XRInputDevice {
+export class XRViewer extends XRInput {
   viewport: Rect = new Rect();
   projectionMatrix: Matrix = new Matrix();
   displayTransform: Matrix = new Matrix();
+  yTexture: Texture2D;
+  uvTexture: Texture2D;
 
   private _camera: Camera;
-  private _yTexture: WebGLTexture;
-  private _uvTexture: WebGLTexture;
 
-  get texture(): { yTexture: WebGLTexture; uvTexture: WebGLTexture } {
-    return { yTexture: this._yTexture, uvTexture: this._uvTexture };
-  }
-
-  attachCamera(camera: Camera): void {
+  set camera(camera: Camera) {
     this._camera = camera;
-  }
-
-  detachCamera() {
-    this._camera = null;
   }
 
   get camera(): Camera {

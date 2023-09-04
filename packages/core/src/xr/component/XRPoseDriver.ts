@@ -30,6 +30,6 @@ export class XRPoseDriver extends Script {
   }
 
   override onAwake(): void {
-    this._inputManager = this.engine.xrManager.inputManager;
+    this._inputManager = this.engine.xrModule.inputManager;
   }
 }

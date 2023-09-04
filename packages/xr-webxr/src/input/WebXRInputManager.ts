@@ -1,74 +1,57 @@
-import { Engine, XRController, XRViewer, XRInputDevice, EnumXRInputSource, EnumXRButton } from "@galacean/engine";
-import { IXRInputProvider } from "@galacean/engine-design";
-import { WebXRSession } from "../WebXRSession";
+import {
+  Engine,
+  XRController,
+  XRViewer,
+  XRInput,
+  EnumXRInputSource,
+  EnumXRButton,
+  XRInputManager
+} from "@galacean/engine";
+import { WebXRSessionManager } from "../session/WebXRSessionManager";
 
-export class WebXRInputProvider implements IXRInputProvider {
-  private _engine: Engine;
-  private _session: WebXRSession;
-  private _inputs: XRInputDevice[];
+export class WebXRInputManager extends XRInputManager {
+  private _listeningSession: XRSession;
   private _gamePadStore: XRInputSource[] = [];
   private _eventList: {
     event: Event;
-    handle: (frameCount: number, event: Event, inputs: XRInputDevice[]) => void;
+    handle: (frameCount: number, event: Event, inputs: XRInput[]) => void;
   }[] = [];
 
-  attach(session: WebXRSession, inputs: XRInputDevice[]): void {
-    if (this._session !== session) {
-      this._session = session;
-      const { _platformSession: platformSession } = session;
-      const { _onSessionEvent: onSessionEvent } = this;
-      platformSession.addEventListener("select", onSessionEvent);
-      platformSession.addEventListener("selectstart", onSessionEvent);
-      platformSession.addEventListener("selectend", onSessionEvent);
-      platformSession.addEventListener("squeeze", onSessionEvent);
-      platformSession.addEventListener("squeezestart", onSessionEvent);
-      platformSession.addEventListener("squeezeend", onSessionEvent);
-      platformSession.addEventListener("inputsourceschange", this._onInputSourcesChange);
+  _onSessionStart(): void {
+    const session = (<WebXRSessionManager>this._engine.xrModule.sessionManager)._platformSession;
+    if (this._listeningSession !== session) {
+      this._removeListener(this._listeningSession);
+      this._addListener(session);
+      this._listeningSession = session;
     }
-    if (this._inputs !== inputs) this._inputs = inputs;
   }
 
-  detach(): void {
-    if (!this._session) {
-      return;
+  _onSessionStop(): void {
+    if (this._listeningSession) {
+      this._removeListener(this._listeningSession);
+      this._listeningSession = null;
     }
-    const { _platformSession: platformSession } = this._session;
-    const { _onSessionEvent: onSessionEvent } = this;
-    platformSession.removeEventListener("select", onSessionEvent);
-    platformSession.removeEventListener("selectstart", onSessionEvent);
-    platformSession.removeEventListener("selectend", onSessionEvent);
-    platformSession.removeEventListener("squeeze", onSessionEvent);
-    platformSession.removeEventListener("squeezestart", onSessionEvent);
-    platformSession.removeEventListener("squeezeend", onSessionEvent);
-    platformSession.removeEventListener("inputsourceschange", this._onInputSourcesChange);
-    this._session = null;
-    this._inputs = null;
-    this._eventList.length = 0;
   }
 
-  destroy(): void {
-    this.detach();
+  _onDestroy(): void {
+    this._onSessionStop();
   }
 
-  onXRFrame() {
-    const { _session: session } = this;
-    if (!session) {
+  _onUpdate() {
+    const { _inputs: inputs, _engine: engine, _listeningSession: platformSession } = this;
+    const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
+    const { _platformFrame, _platformLayer, _platformSpace } = sessionManager;
+    if (!platformSession || !_platformFrame) {
       return;
     }
-
-    const { _inputs: inputs } = this;
-    const { _platformSession, _platformFrame, _platformLayer, _platformSpace } = session;
-    if (!_platformSession || !_platformFrame) {
-      return;
-    }
-    const { frameCount } = this._engine.time;
+    const { frameCount } = engine.time;
     const { _eventList: eventList } = this;
     for (let i = 0, n = eventList.length; i < n; i++) {
       const event = eventList[i];
       event.handle(frameCount, event.event, inputs);
     }
     eventList.length = 0;
-    const { inputSources } = _platformSession;
+    const { inputSources } = platformSession;
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
       const type = this._getInputSource(inputSource);
@@ -138,7 +121,7 @@ export class WebXRInputProvider implements IXRInputProvider {
     this._eventList.push({ event, handle: this._handleInputSourceEvent });
   }
 
-  private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInputDevice[]): void {
+  private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInput[]): void {
     const { inputSource } = event;
     const input = inputs[this._getInputSource(inputSource)] as XRController;
     switch (inputSource.targetRayMode) {
@@ -246,7 +229,7 @@ export class WebXRInputProvider implements IXRInputProvider {
     }
   }
 
-  private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInputDevice[]): void {
+  private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
     const { removed, added } = event;
     for (let i = 0, n = added.length; i < n; i++) {
       const inputSource = added[i];
@@ -304,8 +287,31 @@ export class WebXRInputProvider implements IXRInputProvider {
     }
   }
 
+  private _addListener(session: XRSession): void {
+    const { _onSessionEvent: onSessionEvent } = this;
+    session.addEventListener("select", onSessionEvent);
+    session.addEventListener("selectstart", onSessionEvent);
+    session.addEventListener("selectend", onSessionEvent);
+    session.addEventListener("squeeze", onSessionEvent);
+    session.addEventListener("squeezestart", onSessionEvent);
+    session.addEventListener("squeezeend", onSessionEvent);
+    session.addEventListener("inputsourceschange", this._onInputSourcesChange);
+  }
+
+  private _removeListener(session: XRSession): void {
+    const { _onSessionEvent: onSessionEvent } = this;
+    session.removeEventListener("select", onSessionEvent);
+    session.removeEventListener("selectstart", onSessionEvent);
+    session.removeEventListener("selectend", onSessionEvent);
+    session.removeEventListener("squeeze", onSessionEvent);
+    session.removeEventListener("squeezestart", onSessionEvent);
+    session.removeEventListener("squeezeend", onSessionEvent);
+    session.removeEventListener("inputsourceschange", this._onInputSourcesChange);
+    this._eventList.length = 0;
+  }
+
   constructor(engine: Engine) {
-    this._engine = engine;
+    super(engine);
     this._onSessionEvent = this._onSessionEvent.bind(this);
     this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
     this._handleButtonEvent = this._handleButtonEvent.bind(this);
