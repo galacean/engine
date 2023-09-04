@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRSessionDescriptor, IXRSessionManager } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRSessionManager } from "@galacean/engine-design";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { XRFeatureManager } from "./feature/XRFeatureManager";
@@ -70,12 +70,11 @@ export class XRModule {
     this.inputManager.getInput<XRViewer>(source).camera = null;
   }
 
-  initSession(sessionDescriptor: IXRSessionDescriptor): Promise<void> {
+  initSession(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const { _engine: engine, _features: features } = this;
       const initializeFeature = () => {
         const { _featureMap: featureMap } = XRModule;
-        const { requestFeatures } = sessionDescriptor;
         const promiseArr = [];
         for (let i = 0, n = requestFeatures.length; i < n; i++) {
           const featureDescriptor = requestFeatures[i];
@@ -88,7 +87,7 @@ export class XRModule {
         }, reject);
       };
 
-      this.sessionManager.initialize(sessionDescriptor).then(() => {
+      this.sessionManager.initialize(mode, requestFeatures).then(() => {
         initializeFeature();
       }, reject);
     });

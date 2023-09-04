@@ -1,5 +1,5 @@
-import { IXRSessionDescriptor, IXRSessionManager } from "@galacean/engine-design";
-import { Engine, WebGLGraphicDevice } from "@galacean/engine";
+import { IXRFeatureDescriptor, IXRSessionManager } from "@galacean/engine-design";
+import { Engine, EnumXRMode, WebGLGraphicDevice } from "@galacean/engine";
 import { parseFeatures, parseXRMode } from "../util";
 
 export class WebXRSessionManager implements IXRSessionManager {
@@ -18,15 +18,15 @@ export class WebXRSessionManager implements IXRSessionManager {
   private _preCancelAnimationFrame: any;
   private _preAnimationLoop: any;
 
-  initialize(descriptor: IXRSessionDescriptor): Promise<void> {
+  initialize(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {
-      const mode = parseXRMode(descriptor.mode);
-      if (!mode) {
+      const sessionMode = parseXRMode(mode);
+      if (!sessionMode) {
         reject(new Error("Mode must be a value from the XRMode."));
         return;
       }
-      const requiredFeatures = parseFeatures(descriptor.requestFeatures, ["local", "local-floor"]);
-      navigator.xr.requestSession(mode, { requiredFeatures }).then((session) => {
+      const requiredFeatures = parseFeatures(requestFeatures, ["local", "local-floor"]);
+      navigator.xr.requestSession(sessionMode, { requiredFeatures }).then((session) => {
         this._platformSession = session;
         const { _rhi: rhi } = this;
         const { gl } = rhi;

@@ -5,9 +5,7 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
   protected _engine: Engine;
   protected _descriptor: IXRFeatureDescriptor;
   protected _platformFeature: IXRFeature;
-
   protected _enabled: boolean = true;
-  protected _enabledInSession: boolean = false;
 
   get enabled(): boolean {
     return this._enabled;
@@ -26,13 +24,15 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
 
   initialize(descriptor: IXRFeatureDescriptor): Promise<void> {
     this._descriptor = descriptor;
-    const { _engine: engine } = this;
-    return new Promise((resolve, reject) => {
-      engine.xrModule.xrDevice.createFeature(engine, descriptor).then((feature) => {
+    if (this._platformFeature) {
+      return this._platformFeature._initialize(descriptor);
+    } else {
+      const { _engine: engine } = this;
+      return engine.xrModule.xrDevice.createFeature(engine, descriptor).then((feature) => {
         this._platformFeature = feature;
-        resolve();
-      }, reject);
-    });
+        return feature._initialize(descriptor);
+      });
+    }
   }
 
   /**

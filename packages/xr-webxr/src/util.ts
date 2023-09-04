@@ -1,7 +1,7 @@
 import { EnumXRMode, EnumXRFeature } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 
-export function parseXRMode(mode: number): XRSessionMode {
+export function parseXRMode(mode: EnumXRMode): XRSessionMode {
   switch (mode) {
     case EnumXRMode.AR:
       return "immersive-ar";

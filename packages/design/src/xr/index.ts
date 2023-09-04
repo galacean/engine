@@ -8,4 +8,3 @@ export type { IXRInputManager } from "./input/IXRInputManager";
 export type { IXRInput } from "./input/IXRInput";
 
 export type { IXRSessionManager } from "./session/IXRSessionManager";
-export type { IXRSessionDescriptor } from "./session/IXRSessionDescriptor";

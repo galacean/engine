@@ -10,8 +10,7 @@ export class XRPoseDriver extends Script {
   private _inputManager: XRInputManager;
 
   override onLateUpdate() {
-    const { _inputManager: inputManager } = this;
-    const pose = inputManager.getInput(this.source);
+    const pose = this._inputManager.getInput(this.source);
     if (pose) {
       switch (this.updateType) {
         case EnumXRTrackingMode.RotationOnly:
