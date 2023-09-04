@@ -34,7 +34,7 @@ vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
 
     vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
 
-    return specularColor * AB.x + AB.y;
+    return saturate(specularColor * AB.x + AB.y);
 
 }
 
