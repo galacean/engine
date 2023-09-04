@@ -34,6 +34,7 @@ vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
 
     vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
 
+    // warning: (iPhone XS iOS 14.4) may return negative value.
     return max(specularColor * AB.x + AB.y, 0.0);
 
 }
