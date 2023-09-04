@@ -224,7 +224,8 @@ export class Script extends Component {
   /**
    * @internal
    */
-  _handlingInValid(componentsManager: ComponentsManager): void {
+  _handlingInValid(): void {
+    const componentsManager = this.scene._componentsManager;
     const { prototype } = Script;
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
