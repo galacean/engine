@@ -605,6 +605,9 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
     }
     const variableList = this.content.variableList.map((item) => item.serialize(context));
     let ret = `${typeNode.content.text} ${variableList.join(",")}`;
+    if (this.content.precision) {
+      ret = `${this.content.precision.serialize(context)} ${ret}`;
+    }
     return ret + ";";
   }
 }

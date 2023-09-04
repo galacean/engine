@@ -371,6 +371,7 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleFnVariableDeclaration = this.RULE("_ruleFnVariableDeclaration", () => {
+    this.OPTION(() => this.SUBRULE(this._rulePrecisionPrefix));
     this.SUBRULE(this._ruleVariableType);
     this.SUBRULE(this._ruleFnVariableDeclareUnit);
     this.MANY(() => {

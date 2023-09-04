@@ -906,7 +906,8 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       position,
       content: {
         type: this.visit(ctx._ruleVariableType),
-        variableList
+        variableList,
+        precision: ctx._rulePrecisionPrefix ? this.visit(ctx._rulePrecisionPrefix) : undefined
       }
     });
   }

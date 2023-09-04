@@ -547,6 +547,7 @@ export interface _ruleFnVariableDeclarationCstNode extends CstNode {
 }
 
 export type _ruleFnVariableDeclarationCstChildren = {
+  _rulePrecisionPrefix?: _rulePrecisionPrefixCstNode[];
   _ruleVariableType: _ruleVariableTypeCstNode[];
   _ruleFnVariableDeclareUnit: _ruleFnVariableDeclareUnitCstNode[];
   Comma?: IToken[];

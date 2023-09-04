@@ -60,6 +60,7 @@ Shader "Water" {
       FragmentShader = frag;
 
     #include <test_common>
+    #include <brdf>
 
     BlendState = blendState;
 
@@ -91,6 +92,9 @@ Shader "Water" {
         vec4 tmp = renderer_MVMat * POSITION;
         o.v_position = tmp.xyz;
         gl_Position = renderer_MVPMat * v.POSITION;
+
+        // test include
+        mediump float test = G_GGX_SmithCorrelated(1.0, 1.0, 0.5);
 
         for(int i = 0; i < RENDERER_BLENDSHAPE_COUNT; i++){
           int vertexElementOffset = 2;

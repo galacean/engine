@@ -251,6 +251,7 @@ export interface IVariableTypeAstContent {
 }
 
 export interface IFnVariableDeclarationAstContent {
+  precision?: PrecisionAstNode;
   type: VariableTypeAstNode;
   variableList: FnVariableDeclareUnitAstNode[];
 }
