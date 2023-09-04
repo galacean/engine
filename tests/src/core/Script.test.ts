@@ -252,7 +252,7 @@ describe("Script", () => {
     });
 
     it("Dependent components", async () => {
-      @dependentComponents(Camera,DependentMode.CheckOnly)
+      @dependentComponents(Camera, DependentMode.CheckOnly)
       class CheckScript extends Script {}
 
       @dependentComponents(Camera, DependentMode.AutoAdd)
@@ -272,6 +272,18 @@ describe("Script", () => {
       entity2.addComponent(AutoAddScript);
       const camera = entity2.getComponent(Camera);
       expect(camera).to.not.null;
+    });
+
+    it("remove entity", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      entity.addComponent(Script);
+      rootEntity.removeChild(entity);
+      expect(() => {
+        engine.update();
+      }).to.not.throw();
     });
   });
 });
