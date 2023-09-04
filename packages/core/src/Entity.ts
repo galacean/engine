@@ -189,7 +189,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
     // @todo: should inverse traversal
     for (let i = components.length - 1; i >= 0; i--) {
@@ -198,6 +198,7 @@ export class Entity extends EngineObject {
         return component;
       }
     }
+    return null;
   }
 
   /**
@@ -266,12 +267,15 @@ export class Entity extends EngineObject {
       if (!this._isActiveInHierarchy) {
         child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
-      if (this._isActiveInScene) {
-        // cross scene should inActive first and then active
-        child._isActiveInScene && oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      } else {
-        child._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      if (child._isActiveInScene) {
+        if (this._isActiveInScene) {
+          // Cross scene should inActive first and then active
+          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+        } else {
+          inActiveChangeFlag |= ActiveChangeFlag.Scene;
+        }
       }
+
       inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
 
       if (child._scene !== newScene) {

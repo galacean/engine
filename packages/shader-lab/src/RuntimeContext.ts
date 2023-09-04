@@ -248,12 +248,13 @@ export default class RuntimeContext {
   getGlobalText(): string {
     let ret: (IGlobal & { str: string })[] = [];
     let cur: (IGlobal & { str: string })[];
+    const allGlobals = [
+      ...Array.from(this._passGlobalMap.values()),
+      ...Array.from(this._subShaderGlobalMap.values()),
+      ...Array.from(this._shaderGlobalMap.values())
+    ];
     const getCurList = () => {
-      cur = [
-        ...Array.from(this._passGlobalMap.values()),
-        ...Array.from(this._subShaderGlobalMap.values()),
-        ...Array.from(this._shaderGlobalMap.values())
-      ].filter((item) => item.referenced) as any;
+      cur = allGlobals.filter((item) => item.referenced) as any;
 
       cur.forEach((item) => {
         // @ts-ignore

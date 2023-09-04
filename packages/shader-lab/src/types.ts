@@ -458,6 +458,16 @@ export type _ruleDiscardStatementCstChildren = {
   Semicolon: IToken[];
 };
 
+export interface _ruleDiscardStatementCstNode extends CstNode {
+  name: "_ruleDiscardStatement";
+  children: _ruleDiscardStatementCstChildren;
+}
+
+export type _ruleDiscardStatementCstChildren = {
+  discard: IToken[];
+  Semicolon: IToken[];
+};
+
 export interface _ruleFnStatementCstNode extends CstNode {
   name: "_ruleFnStatement";
   children: _ruleFnStatementCstChildren;

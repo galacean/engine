@@ -174,14 +174,16 @@ export function TranscodeWorkerCode() {
             self.postMessage("init-completed");
           })
           .catch((e) => {
-            self.postMessage({ type: "init-error", msg: e });
+            self.postMessage({ error: e });
           });
         break;
       case "transcode":
         wasmPromise.then((module) => {
-          transcode(message.data, message.needZstd, module).then((decodedData) => {
-            self.postMessage(decodedData);
-          });
+          transcode(message.data, message.needZstd, module)
+            .then((decodedData) => {
+              self.postMessage(decodedData);
+            })
+            .catch((e) => self.postMessage({ error: e }));
         });
         break;
     }

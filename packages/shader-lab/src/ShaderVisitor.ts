@@ -735,7 +735,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return ret;
   }
 
-  _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: any): AstNode<any> {
+  _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: any) {
     const astNodeObj: Record<string, AstNode> = AstNodeUtils.defaultVisit.bind(this)(children).content;
     return Object.values(astNodeObj)[0];
   }
