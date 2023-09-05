@@ -5,7 +5,7 @@ import { expect } from "chai";
 
 describe("Material", () => {
   let engine: WebGLEngine;
-  before(async function () {
+ before(async function () {
     this.timeout(10000);
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });

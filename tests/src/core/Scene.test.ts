@@ -5,7 +5,7 @@ import { expect } from "chai";
 describe("Scene", () => {
   let engine: Engine;
   let scene: Scene;
-  before(async function () {
+ before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     engine.run();

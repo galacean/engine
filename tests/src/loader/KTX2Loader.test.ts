@@ -28,7 +28,7 @@ async function encode(array: ArrayBuffer): Promise<string> {
   });
 }
 
- before(async function () {
+before(async function () {
   Texture2D.prototype.setPixelBuffer = function (data, mipLevel) {
     if (!this.mipmapData) this.mipmapData = [];
     this.mipmapData[mipLevel] = data;

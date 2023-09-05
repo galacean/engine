@@ -5,7 +5,7 @@ import { expect } from "chai";
 
 describe("UnlitMaterial", () => {
   let engine: WebGLEngine;
-   before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

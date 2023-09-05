@@ -4,7 +4,7 @@ import { expect } from "chai";
 
 describe("ResourceManager", () => {
   let engine: WebGLEngine;
-   before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     engine.run();
   });

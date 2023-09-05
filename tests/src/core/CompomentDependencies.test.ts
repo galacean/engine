@@ -9,7 +9,7 @@ canvasDOM.height = 1024;
 describe("Component dependencies test", function () {
   let entity: Entity;
   let camera: Camera;
-  before(async function () {
+ before(async function () {
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     entity = engine.sceneManager.activeScene.createRootEntity();
     camera = entity.addComponent(Camera);

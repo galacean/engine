@@ -7,7 +7,7 @@ describe("Font", function () {
   let engine: WebGLEngine;
   let textRendererEntity: Entity;
 
-   before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     engine.canvas.resizeByClientSize();
 

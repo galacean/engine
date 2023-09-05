@@ -7,7 +7,7 @@ describe("SkinnedMeshRenderer", async () => {
   let engine: WebGLEngine;
   let rootEntity: Entity;
 
-   before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
     rootEntity = scene.createRootEntity();
