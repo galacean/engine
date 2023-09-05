@@ -44,7 +44,7 @@ interface IReferenceStructInfo {
   objectName?: string;
   structAstNode?: StructAstNode;
   /** reference info */
-  reference?: Array<{ property: DeclarationWithoutAssignAstNode; referenced: boolean; text: string }>;
+  reference?: { property: DeclarationWithoutAssignAstNode; referenced: boolean; text: string }[];
 }
 
 export default class RuntimeContext {

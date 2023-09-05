@@ -95,15 +95,22 @@ export class AstNode<T = any> {
   }
 
   /** @internal */
-  _doSerialization(context?: RuntimeContext, args?: any): string {
-    return this.content as string;
-  }
-
-  /** @internal */
   getContentValue(context?: RuntimeContext): any {
     if (typeof this.content === "string") return this.content.replace(/"(.*)"/, "$1");
     if (typeof this.content !== "object") return this.content;
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
+  }
+
+  serialize(context?: RuntimeContext, args?: any): string {
+    this._beforeSerialization(context, args);
+    const ret = this._doSerialization(context, args);
+    this._afterSerialization(context);
+    return ret;
+  }
+
+  /** @internal */
+  _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content as string;
   }
 
   /** @internal */
@@ -114,13 +121,6 @@ export class AstNode<T = any> {
   /** @internal */
   _afterSerialization(context?: RuntimeContext, args?: any) {
     context?.unsetSerializingNode();
-  }
-
-  serialize(context?: RuntimeContext, args?: any): string {
-    this._beforeSerialization(context, args);
-    const ret = this._doSerialization(context, args);
-    this._afterSerialization(context);
-    return ret;
   }
 
   private _jsonifyObject(obj: any, includePos: boolean, withClass = false) {
