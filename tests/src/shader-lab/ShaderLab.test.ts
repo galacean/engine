@@ -1,13 +1,13 @@
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import { CompareFunction, BlendOperation, CullMode, RenderStateDataKey, ShaderLib } from "@galacean/engine-core";
+import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey, ShaderFactory } from "@galacean/engine-core";
+import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { ISubShaderInfo, IShaderPassInfo } from "@galacean/engine-design";
+import { ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
 
-import fs from "fs";
-import path from "path";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
+import fs from "fs";
+import path from "path";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
@@ -180,7 +180,7 @@ describe("ShaderLab", () => {
   });
 
   it("include", () => {
-    shaderLab.registerShaderFragment("test_common", commonSource);
+    ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });

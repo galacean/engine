@@ -6,6 +6,13 @@ export class ShaderFactory {
     return macros.map((m) => `#define ${m}\n`).join("");
   }
 
+  static registerInclude(includeName: string, includeSource: string) {
+    if (ShaderLib[includeName]) {
+      throw `The "${includeName}" shader include already exist`;
+    }
+    ShaderLib[includeName] = includeSource;
+  }
+
   static parseIncludes(src: string) {
     const regex = /^[ \t]*#include +<([\w\d.]+)>/gm;
 
