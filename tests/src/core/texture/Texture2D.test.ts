@@ -11,7 +11,7 @@ describe("Texture2D", () => {
   let engine: Engine;
   let rhi: any;
   let isWebGL2: boolean;
-  before(async () => {
+   before(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;

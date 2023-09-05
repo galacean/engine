@@ -5,7 +5,7 @@ import { expect } from "chai";
 
 describe("BlinnPhongMaterial",  () => {
   let engine: WebGLEngine;
-  before(async () => {
+   before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

@@ -48,7 +48,7 @@ describe("physics collider test", function () {
   let physicsBox: BoxColliderShape;
   let physicsSphere: SphereColliderShape;
 
-  before(async () => {
+   before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     const scene = engine.sceneManager.activeScene;
     rootEntity = scene.createRootEntity("root");

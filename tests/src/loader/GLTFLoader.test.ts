@@ -30,7 +30,7 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 let engine: WebGLEngine;
-before(async () => {
+ before(async function () {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.width = 1024;
   canvasDOM.height = 1024;
