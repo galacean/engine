@@ -1,5 +1,6 @@
 import { IXRFeature } from "./IXRFeature";
 
 export interface IXRHitTest extends IXRFeature {
-  hitTest(x: number, y: number): Promise<any>;
+  startHitTest(x: number, y: number): Promise<any>;
+  stopHitTest(): Promise<any>;
 }

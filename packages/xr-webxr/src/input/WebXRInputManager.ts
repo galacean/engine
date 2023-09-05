@@ -5,13 +5,16 @@ import {
   XRInput,
   EnumXRInputSource,
   EnumXRButton,
-  XRInputManager
+  XRInputManager,
+  Vector4,
+  Matrix
 } from "@galacean/engine";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
 
 export class WebXRInputManager extends XRInputManager {
   private _listeningSession: XRSession;
-  private _gamePadStore: XRInputSource[] = [];
+  private _pointerList: XRInputSource[] = [];
+  private _canvas: HTMLCanvasElement;
   private _eventList: {
     event: Event;
     handle: (frameCount: number, event: Event, inputs: XRInput[]) => void;
@@ -41,7 +44,7 @@ export class WebXRInputManager extends XRInputManager {
     const { _inputs: inputs, _engine: engine, _listeningSession: platformSession } = this;
     const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
     const { _platformFrame, _platformLayer, _platformSpace } = sessionManager;
-    if (!platformSession || !_platformFrame) {
+    if (!platformSession || !_platformFrame || !_platformSpace) {
       return;
     }
     const { frameCount } = engine.time;
@@ -103,10 +106,17 @@ export class WebXRInputManager extends XRInputManager {
           const x = xrViewport.x / framebufferWidth;
           const y = 1 - xrViewport.y / framebufferHeight - height;
           xrCamera.viewport.set(x, y, width, height);
-          if (xrCamera.camera) {
-            const vec4 = xrCamera.camera.viewport;
-            vec4.set(x, y, width, height);
-            xrCamera.camera.viewport = vec4;
+          const { camera } = xrCamera;
+          if (camera) {
+            // sync viewport
+            const vec4 = camera.viewport;
+            if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
+              camera.viewport = vec4.set(x, y, width, height);
+            }
+            // sync project matrix
+            if (!Matrix.equals(camera.projectionMatrix, xrCamera.projectionMatrix)) {
+              camera.projectionMatrix = xrCamera.projectionMatrix;
+            }
           }
         }
       }
@@ -152,29 +162,44 @@ export class WebXRInputManager extends XRInputManager {
         }
         break;
       case "screen":
+        const { _pointerList: pointerList, _canvas: canvas } = this;
         const { gamepad } = inputSource;
-        if (!gamepad) {
-          return;
-        }
-        // @ts-ignore
-        // const canvas = this._engine._canvas._webCanvas;
-        const [screenX, screenY, stickX, stickY] = gamepad.axes;
-        console.log("screen position", screenX, screenY);
-        console.log("stick position", stickX, stickY);
+        const { clientWidth, clientHeight } = canvas;
+        const [screenX, screenY] = gamepad.axes;
+        const clientX = clientWidth * (screenX + 1) * 0.5;
+        const clientY = clientHeight * (screenY + 1) * 0.5;
+        let idx: number = -1;
         switch (event.type) {
           case "selectstart":
-            input.pressedButtons |= EnumXRButton.Select;
-            break;
-          case "select":
-            // move ?
+            let emptyIdx = -1;
+            for (let i = pointerList.length - 1; i >= 0; i--) {
+              const pointer = pointerList[i];
+              if (pointer === inputSource) {
+                idx = i;
+                break;
+              }
+              if (!pointer) {
+                emptyIdx = i;
+              }
+            }
+            if (idx === -1) {
+              if (emptyIdx === -1) {
+                idx = pointerList.push(inputSource) - 1;
+              } else {
+                pointerList[emptyIdx] = inputSource;
+              }
+            }
+            canvas.dispatchEvent(this.makeUpPointerEvent("pointerdown", idx, clientX, clientY));
             break;
           case "selectend":
-            const { pointers } = input;
-            let pressedButtons = 0;
-            for (let i = 0, n = pointers.length; i < n; i++) {
-              pressedButtons |= pointers[i].buttons;
+            for (let i = pointerList.length - 1; i >= 0; i--) {
+              if (pointerList[i] === inputSource) {
+                pointerList[i] = null;
+                idx = i;
+              }
             }
-            input.pressedButtons = pressedButtons;
+            canvas.dispatchEvent(this.makeUpPointerEvent("pointerup", idx, clientX, clientY));
+            canvas.dispatchEvent(this.makeUpPointerEvent("pointerleave", idx, clientX, clientY));
             break;
           default:
             break;
@@ -185,64 +210,39 @@ export class WebXRInputManager extends XRInputManager {
     }
   }
 
-  // private makeUpPointerEvent(type: string, position: any): PointerEvent {
-  //   const outPos = new Vec3();
-  //   this._camera?.worldToScreen(worldPosition, outPos);
-
-  //   const touchInitDict: TouchInit = {
-  //     identifier: 0,
-  //     target: this._gl?.canvas as EventTarget,
-  //     clientX: outPos.x,
-  //     clientY: outPos.y,
-  //     pageX: outPos.x,
-  //     pageY: outPos.y,
-  //     screenX: outPos.x,
-  //     screenY: outPos.y,
-  //     force: 1,
-  //     radiusX: 1,
-  //     radiusY: 1
-  //   };
-
-  //   const touch = new Touch(touchInitDict);
-  //   const touches: Touch[] = [touch];
-  //   const eventInitDict: PointerEventInit = {
-  //     touches,
-  //     targetTouches: touches,
-  //     changedTouches: touches
-  //   };
-  //   return new PointerEvent(type, eventInitDict);
-  // }
-
-  private _removeInputFromStore(inputSource: XRInputSource): void {
-    const { _gamePadStore: gamePadStore } = this;
-    const idx = gamePadStore.indexOf(inputSource);
-    if (idx >= 0) {
-      gamePadStore.splice(idx, 1);
+  private makeUpPointerEvent(type: string, pointerId: number, clientX: number, clientY: number): PointerEvent {
+    const eventInitDict: PointerEventInit = {
+      pointerId,
+      clientX,
+      clientY
+    };
+    switch (type) {
+      case "pointerdown":
+        eventInitDict.button = 0;
+        eventInitDict.buttons = 1;
+        break;
+      case "pointerup":
+        eventInitDict.button = 0;
+        eventInitDict.buttons = 0;
+        break;
+      case "pointerleave":
+        eventInitDict.button = -1;
+        eventInitDict.buttons = 0;
+        break;
+      default:
+        break;
     }
-  }
-
-  private _addInputToStore(inputSource: XRInputSource): void {
-    const { _gamePadStore: gamePadStore } = this;
-    const idx = gamePadStore.indexOf(inputSource);
-    if (idx < 0) {
-      gamePadStore.push(inputSource);
-    }
+    return new PointerEvent(type, eventInitDict);
   }
 
   private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
     const { removed, added } = event;
     for (let i = 0, n = added.length; i < n; i++) {
-      const inputSource = added[i];
-      const type = this._getInputSource(inputSource);
-      type === EnumXRInputSource.Controller && this._addInputToStore(inputSource);
-      inputs[type].connected = true;
+      inputs[this._getInputSource(added[i])].connected = true;
     }
 
     for (let i = 0, n = removed.length; i < n; i++) {
-      const inputSource = removed[i];
-      const type = this._getInputSource(inputSource);
-      type === EnumXRInputSource.Controller && this._removeInputFromStore(inputSource);
-      inputs[type].connected = false;
+      inputs[this._getInputSource(removed[i])].connected = false;
     }
   }
 
@@ -250,7 +250,6 @@ export class WebXRInputManager extends XRInputManager {
     let type: EnumXRInputSource;
     switch (inputSource.targetRayMode) {
       case "gaze":
-        // 眼睛
         break;
       case "screen":
         return EnumXRInputSource.Controller;
@@ -274,6 +273,7 @@ export class WebXRInputManager extends XRInputManager {
       default:
         break;
     }
+    return type;
   }
 
   private _eyeToInputSource(eye: XREye): EnumXRInputSource {
@@ -312,6 +312,8 @@ export class WebXRInputManager extends XRInputManager {
 
   constructor(engine: Engine) {
     super(engine);
+    // @ts-ignore
+    this._canvas = this._engine._canvas._webCanvas;
     this._onSessionEvent = this._onSessionEvent.bind(this);
     this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
     this._handleButtonEvent = this._handleButtonEvent.bind(this);

@@ -25,7 +25,7 @@ export class WebXRSessionManager extends XRSessionManager {
         reject(new Error("Mode must be a value from the XRMode."));
         return;
       }
-      const requiredFeatures = parseFeatures(requestFeatures, ["local", "local-floor"]);
+      const requiredFeatures = parseFeatures(requestFeatures, ["local"]);
       navigator.xr.requestSession(sessionMode, { requiredFeatures }).then((session) => {
         this._platformSession = session;
         const { _rhi: rhi } = this;
@@ -101,7 +101,9 @@ export class WebXRSessionManager extends XRSessionManager {
   }
 
   destroy(): Promise<void> {
-    return new Promise((resolve, reject) => {});
+    return new Promise((resolve, reject) => {
+      resolve();
+    });
   }
 
   constructor(engine: Engine) {
