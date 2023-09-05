@@ -17,13 +17,13 @@ describe("physics collider test", function () {
     engine.run();
   });
 
-  beforeEach(() => {
+  beforeEach(function () {
     rootEntity.clearChildren();
 
     controllerEntity = rootEntity.createChild("controller");
   });
 
-  it("Set Position", () => {
+  it("Set Position", function () {
     const physicsCapsule = new CapsuleColliderShape();
     physicsCapsule.radius = 0.15;
     physicsCapsule.height = 0.2;
