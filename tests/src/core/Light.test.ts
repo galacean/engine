@@ -26,7 +26,6 @@ describe("Light test", function () {
     scene = engine.sceneManager.activeScene;
  
     lightEntity = rootEntity.createChild("light");
-    sunLight = lightEntity.addComponent(DirectLight);
     directLight = lightEntity.addComponent(DirectLight);
     pointLight = lightEntity.addComponent(PointLight);
     spotLight = lightEntity.addComponent(SpotLight);
@@ -106,7 +105,8 @@ describe("Light test", function () {
   });
 
   it("multiple directlight or sunlight", function () {
-    expect(sunLight["_lightIndex"]).to.eq(0);
+    sunLight = lightEntity.addComponent(DirectLight);
+    expect(sunLight["_lightIndex"]).to.eq(1);
   });
 
   it("pointLight position values", function () {
@@ -218,10 +218,13 @@ describe("Light test", function () {
     const scene = engine.sceneManager.activeScene;
     const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     const lightEntity = rootEntity.createChild("light");
+    const sunLight = lightEntity.addComponent(DirectLight);
     const directLight = lightEntity.addComponent(DirectLight);
     const pointLight = lightEntity.addComponent(PointLight);
     const spotLight = lightEntity.addComponent(SpotLight);
     ambientLightB = scene.ambientLight;
+
+    directLight.shadowType = 3;
 
     engine.run();
 
