@@ -9,6 +9,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Particle Renderer Component.
@@ -39,6 +40,7 @@ export class ParticleRenderer extends Renderer {
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
+  private _supportInstancedArrays: boolean;
 
   /**
    * Specifies how particles are rendered.
@@ -116,6 +118,8 @@ export class ParticleRenderer extends Renderer {
 
     this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
+
+    this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
   }
 
   /**
@@ -138,11 +142,15 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _prepareRender(context: RenderContext): void {
-    const particleSystem = this.generator;
-    particleSystem._update(this.engine.time.deltaTime);
+    if (!this._supportInstancedArrays) {
+      return;
+    }
+
+    const generator = this.generator;
+    generator._update(this.engine.time.deltaTime);
 
     // No particles to render
-    if (particleSystem._firstActiveElement === particleSystem._firstFreeElement) {
+    if (generator._firstActiveElement === generator._firstFreeElement) {
       return;
     }
 
@@ -162,7 +170,6 @@ export class ParticleRenderer extends Renderer {
    */
   protected override _updateShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
-
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
     shaderData.setFloat(ParticleRenderer._currentTime, this.generator._playTime);

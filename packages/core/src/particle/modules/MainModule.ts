@@ -23,9 +23,9 @@ export class MainModule implements ICustomClone {
   private static readonly _startRotation3D = ShaderProperty.getByName("renderer_ThreeDStartRotation");
   private static readonly _scaleMode = ShaderProperty.getByName("renderer_ScalingMode");
 
-  /** The duration of the Particle System in seconds. */
+  /** The duration of the Particle Generator in seconds. */
   duration = 5.0;
-  /** Specifies whether the Particle System loops. */
+  /** Specifies whether the Particle Generator loops. */
   isLoop = true;
 
   /** Start delay in seconds. */
@@ -34,28 +34,28 @@ export class MainModule implements ICustomClone {
   /** The initial lifetime of particles when emitted. */
   @deepClone
   startLifetime = new ParticleCompositeCurve(5);
-  /** The initial speed of particles when the Particle System first spawns them. */
+  /** The initial speed of particles when the Particle Generator first spawns them. */
   @deepClone
   startSpeed = new ParticleCompositeCurve(5);
 
   /** A flag to enable specifying particle size individually for each axis. */
   startSize3D = false;
-  /** The initial size of particles when the Particle System first spawns them. */
+  /** The initial size of particles when the Particle Generator first spawns them. */
   @deepClone
   startSize = new ParticleCompositeCurve(1);
-  /** The initial size of particles along the x-axis when the Particle System first spawns them. */
+  /** The initial size of particles along the x-axis when the Particle Generator first spawns them. */
   @deepClone
   startSizeX = new ParticleCompositeCurve(1);
-  /** The initial size of particles along the y-axis when the Particle System first spawns them. */
+  /** The initial size of particles along the y-axis when the Particle Generator first spawns them. */
   @deepClone
   startSizeY = new ParticleCompositeCurve(1);
-  /** The initial size of particles along the z-axis when the Particle System first spawns them. */
+  /** The initial size of particles along the z-axis when the Particle Generator first spawns them. */
   @deepClone
   startSizeZ = new ParticleCompositeCurve(1);
 
   /** A flag to enable 3D particle rotation. */
   startRotation3D = false;
-  /** The initial rotation of particles when the Particle System first spawns them. */
+  /** The initial rotation of particles when the Particle Generator first spawns them. */
   @deepClone
   startRotation = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the x-axis when emitted.*/
@@ -74,14 +74,14 @@ export class MainModule implements ICustomClone {
   /** The mode of start color */
   @deepClone
   startColor = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
-  /** A scale that this Particle System applies to gravity, defined by Physics.gravity. */
+  /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
   @deepClone
   gravityModifier = new ParticleCompositeCurve(0);
   /** This selects the space in which to simulate particles. It can be either world or local space. */
   simulationSpace = ParticleSimulationSpace.Local;
-  /** Override the default playback speed of the Particle System. */
+  /** Override the default playback speed of the Particle Generator. */
   simulationSpeed = 1.0;
-  /** Control how the Particle System applies its Transform component to the particles it emits. */
+  /** Control how the Particle Generator applies its Transform component to the particles it emits. */
   scalingMode = ParticleScaleMode.Local;
   /** If set to true, the Particle Generator automatically begins to play on startup. */
   playOnEnabled = true;

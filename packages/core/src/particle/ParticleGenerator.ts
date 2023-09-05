@@ -29,7 +29,7 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 
 /**
- * Particle System.
+ * Particle Generator.
  */
 export class ParticleGenerator {
   /** @internal */
@@ -111,7 +111,7 @@ export class ParticleGenerator {
   private _randomSeed = 0;
 
   /**
-   * Whether the particle system is contain alive or is still creating particles.
+   * Whether the particle generator is contain alive or is still creating particles.
    */
   get isAlive(): boolean {
     if (this._isPlaying) {
@@ -151,7 +151,7 @@ export class ParticleGenerator {
 
   /**
    * Start emitting particles.
-   * @param withChildren - Whether to start the particle system of the child entity
+   * @param withChildren - Whether to start the particle generator of the child entity
    */
   play(withChildren: boolean = true): void {
     if (withChildren) {
@@ -173,7 +173,7 @@ export class ParticleGenerator {
 
   /**
    * Stop emitting particles.
-   * @param withChildren - Whether to stop the particle system of the child entity
+   * @param withChildren - Whether to stop the particle generator of the child entity
    * @param stopMode - Stop mode
    */
   stop(withChildren: boolean = true, stopMode: ParticleStopMode = ParticleStopMode.StopEmitting): void {

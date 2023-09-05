@@ -7,7 +7,7 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { BaseShape } from "./shape/BaseShape";
 
 /**
- * The EmissionModule of a Particle System.
+ * The EmissionModule of a Particle Generator.
  */
 export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate of particle emission. */
@@ -103,14 +103,14 @@ export class EmissionModule extends ParticleGeneratorModule {
   private _emitByRateOverTime(playTime: number): void {
     const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
     if (ratePerSeconds > 0) {
-      const particleSystem = this._generator;
+      const generator = this._generator;
       const emitInterval = 1.0 / ratePerSeconds;
 
       let cumulativeTime = playTime - this._frameRateTime;
       while (cumulativeTime >= emitInterval) {
         cumulativeTime -= emitInterval;
         this._frameRateTime += emitInterval;
-        particleSystem._emit(this._frameRateTime, 1);
+        generator._emit(this._frameRateTime, 1);
       }
     }
   }
@@ -140,7 +140,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number): void {
-    const particleSystem = this._generator;
+    const generator = this._generator;
     const rand = this._burstRand;
     const bursts = this.bursts;
 
@@ -160,7 +160,7 @@ export class EmissionModule extends ParticleGeneratorModule {
 
       if (burstTime >= startTime) {
         const count = burst.count.evaluate(undefined, rand.random());
-        particleSystem._emit(baseTime + burstTime, count);
+        generator._emit(baseTime + burstTime, count);
       }
     }
     this._currentBurstIndex = index;
