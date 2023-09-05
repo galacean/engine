@@ -18,9 +18,7 @@ import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-d
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
   message: string;
-  /**
-   * The token which caused the parser error.
-   */
+  /** The token which caused the parser error. */
   token: IPositionRange;
 }
 
@@ -69,15 +67,12 @@ export default class RuntimeContext {
     referenced: boolean;
     text: string;
   }[] = [];
-  /** Current position */
-  get serializingAstNode() {
-    return this._serializingNodeStack[this._serializingNodeStack.length - 1];
-  }
-  /** serialize token stack */
-  private _serializingNodeStack: AstNode[] = [];
+
   /** Custom payload */
   payload?: any;
 
+  /** serialize token stack */
+  private _serializingNodeStack: AstNode[] = [];
   /** Global variables within scope of shader, e.g. Uniforms, RenderState, Struct. */
   private _shaderGlobalMap: GlobalMap = new Map();
   /** Global variables within scope of subShader, e.g. Uniforms, RenderState, Struct. */
@@ -86,6 +81,11 @@ export default class RuntimeContext {
   private _passGlobalMap: GlobalMap = new Map();
   /** The main function */
   private _currentMainFnAst?: FnAstNode;
+
+  /** Current position */
+  get serializingAstNode() {
+    return this._serializingNodeStack[this._serializingNodeStack.length - 1];
+  }
 
   get currentFunctionInfo() {
     return this.functionAstStack[this.functionAstStack.length - 1];
