@@ -3,6 +3,7 @@ import { Component } from "./Component";
 import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
+import { Animator } from "./animation";
 
 /**
  * The manager of the components.
@@ -22,7 +23,7 @@ export class ComponentsManager {
   private _disposeDestroyScripts: Script[] = [];
 
   // Animation
-  private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
+  private _onUpdateAnimations: DisorderedArray<Animator> = new DisorderedArray();
 
   // Render
   private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
@@ -85,18 +86,14 @@ export class ComponentsManager {
     script._onPhysicsUpdateIndex = -1;
   }
 
-  addOnUpdateAnimations(animation: Component): void {
-    //@ts-ignore
+  addOnUpdateAnimations(animation: Animator): void {
     animation._onUpdateIndex = this._onUpdateAnimations.length;
     this._onUpdateAnimations.add(animation);
   }
 
-  removeOnUpdateAnimations(animation: Component): void {
-    //@ts-ignore
+  removeOnUpdateAnimations(animation: Animator): void {
     const replaced = this._onUpdateAnimations.deleteByIndex(animation._onUpdateIndex);
-    //@ts-ignore
     replaced && (replaced._onUpdateIndex = animation._onUpdateIndex);
-    //@ts-ignore
     animation._onUpdateIndex = -1;
   }
 
@@ -169,8 +166,8 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime: number): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
-      //@ts-ignore
-      elements[i].update(deltaTime);
+      const animator = elements[i];
+      animator.update(animator._playFrameCount === animator.engine.time.frameCount ? 0 : deltaTime);
     }
   }
 
