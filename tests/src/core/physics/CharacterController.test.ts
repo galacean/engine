@@ -5,8 +5,6 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("physics collider test", function () {
-  this.timeout(5000);
-
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let controllerEntity: Entity;
@@ -25,7 +23,7 @@ describe("physics collider test", function () {
     controllerEntity = rootEntity.createChild("controller");
   });
 
-  it("Set Position", async () => {
+  it("Set Position", () => {
     const physicsCapsule = new CapsuleColliderShape();
     physicsCapsule.radius = 0.15;
     physicsCapsule.height = 0.2;
