@@ -1,9 +1,10 @@
 import { expect } from "chai";
-import { Layer, DirectLight, PointLight, SpotLight, AmbientLight, Camera, Entity, AssetType, SkyBoxMaterial, BackgroundMode, PrimitiveMesh, Scene, Engine } from "@galacean/engine-core";
+import { Layer, DirectLight, PointLight, SpotLight, AmbientLight, Entity, AssetType, SkyBoxMaterial, BackgroundMode, PrimitiveMesh, Scene, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 
 import { lightResource } from "./model/ambientLight";
+import { ColorSpace, ShadowType } from "@galacean/engine-core";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -21,7 +22,7 @@ describe("Light test", function () {
   let ambientLightB: AmbientLight;
 
   before(async () => {
-    engine = await WebGLEngine.create({ canvas: canvasDOM , colorSpace: 1 });
+    engine = await WebGLEngine.create({ canvas: canvasDOM , colorSpace: ColorSpace.Gamma });
     const rootEntity = engine.sceneManager.activeScene.createRootEntity(); 
     scene = engine.sceneManager.activeScene;
  
@@ -37,7 +38,7 @@ describe("Light test", function () {
     expect(directLight.color).to.deep.equal(new Color(1, 1, 1));
     expect(directLight.intensity).to.equal(1);
     expect(directLight.cullingMask).to.equal(Layer.Everything);
-    expect(directLight.shadowType).to.equal(0);
+    expect(directLight.shadowType).to.equal(ShadowType.None);
     expect(directLight.shadowBias).to.equal(1);
     expect(directLight.shadowNormalBias).to.equal(1);
     expect(directLight.shadowNearPlane).to.equal(0.1);
@@ -84,8 +85,8 @@ describe("Light test", function () {
   });
 
   it("update shadow type", function () {
-    directLight.shadowType = 1;
-    expect(directLight.shadowType).to.equal(1);
+    directLight.shadowType = ShadowType.Hard;
+    expect(directLight.shadowType).to.equal(ShadowType.Hard);
   });
 
   it("update shadow bias", function () {
@@ -210,7 +211,7 @@ describe("Light test", function () {
     const expectIntensity = 0.5;
     ambientLightA.specularIntensity = expectIntensity;
     const currentIntensity = ambientLightA.specularIntensity;
-    expect(currentIntensity).to.eq(currentIntensity);
+    expect(currentIntensity).to.eq(expectIntensity);
   });
 
   it("ambientLight specularTextureDecodeRGBM", async () =>  {
@@ -224,7 +225,7 @@ describe("Light test", function () {
     const spotLight = lightEntity.addComponent(SpotLight);
     ambientLightB = scene.ambientLight;
 
-    directLight.shadowType = 3;
+    directLight.shadowType = ShadowType.SoftHigh;
 
     engine.run();
 
