@@ -148,7 +148,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     return null;
   }
 
-  private static _getBinomialLLCTranscoder(workerCount: number = 4) {
+  private static _getBinomialLLCTranscoder(workerCount: number = 0) {
     KTX2Loader._isBinomialInit = true;
     return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
   }
