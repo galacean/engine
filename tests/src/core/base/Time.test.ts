@@ -1,9 +1,9 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("Time", () => {
+describe("Time", function () {
   let engine: WebGLEngine;
- before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 
