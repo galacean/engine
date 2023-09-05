@@ -197,10 +197,12 @@ export default class RuntimeContext {
     this.payload = { parsingRenderState: true };
     const tmpRenderStates = ast.content.renderStates;
     ast.content.properties.forEach((prop) => this._parsePassProperty(prop, ret, tmpRenderStates));
-    for (const rs of tmpRenderStates) {
-      const [constP, variableP] = rs.getContentValue(this).properties;
-      Object.assign(constantProps, constP);
-      Object.assign(variableProps, variableP);
+    if (tmpRenderStates) {
+      for (const rs of tmpRenderStates) {
+        const [constP, variableP] = rs.getContentValue(this).properties;
+        Object.assign(constantProps, constP);
+        Object.assign(variableProps, variableP);
+      }
     }
     this.payload = undefined;
 
