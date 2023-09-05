@@ -7,8 +7,8 @@ describe("Time", function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 
-  describe("Time basic", () => {
-    it("Time basic", () => {
+  describe("Time basic", function () {
+    it("Time basic", function () {
       expect(engine.time.frameCount).to.be.equal(0);
       expect(engine.time.elapsedTime).to.be.equal(0);
       expect(engine.time.deltaTime).to.be.equal(0);
