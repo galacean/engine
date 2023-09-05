@@ -15,7 +15,7 @@ Shader "Water" {
       }
 
       #define SCENE_SHADOW_TYPE 3
-    #define RENDERER_BLENDSHAPE_COUNT 10
+      #define RENDERER_BLENDSHAPE_COUNT 10
 
       lowp mat4 renderer_MVPMat;
       highp mat4 renderer_MVMat;

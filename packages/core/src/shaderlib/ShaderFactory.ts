@@ -1,7 +1,7 @@
-import { ShaderLib } from "./ShaderLib";
 import { Logger } from "../base/Logger";
+import { ShaderLib } from "./ShaderLib";
 
-class ShaderFactory {
+export class ShaderFactory {
   static parseCustomMacros(macros: string[]) {
     return macros.map((m) => `#define ${m}\n`).join("");
   }
@@ -79,5 +79,3 @@ class ShaderFactory {
     return shader;
   }
 }
-
-export { ShaderFactory, ShaderLib };
