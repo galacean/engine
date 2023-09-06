@@ -1,9 +1,16 @@
-import { ShaderLib } from "./ShaderLib";
 import { Logger } from "../base/Logger";
+import { ShaderLib } from "./ShaderLib";
 
-class ShaderFactory {
+export class ShaderFactory {
   static parseCustomMacros(macros: string[]) {
     return macros.map((m) => `#define ${m}\n`).join("");
+  }
+
+  static registerInclude(includeName: string, includeSource: string) {
+    if (ShaderLib[includeName]) {
+      throw `The "${includeName}" shader include already exist`;
+    }
+    ShaderLib[includeName] = includeSource;
   }
 
   static parseIncludes(src: string) {
@@ -79,5 +86,3 @@ class ShaderFactory {
     return shader;
   }
 }
-
-export { ShaderFactory, ShaderLib };

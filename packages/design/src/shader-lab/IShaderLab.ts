@@ -5,11 +5,7 @@ import { IShaderInfo } from "./IShaderInfo";
  */
 export interface IShaderLab {
   /**
-   * parsing shader source code
+   * parsing shader source code.
    */
   parseShader(shaderSource: string): IShaderInfo;
-  /**
-   * register custom shader fragment
-   */
-  registerShaderFragment(fragmentName: string, fragmentSource: string);
 }

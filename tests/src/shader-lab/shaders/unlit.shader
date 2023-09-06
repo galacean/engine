@@ -31,17 +31,17 @@ Shader "Water" {
       Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
 
       struct a2v {
-       vec4 POSITION;
-       vec2 TEXCOORD_0; 
+        vec4 POSITION;
+        vec2 TEXCOORD_0; 
       }
 
       struct v2f {
-       vec2 v_uv;
-       vec3 v_position;
+        vec2 v_uv;
+        vec3 v_position;
       }
 
       #define SCENE_SHADOW_TYPE 3
-    #define RENDERER_BLENDSHAPE_COUNT 10
+      #define RENDERER_BLENDSHAPE_COUNT 10
 
       lowp mat4 renderer_MVPMat;
       highp mat4 renderer_MVMat;
@@ -50,40 +50,40 @@ Shader "Water" {
       lowp vec4 u_fogColor;
       highp float u_fogDensity;
       vec4 material_BaseColor;
-       float material_AlphaCutoff;
-       vec4 material_BaseColor;
-       float material_AlphaCutoff;
-       ivec3 renderer_BlendShapeTextureInfo;
+      float material_AlphaCutoff;
+      vec4 material_BaseColor;
+      float material_AlphaCutoff;
+      ivec3 renderer_BlendShapeTextureInfo;
       vec2 renderer_BlendShapeWeights[RENDERER_BLENDSHAPE_COUNT];
       
       VertexShader = vert;
       FragmentShader = frag;
 
-    #include <test_common>
-    #include <brdf>
+      #include <test_common>
+      #include <brdf>
 
-    BlendState = blendState;
+      BlendState = blendState;
 
-    StencilState {
-      Enabled = true;
-      ReferenceValue = 2;
-      Mask = 1.3; // 0xffffffff
-      WriteMask = 0.32; // 0xffffffff
-      CompareFunctionFront = CompareFunction.Less;
-      PassOperationBack = StencilOperation.Zero;
-    }
+      StencilState {
+        Enabled = true;
+        ReferenceValue = 2;
+        Mask = 1.3; // 0xffffffff
+        WriteMask = 0.32; // 0xffffffff
+        CompareFunctionFront = CompareFunction.Less;
+        PassOperationBack = StencilOperation.Zero;
+      }
 
-    DepthState = depthState;
-    RasterState = rasterState;
+      DepthState = depthState;
+      RasterState = rasterState;
 
-    vec3 getBlendShapeVertexElement(int blendShapeIndex, int vertexElementIndex)
-		{			
-			int y = vertexElementIndex / renderer_BlendShapeTextureInfo.y;
-			int x = vertexElementIndex - y * renderer_BlendShapeTextureInfo.y;
-			ivec3 uv = ivec3(x, y , blendShapeIndex);
-			vec4 tmp = texture2D(u_textures[1], vec2(uv.xy));
-      return tmp.xyz;
-		}
+      vec3 getBlendShapeVertexElement(int blendShapeIndex, int vertexElementIndex)
+      {			
+        int y = vertexElementIndex / renderer_BlendShapeTextureInfo.y;
+        int x = vertexElementIndex - y * renderer_BlendShapeTextureInfo.y;
+        ivec3 uv = ivec3(x, y , blendShapeIndex);
+        vec4 tmp = texture2D(u_textures[1], vec2(uv.xy));
+        return tmp.xyz;
+      }
 
       v2f vert(a2v v) {
         v2f o;
