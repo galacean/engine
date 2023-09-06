@@ -112,7 +112,7 @@ export class AstNodeUtils {
 
     const context = new RuntimeContext();
     const shaderInfo = context.parse(ast);
-    
+
     context.diagnostics.forEach((item) => {
       if (item.severity !== DiagnosticSeverity.Error) {
         Logger.warn(item);
