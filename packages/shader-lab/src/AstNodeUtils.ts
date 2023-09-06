@@ -115,9 +115,6 @@ export class AstNodeUtils {
     const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
     shaderInfo.diagnostics = context.diagnostics;
 
-    // @ts-ignore DEBUG & DELETE
-    shaderInfo.ast = ast;
-
     return shaderInfo;
   }
 }
