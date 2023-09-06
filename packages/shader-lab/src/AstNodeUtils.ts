@@ -1,10 +1,12 @@
-import { CstElement, CstNode, ICstVisitor, IToken, CstChildrenDictionary } from "chevrotain";
+import { CstChildrenDictionary, CstNode, ICstVisitor, IToken } from "chevrotain";
 
+import { IShaderInfo } from "@galacean/engine-design";
+import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
+import { ShaderVisitor, parser } from "./ShaderVisitor";
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";
-import { ShaderVisitor, parser } from "./ShaderVisitor";
-import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
-import { IShaderInfo } from "@galacean/engine-design";
+import { DiagnosticSeverity } from "./Constants";
+import { Logger } from "@galacean/engine";
 
 export class AstNodeUtils {
   static isCstNode(node: any) {
@@ -53,13 +55,10 @@ export class AstNodeUtils {
         if (position.end.line > end.line) {
           end = position.end;
         }
-        content[k] = new AstNode({
-          content: token.image,
-          position
-        });
+        content[k] = new AstNode(position, token.image);
       }
     }
-    return new ObjectAstNode({ position: { start, end }, content });
+    return new ObjectAstNode({ start, end }, content);
   }
 
   static getTokenPosition(token: IToken): IPositionRange {
@@ -100,7 +99,7 @@ export class AstNodeUtils {
     return -AstNodeUtils.astSortAsc(a, b);
   }
 
-  static parseShader(input: string): IShaderInfo & { diagnostics?: Array<IDiagnostic> } {
+  static parseShader(input: string): IShaderInfo {
     parser.parse(input);
     const cst = parser.ruleShader();
     if (parser.errors.length > 0) {
@@ -112,11 +111,15 @@ export class AstNodeUtils {
     const ast = visitor.visit(cst);
 
     const context = new RuntimeContext();
-    const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
-    shaderInfo.diagnostics = context.diagnostics;
+    const shaderInfo = context.parse(ast);
 
-    // @ts-ignore DEBUG & DELETE
-    shaderInfo.ast = ast;
+    context.diagnostics.forEach((item) => {
+      if (item.severity !== DiagnosticSeverity.Error) {
+        Logger.warn(item);
+      } else {
+        Logger.error(item);
+      }
+    });
 
     return shaderInfo;
   }
