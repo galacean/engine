@@ -5,6 +5,8 @@ import { IPosition, IPositionRange } from "./ast-node/";
 import { ShaderVisitor, parser } from "./ShaderVisitor";
 import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
 import { IShaderInfo } from "@galacean/engine-design";
+import { DiagnosticSeverity } from "./Constants";
+import { Logger } from "@galacean/engine";
 
 export class AstNodeUtils {
   static isCstNode(node: any) {
@@ -113,7 +115,13 @@ export class AstNodeUtils {
 
     const context = new RuntimeContext();
     const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
-    shaderInfo.diagnostics = context.diagnostics;
+    context.diagnostics.forEach((item) => {
+      if (item.severity !== DiagnosticSeverity.Error) {
+        Logger.warn(item);
+      } else {
+        throw item;
+      }
+    });
 
     return shaderInfo;
   }
