@@ -137,7 +137,9 @@ export class Animator extends Component {
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
-    this._crossFadeByTransition(manuallyTransition, layerIndex, true);
+    if (this._crossFadeByTransition(manuallyTransition, layerIndex)) {
+      this.update(0);
+    }
   }
 
   /**
@@ -712,21 +714,21 @@ export class Animator extends Component {
     for (let i = 0, n = transitions.length; i < n; ++i) {
       const transition = transitions[i];
       if (duration * transition.exitTime <= clipTime) {
-        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex, false);
+        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
       }
     }
   }
 
-  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number, isFirstFrame: boolean): void {
+  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {
     const { name } = transition.destinationState;
     const stateInfo = this._getAnimatorStateInfo(name, layerIndex);
     const { state: crossState, layerIndex: playLayerIndex } = stateInfo;
     if (!crossState) {
-      return;
+      return false;
     }
     if (!crossState.clip) {
       Logger.warn(`The state named ${name} has no AnimationClip data.`);
-      return;
+      return false;
     }
 
     const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
@@ -761,7 +763,7 @@ export class Animator extends Component {
 
     animatorLayerData.crossFadeTransition = transition;
 
-    isFirstFrame && this.update(0);
+    return true;
   }
 
   private _fireAnimationEvents(
