@@ -5,6 +5,8 @@ import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
 import { ShaderVisitor, parser } from "./ShaderVisitor";
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";
+import { DiagnosticSeverity } from "./Constants";
+import { Logger } from "@galacean/engine";
 
 export class AstNodeUtils {
   static isCstNode(node: any) {
@@ -114,7 +116,7 @@ export class AstNodeUtils {
       if (item.severity !== DiagnosticSeverity.Error) {
         Logger.warn(item);
       } else {
-        throw item;
+        Logger.error(item);
       }
     });
 
