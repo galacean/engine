@@ -108,18 +108,17 @@ describe("Animator test", function () {
       renderer._renderFrameCount = Infinity;
     });
 
+    animator.cullingMode = 1;
+    expect(animator.cullingMode).to.eq(1);
+
     animator.play("Run");
 
     let animatorLayerData = animator["_animatorLayersData"];
     const srcPlayData = animatorLayerData[0]?.srcPlayData;
-
-    animator.cullingMode = 1;
-    expect(animator.cullingMode).to.eq(1);
     animator.update(5);
     const curveOwner = srcPlayData.stateData.curveLayerOwner[0].curveOwner;
     const initValue = curveOwner.defaultValue;
     const currentValue = curveOwner.referenceTargetValue;
-
     expect(Quaternion.equals(initValue, currentValue)).to.eq(true);
 
     animator.cullingMode = 0;
