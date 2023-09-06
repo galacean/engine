@@ -99,7 +99,7 @@ export class AstNodeUtils {
     return -AstNodeUtils.astSortAsc(a, b);
   }
 
-  static parseShader(input: string): IShaderInfo & { diagnostics?: Array<IDiagnostic> } {
+  static parseShader(input: string): IShaderInfo {
     parser.parse(input);
     const cst = parser.ruleShader();
     if (parser.errors.length > 0) {
@@ -111,7 +111,8 @@ export class AstNodeUtils {
     const ast = visitor.visit(cst);
 
     const context = new RuntimeContext();
-    const shaderInfo: IShaderInfo & { diagnostics?: Array<IDiagnostic> } = context.parse(ast);
+    const shaderInfo = context.parse(ast);
+    
     context.diagnostics.forEach((item) => {
       if (item.severity !== DiagnosticSeverity.Error) {
         Logger.warn(item);
