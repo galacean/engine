@@ -1,6 +1,18 @@
+import {
+  BlendFactor,
+  BlendOperation,
+  Color,
+  CompareFunction,
+  CullMode,
+  RenderStateDataKey,
+  StencilOperation,
+  Vector4
+} from "@galacean/engine";
+import { IShaderPassInfo } from "@galacean/engine-design";
 import { AstNodeUtils } from "../AstNodeUtils";
 import { DiagnosticSeverity } from "../Constants";
 import RuntimeContext from "../RuntimeContext";
+import { BlendStatePropertyTokens } from "../parser/tokens/render-state";
 import {
   IAddOperatorAstContent,
   IArrayIndexAstContent,
@@ -59,18 +71,6 @@ import {
   IVariablePropertyAstContent,
   IVariableTypeAstContent
 } from "./AstNodeContent";
-import {
-  Vector4,
-  CompareFunction,
-  StencilOperation,
-  BlendOperation,
-  BlendFactor,
-  CullMode,
-  RenderStateDataKey,
-  Color
-} from "@galacean/engine";
-import { BlendStatePropertyTokens } from "../parser/tokens/render-state";
-import { IShaderPassInfo } from "@galacean/engine-design";
 
 export interface IPosition {
   line: number;
@@ -82,26 +82,16 @@ export interface IPositionRange {
   end: IPosition;
 }
 
-export interface IAstInfo<T = any> {
-  position: IPositionRange;
-  content: T;
-}
-
-export class AstNode<T = any> implements IAstInfo<T> {
+export class AstNode<T = any> {
   position: IPositionRange;
   content: T;
 
   /** @internal */
   _isAstNode = true;
 
-  constructor(ast: IAstInfo<T>) {
-    this.position = ast.position;
-    this.content = ast.content;
-  }
-
-  /** @internal */
-  _doSerialization(context?: RuntimeContext, args?: any): string {
-    return this.content as string;
+  constructor(position: IPositionRange, content: T) {
+    this.position = position;
+    this.content = content;
   }
 
   /** @internal */
@@ -109,6 +99,18 @@ export class AstNode<T = any> implements IAstInfo<T> {
     if (typeof this.content === "string") return this.content.replace(/"(.*)"/, "$1");
     if (typeof this.content !== "object") return this.content;
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
+  }
+
+  serialize(context?: RuntimeContext, args?: any): string {
+    this._beforeSerialization(context, args);
+    const ret = this._doSerialization(context, args);
+    this._afterSerialization(context);
+    return ret;
+  }
+
+  /** @internal */
+  _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content as string;
   }
 
   /** @internal */
@@ -119,13 +121,6 @@ export class AstNode<T = any> implements IAstInfo<T> {
   /** @internal */
   _afterSerialization(context?: RuntimeContext, args?: any) {
     context?.unsetSerializingNode();
-  }
-
-  serialize(context?: RuntimeContext, args?: any): string {
-    this._beforeSerialization(context, args);
-    const ret = this._doSerialization(context, args);
-    this._afterSerialization(context);
-    return ret;
   }
 
   private _jsonifyObject(obj: any, includePos: boolean, withClass = false) {
@@ -484,22 +479,13 @@ export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstConte
 export class FnArgAstNode extends AstNode<IFnArgAstContent> {
   override _doSerialization(context: RuntimeContext, args?: any): string {
     context.currentFunctionInfo.localDeclaration.push(
-      new VariableDeclarationAstNode({
-        position: this.position,
-        content: {
-          variableList: [
-            new FnVariableDeclareUnitAstNode({
-              position: this.position,
-              content: {
-                variable: new FnArrayVariableAstNode({
-                  position: this.position,
-                  content: { variable: this.content.name }
-                })
-              }
-            })
-          ],
-          type: new VariableTypeAstNode({ position: this.position, content: this.content.type })
-        }
+      new VariableDeclarationAstNode(this.position, {
+        variableList: [
+          new FnVariableDeclareUnitAstNode(this.position, {
+            variable: new FnArrayVariableAstNode(this.position, { variable: this.content.name })
+          })
+        ],
+        type: new VariableTypeAstNode(this.position, this.content.type)
       })
     );
     return `${this.content.type.text} ${this.content.name}`;
