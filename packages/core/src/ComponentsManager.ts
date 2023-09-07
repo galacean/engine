@@ -117,79 +117,50 @@ export class ComponentsManager {
   callScriptOnStart(): void {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
-      onStartScripts.startLoop();
-      const elements = onStartScripts._elements;
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
-      for (let i = 0; i < onStartScripts.length; i++) {
-        const script = elements[i];
-        if (script) {
-          script._started = true;
-          this.removeOnStartScript(script);
-          script.onStart();
-        }
-      }
-      onStartScripts.endLoopAndClear();
+      onStartScripts.forEachAndClean((script: Script) => {
+        script._started = true;
+        this.removeOnStartScript(script);
+        script.onStart();
+      });
     }
   }
 
   callScriptOnUpdate(deltaTime: number): void {
-    const onUpdateScripts = this._onUpdateScripts;
-    onUpdateScripts.startLoop();
-    const elements = onUpdateScripts._elements;
-    for (let i = 0; i < onUpdateScripts.length; i++) {
-      const element = elements[i];
-      if (element?._started) {
+    this._onUpdateScripts.forEach((element: Script) => {
+      if (element._started) {
         element.onUpdate(deltaTime);
       }
-    }
-    onUpdateScripts.endLoop();
+    });
   }
 
   callScriptOnLateUpdate(deltaTime: number): void {
-    const onLateUpdateScripts = this._onLateUpdateScripts;
-    onLateUpdateScripts.startLoop();
-    const elements = onLateUpdateScripts._elements;
-    for (let i = 0; i < onLateUpdateScripts.length; i++) {
-      const element = elements[i];
-      if (element?._started) {
+    this._onLateUpdateScripts.forEach((element: Script) => {
+      if (element._started) {
         element.onLateUpdate(deltaTime);
       }
-    }
-    onLateUpdateScripts.endLoop();
+    });
   }
 
   callScriptOnPhysicsUpdate(): void {
-    const onPhysicsUpdateScripts = this._onPhysicsUpdateScripts;
-    onPhysicsUpdateScripts.startLoop();
-    const elements = onPhysicsUpdateScripts._elements;
-    for (let i = 0; i < onPhysicsUpdateScripts.length; i++) {
-      const element = elements[i];
-      if (element?._started) {
+    this._onPhysicsUpdateScripts.forEach((element: Script) => {
+      if (element._started) {
         element.onPhysicsUpdate();
       }
-    }
-    onPhysicsUpdateScripts.endLoop();
+    });
   }
 
   callAnimationUpdate(deltaTime: number): void {
-    const onUpdateAnimations = this._onUpdateAnimations;
-    onUpdateAnimations.startLoop();
-    const elements = onUpdateAnimations._elements;
-    for (let i = 0; i < onUpdateAnimations.length; i++) {
+    this._onUpdateAnimations.forEach((element: Component) => {
       //@ts-ignore
-      elements[i].update(deltaTime);
-    }
-    onUpdateAnimations.endLoop();
+      element.update(deltaTime);
+    });
   }
 
   callRendererOnUpdate(deltaTime: number): void {
-    const onUpdateRenderers = this._onUpdateRenderers;
-    onUpdateRenderers.startLoop();
-    const elements = onUpdateRenderers._elements;
-    for (let i = 0; i < onUpdateRenderers.length; i++) {
-      elements[i].update(deltaTime);
-    }
-    onUpdateRenderers.endLoop();
+    this._onUpdateRenderers.forEach((element: Renderer) => {
+      element.update(deltaTime);
+    });
   }
 
   handlingInvalidScripts(): void {
@@ -206,21 +177,15 @@ export class ComponentsManager {
   }
 
   callCameraOnBeginRender(camera: Camera): void {
-    const scripts = camera.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onBeginRender(camera);
-    }
-    scripts.endLoop();
+    camera.entity._scripts.forEach((element: Script) => {
+      element.onBeginRender(camera);
+    });
   }
 
   callCameraOnEndRender(camera: Camera): void {
-    const scripts = camera.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onEndRender(camera);
-    }
-    scripts.endLoop();
+    camera.entity._scripts.forEach((element: Script) => {
+      element.onEndRender(camera);
+    });
   }
 
   getActiveChangedTempList(): Component[] {

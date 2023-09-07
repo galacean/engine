@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Entity } from "../../Entity";
+import { Script } from "../../Script";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 
@@ -45,20 +46,14 @@ export class Pointer {
   _firePointerExitAndEnter(rayCastEntity: Entity): void {
     if (this._currentEnteredEntity !== rayCastEntity) {
       if (this._currentEnteredEntity) {
-        const scripts = this._currentEnteredEntity._scripts;
-        scripts.startLoop();
-        for (let i = 0; i < scripts.length; i++) {
-          scripts.get(i)?.onPointerExit(this);
-        }
-        scripts.endLoop();
+        this._currentEnteredEntity._scripts.forEach((element: Script) => {
+          element.onPointerExit(this);
+        });
       }
       if (rayCastEntity) {
-        const scripts = rayCastEntity._scripts;
-        scripts.startLoop();
-        for (let i = 0; i < scripts.length; i++) {
-          scripts.get(i)?.onPointerEnter(this);
-        }
-        scripts.endLoop();
+        rayCastEntity._scripts.forEach((element: Script) => {
+          element.onPointerEnter(this);
+        });
       }
       this._currentEnteredEntity = rayCastEntity;
     }
@@ -69,12 +64,9 @@ export class Pointer {
    */
   _firePointerDown(rayCastEntity: Entity): void {
     if (rayCastEntity) {
-      const scripts = rayCastEntity._scripts;
-      scripts.startLoop();
-      for (let i = 0; i < scripts.length; i++) {
-        scripts.get(i)?.onPointerDown(this);
-      }
-      scripts.endLoop();
+      rayCastEntity._scripts.forEach((element: Script) => {
+        element.onPointerDown(this);
+      });
     }
     this._currentPressedEntity = rayCastEntity;
   }
@@ -84,12 +76,9 @@ export class Pointer {
    */
   _firePointerDrag(): void {
     if (this._currentPressedEntity) {
-      const scripts = this._currentPressedEntity._scripts;
-      scripts.startLoop();
-      for (let i = 0; i < scripts.length; i++) {
-        scripts.get(i)?.onPointerDrag(this);
-      }
-      scripts.endLoop();
+      this._currentPressedEntity._scripts.forEach((element: Script) => {
+        element.onPointerDrag(this);
+      });
     }
   }
 
@@ -100,16 +89,10 @@ export class Pointer {
     const { _currentPressedEntity: pressedEntity } = this;
     if (pressedEntity) {
       const sameTarget = pressedEntity === rayCastEntity;
-      const scripts = pressedEntity._scripts;
-      scripts.startLoop();
-      for (let i = 0; i < scripts.length; i++) {
-        const script = scripts.get(i);
-        if (script) {
-          sameTarget && script.onPointerClick(this);
-          script.onPointerUp(this);
-        }
-      }
-      scripts.endLoop();
+      pressedEntity._scripts.forEach((element: Script) => {
+        sameTarget && element.onPointerClick(this);
+        element.onPointerUp(this);
+      });
       this._currentPressedEntity = null;
     }
   }

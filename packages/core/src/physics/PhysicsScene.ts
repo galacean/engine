@@ -8,6 +8,7 @@ import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
+import { Script } from "../Script";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -32,106 +33,65 @@ export class PhysicsScene {
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      const script = scripts.get(i);
-      if (script) {
-        let collision = PhysicsScene._collision;
-        collision.shape = shape2;
-        script.onCollisionEnter(collision);
-      }
-    }
-    scripts.endLoop();
+    shape1.collider.entity._scripts.forEach((element: Script) => {
+      let collision = PhysicsScene._collision;
+      collision.shape = shape2;
+      element.onCollisionEnter(collision);
+    });
 
-    scripts = shape2.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      const script = scripts.get(i);
-      if (script) {
-        let collision = PhysicsScene._collision;
-        collision.shape = shape1;
-        script.onCollisionEnter(collision);
-      }
-    }
-    scripts.endLoop();
+    shape2.collider.entity._scripts.forEach((element: Script) => {
+      let collision = PhysicsScene._collision;
+      collision.shape = shape1;
+      element.onCollisionEnter(collision);
+    });
   };
+
   private _onContactExit = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      const script = scripts.get(i);
-      if (script) {
-        let collision = PhysicsScene._collision;
-        collision.shape = shape2;
-        script.onCollisionExit(collision);
-      }
-    }
-    scripts.endLoop();
+    shape1.collider.entity._scripts.forEach((element: Script) => {
+      let collision = PhysicsScene._collision;
+      collision.shape = shape2;
+      element.onCollisionExit(collision);
+    });
 
-    scripts = shape2.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      const script = scripts.get(i);
-      if (script) {
-        let collision = PhysicsScene._collision;
-        collision.shape = shape1;
-        script.onCollisionExit(collision);
-      }
-    }
-    scripts.endLoop();
+    shape2.collider.entity._scripts.forEach((element: Script) => {
+      let collision = PhysicsScene._collision;
+      collision.shape = shape1;
+      element.onCollisionExit(collision);
+    });
   };
   private _onContactStay = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      const script = scripts.get(i);
-      if (script) {
-        let collision = PhysicsScene._collision;
-        collision.shape = shape2;
-        script.onCollisionStay(collision);
-      }
-    }
-    scripts.endLoop();
+    shape1.collider.entity._scripts.forEach((element: Script) => {
+      let collision = PhysicsScene._collision;
+      collision.shape = shape2;
+      element.onCollisionStay(collision);
+    });
 
-    scripts = shape2.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      const script = scripts.get(i);
-      if (script) {
-        let collision = PhysicsScene._collision;
-        collision.shape = shape1;
-        script.onCollisionStay(collision);
-      }
-    }
-    scripts.endLoop();
+    shape2.collider.entity._scripts.forEach((element: Script) => {
+      let collision = PhysicsScene._collision;
+      collision.shape = shape1;
+      element.onCollisionStay(collision);
+    });
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onTriggerEnter(shape2);
-    }
-    scripts.endLoop();
+    shape1.collider.entity._scripts.forEach((element: Script) => {
+      element.onTriggerEnter(shape2);
+    });
 
-    scripts = shape2.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onTriggerEnter(shape1);
-    }
-    scripts.endLoop();
+    shape2.collider.entity._scripts.forEach((element: Script) => {
+      element.onTriggerEnter(shape1);
+    });
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
@@ -139,19 +99,13 @@ export class PhysicsScene {
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onTriggerExit(shape2);
-    }
-    scripts.endLoop();
+    shape1.collider.entity._scripts.forEach((element: Script) => {
+      element.onTriggerExit(shape2);
+    });
 
-    scripts = shape2.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onTriggerExit(shape1);
-    }
-    scripts.endLoop();
+    shape2.collider.entity._scripts.forEach((element: Script) => {
+      element.onTriggerExit(shape1);
+    });
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
@@ -159,19 +113,13 @@ export class PhysicsScene {
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onTriggerStay(shape2);
-    }
-    scripts.endLoop();
+    shape1.collider.entity._scripts.forEach((element: Script) => {
+      element.onTriggerStay(shape2);
+    });
 
-    scripts = shape2.collider.entity._scripts;
-    scripts.startLoop();
-    for (let i = 0; i < scripts.length; i++) {
-      scripts.get(i)?.onTriggerStay(shape1);
-    }
-    scripts.endLoop();
+    shape2.collider.entity._scripts.forEach((element: Script) => {
+      element.onTriggerStay(shape1);
+    });
   };
 
   /**

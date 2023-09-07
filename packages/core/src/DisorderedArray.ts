@@ -42,10 +42,6 @@ export class DisorderedArray<T> {
     return this._elements[index];
   }
 
-  startLoop(): void {
-    this._isLooping = true;
-  }
-
   /**
    * Delete the element at the specified index.
    * @param index - The index of the element to be deleted
@@ -70,7 +66,35 @@ export class DisorderedArray<T> {
     return end;
   }
 
-  endLoop(): void {
+  forEach(callbackFn: (e: T) => void): void {
+    this._startLoop();
+    const elements = this._elements;
+    for (let i = 0; i < this.length; i++) {
+      const element = elements[i];
+      element && callbackFn(element);
+    }
+    this._endLoop();
+  }
+
+  forEachAndClean(callbackFn: (e: T) => void): void {
+    this._startLoop();
+    const elements = this._elements;
+    for (let i = 0; i < this.length; i++) {
+      const element = elements[i];
+      element && callbackFn(element);
+    }
+    this._endLoopAndClear();
+  }
+
+  garbageCollection(): void {
+    this._elements.length = this.length;
+  }
+
+  private _startLoop(): void {
+    this._isLooping = true;
+  }
+
+  private _endLoop(): void {
     this._isLooping = false;
 
     if (this._blankCount) {
@@ -86,13 +110,9 @@ export class DisorderedArray<T> {
     }
   }
 
-  endLoopAndClear(): void {
+  private _endLoopAndClear(): void {
     this._isLooping = false;
     this.length = 0;
     this._blankCount = 0;
-  }
-
-  garbageCollection(): void {
-    this._elements.length = this.length;
   }
 }
