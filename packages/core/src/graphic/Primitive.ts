@@ -14,7 +14,7 @@ import { VertexElement } from "./VertexElement";
  */
 export class Primitive extends GraphicsResource {
   enableVAO: boolean = true;
-  instanceCount: number;
+  instanceCount: number = 0;
   vertexBufferBindings: VertexBufferBinding[] = [];
 
   /** @internal */
