@@ -1,65 +1,56 @@
 import { Entity, Skin } from "@galacean/engine-core";
 import { Matrix } from "@galacean/engine-math";
-import { GLTFParserContext } from ".";
+import { ISkin } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Skin)
 export class GLTFSkinParser extends GLTFParser {
-  parse(context: GLTFParserContext): void {
-    const { glTFResource, glTF, buffers } = context;
-    const { entities } = glTFResource;
-    const gltfSkins = glTF.skins;
+  parse(context: GLTFParserContext, index: number): Promise<Skin> {
+    const glTF = context.glTF;
+    const skinInfo = glTF.skins[index];
+    const { inverseBindMatrices, skeleton, joints, name = `SKIN_${index}` } = skinInfo;
+    const jointCount = joints.length;
 
-    if (!gltfSkins) return;
+    const skin = new Skin(name);
+    skin.inverseBindMatrices.length = jointCount;
+    skin._bones.length = jointCount;
 
-    const count = gltfSkins.length;
-    const skins = new Array<Skin>(count);
-
-    for (let i = 0; i < count; i++) {
-      const { inverseBindMatrices, skeleton, joints, name = `SKIN_${i}` } = gltfSkins[i];
-      const jointCount = joints.length;
-
-      const skin = new Skin(name);
-      skin.inverseBindMatrices.length = jointCount;
-
-      // parse IBM
-      const accessor = glTF.accessors[inverseBindMatrices];
-      const buffer = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).data;
+    // parse IBM
+    const accessor = glTF.accessors[inverseBindMatrices];
+    const skinPromise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
+      const entities = context.get<Entity>(GLTFParserType.Entity);
+      const buffer = bufferInfo.data;
       for (let i = 0; i < jointCount; i++) {
         const inverseBindMatrix = new Matrix();
         inverseBindMatrix.copyFromArray(buffer, i * 16);
         skin.inverseBindMatrices[i] = inverseBindMatrix;
-      }
 
-      // get joints
-      for (let i = 0; i < jointCount; i++) {
-        const jointIndex = joints[i];
-        const jointName = entities[jointIndex].name;
-        skin.joints[i] = jointName;
-        // @todo Temporary solution, but it can alleviate the current BUG, and the skinning data mechanism of SkinnedMeshRenderer will be completely refactored in the future
-        for (let j = entities.length - 1; j >= 0; j--) {
-          if (jointIndex !== j && entities[j].name === jointName) {
-            entities[j].name = `${jointName}_${j}`;
+        // Get bones
+        const bone = entities[joints[i]];
+        skin._bones[i] = bone;
+        skin.joints[i] = bone.name;
+
+        // Get skeleton
+        if (skeleton !== undefined) {
+          const rootBone = entities[skeleton];
+          skin._rootBone = rootBone;
+          skin.skeleton = rootBone.name;
+        } else {
+          const rootBone = this._findSkeletonRootBone(joints, entities);
+          if (rootBone) {
+            skin._rootBone = rootBone;
+            skin.skeleton = rootBone.name;
+          } else {
+            throw "Failed to find skeleton root bone.";
           }
         }
       }
+      return skin;
+    });
 
-      // get skeleton
-      if (skeleton !== undefined) {
-        skin.skeleton = entities[skeleton].name;
-      } else {
-        const rootBone = this._findSkeletonRootBone(joints, entities);
-        if (rootBone) {
-          skin.skeleton = rootBone.name;
-        } else {
-          throw "Failed to find skeleton root bone.";
-        }
-      }
-
-      skins[i] = skin;
-    }
-
-    glTFResource.skins = skins;
+    return Promise.resolve(skinPromise);
   }
 
   private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {

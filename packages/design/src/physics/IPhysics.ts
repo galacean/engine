@@ -4,6 +4,7 @@ import { ICollider } from "./ICollider";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IPhysicsManager } from "./IPhysicsManager";
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
+import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticCollider } from "./IStaticCollider";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 import { IBoxColliderShape, ICapsuleColliderShape, IPlaneColliderShape, ISphereColliderShape } from "./shape";
@@ -20,6 +21,12 @@ export interface IPhysics {
 
   /**
    * Create physics manager.
+   */
+  createPhysicsManager(): IPhysicsManager;
+
+  /**
+   * Create physics scene.
+   * @param physicsManager - The physics manager
    * @param onContactEnter - Function called when contact begin
    * @param onContactExit - Function called when contact end
    * @param onContactStay - Function called when contact stay
@@ -27,14 +34,15 @@ export interface IPhysics {
    * @param onTriggerExit - Function called when trigger end
    * @param onTriggerStay - Function called when trigger stay
    */
-  createPhysicsManager(
+  createPhysicsScene(
+    physicsManager: IPhysicsManager,
     onContactEnter?: (obj1: number, obj2: number) => void,
     onContactExit?: (obj1: number, obj2: number) => void,
     onContactStay?: (obj1: number, obj2: number) => void,
     onTriggerEnter?: (obj1: number, obj2: number) => void,
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
-  ): IPhysicsManager;
+  ): IPhysicsScene;
 
   /**
    * Create dynamic collider.

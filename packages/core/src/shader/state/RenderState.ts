@@ -1,3 +1,4 @@
+import { ShaderData, ShaderProperty } from "..";
 import { Engine } from "../../Engine";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { BlendState } from "./BlendState";
@@ -23,8 +24,25 @@ export class RenderState {
 
   /**
    * @internal
+   * @todo Should merge when we can delete material render state.
    */
-  _apply(engine: Engine, frontFaceInvert: boolean): void {
+  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+  }
+
+  /**
+   * @internal
+   */
+  _apply(
+    engine: Engine,
+    frontFaceInvert: boolean,
+    renderStateDataMap: Record<number, ShaderProperty>,
+    shaderData: ShaderData
+  ): void {
+    renderStateDataMap && this._applyShaderDataValue(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     this.blendState._apply(hardwareRenderer, lastRenderState);

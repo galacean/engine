@@ -5,7 +5,11 @@ import { RequestConfig } from "@galacean/engine-core/types/asset/request";
  * @internal
  */
 export class TextureCubeContentRestorer extends ContentRestorer<TextureCube> {
-  constructor(resource: TextureCube, public urls: string[], public requestConfig: RequestConfig) {
+  constructor(
+    resource: TextureCube,
+    public urls: string[],
+    public requestConfig: RequestConfig
+  ) {
     super(resource);
   }
 

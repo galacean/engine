@@ -1,15 +1,11 @@
+type PickOnlyOne<T extends {}, Keys extends keyof T = keyof T> = Keys extends unknown
+  ? { [K in Keys]: T[Keys] } & { [K in Exclude<keyof T, Keys>]?: never }
+  : never;
+
 /**
  * Used to describe loading asset.
  */
 export type LoadItem = {
-  /**
-   * Loading url.
-   */
-  url?: string;
-  /**
-   * Available when AssetType is TextureCube.
-   */
-  urls?: string[];
   /**
    * Asset Type.
    */
@@ -30,4 +26,13 @@ export type LoadItem = {
    * Additional parameters for specified loader.
    */
   params?: Record<string, any>;
-};
+} & PickOnlyOne<{
+  /**
+   * Loading url.
+   */
+  url: string;
+  /**
+   * Available when AssetType is TextureCube.
+   */
+  urls: string[];
+}>;

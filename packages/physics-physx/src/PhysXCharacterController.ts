@@ -1,7 +1,7 @@
 import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
+import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
@@ -17,7 +17,7 @@ export class PhysXCharacterController implements ICharacterController {
   /** @internal */
   _pxController: any;
   /** @internal */
-  _pxManager: PhysXPhysicsManager;
+  _pxManager: PhysXPhysicsScene;
   /** @internal */
   _shape: PhysXColliderShape;
   private _scaledOffset = new Vector3();
@@ -111,7 +111,7 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * @internal
    */
-  _createPXController(pxManager: PhysXPhysicsManager, shape: PhysXColliderShape): void {
+  _createPXController(pxManager: PhysXPhysicsScene, shape: PhysXColliderShape): void {
     let desc: any;
     if (shape instanceof PhysXBoxColliderShape) {
       desc = new this._physXPhysics._physX.PxBoxControllerDesc();
@@ -148,6 +148,6 @@ export class PhysXCharacterController implements ICharacterController {
    */
   _setLocalPosition(position: Vector3, scale: Vector3): void {
     Vector3.multiply(position, scale, this._scaledOffset);
-    this.setWorldPosition(this._position);
+    this.setWorldPosition(position);
   }
 }

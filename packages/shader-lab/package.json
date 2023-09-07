@@ -1,0 +1,38 @@
+{
+  "name": "@galacean/engine-shader-lab",
+  "version": "1.1.0-alpha.3",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc",
+    "gen_diagram": "ts-node ./scripts/genDiagram.ts",
+    "gen_dts": "ts-node ./scripts/genDts.ts"
+  },
+  "umd": {
+    "name": "Galacean.ShaderLab",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "chevrotain": "^10.5.0"
+  },
+  "devDependencies": {
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
+  }
+}

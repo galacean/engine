@@ -1,6 +1,6 @@
 import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@galacean/engine-design";
-import { PhysicsManager } from "../PhysicsManager";
+import { PhysicsScene } from "../PhysicsScene";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
 
 /**
@@ -55,7 +55,7 @@ export class CapsuleColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsManager._nativePhysics.createCapsuleColliderShape(
+    this._nativeShape = PhysicsScene._nativePhysics.createCapsuleColliderShape(
       this._id,
       this._radius,
       this._height,

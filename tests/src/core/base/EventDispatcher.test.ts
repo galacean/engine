@@ -72,4 +72,19 @@ describe("EventDispatcher test", function () {
     expect(eventOn).to.have.been.called.exactly(1);
     expect(eventDispatcher.listenerCount("test-event")).to.eql(1);
   });
+
+  it("call event in a callback", () => {
+    const eventDispatcher = new EventDispatcher();
+    const event1On = chai.spy(() => {
+      eventDispatcher.dispatch("event2");
+    });
+    const event2On = chai.spy(() => {});
+    eventDispatcher.on("event1", event1On);
+    eventDispatcher.on("event1", event1On);
+    eventDispatcher.on("event2", event2On);
+    eventDispatcher.on("event2", event2On);
+    eventDispatcher.dispatch("event1");
+    expect(event1On).to.have.been.called.exactly(2);
+    expect(event2On).to.have.been.called.exactly(4);
+  });
 });

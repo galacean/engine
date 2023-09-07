@@ -2,7 +2,7 @@ import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -221,7 +221,7 @@ export class DynamicCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsManager._nativePhysics.createDynamicCollider(
+    this._nativeCollider = PhysicsScene._nativePhysics.createDynamicCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );

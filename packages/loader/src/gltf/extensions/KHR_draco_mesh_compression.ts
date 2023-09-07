@@ -5,7 +5,7 @@ import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFMeshParser } from "../parser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { BufferInfo, GLTFParserContext } from "../parser/GLTFParserContext";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 
@@ -14,21 +14,15 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   private static _decoder: DRACODecoder;
   private static _tempVector3 = new Vector3();
 
-  override initialize(): void {
-    if (!KHR_draco_mesh_compression._decoder) {
-      KHR_draco_mesh_compression._decoder = new DRACODecoder();
-    }
-  }
-
   override createAndParse(
     context: GLTFParserContext,
     schema: IKHRDracoMeshCompression,
     glTFPrimitive: IMeshPrimitive,
     glTFMesh: IMesh
   ) {
+    this._initialize();
     const {
       glTF,
-      buffers,
       glTFResource: { engine }
     } = context;
     const { bufferViews, accessors } = glTF;
@@ -53,31 +47,40 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       useUniqueIDs: true,
       indexType
     };
-    const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
-    return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
-      const mesh = new ModelMesh(engine, glTFMesh.name);
-      return this._parseMeshFromGLTFPrimitiveDraco(
-        mesh,
-        glTFMesh,
-        glTFPrimitive,
-        glTF,
-        (attributeSemantic) => {
-          for (let j = 0; j < decodedGeometry.attributes.length; j++) {
-            if (decodedGeometry.attributes[j].name === attributeSemantic) {
-              return decodedGeometry.attributes[j].array;
+
+    return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
+      const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
+      return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
+        const mesh = new ModelMesh(engine, glTFMesh.name);
+        return this._parseMeshFromGLTFPrimitiveDraco(
+          mesh,
+          glTFMesh,
+          glTFPrimitive,
+          glTF,
+          (attributeSemantic) => {
+            for (let j = 0; j < decodedGeometry.attributes.length; j++) {
+              if (decodedGeometry.attributes[j].name === attributeSemantic) {
+                return decodedGeometry.attributes[j].array;
+              }
             }
-          }
-          return null;
-        },
-        (attributeSemantic, shapeIndex) => {
-          throw "BlendShape animation is not supported when using draco.";
-        },
-        () => {
-          return decodedGeometry.index.array;
-        },
-        context.keepMeshData
-      );
+            return null;
+          },
+          (attributeSemantic, shapeIndex) => {
+            throw "BlendShape animation is not supported when using draco.";
+          },
+          () => {
+            return decodedGeometry.index.array;
+          },
+          context.keepMeshData
+        );
+      });
     });
+  }
+
+  private _initialize(): void {
+    if (!KHR_draco_mesh_compression._decoder) {
+      KHR_draco_mesh_compression._decoder = new DRACODecoder();
+    }
   }
 
   private _parseMeshFromGLTFPrimitiveDraco(
@@ -86,7 +89,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => BufferInfo,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>,
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
@@ -197,9 +200,8 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     } else {
       mesh.addSubMesh(0, vertexCount, mode);
     }
-
     // BlendShapes
-    targets && GLTFMeshParser._createBlendShape(mesh, null, gltfMesh, targets, getBlendShapeData);
+    targets && GLTFMeshParser._createBlendShape(mesh, null, gltfMesh, accessors, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
     return Promise.resolve(mesh);

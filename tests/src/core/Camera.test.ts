@@ -1,22 +1,19 @@
+import { Camera, CameraClearFlags, Entity, Layer } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Camera, CameraClearFlags, Entity, Layer } from "@galacean/engine-core";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
-
 describe("camera test", function () {
-  let node: Entity;
+  const canvasDOM = new OffscreenCanvas(256, 256);
+  let rootEntity: Entity;
   let camera: Camera;
-  let identityMatrix: Matrix;
+  let identityMatrix: Matrix = new Matrix();
 
-  before(async () => {
+ before(async function () {
+    this.timeout(10000);
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
-    node = engine.sceneManager.activeScene.createRootEntity();
-    camera = node.addComponent(Camera);
-    identityMatrix = new Matrix();
+    rootEntity = engine.sceneManager.scenes[0].createRootEntity();
+    camera = rootEntity.addComponent(Camera);
   });
 
   it("constructor", () => {
@@ -30,7 +27,7 @@ describe("camera test", function () {
     // Test set renderTarget values
     camera.renderTarget = null;
     expect(camera.renderTarget).to.eq(null);
-    
+
     // Test that _renderPipeline is not undefined
     expect(camera["_renderPipeline"]).not.to.be.undefined;
   });
@@ -67,7 +64,7 @@ describe("camera test", function () {
 
     // Test viewport
     const originViewPort = new Vector4(0, 0, 1, 1);
-    const expectedViewPort =  new Vector4(0, 1, 0, 1);
+    const expectedViewPort = new Vector4(0, 1, 0, 1);
     expect(camera.viewport).to.deep.eq(originViewPort);
     camera.viewport = expectedViewPort;
     expect(camera.viewport).to.deep.eq(expectedViewPort);
@@ -219,13 +216,7 @@ describe("camera test", function () {
     // Test perspective projection matrix
     camera.aspectRatio = 2;
     camera.fieldOfView = 60;
-    Matrix.perspective(
-      60 * Math.PI / 180,
-      2,
-      camera.nearClipPlane,
-      camera.farClipPlane,
-      camera.viewMatrix
-    );
+    Matrix.perspective((60 * Math.PI) / 180, 2, camera.nearClipPlane, camera.farClipPlane, camera.viewMatrix);
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
 
     // Test orthographic projection matrix
@@ -255,11 +246,19 @@ describe("camera test", function () {
     expect(projectionMatrix[11]).to.eq(-viewMatrix[15]);
     expect(projectionMatrix[12]).to.eq(-viewMatrix[12]);
     expect(projectionMatrix[13]).to.eq(-viewMatrix[13]);
-    expect(projectionMatrix[14] - projectionMatrix[0]).to.be.closeTo(viewMatrix[14], 0.1, "Result should match expected value");
+    expect(projectionMatrix[14] - projectionMatrix[0]).to.be.closeTo(
+      viewMatrix[14],
+      0.1,
+      "Result should match expected value"
+    );
     expect(projectionMatrix[15]).to.eq(viewMatrix[11]);
 
     // Test reset projection matrix
     camera.projectionMatrix = camera.viewMatrix;
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
+  });
+
+  it("destroy test", () => {
+    camera.destroy();
   });
 });

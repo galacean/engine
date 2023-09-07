@@ -69,6 +69,7 @@ export class Texture2D extends Texture {
     height?: number
   ): void {
     (this._platformTexture as IPlatformTexture2D).setPixelBuffer(colorBuffer, mipLevel, x, y, width, height);
+    this._isContentLost = false;
   }
 
   /**
@@ -81,7 +82,7 @@ export class Texture2D extends Texture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
@@ -89,6 +90,7 @@ export class Texture2D extends Texture {
     y: number = 0
   ): void {
     (this._platformTexture as IPlatformTexture2D).setImageSource(imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
+    this._isContentLost = false;
   }
 
   /**

@@ -124,12 +124,7 @@ export class Utils {
       return relativeUrl;
     }
 
-    const char0 = relativeUrl.charAt(0);
-    if (char0 === ".") {
-      return Utils._formatRelativePath(relativeUrl + relativeUrl);
-    }
-
-    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
+    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + this._formatRelativePath(relativeUrl);
   }
 
   private static _stringToPath(string): string[] {
@@ -149,15 +144,17 @@ export class Utils {
     return result;
   }
 
-  private static _formatRelativePath(value: string): string {
-    const parts = value.split("/");
-    for (let i = 0, n = parts.length; i < n; i++) {
-      if (parts[i] == "..") {
-        parts.splice(i - 1, 2);
-        i -= 2;
-      }
-    }
-    return parts.join("/");
+  private static _formatRelativePath(path: string): string {
+    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
+    return path
+      .split("/")
+      .filter(Boolean)
+      .reduce((acc, cur) => {
+        if (cur === "..") acc.pop();
+        else if (cur !== ".") acc.push(cur);
+        return acc;
+      }, [])
+      .join("/");
   }
 }
 
