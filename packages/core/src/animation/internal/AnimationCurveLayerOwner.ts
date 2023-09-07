@@ -14,8 +14,8 @@ export class AnimationCurveLayerOwner {
   initFinalValue() {
     const { cureType, defaultValue } = this.curveOwner;
 
-    if (cureType._isReferenceType) {
-      cureType._copyValue(defaultValue, this.finalValue);
+    if (cureType._isCopyMode) {
+      cureType._setValue(defaultValue, this.finalValue);
     } else {
       this.finalValue = defaultValue;
     }
