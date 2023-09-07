@@ -1,33 +1,31 @@
-varying vec4 v_color;
-varying float v_lifeLeft;
-varying vec2 v_uv;
-uniform sampler2D u_texture;
+#include <common>
+
+varying vec4 v_Color;
+varying vec2 v_TextureCoordinate;
+uniform sampler2D material_BaseTexture;
+uniform vec4 material_BaseColor;
+
+#ifdef RENDERER_MODE_MESH
+	varying vec4 v_MeshColor;
+#endif
 
 void main() {
-  if (v_lifeLeft == 1.0) {
-    discard;
-  }
+	vec4 color = material_BaseColor * v_Color;
 
-  float alphaFactor = 1.0;
+	#ifdef RENDERER_MODE_MESH
+		color *= v_MeshColor;
+	#endif
 
-  #ifdef fadeIn
-    float fadeInFactor = step(0.5, v_lifeLeft);
-    alphaFactor = 2.0 * fadeInFactor * (1.0 - v_lifeLeft) + (1.0 - fadeInFactor);
-  #endif
+	#ifdef MATERIAL_HAS_BASETEXTURE
+		vec4 textureColor = texture2D(material_BaseTexture,v_TextureCoordinate);
+		#ifndef ENGINE_IS_COLORSPACE_GAMMA
+            textureColor = gammaToLinear(textureColor);
+        #endif
+		color *= textureColor;
+	#endif
+	gl_FragColor = color; 
 
-  #ifdef fadeOut
-    float fadeOutFactor = step(0.5, v_lifeLeft);
-    alphaFactor = alphaFactor * 2.0 * (1.0 - fadeOutFactor) * v_lifeLeft + alphaFactor * fadeOutFactor;
-  #endif
-
-  #ifdef particleTexture
-    vec4 tex = texture2D(u_texture, v_uv);
-    #ifdef useOriginColor
-      gl_FragColor = vec4(tex.rgb, alphaFactor * tex.a * v_color.w);
-    #else
-      gl_FragColor = vec4(v_color.xyz * tex.rgb, alphaFactor * tex.a * v_color.w);
+	 #ifndef ENGINE_IS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
     #endif
-  #else
-    gl_FragColor = vec4( v_color.xyz, alphaFactor * v_color.w);
-  #endif
 }

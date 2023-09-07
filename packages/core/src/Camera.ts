@@ -37,6 +37,8 @@ export class Camera extends Component {
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
+  private static _cameraForwardProperty = ShaderProperty.getByName("camera_Forward");
+  private static _cameraUpProperty = ShaderProperty.getByName("camera_Up");
   private static _cameraDepthBufferParamsProperty = ShaderProperty.getByName("camera_DepthBufferParams");
 
   /** Whether to enable frustum culling, it is enabled by default. */
@@ -625,13 +627,17 @@ export class Camera extends Component {
   }
 
   private _updateShaderData(): void {
+    const shaderData = this.shaderData;
+
+    const transform = this._transform;
+    shaderData.setMatrix(Camera._inverseViewMatrixProperty, transform.worldMatrix);
+    shaderData.setVector3(Camera._cameraPositionProperty, transform.worldPosition);
+    shaderData.setVector3(Camera._cameraForwardProperty, transform.worldForward);
+    shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
+
     const depthBufferParams = this._depthBufferParams;
     const farDivideNear = this._farClipPlane / this._nearClipPlane;
     depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
-
-    const shaderData = this.shaderData;
-    shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
-    shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 

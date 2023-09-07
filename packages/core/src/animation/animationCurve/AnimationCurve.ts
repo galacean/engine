@@ -82,7 +82,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     let newLength = 0;
     for (let i = keys.length - 1; i >= 0; i--) {
       const key = keys[i];
-      if (key.time > length) {
+      if (key.time > this._length) {
         newLength = key.time;
       }
     }
