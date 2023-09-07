@@ -1,12 +1,13 @@
 import { PhysicsMaterial, PhysicsMaterialCombineMode } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { expect } from "chai";
 
 describe("PhysicsMaterial", () => {
   let material: PhysicsMaterial;
 
   before(async () => {
-    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     engine.run();
 
     material = new PhysicsMaterial();
