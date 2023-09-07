@@ -11,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Rect>>()
 export class AnimationRectCurve extends AnimationCurve<Rect> {
   /** @internal */
-  static _keepOriginReference: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = false;
+  static _supportInterpolationMode: boolean = false;
 
   /**
    * @internal
@@ -35,7 +35,7 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
   /**
    * @internal
    */
-  static _copyValue(source: Rect, out: Rect): Rect {
+  static _setValue(source: Rect, out: Rect): Rect {
     out.copyFrom(source);
     return out;
   }

@@ -11,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<boolean>>()
 export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
-  static _keepOriginReference: boolean = false;
+  static _isCopyMode: boolean = false;
   /** @internal */
-  static _isInterpolationType: boolean = false;
+  static _supportInterpolationMode: boolean = false;
 
   /**
    * @internal
@@ -62,7 +62,7 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /**
    * @internal
    */
-  static _copyValue(value: boolean): boolean {
+  static _setValue(value: boolean): boolean {
     return value;
   }
 

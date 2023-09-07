@@ -12,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
   /** @internal */
-  static _keepOriginReference: boolean = true;
+  static _isCopyMode: boolean = true;
 
   /** @internal */
   private static _tempConjugateQuat = new Quaternion();
@@ -78,7 +78,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _copyValue(source: Quaternion, out: Quaternion): Quaternion {
+  static _setValue(source: Quaternion, out: Quaternion): Quaternion {
     out.copyFrom(source);
     return out;
   }

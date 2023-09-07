@@ -12,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<ReferResource>>()
 export class AnimationRefCurve extends AnimationCurve<ReferResource> {
   /** @internal */
-  static _keepOriginReference: boolean = false;
+  static _isCopyMode: boolean = false;
   /** @internal */
-  static _isInterpolationType: boolean = false;
+  static _supportInterpolationMode: boolean = false;
 
   /**
    * @internal
@@ -29,7 +29,7 @@ export class AnimationRefCurve extends AnimationCurve<ReferResource> {
   /**
    * @internal
    */
-  static _copyValue(value: ReferResource): ReferResource {
+  static _setValue(value: ReferResource): ReferResource {
     return value;
   }
 
