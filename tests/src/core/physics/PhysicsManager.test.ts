@@ -46,7 +46,7 @@ class CollisionTestScript extends Script {
       if (other instanceof DynamicCollider) {
         const dynamicCollider = other as DynamicCollider;
         if (dynamicCollider.isKinematic) {
-          other.entity.transform.position = new Vector3(-10, 0, 0);
+          other.move(new Vector3(-10, 0, 0));
         } else {
           dynamicCollider.applyForce(new Vector3(-100, 0, 0));
         }
@@ -57,7 +57,7 @@ class CollisionTestScript extends Script {
       if (thisCollider instanceof DynamicCollider) {
         const dynamicCollider = thisCollider as DynamicCollider;
         if (dynamicCollider.isKinematic) {
-          thisCollider.entity.transform.position = new Vector3(10, 0, 0);
+          thisCollider.move(new Vector3(10, 0, 0));
         } else {
           dynamicCollider.applyForce(new Vector3(100, 0, 0));
         }
@@ -393,17 +393,17 @@ describe("Physics Test", () => {
       expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
 
       // Test that raycast works correctly if shape is not at origin of coordinate.
-      // ray = new Ray(new Vector3(-2, 0, 0.85), new Vector3(1, 0, 0).normalize());
-      // rootEntityCharacter.transform.position = new Vector3(0, 0, 0.85);
-      // boxShape2.position = new Vector3(0, 0, 0.85);
-      // expect(enginePhysX.physicsManager.raycast(ray, outHitResult)).to.eq(true);
-      // expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
+      ray = new Ray(new Vector3(-2, 0, 0.85), new Vector3(1, 0, 0).normalize());
+      rootEntityCharacter.transform.position = new Vector3(0, 0, 0.85);
+      boxShape2.position = new Vector3(0, 0, 0.85);
+      expect(enginePhysX.physicsManager.raycast(ray, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
 
       // Test that raycast nothing if character controller is disabled.
       characterController.enabled = false;
-      // expect(enginePhysX.physicsManager.raycast(ray, outHitResult)).to.eq(false);
-      // expect(enginePhysX.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(false);
-      // expect(enginePhysX.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
+      expect(enginePhysX.physicsManager.raycast(ray, outHitResult)).to.eq(false);
+      expect(enginePhysX.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(false);
+      expect(enginePhysX.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
 
       root.destroy();
     });
@@ -425,15 +425,15 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerStay).to.have.been.called.gt(1);
-        // expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("both A,B are dynamic and non-trigger", () => {
+      it("both A,B are dynamic and not trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -443,18 +443,18 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision not works, both A,B are dynamic and non-trigger.
+        // Test that collision not works, both A,B are dynamic and not trigger.
         resetSpy();
         setColliderProps(entity1, true, false, false);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onCollisionStay).to.have.been.called.gt(1);
-        // expect(collisionTestScript.onCollisionExit).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionEnter).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionStay).to.have.been.called.gt(1);
+        expect(collisionTestScript.onCollisionExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
       it("both A,B are static and trigger", () => {
@@ -481,7 +481,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("both A,B are static and non-trigger", () => {
+      it("both A,B are static and not trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -491,7 +491,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision not works, both A,B are static and non-trigger.
+        // Test that collision not works, both A,B are static and not trigger.
         resetSpy();
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, false, false, false);
@@ -545,15 +545,15 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerStay).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is static and trigger, B is dynamic and not trigger", () => {
+      it("A is static and trigger, B is dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -563,7 +563,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is static and trigger, B is dynamic and not trigger.
+        // Test that collision works correctly, A is static and trigger, B is dynamic.
         resetSpy();
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, true, false, false);
@@ -577,7 +577,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is static and not trigger, B is dynamic and trigger", () => {
+      it("A is static, B is dynamic and trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -587,7 +587,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is static and not trigger, B is dynamic and trigger.
+        // Test that collision works correctly, A is static, B is dynamic and trigger.
         resetSpy();
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, true, true, false);
@@ -601,7 +601,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is dynamic and trigger, B is dynamic and not trigger", () => {
+      it("A is dynamic and trigger, B is dynamic and", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -611,7 +611,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is dynamic and trigger, B is dynamic and not trigger.
+        // Test that collision works correctly, A is dynamic and trigger, B is dynamic and.
         resetSpy();
         setColliderProps(entity1, true, true, false);
         setColliderProps(entity2, true, false, false);
@@ -625,7 +625,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is static and trigger, B is static and not trigger", () => {
+      it("A is static and trigger, B is static", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -635,7 +635,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is static and trigger, B is static and not trigger.
+        // Test that collision works correctly, A is static and trigger, B is static.
         resetSpy();
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, false, false, false);
@@ -649,7 +649,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic, not trigger and kinematic, B is static and not trigger", () => {
+      it("A is dynamic and kinematic, B is static and", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -659,7 +659,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is dynamic, not trigger and kinematic, B is static and not trigger.
+        // Test that collision works correctly, A is dynamic and kinematic, B is static and.
         resetSpy();
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, false, false, false);
@@ -673,7 +673,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic, not trigger and kinematic, B is dynamic and not trigger", () => {
+      it("A is dynamic, and kinematic, B is dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -683,7 +683,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is dynamic, not trigger and kinematic, B is dynamic and not trigger.
+        // Test that collision works correctly, A is dynamic, and kinematic, B is dynamic.
         resetSpy();
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, true, false, false);
@@ -697,7 +697,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic, trigger and kinematic, B is dynamic and not trigger", () => {
+      it("A is dynamic, trigger and kinematic, B is dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -707,7 +707,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is dynamic, trigger and kinematic, B is dynamic and not trigger.
+        // Test that collision works correctly, A is dynamic, trigger and kinematic, B is dynamic.
         resetSpy();
         setColliderProps(entity1, true, true, true);
         setColliderProps(entity2, true, false, false);
@@ -721,7 +721,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("both A,B are dynamic, non-trigger, kinematic", () => {
+      it("both A,B are dynamic, kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -731,7 +731,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, both A,B are dynamic, non-trigger, kinematic.
+        // Test that collision works correctly, both A,B are dynamic, kinematic.
         resetSpy();
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, true, false, true);
@@ -761,15 +761,15 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, true, true);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerStay).to.have.been.called.gt(1);
-        // expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is static and trigger, B is dynamic, not trigger and kinematic", () => {
+      it("A is static and trigger, B is dynamic and kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -779,7 +779,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is static and trigger, B is dynamic, not trigger and kinematic.
+        // Test that collision works correctly, A is static and trigger, B is dynamic and kinematic.
         resetSpy();
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, true, false, true);
@@ -833,12 +833,12 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, false, true);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerStay).to.have.been.called.gt(1);
-        // expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onTriggerStay).to.have.been.called.gt(1);
+        expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
       it("A is dynamic, trigger and kinematic, B is static and trigger", () => {
@@ -857,12 +857,12 @@ describe("Physics Test", () => {
         setColliderProps(entity2, false, true, false);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerStay).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
       it("A is dynamic, trigger and kinematic, B is dynamic and trigger", () => {
@@ -881,12 +881,12 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
 
-        // expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
-        // expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
-        // expect(collisionTestScript.onTriggerEnter).to.have.been.called.exactly(1);
-        // expect(collisionTestScript.onTriggerStay).to.have.been.called.gt(1);
-        // expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionStay).to.have.been.not.called();
+        expect(collisionTestScript.onCollisionExit).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
+        expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
     });
 
