@@ -190,7 +190,7 @@ describe("Animator test", function () {
     expect(layerState).to.eq(2);
   });
 
-  it.only("animation cross fade by transition", () => {
+  it("animation cross fade by transition", () => {
     const walkState = animator.findAnimatorState("Walk");
     const runState = animator.findAnimatorState("Run");
     const transition = new AnimatorStateTransition();
