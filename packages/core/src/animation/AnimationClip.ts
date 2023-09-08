@@ -66,10 +66,8 @@ export class AnimationClip extends EngineObject {
       event.time = time;
       event.parameter = parameter;
       newEvent = event;
-      // this._events.push(event);
     } else {
       newEvent = param;
-      // this._events.push(param);
     }
     const events = this._events;
     const count = events.length;

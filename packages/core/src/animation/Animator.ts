@@ -126,7 +126,7 @@ export class Animator extends Component {
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
-    this._crossFadeByTransition(manuallyTransition, layerIndex);
+    this._crossFadeByTransition(manuallyTransition, playLayerIndex);
   }
 
   /**
@@ -480,12 +480,12 @@ export class Animator extends Component {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
 
-    const { layerState } = layerData;
-
-    const isCrossFading = layerState === LayerState.CrossFading || layerState === LayerState.FixedCrossFading;
-    transitions.length &&
-      !isCrossFading &&
-      this._checkTransition(playData, transitions, layerIndex, lastClipTime, clipTime);
+    if (transitions.length) {
+      const { layerState } = layerData;
+      if (layerState === LayerState.CrossFading || layerState === LayerState.FixedCrossFading) {
+        this._checkTransition(playData, transitions, layerIndex, lastClipTime, clipTime);
+      }
+    }
   }
 
   private _updateCrossFade(
@@ -779,9 +779,7 @@ export class Animator extends Component {
   }
 
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
-    const { name } = transition.destinationState;
-    const stateInfo = this._getAnimatorStateInfo(name, layerIndex);
-    const { state: crossState, layerIndex: playLayerIndex } = stateInfo;
+    const crossState = transition.destinationState;
     if (!crossState) {
       return;
     }
@@ -790,11 +788,11 @@ export class Animator extends Component {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(layerIndex);
     const layerState = animatorLayerData.layerState;
     const { destPlayData } = animatorLayerData;
 
-    const animatorStateData = this._getAnimatorStateData(name, crossState, animatorLayerData, playLayerIndex);
+    const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
     const duration = crossState._getDuration();
     const offset = duration * transition.offset;
     destPlayData.reset(crossState, animatorStateData, offset);
