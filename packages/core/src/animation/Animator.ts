@@ -480,8 +480,9 @@ export class Animator extends Component {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
 
-    const isCrossFading =
-      layerData.layerState === LayerState.CrossFading || layerData.layerState === LayerState.FixedCrossFading;
+    const { layerState } = layerData;
+
+    const isCrossFading = layerState === LayerState.CrossFading || layerState === LayerState.FixedCrossFading;
     transitions.length &&
       !isCrossFading &&
       this._checkTransition(playData, transitions, layerIndex, lastClipTime, clipTime);
