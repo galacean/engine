@@ -480,8 +480,11 @@ export class Animator extends Component {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
 
+    const isCrossFading =
+      layerData.layerState === LayerState.CrossFading || layerData.layerState === LayerState.FixedCrossFading;
     transitions.length &&
-      this._checkTransition(playData, transitions, layerData.crossFadeTransition, layerIndex, lastClipTime, clipTime);
+      !isCrossFading &&
+      this._checkTransition(playData, transitions, layerIndex, lastClipTime, clipTime);
   }
 
   private _updateCrossFade(
@@ -691,7 +694,6 @@ export class Animator extends Component {
   private _checkTransition(
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
-    crossFadeTransition: AnimatorStateTransition,
     layerIndex: number,
     lastClipTime: number,
     clipTime: number
@@ -699,34 +701,19 @@ export class Animator extends Component {
     const { state } = playState;
     const clipDuration = state.clip.length;
 
-    if (this.speed >= 0) {
+    if (this.speed * state.speed >= 0) {
       if (clipTime < lastClipTime) {
-        this._checkSubTransition(
-          playState,
-          transitions,
-          crossFadeTransition,
-          layerIndex,
-          lastClipTime,
-          state.clipEndTime * clipDuration
-        );
+        this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, state.clipEndTime * clipDuration);
         playState.currentTransitionIndex = 0;
-        this._checkSubTransition(
-          playState,
-          transitions,
-          crossFadeTransition,
-          layerIndex,
-          state.clipStartTime * clipDuration,
-          clipTime
-        );
+        this._checkSubTransition(playState, transitions, layerIndex, state.clipStartTime * clipDuration, clipTime);
       } else {
-        this._checkSubTransition(playState, transitions, crossFadeTransition, layerIndex, lastClipTime, clipTime);
+        this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, clipTime);
       }
     } else {
       if (clipTime > lastClipTime) {
         this._checkBackwardsSubTransition(
           playState,
           transitions,
-          crossFadeTransition,
           layerIndex,
           lastClipTime,
           state.clipStartTime * clipDuration
@@ -735,20 +722,12 @@ export class Animator extends Component {
         this._checkBackwardsSubTransition(
           playState,
           transitions,
-          crossFadeTransition,
           layerIndex,
           clipTime,
           state.clipEndTime * clipDuration
         );
       } else {
-        this._checkBackwardsSubTransition(
-          playState,
-          transitions,
-          crossFadeTransition,
-          layerIndex,
-          lastClipTime,
-          clipTime
-        );
+        this._checkBackwardsSubTransition(playState, transitions, layerIndex, lastClipTime, clipTime);
       }
     }
   }
@@ -756,7 +735,6 @@ export class Animator extends Component {
   private _checkSubTransition(
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
-    crossFadeTransition: AnimatorStateTransition,
     layerIndex: number,
     lastClipTime: number,
     curClipTime: number
@@ -770,7 +748,7 @@ export class Animator extends Component {
         break;
       }
 
-      if (exitTime >= lastClipTime && !crossFadeTransition) {
+      if (exitTime >= lastClipTime) {
         this._crossFadeByTransition(transition, layerIndex);
         playState.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
       }
@@ -780,7 +758,6 @@ export class Animator extends Component {
   private _checkBackwardsSubTransition(
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
-    crossFadeTransition: AnimatorStateTransition,
     layerIndex: number,
     lastClipTime: number,
     curClipTime: number
@@ -793,8 +770,8 @@ export class Animator extends Component {
         break;
       }
 
-      if (exitTime <= lastClipTime && !crossFadeTransition) {
-        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
+      if (exitTime <= lastClipTime) {
+        this._crossFadeByTransition(transition, layerIndex);
         playState.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
       }
     }
