@@ -9,7 +9,7 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
-  before(async function () {
+ before(async function () {
     this.timeout(10000);
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();

@@ -11,11 +11,11 @@ function searchTests(root: string) {
       if (IS_COV && path.basename(filePath) === "KTX2Loader.test.ts") {
         return;
       }
-      require(filePath);
-    } else if (stat.isDirectory()) {
       describe(file, function () {
-        searchTests(filePath);
+        require(filePath);
       }).timeout(5000);
+    } else if (stat.isDirectory()) {
+      searchTests(filePath);
     }
   });
 }

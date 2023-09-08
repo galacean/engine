@@ -30,7 +30,7 @@ export class SpriteRenderData extends RenderData implements IPoolElement {
     this.dataIndex = dataIndex;
   }
 
-  dispose(): void {
+  override dispose(): void {
     this.component = this.material = this.verticesData = this.texture = null;
   }
 }

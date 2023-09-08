@@ -148,20 +148,19 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   override update(): void {
-    const skin = this._skin;
-    if (skin) {
-      const ibms = skin.inverseBindMatrices;
-      const worldToLocal = this._rootBone.getInvModelMatrix();
-      const { _bones: bones, _jointMatrices: jointMatrices } = this;
-
+    const { _skin: skin, _bones: bones } = this;
+    if (skin && bones) {
       // @todo: can optimize when share skin
+      const jointMatrices = this._jointMatrices;
+      const bindMatrices = skin.inverseBindMatrices;
+      const worldToLocal = (this._rootBone ?? this.entity).getInvModelMatrix();
       for (let i = bones.length - 1; i >= 0; i--) {
         const bone = bones[i];
         const offset = i * 16;
         if (bone) {
-          Utils._floatMatrixMultiply(bone.transform.worldMatrix, ibms[i].elements, 0, jointMatrices, offset);
+          Utils._floatMatrixMultiply(bone.transform.worldMatrix, bindMatrices[i].elements, 0, jointMatrices, offset);
         } else {
-          jointMatrices.set(ibms[i].elements, offset);
+          jointMatrices.set(bindMatrices[i].elements, offset);
         }
         Utils._floatMatrixMultiply(worldToLocal, jointMatrices, offset, jointMatrices, offset);
       }

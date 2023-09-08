@@ -11,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -76,7 +76,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  static _copyValue(source: number[], out: number[]): number[] {
+  static _setValue(source: number[], out: number[]): number[] {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = source[i];
     }
