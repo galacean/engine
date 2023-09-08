@@ -183,12 +183,16 @@ describe("Joint", () => {
     expect(joint.swingOffset).to.deep.include({ x: 1, y: 2, z: 3 });
 
     // Test that angle works correctly.
-    let tempAngle = joint.angle;
-    expect(joint.angle).to.eq(tempAngle);
+    expect(() => {
+      let tempAngle = joint.angle;
+      expect(joint.angle).to.eq(tempAngle);
+    }).to.not.throw();
 
     // Test that velocity works correctly.
-    let tempVelocity = joint.velocity;
-    expect(joint.velocity).to.deep.eq(tempVelocity);
+    expect(() => {
+      let tempVelocity = joint.velocity;
+      expect(joint.velocity).to.deep.eq(tempVelocity);
+    }).to.not.throw();
 
     // Test that useLimits works correctly.
     let tempUseLimits = joint.useLimits;
@@ -233,8 +237,10 @@ describe("Joint", () => {
     tempMotor.freeSpin = true;
     tempMotor.targetVelocity = 10;
     tempMotor.gearRation = 10;
-    joint.motor = tempMotor;
-    expect(joint.motor).to.be.eq(tempMotor);
+    expect(() => {
+      joint.motor = tempMotor;
+      expect(joint.motor).to.be.eq(tempMotor);
+    }).to.not.throw();
 
     // Test that limits works correctly.
     let tempLimits = joint.limits;
@@ -247,8 +253,23 @@ describe("Joint", () => {
     tempLimits.max = 10;
     tempLimits.min = -10;
     tempLimits.stiffness = 0;
-    joint.limits = tempLimits;
-    expect(joint.limits).to.be.eq(tempLimits);
+    expect(() => {
+      joint.limits = tempLimits;
+      expect(joint.limits).to.be.eq(tempLimits);
+    }).to.not.throw();
+
+    // Test that setSoftLimit works correctly.
+    joint.useSpring = true;
+    tempLimits = new JointLimits();
+    tempLimits.contactDistance = -10;
+    tempLimits.damping = 0;
+    tempLimits.max = 10;
+    tempLimits.min = -10;
+    tempLimits.stiffness = 0;
+    expect(() => {
+      joint.limits = tempLimits;
+      expect(joint.limits).to.be.eq(tempLimits);
+    }).to.not.throw();
   });
 
   it("Spring Joint", () => {
