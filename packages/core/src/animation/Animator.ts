@@ -493,7 +493,7 @@ export class Animator extends Component {
 
     if (transitions.length) {
       const { layerState } = layerData;
-      if (layerState === LayerState.CrossFading || layerState === LayerState.FixedCrossFading) {
+      if (layerState !== LayerState.CrossFading && layerState !== LayerState.FixedCrossFading) {
         this._checkTransition(playData, transitions, layerIndex, lastClipTime, clipTime);
       }
     }
@@ -719,6 +719,7 @@ export class Animator extends Component {
     const clipDuration = state.clip.length;
 
     if (this.speed * state.speed >= 0) {
+      console.log(999, clipTime, lastClipTime);
       if (clipTime < lastClipTime) {
         this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, state.clipEndTime * clipDuration);
         playState.currentTransitionIndex = 0;
