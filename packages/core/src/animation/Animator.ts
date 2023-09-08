@@ -764,9 +764,10 @@ export class Animator extends Component {
     curClipTime: number
   ) {
     let transitionIndex = playState.currentTransitionIndex;
+    const duration = playState.state._getDuration();
     for (; transitionIndex >= 0; transitionIndex--) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * playState.state._getDuration();
+      const exitTime = transition.exitTime * duration;
       if (exitTime < curClipTime) {
         break;
       }
