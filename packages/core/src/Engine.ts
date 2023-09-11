@@ -1,20 +1,10 @@
 import { IPhysics } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
-import { ContentRestorer } from "./asset/ContentRestorer";
-import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
 import { ComponentsManager } from "./ComponentsManager";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { ColorSpace } from "./enums/ColorSpace";
-import { InputManager } from "./input";
-import { LightManager } from "./lighting/LightManager";
-import { Material } from "./material/Material";
-import { PhysicsManager } from "./physics";
-import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -25,18 +15,28 @@ import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
 import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
-import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
-import { CompareFunction } from "./shader/enums/CompareFunction";
-import { CullMode } from "./shader/enums/CullMode";
-import { RenderQueueType } from "./shader/enums/RenderQueueType";
+import { ContentRestorer } from "./asset/ContentRestorer";
+import { ResourceManager } from "./asset/ResourceManager";
+import { EventDispatcher, Logger, Time } from "./base";
+import { GLCapabilityType } from "./base/Constant";
+import { ColorSpace } from "./enums/ColorSpace";
+import { InputManager } from "./input";
+import { LightManager } from "./lighting/LightManager";
+import { Material } from "./material/Material";
+import { PhysicsManager } from "./physics";
+import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
@@ -299,10 +299,6 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    if (this._isDeviceLost) {
-      return;
-    }
-
     const time = this._time;
     time._update();
 
@@ -326,7 +322,9 @@ export class Engine extends EventDispatcher {
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
-      this._render(scene);
+      if (!this._isDeviceLost) {
+        this._render(scene);
+      }
     }
 
     if (!this._waitingDestroy) {
