@@ -1,10 +1,10 @@
-import { PassPropertyAssignmentAstNode, StructAstNode } from "./ast-node";
+import { AstNode, IPassAstContent, PassPropertyAssignmentAstNode, StructAstNode } from "./ast-node";
 import { DiagnosticSeverity } from "./Constants";
 import RuntimeContext from "./RuntimeContext";
 
 export class Ast2GLSLUtils {
-  static stringifyVertexFunction(vertexFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
-    const vertFnAst = context.passAst.content.functions.find(
+  static stringifyVertexFunction(passAst: AstNode<IPassAstContent>,vertexFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
+    const vertFnAst = passAst.content.functions.find(
       (fn) => fn.content.name === vertexFnProperty.content.value.content.variable
     );
     if (!vertFnAst) {
@@ -69,8 +69,8 @@ export class Ast2GLSLUtils {
     return [context.getAttribText(), context.getVaryingText(), context.getGlobalText(), vertexFnStr].join("\n");
   }
 
-  static stringifyFragmentFunction(fragmentFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
-    const fragFnAst = context.passAst.content.functions.find(
+  static stringifyFragmentFunction(passAst: AstNode<IPassAstContent>,fragmentFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
+    const fragFnAst = passAst.content.functions.find(
       (fn) => fn.content.name === fragmentFnProperty.content.value.content.variable
     );
     if (!fragFnAst) {

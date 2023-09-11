@@ -96,11 +96,15 @@ export class Shader {
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
           if (typeof passInfo === "string") {
-            // TODO: replace builtin shader pass
-            return;
+            // Use Pass reference
+            const paths = passInfo.split("/");
+            return Shader.find(paths[0])
+              ?.subShaders.find((subShader) => subShader.name === paths[1])
+              ?.passes.find((pass) => pass.name === paths[2]);
           }
-          const shaderPass = new ShaderPass(passInfo.vertexSource, passInfo.fragmentSource, passInfo.tags);
 
+          const shaderPass = new ShaderPass(passInfo.vertexSource, passInfo.fragmentSource, passInfo.tags);
+          shaderPass.name = passInfo.name;
           const renderStates = passInfo.renderStates;
           const renderState = new RenderState();
           shaderPass._renderState = renderState;

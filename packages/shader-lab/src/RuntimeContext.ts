@@ -11,15 +11,15 @@ import {
   VariableDeclarationAstNode
 } from "./ast-node/AstNode";
 
+import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
+import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 import {
   IPassAstContent,
+  IPositionRange,
   IShaderAstContent,
   ISubShaderAstContent,
-  IPositionRange,
   IUsePassAstContent
 } from "./ast-node";
-import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
-import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -54,7 +54,6 @@ interface IReferenceStructInfo {
 }
 
 export default class RuntimeContext {
-  passAst: AstNode<IPassAstContent>;
   functionAstStack: { fnAst: FnAstNode; localDeclaration: VariableDeclarationAstNode[] }[] = [];
   /** Diagnostic for linting service. */
   diagnostics: IDiagnostic[] = [];
@@ -142,6 +141,7 @@ export default class RuntimeContext {
   }
 
   private _parsePassProperty(
+    passAst: AstNode<IPassAstContent>,
     prop: PassPropertyAssignmentAstNode,
     ret: IShaderPassInfo,
     renderStates: RenderStateDeclarationAstNode[]
@@ -156,8 +156,8 @@ export default class RuntimeContext {
           });
           return;
         }
-        this._initPassGlobalList();
-        ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(prop, this);
+        this._initPassGlobalList(passAst);
+        ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(passAst, prop, this);
         break;
       case FRAG_FN_NAME:
         if (ret.fragmentSource) {
@@ -168,8 +168,8 @@ export default class RuntimeContext {
           });
           return;
         }
-        this._initPassGlobalList();
-        ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(prop, this);
+        this._initPassGlobalList(passAst);
+        ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(passAst, prop, this);
         break;
       default:
         // Render State
@@ -190,9 +190,9 @@ export default class RuntimeContext {
   parsePassInfo(ast: AstNode<IPassAstContent | IUsePassAstContent>): IShaderPassInfo | string {
     this._passReset();
 
-    if (typeof ast.content === "string") return ast.content;
-
-    this.passAst = ast as AstNode<IPassAstContent>;
+    if (typeof ast.content === "string") {
+      return ast.content;
+    }
 
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
@@ -202,7 +202,9 @@ export default class RuntimeContext {
 
     this.payload = { parsingRenderState: true };
     const tmpRenderStates = ast.content.renderStates;
-    ast.content.properties.forEach((prop) => this._parsePassProperty(prop, ret, tmpRenderStates));
+    ast.content.properties.forEach((prop) =>
+      this._parsePassProperty(<AstNode<IPassAstContent>>ast, prop, ret, tmpRenderStates)
+    );
     if (tmpRenderStates) {
       for (const rs of tmpRenderStates) {
         const [constP, variableP] = rs.getContentValue(this).properties;
@@ -299,7 +301,6 @@ export default class RuntimeContext {
     this.attributesVariableListInfo.length = 0;
     this.varyingTypeAstNode = undefined;
     this._currentMainFnAst = undefined;
-    this.passAst = undefined;
     this.varyingStructInfo = {};
   }
 
@@ -345,21 +346,23 @@ export default class RuntimeContext {
     });
   }
 
-  private _initPassGlobalList() {
-    this.passAst.content.functions?.forEach((item) => {
+  private _initPassGlobalList(passAst: AstNode<IPassAstContent>) {
+    const content = passAst.content;
+
+    content.functions?.forEach((item) => {
       this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
     });
-    this.passAst.content.structs?.forEach((item) => {
+    content.structs?.forEach((item) => {
       this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
     });
-    this.passAst.content.variables?.forEach((item) => {
+    content.variables?.forEach((item) => {
       this._passGlobalMap.set(item.getVariable(), {
         ast: item,
         referenced: false,
         name: item.getVariable()
       });
     });
-    this.passAst.content.defines?.forEach((item) => {
+    content.defines?.forEach((item) => {
       this._passGlobalMap.set(item.content.variable.getVariableName(), {
         ast: item,
         referenced: false,
