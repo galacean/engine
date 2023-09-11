@@ -431,9 +431,8 @@ describe("Entity", async () => {
       expect(root.isActiveInHierarchy).eq(false);
       expect(root.createChild("child1").isActiveInHierarchy).eq(false);
 
-      setTimeout(() => {
-        expect(script.onDestroy).to.have.been.called.exactly(1);
-      }, 1000);
+      engine.update();
+      expect(script.onDestroy).to.have.been.called.exactly(1);
     });
   });
 });
