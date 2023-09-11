@@ -91,13 +91,13 @@ export class GLTFEntityParser extends GLTFParser {
         }
         sceneRoots[i] = rootEntity;
       }
+      // @ts-ignore
+      sceneRoots[i]._hookResource = glTFResource;
+      // @ts-ignore
+      glTFResource._addReferCount(1);
     }
 
     glTFResource.sceneRoots = sceneRoots;
     glTFResource.defaultSceneRoot = sceneRoots[sceneID];
-    // @ts-ignore
-    glTFResource.defaultSceneRoot._hookResource = glTFResource;
-    // @ts-ignore
-    glTFResource._addReferCount(1);
   }
 }
