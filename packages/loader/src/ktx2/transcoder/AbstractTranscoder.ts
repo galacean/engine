@@ -31,7 +31,6 @@ export abstract class AbstractTranscoder {
           if (e.data.error) {
             reject(e.data.error);
           } else {
-            console.log("worker created");
             resolve(worker);
           }
         }
