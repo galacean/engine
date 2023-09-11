@@ -36,6 +36,7 @@ import {
   IFnMacroDefineVariableAstContent,
   ITupleNumber2,
   ITupleNumber4,
+  IUsePassAstContent,
   MultiplicationExprAstNode,
   MultiplicationOperatorAstNode,
   NumberAstNode,
@@ -142,6 +143,7 @@ import {
   _ruleTagCstChildren,
   _ruleTupleFloat4CstChildren,
   _ruleTupleInt4CstChildren,
+  _ruleUsePassCstChildren,
   _ruleVariableTypeCstChildren
 } from "./types";
 
@@ -191,7 +193,11 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleSubShader(ctx: _ruleSubShaderCstChildren, param?: any) {
     const tags = ctx._ruleTag ? (this.visit(ctx._ruleTag) as TagAstNode) : undefined;
 
-    const pass = ctx._ruleShaderPass?.map((item) => this.visit(item));
+    const shaderPass = ctx._ruleShaderPass?.map((item) => this.visit(item));
+
+    const usePass = ctx._ruleUsePass?.map((item) => this.visit(item)) ?? [];
+
+    const passList = [...shaderPass, ...usePass].sort(AstNodeUtils.astSortAsc);
 
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(ctx.SubShader[0]).start,
@@ -200,12 +206,24 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     return new AstNode<ISubShaderAstContent>(position, {
       tags,
-      pass,
+      name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
+      pass: passList,
       variables: ctx._ruleShaderPropertyDeclare?.map((item) => this.visit(item) as any),
       functions: ctx._ruleFn?.map((item) => this.visit(item)),
       structs: ctx._ruleStruct?.map((item) => this.visit(item)),
       renderStates: ctx._ruleRenderStateDeclaration?.map((item) => this.visit(item))
     });
+  }
+
+  _ruleUsePass(children: _ruleUsePassCstChildren, param?: any): AstNode<IUsePassAstContent> {
+    const path = children.ValueString[0].image.replace(/"(.*)"/, "$1");
+    return new AstNode<IUsePassAstContent>(
+      {
+        start: AstNodeUtils.getTokenPosition(children.UsePass[0]).start,
+        end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+      },
+      path
+    );
   }
 
   _ruleShaderPass(ctx: _ruleShaderPassCstChildren) {

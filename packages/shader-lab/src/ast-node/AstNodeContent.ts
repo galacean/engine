@@ -62,7 +62,8 @@ export interface IPropertyItemAstContent {
 
 export interface ISubShaderAstContent {
   tags?: TagAstNode;
-  pass: AstNode<IPassAstContent>[];
+  name: string;
+  pass: AstNode<IPassAstContent | IUsePassAstContent>[];
   functions?: FnAstNode[];
   renderStates?: RenderStateDeclarationAstNode[];
   structs?: StructAstNode[];
@@ -86,6 +87,8 @@ export interface IPassAstContent {
   renderStates?: RenderStateDeclarationAstNode[];
   defines?: FnMacroDefineAstNode[];
 }
+
+export type IUsePassAstContent = string;
 
 export interface ITypeAstContent {
   text: string;

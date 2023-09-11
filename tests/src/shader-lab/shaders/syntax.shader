@@ -1,6 +1,6 @@
 Shader "Water" {
 
-  SubShader {
+  SubShader "subname" {
 
     Pass "default" {
 

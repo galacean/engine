@@ -12,7 +12,7 @@ Shader "Water" {
     SlopeScaledDepthBias = 0.8;
   }
 
-  SubShader {
+  SubShader "subname" {
     Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
 
     BlendFactor material_SrcBlend;

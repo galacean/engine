@@ -41,10 +41,12 @@ export class ShaderParser extends CstParser {
 
   private _ruleSubShader = this.RULE("_ruleSubShader", () => {
     this.CONSUME(Keywords.SubShader);
+    this.CONSUME(Values.ValueString);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
       this.OR([
         { ALT: () => this.SUBRULE(this._ruleShaderPass) },
+        { ALT: () => this.SUBRULE(this._ruleUsePass) },
         { ALT: () => this.SUBRULE(this._ruleTag) },
         { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
         { ALT: () => this.SUBRULE(this._ruleStruct) },
@@ -53,6 +55,12 @@ export class ShaderParser extends CstParser {
       ]);
     });
     this.CONSUME(Symbols.RCurly);
+  });
+
+  private _ruleUsePass = this.RULE("_ruleUsePass", () => {
+    this.CONSUME(Keywords.UsePass);
+    this.CONSUME(Values.ValueString);
+    this.CONSUME(Symbols.Semicolon);
   });
 
   private _ruleShaderPass = this.RULE("_ruleShaderPass", () => {

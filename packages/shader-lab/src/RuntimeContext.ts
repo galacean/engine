@@ -11,7 +11,13 @@ import {
   VariableDeclarationAstNode
 } from "./ast-node/AstNode";
 
-import { IPassAstContent, IShaderAstContent, ISubShaderAstContent, IPositionRange } from "./ast-node";
+import {
+  IPassAstContent,
+  IShaderAstContent,
+  ISubShaderAstContent,
+  IPositionRange,
+  IUsePassAstContent
+} from "./ast-node";
 import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 
@@ -135,6 +141,7 @@ export default class RuntimeContext {
     const ret = {} as ISubShaderInfo;
     ret.tags = ast.content.tags?.getContentValue();
     ret.passes = ast.content.pass.map((item) => this.parsePassInfo(item));
+    ret.name = ast.content.name;
     return ret;
   }
 
@@ -184,9 +191,12 @@ export default class RuntimeContext {
     }
   }
 
-  parsePassInfo(ast: AstNode<IPassAstContent>): IShaderPassInfo {
+  parsePassInfo(ast: AstNode<IPassAstContent | IUsePassAstContent>): IShaderPassInfo | string {
     this._passReset();
-    this.passAst = ast;
+
+    if (typeof ast.content === "string") return ast.content;
+
+    this.passAst = ast as AstNode<IPassAstContent>;
 
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;

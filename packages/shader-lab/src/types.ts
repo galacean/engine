@@ -26,14 +26,27 @@ export interface _ruleSubShaderCstNode extends CstNode {
 
 export type _ruleSubShaderCstChildren = {
   SubShader: IToken[];
+  ValueString: IToken[];
   LCurly: IToken[];
   _ruleShaderPass?: _ruleShaderPassCstNode[];
+  _ruleUsePass?: _ruleUsePassCstNode[];
   _ruleTag?: _ruleTagCstNode[];
   _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   _ruleStruct?: _ruleStructCstNode[];
   _ruleFn?: _ruleFnCstNode[];
   _ruleShaderPropertyDeclare?: _ruleShaderPropertyDeclareCstNode[];
   RCurly: IToken[];
+};
+
+export interface _ruleUsePassCstNode extends CstNode {
+  name: "_ruleUsePass";
+  children: _ruleUsePassCstChildren;
+}
+
+export type _ruleUsePassCstChildren = {
+  UsePass: IToken[];
+  ValueString: IToken[];
+  Semicolon: IToken[];
 };
 
 export interface _ruleShaderPassCstNode extends CstNode {
@@ -1157,6 +1170,7 @@ export type _ruleTupleInt2CstChildren = {
 export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleShader(children: _ruleShaderCstChildren, param?: IN): OUT;
   _ruleSubShader(children: _ruleSubShaderCstChildren, param?: IN): OUT;
+  _ruleUsePass(children: _ruleUsePassCstChildren, param?: IN): OUT;
   _ruleShaderPass(children: _ruleShaderPassCstChildren, param?: IN): OUT;
   _ruleShaderPropertyDeclare(children: _ruleShaderPropertyDeclareCstChildren, param?: IN): OUT;
   _rulePrecisionPrefix(children: _rulePrecisionPrefixCstChildren, param?: IN): OUT;

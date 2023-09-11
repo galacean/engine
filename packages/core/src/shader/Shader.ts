@@ -95,6 +95,10 @@ export class Shader {
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
+          if (typeof passInfo === "string") {
+            // TODO: replace builtin shader pass
+            return;
+          }
           const shaderPass = new ShaderPass(passInfo.vertexSource, passInfo.fragmentSource, passInfo.tags);
 
           const renderStates = passInfo.renderStates;
