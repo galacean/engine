@@ -2,7 +2,6 @@ import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
-import { Shader } from "./Shader";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
@@ -93,7 +92,7 @@ export class ShaderPass extends ShaderPart {
     let fragmentSource =
       ` ${versionStr}
         ${graphicAPI}
-        ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
+        ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
         ${macroNameStr}
       ` + ShaderFactory.parseIncludes(this._fragmentSource);

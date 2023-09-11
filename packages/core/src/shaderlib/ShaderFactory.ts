@@ -2,6 +2,11 @@ import { Logger } from "../base/Logger";
 import { ShaderLib } from "./ShaderLib";
 
 export class ShaderFactory {
+  /** @internal */
+  static readonly _shaderExtension = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives", "GL_EXT_draw_buffers"]
+    .map((e) => `#extension ${e} : enable\n`)
+    .join("");
+
   static parseCustomMacros(macros: string[]) {
     return macros.map((m) => `#define ${m}\n`).join("");
   }
@@ -28,14 +33,6 @@ export class ShaderFactory {
     }
 
     return src.replace(regex, replace);
-  }
-
-  /**
-   * GLSL extension.
-   * @param extensions - such as ["GL_EXT_shader_texture_lod"]
-   * */
-  static parseExtension(extensions: string[]): string {
-    return extensions.map((e) => `#extension ${e} : enable\n`).join("");
   }
 
   /**

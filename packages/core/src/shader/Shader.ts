@@ -1,19 +1,19 @@
 import { IShaderLab } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
-import { RenderState } from "./state/RenderState";
-import { RenderStateElementKey } from "./enums/RenderStateElementKey";
-import { BlendOperation } from "./enums/BlendOperation";
 import { BlendFactor } from "./enums/BlendFactor";
+import { BlendOperation } from "./enums/BlendOperation";
 import { ColorWriteMask } from "./enums/ColorWriteMask";
-import { Color } from "@galacean/engine-math";
 import { CompareFunction } from "./enums/CompareFunction";
-import { StencilOperation } from "./enums/StencilOperation";
 import { CullMode } from "./enums/CullMode";
+import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { StencilOperation } from "./enums/StencilOperation";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader for rendering.
@@ -21,12 +21,7 @@ import { CullMode } from "./enums/CullMode";
 export class Shader {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  static readonly _shaderExtension: string[] = [
-    "GL_EXT_shader_texture_lod",
-    "GL_OES_standard_derivatives",
-    "GL_EXT_draw_buffers"
-  ];
+
   /** @internal */
   static _shaderLab?: IShaderLab;
 
