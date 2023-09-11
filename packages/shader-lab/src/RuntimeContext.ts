@@ -347,23 +347,24 @@ export default class RuntimeContext {
   }
 
   private _initPassGlobalList(passAst: AstNode<IPassAstContent>) {
+    const passGlobalMap = this._passGlobalMap;
     const content = passAst.content;
 
     content.functions?.forEach((item) => {
-      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+      passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
     });
     content.structs?.forEach((item) => {
-      this._passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
+      passGlobalMap.set(item.content.name, { ast: item, referenced: false, name: item.content.name });
     });
     content.variables?.forEach((item) => {
-      this._passGlobalMap.set(item.getVariable(), {
+      passGlobalMap.set(item.getVariable(), {
         ast: item,
         referenced: false,
         name: item.getVariable()
       });
     });
     content.defines?.forEach((item) => {
-      this._passGlobalMap.set(item.content.variable.getVariableName(), {
+      passGlobalMap.set(item.content.variable.getVariableName(), {
         ast: item,
         referenced: false,
         name: item.content.variable.getVariableName()
