@@ -8,6 +8,7 @@ export class WebXRHitTest implements IXRHitTest {
   descriptor: IXRFeatureDescriptor;
 
   private _engine: Engine;
+  private _space: XRReferenceSpace;
   private _sessionManager: WebXRSessionManager;
   private _hitTestManager: XRHitTestManager;
   private _x: number;
@@ -15,31 +16,19 @@ export class WebXRHitTest implements IXRHitTest {
   private _hitTestSource: XRHitTestSource;
 
   startHitTest(x: number, y: number): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this._hitTestSource && this._x === x && this._y === y) {
-        resolve();
+    if (!this._hitTestSource || this._x !== x || this._y !== y) {
+      this._destroyHitTestSource();
+      if (this._space) {
+        return this._requestHitTestSource(x, y);
       } else {
-        const { _platformSession: platformSession } = this._sessionManager;
-        platformSession.requestReferenceSpace("viewer").then((space) => {
-          // const option: XRHitTestOptionsInit = { space, offsetRay: new XRRay({ x, y }) };
-          const option: XRHitTestOptionsInit = { space };
-          platformSession.requestHitTestSource(option).then((hitTestSource) => {
-            this._hitTestSource = hitTestSource;
-            this._x = x;
-            this._y = y;
-            resolve();
-          }, reject);
-        }, reject);
+        return this._requestViewerSpace().then(() => this._requestHitTestSource(x, y));
       }
-    });
+    }
   }
 
   stopHitTest(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this._hitTestSource) {
-        this._hitTestSource.cancel();
-        this._hitTestSource = null;
-      }
+      this._destroyHitTestSource();
       resolve();
     });
   }
@@ -74,6 +63,29 @@ export class WebXRHitTest implements IXRHitTest {
   }
 
   _onDestroy(): void {
+    this._destroyHitTestSource();
+  }
+
+  private _requestHitTestSource(x: number, y: number): Promise<void> {
+    const { _space: space } = this;
+    const { _platformSession: platformSession } = this._sessionManager;
+    //const option: XRHitTestOptionsInit = { space, offsetRay: new XRRay({ x, y }) };
+    const option: XRHitTestOptionsInit = { space };
+    return platformSession.requestHitTestSource(option).then((hitTestSource) => {
+      this._hitTestSource = hitTestSource;
+      this._x = x;
+      this._y = y;
+    });
+  }
+
+  private _requestViewerSpace(): Promise<void> {
+    const { _platformSession: platformSession } = this._sessionManager;
+    return platformSession.requestReferenceSpace("viewer").then((space) => {
+      this._space = space;
+    });
+  }
+
+  private _destroyHitTestSource() {
     if (this._hitTestSource) {
       this._hitTestSource.cancel();
       this._hitTestSource = null;
