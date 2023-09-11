@@ -8,8 +8,8 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { EngineObject } from "./base";
 import { ReferResource } from "./asset/ReferResource";
+import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 
 /**
@@ -177,7 +177,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
     // @todo: should inverse traversal
     for (let i = components.length - 1; i >= 0; i--) {
@@ -186,6 +186,7 @@ export class Entity extends EngineObject {
         return component;
       }
     }
+    return null;
   }
 
   /**
@@ -393,6 +394,15 @@ export class Entity extends EngineObject {
       this._hookResource._addReferCount(-1);
       this._hookResource = null;
     }
+
+    this.isActive = false;
+
+    if (this._isRoot) {
+      this._scene.removeRootEntity(this);
+    } else {
+      this._setParent(null);
+    }
+
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
@@ -402,13 +412,6 @@ export class Entity extends EngineObject {
     const children = this._children;
     while (children.length > 0) {
       children[0].destroy();
-    }
-
-    if (this._isRoot) {
-      this._scene._removeFromEntityList(this);
-      this._isRoot = false;
-    } else {
-      this._removeFromParent();
     }
   }
 

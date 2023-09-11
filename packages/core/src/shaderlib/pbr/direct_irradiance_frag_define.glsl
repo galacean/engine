@@ -77,24 +77,24 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
 
     #ifdef SCENE_DIRECT_LIGHT_COUNT
         shadowAttenuation = 1.0;
-    #ifdef SCENE_IS_CALCULATE_SHADOWS
-        shadowAttenuation *= sampleShadowMap();
-        // int sunIndex = int(scene_ShadowInfo.z);
-    #endif
+        #ifdef SCENE_IS_CALCULATE_SHADOWS
+            shadowAttenuation *= sampleShadowMap();
+            // int sunIndex = int(scene_ShadowInfo.z);
+        #endif
 
         DirectLight directionalLight;
         for ( int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) 
-                continue;
-
-            directionalLight.color = scene_DirectLightColor[i];
-            #ifdef SCENE_IS_CALCULATE_SHADOWS
-                if (i == 0) { // Sun light index is always 0
-                    directionalLight.color *= shadowAttenuation;
-                }
-            #endif
-            directionalLight.direction = scene_DirectLightDirection[i];
-            addDirectionalDirectLightRadiance( directionalLight, geometry, material, reflectedLight );
+            // warning: use `continue` syntax may trigger flickering bug in safri 16.1.
+            if(!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])){
+                directionalLight.color = scene_DirectLightColor[i];
+                #ifdef SCENE_IS_CALCULATE_SHADOWS
+                    if (i == 0) { // Sun light index is always 0
+                        directionalLight.color *= shadowAttenuation;
+                    }
+                #endif
+                directionalLight.direction = scene_DirectLightDirection[i];
+                addDirectionalDirectLightRadiance( directionalLight, geometry, material, reflectedLight );
+            }
         }
 
     #endif
@@ -104,14 +104,13 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         PointLight pointLight;
 
         for ( int i = 0; i < SCENE_POINT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) 
-                continue;
+            if(!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])){
+                pointLight.color = scene_PointLightColor[i];
+                pointLight.position = scene_PointLightPosition[i];
+                pointLight.distance = scene_PointLightDistance[i];
 
-            pointLight.color = scene_PointLightColor[i];
-            pointLight.position = scene_PointLightPosition[i];
-            pointLight.distance = scene_PointLightDistance[i];
-
-            addPointDirectLightRadiance( pointLight, geometry, material, reflectedLight );
+                addPointDirectLightRadiance( pointLight, geometry, material, reflectedLight );
+            } 
         }
 
     #endif
@@ -121,17 +120,16 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         SpotLight spotLight;
 
         for ( int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) 
-                continue;
+            if(!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])){
+                spotLight.color = scene_SpotLightColor[i];
+                spotLight.position = scene_SpotLightPosition[i];
+                spotLight.direction = scene_SpotLightDirection[i];
+                spotLight.distance = scene_SpotLightDistance[i];
+                spotLight.angleCos = scene_SpotLightAngleCos[i];
+                spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
 
-            spotLight.color = scene_SpotLightColor[i];
-            spotLight.position = scene_SpotLightPosition[i];
-            spotLight.direction = scene_SpotLightDirection[i];
-            spotLight.distance = scene_SpotLightDistance[i];
-            spotLight.angleCos = scene_SpotLightAngleCos[i];
-            spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
-
-            addSpotDirectLightRadiance( spotLight, geometry, material, reflectedLight );
+                addSpotDirectLightRadiance( spotLight, geometry, material, reflectedLight );
+            } 
         }
 
     #endif
