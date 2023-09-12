@@ -11,9 +11,9 @@ import { JointMotor } from "./JointMotor";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
-  private _axis: Vector3 = new Vector3(1, 0, 0);
-  private _hingeFlags: number = 0;
-  private _useSpring: boolean = false;
+  private _axis = new Vector3(1, 0, 0);
+  private _hingeFlags = HingeJointFlag.None;
+  private _useSpring = false;
   private _jointMonitor: JointMotor;
   private _limits: JointLimits;
 
@@ -70,9 +70,9 @@ export class HingeJoint extends Joint {
 
   set useLimits(value: boolean) {
     if (value !== this.useLimits) {
-      this._hingeFlags |= HingeJointFlag.LimitEnabled;
+      value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
+      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
     }
-    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
   }
 
   /**
@@ -84,9 +84,9 @@ export class HingeJoint extends Joint {
 
   set useMotor(value: boolean) {
     if (value !== this.useMotor) {
-      this._hingeFlags |= HingeJointFlag.DriveEnabled;
+      value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
+      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
     }
-    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
   }
 
   /**
