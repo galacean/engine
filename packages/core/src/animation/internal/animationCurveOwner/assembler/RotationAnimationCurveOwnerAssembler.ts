@@ -1,8 +1,8 @@
 import { Quaternion } from "@galacean/engine-math";
 import { Transform } from "../../../../Transform";
 import { KeyframeValueType } from "../../../Keyframe";
-import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
+import type { AnimationCurveOwner } from "../AnimationCurveOwner";
 
 /**
  * @internal

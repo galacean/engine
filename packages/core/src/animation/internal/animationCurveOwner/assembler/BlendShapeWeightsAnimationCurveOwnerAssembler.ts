@@ -1,7 +1,7 @@
 import { SkinnedMeshRenderer } from "../../../../mesh";
 import { KeyframeValueType } from "../../../Keyframe";
-import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
+import type { AnimationCurveOwner } from "../AnimationCurveOwner";
 
 /**
  * @internal
