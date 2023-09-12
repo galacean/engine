@@ -3,6 +3,8 @@
  * @internal
  */
 export enum HingeJointFlag {
+  /** disable all */
+  None,
   /** enable the limit */
   LimitEnabled = 1,
   /** enable the drive */
