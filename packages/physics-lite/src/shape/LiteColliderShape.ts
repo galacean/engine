@@ -17,6 +17,10 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _collider: LiteCollider;
   /** @internal */
+  _position: Vector3 = new Vector3();
+  /** @internal */
+  _scale: Vector3 = new Vector3(1, 1, 1);
+  /** @internal */
   _transform: LiteTransform = new LiteTransform();
   /** @internal */
   _invModelMatrix: Matrix = new Matrix();
@@ -39,13 +43,22 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(position: Vector3): void {
-    this._transform.setPosition(position.x, position.y, position.z);
+    if (position !== this._position) {
+      this._position.copyFrom(position);
+    }
+    this._setLocalPose();
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  abstract setWorldScale(scale: Vector3): void;
+  setWorldScale(scale: Vector3): void {
+    if (scale !== this._scale) {
+      this._scale.copyFrom(scale);
+      this._transform.scale.copyFrom(scale);
+    }
+    this._setLocalPose();
+  }
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
@@ -124,5 +137,12 @@ export abstract class LiteColliderShape implements IColliderShape {
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
+  }
+
+  private _setLocalPose() {
+    const temp = LiteColliderShape._tempPoint;
+
+    Vector3.multiply(this._position, this._scale, temp);
+    this._transform.position = temp;
   }
 }

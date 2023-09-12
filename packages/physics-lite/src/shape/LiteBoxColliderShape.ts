@@ -10,7 +10,6 @@ import { LiteColliderShape } from "./LiteColliderShape";
 export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
   private static _tempBox: BoundingBox = new BoundingBox();
   private _halfSize: Vector3 = new Vector3();
-  private _scale: Vector3 = new Vector3(1, 1, 1);
 
   /** @internal */
   _boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
@@ -41,9 +40,9 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {
-    this._transform.position = this._transform.position.multiply(scale);
-    this._scale.copyFrom(scale);
+  override setWorldScale(scale: Vector3): void {
+    super.setWorldScale(scale);
+    this._setBondingBox();
   }
 
   /**
@@ -81,10 +80,17 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   }
 
   private _setBondingBox(): void {
-    const { position: center } = this._transform;
+    const { position, scale } = this._transform;
     const halfSize = this._halfSize;
-
-    Vector3.add(center, halfSize, this._boxMax);
-    Vector3.subtract(center, halfSize, this._boxMin);
+    this._boxMin.set(
+      -halfSize.x * scale.x + position.x,
+      -halfSize.y * scale.y + position.y,
+      -halfSize.z * scale.z + position.z
+    );
+    this._boxMax.set(
+      halfSize.x * scale.x + position.x,
+      halfSize.y * scale.y + position.y,
+      halfSize.z * scale.z + position.z
+    );
   }
 }
