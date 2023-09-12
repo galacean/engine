@@ -1,5 +1,5 @@
-import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { Matrix, Ray, Vector3 } from "@galacean/engine";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
@@ -19,7 +19,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _position: Vector3 = new Vector3();
   /** @internal */
-  _scale: Vector3 = new Vector3(1, 1, 1);
+  _worldScale: Vector3 = new Vector3(1, 1, 1);
   /** @internal */
   _transform: LiteTransform = new LiteTransform();
   /** @internal */
@@ -53,9 +53,8 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    if (scale !== this._scale) {
-      this._scale.copyFrom(scale);
-      this._transform.scale.copyFrom(scale);
+    if (scale !== this._worldScale) {
+      this._worldScale.copyFrom(scale);
     }
     this._setLocalPose();
   }
@@ -140,9 +139,8 @@ export abstract class LiteColliderShape implements IColliderShape {
   }
 
   private _setLocalPose() {
-    const temp = LiteColliderShape._tempPoint;
-
-    Vector3.multiply(this._position, this._scale, temp);
-    this._transform.position = temp;
+    const shapePosition = LiteColliderShape._tempPoint;
+    Vector3.multiply(this._position, this._worldScale, shapePosition);
+    this._transform.position = shapePosition;
   }
 }
