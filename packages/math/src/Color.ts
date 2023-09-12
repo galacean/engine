@@ -259,6 +259,20 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
+   * Copy from array like object.
+   * @param source - Array like object.
+   * @returns This vector
+   */
+  copyFromArray(source: ArrayLike<number>, offset: number = 0): Color {
+    this._r = source[offset] ?? 0;
+    this._g = source[offset + 1] ?? 0;
+    this._b = source[offset + 2] ?? 0;
+    this._a = source[offset + 3] ?? 0;
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
    * Modify components (r, g, b) of this color from gamma space to linear space.
    * @param out - The color in linear space
    * @returns The color in linear space
