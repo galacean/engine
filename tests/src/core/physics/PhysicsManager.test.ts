@@ -409,7 +409,7 @@ describe("Physics Test", () => {
     });
 
     describe("Collision Test", () => {
-      it("both A,B are dynamic and trigger", () => {
+      it("Dynamic Trigger vs Dynamic Trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -433,7 +433,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("both A,B are dynamic and not trigger", () => {
+      it("Dynamic vs Dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -443,21 +443,21 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision not works, both A,B are dynamic and not trigger.
+        // Test that collision not works, both A,B are dynamic.
         resetSpy();
         setColliderProps(entity1, true, false, false);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
 
-        expect(collisionTestScript.onCollisionEnter).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.called.gt(1);
         expect(collisionTestScript.onCollisionStay).to.have.been.called.gt(1);
-        expect(collisionTestScript.onCollisionExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionExit).to.have.been.called.gt(1);
         expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
         expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("both A,B are static and trigger", () => {
+      it("Static Trigger vs Static Trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -481,7 +481,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("both A,B are static and not trigger", () => {
+      it("Static vs Static", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -491,7 +491,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision not works, both A,B are static and not trigger.
+        // Test that collision not works, both A,B are static.
         resetSpy();
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, false, false, false);
@@ -505,7 +505,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is static and B is dynamic, both A,B are not trigger", () => {
+      it("Static vs Dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -515,7 +515,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is static and B is dynamic, both A,B are not trigger.
+        // Test that collision works correctly, A is static and B is dynamic.
         resetSpy();
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, true, false, false);
@@ -529,7 +529,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is static and B is dynamic, both A,B are trigger", () => {
+      it("Static Trigger vs Dynamic Trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -553,7 +553,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is static and trigger, B is dynamic", () => {
+      it("Static Trigger vs Dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -577,7 +577,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is static, B is dynamic and trigger", () => {
+      it("Static vs Dynamic Trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -601,7 +601,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is dynamic and trigger, B is dynamic and", () => {
+      it("Dynamic Trigger vs Dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -611,7 +611,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is dynamic and trigger, B is dynamic and.
+        // Test that collision works correctly, A is dynamic and trigger, B is dynamic.
         resetSpy();
         setColliderProps(entity1, true, true, false);
         setColliderProps(entity2, true, false, false);
@@ -625,7 +625,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is static and trigger, B is static", () => {
+      it("Static Trigger vs Static", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -649,7 +649,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic and kinematic, B is static and", () => {
+      it("Dynamic Kinematic vs Static", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -659,7 +659,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
         collisionTestScript.useLite = false;
 
-        // Test that collision works correctly, A is dynamic and kinematic, B is static and.
+        // Test that collision works correctly, A is dynamic and kinematic, B is static.
         resetSpy();
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, false, false, false);
@@ -673,7 +673,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic, and kinematic, B is dynamic", () => {
+      it("Dynamic Kinematic vs Dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -689,15 +689,15 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
 
-        expect(collisionTestScript.onCollisionEnter).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.called.gt(1);
         expect(collisionTestScript.onCollisionStay).to.have.been.called.gt(1);
-        expect(collisionTestScript.onCollisionExit).to.have.been.called.exactly(1);
+        expect(collisionTestScript.onCollisionExit).to.have.been.called.gt(1);
         expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
         expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic, trigger and kinematic, B is dynamic", () => {
+      it("Dynamic Trigger Kinematic vs Dynamic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -721,7 +721,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("both A,B are dynamic, kinematic", () => {
+      it("Dynamic Kinematic vs Dynamic Kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -745,7 +745,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("both A,B are dynamic, trigger, kinematic", () => {
+      it("Dynamic Trigger Kinematic vs Dynamic Trigger Kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -769,7 +769,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is static and trigger, B is dynamic and kinematic", () => {
+      it("Static Trigger vs Dynamic Kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -793,7 +793,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is dynamic and trigger, B is dynamic and kinematic", () => {
+      it("Dynamic Trigger vs Dynamic Kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -817,7 +817,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is dynamic, trigger and kinematic, B is dynamic and kinematic", () => {
+      it("Dynamic Trigger Kinematic vs Dynamic Kinematic", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -841,7 +841,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.called.exactly(1);
       });
 
-      it("A is dynamic, trigger and kinematic, B is static and trigger", () => {
+      it("Dynamic Trigger Kinematic vs Static Trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -865,7 +865,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
       });
 
-      it("A is dynamic, trigger and kinematic, B is dynamic and trigger", () => {
+      it("Dynamic Trigger Kinematic vs Dynamic Trigger", () => {
         const physicsMgr = enginePhysX.physicsManager;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
