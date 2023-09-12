@@ -51,12 +51,6 @@ export class ShaderPass extends ShaderPart {
    */
   constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
 
-  /**
-   * Create a shader pass.
-   * @param vertexSource - Vertex shader source
-   * @param fragmentSource - Fragment shader source
-   * @param tags - Tags
-   */
   constructor(
     nameOrVertexSource: string,
     vertexSourceOrFragmentSource: string,
