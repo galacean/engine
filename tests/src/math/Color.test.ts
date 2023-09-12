@@ -61,10 +61,18 @@ describe("Color test", () => {
   it("copyFromArray", () => {
     const a = new Color();
     const b = new Color(0, 0, 1, 1);
-    const data = [1, 0, 0, 1, 1]
+    const data = [1, 0, 0, 1, 1];
 
     a.copyFromArray(data, 1);
     expect(Color.equals(a, b)).to.eq(true);
+  });
+
+  it("copyToArray", () => {
+    const a = new Color(0, 0, 1, 1);
+    const data = [1, 0, 0, 0, 0];
+
+    a.copyToArray(data, 1);
+    expect(data).to.deep.eq([1, 0, 0, 1, 1]);
   });
 
   it("LinearAndGamma", () => {
@@ -94,9 +102,9 @@ describe("Color test", () => {
     }
   });
 
-  it('toJSON', ()=>{
+  it("toJSON", () => {
     const color = new Color(1, 0.5, 0.5, 1);
     const json = color.toJSON();
-    expect(json).to.deep.eq({r: 1, g: 0.5, b: 0.5, a: 1});
-  })
+    expect(json).to.deep.eq({ r: 1, g: 0.5, b: 0.5, a: 1 });
+  });
 });
