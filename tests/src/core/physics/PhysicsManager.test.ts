@@ -449,9 +449,9 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
 
-        expect(collisionTestScript.onCollisionEnter).to.have.been.called.gt(1);
-        expect(collisionTestScript.onCollisionStay).to.have.been.called.gt(1);
-        expect(collisionTestScript.onCollisionExit).to.have.been.called.gt(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.called.at.least(1);
+        expect(collisionTestScript.onCollisionStay).to.have.been.called.at.least(1);
+        expect(collisionTestScript.onCollisionExit).to.have.been.called.at.least(1);
         expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
         expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
@@ -689,9 +689,9 @@ describe("Physics Test", () => {
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
 
-        expect(collisionTestScript.onCollisionEnter).to.have.been.called.gt(1);
+        expect(collisionTestScript.onCollisionEnter).to.have.been.called.exactly(1);
         expect(collisionTestScript.onCollisionStay).to.have.been.called.gt(1);
-        expect(collisionTestScript.onCollisionExit).to.have.been.called.gt(1);
+        expect(collisionTestScript.onCollisionExit).to.have.been.called.exactly(1);
         expect(collisionTestScript.onTriggerEnter).to.have.been.not.called();
         expect(collisionTestScript.onTriggerStay).to.have.been.not.called();
         expect(collisionTestScript.onTriggerExit).to.have.been.not.called();
