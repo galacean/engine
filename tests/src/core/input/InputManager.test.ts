@@ -160,6 +160,13 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).to.have.been.called.exactly(1);
     expect(script.onPointerDrag).to.have.been.called.exactly(1);
     expect(script.onPointerUp).to.have.been.called.exactly(1);
+
+    // @ts-ignore
+    inputManager._onFocus();
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 4, 0, 0));
+    engine.update();
+    const deltaPosition = engine.inputManager.pointers[0].deltaPosition;
+    expect(deltaPosition).deep.equal(new Vector2(0, 0));
   });
 
   it("keyboard", () => {
