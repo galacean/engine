@@ -4,7 +4,7 @@
  */
 export enum HingeJointFlag {
   /** disable all */
-  None,
+  None = 0,
   /** enable the limit */
   LimitEnabled = 1,
   /** enable the drive */
