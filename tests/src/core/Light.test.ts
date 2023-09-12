@@ -78,8 +78,8 @@ describe("Light test", function () {
   it("update intensity", function () {
     directLight.intensity = 2;
     expect(directLight.intensity).to.equal(2);
-
     const expectedColor = new Color(1, 1, 1);
+    engine.update();
     const calculatedColor = directLight["_lightColor"];
     expect(calculatedColor).to.deep.equal(expectedColor);
   });
