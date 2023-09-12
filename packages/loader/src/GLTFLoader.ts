@@ -1,18 +1,30 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
-import { GLTFParser } from "./gltf/GLTFParser";
+import {
+  AssetPromise,
+  AssetType,
+  Loader,
+  LoadItem,
+  Logger,
+  resourceLoader,
+  ResourceManager
+} from "@galacean/engine-core";
+import { GLTFPipeline } from "./gltf/GLTFPipeline";
 import { GLTFResource } from "./gltf/GLTFResource";
-import { ParserContext } from "./gltf/parser/ParserContext";
+import { GLTFParserContext } from "./gltf/parser";
+import { GLTFContentRestorer } from "./GLTFContentRestorer";
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+@resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-  load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
-    const url = item.url;
-    const context = new ParserContext(url);
+  override load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
+    const { url } = item;
+    const params = <GLTFParams>item.params;
+    const context = new GLTFParserContext(url);
     const glTFResource = new GLTFResource(resourceManager.engine, url);
+    const restorer = new GLTFContentRestorer(glTFResource);
     const masterPromiseInfo = context.masterPromiseInfo;
 
+    context.contentRestorer = restorer;
     context.glTFResource = glTFResource;
-    context.keepMeshData = item.params?.keepMeshData ?? false;
+    context.keepMeshData = params?.keepMeshData ?? false;
 
     masterPromiseInfo.onCancel(() => {
       const { chainPromises } = context;
@@ -21,12 +33,21 @@ export class GLTFLoader extends Loader<GLTFResource> {
       }
     });
 
-    GLTFParser.defaultPipeline
-      .parse(context)
-      .then(masterPromiseInfo.resolve)
+    (params?.pipeline || GLTFPipeline.defaultPipeline)
+      ._parse(context)
+      .then((glTFResource) => {
+        resourceManager.addContentRestorer(restorer);
+        masterPromiseInfo.resolve(glTFResource);
+      })
       .catch((e) => {
-        console.error(e);
-        masterPromiseInfo.reject(`Error loading glTF model from ${url} .`);
+        const msg = `Error loading glTF model from ${url} : ${e}`;
+        Logger.error(msg);
+        masterPromiseInfo.reject(msg);
+        context.defaultSceneRootPromiseInfo.reject(e);
+        context.texturesPromiseInfo.reject(e);
+        context.materialsPromiseInfo.reject(e);
+        context.meshesPromiseInfo.reject(e);
+        context.animationClipsPromiseInfo.reject(e);
       });
 
     return context.promiseMap;
@@ -42,4 +63,6 @@ export interface GLTFParams {
    * Keep raw mesh data for glTF parser, default is false.
    */
   keepMeshData: boolean;
+  /** Custom glTF pipeline. */
+  pipeline: GLTFPipeline;
 }

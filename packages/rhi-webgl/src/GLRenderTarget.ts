@@ -9,7 +9,7 @@ import {
   TextureFormat
 } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * The render target in WebGL platform is used for off-screen rendering.
@@ -30,7 +30,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   /**
    * Create render target in WebGL platform.
    */
-  constructor(rhi: WebGLRenderer, target: RenderTarget) {
+  constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
     this._isWebGL2 = rhi.isWebGL2;
     this._target = target;

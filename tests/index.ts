@@ -8,9 +8,9 @@ function searchTests(root: string) {
     if (stat.isFile() && filePath.endsWith(".test.ts")) {
       require(filePath);
     } else if (stat.isDirectory()) {
-      describe(file, () => {
+      describe(file, function () {
         searchTests(filePath);
-      });
+      }).timeout(5000);
     }
   });
 }

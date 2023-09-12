@@ -1,5 +1,5 @@
-import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine";
+import { IBoxColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";
@@ -12,21 +12,15 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   /** @internal */
   _halfSize: Vector3 = new Vector3();
 
-  /**
-   * Init Box Shape and alloc PhysX objects.
-   * @param uniqueID - UniqueID mark Shape.
-   * @param size - Size of Shape.
-   * @param material - Material of PhysXCollider.
-   */
-  constructor(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
+    super(physXPhysics);
 
     this._halfSize.set(size.x * 0.5, size.y * 0.5, size.z * 0.5);
 
-    this._pxGeometry = new PhysXPhysics._physX.PxBoxGeometry(
-      this._halfSize.x * this._scale.x,
-      this._halfSize.y * this._scale.y,
-      this._halfSize.z * this._scale.z
+    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(
+      this._halfSize.x * this._worldScale.x,
+      this._halfSize.y * this._worldScale.y,
+      this._halfSize.z * this._worldScale.z
     );
     this._initialize(material, uniqueID);
     this._setLocalPose();
@@ -36,29 +30,36 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * {@inheritDoc IBoxColliderShape.setSize }
    */
   setSize(value: Vector3): void {
+    const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
-    this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
+    Vector3.multiply(this._halfSize, this._worldScale, tempExtents);
+    this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const pxController = controllers.get(i)._pxController;
-      pxController.setHalfHeight(this._halfSize.x);
-      pxController.setHalfSideExtent(this._halfSize.y);
-      pxController.setHalfForwardExtent(this._halfSize.z);
-    }
+    this._updateController(tempExtents);
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {
-    this._scale.copyFrom(scale);
-    this._setLocalPose();
+  override setWorldScale(scale: Vector3): void {
+    super.setWorldScale(scale);
 
-    Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
-    this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
+    const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
+    Vector3.multiply(this._halfSize, this._worldScale, tempExtents);
+    this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
+
+    this._updateController(tempExtents);
+  }
+
+  private _updateController(extents: Vector3) {
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      const pxController = controllers.get(i)._pxController;
+      pxController.setHalfHeight(extents.x);
+      pxController.setHalfSideExtent(extents.y);
+      pxController.setHalfForwardExtent(extents.z);
+    }
   }
 }

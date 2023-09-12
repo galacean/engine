@@ -1,14 +1,19 @@
 import { PBRSpecularMaterial } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { MaterialParser } from "../parser/MaterialParser";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
-import { IKHRMaterialsPbrSpecularGlossiness } from "./Schema";
+import type { IMaterial } from "../GLTFSchema";
+import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
+import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
-@registerExtension("KHR_materials_pbrSpecularGlossiness")
-class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
-  createEngineResource(schema: IKHRMaterialsPbrSpecularGlossiness, context: ParserContext): PBRSpecularMaterial {
+@registerGLTFExtension("KHR_materials_pbrSpecularGlossiness", GLTFExtensionMode.CreateAndParse)
+class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
+  override createAndParse(
+    context: GLTFParserContext,
+    schema: IKHRMaterialsPbrSpecularGlossiness,
+    ownerSchema: IMaterial
+  ): PBRSpecularMaterial {
     const { engine, textures } = context.glTFResource;
     const material = new PBRSpecularMaterial(engine);
     const { diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture } = schema;
@@ -24,7 +29,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (diffuseTexture) {
       material.baseTexture = textures[diffuseTexture.index];
-      MaterialParser._parseTextureTransform(material, diffuseTexture.extensions, context);
+      GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
     }
 
     if (specularFactor) {
@@ -41,9 +46,11 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (specularGlossinessTexture) {
       material.specularGlossinessTexture = textures[specularGlossinessTexture.index];
-      MaterialParser._parseTextureTransform(material, specularGlossinessTexture.extensions, context);
+      GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
     }
 
+    material.name = ownerSchema.name;
+    GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema);
     return material;
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "0.9.0-alpha.4",
+  "version": "1.0.0-alpha.6",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -16,9 +16,12 @@
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
-    "@galacean/engine-physics-lite": "workspace:*"
+    "@galacean/engine-physics-lite": "workspace:*",
+    "@galacean/engine-physics-physx": "workspace:*"
+    
   }
 }

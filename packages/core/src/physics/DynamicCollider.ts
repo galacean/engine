@@ -295,10 +295,9 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onLateUpdate(): void {
+  override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);

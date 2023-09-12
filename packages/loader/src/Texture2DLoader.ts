@@ -8,33 +8,38 @@ import {
   Texture2D,
   TextureFormat
 } from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
+import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
-      this.request<HTMLImageElement>(item.url, {
+      const url = item.url;
+      const requestConfig = <RequestConfig>{
         ...item,
         type: "image"
-      })
+      };
+      this.request<HTMLImageElement>(url, requestConfig)
         .then((image) => {
-          const params = item.params ?? {};
+          const params = item.params as Texture2DParams;
           const texture = new Texture2D(
             resourceManager.engine,
             image.width,
             image.height,
-            params.format,
-            params.mipmap
+            params?.format,
+            params?.mipmap
           );
-          /** @ts-ignore */
-          if (!texture._platformTexture) return;
+
           texture.setImageSource(image);
           texture.generateMipmaps();
 
-          if (item.url.indexOf("data:") !== 0) {
-            const splitPath = item.url.split("/");
-            texture.name = splitPath[splitPath.length - 1];
+          if (url.indexOf("data:") !== 0) {
+            const index = url.lastIndexOf("/");
+            texture.name = url.substring(index + 1);
           }
+
+          resourceManager.addContentRestorer(new Texture2DContentRestorer(texture, url, requestConfig));
           resolve(texture);
         })
         .catch((e) => {

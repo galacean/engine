@@ -15,16 +15,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
-  private static _pxRaycastHit: any;
-  private static _pxFilterData: any;
 
-  static _init() {
-    PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics._physX.PxRaycastHit();
-    PhysXPhysicsManager._pxFilterData = new PhysXPhysics._physX.PxQueryFilterData();
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics._physX.PxQueryFlags(
-      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
-    );
-  }
+  private _physXPhysics: PhysXPhysics;
+  private _pxRaycastHit: any;
+  private _pxFilterData: any;
 
   private _pxScene: any;
 
@@ -40,6 +34,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _eventPool: TriggerEvent[] = [];
 
   constructor(
+    physXPhysics: PhysXPhysics,
     onContactEnter?: (obj1: number, obj2: number) => void,
     onContactExit?: (obj1: number, obj2: number) => void,
     onContactStay?: (obj1: number, obj2: number) => void,
@@ -47,6 +42,14 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
+    this._physXPhysics = physXPhysics;
+
+    const physX = physXPhysics._physX;
+
+    this._pxRaycastHit = new physX.PxRaycastHit();
+    this._pxFilterData = new physX.PxQueryFilterData();
+    this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
+
     this._onContactEnter = onContactEnter;
     this._onContactExit = onContactExit;
     this._onContactStay = onContactStay;
@@ -55,31 +58,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onContactBegin: (index1, index2) => {
         this._onContactEnter(index1, index2);
       },
-      onContactEnd: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onContactEnd: (index1, index2) => {
         this._onContactExit(index1, index2);
       },
-      onContactPersist: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onContactPersist: (index1, index2) => {
         this._onContactStay(index1, index2);
       },
-      onTriggerBegin: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
         event.state = TriggerEventState.Enter;
         this._currentEvents.add(event);
       },
-      onTriggerEnd: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onTriggerEnd: (index1, index2) => {
         let event: TriggerEvent;
         if (index1 < index2) {
           const subMap = this._eventMap[index1];
@@ -94,13 +87,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       }
     };
 
-    const PHYSXSimulationCallbackInstance = PhysXPhysics._physX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = PhysXPhysics._physX.getDefaultSceneDesc(
-      PhysXPhysics._pxPhysics.getTolerancesScale(),
-      0,
-      PHYSXSimulationCallbackInstance
-    );
-    this._pxScene = PhysXPhysics._pxPhysics.createScene(sceneDesc);
+    const pxPhysics = physXPhysics._pxPhysics;
+    const physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = physX.getDefaultSceneDesc(pxPhysics.getTolerancesScale(), 0, physXSimulationCallbackInstance);
+    this._pxScene = pxPhysics.createScene(sceneDesc);
   }
 
   /**
@@ -151,14 +141,16 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
-    const lastPXManager = characterController._pxManager;
-    const shape = characterController._shape;
-    if (shape) {
-      if (lastPXManager !== this) {
-        lastPXManager && characterController._destroyPXController();
-        characterController._createPXController(this, shape);
+    // Physx have no API to remove/readd cct into scene.
+    if (!characterController._pxController) {
+      const shape = characterController._shape;
+      if (shape) {
+        const lastPXManager = characterController._pxManager;
+        if (lastPXManager !== this) {
+          lastPXManager && characterController._destroyPXController();
+          characterController._createPXController(this, shape);
+        }
       }
-      this._pxScene.addController(characterController._pxController);
     }
     characterController._pxManager = this;
   }
@@ -167,9 +159,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
-    if (characterController._shape) {
-      this._pxScene.removeController(characterController._pxController);
-    }
     characterController._pxManager = null;
   }
 
@@ -191,12 +180,11 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;
+    const { _pxRaycastHit: pxHitResult } = this;
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
 
     const raycastCallback = {
-      preFilter: (filterData, shape, actor) => {
-        const index = shape.getQueryFilterData().word0;
+      preFilter: (filterData, index, actor) => {
         if (onRaycast(index)) {
           return 2; // eBLOCK
         } else {
@@ -211,8 +199,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       ray.direction,
       distance,
       pxHitResult,
-      PhysXPhysicsManager._pxFilterData,
-      PhysXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
+      this._pxFilterData,
+      this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
     );
 
     if (result && hit != undefined) {
@@ -221,7 +209,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       position.set(pxPosition.x, pxPosition.y, pxPosition.z);
       normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
 
-      hit(pxHitResult.getShape().getQueryFilterData().word0, pxHitResult.distance, position, normal);
+      hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
     }
     return result;
   }

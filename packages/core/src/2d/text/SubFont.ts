@@ -1,12 +1,17 @@
+import { AssetPromise } from "../../asset/AssetPromise";
+import { ContentRestorer } from "../../asset/ContentRestorer";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 import { FontAtlas } from "../atlas/FontAtlas";
 import { CharInfo } from "./CharInfo";
+import { TextUtils } from "./TextUtils";
 
 /**
  * @internal
  */
 export class SubFont {
+  nativeFontString: string;
+
   private _engine: Engine;
   private _fontAtlases: FontAtlas[] = [];
   private _lastIndex: number = -1;
@@ -90,7 +95,34 @@ export class SubFont {
     const fontAtlas = new FontAtlas(engine);
     const texture = new Texture2D(engine, 256, 256);
     fontAtlas.texture = texture;
+    fontAtlas.isGCIgnored = texture.isGCIgnored = true;
     this._fontAtlases.push(fontAtlas);
+
+    const nativeFontString = this.nativeFontString;
+
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<FontAtlas> {
+        constructor() {
+          super(fontAtlas);
+        }
+        restoreContent(): void | AssetPromise<FontAtlas> {
+          const { resource } = this;
+          const charInfoMap = resource._charInfoMap;
+          const texture = resource.texture;
+          for (let k in charInfoMap) {
+            const charInfo = charInfoMap[k];
+            const data = TextUtils.measureChar(charInfo.char, nativeFontString).data;
+
+            if (charInfo.w > 0 && charInfo.h > 0 && data) {
+              const { bufferOffset } = charInfo;
+              texture.setPixelBuffer(data, 0, bufferOffset.x, bufferOffset.y, charInfo.w, charInfo.h);
+            }
+          }
+          texture.generateMipmaps();
+        }
+      })()
+    );
+
     return fontAtlas;
   }
 }

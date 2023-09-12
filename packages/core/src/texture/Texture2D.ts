@@ -2,6 +2,7 @@ import { Engine } from "../Engine";
 import { IPlatformTexture2D } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
+import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
 
@@ -16,18 +17,21 @@ export class Texture2D extends Texture {
    * @param height - Texture height
    * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
+   * @param usage - Texture usage
    */
   constructor(
     engine: Engine,
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true
+    mipmap: boolean = true,
+    usage: TextureUsage = TextureUsage.Static
   ) {
     super(engine);
     this._mipmap = mipmap;
     this._width = width;
     this._height = height;
+    this._usage = usage;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
@@ -167,5 +171,13 @@ export class Texture2D extends Texture {
         out
       );
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
+    super._rebuild();
   }
 }

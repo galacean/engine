@@ -3,7 +3,7 @@ import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents } from "./ComponentsDependencies";
+import { dependentComponents, DependentMode } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
@@ -12,6 +12,8 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderProperty } from "./shader/ShaderProperty";
+import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
@@ -25,17 +27,14 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(Transform)
+@dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
-  private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
+  private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   /** @internal */
-  private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
-
-  /** Shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
+  private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
 
   /** Rendering priority - A Camera with higher priority will be rendered on top of a camera with lower priority. */
   priority: number = 0;
@@ -66,7 +65,12 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
+  /** @internal */
+  _replacementShader: Shader = null;
+  /** @internal */
+  _replacementSubShaderTag: ShaderTagKey = null;
 
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
@@ -94,6 +98,13 @@ export class Camera extends Component {
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
+
+  /**
+   * Shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Near clip plane - the closest point to the camera when rendering occurs.
@@ -262,7 +273,11 @@ export class Camera extends Component {
   }
 
   set renderTarget(value: RenderTarget | null) {
-    this._renderTarget = value;
+    if (this._renderTarget !== value) {
+      value?._addReferCount(1);
+      this._renderTarget?._addReferCount(-1);
+      this._renderTarget = value;
+    }
   }
 
   /**
@@ -277,7 +292,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = transform.registerWorldChangeFlag();
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
-    this.shaderData._addRefCount(1);
+    this.shaderData._addReferCount(1);
   }
 
   /**
@@ -438,11 +453,13 @@ export class Camera extends Component {
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
     virtualCamera.position.copyFrom(transform.worldPosition);
     if (virtualCamera.isOrthographic) {
-      transform.getWorldForward(virtualCamera.forward);
+      virtualCamera.forward.copyFrom(transform.worldForward);
     }
 
     context.camera = this;
     context.virtualCamera = virtualCamera;
+    context.replacementShader = this._replacementShader;
+    context.replacementTag = this._replacementSubShaderTag;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
@@ -469,30 +486,80 @@ export class Camera extends Component {
   }
 
   /**
-   * @override
+   * Set the replacement shader.
+   * @param shader - Replacement shader
+   * @param replacementTagName - Sub shader tag name
+   *
+   * @remarks
+   * If replacementTagName is not specified, the first sub shader will be replaced.
+   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   */
+  setReplacementShader(shader: Shader, replacementTagName?: string);
+
+  /**
+   * Set the replacement shader.
+   * @param shader - Replacement shader
+   * @param replacementTag - Sub shader tag
+   *
+   * @remarks
+   * If replacementTag is not specified, the first sub shader will be replaced.
+   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   */
+  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey);
+
+  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTagKey): void {
+    this._replacementShader = shader;
+    this._replacementSubShaderTag =
+      typeof replacementTag === "string" ? ShaderTagKey.getByName(replacementTag) : replacementTag;
+  }
+
+  /**
+   * Reset and clear the replacement shader.
+   */
+  resetReplacementShader(): void {
+    this._replacementShader = null;
+    this._replacementSubShaderTag = null;
+  }
+
+  /**
    * @inheritdoc
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.entity.scene._attachRenderCamera(this);
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
   }
 
   /**
-   * @override
+   * @internal
    * @inheritdoc
    */
-  _onDestroy(): void {
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
+
+    this._entity = null;
+    this._globalShaderMacro = null;
+    this._frustum = null;
+    this._renderPipeline = null;
+    this._virtualCamera = null;
+    this._shaderData = null;
+    this._frustumViewChangeFlag = null;
+    this._transform = null;
+    this._isViewMatrixDirty = null;
+    this._isInvViewProjDirty = null;
+    this._viewport = null;
+    this._inverseProjectionMatrix = null;
+    this._lastAspectSize = null;
+    this._invViewProjMat = null;
   }
 
   private _projMatChange(): void {

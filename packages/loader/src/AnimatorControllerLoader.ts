@@ -39,7 +39,8 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                   clipStartNormalizedTime,
                   clipEndNormalizedTime,
                   isDefaultState,
-                  clip: clipData
+                  clip: clipData,
+                  scripts
                 } = stateData;
                 const state = stateMachine.addState(name);
                 isDefaultState && (stateMachine.defaultState = state);
@@ -47,6 +48,10 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 state.wrapMode = wrapMode;
                 state.clipStartTime = clipStartNormalizedTime;
                 state.clipEndTime = clipEndNormalizedTime;
+                const scriptsObject = JSON.parse(scripts);
+                scriptsObject?.forEach((script) => {
+                  state.addStateMachineScript(Loader.getClass(script));
+                });
                 if (clipData) {
                   promises.push(
                     new Promise((resolve) => {

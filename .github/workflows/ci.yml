@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev/*
+
+  pull_request:
+    branches:
+      - main
+      - dev/*
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm run lint
+
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+    
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install
+      - run: npm run build
+
+  codecov:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm run test-cov
+      - run: pnpm install codecov -w
+      - name: Upload coverage to Codecov
+        run: ./node_modules/.bin/codecov
+      - run: curl -s https://codecov.io/bash

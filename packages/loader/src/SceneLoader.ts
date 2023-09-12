@@ -6,36 +6,50 @@ import {
   Font,
   Loader,
   LoadItem,
-  PrimitiveMesh,
+  Logger,
+  Mesh,
   resourceLoader,
   ResourceManager,
-  Scene,
-  SkyBoxMaterial
+  Scene
 } from "@galacean/engine-core";
-import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
+import { IClassObject, IScene, ReflectionParser, SceneParser } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, { type: "json" })
+      this.request<IScene>(item.url, { type: "json" })
         .then((data) => {
           // @ts-ignore
           engine.resourceManager.initVirtualResources(data.files);
           return SceneParser.parse(engine, data).then((scene) => {
+            const promises = [];
             // parse ambient light
             const ambient = data.scene.ambient;
-            let ambientLightPromise = Promise.resolve();
-            if (ambient.ambientLight) {
-              ambientLightPromise = resourceManager
-                // @ts-ignore
-                .getResourceByRef<any>(data.scene.ambient.ambientLight)
-                .then((light) => {
-                  scene.ambientLight = light;
+            const useCustomAmbient = ambient.specularMode === "Custom";
+            if (useCustomAmbient && ambient.customAmbientLight) {
+              // @ts-ignore
+              // prettier-ignore
+              const customAmbientPromise = resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
+                  scene.ambientLight = ambientLight;
                   scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
                   scene.ambientLight.specularIntensity = ambient.specularIntensity;
+                  scene.ambientLight.diffuseMode = ambient.diffuseMode;
+                  scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
                 });
+              promises.push(customAmbientPromise);
+            } else if (!useCustomAmbient && ambient.ambientLight) {
+              // @ts-ignore
+              // prettier-ignore
+              const ambientLightPromise = resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
+                  scene.ambientLight = ambientLight;
+                  scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
+                  scene.ambientLight.specularIntensity = ambient.specularIntensity;
+                  scene.ambientLight.diffuseMode = ambient.diffuseMode;
+                  scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
+                });
+              promises.push(ambientLightPromise);
             } else {
               scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
               scene.ambientLight.specularIntensity = ambient.specularIntensity;
@@ -45,31 +59,34 @@ class SceneLoader extends Loader<Scene> {
             const background = data.scene.background;
             scene.background.mode = background.mode;
 
-            let backgroundPromise = Promise.resolve();
-
             switch (scene.background.mode) {
               case BackgroundMode.SolidColor:
                 scene.background.solidColor.copyFrom(background.color);
                 break;
               case BackgroundMode.Sky:
-                if (background.sky) {
+                if (background.skyMesh && background.skyMaterial) {
                   // @ts-ignore
-                  backgroundPromise = resourceManager.getResourceByRef<any>(background.sky).then((light) => {
-                    const sky = scene.background.sky;
-                    const skyMaterial = new SkyBoxMaterial(engine);
-                    skyMaterial.textureCubeMap = light.specularTexture;
-                    skyMaterial.textureDecodeRGBM = true;
-                    sky.material = skyMaterial;
-                    sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+                  const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(background.skyMesh).then((mesh) => {
+                    scene.background.sky.mesh = mesh;
                   });
+                  // @ts-ignore
+                  // prettier-ignore
+                  const skyMaterialPromise = resourceManager.getResourceByRef<Material>(background.skyMaterial).then((material) => {
+                    scene.background.sky.material = material;
+                  });
+                  promises.push(skyMeshPromise, skyMaterialPromise);
+                } else {
+                  Logger.warn("Sky background mode requires skyMesh and skyMaterial");
                 }
                 break;
               case BackgroundMode.Texture:
                 if (background.texture) {
                   // @ts-ignore
-                  backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
+                  // prettier-ignore
+                  const backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
                     scene.background.texture = texture;
                   });
+                  promises.push(backgroundPromise);
                 }
                 break;
             }
@@ -83,7 +100,7 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
             }
 
-            return Promise.all([ambientLightPromise, backgroundPromise]).then(() => {
+            return Promise.all(promises).then(() => {
               resolve(scene);
             });
           });

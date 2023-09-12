@@ -1,6 +1,6 @@
 import { IPlatformTextureCube, Logger, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Cube texture in WebGL platform.
@@ -9,7 +9,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   /** Backward compatible with WebGL1.0. */
   private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
 
-  constructor(rhi: WebGLRenderer, textureCube: TextureCube) {
+  constructor(rhi: WebGLGraphicDevice, textureCube: TextureCube) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
 
     /** @ts-ignore */

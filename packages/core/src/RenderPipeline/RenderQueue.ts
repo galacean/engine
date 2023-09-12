@@ -1,13 +1,11 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
-import { Material } from "../material/Material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { MeshRenderElement } from "./MeshRenderElement";
+import { MeshRenderData } from "./MeshRenderData";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
-import { SpriteElement } from "./SpriteElement";
 
 /**
  * Render queue.
@@ -17,33 +15,39 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
-    return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
+    return (
+      a.data.component.priority - b.data.component.priority ||
+      a.data.component._distanceForSort - b.data.component._distanceForSort
+    );
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
-    return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
+    return (
+      a.data.component.priority - b.data.component.priority ||
+      b.data.component._distanceForSort - a.data.component._distanceForSort
+    );
   }
 
-  readonly items: RenderElement[] = [];
+  readonly elements: RenderElement[] = [];
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
-    this._spriteBatcher = new SpriteBatcher(engine);
+    this._initSpriteBatcher(engine);
   }
 
   /**
    * Push a render element.
    */
-  pushPrimitive(element: RenderElement): void {
-    this.items.push(element);
+  pushRenderElement(element: RenderElement): void {
+    this.elements.push(element);
   }
 
-  render(camera: Camera, replaceMaterial: Material, mask: Layer, customShader: Shader): void {
-    const items = this.items;
-    if (items.length === 0) {
+  render(camera: Camera, mask: Layer): void {
+    const elements = this.elements;
+    if (elements.length === 0) {
       return;
     }
 
@@ -53,26 +57,24 @@ export class RenderQueue {
     const sceneData = scene.shaderData;
     const cameraData = camera.shaderData;
 
-    for (let i = 0, n = items.length; i < n; i++) {
-      const item = items[i];
-      const renderPassFlag = item.component.entity.layer;
+    for (let i = 0, n = elements.length; i < n; i++) {
+      const element = elements[i];
+      const data = element.data;
+      const renderPassFlag = data.component.entity.layer;
 
       if (!(renderPassFlag & mask)) {
         continue;
       }
 
-      if (!!(item as MeshRenderElement).mesh) {
-        this._spriteBatcher.flush(camera, replaceMaterial);
+      if (!!(data as MeshRenderData).mesh) {
+        this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
-        const element = <MeshRenderElement>item;
-        const renderer = element.component;
-        const material = element.material.destroyed ? engine._magentaMaterial : element.material;
+        const meshData = <MeshRenderData>data;
+        const renderer = meshData.component;
+        const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
-
-        // @todo: temporary solution
-        (replaceMaterial || material)._preRender(element);
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -81,13 +83,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        // @todo: temporary solution
-        const program = (
-          customShader?.passes[0] ||
-          replaceMaterial?.shader.passes[0] ||
-          element.shaderPass
-        )._getShaderProgram(engine, compileMacros);
-
+        const program = element.shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -144,21 +140,20 @@ export class RenderQueue {
         }
         element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
-        rhi.drawPrimitive(element.mesh, element.subMesh, program);
+        rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
       } else {
-        const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement, camera, replaceMaterial);
+        this._spriteBatcher.drawElement(element, camera);
       }
     }
 
-    this._spriteBatcher.flush(camera, replaceMaterial);
+    this._spriteBatcher.flush(camera);
   }
 
   /**
    * Clear collection.
    */
   clear(): void {
-    this.items.length = 0;
+    this.elements.length = 0;
     this._spriteBatcher.clear();
   }
 
@@ -174,7 +169,15 @@ export class RenderQueue {
    * Sort the elements.
    */
   sort(compareFunc: Function): void {
-    this._quickSort(this.items, 0, this.items.length, compareFunc);
+    this._quickSort(this.elements, 0, this.elements.length, compareFunc);
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _initSpriteBatcher(engine: Engine): void {
+    this._spriteBatcher = new SpriteBatcher(engine);
   }
 
   /**

@@ -1,9 +1,9 @@
 import { Engine } from "../Engine";
-import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
+import { SubShader } from "./SubShader";
 
 /**
  * Shader for rendering.
@@ -17,14 +17,8 @@ export class Shader {
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers"
   ];
-  /** @internal */
-  static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
-  private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
-  private static _macroMaskMap: string[][] = [];
-  private static _macroCounter: number = 0;
-  private static _macroMap: Record<string, ShaderMacro> = Object.create(null);
 
   /**
    * Create a shader.
@@ -43,12 +37,40 @@ export class Shader {
    */
   static create(name: string, shaderPasses: ShaderPass[]): Shader;
 
-  static create(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string): Shader {
+  /**
+   * Create a shader.
+   * @param name - Name of the shader
+   * @param subShaders - Sub shaders
+   * @returns Shader
+   */
+  static create(name: string, subShaders: SubShader[]): Shader;
+
+  static create(
+    name: string,
+    vertexSourceOrShaderPassesOrSubShaders: SubShader[] | ShaderPass[] | string,
+    fragmentSource?: string
+  ): Shader {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[name]) {
       throw `Shader named "${name}" already exists.`;
     }
-    return (shaderMap[name] = new Shader(name, vertexSourceOrShaderPasses, fragmentSource));
+    let shader: Shader;
+    if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
+      const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
+      shader = new Shader(name, [new SubShader("Default", [shaderPass])]);
+    } else {
+      if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
+        if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
+          shader = new Shader(name, [new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)]);
+        } else {
+          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+        }
+      } else {
+        throw "SubShader or ShaderPass count must large than 0.";
+      }
+    }
+    shaderMap[name] = shader;
+    return shader;
   }
 
   /**
@@ -59,112 +81,18 @@ export class Shader {
     return Shader._shaderMap[name];
   }
 
-  /**
-   * Get shader macro by name.
-   * @param name - Name of the shader macro
-   * @returns Shader macro
-   */
-  static getMacroByName(name: string): ShaderMacro;
+  private _subShaders: SubShader[];
 
   /**
-   * Get shader macro by name.
-   * @param name - Name of the shader macro
-   * @param value - Value of the shader macro
-   * @returns Shader macro
+   * Sub shaders of the shader.
    */
-  static getMacroByName(name: string, value: string): ShaderMacro;
-
-  static getMacroByName(name: string, value?: string): ShaderMacro {
-    const key = value ? name + ` ` + value : name;
-    let macro = Shader._macroMap[key];
-    if (!macro) {
-      const maskMap = Shader._macroMaskMap;
-      const counter = Shader._macroCounter;
-      const index = Math.floor(counter / 32);
-      const bit = counter % 32;
-
-      macro = new ShaderMacro(name, value, index, 1 << bit);
-      Shader._macroMap[key] = macro;
-      if (index == maskMap.length) {
-        maskMap.length++;
-        maskMap[index] = new Array<string>(32);
-      }
-      maskMap[index][bit] = key;
-      Shader._macroCounter++;
-    }
-    return macro;
+  get subShaders(): ReadonlyArray<SubShader> {
+    return this._subShaders;
   }
 
-  /**
-   * Get shader property by name.
-   * @param name - Name of the shader property
-   * @returns Shader property
-   */
-  static getPropertyByName(name: string): ShaderProperty {
-    const propertyNameMap = Shader._propertyNameMap;
-    if (propertyNameMap[name] != null) {
-      return propertyNameMap[name];
-    } else {
-      const property = new ShaderProperty(name);
-      propertyNameMap[name] = property;
-      Shader._propertyIdMap[property._uniqueId] = property;
-      return property;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _getShaderPropertyGroup(propertyName: string): ShaderDataGroup | null {
-    const shaderProperty = Shader._propertyNameMap[propertyName];
-    return shaderProperty?._group;
-  }
-
-  /**
-   * @internal
-   */
-  static _getNamesByMacros(macros: ShaderMacroCollection, out: string[]): void {
-    const maskMap = Shader._macroMaskMap;
-    const mask = macros._mask;
-    out.length = 0;
-    for (let i = 0, n = macros._length; i < n; i++) {
-      const subMaskMap = maskMap[i];
-      const subMask = mask[i];
-      const m = subMask < 0 ? 32 : Math.floor(Math.log2(subMask)) + 1; // if is negative must contain 1 << 31.
-      for (let j = 0; j < m; j++) {
-        if (subMask & (1 << j)) {
-          out.push(subMaskMap[j]);
-        }
-      }
-    }
-  }
-
-  /** The name of shader. */
-  readonly name: string;
-
-  /**
-   *  Shader passes.
-   */
-  get passes(): ReadonlyArray<ShaderPass> {
-    return this._passes;
-  }
-
-  private _passes: ShaderPass[] = [];
-
-  private constructor(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string) {
+  private constructor(public readonly name: string, subShaders: SubShader[]) {
     this.name = name;
-
-    if (typeof vertexSourceOrShaderPasses === "string") {
-      this._passes.push(new ShaderPass(vertexSourceOrShaderPasses, fragmentSource));
-    } else {
-      const passCount = vertexSourceOrShaderPasses.length;
-      if (passCount < 1) {
-        throw "Shader pass count must large than 0.";
-      }
-      for (let i = 0; i < passCount; i++) {
-        this._passes.push(vertexSourceOrShaderPasses[i]);
-      }
-    }
+    this._subShaders = subShaders;
   }
 
   /**
@@ -181,14 +109,56 @@ export class Shader {
     const compileMacros = Shader._compileMacros;
     compileMacros.clear();
     for (let i = 0, n = macros.length; i < n; i++) {
-      compileMacros.enable(Shader.getMacroByName(macros[i]));
+      compileMacros.enable(ShaderMacro.getByName(macros[i]));
     }
 
-    let isValid = true;
-    const passes = this._passes;
-    for (let i = 0, n = passes.length; i < n; i++) {
-      isValid &&= passes[i]._getShaderProgram(engine, compileMacros).isValid;
+    const subShaders = this._subShaders;
+    for (let i = 0, n = subShaders.length; i < n; i++) {
+      let isValid: boolean;
+      const { passes } = subShaders[i];
+      for (let j = 0, m = passes.length; j < m; j++) {
+        if (isValid === undefined) {
+          isValid = passes[j]._getShaderProgram(engine, compileMacros).isValid;
+        } else {
+          isValid &&= passes[j]._getShaderProgram(engine, compileMacros).isValid;
+        }
+      }
+      if (isValid) return true;
     }
-    return isValid;
+    return false;
+  }
+
+  /**
+   * @deprecated Please use `ShaderMacro.getByName` instead
+   *
+   * Get shader macro by name.
+   * @param name - Name of the shader macro
+   * @returns Shader macro
+   */
+  static getMacroByName(name: string): ShaderMacro;
+
+  /**
+   * @deprecated Please use `ShaderMacro.getByName` instead
+   *
+   * Get shader macro by name.
+   * @param name - Name of the shader macro
+   * @param value - Value of the shader macro
+   * @returns Shader macro
+   */
+  static getMacroByName(name: string, value: string): ShaderMacro;
+
+  static getMacroByName(name: string, value?: string): ShaderMacro {
+    return ShaderMacro.getByName(name, value);
+  }
+
+  /**
+   * @deprecated Please use `ShaderProperty.getByName` instead
+   *
+   * Get shader property by name.
+   * @param name - Name of the shader property
+   * @returns Shader property
+   */
+  static getPropertyByName(name: string): ShaderProperty {
+    return ShaderProperty.getByName(name);
   }
 }

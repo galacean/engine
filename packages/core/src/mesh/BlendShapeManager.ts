@@ -2,13 +2,14 @@ import { Vector2, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { VertexElement } from "../graphic/VertexElement";
-import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
 import { BlendShape } from "./BlendShape";
 import { ModelMesh } from "./ModelMesh";
@@ -18,21 +19,19 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  * @internal
  */
 export class BlendShapeManager {
-  private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
-  private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
-  private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
-  private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
+  private static _blendShapeMacro = ShaderMacro.getByName("RENDERER_HAS_BLENDSHAPE");
+  private static _blendShapeTextureMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_USE_TEXTURE");
+  private static _blendShapeNormalMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_HAS_NORMAL");
+  private static _blendShapeTangentMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_HAS_TANGENT");
 
-  private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
-  private static _blendShapeTextureProperty = Shader.getPropertyByName("u_blendShapeTexture");
-  private static _blendShapeTextureInfoProperty = Shader.getPropertyByName("u_blendShapeTextureInfo");
+  private static _blendShapeWeightsProperty = ShaderProperty.getByName("renderer_BlendShapeWeights");
+  private static _blendShapeTextureProperty = ShaderProperty.getByName("renderer_BlendShapeTexture");
+  private static _blendShapeTextureInfoProperty = ShaderProperty.getByName("renderer_BlendShapeTextureInfo");
 
   /** @internal */
   _blendShapeCount: number = 0;
   /** @internal */
   _blendShapes: BlendShape[] = [];
-  /** @internal */
-  _blendShapeNames: string[];
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
   /** @internal */
@@ -75,7 +74,7 @@ export class BlendShapeManager {
     blendShape._layoutChangeManager.addListener(this._updateLayoutChange);
     this._updateLayoutChange(0, blendShape);
 
-    this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
+    this._subDataDirtyFlags.push(blendShape._dataChangeManager.createFlag(BoolUpdateFlag));
   }
 
   /**
@@ -111,7 +110,7 @@ export class BlendShapeManager {
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
+        shaderData.enableMacro("RENDERER_BLENDSHAPE_COUNT", blendShapeCount.toString());
         this._uniformOccupiesCount = blendShapeCount + 1;
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
@@ -130,7 +129,7 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
-        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+        shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
         this._uniformOccupiesCount = blendShapeCount;
       }
 
@@ -146,7 +145,7 @@ export class BlendShapeManager {
       }
     } else {
       shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+      shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
     }
   }
 
@@ -232,7 +231,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _update(vertexCountChange: boolean, noLongerAccessible: boolean): void {
+  _update(vertexCountChange: boolean, noLongerReadable: boolean): void {
     const { vertexCount } = this._modelMesh;
     const useTexture = this._useTextureMode();
     const createHost = this._layoutOrCountChange() || vertexCountChange;
@@ -241,7 +240,7 @@ export class BlendShapeManager {
       if (useTexture) {
         this._createTextureArray(vertexCount);
       } else {
-        this._createVertexBuffers(vertexCount, noLongerAccessible);
+        this._createVertexBuffers(vertexCount, noLongerReadable);
       }
       this._lastCreateHostInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     }
@@ -258,26 +257,11 @@ export class BlendShapeManager {
    * @internal
    */
   _releaseMemoryCache(): void {
-    const { _blendShapes: blendShapes } = this;
-    const { length: blendShapeCount } = blendShapes;
-
-    const blendShapeNamesMap = new Array<string>(blendShapeCount);
-    for (let i = 0; i < blendShapeCount; i++) {
-      blendShapeNamesMap[i] = blendShapes[i].name;
-    }
-    this._blendShapeNames = blendShapeNamesMap;
-
+    const blendShapes = this._blendShapes;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapes[i]._layoutChangeManager.removeListener(this._updateLayoutChange);
+      blendShapes[i]._releaseData();
     }
 
-    const dataChangedFlags = this._subDataDirtyFlags;
-    for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
-      dataChangedFlags[i].destroy();
-    }
-
-    this._subDataDirtyFlags = null;
-    this._blendShapes = null;
     this._vertices = null;
   }
 
@@ -354,6 +338,7 @@ export class BlendShapeManager {
     const subDataDirtyFlags = this._subDataDirtyFlags;
     const blendShapeFloatStride = this._vertexElementCount * 3;
     const blendShapeByteStride = blendShapeFloatStride * 4;
+    const bufferOffset = this._bufferBindingOffset;
 
     // @todo: should fix bug when dataChangedFlag is true
     for (let i = 0, n = blendShapes.length; i < n; i++) {
@@ -375,7 +360,7 @@ export class BlendShapeManager {
 
         let storeInfo = storeInfos[i];
         storeInfo || (storeInfos[i] = storeInfo = new Vector2());
-        storeInfo.set(bufferIndex + 1, indexInBuffer * blendShapeByteStride); // BlendShape buffer is start from 1
+        storeInfo.set(bufferOffset + bufferIndex, indexInBuffer * blendShapeByteStride); // BufferOffset is mesh vertexBuffer offset
 
         const { deltaPositions } = endFrame;
         for (let j = 0; j < vertexCount; j++) {

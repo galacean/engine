@@ -1,15 +1,16 @@
-import { RefObject } from "../asset/RefObject";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
+import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
  * The base class of texture, contains some common functions of texture-related classes.
  */
-export abstract class Texture extends RefObject {
+export abstract class Texture extends GraphicsResource {
   name: string;
 
   /** @internal */
@@ -22,6 +23,7 @@ export abstract class Texture extends RefObject {
   protected _format: TextureFormat;
   protected _width: number;
   protected _height: number;
+  protected _usage: TextureUsage;
   protected _mipmapCount: number;
 
   private _wrapModeU: TextureWrapMode;
@@ -50,6 +52,13 @@ export abstract class Texture extends RefObject {
    */
   get height(): number {
     return this._height;
+  }
+
+  /**
+   * The usage of the texture.
+   */
+  get usage(): TextureUsage {
+    return this._usage;
   }
 
   /**
@@ -168,9 +177,23 @@ export abstract class Texture extends RefObject {
   }
 
   /**
-   * @override
+   * @internal
    */
-  _onDestroy() {
+  override _rebuild(): void {
+    const platformTexture = this._platformTexture;
+    platformTexture.wrapModeU = this._wrapModeU;
+    platformTexture.wrapModeV = this._wrapModeV;
+    platformTexture.filterMode = this._filterMode;
+    platformTexture.anisoLevel = this._anisoLevel;
+    platformTexture.depthCompareFunction = this._depthCompareFunction;
+    platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy() {
+    super._onDestroy();
     this._platformTexture.destroy();
     this._platformTexture = null;
   }

@@ -1,27 +1,31 @@
 import { Color, SphericalHarmonics3 } from "@galacean/engine-math";
 import { Scene } from "../Scene";
-import { Shader, ShaderData } from "../shader";
+import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
+import { ReferResource } from "../asset/ReferResource";
+import { Engine } from "../Engine";
 
 /**
  * Ambient light.
  */
-export class AmbientLight {
-  private static _shMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SH");
-  private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
-  private static _decodeRGBMMacro: ShaderMacro = Shader.getMacroByName("O3_DECODE_ENV_RGBM");
+export class AmbientLight extends ReferResource {
+  private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
+  private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
+  private static _decodeRGBMMacro: ShaderMacro = ShaderMacro.getByName("SCENE_IS_DECODE_ENV_RGBM");
 
-  private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
-  private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
-  private static _diffuseIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuseIntensity");
-  private static _specularTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_specularSampler");
-  private static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName(
-    "u_envMapLight.specularIntensity"
+  private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
+  private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSH");
+  private static _diffuseIntensityProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.diffuseIntensity"
   );
-  private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
+  private static _specularTextureProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSpecularSampler");
+  private static _specularIntensityProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.specularIntensity"
+  );
+  private static _mipLevelProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.mipMapLevel");
 
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
@@ -149,8 +153,8 @@ export class AmbientLight {
    * @internal
    */
   _addToScene(scene: Scene): void {
+    this._addReferCount(1);
     this._scenes.push(scene);
-
     const shaderData = scene.shaderData;
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
@@ -166,9 +170,17 @@ export class AmbientLight {
    * @internal
    */
   _removeFromScene(scene: Scene): void {
+    this._addReferCount(-1);
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     scenes.splice(index, 1);
+    const shaderData = scene.shaderData;
+    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    shaderData.disableMacro(AmbientLight._specularMacro);
+  }
+
+  constructor(engine: Engine) {
+    super(engine);
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {

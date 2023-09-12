@@ -1,7 +1,5 @@
 import { Matrix } from "@galacean/engine-math";
-import { EngineObject } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -10,6 +8,9 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { ReferResource } from "./asset/ReferResource";
+import { EngineObject } from "./base";
+import { ComponentCloner } from "./clone/ComponentCloner";
 
 /**
  * Entity, be used as components container.
@@ -63,6 +64,8 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
+  /** @internal @todo: temporary solution */
+  _hookResource: ReferResource;
 
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -174,7 +177,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
     // @todo: should inverse traversal
     for (let i = components.length - 1; i >= 0; i--) {
@@ -183,6 +186,7 @@ export class Entity extends EngineObject {
         return component;
       }
     }
+    return null;
   }
 
   /**
@@ -350,7 +354,12 @@ export class Entity extends EngineObject {
    */
   clone(): Entity {
     const cloneEntity = new Entity(this._engine, this.name);
-
+    const { _hookResource: hookResource } = this;
+    if (hookResource) {
+      cloneEntity._hookResource = hookResource;
+      hookResource._addReferCount(1);
+    }
+    cloneEntity.layer = this.layer;
     cloneEntity._isActive = this._isActive;
     cloneEntity.transform.localMatrix = this.transform.localMatrix;
 
@@ -375,12 +384,25 @@ export class Entity extends EngineObject {
   /**
    * Destroy self.
    */
-  destroy(): void {
+  override destroy(): void {
     if (this._destroyed) {
       return;
     }
 
     super.destroy();
+    if (this._hookResource) {
+      this._hookResource._addReferCount(-1);
+      this._hookResource = null;
+    }
+
+    this.isActive = false;
+
+    if (this._isRoot) {
+      this._scene.removeRootEntity(this);
+    } else {
+      this._setParent(null);
+    }
+
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
@@ -390,13 +412,6 @@ export class Entity extends EngineObject {
     const children = this._children;
     while (children.length > 0) {
       children[0].destroy();
-    }
-
-    if (this._isRoot) {
-      this._scene._removeFromEntityList(this);
-      this._isRoot = false;
-    } else {
-      this._removeFromParent();
     }
   }
 

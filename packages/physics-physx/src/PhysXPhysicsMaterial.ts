@@ -1,5 +1,5 @@
-import { PhysXPhysics } from "./PhysXPhysics";
 import { IPhysicsMaterial } from "@galacean/engine-design";
+import { PhysXPhysics } from "./PhysXPhysics";
 
 /**
  * Physics material describes how to handle colliding objects (friction, bounciness).
@@ -8,14 +8,18 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   /** @internal */
   _pxMaterial: any;
 
+  protected _physXPhysics: PhysXPhysics;
+
   constructor(
+    physXPhysics: PhysXPhysics,
     staticFriction: number,
     dynamicFriction: number,
     bounciness: number,
     frictionCombine: CombineMode,
     bounceCombine: CombineMode
   ) {
-    const pxMaterial = PhysXPhysics._pxPhysics.createMaterial(staticFriction, dynamicFriction, bounciness);
+    this._physXPhysics = physXPhysics;
+    const pxMaterial = physXPhysics._pxPhysics.createMaterial(staticFriction, dynamicFriction, bounciness);
     pxMaterial.setFrictionCombineMode(frictionCombine);
     pxMaterial.setRestitutionCombineMode(bounceCombine);
     this._pxMaterial = pxMaterial;

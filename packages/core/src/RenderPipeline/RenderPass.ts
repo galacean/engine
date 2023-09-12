@@ -27,7 +27,7 @@ class RenderPass {
    * @param name - Pass name
    * @param priority - Priority, less than 0 before the default pass, greater than 0 after the default pass
    * @param renderTarget - The specified Render Target
-   * @param replaceMaterial -  Replaced material
+   * @param replaceMaterial - Replaced material
    * @param mask - Perform bit and operations with Entity.Layer to filter the objects that this Pass needs to render
    */
   constructor(

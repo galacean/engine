@@ -1,36 +1,34 @@
+// @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { Component } from "./Component";
-import { dependentComponents } from "./ComponentsDependencies";
+import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
-import { Material } from "./material/Material";
-import { Shader } from "./shader";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { ICustomClone } from "./clone/ComponentCloner";
+import { Material } from "./material";
+import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 
 /**
  * Basis for all renderers.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(Transform)
-export class Renderer extends Component {
+@dependentComponents(Transform, DependentMode.CheckOnly)
+export class Renderer extends Component implements ICustomClone {
   private static _tempVector0 = new Vector3();
 
-  private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
-  private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
-  private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
-  private static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
-  private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
-  private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
-  private static _rendererLayerProperty = Shader.getPropertyByName("oasis_RendererLayer");
-
-  /** ShaderData related to renderer. */
-  @deepClone
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
+  private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
+  private static _localMatrixProperty = ShaderProperty.getByName("renderer_LocalMat");
+  private static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
+  private static _mvMatrixProperty = ShaderProperty.getByName("renderer_MVMat");
+  private static _mvpMatrixProperty = ShaderProperty.getByName("renderer_MVPMat");
+  private static _mvInvMatrixProperty = ShaderProperty.getByName("renderer_MVInvMat");
+  private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
+  private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
   /** @internal */
   @ignoreClone
@@ -52,11 +50,13 @@ export class Renderer extends Component {
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
-  @shallowClone
+  @ignoreClone
   protected _materials: Material[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
 
+  @deepClone
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -74,6 +74,13 @@ export class Renderer extends Component {
 
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+
+  /**
+   * ShaderData related to renderer.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -149,7 +156,7 @@ export class Renderer extends Component {
     const shaderData = this.shaderData;
     this._overrideUpdate = this.update !== prototype.update;
 
-    shaderData._addRefCount(1);
+    shaderData._addReferCount(1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
@@ -260,7 +267,7 @@ export class Renderer extends Component {
 
     for (let i = count, n = internalMaterials.length; i < n; i++) {
       const internalMaterial = internalMaterials[i];
-      internalMaterial && internalMaterial._addRefCount(-1);
+      internalMaterial && internalMaterial._addReferCount(-1);
     }
 
     internalMaterials.length !== count && (internalMaterials.length = count);
@@ -271,8 +278,8 @@ export class Renderer extends Component {
       const material = materials[i];
       if (internalMaterial !== material) {
         internalMaterials[i] = material;
-        internalMaterial && internalMaterial._addRefCount(-1);
-        material && material._addRefCount(1);
+        internalMaterial && internalMaterial._addReferCount(-1);
+        material && material._addReferCount(1);
       }
     }
   }
@@ -280,10 +287,9 @@ export class Renderer extends Component {
   update(deltaTime: number): void {}
 
   /**
-   * @override
    * @internal
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -292,10 +298,9 @@ export class Renderer extends Component {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
@@ -332,17 +337,43 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _onDestroy(): void {
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
-
-    this.shaderData._addRefCount(-1);
-
+  _cloneTo(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
-      materials[i]?._addRefCount(-1);
+      target._setMaterial(i, materials[i]);
     }
   }
 
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
+
+    this.shaderData._addReferCount(-1);
+
+    const materials = this._materials;
+    for (let i = 0, n = materials.length; i < n; i++) {
+      materials[i]?._addReferCount(-1);
+    }
+
+    this._entity = null;
+    this._globalShaderMacro = null;
+    this._bounds = null;
+    this._materials = null;
+    this._shaderData = null;
+    this._mvMatrix = null;
+    this._mvpMatrix = null;
+    this._mvInvMatrix = null;
+    this._normalMatrix = null;
+    this._materialsInstanced = null;
+    this._rendererLayer = null;
+  }
+
+  /**
+   * @internal
+   */
   protected _updateShaderData(context: RenderContext): void {
     const entity = this.entity;
     const worldMatrix = entity.transform.worldMatrix;
@@ -352,6 +383,9 @@ export class Renderer extends Component {
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
+  /**
+   * @internal
+   */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
     const virtualCamera = context.virtualCamera;
@@ -375,21 +409,33 @@ export class Renderer extends Component {
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
   }
 
+  /**
+   * @internal
+   */
   protected _registerEntityTransformListener(): void {
     this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
   }
 
+  /**
+   * @internal
+   */
   protected _updateBounds(worldBounds: BoundingBox): void {}
 
+  /**
+   * @internal
+   */
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
 
+  /**
+   * @internal
+   */
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
-    material._addRefCount(-1);
-    insMaterial._addRefCount(1);
+    material._addReferCount(-1);
+    insMaterial._addReferCount(1);
     this._materialsInstanced[index] = true;
     this._materials[index] = insMaterial;
     return insMaterial;
@@ -406,12 +452,15 @@ export class Renderer extends Component {
       const materialsInstance = this._materialsInstanced;
       index < materialsInstance.length && (materialsInstance[index] = false);
 
-      internalMaterial && internalMaterial._addRefCount(-1);
-      material && material._addRefCount(1);
+      internalMaterial && internalMaterial._addReferCount(-1);
+      material && material._addReferCount(1);
       materials[index] = material;
     }
   }
 
+  /**
+   * @internal
+   */
   @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;

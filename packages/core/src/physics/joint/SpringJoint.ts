@@ -1,8 +1,8 @@
-import { Joint } from "./Joint";
 import { ISpringJoint } from "@galacean/engine-design";
-import { PhysicsManager } from "../PhysicsManager";
-import { Collider } from "../Collider";
 import { Vector3 } from "@galacean/engine-math";
+import { Collider } from "../Collider";
+import { PhysicsManager } from "../PhysicsManager";
+import { Joint } from "./Joint";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
@@ -100,10 +100,9 @@ export class SpringJoint extends Joint {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onAwake() {
+  override _onAwake() {
     const collider = this._collider;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);

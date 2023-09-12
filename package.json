@@ -1,17 +1,18 @@
 {
   "name": "@galacean/engine-root",
   "version": "1.0.0",
+  "packageManager": "pnpm@8.6.2",
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "test": "cross-env TS_NODE_PROJECT=tsconfig.tests.json floss --path tests -r ts-node/register",
     "test-debug": "cross-env TS_NODE_PROJECT=tsconfig.tests.json floss --path tests -r ts-node/register --debug",
     "test-cov": "cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss --path tests -r ts-node/register",
-    "ci": "pnpm install && npm run b:module && npm run b:types && npm run test-cov",
+    "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "cross-env NODE_ENV=development BUILD_TYPE=UMD rollup -cw -m inline",
-    "b:types": "pnpm -r --filter='./packages/*' run b:types",
+    "b:types": "pnpm -r --filter=./packages/* run b:types",
     "b:module": "cross-env BUILD_TYPE=MODULE rollup -c",
     "b:umd": "cross-env BUILD_TYPE=UMD rollup -c",
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
@@ -25,7 +26,7 @@
     "@rollup/plugin-inject": "^4.0.2",
     "@rollup/plugin-node-resolve": "^11.0.1",
     "@rollup/plugin-replace": "^2.3.4",
-    "@swc/core": "^1.3.32",
+    "@swc/core": "^1.3.49",
     "@swc/helpers": "^0.5",
     "@types/chai": "^4.3.1",
     "@types/chai-spies": "^1.0.3",
@@ -52,7 +53,7 @@
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-swc3": "^0.8.0",
     "ts-node": "^10",
-    "typescript": "^4.4.3"
+    "typescript": "^4.8.4"
   },
   "husky": {
     "hooks": {

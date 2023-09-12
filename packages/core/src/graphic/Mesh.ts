@@ -1,20 +1,20 @@
 import { IPlatformPrimitive } from "@galacean/engine-design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@galacean/engine-math";
-import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
+import { UpdateFlagManager } from "../UpdateFlagManager";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { BufferUtil } from "../graphic/BufferUtil";
-import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * Mesh.
  */
-export abstract class Mesh extends RefObject {
+export abstract class Mesh extends GraphicsResource {
   /** Name. */
   name: string;
 
@@ -174,10 +174,10 @@ export abstract class Mesh extends RefObject {
    * @internal
    */
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
+    const referCount = this._getReferCount();
+    if (referCount > 0) {
+      this._vertexBufferBindings[index]?._buffer._addReferCount(-referCount);
+      binding?._buffer._addReferCount(referCount);
     }
     this._vertexBufferBindings[index] = binding;
     this._bufferStructChanged = true;
@@ -191,22 +191,24 @@ export abstract class Mesh extends RefObject {
     this._bufferStructChanged = false;
   }
 
-  /**
-   * @override
-   */
-  _addRefCount(value: number): void {
-    super._addRefCount(value);
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
     const vertexBufferBindings = this._vertexBufferBindings;
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-      vertexBufferBindings[i]._buffer._addRefCount(value);
+      vertexBufferBindings[i]._buffer._addReferCount(value);
     }
+    this._indexBufferBinding?._buffer._addReferCount(value);
+  }
+
+  override _rebuild(): void {
+    this._engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 
   /**
-   * @override
-   * Destroy.
+   * @internal
    */
-  _onDestroy(): void {
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
     this._vertexElements = null;
@@ -214,6 +216,9 @@ export abstract class Mesh extends RefObject {
     this._platformPrimitive.destroy();
   }
 
+  /**
+   * @internal
+   */
   protected _setVertexElements(elements: VertexElement[]): void {
     this._clearVertexElements();
     for (let i = 0, n = elements.length; i < n; i++) {
@@ -221,8 +226,16 @@ export abstract class Mesh extends RefObject {
     }
   }
 
+  /**
+   * @internal
+   */
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
     const lastBinding = this._indexBufferBinding;
+    const referCount = this._getReferCount();
+    if (referCount > 0) {
+      lastBinding?.buffer._addReferCount(-referCount);
+      binding?.buffer._addReferCount(referCount);
+    }
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);

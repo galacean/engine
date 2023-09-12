@@ -16,18 +16,13 @@ export class CubeProbe extends Probe {
    */
   position: Vector3 = new Vector3(0, 0, 0);
 
-  /**
-   * @override
-   */
-  protected readonly _isCube: boolean = true;
+  /** @internal */
+  protected override readonly _isCube: boolean = true;
 
   private oriViewMatrix = new Matrix();
   private _oriFieldOfView: number;
 
-  /**
-   * @override
-   */
-  onBeginRender(camera: Camera): void {
+  override onBeginRender(camera: Camera): void {
     if (!this.enabled) return;
     super.onBeginRender(camera);
     this._storeCamera(camera);

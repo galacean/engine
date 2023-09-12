@@ -1,11 +1,11 @@
-uniform sampler2D u_maskTexture;
-uniform float u_maskAlphaCutoff;
+uniform sampler2D renderer_MaskTexture;
+uniform float renderer_MaskAlphaCutoff;
 varying vec2 v_uv;
 
 void main()
 {
-  vec4 color = texture2D(u_maskTexture, v_uv);
-  if (color.a < u_maskAlphaCutoff) {
+  vec4 color = texture2D(renderer_MaskTexture, v_uv);
+  if (color.a < renderer_MaskAlphaCutoff) {
     discard;
   }
 

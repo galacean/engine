@@ -125,7 +125,12 @@ export class StencilState {
       }
 
       if (referenceOrMaskChange || compareFunctionBack !== lastState.compareFunctionBack) {
-        gl.stencilFuncSeparate(gl.BACK, StencilState._getGLCompareFunction(rhi, compareFunctionBack), referenceValue, mask);
+        gl.stencilFuncSeparate(
+          gl.BACK,
+          StencilState._getGLCompareFunction(rhi, compareFunctionBack),
+          referenceValue,
+          mask
+        );
         lastState.compareFunctionBack = this.compareFunctionBack;
       }
       if (referenceOrMaskChange) {

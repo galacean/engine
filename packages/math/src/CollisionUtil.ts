@@ -362,6 +362,52 @@ export class CollisionUtil {
   }
 
   /**
+   * Get the containment type between a frustum and a point.
+   * @param frustum - The frustum
+   * @param point - The point
+   * @returns The containment type
+   */
+  static frustumContainsPoint(frustum: BoundingFrustum, point: Vector3): ContainmentType {
+    let distance = CollisionUtil.distancePlaneAndPoint(frustum.near, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.far, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.left, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.right, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.top, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.bottom, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    return ContainmentType.Contains;
+  }
+
+  /**
    * Get the containment type between a frustum and a box (AABB).
    * @param frustum - The frustum
    * @param box - The box

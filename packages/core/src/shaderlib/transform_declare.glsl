@@ -1,7 +1,7 @@
-uniform mat4 u_localMat;
-uniform mat4 u_modelMat;
-uniform mat4 u_viewMat;
-uniform mat4 u_projMat;
-uniform mat4 u_MVMat;
-uniform mat4 u_MVPMat;
-uniform mat4 u_normalMat;
+uniform mat4 renderer_LocalMat;
+uniform mat4 renderer_ModelMat;
+uniform mat4 camera_ViewMat;
+uniform mat4 camera_ProjMat;
+uniform mat4 renderer_MVMat;
+uniform mat4 renderer_MVPMat;
+uniform mat4 renderer_NormalMat;

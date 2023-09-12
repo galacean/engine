@@ -1,17 +1,19 @@
 import { Camera, Entity, Script } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
 import { Vector3 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import chai, { expect } from "chai";
+import spies from "chai-spies";
 
+chai.use(spies);
 
 describe("webgl engine test", () => {
-  it("create a webgl engine", () => {
+  it("create a webgl engine", async () => {
     const canvas = document.createElement("canvas");
-    const engine = new WebGLEngine(canvas);
+    const engine = await WebGLEngine.create({ canvas });
     expect(engine).not.be.null;
   });
 
-  it("engine destroy", () => {
+  it("engine destroy", async () => {
     class ParentScript extends Script {
       onAwake() {
         console.log("ParentScript___onAwake");
@@ -48,7 +50,7 @@ describe("webgl engine test", () => {
     }
 
     const canvas = document.createElement("canvas");
-    const engine = new WebGLEngine(canvas);
+    const engine = await WebGLEngine.create({ canvas });
     engine.canvas.resizeByClientSize();
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
@@ -68,6 +70,39 @@ describe("webgl engine test", () => {
     const childEntity = parentEntity.createChild("test");
     childEntity.addComponent(ChildScript);
     rootEntity.addChild(parentEntity);
+  });
+
+  it("engine device lost", async () => {
+    const canvas = document.createElement("canvas");
+    const engine = await WebGLEngine.create({ canvas });
+    engine.canvas.resizeByClientSize();
+    const scene = engine.sceneManager.activeScene;
+    const rootEntity = scene.createRootEntity();
+
+    // init camera
+    const cameraEntity = rootEntity.createChild("camera");
+    const camera = cameraEntity.addComponent(Camera);
+
+    engine.run();
+
+    const opLost = chai.spy(() => {
+      console.log("On device lost.");
+    });
+    const onRestored = chai.spy(() => {
+      console.log("On device restored.");
+    });
+
+    engine.on("devicelost", opLost);
+    engine.on("devicerestored", onRestored);
+
+    engine.forceLoseDevice();
+    setTimeout(() => {
+      expect(opLost).to.have.been.called.exactly(1);
+    }, 100);
+
+    setTimeout(() => {
+      engine.forceRestoreDevice();
+    }, 1000);
   });
 });
 // npx cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss -p tests/src/*.test.ts -r ts-node/register

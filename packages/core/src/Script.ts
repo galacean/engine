@@ -3,6 +3,7 @@ import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Pointer } from "./input";
 import { ColliderShape } from "./physics";
+import { Collision } from "./physics/Collision";
 
 /**
  * Script class, used for logic writing.
@@ -51,13 +52,13 @@ export class Script extends Component {
 
   /**
    * The main loop, called frame by frame.
-   * @param deltaTime - The deltaTime when the script update.
+   * @param deltaTime - The delta time since last frame in seconds
    */
   onUpdate(deltaTime: number): void {}
 
   /**
    * Called after the onUpdate finished, called frame by frame.
-   * @param deltaTime - The deltaTime when the script update.
+   * @param deltaTime - The delta time since last frame in seconds
    */
   onLateUpdate(deltaTime: number): void {}
 
@@ -79,42 +80,44 @@ export class Script extends Component {
   onPhysicsUpdate(): void {}
 
   /**
-   * Called when the collision enter.
+   * Called when the trigger enter.
    * @param other - ColliderShape
    */
   onTriggerEnter(other: ColliderShape): void {}
 
   /**
-   * Called when the collision stay.
-   * @remarks onTriggerStay is called every frame while the collision stay.
+   * Called when the trigger exit.
    * @param other - ColliderShape
    */
   onTriggerExit(other: ColliderShape): void {}
 
   /**
-   * Called when the collision exit.
+   * Called when the trigger stay.
+   * @remarks onTriggerStay is called every frame while the trigger stay.
    * @param other - ColliderShape
    */
   onTriggerStay(other: ColliderShape): void {}
 
   /**
    * Called when the collision enter.
-   * @param other - ColliderShape
+   * @param other - The Collision data associated with this collision event
+   * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
-  onCollisionEnter(other: ColliderShape): void {}
-
-  /**
-   * Called when the collision stay.
-   * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other - ColliderShape
-   */
-  onCollisionExit(other: ColliderShape): void {}
+  onCollisionEnter(other: Collision): void {}
 
   /**
    * Called when the collision exit.
-   * @param other - ColliderShape
+   * @param other - The Collision data associated with this collision event
+   * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
-  onCollisionStay(other: ColliderShape): void {}
+  onCollisionExit(other: Collision): void {}
+
+  /**
+   * Called when the collision stay.
+   * @param other - The Collision data associated with this collision event
+   * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
+   */
+  onCollisionStay(other: Collision): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape.
@@ -166,18 +169,16 @@ export class Script extends Component {
   /**
    * @internal
    * @inheritDoc
-   * @override
    */
-  _onAwake(): void {
+  override _onAwake(): void {
     this.onAwake();
   }
 
   /**
    * @internal
    * @inheritDoc
-   * @override
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     if (this._waitHandlingInValid) {
       this._waitHandlingInValid = false;
     } else {
@@ -204,21 +205,11 @@ export class Script extends Component {
   /**
    * @internal
    * @inheritDoc
-   * @override
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this._waitHandlingInValid = true;
     this._engine._componentsManager.addDisableScript(this);
     this.onDisable();
-  }
-
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onDestroy(): void {
-    this._engine._componentsManager.addPendingDestroyScript(this);
   }
 
   /**
@@ -239,5 +230,13 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     this._waitHandlingInValid = false;
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._engine._componentsManager.addPendingDestroyScript(this);
   }
 }

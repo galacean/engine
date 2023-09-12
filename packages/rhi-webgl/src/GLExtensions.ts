@@ -1,14 +1,14 @@
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCapabilityType } from "@galacean/engine-core";
 
 /**
  * GLContext extension.
  */
 export class GLExtensions {
-  private rhi: WebGLRenderer;
+  private rhi: WebGLGraphicDevice;
   private _requireResult;
 
-  constructor(rhi: WebGLRenderer) {
+  constructor(rhi: WebGLGraphicDevice) {
     this.rhi = rhi;
     this._requireResult = {};
   }

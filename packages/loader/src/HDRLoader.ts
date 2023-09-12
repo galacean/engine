@@ -162,7 +162,7 @@ class HDRLoader extends Loader<TextureCube> {
     inputWidth: number,
     inputHeight: number
   ): Color {
-    let theta = Math.atan2(vDir.z, -vDir.x);
+    let theta = Math.atan2(vDir.z, vDir.x);
     let phi = Math.acos(vDir.y);
 
     while (theta < -PI) {

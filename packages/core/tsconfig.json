@@ -9,6 +9,7 @@
     "declarationDir": "types",
     "emitDeclarationOnly": true,
     "stripInternal": true,
+    "noImplicitOverride": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": false,

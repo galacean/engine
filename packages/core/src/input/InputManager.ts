@@ -11,9 +11,9 @@ import { Vector3 } from "@galacean/engine-math";
  * InputManager manages device input such as mouse, touch, keyboard, etc.
  */
 export class InputManager {
+  private _engine: Engine;
   /** Sometimes the input module will not be initialized, such as off-screen rendering. */
   private _initialized: boolean = false;
-  private _curFrameCount: number = 0;
   private _wheelManager: WheelManager;
   private _pointerManager: PointerManager;
   private _keyboardManager: KeyboardManager;
@@ -71,7 +71,7 @@ export class InputManager {
       if (key === undefined) {
         return this._keyboardManager._curFrameDownList.length > 0;
       } else {
-        return this._keyboardManager._downKeyToFrameCountMap[key] === this._curFrameCount;
+        return this._keyboardManager._downKeyToFrameCountMap[key] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -88,7 +88,7 @@ export class InputManager {
       if (key === undefined) {
         return this._keyboardManager._curFrameUpList.length > 0;
       } else {
-        return this._keyboardManager._upKeyToFrameCountMap[key] === this._curFrameCount;
+        return this._keyboardManager._upKeyToFrameCountMap[key] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -122,7 +122,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._downList.length > 0;
       } else {
-        return this._pointerManager._downMap[_pointerBin2DecMap[pointerButton]] === this._curFrameCount;
+        return this._pointerManager._downMap[_pointerBin2DecMap[pointerButton]] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -139,7 +139,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._upList.length > 0;
       } else {
-        return this._pointerManager._upMap[_pointerBin2DecMap[pointerButton]] === this._curFrameCount;
+        return this._pointerManager._upMap[_pointerBin2DecMap[pointerButton]] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -150,12 +150,13 @@ export class InputManager {
    * @internal
    */
   constructor(engine: Engine) {
+    this._engine = engine;
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
     if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
-      this._wheelManager = new WheelManager(canvas);
-      this._pointerManager = new PointerManager(engine, canvas);
-      this._keyboardManager = new KeyboardManager(canvas);
+      this._wheelManager = new WheelManager(engine);
+      this._pointerManager = new PointerManager(engine);
+      this._keyboardManager = new KeyboardManager(engine);
       this._onBlur = this._onBlur.bind(this);
       window.addEventListener("blur", this._onBlur);
       this._onFocus = this._onFocus.bind(this);
@@ -169,10 +170,9 @@ export class InputManager {
    */
   _update(): void {
     if (this._initialized) {
-      ++this._curFrameCount;
       this._wheelManager._update();
-      this._pointerManager._update(this._curFrameCount);
-      this._keyboardManager._update(this._curFrameCount);
+      this._pointerManager._update();
+      this._keyboardManager._update();
     }
   }
 

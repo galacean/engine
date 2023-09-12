@@ -1,4 +1,4 @@
-    #ifdef O3_HAS_VERTEXCOLOR
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
 
     v_color = COLOR_0;
 

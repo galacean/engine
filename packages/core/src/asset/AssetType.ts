@@ -6,47 +6,47 @@ export enum AssetType {
    * Plain text.
    * @remarks Will not be cached based on url in ResourceManager.
    */
-  Text = "text",
+  Text = "Text",
   /**
    * JSON.
    * @remarks Will not be cached based on url in ResourceManager.
    */
-  JSON = "json",
+  JSON = "JSON",
   /**
    * ArrayBuffer.
    * @remarks Will not be cached based on url in ResourceManager.
    */
-  Buffer = "buffer",
+  Buffer = "Buffer",
   /** 2D Texture. */
-  Texture2D = "texture2d",
+  Texture2D = "Texture2D",
   /** Cube Texture. */
-  TextureCube = "texture-cube",
+  TextureCube = "TextureCube",
   /** Material. */
-  Material = "material",
+  Material = "Material",
   /** Mesh. */
-  Mesh = "mesh",
+  Mesh = "Mesh",
   /** AnimationClip. */
   AnimationClip = "AnimationClip",
   /** AnimatorController. */
   AnimatorController = "AnimatorController",
   /** Prefab.*/
-  Prefab = "prefab",
+  GLTF = "GLTF",
   /** Compress Texture. */
-  KTX = "ktx",
+  KTX = "KTX",
   /** Cube Compress Texture. */
-  KTXCube = "ktx-cube",
+  KTXCube = "KTXCube",
   /** Sprite. */
-  Sprite = "sprite",
+  Sprite = "Sprite",
   /** Sprite Atlas. */
-  SpriteAtlas = "sprite-atlas",
+  SpriteAtlas = "SpriteAtlas",
   /** Ambient light. */
-  Env = "environment",
+  Env = "Environment",
   /** Scene. */
-  Scene = "scene",
+  Scene = "Scene",
   /** HDR to cube. */
   HDR = "HDR",
   /** Font. */
-  Font = "font",
+  Font = "Font",
   /** Source Font, include ttf、 otf and woff. */
-  SourceFont = "source-font"
+  SourceFont = "SourceFont"
 }

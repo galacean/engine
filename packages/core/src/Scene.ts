@@ -1,16 +1,16 @@
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
-import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { EngineObject, Logger } from "./base";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { Shader } from "./shader";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
@@ -19,17 +19,13 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = Shader.getPropertyByName("oasis_FogColor");
-  private static _fogParamsProperty = Shader.getPropertyByName("oasis_FogParams");
+  private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
+  private static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
 
   /** Scene name. */
   name: string;
-
-  /** The background of the scene. */
-  readonly background: Background = new Background(this._engine);
-  /** Scene-related shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
-
   /** If cast shadows. */
   castShadows: boolean = true;
   /** The resolution of the shadow maps. */
@@ -52,6 +48,8 @@ export class Scene extends EngineObject {
   /** @internal */
   _sunLight: Light;
 
+  private _background: Background = new Background(this._engine);
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
   private _fogMode: FogMode = FogMode.None;
@@ -62,6 +60,20 @@ export class Scene extends EngineObject {
   private _fogParams: Vector4 = new Vector4();
 
   /**
+   * Scene-related shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
+
+  /**
+   * The background of the scene.
+   */
+  get background(): Background {
+    return this._background;
+  }
+
+  /**
    *  Number of cascades to use for directional light shadows.
    */
   get shadowCascades(): ShadowCascadesMode {
@@ -70,7 +82,7 @@ export class Scene extends EngineObject {
 
   set shadowCascades(value: ShadowCascadesMode) {
     if (this._shadowCascades !== value) {
-      this.shaderData.enableMacro("CASCADED_COUNT", value.toString());
+      this.shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", value.toString());
       this._shadowCascades = value;
     }
   }
@@ -110,7 +122,7 @@ export class Scene extends EngineObject {
 
   set fogMode(value: FogMode) {
     if (this._fogMode !== value) {
-      this.shaderData.enableMacro("OASIS_FOG_MODE", value.toString());
+      this.shaderData.enableMacro("SCENE_FOG_MODE", value.toString());
       this._fogMode = value;
     }
   }
@@ -194,12 +206,12 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    shaderData._addRefCount(1);
-    this.ambientLight = new AmbientLight();
+    shaderData._addReferCount(1);
+    this.ambientLight = new AmbientLight(engine);
     engine.sceneManager._allScenes.push(this);
 
-    shaderData.enableMacro("OASIS_FOG_MODE", this._fogMode.toString());
-    shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
 
@@ -327,11 +339,11 @@ export class Scene extends EngineObject {
   /**
    * Destroy this scene.
    */
-  destroy(): void {
+  override destroy(): void {
     if (this._destroyed) {
       return;
     }
-
+    super.destroy();
     this._destroy();
 
     const allScenes = this.engine.sceneManager._allScenes;
@@ -379,18 +391,28 @@ export class Scene extends EngineObject {
    */
   _updateShaderData(): void {
     const shaderData = this.shaderData;
-    const lightManager = this._engine._lightManager;
+    const engine = this._engine;
+    const lightManager = engine._lightManager;
+
+    engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
-    const sunLightIndex = lightManager._getSunLightIndex();
-    if (sunLightIndex !== -1) {
-      this._sunLight = lightManager._directLights.get(sunLightIndex);
+    lightManager._updateSunLightIndex();
+
+    if (lightManager._directLights.length > 0) {
+      const sunlight = lightManager._directLights.get(0);
+
+      shaderData.setColor(Scene._sunlightColorProperty, sunlight._getLightIntensityColor());
+      shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
+      this._sunLight = sunlight;
+    } else {
+      this._sunLight = null;
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("SHADOW_TYPE", this._sunLight.shadowType.toString());
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._sunLight.shadowType.toString());
     } else {
-      shaderData.disableMacro("SHADOW_TYPE");
+      shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
 
     // union scene and camera macro.
@@ -423,7 +445,9 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
-    this.shaderData._addRefCount(-1);
+    this.background.destroy();
+    this._ambientLight && this._ambientLight._removeFromScene(this);
+    this.shaderData._addReferCount(-1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {

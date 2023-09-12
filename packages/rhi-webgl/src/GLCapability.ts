@@ -1,6 +1,6 @@
 import { GLCapabilityType } from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat } from "./type";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 type extensionKey = string;
 
@@ -12,7 +12,7 @@ export class GLCapability {
   private _maxAnisoLevel: number;
   private _maxAntiAliasing: number;
 
-  _rhi: WebGLRenderer;
+  _rhi: WebGLGraphicDevice;
   capabilityList: Map<GLCapabilityType, boolean>;
 
   get maxTextureSize(): boolean {
@@ -76,7 +76,7 @@ export class GLCapability {
     return this._rhi;
   }
 
-  constructor(rhi: WebGLRenderer) {
+  constructor(rhi: WebGLGraphicDevice) {
     this._rhi = rhi;
     this.capabilityList = new Map();
 

@@ -1,11 +1,11 @@
 import { Entity, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import chai, { expect } from "chai";
 
 class TestComponent extends Script {}
 
-describe("Entity", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
+describe("Entity", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {
@@ -405,6 +405,34 @@ describe("Entity", () => {
       entity.createChild("child4");
       entity.destroy();
       expect(entity.children.length).eq(0);
+    });
+
+    it("addChildAfterDestroy", () => {
+      class DestroyScript extends Script {
+        onDisable(): void {}
+        onDestroy(): void {}
+      }
+      DestroyScript.prototype.onDisable = chai.spy(DestroyScript.prototype.onDisable);
+      DestroyScript.prototype.onDestroy = chai.spy(DestroyScript.prototype.onDestroy);
+
+      const root = scene.createRootEntity("root");
+      const entity = root.createChild("entity");
+      const script = entity.addComponent(DestroyScript);
+      entity.destroy();
+      expect(entity.isActive).eq(false);
+      expect(entity.isActiveInHierarchy).eq(false);
+      expect(entity.parent).eq(null);
+      expect(entity.scene).eq(null);
+      expect(script.onDisable).to.have.been.called.exactly(1);
+
+      expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
+      root.destroy();
+      expect(root.isActive).eq(false);
+      expect(root.isActiveInHierarchy).eq(false);
+      expect(root.createChild("child1").isActiveInHierarchy).eq(false);
+
+      engine.update();
+      expect(script.onDestroy).to.have.been.called.exactly(1);
     });
   });
 });

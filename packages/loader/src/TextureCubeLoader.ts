@@ -5,22 +5,23 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager,
-  TextureCubeFace,
-  TextureCube
+  TextureCube,
+  TextureCubeFace
 } from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
+import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
 @resourceLoader(AssetType.TextureCube, [""])
 class TextureCubeLoader extends Loader<TextureCube> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
-      Promise.all(
-        item.urls.map((url) =>
-          this.request<HTMLImageElement>(url, {
-            ...item,
-            type: "image"
-          })
-        )
-      )
+      const urls = item.urls;
+      const requestConfig = <RequestConfig>{
+        ...item,
+        type: "image"
+      };
+
+      Promise.all(urls.map((url) => this.request<HTMLImageElement>(url, requestConfig)))
         .then((images) => {
           const { width, height } = images[0];
 
@@ -29,17 +30,14 @@ class TextureCubeLoader extends Loader<TextureCube> {
             return;
           }
 
-          const tex = new TextureCube(resourceManager.engine, width);
-
-          /** @ts-ignore */
-          if (!tex._platformTexture) return;
-
+          const texture = new TextureCube(resourceManager.engine, width);
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            tex.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
+            texture.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
           }
+          texture.generateMipmaps();
 
-          tex.generateMipmaps();
-          resolve(tex);
+          resourceManager.addContentRestorer(new TextureCubeContentRestorer(texture, urls, requestConfig));
+          resolve(texture);
         })
         .catch((e) => {
           reject(e);

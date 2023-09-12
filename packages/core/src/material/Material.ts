@@ -1,27 +1,32 @@
 import { IClone } from "@galacean/engine-design";
-import { RefObject } from "../asset/RefObject";
-import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
-import { MeshRenderElement } from "../RenderPipeline/MeshRenderElement";
-import { SpriteElement } from "../RenderPipeline/SpriteElement";
-import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
+import { ReferResource } from "../asset/ReferResource";
+import { CloneManager } from "../clone/CloneManager";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderState } from "../shader/state/RenderState";
 
 /**
  * Material.
  */
-export class Material extends RefObject implements IClone {
+export class Material extends ReferResource implements IClone {
   /** Name. */
   name: string;
-  /** Shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
   /** @internal */
   _shader: Shader;
   /** @internal */
   _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
+
+  /**
+   *  Shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Shader used by the material.
@@ -35,14 +40,19 @@ export class Material extends RefObject implements IClone {
 
     const renderStates = this._renderStates;
     const lastStatesCount = renderStates.length;
-    const passCount = value.passes.length;
 
-    if (lastStatesCount < passCount) {
-      for (let i = lastStatesCount; i < passCount; i++) {
+    let maxPassCount = 0;
+    const subShaders = value.subShaders;
+    for (let i = 0; i < subShaders.length; i++) {
+      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
+    }
+
+    if (lastStatesCount < maxPassCount) {
+      for (let i = lastStatesCount; i < maxPassCount; i++) {
         renderStates.push(new RenderState());
       }
     } else {
-      renderStates.length = passCount;
+      renderStates.length = maxPassCount;
     }
   }
 
@@ -89,22 +99,20 @@ export class Material extends RefObject implements IClone {
     CloneManager.deepCloneObject(this.renderStates, target.renderStates);
   }
 
-  /**
-   * @override
-   */
-  _addRefCount(value: number): void {
-    super._addRefCount(value);
-    this.shaderData._addRefCount(value);
+  override _addReferCount(value: number): void {
+    if (this._destroyed) return;
+    super._addReferCount(value);
+    this.shaderData._addReferCount(value);
   }
 
   /**
-   * @internal
-   * @todo:temporary solution
-   */
-  _preRender(renderElement: MeshRenderElement | SpriteElement) {}
-
-  /**
    * @override
    */
-  protected _onDestroy(): void {}
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._shader = null;
+    this._shaderData = null;
+    this._renderStates.length = 0;
+    this._renderStates = null;
+  }
 }

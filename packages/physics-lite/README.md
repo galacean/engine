@@ -21,8 +21,8 @@ import { LitePhysics } from "@galacean/engine-physics-lite";
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
-const engine = new WebGLEngine("canvas-id");
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
+const engine = await WebGLEngine.create({ canvas: "canvas-id" });
 
 // Initialize physics manager with LitePhysics.
 engine.physicsManager.initialize(LitePhysics);

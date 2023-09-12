@@ -10,10 +10,10 @@ import { Vector3 } from "@galacean/engine";
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   private _swingOffset = new Vector3();
 
-  constructor(collider: PhysXCollider) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+    super(physXPhysics);
     this._collider = collider;
-    this._pxJoint = PhysXPhysics._pxPhysics.createDistanceJoint(
+    this._pxJoint = physXPhysics._pxPhysics.createDistanceJoint(
       null,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,

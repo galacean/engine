@@ -45,7 +45,9 @@ export class PointerManager implements IInput {
    * @param engine - The current engine instance
    * @param htmlCanvas - HTMLCanvasElement
    */
-  constructor(engine: Engine, htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine) {
+    // @ts-ignore
+    const htmlCanvas = engine._canvas._webCanvas;
     this._engine = engine;
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
@@ -60,7 +62,7 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _update(frameCount: number): void {
+  _update(): void {
     const { _pointers: pointers, _nativeEvents: nativeEvents, _htmlCanvas: htmlCanvas } = this;
     const { clientWidth, clientHeight } = htmlCanvas;
     const { width, height } = this._canvas;
@@ -114,6 +116,7 @@ export class PointerManager implements IInput {
     this._buttons = PointerButton.None;
     lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
+      const frameCount = this._engine.time.frameCount;
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;

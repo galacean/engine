@@ -20,4 +20,3 @@ export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export * from "./Keyframe";
 export { StateMachineScript } from "./StateMachineScript";
-

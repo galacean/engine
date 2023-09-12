@@ -1,43 +1,23 @@
-import { RefObject } from "../../asset/RefObject";
+import { Vector2 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
+import { ReferResource } from "../../asset/ReferResource";
 import { Texture2D } from "../../texture/Texture2D";
 import { CharInfo } from "../text/CharInfo";
 
 /**
  * @internal
- * Font Atlas.
  */
-export class FontAtlas extends RefObject {
-  private _charInfoMap: Record<number, CharInfo> = {};
-  private _texture: Texture2D;
+export class FontAtlas extends ReferResource {
+  texture: Texture2D;
+
+  _charInfoMap: Record<number, CharInfo> = {};
   private _space: number = 1;
   private _curX: number = 1;
   private _curY: number = 1;
   private _nextY: number = 1;
 
-  get texture(): Texture2D {
-    return this._texture;
-  }
-
-  set texture(value: Texture2D) {
-    this._texture = value;
-  }
-
-  /**
-   * Constructor a FontAtlas.
-   * @param engine - Engine to which the FontAtlas belongs
-   */
   constructor(engine: Engine) {
     super(engine);
-  }
-
-  /**
-   * @override
-   */
-  _onDestroy(): void {
-    this._texture.destroy();
-    this._texture = null;
-    this._charInfoMap = {};
   }
 
   uploadCharTexture(charInfo: CharInfo): boolean {
@@ -64,6 +44,7 @@ export class FontAtlas extends RefObject {
     }
 
     if (width > 0 && height > 0 && data) {
+      charInfo.bufferOffset = new Vector2(this._curX, this._curY);
       texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
       texture.generateMipmaps();
     }
@@ -96,5 +77,15 @@ export class FontAtlas extends RefObject {
 
   getCharInfo(char: string): CharInfo {
     return this._charInfoMap[char.charCodeAt(0)];
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this.texture.destroy();
+    this.texture = null;
+    this._charInfoMap = {};
   }
 }

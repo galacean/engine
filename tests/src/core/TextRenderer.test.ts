@@ -2,9 +2,9 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { TextRenderer } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe("TextRenderer", () => {
+describe("TextRenderer", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas: canvas });
   const scene = engine.sceneManager.activeScene;
 
   engine.run();
@@ -54,6 +54,41 @@ describe("TextRenderer", () => {
     const textRenderer = textEntity.addComponent(TextRenderer);
     textRenderer.enableWrapping = true;
     expect(textRenderer.enableWrapping).to.eq(true);
+  });
+
+  it("emoji", () => {
+    const rootEntity = scene.getRootEntity();
+    const textEntity = rootEntity.createChild("text");
+
+    const textRenderer1 = textEntity.addComponent(TextRenderer);
+    textRenderer1.text = "͞**͟";
+    const textRenderer2 = textEntity.addComponent(TextRenderer);
+    textRenderer2.text = "😋月😜狮😝😋🌹❤️😘🎉🤪😍🎊🎵🇧🇸";
+    const textRenderer3 = textEntity.addComponent(TextRenderer);
+    textRenderer3.text = "️我们" + "️" + "hello";
+    const textRenderer4 = textEntity.addComponent(TextRenderer);
+    textRenderer4.text = "Ajkq趚喥嘟説孒汾掱湜徳弗里凘諴萉\n汸荖djp溮哋看琺湜獨竝房簡湜汏琺溮哋汸鉽哋汸";
+  });
+
+  it("wrap", () => {
+    const rootEntity = scene.getRootEntity();
+    const textEntity = rootEntity.createChild("text");
+
+    const textRenderer1 = textEntity.addComponent(TextRenderer);
+    textRenderer1.width = 2;
+    textRenderer1.height = 3;
+    textRenderer1.enableWrapping = true;
+    textRenderer1.text = "helloworld dfd                       dlfgds    dd df\n    ds f";
+    const textRenderer2 = textEntity.addComponent(TextRenderer);
+    textRenderer2.width = 2;
+    textRenderer2.height = 3;
+    textRenderer2.enableWrapping = true;
+    textRenderer2.text = "a a a a a a a a a b    a    a";
+    const textRenderer3 = textEntity.addComponent(TextRenderer);
+    textRenderer3.width = 2;
+    textRenderer3.height = 3;
+    textRenderer3.enableWrapping = true;
+    textRenderer3.text = "hello world\nddl\nsdfjdslfsdfdssdfsdf";
   });
 });
 

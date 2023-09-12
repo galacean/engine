@@ -8,10 +8,11 @@ import {
   TextureDepthCompareFunction,
   TextureFilterMode,
   TextureFormat,
+  TextureUsage,
   TextureWrapMode
 } from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Texture in WebGL platform.
@@ -321,7 +322,7 @@ export class GLTexture implements IPlatformTexture {
    * Check whether the corresponding texture format is supported.
    * @internal
    */
-  static _supportTextureFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+  static _supportTextureFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     switch (format) {
       case TextureFormat.R16G16B16A16:
         if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
@@ -352,7 +353,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     let isSupported = true;
 
     switch (format) {
@@ -378,7 +379,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLRenderer): boolean {
+  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLGraphicDevice): boolean {
     if (!rhi.isWebGL2) {
       switch (format) {
         case RenderBufferDepthFormat.Depth24:
@@ -396,7 +397,7 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _glTexture: WebGLTexture;
   /** @internal */
-  _rhi: WebGLRenderer;
+  _rhi: WebGLGraphicDevice;
   /** @internal */
   _gl: WebGLRenderingContext & WebGL2RenderingContext;
   /** @internal */
@@ -492,7 +493,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * Create texture in WebGL platform.
    */
-  constructor(rhi: WebGLRenderer, texture: Texture, target: GLenum) {
+  constructor(rhi: WebGLGraphicDevice, texture: Texture, target: GLenum) {
     this._texture = texture;
     this._rhi = rhi;
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
@@ -542,11 +543,11 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
+    const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
 
-    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA)) {
+    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {

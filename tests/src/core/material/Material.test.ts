@@ -4,8 +4,11 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Material", () => {
-  const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  let engine: WebGLEngine;
+  before(async function () {
+    this.timeout(10000);
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  });
 
   it("property", () => {
     const color = new Color(0.2, 0.1, 0.3, 1.0);

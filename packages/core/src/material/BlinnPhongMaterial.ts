@@ -1,6 +1,7 @@
 import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 
@@ -8,9 +9,9 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
-  private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
-  private static _shininessProp = Shader.getPropertyByName("u_shininess");
-  private static _specularTextureProp = Shader.getPropertyByName("u_specularTexture");
+  private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
+  private static _shininessProp = ShaderProperty.getByName("material_Shininess");
+  private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
 
   /**
    * Base color.
@@ -66,9 +67,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set specularTexture(value: Texture2D) {
     this.shaderData.setTexture(BlinnPhongMaterial._specularTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("O3_SPECULAR_TEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_SPECULAR_TEXTURE");
     } else {
-      this.shaderData.disableMacro("O3_SPECULAR_TEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_SPECULAR_TEXTURE");
     }
   }
 
@@ -163,8 +164,8 @@ export class BlinnPhongMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("O3_NEED_WORLDPOS");
-    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
 
     shaderData.setColor(BlinnPhongMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(BlinnPhongMaterial._specularColorProp, new Color(1, 1, 1, 1));
@@ -174,10 +175,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
     shaderData.setFloat(BlinnPhongMaterial._normalIntensityProp, 1);
   }
 
-  /**
-   * @override
-   */
-  clone(): BlinnPhongMaterial {
+  override clone(): BlinnPhongMaterial {
     var dest: BlinnPhongMaterial = new BlinnPhongMaterial(this._engine);
     this.cloneTo(dest);
     return dest;
