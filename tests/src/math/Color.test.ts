@@ -63,7 +63,7 @@ describe("Color test", () => {
     const b = new Color(0, 0, 1, 1);
     const data = [1, 0, 0, 1, 1]
 
-    out.copyFromArray(data, 1);
+    a.copyFromArray(data, 1);
     expect(Color.equals(a, b)).to.eq(true);
   });
 
