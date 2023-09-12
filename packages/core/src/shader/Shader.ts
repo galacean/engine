@@ -98,8 +98,12 @@ export class Shader {
               ?.passes.find((pass) => pass.name === paths[2]);
           }
 
-          const shaderPass = new ShaderPass(passInfo.vertexSource, passInfo.fragmentSource, passInfo.tags);
-          shaderPass.name = passInfo.name;
+          const shaderPass = new ShaderPass(
+            passInfo.name,
+            passInfo.vertexSource,
+            passInfo.fragmentSource,
+            passInfo.tags
+          );
           const renderStates = passInfo.renderStates;
           const renderState = new RenderState();
           shaderPass._renderState = renderState;
