@@ -61,14 +61,14 @@ export class ShaderPass extends ShaderPart {
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     if (typeof fragmentSourceOrTags === "string") {
-      this.name = nameOrVertexSource;
+      this._name = nameOrVertexSource;
       this._vertexSource = vertexSourceOrFragmentSource;
       this._fragmentSource = fragmentSourceOrTags;
       tags = tags ?? {
         pipelineStage: PipelineStage.Forward
       };
     } else {
-      this.name = "Default";
+      this._name = "Default";
       this._vertexSource = nameOrVertexSource;
       this._fragmentSource = vertexSourceOrFragmentSource;
       tags = fragmentSourceOrTags ?? {

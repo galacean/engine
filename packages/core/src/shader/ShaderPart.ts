@@ -5,10 +5,16 @@ import { ShaderTagKey } from "./ShaderTagKey";
  * Base class for shader structure.
  */
 export abstract class ShaderPart {
+  protected _name: string;
+
   private _tagsMap: Record<number, number | string | boolean> = Object.create(null);
 
-  /** Name. */
-  name: string;
+  /**
+   * Name.
+   */
+  get name(): string {
+    return this._name;
+  }
 
   /**
    * Set tag by key name.
