@@ -21,9 +21,3 @@ export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimation
     this._skinnedMeshRenderer.blendShapeWeights = value;
   }
 }
-
-AnimationCurveOwner.registerAssembler(
-  SkinnedMeshRenderer,
-  "blendShapeWeights",
-  BlendShapeWeightsAnimationCurveOwnerAssembler
-);

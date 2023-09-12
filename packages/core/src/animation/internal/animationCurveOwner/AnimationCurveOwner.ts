@@ -1,9 +1,15 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
+import { SkinnedMeshRenderer } from "../../../mesh";
+import { Transform } from "../../../Transform";
 import { AnimationCurve } from "../../animationCurve/AnimationCurve";
 import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
 import { IAnimationCurveOwnerAssembler } from "./assembler/IAnimationCurveOwnerAssembler";
+import { BlendShapeWeightsAnimationCurveOwnerAssembler } from "./assembler/BlendShapeWeightsAnimationCurveOwnerAssembler";
+import { PositionAnimationCurveOwnerAssembler } from "./assembler/PositionAnimationCurveOwnerAssembler";
+import { RotationAnimationCurveOwnerAssembler } from "./assembler/RotationAnimationCurveOwnerAssembler";
+import { ScaleAnimationCurveOwnerAssembler } from "./assembler/ScaleAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnimationCurveOwnerAssembler";
 
 /**
@@ -196,3 +202,12 @@ export interface IEvaluateData<V extends KeyframeValueType> {
   curKeyframeIndex: number;
   value: V;
 }
+
+AnimationCurveOwner.registerAssembler(
+  SkinnedMeshRenderer,
+  "blendShapeWeights",
+  BlendShapeWeightsAnimationCurveOwnerAssembler
+);
+AnimationCurveOwner.registerAssembler(Transform, "position", PositionAnimationCurveOwnerAssembler);
+AnimationCurveOwner.registerAssembler(Transform, "rotationQuaternion", RotationAnimationCurveOwnerAssembler);
+AnimationCurveOwner.registerAssembler(Transform, "scale", ScaleAnimationCurveOwnerAssembler);
