@@ -11,7 +11,6 @@ import { PositionAnimationCurveOwnerAssembler } from "./assembler/PositionAnimat
 import { RotationAnimationCurveOwnerAssembler } from "./assembler/RotationAnimationCurveOwnerAssembler";
 import { ScaleAnimationCurveOwnerAssembler } from "./assembler/ScaleAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnimationCurveOwnerAssembler";
-alert(1);
 /**
  * @internal
  */
