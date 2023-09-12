@@ -260,16 +260,29 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
   /**
    * Copy from array like object.
-   * @param source - Array like object.
-   * @returns This vector
+   * @param source - Array like object
+   * @param offset - The start offset
+   * @returns This color
    */
   copyFromArray(source: ArrayLike<number>, offset: number = 0): Color {
-    this._r = source[offset] ?? 0;
-    this._g = source[offset + 1] ?? 0;
-    this._b = source[offset + 2] ?? 0;
-    this._a = source[offset + 3] ?? 0;
+    this._r = source[offset];
+    this._g = source[offset + 1];
+    this._b = source[offset + 2];
+    this._a = source[offset + 3];
     this._onValueChanged && this._onValueChanged();
     return this;
+  }
+
+  /**
+   * Copy the value of this color to an array.
+   * @param out - The color
+   * @param outOffset - The start offset
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
+    out[outOffset] = this._r;
+    out[outOffset + 1] = this._g;
+    out[outOffset + 2] = this._b;
+    out[outOffset + 3] = this._a;
   }
 
   /**
