@@ -61,14 +61,14 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
 
     const boundingBox = LiteBoxColliderShape._tempBox;
     boundingBox.min.set(
-      -this._halfSize.x * this._scale.x,
-      -this._halfSize.y * this._scale.y,
-      -this._halfSize.z * this._scale.z
+      -this._halfSize.x * this._worldScale.x,
+      -this._halfSize.y * this._worldScale.y,
+      -this._halfSize.z * this._worldScale.z
     );
     boundingBox.max.set(
-      this._halfSize.x * this._scale.x,
-      this._halfSize.y * this._scale.y,
-      this._halfSize.z * this._scale.z
+      this._halfSize.x * this._worldScale.x,
+      this._halfSize.y * this._worldScale.y,
+      this._halfSize.z * this._worldScale.z
     );
     const rayDistance = localRay.intersectBox(boundingBox);
     if (rayDistance !== -1) {
@@ -80,8 +80,10 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   }
 
   private _setBondingBox(): void {
-    const { position, scale } = this._transform;
+    const { position } = this._transform;
+    const scale = this._worldScale;
     const halfSize = this._halfSize;
+
     this._boxMin.set(
       -halfSize.x * scale.x + position.x,
       -halfSize.y * scale.y + position.y,
