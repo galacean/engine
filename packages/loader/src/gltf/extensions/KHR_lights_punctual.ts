@@ -43,7 +43,7 @@ class KHR_lights_punctual extends GLTFExtensionParser {
       light.penumbra = outerConeAngle - innerConeAngle;
     }
 
-    if (!glTFResource.lights) glTFResource.lights = [];
+    glTFResource.lights ||= [];
     glTFResource.lights.push(light);
   }
 }

@@ -15,7 +15,7 @@ describe("RenderTarget", async () => {
   let renderColorTexture: Texture2D;
   let renderColorTexture2: Texture2D;
   let renderDepthTexture: Texture2D;
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;
@@ -122,7 +122,7 @@ describe("RenderTarget", async () => {
       renderTarget.destroy();
 
       expect(renderTarget.colorTextureCount).to.eq(0);
-      expect(renderTarget.getColorTexture()).to.be.undefined;
+      expect(renderTarget.getColorTexture()).to.be.null;
     });
   });
 });

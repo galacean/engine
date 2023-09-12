@@ -1,5 +1,6 @@
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { DataType, TypedArray } from "../base";
 import { Buffer } from "../graphic/Buffer";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Mesh } from "../graphic/Mesh";
@@ -25,14 +26,12 @@ export class ModelMesh extends Mesh {
 
   /** @internal */
   _blendShapeManager: BlendShapeManager;
+  /** @internal */
+  _internalVertexBufferIndex: number = -1;
 
   private _vertexCount: number = 0;
-  private _readable: boolean = true;
-  private _verticesFloat32: Float32Array | null = null;
-  private _verticesUint8: Uint8Array | null = null;
-  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
-  private _indicesFormat: IndexFormat = null;
-  private _indicesChangeFlag: boolean = false;
+  private _vertexCountDirty: boolean = false;
+  private _dataVersionCounter: number = 0;
 
   private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
@@ -48,37 +47,37 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
+  private _advancedElementUpdateFlag: VertexElementFlags = VertexElementFlags.None;
+  private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
+  private _advancedVertexDataVersions: number[] = new Array<number>(14); // Only have 14 vertex element can set advanced data
+  private _advancedDataSyncToBuffer: boolean = false;
 
-  private _bufferStrides: number[] = [];
-  private _vertexBufferUpdateFlag: number = 0;
-  private _vertexDataUpdateFlag: number = 0;
-  private _vertexElementsUpdate: boolean = false;
-  private _customVertexElements: VertexElement[] = [];
-  private _vertexCountChanged: boolean = false;
+  private _internalVertexBufferStride: number = 0;
+  private _internalVertexBufferCreatedInfo: Vector3 = new Vector3(0, 0, -1); // x:vertexCount, y:vertexStride, z:bufferIndex
+  private _internalVertexElementsOffset: number = 0;
+  private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
+
+  private _vertexBufferInfos: BufferUpdateInfo[] = [];
+
+  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+  private _indicesFormat: IndexFormat = null;
+  private _indicesChangeFlag: boolean = false;
 
   /**
-   * Whether to read data of the mesh.
-   */
-  get readable(): boolean {
-    return this._readable;
-  }
-
-  /**
-   * Vertex count of current mesh.
+   * Vertex count of mesh.
    */
   get vertexCount(): number {
-    if (this._vertexDataUpdateFlag & VertexChangedFlags.Position) {
+    if (this._vertexCountDirty) {
       let vertexCount = 0;
-      const positionElement = this._vertexElementMap[VertexAttribute.Position];
+      const positionElement = this._primitive._vertexElementMap[VertexAttribute.Position];
       if (positionElement) {
-        const positionBufferBinding = this._vertexBufferBindings[positionElement.bindingIndex];
+        const positionBufferBinding = this._primitive.vertexBufferBindings[positionElement.bindingIndex];
         if (positionBufferBinding) {
           vertexCount = positionBufferBinding.buffer.byteLength / positionBufferBinding.stride;
         }
       }
-
       this._vertexCount = vertexCount;
-      this._vertexDataUpdateFlag &= ~VertexChangedFlags.Position;
+      this._vertexCountDirty = false;
     }
     return this._vertexCount;
   }
@@ -88,14 +87,15 @@ export class ModelMesh extends Mesh {
    */
   get vertexElements(): Readonly<VertexElement[]> {
     this._updateVertexElements();
-    return this._vertexElements;
+    return this._primitive.vertexElements;
   }
 
   /**
    * Vertex buffer binding collection.
    */
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
-    return this._vertexBufferBindings;
+  get vertexBufferBindings(): ReadonlyArray<VertexBufferBinding> {
+    // @todo: update if dirty like `vertexElements` is better
+    return this._primitive.vertexBufferBindings;
   }
 
   /**
@@ -125,21 +125,18 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set positions for the mesh.
-   * @param positions - The positions for the mesh.
+   * @param positions - The positions for the mesh
    */
   setPositions(positions: Vector3[] | null): void {
     if (!this._positions && !positions) {
       return;
     }
 
-    const newVertexCount = positions?.length || 0;
-    this._vertexCountChanged = this._vertexCount != newVertexCount;
-    this._vertexCount = newVertexCount;
-
-    this._vertexElementsUpdate = !!this._positions !== !!positions;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Position;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Position;
+    this._updateAdvancedVertexDataMarks(VertexElementFlags.Position, VertexElementIndex.Position);
     this._positions = positions;
+
+    this._vertexCount = positions?.length ?? 0;
+    this._vertexCountDirty = false;
   }
 
   /**
@@ -147,29 +144,22 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    return this._positions;
+    const positions = this._getVertexElementData(
+      this._positions,
+      VertexAttribute.Position,
+      VertexElementIndex.Position,
+      this._readVector3VertexData
+    );
+    this._positions = positions;
+    return positions;
   }
 
   /**
    * Set per-vertex normals for the mesh.
-   * @param normals - The normals for the mesh.
+   * @param normals - The normals for the mesh
    */
   setNormals(normals: Vector3[] | null): void {
-    if (normals) {
-      if (normals.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._normals) {
-      return;
-    }
-
-    this._vertexElementsUpdate = !!this._normals !== !!normals;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Normal;
+    this._beforeSetAdvancedVertexData(normals, VertexElementFlags.Normal, VertexElementIndex.Normal);
     this._normals = normals;
   }
 
@@ -178,28 +168,22 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
   getNormals(): Vector3[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._normals;
+    const normals = this._getVertexElementData(
+      this._normals,
+      VertexAttribute.Normal,
+      VertexElementIndex.Normal,
+      this._readVector3VertexData
+    );
+    this._normals = normals;
+    return normals;
   }
 
   /**
    * Set per-vertex colors for the mesh.
-   * @param colors - The colors for the mesh.
+   * @param colors - The colors for the mesh
    */
   setColors(colors: Color[] | null): void {
-    if (colors) {
-      if (colors.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._colors) {
-      return;
-    }
-
-    this._vertexElementsUpdate = !!this._colors !== !!colors;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Color;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Color;
+    this._beforeSetAdvancedVertexData(colors, VertexElementFlags.Color, VertexElementIndex.Color);
     this._colors = colors;
   }
 
@@ -208,88 +192,70 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
   getColors(): Color[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._colors;
+    const colors = this._getVertexElementData(
+      this._colors,
+      VertexAttribute.Color,
+      VertexElementIndex.Color,
+      this._readColorVertexData
+    );
+    this._colors = colors;
+    return colors;
   }
 
   /**
    * Set per-vertex bone weights for the mesh.
-   * @param boneWeights - The bone weights for the mesh.
+   * @param boneWeights - The bone weights for the mesh
    */
   setBoneWeights(boneWeights: Vector4[] | null): void {
-    if (boneWeights) {
-      if (boneWeights.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._boneWeights) {
-      return;
-    }
-
-    this._vertexElementsUpdate = !!this._boneWeights !== !!boneWeights;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.BoneWeight;
+    this._beforeSetAdvancedVertexData(boneWeights, VertexElementFlags.BoneWeight, VertexElementIndex.BoneWeight);
     this._boneWeights = boneWeights;
   }
 
   /**
-   * Get weights for the mesh.
+   * Get bone weights for the mesh.
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
   getBoneWeights(): Vector4[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._boneWeights;
+    const boneWeights = this._getVertexElementData(
+      this._boneWeights,
+      VertexAttribute.BoneWeight,
+      VertexElementIndex.BoneWeight,
+      this._readVector4VertexData
+    );
+    this._boneWeights = boneWeights;
+    return boneWeights;
   }
 
   /**
    * Set per-vertex bone indices for the mesh.
-   * @param boneIndices - The bone indices for the mesh.
+   * @param boneIndices - The bone indices for the mesh
    */
   setBoneIndices(boneIndices: Vector4[] | null): void {
-    if (boneIndices) {
-      if (boneIndices?.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._boneIndices) {
-      return;
-    }
-
-    this._vertexElementsUpdate = !!this._boneIndices !== !!boneIndices;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.BoneIndex;
+    this._beforeSetAdvancedVertexData(boneIndices, VertexElementFlags.BoneIndex, VertexElementIndex.BoneIndex);
     this._boneIndices = boneIndices;
   }
 
   /**
-   * Get joints for the mesh.
+   * Get bone indices for the mesh.
    * @remarks Please call the setBoneIndices() method after modification to ensure that the modification takes effect.
    */
   getBoneIndices(): Vector4[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._boneIndices;
+    const boneIndices = this._getVertexElementData(
+      this._boneIndices,
+      VertexAttribute.BoneIndex,
+      VertexElementIndex.BoneIndex,
+      this._readVector4VertexData
+    );
+    this._boneIndices = boneIndices;
+    return boneIndices;
   }
 
   /**
    * Set per-vertex tangents for the mesh.
-   * @param tangents - The tangents for the mesh.
+   * @param tangents - The tangents for the mesh
    */
   setTangents(tangents: Vector4[] | null): void {
-    if (tangents) {
-      if (tangents.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._tangents) {
-      return;
-    }
-
-    this._vertexElementsUpdate = !!this._tangents !== !!tangents;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Tangent;
+    this._beforeSetAdvancedVertexData(tangents, VertexElementFlags.Tangent, VertexElementIndex.Tangent);
     this._tangents = tangents;
   }
 
@@ -298,108 +264,60 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
   getTangents(): Vector4[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._tangents;
+    const tangents = this._getVertexElementData(
+      this._tangents,
+      VertexAttribute.Tangent,
+      VertexElementIndex.Tangent,
+      this._readVector4VertexData
+    );
+    this._tangents = tangents;
+    return tangents;
   }
 
   /**
    * Set per-vertex uv for the mesh.
-   * @param uv - The uv for the mesh.
+   * @param uv - The uv for the mesh
    */
   setUVs(uv: Vector2[] | null): void;
   /**
    * Set per-vertex uv for the mesh by channelIndex.
-   * @param uv - The uv for the mesh.
-   * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
+   * @param uv - The uv for the mesh
+   * @param channelIndex - The index of uv channels, in [0 ~ 7] range
    */
   setUVs(uv: Vector2[] | null, channelIndex: number): void;
   setUVs(uv: Vector2[] | null, channelIndex?: number): void {
-    if (uv && uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        if (!this._uv && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV, VertexElementIndex.UV);
         this._uv = uv;
         break;
       case 1:
-        if (!this._uv1 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv1 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV1;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV1, VertexElementIndex.UV1);
         this._uv1 = uv;
         break;
       case 2:
-        if (!this._uv2 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv2 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV2;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV2, VertexElementIndex.UV2);
         this._uv2 = uv;
         break;
       case 3:
-        if (!this._uv3 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv3 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV3;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV3, VertexElementIndex.UV3);
         this._uv3 = uv;
         break;
       case 4:
-        if (!this._uv4 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv4 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV4;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV4, VertexElementIndex.UV4);
         this._uv4 = uv;
         break;
       case 5:
-        if (!this._uv5 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv5 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV5;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV5, VertexElementIndex.UV5);
         this._uv5 = uv;
         break;
       case 6:
-        if (!this._uv6 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv6 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV6;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV6, VertexElementIndex.UV6);
         this._uv6 = uv;
         break;
       case 7:
-        if (!this._uv7 && !uv) {
-          return;
-        }
-
-        this._vertexElementsUpdate = !!this._uv7 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV7;
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV7, VertexElementIndex.UV7);
         this._uv7 = uv;
         break;
       default:
@@ -412,41 +330,96 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(): Vector2[] | null;
+
   /**
    * Get uv for the mesh by channelIndex.
    * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(channelIndex: number): Vector2[] | null;
+
   getUVs(channelIndex?: number): Vector2[] | null {
-    if (!this._readable) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        return this._uv;
+        const uvs = this._getVertexElementData(
+          this._uv,
+          VertexAttribute.UV,
+          VertexElementIndex.UV,
+          this._readVector2VertexData
+        );
+        this._uv = uvs;
+        return uvs;
       case 1:
-        return this._uv1;
+        const uv1s = this._getVertexElementData(
+          this._uv1,
+          VertexAttribute.UV1,
+          VertexElementIndex.UV1,
+          this._readVector2VertexData
+        );
+        this._uv1 = uv1s;
+        return uv1s;
       case 2:
-        return this._uv2;
+        const uv2s = this._getVertexElementData(
+          this._uv2,
+          VertexAttribute.UV2,
+          VertexElementIndex.UV2,
+          this._readVector2VertexData
+        );
+        this._uv2 = uv2s;
+        return uv2s;
       case 3:
-        return this._uv3;
+        const uv3s = this._getVertexElementData(
+          this._uv3,
+          VertexAttribute.UV3,
+          VertexElementIndex.UV3,
+          this._readVector2VertexData
+        );
+        this._uv3 = uv3s;
+        return uv3s;
       case 4:
-        return this._uv4;
+        const uv4s = this._getVertexElementData(
+          this._uv4,
+          VertexAttribute.UV4,
+          VertexElementIndex.UV4,
+          this._readVector2VertexData
+        );
+        this._uv4 = uv4s;
+        return uv4s;
       case 5:
-        return this._uv5;
+        const uv5s = this._getVertexElementData(
+          this._uv5,
+          VertexAttribute.UV5,
+          VertexElementIndex.UV5,
+          this._readVector2VertexData
+        );
+        this._uv5 = uv5s;
+        return uv5s;
       case 6:
-        return this._uv6;
+        const uv6s = this._getVertexElementData(
+          this._uv6,
+          VertexAttribute.UV6,
+          VertexElementIndex.UV6,
+          this._readVector2VertexData
+        );
+        this._uv6 = uv6s;
+        return uv6s;
       case 7:
-        return this._uv7;
+        const uv7s = this._getVertexElementData(
+          this._uv7,
+          VertexAttribute.UV7,
+          VertexElementIndex.UV7,
+          this._readVector2VertexData
+        );
+        this._uv7 = uv7s;
+        return uv7s;
     }
     throw "The index of channel needs to be in range [0 - 7].";
   }
 
   /**
    * Set indices for the mesh.
-   * @param indices - The indices for the mesh.
+   * @param indices - The indices for the mesh
    */
   setIndices(indices: Uint8Array | Uint16Array | Uint32Array): void {
     if (this._indices !== indices) {
@@ -467,140 +440,68 @@ export class ModelMesh extends Mesh {
    * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._indices;
   }
 
   /**
-   * @beta
-   * @todo Update buffer should support custom vertex elements.
    * Set vertex elements.
    * @param elements - Vertex element collection
+   *
+   * @remarks
+   * Call this method will clear the vertex data set by the setPositions(), setNormals(), setColors(), setBoneWeights(), setBoneIndices(), setTangents(), setUVs() methods.
    */
   setVertexElements(elements: VertexElement[]): void {
-    const customVertexElements = this._customVertexElements;
-    customVertexElements.length = 0;
+    this._clearVertexElements();
 
-    const customVertexElementMap: Record<string, VertexElement> = {};
-    for (let i = 0, n = elements.length; i < n; i++) {
-      const element = elements[i];
-      customVertexElements.push(element);
-      customVertexElementMap[element.semantic] = element;
+    const count = elements.length;
+    for (let i = 0; i < count; i++) {
+      this._addVertexElement(elements[i]);
     }
 
-    if (customVertexElementMap[VertexAttribute.Position]) {
-      const positions = this.getPositions();
-      positions && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Position);
-    } else {
-      this.setPositions(null);
+    // Clear data if vertex element not contains
+    const vertexElementMap = this._primitive._vertexElementMap;
+    vertexElementMap[VertexAttribute.Position] || this.setPositions(null);
+    vertexElementMap[VertexAttribute.Normal] || this.setNormals(null);
+    vertexElementMap[VertexAttribute.Color] || this.setColors(null);
+    vertexElementMap[VertexAttribute.BoneWeight] || this.setBoneWeights(null);
+    vertexElementMap[VertexAttribute.BoneIndex] || this.setBoneIndices(null);
+    vertexElementMap[VertexAttribute.Tangent] || this.setTangents(null);
+    vertexElementMap[VertexAttribute.UV] || this.setUVs(null, 0);
+    vertexElementMap[VertexAttribute.UV1] || this.setUVs(null, 1);
+    vertexElementMap[VertexAttribute.UV2] || this.setUVs(null, 2);
+    vertexElementMap[VertexAttribute.UV3] || this.setUVs(null, 3);
+    vertexElementMap[VertexAttribute.UV4] || this.setUVs(null, 4);
+    vertexElementMap[VertexAttribute.UV5] || this.setUVs(null, 5);
+    vertexElementMap[VertexAttribute.UV6] || this.setUVs(null, 6);
+    vertexElementMap[VertexAttribute.UV7] || this.setUVs(null, 7);
+
+    // Destroy internal vertex buffer immediately
+    const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
+    if (internalVertexBufferIndex !== -1) {
+      this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer.destroy();
+      this._setVertexBufferBinding(internalVertexBufferIndex, null);
+      this._internalVertexBufferCreatedInfo.z = -1;
     }
 
-    if (customVertexElementMap[VertexAttribute.Normal]) {
-      const normals = this.getNormals();
-      normals && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal);
-    } else {
-      this.setNormals(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.Color]) {
-      const colors = this.getColors();
-      colors && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Color);
-    } else {
-      this.setColors(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.BoneWeight]) {
-      const boneWeights = this.getBoneWeights();
-      boneWeights && (this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight);
-    } else {
-      this.setBoneWeights(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.BoneIndex]) {
-      const boneIndices = this.getBoneIndices();
-      boneIndices && (this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex);
-    } else {
-      this.setBoneIndices(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.Tangent]) {
-      const tangents = this.getTangents();
-      tangents && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent);
-    } else {
-      this.setTangents(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV]) {
-      const uvs = this.getUVs(0);
-      uvs && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV);
-    } else {
-      this.setUVs(null, 0);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV1]) {
-      const uv1s = this.getUVs(1);
-      uv1s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1);
-    } else {
-      this.setUVs(null, 1);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV2]) {
-      const uv2s = this.getUVs(2);
-      uv2s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2);
-    } else {
-      this.setUVs(null, 2);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV3]) {
-      const uv3s = this.getUVs(3);
-      uv3s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3);
-    } else {
-      this.setUVs(null, 3);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV4]) {
-      const uv4s = this.getUVs(4);
-      uv4s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4);
-    } else {
-      this.setUVs(null, 4);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV5]) {
-      const uv5s = this.getUVs(5);
-      uv5s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5);
-    } else {
-      this.setUVs(null, 5);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV6]) {
-      const uv6s = this.getUVs(6);
-      uv6s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6);
-    } else {
-      this.setUVs(null, 6);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV7]) {
-      const uv7s = this.getUVs(7);
-      uv7s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7);
-    } else {
-      this.setUVs(null, 7);
-    }
-
-    this._vertexElementsUpdate = true;
+    this._internalVertexBufferStride = 0;
+    this._internalVertexElementsOffset = count;
+    this._advancedElementUpdateFlag = VertexElementFlags.None;
+    this._vertexCountDirty = true;
+    this._blendShapeManager._bufferBindingOffset = -1;
+    this._blendShapeManager._vertexElementOffset = count;
   }
 
   /**
-   * @beta
    * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
+   * @param vertexBufferBinding - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, index?: number): void;
 
   /**
-   * @beta
    * Set vertex buffer binding.
    * @param vertexBuffer - Vertex buffer
    * @param stride - Vertex buffer data stride
@@ -608,24 +509,36 @@ export class ModelMesh extends Mesh {
    */
   setVertexBufferBinding(vertexBuffer: Buffer, stride: number, index?: number): void;
 
-  /**
-   * @beta
-   * @todo Use this way to update gpu buffer should can get cpu data(may be should support get data form GPU).
-   * @use `setPosition` and `setVertexBufferBinding` at the same time, thew VertexBufferBinding and Vertex buffer data should right.
-   */
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
-    strideOrFirstIndex: number = 0,
-    index: number = 0
+    strideOrIndex: number = 0,
+    indexOrNull: number = 0
   ): void {
     let binding = <VertexBufferBinding>bufferOrBinding;
     const isBinding = binding.buffer !== undefined;
-    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
+    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrIndex));
+    const index = isBinding ? strideOrIndex : indexOrNull;
 
-    const bindings = this._vertexBufferBindings;
-    bindings.length <= index && (bindings.length = index + 1);
-    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
-    this._vertexDataUpdateFlag |= VertexChangedFlags.Position;
+    const bindings = this._primitive.vertexBufferBindings;
+    const updateInfos = this._vertexBufferInfos;
+
+    const needLength = index + 1;
+    if (bindings.length < needLength) {
+      bindings.length = needLength;
+      updateInfos.length = needLength;
+    }
+
+    this._setVertexBufferBinding(index, binding);
+
+    // Reset internal vertex buffer index if by custom buffer binding
+    if (index === this._internalVertexBufferIndex) {
+      this._internalVertexBufferIndex = -1;
+    }
+    // Reset blend shape buffer binding offset if by custom buffer binding
+    if (index === this._blendShapeManager._bufferBindingOffset) {
+      this._blendShapeManager._bufferBindingOffset = -1;
+    }
+    this._vertexCountDirty = true;
   }
 
   /**
@@ -634,13 +547,39 @@ export class ModelMesh extends Mesh {
    * @param firstIndex - First vertex buffer index, the default value is 0
    */
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
-    const bindings = this._vertexBufferBindings;
     const count = vertexBufferBindings.length;
+    const bindings = this._primitive.vertexBufferBindings;
+    const updateInfos = this._vertexBufferInfos;
+
     const needLength = firstIndex + count;
-    bindings.length < needLength && (bindings.length = needLength);
-    for (let i = 0; i < count; i++) {
-      this._setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
+    if (bindings.length < needLength) {
+      bindings.length = needLength;
+      updateInfos.length = needLength;
     }
+
+    for (let i = 0; i < count; i++) {
+      const index = firstIndex + i;
+      this._setVertexBufferBinding(index, vertexBufferBindings[i]);
+      // Reset internal vertex buffer index if by custom buffer binding
+      if (index === this._internalVertexBufferIndex) {
+        this._internalVertexBufferIndex = -1;
+      }
+      // Reset blend shape buffer binding offset if by custom buffer binding
+      if (index === this._blendShapeManager._bufferBindingOffset) {
+        this._blendShapeManager._bufferBindingOffset = -1;
+      }
+    }
+    this._vertexCountDirty = true;
+  }
+
+  /**
+   * Get `VertexElement` by attribute.
+   * @param attribute - Vertex attribute
+   * @returns Vertex element
+   */
+  getVertexElement(attribute: VertexAttribute): VertexElement | null {
+    this._updateVertexElements();
+    return this._primitive._vertexElementMap[attribute];
   }
 
   /**
@@ -669,48 +608,41 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Upload Mesh Data to GPU.
-   * @param noLongerReadable - Whether to read data later. If true, you'll never read data anymore (free memory cache)
+   * Upload data to GPU set by `setPositions()`, `setNormals()`, `setColors()`, `setBoneWeights()`, `setBoneIndices()`, `setTangents()`, `setUVs()`, `setIndices()` methods.
+   * This method will be auto generate vertex element and vertex buffer binding if needed.
+   *
+   * @param releaseData - Whether to release the data cache, release data can reduce memory usage.
    */
-  uploadData(noLongerReadable: boolean): void {
-    // Update vertex elements
+  uploadData(releaseData: boolean): void {
     this._updateVertexElements();
 
-    // Vertex count change
-    const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
-    if (this._vertexCountChanged) {
-      this._vertexBufferUpdateFlag = VertexChangedFlags.All;
-      vertexBuffer?.destroy();
+    // Shouldn't update buffer data version when sync advanced data to buffer
+    this._advancedDataSyncToBuffer = true;
 
-      const elementCount = this._bufferStrides[0] / 4;
-      const vertexFloatCount = elementCount * this.vertexCount;
-      const vertices = new Float32Array(vertexFloatCount);
-      this._verticesFloat32 = vertices;
-      this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices);
+    // Update internal vertex buffer if needed
+    this._updateInternalVertexBuffer(releaseData);
 
-      const bufferUsage = noLongerReadable ? BufferUsage.Static : BufferUsage.Dynamic;
-      const newVertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, vertices, bufferUsage);
+    // Update advanced vertex data to buffer
+    if (this._advancedDataUpdateFlag & VertexElementFlags.All) {
+      this._updateAdvancedVertices();
 
-      this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
-      this._vertexCountChanged = false;
-    } else {
-      if (this._vertexBufferUpdateFlag & VertexChangedFlags.All) {
-        let vertices = this._verticesFloat32;
-        if (!vertices) {
-          const elementCount = this._bufferStrides[0] / 4;
-          const vertexFloatCount = elementCount * this.vertexCount;
-          this._verticesFloat32 = vertices = new Float32Array(vertexFloatCount);
+      const vertexBufferInfos = this._vertexBufferInfos;
+      const vertexBufferBindings = this._primitive.vertexBufferBindings;
+      for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+        const vertexBufferInfo = vertexBufferInfos[i];
+        // VertexBufferInfo maybe undefined
+        if (vertexBufferInfo?.uploadAdvancedData) {
+          const buffer = vertexBufferBindings[i]?.buffer;
+          buffer.setData(buffer.data);
+          vertexBufferInfo.uploadAdvancedData = false;
         }
-
-        this._updateVertices(vertices);
-        vertexBuffer.setData(vertices);
       }
     }
+    this._advancedDataSyncToBuffer = false;
 
     if (this._indicesChangeFlag) {
       const { _indices: indices } = this;
-      const indexBuffer = this._indexBufferBinding?._buffer;
+      const indexBuffer = this._primitive.indexBufferBinding?._buffer;
       if (indices) {
         if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
           indexBuffer?.destroy();
@@ -718,7 +650,7 @@ export class ModelMesh extends Mesh {
           this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
         } else {
           indexBuffer.setData(indices);
-          if (this._indexBufferBinding._format !== this._indicesFormat) {
+          if (this._primitive.indexBufferBinding._format !== this._indicesFormat) {
             this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
           }
         }
@@ -730,12 +662,12 @@ export class ModelMesh extends Mesh {
       this._indicesChangeFlag = false;
     }
 
-    const { _blendShapeManager: blendShapeManager } = this;
-    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(this._vertexCountChanged, noLongerReadable);
+    const blendShapeManager = this._blendShapeManager;
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(releaseData);
 
-    if (noLongerReadable) {
-      this._readable = false;
-      this._releaseCache();
+    if (releaseData) {
+      this._accessible = false;
+      this._releaseCache(false);
     }
   }
 
@@ -745,10 +677,15 @@ export class ModelMesh extends Mesh {
    * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
-    if (!this._normals || !this._uv) {
+    const positions = this.getPositions();
+    const normals = this.getNormals();
+    const uvs = this.getUVs();
+
+    if (!normals || !uvs) {
       throw "Set normal and uv before calculation.";
     }
-    const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _vertexCount: vertexCount } = this;
+
+    const { _indices: indices, vertexCount } = this;
     const { _tempVec0: e1, _tempVec1: e2, _tempVec2: t, _tempVec3: b, _tempVec4: temp } = ModelMesh;
     const triangleCount = indices ? indices.length / 3 : positions.length / 3;
     const tangents = new Array<Vector4>(vertexCount);
@@ -825,332 +762,498 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  protected override _onDestroy(): void {
-    super._onDestroy();
-    this._readable && this._releaseCache();
+  override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    const vertexBufferBindings = this._primitive.vertexBufferBindings;
+    const updateInfos = this._vertexBufferInfos;
+    const onVertexBufferChanged = () => {
+      if (!this._advancedDataSyncToBuffer) {
+        updateInfos[index].dataVersion = this._dataVersionCounter++;
+      }
+    };
+
+    // Remove listener from previous binding
+    const previousBinding = vertexBufferBindings[index];
+    previousBinding && previousBinding.buffer._dataUpdateManager.removeListener(onVertexBufferChanged);
+
+    super._setVertexBufferBinding(index, binding);
+
+    // Add listener to new binding and trigger update
+    if (binding) {
+      binding.buffer._dataUpdateManager.addListener(onVertexBufferChanged);
+      (updateInfos[index] ||= new BufferUpdateInfo()).reset();
+      onVertexBufferChanged();
+    } else {
+      if (index + 1 == vertexBufferBindings.length) {
+        vertexBufferBindings.length--;
+      }
+    }
   }
 
-  private _supplementaryVertexElements(): void {
-    this._clearVertexElements();
-
-    const customVertexElements = this._customVertexElements;
-    for (let i = 0, n = customVertexElements.length; i < n; i++) {
-      this._addVertexElement(customVertexElements[i]);
+  /**
+   * @internal
+   */
+  _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
+    switch (dataType) {
+      case DataType.BYTE:
+        return new Int8Array(vertexDataBuffer);
+      case DataType.UNSIGNED_BYTE:
+        return new Uint8Array(vertexDataBuffer);
+      case DataType.SHORT:
+        return new Int16Array(vertexDataBuffer);
+      case DataType.UNSIGNED_SHORT:
+        return new Uint16Array(vertexDataBuffer);
+      case DataType.FLOAT:
+        return new Float32Array(vertexDataBuffer);
     }
+  }
 
-    const vertexElementMap = this._vertexElementMap;
-    if (this._positions && !vertexElementMap[VertexAttribute.Position]) {
-      this._insertVertexAttribute(VertexAttribute.Position);
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._releaseCache(true);
+  }
+
+  private _getVertexElementData<T extends VertexType>(
+    vertices: T[],
+    vertexAttribute: VertexAttribute,
+    vertexElementIndex: VertexElementIndex,
+    readVertexData: (vertexAttribute: VertexAttribute) => T[]
+  ): T[] | null {
+    const advancedVertexDataVersions = this._advancedVertexDataVersions;
+    const advancedDataVersion = advancedVertexDataVersions[vertexElementIndex] ?? -1;
+    const vertexElement = this._primitive._vertexElementMap[vertexAttribute];
+    const bufferDataVersion = vertexElement ? this._vertexBufferInfos[vertexElement.bindingIndex].dataVersion : -1;
+    if (advancedDataVersion >= bufferDataVersion) {
+      return vertices;
     } else {
+      advancedVertexDataVersions[vertexElementIndex] = bufferDataVersion;
+      return readVertexData.call(this, vertexAttribute);
+    }
+  }
+
+  private _beforeSetAdvancedVertexData<T extends VertexType>(
+    vertices: T[],
+    elementChangeFlag: VertexElementFlags,
+    elementIndex: VertexElementIndex
+  ): void {
+    if (vertices) {
+      if (vertices.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
     }
 
-    if (this._normals && !vertexElementMap[VertexAttribute.Normal]) {
-      this._insertVertexAttribute(VertexAttribute.Normal);
+    this._updateAdvancedVertexDataMarks(elementChangeFlag, elementIndex);
+  }
+
+  private _updateAdvancedVertexDataMarks<T extends VertexType>(
+    elementChangeFlag: VertexElementFlags,
+    elementIndex: VertexElementIndex
+  ): void {
+    this._advancedElementUpdateFlag |= elementChangeFlag;
+    this._advancedDataUpdateFlag |= elementChangeFlag;
+    this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
+  }
+
+  private _updateInternalVertexBuffer(releaseData: boolean): void {
+    const bufferStride = this._internalVertexBufferStride;
+    const vertexCount = this.vertexCount;
+    const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
+
+    // If need recreate internal vertex buffer
+    const needByteLength = bufferStride * vertexCount;
+    if (bufferCreatedInfo.x * bufferCreatedInfo.y !== needByteLength) {
+      // Destroy old internal vertex buffer
+      const createdInternalBufferIndex = bufferCreatedInfo.z;
+      if (createdInternalBufferIndex !== -1) {
+        this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer.destroy();
+        this._setVertexBufferBinding(createdInternalBufferIndex, null);
+      }
+
+      const vertexBufferIndex = this._internalVertexBufferIndex;
+      const isCreate = bufferStride * this.vertexCount > 0;
+      if (isCreate) {
+        // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
+        this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
+
+        const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
+        const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
+        this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
+      }
+      bufferCreatedInfo.set(bufferStride, vertexCount, isCreate ? vertexBufferIndex : -1);
+    }
+  }
+
+  private _readVector2VertexData(attributeType: string): Vector2[] {
+    return this._readVertexData<Vector2>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Vector2(dataReader[offset], dataReader[offset + 1]);
+    });
+  }
+
+  private _readVector3VertexData(attributeType: string): Vector3[] {
+    return this._readVertexData<Vector3>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Vector3(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2]);
+    });
+  }
+
+  private _readVector4VertexData(attributeType: string): Vector4[] {
+    return this._readVertexData<Vector4>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Vector4(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2], dataReader[offset + 3]);
+    });
+  }
+
+  private _readColorVertexData(attributeType: string): Color[] {
+    return this._readVertexData<Color>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Color(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2], dataReader[offset + 3]);
+    });
+  }
+
+  private _readVertexData<T extends VertexType>(
+    attributeType: string,
+    onVertexParse: (dataReader: TypedArray, offset: number) => T
+  ): T[] {
+    const primitive = this._primitive;
+    const vertexElement = primitive._vertexElementMap[attributeType];
+    if (!vertexElement) {
+      return null;
     }
 
-    if (this._colors && !vertexElementMap[VertexAttribute.Color]) {
-      this._insertVertexAttribute(VertexAttribute.Color);
+    const bufferBinding = primitive.vertexBufferBindings[vertexElement.bindingIndex];
+    const buffer = bufferBinding?.buffer;
+    if (!buffer) {
+      return null;
+    }
+    if (!buffer.readable) {
+      throw "Not allowed to access data while vertex buffer readable is false.";
     }
 
-    if (this._boneWeights && !vertexElementMap[VertexAttribute.BoneWeight]) {
-      this._insertVertexAttribute(VertexAttribute.BoneWeight);
+    const vertexCount = this.vertexCount;
+    const formatMetaInfo = vertexElement._formatMetaInfo;
+    const vertices = new Array<T>(vertexCount);
+    const dataReader = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
+    const byteOffset = vertexElement.offset;
+    const byteStride = bufferBinding.stride;
+
+    for (let i = 0; i < vertexCount; i++) {
+      const offset = (i * byteStride + byteOffset) / dataReader.BYTES_PER_ELEMENT;
+      const vertex = onVertexParse(dataReader, offset);
+      formatMetaInfo.normalized && vertex.scale(formatMetaInfo.normalizedScaleFactor);
+      vertices[i] = vertex;
     }
 
-    if (this._boneIndices && !vertexElementMap[VertexAttribute.BoneIndex]) {
-      this._insertVertexAttribute(VertexAttribute.BoneIndex);
+    return vertices;
+  }
+
+  private _updateAdvancedVertexElement(
+    vertices: VertexType[],
+    attribute: VertexAttribute,
+    flag: VertexElementFlags
+  ): void {
+    const primitive = this._primitive;
+    const vertexElementMap = primitive._vertexElementMap;
+
+    if (vertices) {
+      if (!vertexElementMap[attribute]) {
+        const format = this._getAttributeFormat(attribute);
+        const offset = this._internalVertexBufferStride;
+        const bufferIndex = this._getInternalVertexBufferIndex();
+        this._addVertexElement(new VertexElement(attribute, offset, format, bufferIndex));
+
+        this._internalVertexBufferStride += this._getAttributeByteLength(attribute);
+        this._internalVertexElementsFlags |= flag;
+        this._blendShapeManager._vertexElementOffset++;
+      }
+    } else {
+      const vertexElement = vertexElementMap[attribute];
+      if (vertexElement) {
+        const index = this._primitive.vertexElements.indexOf(vertexElement);
+        if (index >= this._internalVertexElementsOffset) {
+          this._internalVertexBufferStride -= this._getAttributeByteLength(attribute);
+          this._internalVertexElementsFlags &= ~flag;
+        } else {
+          // If custom element should be removed
+          this._internalVertexElementsOffset--;
+        }
+
+        this._blendShapeManager._vertexElementOffset--;
+        this._removeVertexElement(index);
+      }
+    }
+  }
+
+  private _updateAdvancedVertexElements(): void {
+    const advancedElementUpdateFlag = this._advancedElementUpdateFlag;
+
+    if (advancedElementUpdateFlag & VertexElementFlags.Position) {
+      this._updateAdvancedVertexElement(this._positions, VertexAttribute.Position, VertexElementFlags.Position);
     }
 
-    if (this._tangents && !vertexElementMap[VertexAttribute.Tangent]) {
-      this._insertVertexAttribute(VertexAttribute.Tangent);
+    if (advancedElementUpdateFlag & VertexElementFlags.Normal) {
+      this._updateAdvancedVertexElement(this._normals, VertexAttribute.Normal, VertexElementFlags.Normal);
     }
 
-    if (this._uv && !vertexElementMap[VertexAttribute.UV]) {
-      this._insertVertexAttribute(VertexAttribute.UV);
+    if (advancedElementUpdateFlag & VertexElementFlags.Color) {
+      this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color);
     }
 
-    if (this._uv1 && !vertexElementMap[VertexAttribute.UV1]) {
-      this._insertVertexAttribute(VertexAttribute.UV1);
+    if (advancedElementUpdateFlag & VertexElementFlags.BoneWeight) {
+      this._updateAdvancedVertexElement(this._boneWeights, VertexAttribute.BoneWeight, VertexElementFlags.BoneWeight);
     }
 
-    if (this._uv2 && !vertexElementMap[VertexAttribute.UV2]) {
-      this._insertVertexAttribute(VertexAttribute.UV2);
+    if (advancedElementUpdateFlag & VertexElementFlags.BoneIndex) {
+      this._updateAdvancedVertexElement(this._boneIndices, VertexAttribute.BoneIndex, VertexElementFlags.BoneIndex);
     }
 
-    if (this._uv3 && !vertexElementMap[VertexAttribute.UV3]) {
-      this._insertVertexAttribute(VertexAttribute.UV3);
+    if (advancedElementUpdateFlag & VertexElementFlags.Tangent) {
+      this._updateAdvancedVertexElement(this._tangents, VertexAttribute.Tangent, VertexElementFlags.Tangent);
     }
 
-    if (this._uv4 && !vertexElementMap[VertexAttribute.UV4]) {
-      this._insertVertexAttribute(VertexAttribute.UV4);
+    if (advancedElementUpdateFlag & VertexElementFlags.UV) {
+      this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV);
     }
 
-    if (this._uv5 && !vertexElementMap[VertexAttribute.UV5]) {
-      this._insertVertexAttribute(VertexAttribute.UV5);
+    if (advancedElementUpdateFlag & VertexElementFlags.UV1) {
+      this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1);
     }
 
-    if (this._uv6 && !vertexElementMap[VertexAttribute.UV6]) {
-      this._insertVertexAttribute(VertexAttribute.UV6);
+    if (advancedElementUpdateFlag & VertexElementFlags.UV2) {
+      this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2);
     }
 
-    if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
-      this._insertVertexAttribute(VertexAttribute.UV7);
+    if (advancedElementUpdateFlag & VertexElementFlags.UV3) {
+      this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV4) {
+      this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV5) {
+      this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV6) {
+      this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV7) {
+      this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7);
     }
   }
 
   private _updateVertexElements(): void {
+    const vertexElements = this._primitive.vertexElements;
     const bsManager = this._blendShapeManager;
-    const bsAttributeUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
+    const previousCount = vertexElements.length;
+    const previousBSOffset = bsManager._vertexElementOffset;
 
-    if (this._vertexElementsUpdate || bsAttributeUpdate) {
-      this._supplementaryVertexElements();
+    if (this._advancedElementUpdateFlag & VertexElementFlags.All) {
+      this._updateAdvancedVertexElements();
+      this._advancedElementUpdateFlag = VertexElementFlags.None;
+    }
 
-      if (bsAttributeUpdate && bsManager._blendShapeCount > 0) {
-        // Reserve at least 1 placeholder to save the built-in vertex buffer
-        bsManager._setAttributeModeOffsetInfo(this._vertexElements.length, this._vertexBufferBindings.length || 1);
-        bsManager._addVertexElements(this);
+    const bsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
+    if (previousBSOffset !== bsManager._vertexElementOffset || (bsUpdate && bsManager._blendShapeCount > 0)) {
+      const length = bsManager._addVertexElements(this);
+      if (length < previousCount) {
+        this._setVertexElementsLength(length);
       }
-      this._vertexElementsUpdate = false;
     }
   }
 
-  private _updateVertices(vertices: Float32Array): void {
+  private _writeVector2AdvancedVertexData(
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
+    vertices: Vector2[]
+  ): void {
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index]; // vertex maybe null or advanced data array length less than vertexCount
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+      }
+    });
+  }
+
+  private _writeVector3AdvancedVertexData(
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
+    vertices: Vector3[]
+  ): void {
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+        typedArray[offset + 2] = vertex.z;
+      }
+    });
+  }
+
+  private _writeVector4AdvancedVertexData(
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
+    vertices: Vector4[]
+  ): void {
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+        typedArray[offset + 2] = vertex.z;
+        typedArray[offset + 3] = vertex.w;
+      }
+    });
+  }
+
+  private _writeColorAdvancedVertexData(
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
+    vertices: Color[]
+  ): void {
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      if (vertex) {
+        typedArray[offset] = vertex.r;
+        typedArray[offset + 1] = vertex.g;
+        typedArray[offset + 2] = vertex.b;
+        typedArray[offset + 3] = vertex.a;
+      }
+    });
+  }
+
+  private _writeAdvancedVertexData(
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
+    onVertexWrite: (typedArray: TypedArray, offset: number, index: number) => void
+  ): void {
+    const primitive = this._primitive;
+    const vertexElement = primitive._vertexElementMap[attribute];
+    const bindingIndex = vertexElement.bindingIndex;
+    const bufferBinding = primitive.vertexBufferBindings[bindingIndex];
+    const buffer = bufferBinding?.buffer;
+    if (!buffer) {
+      return;
+    }
+    if (!buffer.readable) {
+      throw "Vertex buffer is not readable, can't write vertex data.";
+    }
+
+    const advancedDataVersion = this._advancedVertexDataVersions[elementIndex] ?? -1;
+    const vertexBufferInfo = this._vertexBufferInfos[bindingIndex];
+    if (advancedDataVersion > vertexBufferInfo.dataVersion) {
+      const formatMetaInfo = vertexElement._formatMetaInfo;
+      const typedArray = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
+      const byteOffset = vertexElement.offset;
+      const byteStride = bufferBinding.stride;
+      const { BYTES_PER_ELEMENT } = typedArray;
+
+      const { normalized, size, normalizedScaleFactor } = formatMetaInfo;
+      for (let i = 0, n = this._vertexCount; i < n; i++) {
+        const offset = (i * byteStride + byteOffset) / BYTES_PER_ELEMENT;
+        onVertexWrite(typedArray, offset, i);
+        if (normalized) {
+          for (let j = 0; j < size; j++) {
+            typedArray[offset + j] /= normalizedScaleFactor;
+          }
+        }
+      }
+      vertexBufferInfo.uploadAdvancedData = true;
+    }
+  }
+
+  private _updateAdvancedVertices(): void {
     // prettier-ignore
-    const { _bufferStrides,_vertexCount, _positions, _normals, _colors, _vertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    const _vertexStrideFloat = _bufferStrides[0] / 4;
+    const { _positions, _normals, _colors, _advancedDataUpdateFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
-    if (_vertexChangeFlag & VertexChangedFlags.Position) {
-      for (let i = 0; i < _vertexCount; i++) {
-        const start = _vertexStrideFloat * i;
-        const position = _positions[i];
-        vertices[start] = position.x;
-        vertices[start + 1] = position.y;
-        vertices[start + 2] = position.z;
-      }
+    if (_advancedDataUpdateFlag & VertexElementFlags.Position) {
+      this._writeVector3AdvancedVertexData(VertexAttribute.Position, VertexElementIndex.Position, _positions);
     }
 
-    let offset = 3;
-
-    if (_normals) {
-      if (_vertexChangeFlag & VertexChangedFlags.Normal) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const normal = _normals[i];
-          if (normal) {
-            vertices[start] = normal.x;
-            vertices[start + 1] = normal.y;
-            vertices[start + 2] = normal.z;
-          }
-        }
-      }
-      offset += 3;
+    if (_normals && _advancedDataUpdateFlag & VertexElementFlags.Normal) {
+      this._writeVector3AdvancedVertexData(VertexAttribute.Normal, VertexElementIndex.Normal, _normals);
     }
 
-    if (_colors) {
-      if (_vertexChangeFlag & VertexChangedFlags.Color) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const color = _colors[i];
-          if (color) {
-            vertices[start] = color.r;
-            vertices[start + 1] = color.g;
-            vertices[start + 2] = color.b;
-            vertices[start + 3] = color.a;
-          }
-        }
-      }
-      offset += 4;
+    if (_colors && _advancedDataUpdateFlag & VertexElementFlags.Color) {
+      this._writeColorAdvancedVertexData(VertexAttribute.Color, VertexElementIndex.Color, _colors);
     }
 
-    if (_boneWeights) {
-      if (_vertexChangeFlag & VertexChangedFlags.BoneWeight) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const weight = _boneWeights[i];
-          if (weight) {
-            vertices[start] = weight.x;
-            vertices[start + 1] = weight.y;
-            vertices[start + 2] = weight.z;
-            vertices[start + 3] = weight.w;
-          }
-        }
-      }
-      offset += 4;
+    if (_boneWeights && _advancedDataUpdateFlag & VertexElementFlags.BoneWeight) {
+      this._writeVector4AdvancedVertexData(VertexAttribute.BoneWeight, VertexElementIndex.BoneWeight, _boneWeights);
     }
 
-    if (_boneIndices) {
-      if (_vertexChangeFlag & VertexChangedFlags.BoneIndex) {
-        const { _verticesUint8 } = this;
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const joint = _boneIndices[i];
-          if (joint) {
-            const internalStart = start * 4;
-            _verticesUint8[internalStart] = joint.x;
-            _verticesUint8[internalStart + 1] = joint.y;
-            _verticesUint8[internalStart + 2] = joint.z;
-            _verticesUint8[internalStart + 3] = joint.w;
-          }
-        }
-      }
-      offset += 1;
+    if (_boneIndices && _advancedDataUpdateFlag & VertexElementFlags.BoneIndex) {
+      this._writeVector4AdvancedVertexData(VertexAttribute.BoneIndex, VertexElementIndex.BoneIndex, _boneIndices);
     }
 
-    if (_tangents) {
-      if (_vertexChangeFlag & VertexChangedFlags.Tangent) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const tangent = _tangents[i];
-          if (tangent) {
-            vertices[start] = tangent.x;
-            vertices[start + 1] = tangent.y;
-            vertices[start + 2] = tangent.z;
-            vertices[start + 3] = tangent.w;
-          }
-        }
-      }
-      offset += 4;
+    if (_tangents && _advancedDataUpdateFlag & VertexElementFlags.Tangent) {
+      this._writeVector4AdvancedVertexData(VertexAttribute.Tangent, VertexElementIndex.Tangent, _tangents);
     }
-    if (_uv) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv && _advancedDataUpdateFlag & VertexElementFlags.UV) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV, VertexElementIndex.UV, _uv);
     }
-    if (_uv1) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV1) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv1[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv1 && _advancedDataUpdateFlag & VertexElementFlags.UV1) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV1, VertexElementIndex.UV1, _uv1);
     }
-    if (_uv2) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV2) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv2[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv2 && _advancedDataUpdateFlag & VertexElementFlags.UV2) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV2, VertexElementIndex.UV2, _uv2);
     }
-    if (_uv3) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV3) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv3[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv3 && _advancedDataUpdateFlag & VertexElementFlags.UV3) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV3, VertexElementIndex.UV3, _uv3);
     }
-    if (_uv4) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV4) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv4[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv4 && _advancedDataUpdateFlag & VertexElementFlags.UV4) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV4, VertexElementIndex.UV4, _uv4);
     }
-    if (_uv5) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV5) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv5[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv5 && _advancedDataUpdateFlag & VertexElementFlags.UV5) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV5, VertexElementIndex.UV5, _uv5);
     }
-    if (_uv6) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV6) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv6[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv6 && _advancedDataUpdateFlag & VertexElementFlags.UV6) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV6, VertexElementIndex.UV6, _uv6);
     }
-    if (_uv7) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV7) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv7[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
-      }
-      offset += 2;
+
+    if (_uv7 && _advancedDataUpdateFlag & VertexElementFlags.UV7) {
+      this._writeVector2AdvancedVertexData(VertexAttribute.UV7, VertexElementIndex.UV7, _uv7);
     }
-    this._vertexBufferUpdateFlag = 0;
+
+    this._advancedDataUpdateFlag = 0;
   }
 
-  private _insertVertexAttribute(vertexAttribute: VertexAttribute): void {
-    const format = this._getAttributeFormat(vertexAttribute);
-    const needByteLength = this._getAttributeByteLength(vertexAttribute);
-    const vertexElements = this._vertexElements;
+  private _getInternalVertexBufferIndex(): number {
+    const internalVertexBufferIndex = this._internalVertexBufferIndex;
+    if (internalVertexBufferIndex !== -1) {
+      return internalVertexBufferIndex;
+    }
 
     let i = 0;
-    let lastOffset = 0;
-    for (let n = vertexElements.length; i < n; i++) {
-      const vertexElement = vertexElements[i];
-      if (vertexElement.bindingIndex == 0) {
-        if (vertexElement.offset - lastOffset >= needByteLength) {
-          break;
-        }
-        lastOffset = vertexElement.offset + this._getAttributeByteLength(vertexElement.semantic);
+    const vertexBufferBindings = this._primitive.vertexBufferBindings;
+    for (let n = vertexBufferBindings.length; i < n; i++) {
+      if (!vertexBufferBindings[i]) {
+        break;
       }
     }
-    this._insertVertexElement(i, new VertexElement(vertexAttribute, lastOffset, format, 0));
-    this._bufferStrides[0] = lastOffset + needByteLength;
+    this._internalVertexBufferIndex = i;
+    return i;
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
     switch (attribute) {
       case VertexAttribute.Position:
-        return VertexElementFormat.Vector3;
       case VertexAttribute.Normal:
         return VertexElementFormat.Vector3;
       case VertexAttribute.Color:
-        return VertexElementFormat.Vector4;
       case VertexAttribute.BoneWeight:
+      case VertexAttribute.Tangent:
         return VertexElementFormat.Vector4;
       case VertexAttribute.BoneIndex:
         return VertexElementFormat.UByte4;
-      case VertexAttribute.Tangent:
-        return VertexElementFormat.Vector4;
       case VertexAttribute.UV:
       case VertexAttribute.UV1:
       case VertexAttribute.UV2:
@@ -1163,20 +1266,17 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _getAttributeByteLength(attribute: string): number {
+  private _getAttributeByteLength(attribute: VertexAttribute): number {
     switch (attribute) {
       case VertexAttribute.Position:
-        return 12;
       case VertexAttribute.Normal:
         return 12;
       case VertexAttribute.Color:
-        return 16;
       case VertexAttribute.BoneWeight:
+      case VertexAttribute.Tangent:
         return 16;
       case VertexAttribute.BoneIndex:
         return 4;
-      case VertexAttribute.Tangent:
-        return 16;
       case VertexAttribute.UV:
       case VertexAttribute.UV1:
       case VertexAttribute.UV2:
@@ -1189,14 +1289,13 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _releaseCache(): void {
-    this._verticesUint8 = null;
-    this._indices = null;
-    this._verticesFloat32 = null;
+  private _releaseCache(isDestroy: boolean): void {
     this._positions = null;
     this._tangents = null;
     this._normals = null;
     this._colors = null;
+    this._boneIndices = null;
+    this._boneWeights = null;
     this._uv = null;
     this._uv1 = null;
     this._uv2 = null;
@@ -1205,11 +1304,45 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
+    this._indices = null;
     this._blendShapeManager._releaseMemoryCache();
+
+    if (!isDestroy) {
+      this._primitive.vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+
+      // If release data, we need update buffer data version to ensure get data method can read buffer
+      const dataVersion = this._dataVersionCounter++;
+      const vertexBufferInfos = this._vertexBufferInfos;
+      for (let i = 0, n = vertexBufferInfos.length; i < n; i++) {
+        const vertexBufferInfo = vertexBufferInfos[i];
+        vertexBufferInfo && (vertexBufferInfo.dataVersion = dataVersion);
+      }
+    }
+  }
+
+  /** @deprecated */
+  private _accessible: boolean = true;
+
+  /**
+   * @deprecated
+   * Whether to access data of the mesh.
+   */
+  get accessible(): boolean {
+    return this._accessible;
   }
 }
 
-enum VertexChangedFlags {
+class BufferUpdateInfo {
+  dataVersion: number = -1;
+  uploadAdvancedData: boolean = false;
+
+  reset(): void {
+    this.uploadAdvancedData = false;
+  }
+}
+
+enum VertexElementFlags {
+  None = 0,
   Position = 0x1,
   Normal = 0x2,
   Color = 0x4,
@@ -1226,3 +1359,22 @@ enum VertexChangedFlags {
   UV7 = 0x2000,
   All = 0xffff
 }
+
+enum VertexElementIndex {
+  Position = 0,
+  Normal = 1,
+  Color = 2,
+  Tangent = 3,
+  BoneWeight = 4,
+  BoneIndex = 5,
+  UV = 6,
+  UV1 = 7,
+  UV2 = 8,
+  UV3 = 9,
+  UV4 = 10,
+  UV5 = 11,
+  UV6 = 12,
+  UV7 = 13
+}
+
+type VertexType = Vector2 | Vector3 | Vector4 | Color;

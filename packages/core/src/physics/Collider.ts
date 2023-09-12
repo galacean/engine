@@ -49,7 +49,7 @@ export class Collider extends Component {
       }
 
       this._shapes.push(shape);
-      this.engine.physicsManager._addColliderShape(shape);
+      this.scene.physics._addColliderShape(shape);
       shape._collider = this;
       this._nativeCollider.addShape(shape._nativeShape);
     }
@@ -63,7 +63,7 @@ export class Collider extends Component {
     const index = this._shapes.indexOf(shape);
     if (index !== -1) {
       this._shapes.splice(index, 1);
-      this.engine.physicsManager._removeColliderShape(shape);
+      this.scene.physics._removeColliderShape(shape);
       shape._collider = null;
       this._nativeCollider.removeShape(shape._nativeShape);
     }
@@ -76,7 +76,7 @@ export class Collider extends Component {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
       const shape = shapes[i];
-      this.engine.physicsManager._removeColliderShape(shape);
+      this.scene.physics._removeColliderShape(shape);
       shape._destroy();
       this._nativeCollider.removeShape(shape._nativeShape);
     }
@@ -110,15 +110,15 @@ export class Collider extends Component {
   /**
    * @internal
    */
-  override _onEnable(): void {
-    this.engine.physicsManager._addCollider(this);
+  override _onEnableInScene(): void {
+    this.scene.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
-  override _onDisable(): void {
-    this.engine.physicsManager._removeCollider(this);
+  override _onDisableInScene(): void {
+    this.scene.physics._removeCollider(this);
   }
 
   /**

@@ -10,7 +10,7 @@ export class TextRenderData extends RenderData implements IPoolElement {
     this.multiRenderData = true;
   }
 
-  dispose(): void {
+  override dispose(): void {
     this.component = this.material = null;
     this.charsData.length = 0;
   }

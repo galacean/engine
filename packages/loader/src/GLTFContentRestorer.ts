@@ -13,6 +13,7 @@ import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
 import type { IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
+import { KTX2Loader } from "./ktx2/KTX2Loader";
 
 /**
  * @internal
@@ -50,11 +51,21 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
               const { bufferView } = textureRestoreInfo;
               const buffer = buffers[bufferView.buffer];
               const bufferData = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
-
-              return GLTFUtils.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
-                textureRestoreInfo.texture.setImageSource(image);
-                textureRestoreInfo.texture.generateMipmaps();
-              });
+              const texture = textureRestoreInfo.texture;
+              if (textureRestoreInfo.mimeType === "image/ktx2") {
+                return KTX2Loader._parseBuffer(bufferData, texture.engine).then(({ result }) => {
+                  const { faces } = result;
+                  const mipmaps = faces[0];
+                  for (let i = 0; i < mipmaps.length; i++) {
+                    texture.setPixelBuffer(mipmaps[i].data, i);
+                  }
+                });
+              } else {
+                return GLTFUtils.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
+                  texture.setImageSource(image);
+                  texture.generateMipmaps();
+                });
+              }
             })
           )
             .then(() => {
@@ -146,14 +157,21 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
  * @internal
  */
 export class BufferRequestInfo {
-  constructor(public url: string, public config: RequestConfig) {}
+  constructor(
+    public url: string,
+    public config: RequestConfig
+  ) {}
 }
 
 /**
  * @internal
  */
 export class BufferTextureRestoreInfo {
-  constructor(public texture: Texture2D, public bufferView: IBufferView, public mimeType: string) {}
+  constructor(
+    public texture: Texture2D,
+    public bufferView: IBufferView,
+    public mimeType: string
+  ) {}
 }
 
 /**
@@ -170,7 +188,10 @@ export class ModelMeshRestoreInfo {
  * @internal
  */
 export class BufferRestoreInfo {
-  constructor(public buffer: Buffer, public data: BufferDataRestoreInfo) {}
+  constructor(
+    public buffer: Buffer,
+    public data: BufferDataRestoreInfo
+  ) {}
 }
 
 /**

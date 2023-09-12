@@ -11,7 +11,7 @@ describe("Texture2D", () => {
   let engine: Engine;
   let rhi: any;
   let isWebGL2: boolean;
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;
@@ -32,7 +32,7 @@ describe("Texture2D", () => {
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new Texture2D(engine, width, height, 1234567);
+        new Texture2D(engine, width, height, 1234567 as any);
       }).to.throw;
     });
   });

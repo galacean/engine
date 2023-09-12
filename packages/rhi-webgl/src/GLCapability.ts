@@ -1,6 +1,6 @@
 import { GLCapabilityType } from "@galacean/engine-core";
-import { GLCompressedTextureInternalFormat } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { GLCompressedTextureInternalFormat } from "./type";
 
 type extensionKey = string;
 
@@ -111,7 +111,11 @@ export class GLCapability {
       RGBA_PVRTC_2BPPV1_IMG,
       // s3tc
       RGB_S3TC_DXT1_EXT,
-      RGBA_S3TC_DXT5_EXT
+      RGBA_S3TC_DXT5_EXT,
+
+      // bptc
+      RGBA_BPTC_UNORM_EXT,
+      RGB_BPTC_UNSIGNED_FLOAT_EXT
     } = GLCompressedTextureInternalFormat;
     if (
       (internalType >= RGBA_ASTC_4X4_KHR && RGBA_ASTC_12X12_KHR <= RGBA_ASTC_12X12_KHR) ||
@@ -126,6 +130,8 @@ export class GLCapability {
       return this.canIUse(GLCapabilityType.pvrtc);
     } else if (internalType >= RGB_S3TC_DXT1_EXT && internalType <= RGBA_S3TC_DXT5_EXT) {
       return this.canIUse(GLCapabilityType.s3tc);
+    } else if (internalType >= RGBA_BPTC_UNORM_EXT && internalType <= RGB_BPTC_UNSIGNED_FLOAT_EXT) {
+      return this.canIUse(GLCapabilityType.bptc);
     }
     return false;
   }
@@ -159,6 +165,7 @@ export class GLCapability {
       pvrtc_webkit,
       s3tc,
       s3tc_webkit,
+      bptc,
 
       textureFloat,
       textureHalfFloat,
@@ -197,6 +204,7 @@ export class GLCapability {
     cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
     cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
     cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
+    cap.set(bptc, !!requireExtension(bptc));
   }
 
   /**

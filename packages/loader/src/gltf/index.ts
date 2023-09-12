@@ -1,4 +1,3 @@
-export { GLTFPipeline } from "./GLTFPipeline";
 export { GLTFResource } from "./GLTFResource";
 export { GLTFUtils } from "./GLTFUtils";
 export * from "./parser";

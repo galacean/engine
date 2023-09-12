@@ -35,6 +35,8 @@ export enum AssetType {
   KTX = "KTX",
   /** Cube Compress Texture. */
   KTXCube = "KTXCube",
+  /** KTX2 Compress Texture */
+  KTX2 = "KTX2",
   /** Sprite. */
   Sprite = "Sprite",
   /** Sprite Atlas. */
@@ -48,5 +50,7 @@ export enum AssetType {
   /** Font. */
   Font = "Font",
   /** Source Font, include ttf、 otf and woff. */
-  SourceFont = "SourceFont"
+  SourceFont = "SourceFont",
+  /** Project asset. */
+  Project = "project"
 }

@@ -31,6 +31,7 @@ export * from "./base";
 
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
+export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { ColorSpace } from "./enums/ColorSpace";

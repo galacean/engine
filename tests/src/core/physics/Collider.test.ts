@@ -1,11 +1,11 @@
 import {
   BoxColliderShape,
-  StaticCollider,
-  Entity,
-  SphereColliderShape,
   DynamicCollider,
+  Entity,
   PlaneColliderShape,
-  Script
+  Script,
+  SphereColliderShape,
+  StaticCollider
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -39,8 +39,6 @@ class MoveScript extends Script {
 }
 
 describe("physics collider test", function () {
-  this.timeout(5000);
-
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let boxEntity: Entity;
@@ -48,7 +46,7 @@ describe("physics collider test", function () {
   let physicsBox: BoxColliderShape;
   let physicsSphere: SphereColliderShape;
 
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     const scene = engine.sceneManager.activeScene;
     rootEntity = scene.createRootEntity("root");
@@ -56,7 +54,7 @@ describe("physics collider test", function () {
     engine.run();
   });
 
-  beforeEach(() => {
+  beforeEach(function () {
     rootEntity.clearChildren();
 
     boxEntity = rootEntity.createChild("BoxEntity");
@@ -89,7 +87,7 @@ describe("physics collider test", function () {
     CollisionScript.prototype.onTriggerExit = chai.spy(CollisionScript.prototype.onTriggerExit);
   });
 
-  it("Dynamic vs Dynamic", async () => {
+  it("Dynamic vs Dynamic", function () {
     const boxCollider = boxEntity.addComponent(DynamicCollider);
     boxCollider.addShape(physicsBox);
     const sphereCollider = sphereEntity.addComponent(DynamicCollider);
@@ -108,7 +106,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).not.to.be.equal(5);
   });
 
-  it("Dynamic vs Static", async () => {
+  it("Dynamic vs Static", function () {
     const boxCollider = boxEntity.addComponent(StaticCollider);
     boxCollider.addShape(physicsBox);
 
@@ -127,7 +125,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).to.be.equal(5);
   });
 
-  it("Dynamic vs Kinematic", async () => {
+  it("Dynamic vs Kinematic", function () {
     const boxCollider = boxEntity.addComponent(DynamicCollider);
     boxCollider.isKinematic = true;
     boxCollider.addShape(physicsBox);
@@ -147,7 +145,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).to.be.equal(5);
   });
 
-  it("Kinematic vs Static", async () => {
+  it("Kinematic vs Static", function () {
     const boxCollider = boxEntity.addComponent(StaticCollider);
     boxCollider.addShape(physicsBox);
 
@@ -168,7 +166,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).to.be.equal(5);
   });
 
-  it("Kinematic vs Kinematic", async () => {
+  it("Kinematic vs Kinematic", function () {
     const boxCollider = boxEntity.addComponent(DynamicCollider);
     boxCollider.isKinematic = true;
     boxCollider.addShape(physicsBox);
@@ -190,7 +188,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).to.be.equal(5);
   });
 
-  it("Dynamic vs Static Trigger", async () => {
+  it("Dynamic vs Static Trigger", function () {
     const boxCollider = boxEntity.addComponent(StaticCollider);
     physicsBox.isTrigger = true;
     boxCollider.addShape(physicsBox);
@@ -209,7 +207,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).to.be.equal(5);
   });
 
-  it("Kinematic vs Static Trigger", async () => {
+  it("Kinematic vs Static Trigger", function () {
     const boxCollider = boxEntity.addComponent(StaticCollider);
     physicsBox.isTrigger = true;
     boxCollider.addShape(physicsBox);
@@ -230,7 +228,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).to.be.equal(5);
   });
 
-  it("Dynamic vs Dynamic Trigger", async () => {
+  it("Dynamic vs Dynamic Trigger", function () {
     const boxCollider = boxEntity.addComponent(DynamicCollider);
     physicsBox.isTrigger = true;
     const physicsBox2 = new BoxColliderShape();
@@ -252,7 +250,7 @@ describe("physics collider test", function () {
     expect(boxEntity.transform.position.x).not.to.be.equal(5);
   });
 
-  it("Kinematic vs Dynamic Trigger", async () => {
+  it("Kinematic vs Dynamic Trigger", function () {
     const boxCollider = boxEntity.addComponent(DynamicCollider);
     physicsBox.isTrigger = true;
     const physicsBox2 = new BoxColliderShape();
