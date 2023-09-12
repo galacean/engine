@@ -109,6 +109,8 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
+
+    this.update(0);
   }
 
   /**
@@ -135,7 +137,9 @@ export class Animator extends Component {
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
-    this._crossFadeByTransition(manuallyTransition, layerIndex);
+    if (this._crossFadeByTransition(manuallyTransition, playLayerIndex)) {
+      this.update(0);
+    }
   }
 
   /**
@@ -413,12 +417,9 @@ export class Animator extends Component {
   private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number, aniUpdate: boolean): void {
     let { blendingMode, weight } = this._animatorController.layers[layerIndex];
     const layerData = this._animatorLayersData[layerIndex];
-    const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = layerData;
+    const { srcPlayData, destPlayData } = layerData;
     const additive = blendingMode === AnimatorLayerBlendingMode.Additive;
     firstLayer && (weight = 1.0);
-    //@todo: All situations should be checked, optimizations will follow later.
-    layerData.layerState !== LayerState.FixedCrossFading &&
-      this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
 
     switch (layerData.layerState) {
       case LayerState.Playing:
@@ -447,6 +448,7 @@ export class Animator extends Component {
   ): void {
     const { curveLayerOwner, eventHandlers } = playData.stateData;
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
+    const { transitions } = state;
     const { _curveBindings: curveBindings } = state.clip;
 
     const speed = state.speed * this.speed;
@@ -487,6 +489,13 @@ export class Animator extends Component {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
+    }
+
+    if (transitions.length) {
+      const { layerState } = layerData;
+      if (layerState !== LayerState.CrossFading && layerState !== LayerState.FixedCrossFading) {
+        this._checkTransition(playData, transitions, layerIndex, lastClipTime, clipTime);
+      }
     }
   }
 
@@ -700,38 +709,108 @@ export class Animator extends Component {
   }
 
   private _checkTransition(
-    stateData: AnimatorStatePlayData,
-    crossFadeTransition: AnimatorStateTransition,
-    layerIndex: number
+    playState: AnimatorStatePlayData,
+    transitions: Readonly<AnimatorStateTransition[]>,
+    layerIndex: number,
+    lastClipTime: number,
+    clipTime: number
   ) {
-    const { state, clipTime } = stateData;
-    const { transitions } = state;
-    const duration = state._getDuration();
-    for (let i = 0, n = transitions.length; i < n; ++i) {
-      const transition = transitions[i];
-      if (duration * transition.exitTime <= clipTime) {
-        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
+    const { state } = playState;
+    const clipDuration = state.clip.length;
+
+    if (this.speed * state.speed >= 0) {
+      console.log(999, clipTime, lastClipTime);
+      if (clipTime < lastClipTime) {
+        this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, state.clipEndTime * clipDuration);
+        playState.currentTransitionIndex = 0;
+        this._checkSubTransition(playState, transitions, layerIndex, state.clipStartTime * clipDuration, clipTime);
+      } else {
+        this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, clipTime);
+      }
+    } else {
+      if (clipTime > lastClipTime) {
+        this._checkBackwardsSubTransition(
+          playState,
+          transitions,
+          layerIndex,
+          lastClipTime,
+          state.clipStartTime * clipDuration
+        );
+        playState.currentTransitionIndex = transitions.length - 1;
+        this._checkBackwardsSubTransition(
+          playState,
+          transitions,
+          layerIndex,
+          clipTime,
+          state.clipEndTime * clipDuration
+        );
+      } else {
+        this._checkBackwardsSubTransition(playState, transitions, layerIndex, lastClipTime, clipTime);
       }
     }
   }
 
-  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
-    const { name } = transition.destinationState;
-    const stateInfo = this._getAnimatorStateInfo(name, layerIndex);
-    const { state: crossState, layerIndex: playLayerIndex } = stateInfo;
+  private _checkSubTransition(
+    playState: AnimatorStatePlayData,
+    transitions: Readonly<AnimatorStateTransition[]>,
+    layerIndex: number,
+    lastClipTime: number,
+    curClipTime: number
+  ) {
+    let transitionIndex = playState.currentTransitionIndex;
+    const duration = playState.state._getDuration();
+    for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
+      const transition = transitions[transitionIndex];
+      const exitTime = transition.exitTime * duration;
+      if (exitTime > curClipTime) {
+        break;
+      }
+
+      if (exitTime >= lastClipTime) {
+        this._crossFadeByTransition(transition, layerIndex);
+        playState.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
+      }
+    }
+  }
+
+  private _checkBackwardsSubTransition(
+    playState: AnimatorStatePlayData,
+    transitions: Readonly<AnimatorStateTransition[]>,
+    layerIndex: number,
+    lastClipTime: number,
+    curClipTime: number
+  ) {
+    let transitionIndex = playState.currentTransitionIndex;
+    const duration = playState.state._getDuration();
+    for (; transitionIndex >= 0; transitionIndex--) {
+      const transition = transitions[transitionIndex];
+      const exitTime = transition.exitTime * duration;
+      if (exitTime < curClipTime) {
+        break;
+      }
+
+      if (exitTime <= lastClipTime) {
+        this._crossFadeByTransition(transition, layerIndex);
+        playState.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
+      }
+    }
+  }
+
+  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {
+    const crossState = transition.destinationState;
     if (!crossState) {
-      return;
+      return false;
     }
     if (!crossState.clip) {
       Logger.warn(`The state named ${name} has no AnimationClip data.`);
-      return;
+      return false;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(layerIndex);
     const layerState = animatorLayerData.layerState;
     const { destPlayData } = animatorLayerData;
 
-    const animatorStateData = this._getAnimatorStateData(name, crossState, animatorLayerData, playLayerIndex);
+    const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
     const duration = crossState._getDuration();
     const offset = duration * transition.offset;
     destPlayData.reset(crossState, animatorStateData, offset);
@@ -758,6 +837,8 @@ export class Animator extends Component {
     }
 
     animatorLayerData.crossFadeTransition = transition;
+
+    return true;
   }
 
   private _fireAnimationEvents(

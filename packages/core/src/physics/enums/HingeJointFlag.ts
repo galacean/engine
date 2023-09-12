@@ -3,10 +3,12 @@
  * @internal
  */
 export enum HingeJointFlag {
-  /** enable the limit */
+  /** None. */
+  None = 0,
+  /** Enable the limit. */
   LimitEnabled = 1,
-  /** enable the drive */
+  /** Enable the drive. */
   DriveEnabled = 2,
-  /** if the existing velocity is beyond the drive velocity, do not add force */
+  /** If the existing velocity is beyond the drive velocity, do not add force. */
   DriveFreeSpin = 4
 }
