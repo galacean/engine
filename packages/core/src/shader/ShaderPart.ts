@@ -7,6 +7,9 @@ import { ShaderTagKey } from "./ShaderTagKey";
 export abstract class ShaderPart {
   private _tagsMap: Record<number, number | string | boolean> = Object.create(null);
 
+  /** Name. */
+  name: string;
+
   /**
    * Set tag by key name.
    * @param keyName - Key name of the tag
