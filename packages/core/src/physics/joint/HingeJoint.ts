@@ -11,9 +11,9 @@ import { JointMotor } from "./JointMotor";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
-  private _axis: Vector3 = new Vector3(1, 0, 0);
-  private _hingeFlags: number = HingeJointFlag.None;
-  private _useSpring: boolean = false;
+  private _axis = new Vector3(1, 0, 0);
+  private _hingeFlags = HingeJointFlag.None;
+  private _useSpring = false;
   private _jointMonitor: JointMotor;
   private _limits: JointLimits;
 
