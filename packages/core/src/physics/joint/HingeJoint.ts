@@ -12,7 +12,7 @@ import { JointMotor } from "./JointMotor";
  */
 export class HingeJoint extends Joint {
   private _axis: Vector3 = new Vector3(1, 0, 0);
-  private _hingeFlags: number = 0;
+  private _hingeFlags: number = HingeJointFlag.None;
   private _useSpring: boolean = false;
   private _jointMonitor: JointMotor;
   private _limits: JointLimits;
@@ -71,8 +71,8 @@ export class HingeJoint extends Joint {
   set useLimits(value: boolean) {
     if (value !== this.useLimits) {
       value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
+      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
     }
-    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
   }
 
   /**
@@ -85,8 +85,8 @@ export class HingeJoint extends Joint {
   set useMotor(value: boolean) {
     if (value !== this.useMotor) {
       value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
+      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
     }
-    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
   }
 
   /**
