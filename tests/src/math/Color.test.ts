@@ -58,6 +58,15 @@ describe("Color test", () => {
     expect(Color.equals(a, out)).to.eq(true);
   });
 
+  it("copyFromArray", () => {
+    const a = new Color();
+    const b = new Color(0, 0, 1, 1);
+    const data = [1, 0, 0, 1, 1]
+
+    out.copyFromArray(data, 1);
+    expect(Color.equals(a, b)).to.eq(true);
+  });
+
   it("LinearAndGamma", () => {
     const fixColor = (color: Color) => {
       color.r = Math.floor(color.r * 1000) / 1000;
