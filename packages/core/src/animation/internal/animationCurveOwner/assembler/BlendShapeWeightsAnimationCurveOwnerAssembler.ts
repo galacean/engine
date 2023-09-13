@@ -1,7 +1,7 @@
 import { SkinnedMeshRenderer } from "../../../../mesh";
 import { KeyframeValueType } from "../../../Keyframe";
-import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
+import type { AnimationCurveOwner } from "../AnimationCurveOwner";
 
 /**
  * @internal
@@ -21,9 +21,3 @@ export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimation
     this._skinnedMeshRenderer.blendShapeWeights = value;
   }
 }
-
-AnimationCurveOwner.registerAssembler(
-  SkinnedMeshRenderer,
-  "blendShapeWeights",
-  BlendShapeWeightsAnimationCurveOwnerAssembler
-);

@@ -1,8 +1,8 @@
 import { Vector3 } from "@galacean/engine-math";
 import { Transform } from "../../../../Transform";
 import { KeyframeValueType } from "../../../Keyframe";
-import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
+import type { AnimationCurveOwner } from "../AnimationCurveOwner";
 
 /**
  * @internal
@@ -22,4 +22,3 @@ export class ScaleAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAs
     this._transform.scale = value;
   }
 }
-AnimationCurveOwner.registerAssembler(Transform, "scale", ScaleAnimationCurveOwnerAssembler);

@@ -1,8 +1,8 @@
 import { Vector3 } from "@galacean/engine-math";
 import { Transform } from "../../../../Transform";
 import { KeyframeValueType } from "../../../Keyframe";
-import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
+import type { AnimationCurveOwner } from "../AnimationCurveOwner";
 
 /**
  * @internal
@@ -21,5 +21,3 @@ export class PositionAnimationCurveOwnerAssembler implements IAnimationCurveOwne
     this._transform.position = value;
   }
 }
-
-AnimationCurveOwner.registerAssembler(Transform, "position", PositionAnimationCurveOwnerAssembler);
