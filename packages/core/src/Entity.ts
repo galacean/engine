@@ -448,15 +448,7 @@ export class Entity extends EngineObject {
       this._hookResource = null;
     }
 
-    this.isActive = false;
-
-    if (this._isRoot) {
-      this._scene.removeRootEntity(this);
-    } else {
-      this._setParent(null);
-    }
-
-    const components = this._components;
+  const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
     }
@@ -465,6 +457,14 @@ export class Entity extends EngineObject {
     const children = this._children;
     while (children.length > 0) {
       children[0].destroy();
+    }
+
+    this.isActive = false;
+
+    if (this._isRoot) {
+      this._scene.removeRootEntity(this);
+    } else {
+      this._setParent(null);
     }
   }
 
