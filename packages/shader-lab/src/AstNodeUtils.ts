@@ -13,6 +13,9 @@ export class AstNodeUtils {
     return !!node.children;
   }
 
+  /**
+   * return token's image if not specify options
+   */
   static extractCstToken(
     ctx: CstNode | CstChildrenDictionary,
     opts?: {
@@ -113,13 +116,13 @@ export class AstNodeUtils {
     const context = new RuntimeContext();
     const shaderInfo = context.parse(ast);
 
-    context.diagnostics.forEach((item) => {
-      if (item.severity !== DiagnosticSeverity.Error) {
-        Logger.warn(item);
-      } else {
-        Logger.error(item);
-      }
-    });
+    // context.diagnostics.forEach((item) => {
+    //   if (item.severity !== DiagnosticSeverity.Error) {
+    //     Logger.warn(item);
+    //   } else {
+    //     Logger.error(item);
+    //   }
+    // });
 
     return shaderInfo;
   }

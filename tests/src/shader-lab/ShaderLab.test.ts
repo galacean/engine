@@ -108,12 +108,16 @@ vec4 linearToGamma(vec4 linearIn){
 describe("ShaderLab", () => {
   let shader: ReturnType<typeof shaderLab.parseShader>;
   let subShader: ISubShaderInfo;
+  let passList: ISubShaderInfo["passes"];
   let pass: IShaderPassInfo;
+  let usePass: string;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
     subShader = shader.subShaders[0];
-    pass = subShader.passes[0];
+    passList = subShader.passes;
+    usePass = <string>passList[0];
+    pass = <IShaderPassInfo>passList[1];
   });
 
   it("create shaderLab", async () => {
@@ -122,7 +126,9 @@ describe("ShaderLab", () => {
 
   it("shader name", () => {
     expect(shader.name).to.equal("Water");
-    expect(pass.name).equal("default");
+    expect(subShader.name).to.equal("subname");
+    expect(pass.name).to.equal("default");
+    expect(usePass).to.equal("pbr/Default/Forward");
   });
 
   it("render state", () => {
@@ -182,6 +188,11 @@ describe("ShaderLab", () => {
   it("include", () => {
     ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("planarShadow shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/planarShadow.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });
 });

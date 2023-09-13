@@ -57,5 +57,8 @@ export enum RenderStateElementKey {
   /** Raster state cull mode key. */
   RasterStateDepthBias = 26,
   /** Raster state depth bias key. */
-  RasterStateSlopeScaledDepthBias = 27
+  RasterStateSlopeScaledDepthBias = 27,
+
+  /** Render queue type key. */
+  RenderQueueType = 28
 }

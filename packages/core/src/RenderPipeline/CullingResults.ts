@@ -1,3 +1,5 @@
+import { Engine } from "../Engine";
+import { RenderQueueType } from "../shader";
 import { RenderQueue } from "./RenderQueue";
 
 /**
@@ -9,10 +11,10 @@ export class CullingResults {
   readonly transparentQueue: RenderQueue;
   readonly alphaTestQueue: RenderQueue;
 
-  constructor() {
-    this.opaqueQueue = new RenderQueue();
-    this.transparentQueue = new RenderQueue();
-    this.alphaTestQueue = new RenderQueue();
+  constructor(engine: Engine) {
+    this.opaqueQueue = new RenderQueue(engine, RenderQueueType.Opaque);
+    this.transparentQueue = new RenderQueue(engine, RenderQueueType.Transparent);
+    this.alphaTestQueue = new RenderQueue(engine, RenderQueueType.AlphaTest);
   }
 
   reset(): void {

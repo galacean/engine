@@ -1,3 +1,4 @@
+import { _ruleFnMacroCstChildren } from "../types";
 import {
   AstNode,
   PropertyItemAstNode,
@@ -39,7 +40,10 @@ import {
   ShaderPropertyDeclareAstNode,
   FnCallAstNode,
   FnMacroDefineVariableAstNode,
-  FnVariableDeclareUnitAstNode
+  FnVariableDeclareUnitAstNode,
+  FnMacroUndefineAstNode,
+  FnMacroConditionAstNode,
+  RenderQueueValueAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -62,7 +66,8 @@ export interface IPropertyItemAstContent {
 
 export interface ISubShaderAstContent {
   tags?: TagAstNode;
-  pass: AstNode<IPassAstContent>[];
+  name: string;
+  pass: AstNode<IPassAstContent | IUsePassAstContent>[];
   functions?: FnAstNode[];
   renderStates?: RenderStateDeclarationAstNode[];
   structs?: StructAstNode[];
@@ -76,6 +81,8 @@ export interface IFunctionAstContent {
   body: AstNode;
 }
 
+export type FnMacroAstNode = FnMacroDefineAstNode | FnMacroUndefineAstNode;
+
 export interface IPassAstContent {
   name: string;
   tags?: TagAstNode;
@@ -84,8 +91,12 @@ export interface IPassAstContent {
   variables: ShaderPropertyDeclareAstNode[];
   functions?: FnAstNode[];
   renderStates?: RenderStateDeclarationAstNode[];
-  defines?: FnMacroDefineAstNode[];
+  macros?: FnMacroAstNode[];
+  conditionalMacros?: FnMacroConditionAstNode[];
+  renderQueue?: RenderQueueValueAstNode;
 }
+
+export type IUsePassAstContent = string;
 
 export interface ITypeAstContent {
   text: string;
@@ -144,7 +155,7 @@ export interface IFnCallAstContent {
 }
 
 export interface IFnConditionStatementAstContent {
-  relation: AstNode;
+  relation: ConditionExprAstNode;
   body: FnBlockStatementAstNode;
   elseBranch: FnBlockStatementAstNode;
   elseIfBranches: FnConditionStatementAstNode[];
@@ -210,7 +221,7 @@ export type IFnVariableAstContent = {
   properties?: VariablePropertyAstNode[];
 };
 
-export type IArrayIndexAstContent = string | number;
+export type IArrayIndexAstContent = FnAtomicExprAstNode;
 
 export type IVariablePropertyAstContent = string;
 
@@ -241,6 +252,11 @@ export interface IForLoopAstContent {
   condition: ConditionExprAstNode;
   update: AstNode;
   body: FnBlockStatementAstNode;
+}
+
+export interface IParenthesisAtomicAstContent {
+  parenthesisNode: ConditionExprAstNode;
+  property?: FnVariableAstNode;
 }
 
 export type IAssignableValueAstContent = string;
@@ -306,6 +322,10 @@ export type ICompareFunctionAstContent = string;
 export type IBlendOperationAstContent = string;
 export type IBlendFactorAstContent = string;
 export type ICullModeAstContent = string;
+
+export type IRuleRenderQueueAssignmentAstContent = RenderQueueValueAstNode;
+
+export type IRenderQueueAstContent = string;
 
 export interface ISelfAssignAstContent {
   operator: SelfAssignOperatorAstNode;

@@ -12,6 +12,8 @@ export class TokenUtils {
   }
 
   static getEnumKeys(arg: Object) {
-    return Object.values(arg).filter((value) => isNaN(Number(value)));
+    return Object.values(arg)
+      .filter((value) => isNaN(Number(value)))
+      .sort((a: string, b: string) => b.length - a.length);
   }
 }
