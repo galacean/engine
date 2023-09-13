@@ -1,8 +1,7 @@
-import { RenderQueueType } from "oasis-engine";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
-import { Shader } from "../shader";
+import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
