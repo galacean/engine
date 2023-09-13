@@ -40,7 +40,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   /** @internal */
-  _pxMaterials: any[] = new Array(1);
+  _pxMaterial: any;
   /** @internal */
   _pxShape: any;
   /** @internal */
@@ -108,8 +108,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
-    this._pxMaterials[0] = value._pxMaterial;
-    this._pxShape.setMaterials(this._pxMaterials);
+    this._pxMaterial = value._pxMaterial;
+    this._pxShape.setMaterial(this._pxMaterial);
   }
 
   /**
@@ -145,7 +145,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
-    this._pxMaterials[0] = material._pxMaterial;
+    this._pxMaterial = material._pxMaterial;
     this._pxShape = this._physXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,

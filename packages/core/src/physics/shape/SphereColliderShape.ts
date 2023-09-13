@@ -30,4 +30,15 @@ export class SphereColliderShape extends ColliderShape {
       this._material._nativeMaterial
     );
   }
+
+  clone(): SphereColliderShape {
+    const dest = new SphereColliderShape();
+    this.cloneTo(dest);
+    return dest;
+  }
+
+  override cloneTo(target: SphereColliderShape) {
+    super.cloneTo(target);
+    target.radius = this.radius;
+  }
 }

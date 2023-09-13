@@ -4,22 +4,25 @@ import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
+import { ICustomClone } from "../clone/ComponentCloner";
 
 /**
  * Base class for all colliders.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Collider extends Component {
+export class Collider extends Component implements ICustomClone {
   /** @internal */
   @ignoreClone
   _index: number = -1;
   /** @internal */
+  @ignoreClone
   _nativeCollider: ICollider;
-
+  @ignoreClone
   protected _updateFlag: BoolUpdateFlag;
+  @ignoreClone
   protected _shapes: ColliderShape[] = [];
 
   /**
@@ -138,5 +141,15 @@ export class Collider extends Component {
     super._onDestroy();
     this.clearShapes();
     this._nativeCollider.destroy();
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Collider): void {
+    const shapes = this._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      target.addShape(shapes[i].clone());
+    }
   }
 }

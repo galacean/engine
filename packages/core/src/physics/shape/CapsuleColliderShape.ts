@@ -62,4 +62,17 @@ export class CapsuleColliderShape extends ColliderShape {
       this._material._nativeMaterial
     );
   }
+
+  clone(): CapsuleColliderShape {
+    const dest = new CapsuleColliderShape();
+    this.cloneTo(dest);
+    return dest;
+  }
+
+  override cloneTo(target: CapsuleColliderShape) {
+    super.cloneTo(target);
+    target.radius = this.radius;
+    target.height = this.height;
+    target.upAxis = this.upAxis;
+  }
 }
