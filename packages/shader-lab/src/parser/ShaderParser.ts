@@ -321,7 +321,6 @@ export class ShaderParser extends CstParser {
 
   private _ruleArrayIndex = this.RULE("_ruleArrayIndex", () => {
     this.CONSUME(Symbols.LSquareBracket);
-    // this.OR([{ ALT: () => this.CONSUME(Others.Identifier) }, { ALT: () => this.CONSUME(ValueInt) }]);
     this.SUBRULE(this._ruleFnAtomicExpr);
     this.CONSUME(Symbols.RSquareBracket);
   });
