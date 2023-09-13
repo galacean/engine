@@ -1,6 +1,7 @@
 import { IShaderPassInfo } from "./IShaderPassInfo";
 
 export interface ISubShaderInfo {
-  passes: IShaderPassInfo[];
+  name: string;
+  passes: (IShaderPassInfo | string)[];
   tags?: Record<string, number | string | boolean>;
 }

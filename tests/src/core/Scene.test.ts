@@ -5,7 +5,7 @@ import { expect } from "chai";
 describe("Scene", () => {
   let engine: Engine;
   let scene: Scene;
-  before(async () => {
+ before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     engine.run();
@@ -118,7 +118,6 @@ describe("Scene", () => {
     });
 
     it("Child entity became root entity", () => {
-     
       const child0 = new Entity(engine, "child0");
       const child1 = new Entity(engine, "child1");
       child0.addChild(child1);
@@ -129,7 +128,7 @@ describe("Scene", () => {
       scene.addRootEntity(child1);
       expect(child1.children.length).eq(0);
       expect(scene.rootEntities.length).eq(previousSceneRootEntityCount + 1);
-      
+
       child0.destroy();
       expect(scene.rootEntities.length).eq(previousSceneRootEntityCount);
     });

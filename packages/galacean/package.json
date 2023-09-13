@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine",
-  "version": "0.0.0-experimental-ktx2.0",
+  "version": "1.1.0-beta.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -20,7 +20,7 @@
   "umd": {
     "name": "Galacean"
   },
-  "homepage": "https://oasisengine.cn/",
+  "homepage": "https://galacean.antgroup.com/",
   "repository": {
     "url": "https://github.com/galacean/engine"
   },

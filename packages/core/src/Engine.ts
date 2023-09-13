@@ -5,8 +5,8 @@ import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { ClassPool } from "./RenderPipeline/ClassPool";
-import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
+import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
@@ -21,6 +21,7 @@ import { GLCapabilityType } from "./base/Constant";
 import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
+import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
@@ -56,6 +57,8 @@ export class Engine extends EventDispatcher {
   readonly inputManager: InputManager;
 
   /** @internal */
+  _particleBufferUtils: ParticleBufferUtils;
+  /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
   _physicalObjectsMap: Record<number, ColliderShape> = {};
@@ -69,7 +72,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   /* @internal */
-  _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
+  _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
   /* @internal */
   _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
   /* @internal */
@@ -263,6 +266,8 @@ export class Engine extends EventDispatcher {
     const colorSpace = configuration.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
+
+    this._particleBufferUtils = new ParticleBufferUtils(this);
   }
 
   /**
@@ -297,10 +302,6 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    if (this._isDeviceLost) {
-      return;
-    }
-
     const time = this._time;
     time._update();
 
@@ -308,7 +309,7 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.resetPool();
-    this._meshRenderDataPool.resetPool();
+    this._renderDataPool.resetPool();
     this._spriteRenderDataPool.resetPool();
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
@@ -360,7 +361,9 @@ export class Engine extends EventDispatcher {
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
-    this._render(loopScenes);
+    if (!this._isDeviceLost) {
+      this._render(loopScenes);
+    }
 
     // Handling invalid scripts and fire `onDestroy`
     for (let i = 0; i < sceneCount; i++) {
@@ -644,6 +647,8 @@ export class Engine extends EventDispatcher {
 
   private _onDeviceLost(): void {
     this._isDeviceLost = true;
+    // Lose graphic resources
+    this.resourceManager._lostGraphicResources();
     console.log("Device lost.");
     this.dispatch("devicelost", this);
   }
@@ -660,6 +665,7 @@ export class Engine extends EventDispatcher {
     console.log("Graphic resource restored.");
 
     // Restore resources content
+    this._particleBufferUtils.setBufferData();
     resourceManager
       ._restoreResourcesContent()
       .then(() => {
@@ -674,7 +680,7 @@ export class Engine extends EventDispatcher {
 
   private _gc(): void {
     this._renderElementPool.garbageCollection();
-    this._meshRenderDataPool.garbageCollection();
+    this._renderDataPool.garbageCollection();
     this._spriteRenderDataPool.garbageCollection();
     this._spriteMaskRenderDataPool.garbageCollection();
     this._textRenderDataPool.garbageCollection();

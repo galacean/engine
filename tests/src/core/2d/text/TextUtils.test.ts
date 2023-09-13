@@ -11,7 +11,7 @@ describe("TextUtils", () => {
   let textRendererTruncate: TextRenderer;
   let textRendererOverflow: TextRenderer;
 
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });

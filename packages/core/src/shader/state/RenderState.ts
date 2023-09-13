@@ -1,6 +1,7 @@
 import { ShaderData, ShaderProperty } from "..";
 import { Engine } from "../../Engine";
 import { RenderQueueType } from "../enums/RenderQueueType";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -31,6 +32,11 @@ export class RenderState {
     this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+
+    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueType !== undefined) {
+      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    }
   }
 
   /**

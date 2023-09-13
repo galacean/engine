@@ -19,7 +19,7 @@ export class SpriteMaskRenderData extends RenderData implements IPoolElement {
     this.verticesData = verticesData;
   }
 
-  dispose(): void {
+  override dispose(): void {
     this.component = this.material = this.verticesData = null;
   }
 }

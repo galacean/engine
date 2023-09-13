@@ -123,11 +123,11 @@ export class BlendShapeManager {
           }
           this._filterCondensedBlendShapeWeights(skinnedMeshRenderer.blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
-          this._modelMesh._enableVAO = false;
+          this._modelMesh._primitive.enableVAO = false;
           blendShapeCount = maxBlendCount;
         } else {
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-          this._modelMesh._enableVAO = true;
+          this._modelMesh._primitive.enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
@@ -203,11 +203,14 @@ export class BlendShapeManager {
     if (this._bufferBindingOffset !== -1) {
       return;
     }
-    const { _internalVertexBufferIndex, _vertexBufferBindings } = this._modelMesh;
+
+    const modelMesh = this._modelMesh;
+    const internalVertexBufferIndex = modelMesh._internalVertexBufferIndex;
+    const vertexBufferBindings = modelMesh._primitive.vertexBufferBindings;
     let i = 0;
-    const n = Math.max(_vertexBufferBindings.length, _internalVertexBufferIndex + 1);
+    const n = Math.max(vertexBufferBindings.length, internalVertexBufferIndex + 1);
     for (; i < n; i++) {
-      if (!_vertexBufferBindings[i] && i !== _internalVertexBufferIndex) {
+      if (!vertexBufferBindings[i] && i !== internalVertexBufferIndex) {
         break;
       }
     }
@@ -543,7 +546,7 @@ export class BlendShapeManager {
     condensedBlendShapeWeights: Float32Array
   ): void {
     const condensedWeightsCount = condensedBlendShapeWeights.length;
-    const vertexElements = this._modelMesh._vertexElements;
+    const vertexElements = this._modelMesh._primitive.vertexElements;
     const vertexBufferStoreInfo = this._storeInVertexBufferInfo;
     let thresholdWeight = Number.POSITIVE_INFINITY;
     let thresholdIndex: number;

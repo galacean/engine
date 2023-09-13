@@ -12,7 +12,7 @@ Shader "Water" {
     SlopeScaledDepthBias = 0.8;
   }
 
-  SubShader {
+  SubShader "subname" {
     Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
 
     BlendFactor material_SrcBlend;
@@ -24,6 +24,8 @@ Shader "Water" {
       BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
     }
+
+    UsePass "pbr/Default/Forward"
 
     Pass "default" {
       Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
