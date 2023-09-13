@@ -8,8 +8,8 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { EngineObject } from "./base";
 import { ReferResource } from "./asset/ReferResource";
+import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 
@@ -447,6 +447,15 @@ export class Entity extends EngineObject {
       this._hookResource._addReferCount(-1);
       this._hookResource = null;
     }
+
+    this.isActive = false;
+
+    if (this._isRoot) {
+      this._scene.removeRootEntity(this);
+    } else {
+      this._setParent(null);
+    }
+
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
@@ -456,13 +465,6 @@ export class Entity extends EngineObject {
     const children = this._children;
     while (children.length > 0) {
       children[0].destroy();
-    }
-
-    if (this._isRoot) {
-      this._scene._removeFromEntityList(this);
-      this._isRoot = false;
-    } else {
-      this._removeFromParent();
     }
   }
 

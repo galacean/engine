@@ -302,10 +302,6 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    if (this._isDeviceLost) {
-      return;
-    }
-
     const time = this._time;
     time._update();
 
@@ -365,7 +361,9 @@ export class Engine extends EventDispatcher {
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
-    this._render(loopScenes);
+    if (!this._isDeviceLost) {
+      this._render(loopScenes);
+    }
 
     // Handling invalid scripts and fire `onDestroy`
     for (let i = 0; i < sceneCount; i++) {

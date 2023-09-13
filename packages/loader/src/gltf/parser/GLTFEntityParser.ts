@@ -1,5 +1,4 @@
 import { Entity } from "@galacean/engine-core";
-import { INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
