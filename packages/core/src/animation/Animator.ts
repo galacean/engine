@@ -719,7 +719,6 @@ export class Animator extends Component {
     const clipDuration = state.clip.length;
 
     if (this.speed * state.speed >= 0) {
-      console.log(999, clipTime, lastClipTime);
       if (clipTime < lastClipTime) {
         this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, state.clipEndTime * clipDuration);
         playState.currentTransitionIndex = 0;
