@@ -1,10 +1,10 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Animator, Camera } from "@galacean/engine-core";
+import { Animator, AnimatorStateTransition, Camera } from "@galacean/engine-core";
 import { Quaternion } from "@galacean/engine-math";
 import { GLTFResource } from "@galacean/engine-loader";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
-import { glbResource } from "./model";
+import { glbResource } from "./model/fox";
 
 chai.use(spies);
 
@@ -17,7 +17,7 @@ describe("Animator test", function () {
   let resource: GLTFResource;
   let engine: WebGLEngine;
 
-  before(async () => {
+ before(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
@@ -108,18 +108,17 @@ describe("Animator test", function () {
       renderer._renderFrameCount = Infinity;
     });
 
+    animator.cullingMode = 1;
+    expect(animator.cullingMode).to.eq(1);
+
     animator.play("Run");
 
     let animatorLayerData = animator["_animatorLayersData"];
     const srcPlayData = animatorLayerData[0]?.srcPlayData;
-
-    animator.cullingMode = 1;
-    expect(animator.cullingMode).to.eq(1);
     animator.update(5);
     const curveOwner = srcPlayData.stateData.curveLayerOwner[0].curveOwner;
     const initValue = curveOwner.defaultValue;
     const currentValue = curveOwner.referenceTargetValue;
-
     expect(Quaternion.equals(initValue, currentValue)).to.eq(true);
 
     animator.cullingMode = 0;
@@ -182,6 +181,28 @@ describe("Animator test", function () {
     animator.play("Walk");
     animator.crossFade("Run", 0.5);
     animator.update(1);
+
+    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
+    const animatorLayerData = animator["_animatorLayersData"];
+    const layerState = animatorLayerData[layerIndex].layerState;
+
+    // current animator layerState should be CrossFading(2)
+    expect(layerState).to.eq(2);
+  });
+
+  it("animation cross fade by transition", () => {
+    const walkState = animator.findAnimatorState("Walk");
+    const runState = animator.findAnimatorState("Run");
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = runState;
+    transition.duration = 1;
+    transition.exitTime = 1;
+    walkState.addTransition(transition);
+
+    animator.play("Walk");
+
+    animator.update(walkState.clip.length - 0.1);
+    animator.update(0.1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];

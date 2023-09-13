@@ -3,7 +3,6 @@ import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { MeshRenderData } from "./MeshRenderData";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
@@ -67,12 +66,12 @@ export class RenderQueue {
       }
 
       const isSprite = data.usage === RenderDataUsage.Sprite;
-      const meshData = <MeshRenderData>data;
-      const renderer = meshData.component;
+      const renderer = data.component;
       isSprite && spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
 
       const compileMacros = Shader._compileMacros;
-      const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
+      const primitive = data.primitive;
+      const material = data.material.destroyed ? engine._magentaMaterial : data.material;
       const rendererData = renderer.shaderData;
       const materialData = material.shaderData;
 
@@ -149,7 +148,7 @@ export class RenderQueue {
           material.shaderData
         );
 
-        rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
+        rhi.drawPrimitive(primitive, data.subPrimitive, program);
         isSprite && spriteMaskManager.postRender(<SpriteRenderer>renderer);
       }
     }

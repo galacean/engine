@@ -20,6 +20,8 @@ export const glsl_sampler2D = createToken({
   pattern: /sampler2D/
 });
 
+export const glsl_sampler2DArray = createToken({ name: "sampler2DArray", pattern: /sampler2DArray/ });
+
 export const tokenList = [
   glsl_ivec2,
   glsl_ivec3,
@@ -32,5 +34,11 @@ export const tokenList = [
   glsl_vec4,
   glsl_float,
   glsl_int,
+  glsl_sampler2DArray,
   glsl_sampler2D
 ];
+
+const glsl_highp = createToken({ name: "glsl_highp", pattern: /highp/ });
+const glsl_mediump = createToken({ name: "glsl_mediump", pattern: /mediump/ });
+const glsl_lowp = createToken({ name: "glsl_lowp", pattern: /lowp/ });
+export const precisionTokenList = [glsl_highp, glsl_mediump, glsl_lowp];

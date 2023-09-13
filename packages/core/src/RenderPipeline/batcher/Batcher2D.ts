@@ -126,9 +126,9 @@ export class Batcher2D implements IBatcher {
     this._vStartIndex = this._vIndex;
     this._iStartIndex = _iIndex;
 
-    const renderData = this._engine._meshRenderDataPool.getFromPool();
+    const renderData = this._engine._renderDataPool.getFromPool();
     renderData.usage = RenderDataUsage.Sprite;
-    renderData.set(_preSpriteRenderData.component, _preSpriteRenderData.material, mesh, subMesh);
+    renderData.setX(_preSpriteRenderData.component, _preSpriteRenderData.material, mesh._primitive, subMesh);
     renderData.component.shaderData.setTexture(Batcher2D._textureProperty, _preSpriteRenderData.texture);
     this._preContext.camera._renderPipeline.pushRenderData(this._preContext, renderData);
   }

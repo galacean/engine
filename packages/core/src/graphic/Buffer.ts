@@ -187,6 +187,7 @@ export class Buffer extends GraphicsResource {
         this._data.set(srcData, bufferByteOffset);
       }
     }
+    this._isContentLost = false;
     this._dataUpdateManager.dispatch();
   }
 

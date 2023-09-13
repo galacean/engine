@@ -261,6 +261,16 @@ export class ResourceManager {
   /**
    * @internal
    */
+  _lostGraphicResources(): void {
+    const graphicResourcePool = this._graphicResourcePool;
+    for (const id in graphicResourcePool) {
+      graphicResourcePool[id]._isContentLost = true;
+    }
+  }
+
+  /**
+   * @internal
+   */
   _restoreResourcesContent(): Promise<void[]> {
     const restoreContentInfoPool = this._contentRestorerPool;
     const restorePromises = new Array<Promise<void>>();

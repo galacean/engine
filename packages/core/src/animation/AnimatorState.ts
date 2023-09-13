@@ -75,7 +75,17 @@ export class AnimatorState {
    * @param transition - The transition
    */
   addTransition(transition: AnimatorStateTransition): void {
-    this._transitions.push(transition);
+    const transitions = this._transitions;
+    const count = transitions.length;
+    const time = transition.exitTime;
+    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
+    if (time >= maxExitTime) {
+      transitions.push(transition);
+    } else {
+      let index = count;
+      while (--index >= 0 && time < transitions[index].exitTime);
+      transitions.splice(index + 1, 0, transition);
+    }
   }
 
   /**

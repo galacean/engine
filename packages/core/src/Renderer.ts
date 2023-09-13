@@ -6,7 +6,7 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { ICustomClone } from "./clone/ComponentCloner";
+import { IComponentCustomClone } from "./clone/ComponentCloner";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -18,7 +18,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component implements ICustomClone {
+export class Renderer extends Component implements IComponentCustomClone {
   private static _tempVector0 = new Vector3();
 
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
@@ -67,7 +67,7 @@ export class Renderer extends Component implements ICustomClone {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @ignoreClone
+  @assignmentClone
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;

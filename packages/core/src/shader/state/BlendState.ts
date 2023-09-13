@@ -9,6 +9,7 @@ import { ColorWriteMask } from "../enums/ColorWriteMask";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { RenderState } from "./RenderState";
 import { RenderTargetBlendState } from "./RenderTargetBlendState";
+import { deepClone } from "../../clone/CloneManager";
 
 /**
  * Blend state.
@@ -71,8 +72,10 @@ export class BlendState {
   }
 
   /** The blend state of the render target. */
+  @deepClone
   readonly targetBlendState: RenderTargetBlendState = new RenderTargetBlendState();
   /** Constant blend color. */
+  @deepClone
   readonly blendColor: Color = new Color(0, 0, 0, 0);
   /** Whether to use (Alpha-to-Coverage) technology. */
   alphaToCoverage: boolean = false;

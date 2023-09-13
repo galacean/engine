@@ -206,7 +206,7 @@ export class SpriteMaskBatcher {
 
       material.renderState._apply(engine, false, pass._renderStateDataMap, material.shaderData);
 
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      engine._hardwareRenderer.drawPrimitive(mesh._primitive, subMesh, program);
     }
   }
 

@@ -8,7 +8,7 @@ export class GLTFEntityParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): Entity {
     const entityInfo = context.glTF.nodes[index];
     const engine = context.glTFResource.engine;
-    const { matrix, translation, rotation, scale } = entityInfo;
+    const { matrix, translation, rotation, scale, extensions } = entityInfo;
     const entity = new Entity(engine, entityInfo.name || `_GLTF_ENTITY_${index}`);
 
     const { transform } = entity;
@@ -36,6 +36,8 @@ export class GLTFEntityParser extends GLTFParser {
         entity.addChild(childEntity);
       }
     }
+
+    GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, entityInfo);
 
     return entity;
   }
