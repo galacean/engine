@@ -50,6 +50,8 @@ import {
   RangeAstNode,
   RelationExprAstNode,
   RelationOperatorAstNode,
+  RenderQueueAssignmentAstNode,
+  RenderQueueValueAstNode,
   RenderStateDeclarationAstNode,
   RenderStatePropertyItemAstNode,
   ReturnTypeAstNode,
@@ -130,6 +132,8 @@ import {
   _ruleRasterStatePropertyItemCstChildren,
   _ruleRasterStateValueCstChildren,
   _ruleRelationOperatorCstChildren,
+  _ruleRenderQueueAssignmentCstChildren,
+  _ruleRenderQueueValueCstChildren,
   _ruleRenderStateDeclarationCstChildren,
   _ruleReturnBodyCstChildren,
   _ruleShaderCstChildren,
@@ -253,6 +257,8 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     const macros = macroList?.filter((item) => !(item instanceof FnMacroConditionAstNode));
     const conditionalMacros = macroList?.filter((item) => item instanceof FnMacroConditionAstNode);
 
+    const renderQueue = this.visit(ctx._ruleRenderQueueAssignment)?.content as RenderQueueValueAstNode;
+
     const content = {
       name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
       tags,
@@ -262,7 +268,8 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       macros,
       renderStates,
       functions,
-      conditionalMacros
+      conditionalMacros,
+      renderQueue
     };
 
     const position: IPositionRange = {
@@ -747,6 +754,26 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     const ret = new RenderStatePropertyItemAstNode(position, { property, value });
     ret.isVariable = !!children._ruleDepthStateValue[0].children.Identifier;
     return ret;
+  }
+
+  _ruleRenderQueueAssignment(
+    children: _ruleRenderQueueAssignmentCstChildren,
+    param?: any
+  ): RenderQueueAssignmentAstNode {
+    const start = AstNodeUtils.getTokenPosition(children.RenderQueueType[0]).start;
+    const end = AstNodeUtils.getTokenPosition(children.Semicolon[0]).end;
+
+    const value = this.visit(children._ruleRenderQueueValue[0]) as RenderQueueValueAstNode;
+    if (value.content) return new RenderQueueAssignmentAstNode({ start, end }, value);
+  }
+
+  _ruleRenderQueueValue(children: _ruleRenderQueueValueCstChildren, param?: any): RenderQueueValueAstNode {
+    const node = new RenderQueueValueAstNode(
+      AstNodeUtils.getOrTypeCstNodePosition({ children }),
+      AstNodeUtils.extractCstToken(children)
+    );
+    if (children.Identifier) node.isVariable = true;
+    return node;
   }
 
   _ruleDepthStateValue(children: _ruleDepthStateValueCstChildren, param?: any): AstNode<any> {

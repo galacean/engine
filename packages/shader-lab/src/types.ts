@@ -62,6 +62,7 @@ export type _ruleShaderPassCstChildren = {
   _ruleFn?: _ruleFnCstNode[];
   _ruleShaderPropertyDeclare?: _ruleShaderPropertyDeclareCstNode[];
   _rulePassPropertyAssignment?: _rulePassPropertyAssignmentCstNode[];
+  _ruleRenderQueueAssignment?: _ruleRenderQueueAssignmentCstNode[];
   _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   _ruleFnMacro?: _ruleFnMacroCstNode[];
   RCurly: IToken[];
@@ -740,6 +741,30 @@ export type _ruleRenderStateDeclarationCstChildren = {
   _ruleRasterStatePropertyDeclaration?: _ruleRasterStatePropertyDeclarationCstNode[];
 };
 
+export interface _ruleRenderQueueAssignmentCstNode extends CstNode {
+  name: "_ruleRenderQueueAssignment";
+  children: _ruleRenderQueueAssignmentCstChildren;
+}
+
+export type _ruleRenderQueueAssignmentCstChildren = {
+  RenderQueueType: IToken[];
+  SymbolEqual: IToken[];
+  _ruleRenderQueueValue: _ruleRenderQueueValueCstNode[];
+  Semicolon: IToken[];
+};
+
+export interface _ruleRenderQueueValueCstNode extends CstNode {
+  name: "_ruleRenderQueueValue";
+  children: _ruleRenderQueueValueCstChildren;
+}
+
+export type _ruleRenderQueueValueCstChildren = {
+  "RenderQueueType.Transparent"?: IToken[];
+  "RenderQueueType.AlphaTest"?: IToken[];
+  "RenderQueueType.Opaque"?: IToken[];
+  Identifier?: IToken[];
+};
+
 export interface _ruleBlendStatePropertyCstNode extends CstNode {
   name: "_ruleBlendStateProperty";
   children: _ruleBlendStatePropertyCstChildren;
@@ -1238,6 +1263,8 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleShaderPassPropertyType(children: _ruleShaderPassPropertyTypeCstChildren, param?: IN): OUT;
   _ruleRenderStateType(children: _ruleRenderStateTypeCstChildren, param?: IN): OUT;
   _ruleRenderStateDeclaration(children: _ruleRenderStateDeclarationCstChildren, param?: IN): OUT;
+  _ruleRenderQueueAssignment(children: _ruleRenderQueueAssignmentCstChildren, param?: IN): OUT;
+  _ruleRenderQueueValue(children: _ruleRenderQueueValueCstChildren, param?: IN): OUT;
   _ruleBlendStateProperty(children: _ruleBlendStatePropertyCstChildren, param?: IN): OUT;
   _ruleBlendStateValue(children: _ruleBlendStateValueCstChildren, param?: IN): OUT;
   _ruleBlendFactor(children: _ruleBlendFactorCstChildren, param?: IN): OUT;

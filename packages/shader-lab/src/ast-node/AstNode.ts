@@ -4,6 +4,7 @@ import {
   Color,
   CompareFunction,
   CullMode,
+  RenderQueueType,
   RenderStateDataKey,
   StencilOperation,
   Vector4
@@ -57,8 +58,10 @@ import {
   IPropertyAstContent,
   IPropertyItemAstContent,
   IRelationOperatorAstContent,
+  IRenderQueueAstContent,
   IRenderStateDeclarationAstContent,
   IRenderStatePropertyItemAstContent,
+  IRuleRenderQueueAssignmentAstContent,
   ISelfAssignAstContent,
   ISelfAssignOperatorAstContent,
   IShaderPropertyDeclareAstContent,
@@ -711,6 +714,18 @@ export class CompareFunctionAstNode extends AstNode<ICompareFunctionAstContent> 
     return CompareFunction[prop];
   }
 }
+
+export class RenderQueueValueAstNode extends AstNode<IRenderQueueAstContent> {
+  isVariable: boolean;
+
+  override getContentValue() {
+    if (this.isVariable) return this.content;
+    const prop = this.content.split(".")[1];
+    return RenderQueueType[prop];
+  }
+}
+
+export class RenderQueueAssignmentAstNode extends AstNode<IRuleRenderQueueAssignmentAstContent> {}
 
 export class ForLoopAstNode extends AstNode<IForLoopAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {

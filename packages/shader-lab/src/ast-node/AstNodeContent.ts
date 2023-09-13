@@ -42,7 +42,8 @@ import {
   FnMacroDefineVariableAstNode,
   FnVariableDeclareUnitAstNode,
   FnMacroUndefineAstNode,
-  FnMacroConditionAstNode
+  FnMacroConditionAstNode,
+  RenderQueueValueAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -92,6 +93,7 @@ export interface IPassAstContent {
   renderStates?: RenderStateDeclarationAstNode[];
   macros?: FnMacroAstNode[];
   conditionalMacros?: FnMacroConditionAstNode[];
+  renderQueue?: RenderQueueValueAstNode;
 }
 
 export type IUsePassAstContent = string;
@@ -320,6 +322,10 @@ export type ICompareFunctionAstContent = string;
 export type IBlendOperationAstContent = string;
 export type IBlendFactorAstContent = string;
 export type ICullModeAstContent = string;
+
+export type IRuleRenderQueueAssignmentAstContent = RenderQueueValueAstNode;
+
+export type IRenderQueueAstContent = string;
 
 export interface ISelfAssignAstContent {
   operator: SelfAssignOperatorAstNode;

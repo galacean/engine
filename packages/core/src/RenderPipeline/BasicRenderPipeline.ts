@@ -253,7 +253,7 @@ export class BasicRenderPipeline {
 
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      const renderQueueType = renderStates[i].renderQueueType;
+      const renderQueueType = (shaderPasses[i]._renderState ?? renderStates[i]).renderQueueType;
       if (renderQueueAddedFlags & (<RenderQueueAddedFlag>(1 << renderQueueType))) {
         continue;
       }

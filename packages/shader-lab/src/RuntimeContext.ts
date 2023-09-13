@@ -23,6 +23,7 @@ import {
   IUsePassAstContent
 } from "./ast-node";
 import { AstNodeUtils } from "./AstNodeUtils";
+import { RenderStateDataKey } from "@galacean/engine";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -216,6 +217,15 @@ export default class RuntimeContext {
       }
     }
     this.payload = undefined;
+
+    const renderQueueNode = ast.content.renderQueue;
+    if (renderQueueNode) {
+      if (renderQueueNode.isVariable) {
+        variableProps[RenderStateDataKey.RenderQueueType] = renderQueueNode.getContentValue();
+      } else {
+        constantProps[RenderStateDataKey.RenderQueueType] = renderQueueNode.getContentValue();
+      }
+    }
 
     return ret;
   }

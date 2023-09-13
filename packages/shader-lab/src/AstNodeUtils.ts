@@ -13,6 +13,9 @@ export class AstNodeUtils {
     return !!node.children;
   }
 
+  /**
+   * return token's image if not specify options
+   */
   static extractCstToken(
     ctx: CstNode | CstChildrenDictionary,
     opts?: {

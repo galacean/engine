@@ -34,6 +34,8 @@ export const _allTokens = [
   ...Object.values(RenderState.RasterStatePropertyTokens),
   ...Object.values(RenderState.RenderStateTypeTokens),
   ...RenderState.StencilOperationTokenList,
+  ...RenderState.RenderQueueTypeTokenList,
+  RenderState.RenderQueueType,
   ...Keywords.tokenList,
   Others.Identifier
 ];

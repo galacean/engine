@@ -112,7 +112,7 @@ export class Shader {
           // Parse const render state
           const constRenderStateInfo = renderStates[0];
           for (let k in constRenderStateInfo) {
-            Shader._applyConstRenderStates(renderState, (<unknown>k) as RenderStateElementKey, constRenderStateInfo[k]);
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
           }
 
           // Parse variable render state

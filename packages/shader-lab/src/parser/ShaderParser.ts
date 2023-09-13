@@ -73,6 +73,7 @@ export class ShaderParser extends CstParser {
         { ALT: () => this.SUBRULE(this._ruleFn) },
         { ALT: () => this.SUBRULE(this._ruleShaderPropertyDeclare) },
         { ALT: () => this.SUBRULE(this._rulePassPropertyAssignment) },
+        { ALT: () => this.SUBRULE(this._ruleRenderQueueAssignment) },
         { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
         { ALT: () => this.SUBRULE(this._ruleFnMacro) }
       ]);
@@ -501,6 +502,19 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleStencilStatePropertyDeclaration) },
       { ALT: () => this.SUBRULE(this._ruleRasterStatePropertyDeclaration) }
     ]);
+  });
+
+  private _ruleRenderQueueAssignment = this.RULE("_ruleRenderQueueAssignment", () => {
+    this.CONSUME(RenderState.RenderQueueType);
+    this.CONSUME(Symbols.Equal);
+    this.SUBRULE(this._ruleRenderQueueValue);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
+  private _ruleRenderQueueValue = this.RULE("_ruleRenderQueueValue", () => {
+    this.OR(
+      [...RenderState.RenderQueueTypeTokenList, Others.Identifier].map((token) => ({ ALT: () => this.CONSUME(token) }))
+    );
   });
 
   private _ruleBlendStateProperty = this.RULE("_ruleBlendStateProperty", () => {
