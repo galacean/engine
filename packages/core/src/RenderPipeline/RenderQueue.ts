@@ -1,3 +1,4 @@
+import { RenderQueueType } from "oasis-engine";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -32,10 +33,13 @@ export class RenderQueue {
   }
 
   readonly elements: RenderElement[] = [];
-  private _spriteBatcher: SpriteBatcher;
 
-  constructor(engine: Engine) {
+  private _spriteBatcher: SpriteBatcher;
+  private readonly _renderQueueType: RenderQueueType;
+
+  constructor(engine: Engine, renderQueueType: RenderQueueType) {
     this._initSpriteBatcher(engine);
+    this._renderQueueType = renderQueueType;
   }
 
   /**
@@ -57,12 +61,12 @@ export class RenderQueue {
     const sceneData = scene.shaderData;
     const cameraData = camera.shaderData;
     const pipelineStageKey = RenderContext.pipelineStageKey;
+    const renderQueueType = this._renderQueueType;
 
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
       const { data, shaderPasses } = element;
 
-      const renderStates = data.material.renderStates;
       const renderPassFlag = data.component.entity.layer;
 
       if (!(renderPassFlag & mask)) {
@@ -78,6 +82,7 @@ export class RenderQueue {
         const material = data.material.destroyed ? engine._magentaMaterial : data.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
+        const renderStates = material.renderStates;
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -89,6 +94,10 @@ export class RenderQueue {
         for (let j = 0, m = shaderPasses.length; j < m; j++) {
           const shaderPass = shaderPasses[j];
           if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
+            continue;
+          }
+
+          if ((shaderPass._renderState ?? renderStates[j]).renderQueueType !== renderQueueType) {
             continue;
           }
 

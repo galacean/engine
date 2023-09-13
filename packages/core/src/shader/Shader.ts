@@ -92,7 +92,7 @@ export class Shader {
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
           if (typeof passInfo === "string") {
-            // Use Pass reference
+            // Use pass reference
             const paths = passInfo.split("/");
             return Shader.find(paths[0])
               ?.subShaders.find((subShader) => subShader.name === paths[1])
