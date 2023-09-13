@@ -29,11 +29,13 @@ import {
   FnMacroDefineAstNode,
   FnMacroDefineVariableAstNode,
   FnMacroUndefineAstNode,
+  FnParenthesisAtomicAstNode,
   FnReturnStatementAstNode,
   FnVariableAstNode,
   FnVariableDeclareUnitAstNode,
   ForLoopAstNode,
   IFnMacroDefineVariableAstContent,
+  IParenthesisAtomicAstContent,
   ITupleNumber2,
   ITupleNumber4,
   IUsePassAstContent,
@@ -101,6 +103,7 @@ import {
   _ruleFnMacroDefineCstChildren,
   _ruleFnMacroUndefineCstChildren,
   _ruleFnMultiplicationExprCstChildren,
+  _ruleFnParenthesisAtomicExprCstChildren,
   _ruleFnParenthesisExprCstChildren,
   _ruleFnRelationExprCstChildren,
   _ruleFnReturnStatementCstChildren,
@@ -220,7 +223,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return new AstNode<IUsePassAstContent>(
       {
         start: AstNodeUtils.getTokenPosition(children.UsePass[0]).start,
-        end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+        end: AstNodeUtils.getTokenPosition(children.ValueString[0]).end
       },
       path
     );
@@ -243,10 +246,12 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       return ret;
     });
 
-    const defines = ctx._ruleFnMacro
-      ?.map((item) => item.children._ruleFnMacroDefine)
-      .filter((item) => !!item)
-      .map((item) => this.visit(item));
+    const macroList = ctx._ruleFnMacro?.map((item) => {
+      return this.visit(item);
+    });
+
+    const macros = macroList?.filter((item) => !(item instanceof FnMacroConditionAstNode));
+    const conditionalMacros = macroList?.filter((item) => item instanceof FnMacroConditionAstNode);
 
     const content = {
       name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
@@ -254,9 +259,10 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       properties,
       structs,
       variables,
-      defines,
+      macros,
       renderStates,
-      functions
+      functions,
+      conditionalMacros
     };
 
     const position: IPositionRange = {
@@ -315,7 +321,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleFnMacro(children: _ruleFnMacroCstChildren, param?: any) {
-    return AstNodeUtils.defaultVisit.bind(this)(children);
+    return AstNodeUtils.extractCstToken(children, { fnNode: (node) => this.visit(node) });
   }
 
   _ruleFnMacroUndefine(children: _ruleFnMacroUndefineCstChildren, param?: any) {
@@ -331,7 +337,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(children.m_define[0]).start,
-      end: value ? value.position.end : AstNodeUtils.getOrTypeCstNodePosition(children._ruleAssignableValue[0]).end
+      end: value ? value.position.end : AstNodeUtils.getOrTypeCstNodePosition(children._ruleMacroDefineVariable[0]).end
     };
 
     return new FnMacroDefineAstNode(position, {
@@ -579,12 +585,27 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     let sign: AddOperatorAstNode | undefined;
 
     if (ctx._ruleAddOperator) {
-      sign = this.visit(ctx._ruleAddOperator);
+      sign = exprAst.content._ruleAddOperator;
       position.start = sign.position.start;
       delete exprAst.content._ruleAddOperator;
     }
 
     return new FnAtomicExprAstNode(position, { sign, RuleFnAtomicExpr: Object.values(exprAst.content)[0] });
+  }
+
+  _ruleFnParenthesisAtomicExpr(
+    children: _ruleFnParenthesisAtomicExprCstChildren,
+    param?: any
+  ): FnParenthesisAtomicAstNode {
+    const parenthesisNode = this.visit(children._ruleFnParenthesisExpr);
+    let position = parenthesisNode.position;
+    let content: IParenthesisAtomicAstContent = { parenthesisNode };
+    if (children._ruleFnVariable) {
+      content.property = this.visit(children._ruleFnVariable);
+      position.end = content.property.position.end;
+    }
+
+    return new FnParenthesisAtomicAstNode(position, content);
   }
 
   _ruleFnParenthesisExpr(ctx: _ruleFnParenthesisExprCstChildren) {
@@ -640,10 +661,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       start: AstNodeUtils.getTokenPosition(children.LSquareBracket[0]).start,
       end: AstNodeUtils.getTokenPosition(children.RSquareBracket[0]).end
     };
-    return new ArrayIndexAstNode(
-      position,
-      children.ValueInt ? Number(children.ValueInt[0].image) : children.Identifier[0].image
-    );
+    return new ArrayIndexAstNode(position, this.visit(children._ruleFnAtomicExpr));
   }
 
   _ruleFnVariableProperty(children: _ruleFnVariablePropertyCstChildren, param?: any) {

@@ -128,7 +128,7 @@ describe("ShaderLab", () => {
     expect(shader.name).to.equal("Water");
     expect(subShader.name).to.equal("subname");
     expect(pass.name).to.equal("default");
-    expect(usePass).to.equal("pbr");
+    expect(usePass).to.equal("pbr/Default/Forward");
   });
 
   it("render state", () => {
@@ -188,6 +188,11 @@ describe("ShaderLab", () => {
   it("include", () => {
     ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("planarShadow shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/planarShadow.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });
 });

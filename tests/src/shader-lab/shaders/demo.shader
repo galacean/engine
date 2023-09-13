@@ -25,7 +25,7 @@ Shader "Water" {
       AlphaBlendOperation = BlendOperation.Max;
     }
 
-    UsePass "pbr";
+    UsePass "pbr/Default/Forward"
 
     Pass "default" {
       Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }

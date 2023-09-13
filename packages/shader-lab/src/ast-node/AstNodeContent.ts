@@ -1,3 +1,4 @@
+import { _ruleFnMacroCstChildren } from "../types";
 import {
   AstNode,
   PropertyItemAstNode,
@@ -39,7 +40,9 @@ import {
   ShaderPropertyDeclareAstNode,
   FnCallAstNode,
   FnMacroDefineVariableAstNode,
-  FnVariableDeclareUnitAstNode
+  FnVariableDeclareUnitAstNode,
+  FnMacroUndefineAstNode,
+  FnMacroConditionAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -77,6 +80,8 @@ export interface IFunctionAstContent {
   body: AstNode;
 }
 
+export type FnMacroAstNode = FnMacroDefineAstNode | FnMacroUndefineAstNode;
+
 export interface IPassAstContent {
   name: string;
   tags?: TagAstNode;
@@ -85,7 +90,8 @@ export interface IPassAstContent {
   variables: ShaderPropertyDeclareAstNode[];
   functions?: FnAstNode[];
   renderStates?: RenderStateDeclarationAstNode[];
-  defines?: FnMacroDefineAstNode[];
+  macros?: FnMacroAstNode[];
+  conditionalMacros?: FnMacroConditionAstNode[];
 }
 
 export type IUsePassAstContent = string;
@@ -147,7 +153,7 @@ export interface IFnCallAstContent {
 }
 
 export interface IFnConditionStatementAstContent {
-  relation: AstNode;
+  relation: ConditionExprAstNode;
   body: FnBlockStatementAstNode;
   elseBranch: FnBlockStatementAstNode;
   elseIfBranches: FnConditionStatementAstNode[];
@@ -213,7 +219,7 @@ export type IFnVariableAstContent = {
   properties?: VariablePropertyAstNode[];
 };
 
-export type IArrayIndexAstContent = string | number;
+export type IArrayIndexAstContent = FnAtomicExprAstNode;
 
 export type IVariablePropertyAstContent = string;
 
@@ -244,6 +250,11 @@ export interface IForLoopAstContent {
   condition: ConditionExprAstNode;
   update: AstNode;
   body: FnBlockStatementAstNode;
+}
+
+export interface IParenthesisAtomicAstContent {
+  parenthesisNode: ConditionExprAstNode;
+  property?: FnVariableAstNode;
 }
 
 export type IAssignableValueAstContent = string;

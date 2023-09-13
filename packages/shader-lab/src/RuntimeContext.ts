@@ -4,6 +4,7 @@ import {
   DeclarationWithoutAssignAstNode,
   FnArgAstNode,
   FnAstNode,
+  FnMacroConditionAstNode,
   PassPropertyAssignmentAstNode,
   RenderStateDeclarationAstNode,
   ReturnTypeAstNode,
@@ -14,12 +15,14 @@ import {
 import { IShaderInfo, IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 import {
+  FnMacroAstNode,
   IPassAstContent,
   IPositionRange,
   IShaderAstContent,
   ISubShaderAstContent,
   IUsePassAstContent
 } from "./ast-node";
+import { AstNodeUtils } from "./AstNodeUtils";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -255,6 +258,11 @@ export default class RuntimeContext {
       .join("\n");
   }
 
+  getMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[], needSort = false): string {
+    const list = needSort ? macros.sort(AstNodeUtils.astSortAsc) : macros;
+    return list.map((item) => item.serialize(this)).join("\n");
+  }
+
   getGlobalText(): string {
     let ret: (IGlobal & { str: string })[] = [];
     let cur: (IGlobal & { str: string })[];
@@ -361,13 +369,6 @@ export default class RuntimeContext {
         ast: item,
         referenced: false,
         name: item.getVariable()
-      });
-    });
-    content.defines?.forEach((item) => {
-      passGlobalMap.set(item.content.variable.getVariableName(), {
-        ast: item,
-        referenced: false,
-        name: item.content.variable.getVariableName()
       });
     });
   }
