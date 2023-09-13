@@ -129,7 +129,7 @@ export class PhysXCharacterController implements ICharacterController {
       throw "unsupported shape type";
     }
 
-    desc.setMaterial(shape._pxMaterials[0]);
+    desc.setMaterial(shape._pxMaterial);
 
     this._pxController = pxManager._getControllerManager().createController(desc);
     this._pxController.setUUID(shape._id);
