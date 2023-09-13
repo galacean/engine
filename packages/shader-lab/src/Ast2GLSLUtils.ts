@@ -1,10 +1,14 @@
-import { PassPropertyAssignmentAstNode, StructAstNode } from "./ast-node";
+import { AstNode, IPassAstContent, PassPropertyAssignmentAstNode, StructAstNode } from "./ast-node";
 import { DiagnosticSeverity } from "./Constants";
 import RuntimeContext from "./RuntimeContext";
 
 export class Ast2GLSLUtils {
-  static stringifyVertexFunction(vertexFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
-    const vertFnAst = context.passAst.content.functions.find(
+  static stringifyVertexFunction(
+    passAst: AstNode<IPassAstContent>,
+    vertexFnProperty: PassPropertyAssignmentAstNode,
+    context: RuntimeContext
+  ): string {
+    const vertFnAst = passAst.content.functions.find(
       (fn) => fn.content.name === vertexFnProperty.content.value.content.variable
     );
     if (!vertFnAst) {
@@ -65,12 +69,26 @@ export class Ast2GLSLUtils {
       }
     });
 
+    // There may be global variable references in conditional macro statement, so it needs to be serialized first.
+    const conditionalMacroText = context.getMacroText(passAst.content.conditionalMacros);
+
     const vertexFnStr = vertFnAst.serialize(context);
-    return [context.getAttribText(), context.getVaryingText(), context.getGlobalText(), vertexFnStr].join("\n");
+    return [
+      context.getMacroText(passAst.content.macros),
+      context.getAttribText(),
+      context.getVaryingText(),
+      context.getGlobalText(),
+      conditionalMacroText,
+      vertexFnStr
+    ].join("\n");
   }
 
-  static stringifyFragmentFunction(fragmentFnProperty: PassPropertyAssignmentAstNode, context: RuntimeContext): string {
-    const fragFnAst = context.passAst.content.functions.find(
+  static stringifyFragmentFunction(
+    passAst: AstNode<IPassAstContent>,
+    fragmentFnProperty: PassPropertyAssignmentAstNode,
+    context: RuntimeContext
+  ): string {
+    const fragFnAst = passAst.content.functions.find(
       (fn) => fn.content.name === fragmentFnProperty.content.value.content.variable
     );
     if (!fragFnAst) {
@@ -85,6 +103,16 @@ export class Ast2GLSLUtils {
 
     context.varyingStructInfo.objectName = fragFnAst.content.args[0].content.name;
     const fragmentFnStr = fragFnAst.serialize(context);
-    return [context.getVaryingText(), context.getGlobalText(), fragmentFnStr].join("\n");
+
+    // There may be global variable references in conditional macro statement, so it needs to be serialized first.
+    const conditionalMacroText = context.getMacroText(passAst.content.conditionalMacros);
+
+    return [
+      context.getMacroText(passAst.content.macros),
+      context.getVaryingText(),
+      context.getGlobalText(),
+      conditionalMacroText,
+      fragmentFnStr
+    ].join("\n");
   }
 }

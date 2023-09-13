@@ -4,6 +4,7 @@ import {
   Color,
   CompareFunction,
   CullMode,
+  RenderQueueType,
   RenderStateDataKey,
   StencilOperation,
   Vector4
@@ -51,13 +52,16 @@ import {
   IForLoopAstContent,
   IMultiplicationOperatorAstContent,
   INumberAstContent,
+  IParenthesisAtomicAstContent,
   IPassPropertyAssignmentAstContent,
   IPrecisionAstContent,
   IPropertyAstContent,
   IPropertyItemAstContent,
   IRelationOperatorAstContent,
+  IRenderQueueAstContent,
   IRenderStateDeclarationAstContent,
   IRenderStatePropertyItemAstContent,
+  IRuleRenderQueueAssignmentAstContent,
   ISelfAssignAstContent,
   ISelfAssignOperatorAstContent,
   IShaderPropertyDeclareAstContent,
@@ -217,7 +221,7 @@ export class FnBodyAstNode extends AstNode<IFnBodyAstContent> {
 export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
-    return `#define ${this.content.variable.serialize(context)} ${this.content.value.serialize(context) ?? ""}`;
+    return `#define ${this.content.variable.serialize(context)} ${this.content.value?.serialize(context) ?? ""}`;
   }
 }
 
@@ -268,6 +272,16 @@ export class DiscardStatementAstNode extends AstNode {
   }
 }
 
+export class FnParenthesisAtomicAstNode extends AstNode<IParenthesisAtomicAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    let ret = `(${this.content.parenthesisNode.serialize(context)})`;
+    if (this.content.property) {
+      ret += `.${this.content.property.serialize(context)}`;
+    }
+    return ret;
+  }
+}
+
 export class FnCallAstNode extends AstNode<IFnCallAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     if (this.content.isCustom) {
@@ -306,7 +320,7 @@ export class FnConditionStatementAstNode extends AstNode<IFnConditionStatementAs
     const elseBranch = this.content.elseBranch ? "else " + this.content.elseBranch?.serialize(context) : "";
     const body = this.content.body.serialize(context);
     const relation = this.content.relation.serialize(context);
-    return `if (${relation}) 
+    return `if (${relation})
 ${body}
 ${elseIfBranches}
 ${elseBranch}`;
@@ -333,7 +347,7 @@ export class ConditionExprAstNode extends AstNode<IConditionExprAstContent> {
     if (this.content.operator) {
       ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightExpr.serialize(context)}`;
     }
-    return ret;
+    return `${ret}`;
   }
 }
 
@@ -701,6 +715,18 @@ export class CompareFunctionAstNode extends AstNode<ICompareFunctionAstContent> 
   }
 }
 
+export class RenderQueueValueAstNode extends AstNode<IRenderQueueAstContent> {
+  isVariable: boolean;
+
+  override getContentValue() {
+    if (this.isVariable) return this.content;
+    const prop = this.content.split(".")[1];
+    return RenderQueueType[prop];
+  }
+}
+
+export class RenderQueueAssignmentAstNode extends AstNode<IRuleRenderQueueAssignmentAstContent> {}
+
 export class ForLoopAstNode extends AstNode<IForLoopAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return `for (${this.content.init.serialize(context)} ${this.content.condition.serialize(
@@ -711,7 +737,7 @@ export class ForLoopAstNode extends AstNode<IForLoopAstContent> {
 
 export class ArrayIndexAstNode extends AstNode<IArrayIndexAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
-    return `[${this.content}]`;
+    return `[${this.content.serialize(context)}]`;
   }
 }
 
