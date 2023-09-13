@@ -459,13 +459,13 @@ export class Entity extends EngineObject {
       children[0].destroy();
     }
 
-    this.isActive = false;
-
     if (this._isRoot) {
       this._scene.removeRootEntity(this);
     } else {
       this._setParent(null);
     }
+
+    this.isActive = false;
   }
 
   /**
