@@ -448,7 +448,7 @@ export class Entity extends EngineObject {
       this._hookResource = null;
     }
 
-  const components = this._components;
+    const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
     }
