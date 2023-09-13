@@ -11,6 +11,7 @@ import { BlendOperation } from "./enums/BlendOperation";
 import { ColorWriteMask } from "./enums/ColorWriteMask";
 import { CompareFunction } from "./enums/CompareFunction";
 import { CullMode } from "./enums/CullMode";
+import { RenderQueueType } from "./enums/RenderQueueType";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
 import { StencilOperation } from "./enums/StencilOperation";
 import { RenderState } from "./state/RenderState";
@@ -296,6 +297,9 @@ export class Shader {
         break;
       case RenderStateElementKey.RasterStateSlopeScaledDepthBias:
         renderState.rasterState.slopeScaledDepthBias = <number>value;
+        break;
+      case RenderStateElementKey.RenderQueueType:
+        renderState.renderQueueType = <RenderQueueType>value;
         break;
     }
   }
