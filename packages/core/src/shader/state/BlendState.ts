@@ -1,5 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { GLCapabilityType } from "../../base/Constant";
+import { deepClone } from "../../clone/CloneManager";
 import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
@@ -9,7 +10,6 @@ import { ColorWriteMask } from "../enums/ColorWriteMask";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { RenderState } from "./RenderState";
 import { RenderTargetBlendState } from "./RenderTargetBlendState";
-import { deepClone } from "../../clone/CloneManager";
 
 /**
  * Blend state.
