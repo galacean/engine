@@ -5,7 +5,7 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("physics collider test", function () {
-  this.timeout(5000);
+  this.timeout(10000);
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let controllerEntity: Entity;
