@@ -160,8 +160,8 @@ export class RenderQueue {
         );
 
         rhi.drawPrimitive(primitive, data.subPrimitive, program);
-        isSprite && spriteMaskManager.postRender(<SpriteRenderer>renderer);
       }
+      isSprite && spriteMaskManager.postRender(<SpriteRenderer>renderer);
     }
   }
 
