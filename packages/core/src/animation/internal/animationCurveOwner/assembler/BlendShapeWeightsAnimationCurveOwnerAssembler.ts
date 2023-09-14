@@ -19,7 +19,7 @@ export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimation
 
   setTargetValue(value: Float32Array): void {
     const skinnedMeshRenderer = this._skinnedMeshRenderer;
-    for (let i = 0; i < skinnedMeshRenderer.length; i++) {
+    for (let i = 0, n = skinnedMeshRenderer.length; i < n; i++) {
       skinnedMeshRenderer[i].blendShapeWeights = value;
     }
   }
