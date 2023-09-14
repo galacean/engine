@@ -57,11 +57,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   }
 
   /**
-   * @inheritDoc
-   */
-  cloneTo(dest: TextureSheetAnimationModule): void {}
-
-  /**
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
