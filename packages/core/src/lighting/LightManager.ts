@@ -1,10 +1,9 @@
-import { IDirectLightShaderData, ISpotLightShaderData, IPointLightShaderData } from "@galacean/engine-design";
 import { DisorderedArray } from "../DisorderedArray";
 import { ShaderData } from "../shader";
 import { ShadowType } from "../shadow";
-import { DirectLight } from "./DirectLight";
-import { PointLight } from "./PointLight";
-import { SpotLight } from "./SpotLight";
+import { DirectLight, IDirectLightShaderData } from "./DirectLight";
+import { PointLight, IPointLightShaderData } from "./PointLight";
+import { SpotLight, ISpotLightShaderData } from "./SpotLight";
 
 /**
  * Light manager.

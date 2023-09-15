@@ -1,4 +1,3 @@
-import { IPointLightShaderData } from "@galacean/engine-design";
 import { Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
@@ -85,4 +84,18 @@ export class PointLight extends Light {
   override _onDisableInScene(): void {
     this.scene._lightManager._detachPointLight(this);
   }
+}
+
+/**
+ * Shader properties data of point lights in the scene.
+ */
+export interface IPointLightShaderData {
+  // Culling mask - which layers the light affect.
+  cullingMask: Int32Array;
+  // Light color.
+  color: Float32Array;
+  // Light position.
+  position: Float32Array;
+  // Defines a distance cutoff at which the light's intensity must be considered zero.
+  distance: Float32Array;
 }

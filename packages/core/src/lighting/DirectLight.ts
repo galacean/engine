@@ -1,4 +1,3 @@
-import { IDirectLightShaderData } from "@galacean/engine-design";
 import { Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
@@ -87,4 +86,16 @@ export class DirectLight extends Light {
   override _onDisableInScene(): void {
     this.scene._lightManager._detachDirectLight(this);
   }
+}
+
+/**
+ * Shader properties data of direct lights in the scene.
+ */
+export interface IDirectLightShaderData {
+  // Culling mask - which layers the light affect.
+  cullingMask: Int32Array;
+  // Light color.
+  color: Float32Array;
+  // Light direction.
+  direction: Float32Array;
 }
