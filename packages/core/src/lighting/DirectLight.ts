@@ -1,3 +1,4 @@
+import { IDirectLightShaderData } from "@galacean/engine-design";
 import { Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
@@ -12,18 +13,10 @@ export class DirectLight extends Light {
   private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightColor");
   private static _directionProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightDirection");
 
-  private static _combinedData = {
-    cullingMask: new Int32Array(Light._maxLight * 2),
-    color: new Float32Array(Light._maxLight * 3),
-    direction: new Float32Array(Light._maxLight * 3)
-  };
-
   /**
    * @internal
    */
-  static _updateShaderData(shaderData: ShaderData): void {
-    const data = DirectLight._combinedData;
-
+  static _updateShaderData(shaderData: ShaderData, data: IDirectLightShaderData): void {
     shaderData.setIntArray(DirectLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(DirectLight._colorProperty, data.color);
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
@@ -56,14 +49,12 @@ export class DirectLight extends Light {
   /**
    * @internal
    */
-  _appendData(lightIndex: number): void {
+  _appendData(lightIndex: number, data: IDirectLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
     const lightColor = this._getLightIntensityColor();
     const direction = this.direction;
-
-    const data = DirectLight._combinedData;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;

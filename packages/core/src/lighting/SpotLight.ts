@@ -1,3 +1,4 @@
+import { ISpotLightShaderData } from "@galacean/engine-design";
 import { Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
@@ -16,22 +17,10 @@ export class SpotLight extends Light {
   private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightAngleCos");
   private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPenumbraCos");
 
-  private static _combinedData = {
-    cullingMask: new Int32Array(Light._maxLight * 2),
-    color: new Float32Array(Light._maxLight * 3),
-    position: new Float32Array(Light._maxLight * 3),
-    direction: new Float32Array(Light._maxLight * 3),
-    distance: new Float32Array(Light._maxLight),
-    angleCos: new Float32Array(Light._maxLight),
-    penumbraCos: new Float32Array(Light._maxLight)
-  };
-
   /**
    * @internal
    */
-  static _updateShaderData(shaderData: ShaderData): void {
-    const data = SpotLight._combinedData;
-
+  static _updateShaderData(shaderData: ShaderData, data: ISpotLightShaderData): void {
     shaderData.setIntArray(SpotLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(SpotLight._colorProperty, data.color);
     shaderData.setFloatArray(SpotLight._positionProperty, data.position);
@@ -86,7 +75,7 @@ export class SpotLight extends Light {
   /**
    * @internal
    */
-  _appendData(lightIndex: number): void {
+  _appendData(lightIndex: number, data: ISpotLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
@@ -98,8 +87,6 @@ export class SpotLight extends Light {
     const lightColor = this._getLightIntensityColor();
     const position = this.position;
     const direction = this.direction;
-
-    const data = SpotLight._combinedData;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;

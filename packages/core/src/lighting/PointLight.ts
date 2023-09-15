@@ -1,3 +1,4 @@
+import { IPointLightShaderData } from "@galacean/engine-design";
 import { Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
@@ -13,19 +14,10 @@ export class PointLight extends Light {
   private static _positionProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightPosition");
   private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightDistance");
 
-  private static _combinedData = {
-    cullingMask: new Int32Array(Light._maxLight * 2),
-    color: new Float32Array(Light._maxLight * 3),
-    position: new Float32Array(Light._maxLight * 3),
-    distance: new Float32Array(Light._maxLight)
-  };
-
   /**
    * @internal
    */
-  static _updateShaderData(shaderData: ShaderData): void {
-    const data = PointLight._combinedData;
-
+  static _updateShaderData(shaderData: ShaderData, data: IPointLightShaderData): void {
     shaderData.setIntArray(PointLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(PointLight._colorProperty, data.color);
     shaderData.setFloatArray(PointLight._positionProperty, data.position);
@@ -52,7 +44,7 @@ export class PointLight extends Light {
   /**
    * @internal
    */
-  _appendData(lightIndex: number): void {
+  _appendData(lightIndex: number, data: IPointLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
@@ -60,8 +52,6 @@ export class PointLight extends Light {
 
     const lightColor = this._getLightIntensityColor();
     const lightPosition = this.position;
-
-    const data = PointLight._combinedData;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
