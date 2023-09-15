@@ -196,12 +196,12 @@ export class GLTFAnimationParser extends GLTFParser {
           if (curve.interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = Array.from(output.subarray(offset, offset + outputSize));
             offset += outputSize;
-            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
             keyframe.outTangent = Array.from(output.subarray(offset, offset + outputSize));
             offset += outputSize;
           } else {
-            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
           }
           curve.addKey(keyframe);
