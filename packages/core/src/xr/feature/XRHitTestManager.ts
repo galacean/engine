@@ -9,21 +9,7 @@ type HitTestListenerConstructor = (matrices: Matrix[]) => void;
 
 @registerXRFeatureManager(EnumXRFeature.HitTest)
 export class XRHitTestManager extends XRFeatureManager {
-  listeners: HitTestListenerConstructor[] = [];
-
-  startHitTest(x: number, y: number): Promise<void> {
-    return (<IXRHitTest>this._platformFeature).startHitTest(x, y);
-  }
-
-  stopHitTest(): Promise<void> {
-    return (<IXRHitTest>this._platformFeature).stopHitTest();
-  }
-
-  addHitTestListener(listener: HitTestListenerConstructor): void {
-    this.listeners.push(listener);
-  }
-
-  removeHitTestListener(listener: HitTestListenerConstructor): void {
-    Utils.removeFromArray(this.listeners, listener);
+  hitTest(x: number, y: number): Promise<void> {
+    return (<IXRHitTest>this._platformFeature).hitTest(x, y);
   }
 }

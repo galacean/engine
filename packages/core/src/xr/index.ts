@@ -26,10 +26,8 @@ export { SessionStateChangeFlags } from "./enum/SessionStateChangeFlags";
 
 // input
 export { XRController } from "./input/XRController";
-export { XRHand } from "./input/XRHand";
 export { XRInput } from "./input/XRInput";
 export { XRInputManager } from "./input/XRInputManager";
-export { XRPointer } from "./input/XRPointer";
 export { XRViewer } from "./input/XRViewer";
 
 // session

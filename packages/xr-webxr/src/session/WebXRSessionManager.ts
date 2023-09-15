@@ -12,6 +12,8 @@ export class WebXRSessionManager extends XRSessionManager {
   // @internal
   _platformSpace: XRReferenceSpace;
 
+  viewerReferenceSpace: XRReferenceSpace;
+
   private _engine: Engine;
   private _rhi: WebGLGraphicDevice;
   private _preRequestAnimationFrame: any;
@@ -54,6 +56,9 @@ export class WebXRSessionManager extends XRSessionManager {
               layers: [this._platformLayer]
             });
           }
+          session.requestReferenceSpace("viewer").then((value: XRReferenceSpace) => {
+            this.viewerReferenceSpace = value;
+          });
           session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
             this._platformSpace = value;
             resolve();

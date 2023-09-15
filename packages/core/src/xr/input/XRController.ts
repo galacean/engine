@@ -1,12 +1,12 @@
-import { Vector2 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { EnumXRButton } from "../enum/EnumXRButton";
 import { XRInput } from "./XRInput";
-import { XRPointer } from "./XRPointer";
 
 export class XRController extends XRInput {
-  pointers: XRPointer[] = [];
-  stick: Vector2 = new Vector2();
+  targetRayMatrix: Matrix = new Matrix();
+  targetRayPosition: Vector3 = new Vector3();
+  targetRayQuaternion: Quaternion = new Quaternion();
   pressedButtons: EnumXRButton = EnumXRButton.None;
   upMap: number[] = [];
   downMap: number[] = [];

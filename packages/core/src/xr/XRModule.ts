@@ -24,6 +24,17 @@ export class XRModule {
   private _features: XRFeatureManager[] = [];
   private _isPaused: boolean = true;
 
+  private _mode: EnumXRMode;
+  private _requestFeatures: IXRFeatureDescriptor[];
+
+  get mode(): EnumXRMode {
+    return this._mode;
+  }
+
+  get requestFeatures(): IXRFeatureDescriptor[] {
+    return this._requestFeatures;
+  }
+
   isSupported(mode: EnumXRMode): Promise<void> {
     return this.xrDevice.isSupported(mode);
   }
@@ -72,6 +83,8 @@ export class XRModule {
   }
 
   initSession(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
+    this._mode = mode;
+    this._requestFeatures = requestFeatures;
     return new Promise((resolve, reject) => {
       const { _engine: engine, _features: features } = this;
       const initializeFeature = () => {

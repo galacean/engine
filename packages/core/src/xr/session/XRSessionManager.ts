@@ -1,5 +1,6 @@
 import { IXRFeatureDescriptor, IXRSessionManager } from "@galacean/engine-design";
 import { SessionStateChangeFlags } from "../enum/SessionStateChangeFlags";
+import { EnumXRMode } from "../enum/EnumXRMode";
 import { Utils } from "../../Utils";
 
 type StateChangeListenerConstructor = (type?: number, param?: Object) => void;
@@ -7,7 +8,7 @@ type StateChangeListenerConstructor = (type?: number, param?: Object) => void;
 export abstract class XRSessionManager implements IXRSessionManager {
   protected _listeners: StateChangeListenerConstructor[] = [];
 
-  initialize(mode: number, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
+  initialize(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {});
   }
 

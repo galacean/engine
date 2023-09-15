@@ -6,8 +6,9 @@ import {
   EnumXRInputSource,
   EnumXRButton,
   XRInputManager,
-  Vector4,
-  Matrix
+  Matrix,
+  EnumXRMode,
+  Vector3
 } from "@galacean/engine";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
 
@@ -40,6 +41,7 @@ export class WebXRInputManager extends XRInputManager {
     this._onSessionStop();
   }
 
+  private _logTime: number = 0;
   _onUpdate() {
     const { _inputs: inputs, _engine: engine, _listeningSession: platformSession } = this;
     const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
@@ -47,6 +49,34 @@ export class WebXRInputManager extends XRInputManager {
     if (!platformSession || !_platformFrame || !_platformSpace) {
       return;
     }
+    let showLog = false;
+    const nowTime = this._engine.time.actualElapsedTime;
+    if (nowTime - this._logTime >= 1) {
+      showLog = true;
+      console.log(
+        "local x, y, z",
+        // @ts-ignore
+        _platformSpace._baseMatrix[12],
+        // @ts-ignore
+        _platformSpace._baseMatrix[13],
+        // @ts-ignore
+        _platformSpace._baseMatrix[14]
+      );
+      if (sessionManager.viewerReferenceSpace) {
+        const viewSpace = sessionManager.viewerReferenceSpace;
+        console.log(
+          "viewer x, y, z",
+          // @ts-ignore
+          viewSpace._baseMatrix[12],
+          // @ts-ignore
+          viewSpace._baseMatrix[13],
+          // @ts-ignore
+          viewSpace._baseMatrix[14]
+        );
+      }
+      this._logTime = nowTime;
+    }
+
     const { frameCount } = engine.time;
     const { _eventList: eventList } = this;
     for (let i = 0, n = eventList.length; i < n; i++) {
@@ -58,29 +88,46 @@ export class WebXRInputManager extends XRInputManager {
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
       const type = this._getInputSource(inputSource);
+      const input = <XRController>inputs[type];
+      input.connected = true;
       switch (inputSource.targetRayMode) {
         case "gaze":
           break;
         case "screen":
         case "tracked-pointer":
-          const input = <XRController>inputs[type];
-          // 位姿
-          const { gripSpace, gamepad } = inputSource;
+          const { gripSpace, targetRaySpace } = inputSource;
           if (gripSpace) {
-            const { transform } = _platformFrame.getPose(inputSource.gripSpace, _platformSpace);
+            const { transform } = _platformFrame.getPose(gripSpace, _platformSpace);
             if (transform) {
               input.matrix.copyFromArray(transform.matrix);
               input.position.copyFrom(transform.position);
               input.quaternion.copyFrom(transform.orientation);
             }
           }
-          // 摇杆
-          if (gamepad) {
-            const [, , x, y] = gamepad.axes;
-            input.stick.set(x || 0, y || 0);
+          if (targetRaySpace) {
+            const { transform } = _platformFrame.getPose(targetRaySpace, _platformSpace);
+            if (transform) {
+              input.targetRayMatrix.copyFromArray(transform.matrix);
+              input.targetRayPosition.copyFrom(transform.position);
+              input.targetRayQuaternion.copyFrom(transform.orientation);
+            }
           }
-
-          input.connected = true;
+          if (showLog) {
+            console.log(
+              inputSource.handedness + "after grip x, y, z",
+              input.position.x,
+              input.position.y,
+              input.position.z
+            );
+          }
+          if (showLog) {
+            console.log(
+              inputSource.handedness + "after target ray x, y, z",
+              input.targetRayPosition.x,
+              input.targetRayPosition.y,
+              input.targetRayPosition.z
+            );
+          }
           break;
         default:
           break;
@@ -98,6 +145,7 @@ export class WebXRInputManager extends XRInputManager {
         xrCamera.position.copyFrom(transform.position);
         xrCamera.quaternion.copyFrom(transform.orientation);
         xrCamera.projectionMatrix.copyFromArray(view.projectionMatrix);
+        xrCamera.connected = true;
         if (_platformLayer) {
           const { framebufferWidth, framebufferHeight } = _platformLayer;
           const xrViewport = _platformLayer.getViewport(view);
@@ -117,6 +165,38 @@ export class WebXRInputManager extends XRInputManager {
             if (!Matrix.equals(camera.projectionMatrix, xrCamera.projectionMatrix)) {
               camera.projectionMatrix = xrCamera.projectionMatrix;
             }
+          }
+        }
+      }
+
+      if (engine.xrModule.mode === EnumXRMode.AR) {
+        const leftViewer = inputs[EnumXRInputSource.LeftViewer] as XRViewer;
+        const rightViewer = inputs[EnumXRInputSource.RightViewer] as XRViewer;
+        const viewer = inputs[EnumXRInputSource.Viewer] as XRViewer;
+        viewer.quaternion.copyFrom(leftViewer.quaternion);
+        const { position, matrix } = viewer;
+        Vector3.add(leftViewer.position, rightViewer.position, position);
+        position.scale(0.5);
+        matrix.copyFrom(leftViewer.matrix);
+        const { elements } = matrix;
+        elements[12] = position.x;
+        elements[13] = position.y;
+        elements[14] = position.z;
+        viewer.projectionMatrix.copyFrom(leftViewer.projectionMatrix);
+        viewer.connected = true;
+        viewer.viewport =
+          leftViewer.viewport.width && leftViewer.viewport.height ? leftViewer.viewport : rightViewer.viewport;
+        const { camera } = viewer;
+        if (camera) {
+          // sync viewport
+          const vec4 = camera.viewport;
+          const { x, y, width, height } = viewer.viewport;
+          if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
+            camera.viewport = vec4.set(x, y, width, height);
+          }
+          // sync project matrix
+          if (!Matrix.equals(camera.projectionMatrix, viewer.projectionMatrix)) {
+            camera.projectionMatrix = viewer.projectionMatrix;
           }
         }
       }

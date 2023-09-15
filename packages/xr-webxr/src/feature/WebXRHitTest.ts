@@ -1,4 +1,4 @@
-import { Engine, EnumXRFeature, Matrix, XRHitTestManager } from "@galacean/engine";
+import { Engine, EnumXRFeature, EnumXRInputSource, Matrix, Vector3, XRHitTestManager } from "@galacean/engine";
 import { IXRFeatureDescriptor, IXRHitTest } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
@@ -8,29 +8,26 @@ export class WebXRHitTest implements IXRHitTest {
   descriptor: IXRFeatureDescriptor;
 
   private _engine: Engine;
-  private _space: XRReferenceSpace;
   private _sessionManager: WebXRSessionManager;
-  private _hitTestManager: XRHitTestManager;
-  private _x: number;
-  private _y: number;
+  private _screenX: number;
+  private _screenY: number;
   private _hitTestSource: XRHitTestSource;
+  private _hitTestFrameCount: number = 3;
 
-  startHitTest(x: number, y: number): Promise<void> {
-    if (!this._hitTestSource || this._x !== x || this._y !== y) {
-      this._destroyHitTestSource();
-      if (this._space) {
-        return this._requestHitTestSource(x, y);
-      } else {
-        return this._requestViewerSpace().then(() => this._requestHitTestSource(x, y));
-      }
+  private _localReferenceSpace: XRReferenceSpace;
+  private _viewerReferenceSpace: XRReferenceSpace;
+
+  hitTest(screenX: number, screenY: number): Promise<void> {
+    let origin: DOMPointReadOnly;
+    let direction: DOMPointReadOnly;
+    const controller = this._engine.xrModule.inputManager.getInput(EnumXRInputSource.Controller);
+    const xrRay = new XRRay(origin, direction);
+    if (this._hitTestSource) {
     }
-  }
-
-  stopHitTest(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this._destroyHitTestSource();
-      resolve();
-    });
+    if (!this._hitTestSource || this._screenX !== screenX || this._screenY !== screenY) {
+      this._clearHitTestSource();
+      return this._requestHitTestSource(screenX, screenY);
+    }
   }
 
   _onUpdate(): void {
@@ -49,43 +46,49 @@ export class WebXRHitTest implements IXRHitTest {
       const pose = hitTestResults[i].getPose(platformSpace);
       results.push(new Matrix().copyFromArray(pose.transform.matrix));
     }
-    const listeners = this._hitTestManager.listeners;
-    for (let i = listeners.length - 1; i >= 0; i--) {
-      listeners[i](results);
-    }
+    // const listeners = this._hitTestManager.listeners;
+    // for (let i = listeners.length - 1; i >= 0; i--) {
+    //   listeners[i](results);
+    // }
   }
 
   _initialize(descriptor: IXRFeatureDescriptor): Promise<void> {
     return new Promise((resolve, reject) => {
       this.descriptor = descriptor;
-      resolve();
+      const { _platformSession: platformSession } = this._sessionManager;
+      const promiseArr = [
+        platformSession.requestReferenceSpace("local"),
+        platformSession.requestReferenceSpace("viewer")
+      ];
+      Promise.all(promiseArr).then(([localReferenceSpace, viewerReferenceSpace]) => {
+        this._localReferenceSpace = localReferenceSpace;
+        this._viewerReferenceSpace = viewerReferenceSpace;
+        resolve();
+      }, reject);
     });
   }
 
   _onDestroy(): void {
-    this._destroyHitTestSource();
+    this._clearHitTestSource();
   }
 
   private _requestHitTestSource(x: number, y: number): Promise<void> {
-    const { _space: space } = this;
     const { _platformSession: platformSession } = this._sessionManager;
-    //const option: XRHitTestOptionsInit = { space, offsetRay: new XRRay({ x, y }) };
-    const option: XRHitTestOptionsInit = { space };
+    const option = { space: this._viewerReferenceSpace, offsetRay: this._createXRRay(x, y) };
     return platformSession.requestHitTestSource(option).then((hitTestSource) => {
       this._hitTestSource = hitTestSource;
-      this._x = x;
-      this._y = y;
+      this._screenX = x;
+      this._screenY = y;
     });
   }
 
-  private _requestViewerSpace(): Promise<void> {
-    const { _platformSession: platformSession } = this._sessionManager;
-    return platformSession.requestReferenceSpace("viewer").then((space) => {
-      this._space = space;
-    });
+  private _createXRRay(x: number, y: number): XRRay {
+    const origin = new DOMPointReadOnly();
+    const direction = new DOMPointReadOnly();
+    return new XRRay(origin, direction);
   }
 
-  private _destroyHitTestSource() {
+  private _clearHitTestSource() {
     if (this._hitTestSource) {
       this._hitTestSource.cancel();
       this._hitTestSource = null;
@@ -94,8 +97,6 @@ export class WebXRHitTest implements IXRHitTest {
 
   constructor(engine: Engine) {
     this._engine = engine;
-    const { xrModule } = engine;
-    this._sessionManager = <WebXRSessionManager>xrModule.sessionManager;
-    this._hitTestManager = xrModule.getFeature(XRHitTestManager);
+    this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
   }
 }
