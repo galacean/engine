@@ -26,9 +26,8 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxCurveYProperty = ShaderProperty.getByName("renderer_ROLMaxCurveY");
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_ROLMaxCurveZ");
 
-  /** Specifies whether the rotation is separate on each axis, when disabled only z axis is used. */
+  /** Specifies whether the rotation is separate on each axis, when disabled, only `rotationZ` is used. */
   separateAxes: boolean = false;
-
   /** Rotation over lifetime for z axis. */
   @deepClone
   rotationX = new ParticleCompositeCurve(0);

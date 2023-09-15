@@ -1,6 +1,6 @@
 import { KTX2TargetFormat } from "../KTX2TargetFormat";
 import { AbstractTranscoder, TranscodeResult } from "./AbstractTranscoder";
-import { TranscodeWorkerCode } from "./BinomialLLCWorkerCode";
+import { TranscodeWorkerCode, init, transcode, _init } from "./BinomialLLCWorkerCode";
 
 /** @internal */
 export class BinomialLLCTranscoder extends AbstractTranscoder {
@@ -17,24 +17,47 @@ export class BinomialLLCTranscoder extends AbstractTranscoder {
         (res) => res.arrayBuffer()
       )
     ]).then(([jsCode, wasmBuffer]) => {
-      const funcCode = TranscodeWorkerCode.toString();
-      const transcodeString = funcCode.substring(funcCode.indexOf("{"), funcCode.lastIndexOf("}") + 1);
+      if (this.workerLimitCount === 0) {
+        return new Promise<any>((resolve, reject) => {
+          const scriptDom = document.createElement("script");
+          scriptDom.src = URL.createObjectURL(new Blob([jsCode], { type: "application/javascript" }));
+          document.body.appendChild(scriptDom);
+          scriptDom.onload = () => {
+            init(wasmBuffer).then(() => {
+              resolve(null);
+            });
+          };
+          scriptDom.onerror = () => {
+            reject();
+          };
+        });
+      } else {
+        const funcCode = TranscodeWorkerCode.toString();
+        const transcodeString = funcCode.substring(funcCode.indexOf("{"), funcCode.lastIndexOf("}") + 1);
 
-      const workerCode = `
-      ${jsCode}
-      ${transcodeString}
-      `;
-      const workerURL = URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" }));
+        const workerCode = `
+        ${jsCode}
+        var init = (${_init.toString()})();
+        ${transcode.toString()}
+        ${transcodeString}
+        `;
 
-      return this._createTranscodePool(workerURL, wasmBuffer);
+        const workerURL = URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" }));
+
+        return this._createTranscodePool(workerURL, wasmBuffer);
+      }
     });
   }
 
   transcode(buffer: ArrayBuffer, format: KTX2TargetFormat): Promise<TranscodeResult> {
-    return this._transcodeWorkerPool.postMessage({
-      buffer,
-      format,
-      type: "transcode"
-    });
+    if (this.workerLimitCount === 0) {
+      return init().then((KTX2File) => transcode(buffer, format, KTX2File));
+    } else {
+      return this._transcodeWorkerPool.postMessage({
+        buffer,
+        format,
+        type: "transcode"
+      });
+    }
   }
 }

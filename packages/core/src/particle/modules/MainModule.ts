@@ -40,9 +40,6 @@ export class MainModule implements ICustomClone {
 
   /** A flag to enable specifying particle size individually for each axis. */
   startSize3D = false;
-  /** The initial size of particles when the Particle Generator first spawns them. */
-  @deepClone
-  startSize = new ParticleCompositeCurve(1);
   /** The initial size of particles along the x-axis when the Particle Generator first spawns them. */
   @deepClone
   startSizeX = new ParticleCompositeCurve(1);
@@ -53,18 +50,14 @@ export class MainModule implements ICustomClone {
   @deepClone
   startSizeZ = new ParticleCompositeCurve(1);
 
-  /** A flag to enable 3D particle rotation. */
+  /** A flag to enable 3D particle rotation, when disabled, only `startRotationZ` is used. */
   startRotation3D = false;
-  /** The initial rotation of particles when the Particle Generator first spawns them. */
-  @deepClone
-  startRotation = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the x-axis when emitted.*/
   @deepClone
   startRotationX = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the y-axis when emitted. */
   @deepClone
   startRotationY = new ParticleCompositeCurve(0);
-  @deepClone
   /** The initial rotation of particles around the z-axis when emitted. */
   @deepClone
   startRotationZ = new ParticleCompositeCurve(0);
@@ -125,6 +118,17 @@ export class MainModule implements ICustomClone {
         generator._resizeInstanceBuffer(value);
       }
     }
+  }
+
+  /**
+   * The initial size of particles when the Particle Generator first spawns them.
+   */
+  get startSize(): ParticleCompositeCurve {
+    return this.startSizeX;
+  }
+
+  set startSize(value: ParticleCompositeCurve) {
+    this.startSizeX = value;
   }
 
   /**

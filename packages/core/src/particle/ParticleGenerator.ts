@@ -483,7 +483,7 @@ export class ParticleGenerator {
       );
     } else {
       instanceVertices[offset + 15] = MathUtil.degreeToRadian(
-        main.startRotation.evaluate(undefined, startRotationRand.random())
+        main.startRotationZ.evaluate(undefined, startRotationRand.random())
       );
     }
 
