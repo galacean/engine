@@ -10,6 +10,7 @@ export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimation
   private _skinnedMeshRenderer: SkinnedMeshRenderer[] = [];
 
   initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
+    // @todo: Compatible with multiple SkinnedMeshRenderer in a entity, optimize later.
     owner.target.getComponents(SkinnedMeshRenderer, this._skinnedMeshRenderer);
   }
 
