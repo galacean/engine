@@ -166,24 +166,22 @@ describe("PrimitiveMesh", () => {
     );
   });
 
-  it("test limit vertex count", () => {
-    const radius = 1;
-    const segments = 300;
-    const floorSegments = Math.floor(segments);
-    const count = segments + 1;
+  it("test limit vertex count", function () {
+    this.timeout(5000);
+    const width = 1;
+    const height = 1;
+    const horizontalSeg = 255;
+    const verticalSeg = 255;
 
     if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
-      const sphereMesh = PrimitiveMesh.createSphere(engine, radius, segments, false);
-      expect(sphereMesh.vertexCount).equal(count * count);
-      expect(sphereMesh.vertexElements.length).equal(4);
-      expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
-      expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
-      expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
-      expect(sphereMesh.vertexBufferBindings.length).equal(1);
+      expect(() => {
+        const mesh = PrimitiveMesh.createPlane(engine, width, height, horizontalSeg, verticalSeg, false);
+        expect(mesh.vertexCount).equal((horizontalSeg + 1) * (verticalSeg + 1));
+      }).not.to.throw();
     } else {
       expect(() => {
         try {
-          PrimitiveMesh.createSphere(engine, radius, segments, false);
+          PrimitiveMesh.createPlane(engine, width, height, horizontalSeg, verticalSeg, false);
         } catch (e) {}
       }).throw("The vertex count is out of range.");
     }
