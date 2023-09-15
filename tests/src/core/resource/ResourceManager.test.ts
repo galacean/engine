@@ -4,11 +4,11 @@ import { expect } from "chai";
 
 describe("ResourceManager", () => {
   let engine: WebGLEngine;
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     engine.run();
   });
-  
+
   beforeEach(() => {
     engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -26,6 +26,13 @@ describe("ResourceManager", () => {
       const wrongUrl = "aa/bb/ccX";
       getResource = engine.resourceManager.getFromCache(wrongUrl);
       expect(getResource).equal(null);
+    });
+  });
+
+  describe("findResourcesByType", () => {
+    it("findResourcesByType", () => {
+      const textures = engine.resourceManager.findResourcesByType(Texture2D);
+      expect(textures.length).equal(4);
     });
   });
 });

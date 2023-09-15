@@ -1,4 +1,4 @@
-import { Engine, EngineConfiguration } from "@galacean/engine-core";
+import { Engine, EngineConfiguration, Scene } from "@galacean/engine-core";
 import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
 
@@ -17,7 +17,11 @@ export class WebGLEngine extends Engine {
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
     // @ts-ignore
-    return engine._initialize(configuration) as Promise<WebGLEngine>;
+    const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
+    return promise.then(() => {
+      engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
+      return engine;
+    });
   }
 
   /**

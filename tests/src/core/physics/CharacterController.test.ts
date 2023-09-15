@@ -1,17 +1,16 @@
-import { Entity, CapsuleColliderShape, CharacterController } from "@galacean/engine-core";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { CapsuleColliderShape, CharacterController, Entity } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("physics collider test", function () {
-  this.timeout(5000);
-
+  this.timeout(10000);
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let controllerEntity: Entity;
 
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     const scene = engine.sceneManager.activeScene;
     rootEntity = scene.createRootEntity("root");
@@ -19,13 +18,13 @@ describe("physics collider test", function () {
     engine.run();
   });
 
-  beforeEach(() => {
+  beforeEach(function () {
     rootEntity.clearChildren();
 
     controllerEntity = rootEntity.createChild("controller");
   });
 
-  it("Set Position", async () => {
+  it("Set Position", function () {
     const physicsCapsule = new CapsuleColliderShape();
     physicsCapsule.radius = 0.15;
     physicsCapsule.height = 0.2;

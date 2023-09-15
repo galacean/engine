@@ -1,20 +1,19 @@
-import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebCanvas, WebGLEngine, WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
 import { Camera, CameraClearFlags, Entity, Layer } from "@galacean/engine-core";
+import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
-  let node: Entity;
+  let rootEntity: Entity;
   let camera: Camera;
-  let identityMatrix: Matrix;
+  let identityMatrix: Matrix = new Matrix();
 
-  before(async function () {
+ before(async function () {
     this.timeout(10000);
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
-    node = engine.sceneManager.activeScene.createRootEntity();
-    camera = node.addComponent(Camera);
-    identityMatrix = new Matrix();
+    rootEntity = engine.sceneManager.scenes[0].createRootEntity();
+    camera = rootEntity.addComponent(Camera);
   });
 
   it("constructor", () => {
@@ -257,5 +256,9 @@ describe("camera test", function () {
     // Test reset projection matrix
     camera.projectionMatrix = camera.viewMatrix;
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
+  });
+
+  it("destroy test", () => {
+    camera.destroy();
   });
 });

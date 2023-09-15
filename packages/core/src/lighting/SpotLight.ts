@@ -126,18 +126,16 @@ export class SpotLight extends Light {
   }
 
   /**
-   * Mount to the current Scene.
    * @internal
    */
-  override _onEnable(): void {
-    this.engine._lightManager._attachSpotLight(this);
+  override _onEnableInScene(): void {
+    this.scene._lightManager._attachSpotLight(this);
   }
 
   /**
-   * Unmount from the current Scene.
    * @internal
    */
-  override _onDisable(): void {
-    this.engine._lightManager._detachSpotLight(this);
+  override _onDisableInScene(): void {
+    this.scene._lightManager._detachSpotLight(this);
   }
 }

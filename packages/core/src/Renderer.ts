@@ -6,7 +6,7 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { ICustomClone } from "./clone/ComponentCloner";
+import { IComponentCustomClone } from "./clone/ComponentCloner";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -18,7 +18,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component implements ICustomClone {
+export class Renderer extends Component implements IComponentCustomClone {
   private static _tempVector0 = new Vector3();
 
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
@@ -67,7 +67,7 @@ export class Renderer extends Component implements ICustomClone {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @ignoreClone
+  @assignmentClone
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
@@ -289,8 +289,8 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  override _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
+  override _onEnableInScene(): void {
+    const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
@@ -300,8 +300,8 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  override _onDisable(): void {
-    const componentsManager = this.engine._componentsManager;
+  override _onDisableInScene(): void {
+    const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
@@ -337,7 +337,7 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: Renderer): void {
+  _cloneTo(target: Renderer, srcRoot: Entity, targetRoot: Entity): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);

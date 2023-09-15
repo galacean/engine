@@ -1,7 +1,7 @@
 import { ISpringJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { PhysicsManager } from "../PhysicsManager";
+import { PhysicsScene } from "../PhysicsScene";
 import { Joint } from "./Joint";
 
 /**
@@ -106,6 +106,6 @@ export class SpringJoint extends Joint {
     const collider = this._collider;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(collider.collider._nativeCollider);
+    this._nativeJoint = PhysicsScene._nativePhysics.createSpringJoint(collider.collider._nativeCollider);
   }
 }

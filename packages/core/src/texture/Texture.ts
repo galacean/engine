@@ -185,8 +185,10 @@ export abstract class Texture extends GraphicsResource {
     platformTexture.wrapModeV = this._wrapModeV;
     platformTexture.filterMode = this._filterMode;
     platformTexture.anisoLevel = this._anisoLevel;
-    platformTexture.depthCompareFunction = this._depthCompareFunction;
-    platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
+    if (this._engine._hardwareRenderer._isWebGL2) {
+      platformTexture.depthCompareFunction = this._depthCompareFunction;
+      platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
+    }
   }
 
   /**

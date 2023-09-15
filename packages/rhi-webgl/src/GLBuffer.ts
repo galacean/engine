@@ -1,6 +1,6 @@
 import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@galacean/engine-core";
-import { WebGLExtension } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -88,11 +88,6 @@ export class GLBuffer implements IPlatformBuffer {
     } else {
       throw "Buffer is write-only on WebGL1.0 platforms.";
     }
-  }
-
-  resize(byteLength: number): void {
-    this.bind();
-    this._gl.bufferData(this._glBindTarget, byteLength, this._glBufferUsage);
   }
 
   destroy(): void {

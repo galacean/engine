@@ -1,31 +1,32 @@
 import { Utils } from "@galacean/engine-core";
-
-class ImageData {
-  type: "image/png" | "image/jpg" | "image/webp" | "ktx";
-  buffer: ArrayBuffer;
-}
-
 export class BufferReader {
   private _dataView: DataView;
   private _littleEndian: boolean;
   private _offset: number;
+  private _baseOffset: number;
 
-  public static imageMapping = {
-    0: "image/png",
-    1: "image/jpg",
-    2: "image/webp",
-    3: "ktx"
-  };
-
-  constructor(public buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
-    // byteLength = byteLength ?? _buffer.byteLength;
-    this._dataView = new DataView(buffer);
+  constructor(
+    public data: Uint8Array,
+    byteOffset: number = 0,
+    byteLength?: number,
+    littleEndian: boolean = true
+  ) {
+    this._dataView = new DataView(
+      data.buffer,
+      data.byteOffset + byteOffset,
+      byteLength ?? data.byteLength - byteOffset
+    );
     this._littleEndian = littleEndian;
-    this._offset = byteOffset;
+    this._offset = 0;
+    this._baseOffset = byteOffset;
+  }
+
+  get position() {
+    return this._offset;
   }
 
   get offset() {
-    return this._offset;
+    return this._offset + this._baseOffset;
   }
 
   nextUint8() {
@@ -53,7 +54,7 @@ export class BufferReader {
   }
 
   nextInt32Array(len: number) {
-    const value = new Int32Array(this.buffer, this._offset, len);
+    const value = new Int32Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
@@ -65,19 +66,19 @@ export class BufferReader {
   }
 
   nextFloat32Array(len: number) {
-    const value = new Float32Array(this.buffer, this._offset, len);
+    const value = new Float32Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint32Array(len: number) {
-    const value = new Uint32Array(this.buffer, this._offset, len);
+    const value = new Uint32Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint8Array(len: number) {
-    const value = new Uint8Array(this.buffer, this._offset, len);
+    const value = new Uint8Array(this.data.buffer, this._offset + this._dataView.byteOffset, len);
     this._offset += len;
     return value;
   }
@@ -92,7 +93,7 @@ export class BufferReader {
 
   nextStr(): string {
     const strByteLength = this.nextUint16();
-    const uint8Array = new Uint8Array(this.buffer, this._offset, strByteLength);
+    const uint8Array = new Uint8Array(this.data.buffer, this._offset + this._dataView.byteOffset, strByteLength);
     this._offset += strByteLength;
     return Utils.decodeText(uint8Array);
   }
@@ -100,11 +101,11 @@ export class BufferReader {
   /**
    * image data 放在最后
    */
-  nextImageData(count: number = 0): ArrayBuffer {
-    return this.buffer.slice(this._offset);
+  nextImageData(count: number = 0): Uint8Array {
+    return new Uint8Array(this.data.buffer, this.data.byteOffset + this._offset);
   }
 
-  nextImagesData(count: number): ArrayBuffer[] {
+  nextImagesData(count: number): Uint8Array[] {
     const imagesLen = new Array(count);
     // Start offset of Uint32Array should be a multiple of 4. ref: https://stackoverflow.com/questions/15417310/why-typed-array-constructors-require-offset-to-be-multiple-of-underlying-type-si
     for (let i = 0; i < count; i++) {
@@ -112,11 +113,11 @@ export class BufferReader {
       imagesLen[i] = len;
       this._offset += 4;
     }
-    const imagesData: ArrayBuffer[] = [];
+    const imagesData: Uint8Array[] = [];
 
     for (let i = 0; i < count; i++) {
       const len = imagesLen[i];
-      const buffer = this.buffer.slice(this._offset, this._offset + len);
+      const buffer = new Uint8Array(this.data.buffer, this._dataView.byteOffset + this._offset, len);
       this._offset += len;
       imagesData.push(buffer);
     }

@@ -14,15 +14,13 @@ import {
 } from "@galacean/engine-core";
 import { IClassObject, IScene, ReflectionParser, SceneParser } from "./resource-deserialize";
 
-@resourceLoader(AssetType.Scene, ["prefab"], true)
+@resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
       this.request<IScene>(item.url, { type: "json" })
         .then((data) => {
-          // @ts-ignore
-          engine.resourceManager.initVirtualResources(data.files);
           return SceneParser.parse(engine, data).then((scene) => {
             const promises = [];
             // parse ambient light
