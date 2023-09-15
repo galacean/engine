@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-math",
-  "version": "0.9.20",
+  "version": "0.9.21",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
