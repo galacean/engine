@@ -120,6 +120,6 @@ export class SceneManager {
     if (firstScene) {
       this.removeScene(firstScene);
     }
-    scene && this.addScene(0, scene);
+    scene && this.addScene(scene, 0);
   }
 }
