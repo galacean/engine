@@ -26,6 +26,7 @@ canvasDOM.height = 1024;
 describe("Light test", function () {
   let engine: Engine;
   let scene: Scene;
+  let sceneAno: Scene;
   let lightEntity: Entity;
   let sunLight: DirectLight;
   let directLight: DirectLight;
@@ -44,7 +45,48 @@ describe("Light test", function () {
     pointLight = lightEntity.addComponent(PointLight);
     spotLight = lightEntity.addComponent(SpotLight);
 
+    sceneAno = new Scene(engine);
+    const lightEntityAno = sceneAno.createRootEntity().createChild("light");
+    const directLightAno = lightEntityAno.addComponent(DirectLight);
+    directLightAno.color.set(1, 0, 0, 1);
+    const pointLightAno = lightEntityAno.addComponent(PointLight);
+    pointLightAno.color.set(0, 1, 0, 1);
+    const spotLightAno = lightEntityAno.addComponent(SpotLight);
+    spotLightAno.color.set(0, 0, 1, 1);
+
     engine.run();
+  });
+
+  it("multi scene light", function () {
+    engine.sceneManager.addScene(sceneAno);
+    engine.update();
+    console.log("light shader data");
+    const directLightColor: Float32Array = scene.shaderData.getPropertyValue("scene_DirectLightColor");
+    const pointLightColor: Float32Array = scene.shaderData.getPropertyValue("scene_PointLightColor");
+    const spotLightColor: Float32Array = scene.shaderData.getPropertyValue("scene_SpotLightColor");
+    expect(directLightColor[0]).to.equal(1);
+    expect(directLightColor[1]).to.equal(1);
+    expect(directLightColor[2]).to.equal(1);
+    expect(pointLightColor[0]).to.equal(1);
+    expect(pointLightColor[1]).to.equal(1);
+    expect(pointLightColor[2]).to.equal(1);
+    expect(spotLightColor[0]).to.equal(1);
+    expect(spotLightColor[1]).to.equal(1);
+    expect(spotLightColor[2]).to.equal(1);
+
+    const directLightColorAno: Float32Array = sceneAno.shaderData.getPropertyValue("scene_DirectLightColor");
+    const pointLightColorAno: Float32Array = sceneAno.shaderData.getPropertyValue("scene_PointLightColor");
+    const spotLightColorAno: Float32Array = sceneAno.shaderData.getPropertyValue("scene_SpotLightColor");
+    expect(directLightColorAno[0]).to.equal(1);
+    expect(directLightColorAno[1]).to.equal(0);
+    expect(directLightColorAno[2]).to.equal(0);
+    expect(pointLightColorAno[0]).to.equal(0);
+    expect(pointLightColorAno[1]).to.equal(1);
+    expect(pointLightColorAno[2]).to.equal(0);
+    expect(spotLightColorAno[0]).to.equal(0);
+    expect(spotLightColorAno[1]).to.equal(0);
+    expect(spotLightColorAno[2]).to.equal(1);
+    engine.sceneManager.removeScene(sceneAno);
   });
 
   it("light default values", function () {
