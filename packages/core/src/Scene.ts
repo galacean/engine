@@ -73,6 +73,18 @@ export class Scene extends EngineObject {
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
 
+  get isActive(): boolean {
+    return this._isActiveInEngine;
+  }
+
+  set isActive(v: boolean) {
+    if (v) {
+      this.engine.sceneManager.addScene(this);
+    } else {
+      this.engine.sceneManager.removeScene(this);
+    }
+  }
+
   /**
    * Scene-related shader data.
    */
