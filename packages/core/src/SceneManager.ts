@@ -28,26 +28,22 @@ export class SceneManager {
   /**
    * Add scene.
    * @param scene - The scene which want to be added
+   * @param scene - The scene which want to be added
    */
-  addScene(scene: Scene): void;
-
-  /**
-   * Add scene at specified index.
-   * @param index - specified index
-   * @param child - The scene which want to be added
-   */
-  addScene(index: number, scene: Scene): void;
-
-  addScene(indexOrScene: number | Scene, scene?: Scene): void {
-    if (typeof indexOrScene === "number") {
-      this._scenes.add(indexOrScene, scene);
-    } else {
-      scene = indexOrScene;
-      this._scenes.push(scene);
-    }
-
+  addScene(scene: Scene, index?: number): void {
     if (scene.engine !== this.engine) {
       throw "The scene is not belong to this engine.";
+    }
+    const scenes = this._scenes;
+    const checkIndex = scenes.indexOf(scene);
+    if (checkIndex > -1) {
+      scenes.removeByIndex(checkIndex);
+    }
+
+    if (typeof index === "number") {
+      scenes.add(index, scene);
+    } else {
+      scenes.push(scene);
     }
 
     scene._processActive(true);
@@ -61,9 +57,8 @@ export class SceneManager {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     if (index !== -1) {
-      const removedScene = scenes.getArray()[index];
       scenes.removeByIndex(index);
-      removedScene._processActive(false);
+      scene._processActive(false);
     }
   }
 
