@@ -107,7 +107,7 @@ export class Sky {
     program.uploadUnGroupTextures();
 
     renderState._apply(engine, false, pass._renderStateDataMap, materialShaderData);
-    rhi.drawPrimitive(mesh, mesh.subMesh, program);
+    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, originViewProjMatrix);
   }
 }
