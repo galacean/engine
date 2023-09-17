@@ -405,7 +405,7 @@ export class Camera extends Component {
     // Use the intersection of the near clipping plane as the origin point.
     const origin = this._innerViewportToWorldPoint(point.x, point.y, 0.0, invViewProjMat, out.origin);
     // Use the intersection of the far clipping plane as the origin point.
-    const direction = this._innerViewportToWorldPoint(point.x, point.y, 1.0, invViewProjMat, out.direction);
+    const direction = this._innerViewportToWorldPoint(point.x, point.y, 0.95, invViewProjMat, out.direction);
     Vector3.subtract(direction, origin, direction);
     direction.normalize();
     return out;
