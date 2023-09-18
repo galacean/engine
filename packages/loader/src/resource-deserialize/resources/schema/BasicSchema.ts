@@ -50,7 +50,6 @@ export interface IRefEntity extends IBasicEntity {
 
 export type IComponent = { id: string; refId?: string } & IClassObject;
 
-
 export type IClassObject = {
   class: string;
   constructParams?: IMethodParams;
@@ -58,7 +57,16 @@ export type IClassObject = {
   props?: { [key: string]: IBasicType | IMethodParams };
 };
 
-export type IBasicType = string | number | boolean | null | undefined | IAssetRef | IClassObject | IMethodParams | IEntityRef;
+export type IBasicType =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | IAssetRef
+  | IClassObject
+  | IMethodParams
+  | IEntityRef;
 
 export type IAssetRef = { key?: string; refId: string };
 
