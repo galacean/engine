@@ -4,6 +4,8 @@
 export class MathUtil {
   /** The value for which all absolute numbers smaller than are considered equal to zero. */
   static readonly zeroTolerance: number = 1e-6;
+  /** The value for which all absolute numbers smaller than are considered equal to one. */
+  static readonly oneTolerance: number = 1 - 1e-6;
   /** The conversion factor that radian to degree. */
   static readonly radToDegreeFactor: number = 180 / Math.PI;
   /** The conversion factor that degree to radian. */
