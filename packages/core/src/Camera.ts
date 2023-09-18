@@ -408,7 +408,7 @@ export class Camera extends Component {
     const direction = this._innerViewportToWorldPoint(
       point.x,
       point.y,
-      1 - MathUtil.oneTolerance,
+      1 - MathUtil.zeroTolerance,
       invViewProjMat,
       out.direction
     );
