@@ -1,1 +1,1 @@
-uniform vec3 u_cameraPos;
+uniform vec3 camera_Position;

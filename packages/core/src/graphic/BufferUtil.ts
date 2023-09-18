@@ -1,29 +1,15 @@
-import { BufferUsage } from "./enums/BufferUsage";
-import { VertexElementFormat } from "./enums/VertexElementFormat";
 import { DataType } from "../base/Constant";
 import { IndexFormat } from "./enums/IndexFormat";
+import { VertexElementFormat } from "./enums/VertexElementFormat";
 
 export interface ElementInfo {
   size: number;
   type: DataType;
   normalized: boolean;
+  normalizedScaleFactor: number;
 }
 
 export class BufferUtil {
-  /**
-   * @internal
-   */
-  static _getGLBufferUsage(gl: WebGLRenderingContext, bufferUsage: BufferUsage): number {
-    switch (bufferUsage) {
-      case BufferUsage.Static:
-        return gl.STATIC_DRAW;
-      case BufferUsage.Dynamic:
-        return gl.DYNAMIC_DRAW;
-      case BufferUsage.Stream:
-        return gl.STREAM_DRAW;
-    }
-  }
-
   static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
       case IndexFormat.UInt8:
@@ -35,7 +21,7 @@ export class BufferUtil {
     }
   }
 
-  static _getGLIndexByteCount(indexFormat: IndexFormat): DataType {
+  static _getGLIndexByteCount(indexFormat: IndexFormat): number {
     switch (indexFormat) {
       case IndexFormat.UInt8:
         return 1;
@@ -53,6 +39,7 @@ export class BufferUtil {
     let size: number;
     let type: DataType;
     let normalized: boolean = false;
+    let normalizedScaleFactor: number;
 
     switch (format) {
       case VertexElementFormat.Float:
@@ -83,11 +70,13 @@ export class BufferUtil {
         size = 4;
         type = DataType.BYTE;
         normalized = true;
+        normalizedScaleFactor = 1 / 127;
         break;
       case VertexElementFormat.NormalizedUByte4:
         size = 4;
         type = DataType.UNSIGNED_BYTE;
         normalized = true;
+        normalizedScaleFactor = 1 / 255;
         break;
       case VertexElementFormat.Short2:
         size = 2;
@@ -101,11 +90,13 @@ export class BufferUtil {
         size = 2;
         type = DataType.SHORT;
         normalized = true;
+        normalizedScaleFactor = 1 / 32767;
         break;
       case VertexElementFormat.NormalizedUShort2:
         size = 2;
         type = DataType.UNSIGNED_SHORT;
         normalized = true;
+        normalizedScaleFactor = 1 / 65535;
         break;
       case VertexElementFormat.Short4:
         size = 4;
@@ -119,15 +110,17 @@ export class BufferUtil {
         size = 4;
         type = DataType.SHORT;
         normalized = true;
+        normalizedScaleFactor = 1 / 32767;
         break;
       case VertexElementFormat.NormalizedUShort4:
         size = 4;
         type = DataType.UNSIGNED_SHORT;
         normalized = true;
+        normalizedScaleFactor = 1 / 65535;
         break;
       default:
         break;
     }
-    return { size, type, normalized };
+    return { size, type, normalized, normalizedScaleFactor };
   }
 }

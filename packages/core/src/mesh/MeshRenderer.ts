@@ -1,22 +1,23 @@
-import { BoundingBox } from "@oasis-engine/math";
+import { BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
-import { ICustomClone } from "../clone/ComponentCloner";
-import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader } from "../shader/Shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
  * MeshRenderer Component.
  */
-export class MeshRenderer extends Renderer implements ICustomClone {
-  private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
-  private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
-  private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
-  private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+export class MeshRenderer extends Renderer {
+  private static _uvMacro = ShaderMacro.getByName("RENDERER_HAS_UV");
+  private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
+  private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
+  private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
+  private static _enableVertexColorMacro = ShaderMacro.getByName("RENDERER_ENABLE_VERTEXCOLOR");
+
+  private _enableVertexColor: boolean = false;
 
   /** @internal */
   @ignoreClone
@@ -36,6 +37,20 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   /**
+   * Whether enable vertex color.
+   */
+  get enableVertexColor(): boolean {
+    return this._enableVertexColor;
+  }
+
+  set enableVertexColor(value: boolean) {
+    if (value !== this._enableVertexColor) {
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro;
+      this._enableVertexColor = value;
+    }
+  }
+
+  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -45,13 +60,13 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
-   * @override
    */
-  _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
-    if (mesh && !mesh.destroyed) {
-      mesh._addRefCount(-1);
+    if (mesh) {
+      mesh.destroyed || mesh._addReferCount(-1);
+      mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
   }
@@ -59,14 +74,26 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: MeshRenderer): void {
+  override _cloneTo(target: MeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
     target.mesh = this._mesh;
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  override _prepareRender(context: RenderContext): void {
+    if (!this._mesh) {
+      Logger.error("mesh is null.");
+      return;
+    }
+    super._prepareRender(context);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
@@ -79,71 +106,66 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
-    if (mesh) {
-      if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
-        const shaderData = this.shaderData;
-        const vertexElements = mesh._vertexElements;
+    if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
+      const shaderData = this.shaderData;
+      const vertexElements = mesh._primitive.vertexElements;
 
-        shaderData.disableMacro(MeshRenderer._uvMacro);
-        shaderData.disableMacro(MeshRenderer._uv1Macro);
-        shaderData.disableMacro(MeshRenderer._normalMacro);
-        shaderData.disableMacro(MeshRenderer._tangentMacro);
-        shaderData.disableMacro(MeshRenderer._vertexColorMacro);
+      shaderData.disableMacro(MeshRenderer._uvMacro);
+      shaderData.disableMacro(MeshRenderer._uv1Macro);
+      shaderData.disableMacro(MeshRenderer._normalMacro);
+      shaderData.disableMacro(MeshRenderer._tangentMacro);
+      shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
 
-        for (let i = 0, n = vertexElements.length; i < n; i++) {
-          switch (vertexElements[i].semantic) {
-            case "TEXCOORD_0":
-              shaderData.enableMacro(MeshRenderer._uvMacro);
-              break;
-            case "TEXCOORD_1":
-              shaderData.enableMacro(MeshRenderer._uv1Macro);
-              break;
-            case "NORMAL":
-              shaderData.enableMacro(MeshRenderer._normalMacro);
-              break;
-            case "TANGENT":
-              shaderData.enableMacro(MeshRenderer._tangentMacro);
-              break;
-            case "COLOR_0":
-              shaderData.enableMacro(MeshRenderer._vertexColorMacro);
-              break;
-          }
-        }
-        this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
-      }
-
-      const subMeshes = mesh.subMeshes;
-      const renderPipeline = context.camera._renderPipeline;
-      const renderElementPool = this._engine._renderElementPool;
-      for (let i = 0, n = subMeshes.length; i < n; i++) {
-        const material = this._materials[i];
-        if (material) {
-          const renderStates = material.renderStates;
-          const shaderPasses = material.shader.passes;
-          for (let j = 0, m = shaderPasses.length; j < m; j++) {
-            const element = renderElementPool.getFromPool();
-            element.setValue(this, mesh, subMeshes[i], material, renderStates[j], shaderPasses[j]);
-            renderPipeline.pushPrimitive(element);
-          }
+      for (let i = 0, n = vertexElements.length; i < n; i++) {
+        switch (vertexElements[i].attribute) {
+          case "TEXCOORD_0":
+            shaderData.enableMacro(MeshRenderer._uvMacro);
+            break;
+          case "TEXCOORD_1":
+            shaderData.enableMacro(MeshRenderer._uv1Macro);
+            break;
+          case "NORMAL":
+            shaderData.enableMacro(MeshRenderer._normalMacro);
+            break;
+          case "TANGENT":
+            shaderData.enableMacro(MeshRenderer._tangentMacro);
+            break;
+          case "COLOR_0":
+            this._enableVertexColor && shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
+            break;
         }
       }
-    } else {
-      Logger.error("mesh is null.");
+      this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
+    }
+
+    const materials = this._materials;
+    const subMeshes = mesh.subMeshes;
+    const renderPipeline = context.camera._renderPipeline;
+    const meshRenderDataPool = this._engine._renderDataPool;
+    for (let i = 0, n = subMeshes.length; i < n; i++) {
+      const material = materials[i];
+      if (!material) {
+        continue;
+      }
+
+      const renderData = meshRenderDataPool.getFromPool();
+      renderData.setX(this, material, mesh._primitive, subMeshes[i]);
+      renderPipeline.pushRenderData(context, renderData);
     }
   }
 
   private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
-      lastMesh._addRefCount(-1);
+      lastMesh._addReferCount(-1);
       lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
-      mesh._addRefCount(1);
+      mesh._addReferCount(1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }

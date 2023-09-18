@@ -1,5 +1,5 @@
-import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
-import { Matrix, Ray, Vector3 } from "oasis-engine";
+import { Matrix, Ray, Vector3 } from "@galacean/engine";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
@@ -16,6 +16,10 @@ export abstract class LiteColliderShape implements IColliderShape {
   _id: number;
   /** @internal */
   _collider: LiteCollider;
+  /** @internal */
+  _position: Vector3 = new Vector3();
+  /** @internal */
+  _worldScale: Vector3 = new Vector3(1, 1, 1);
   /** @internal */
   _transform: LiteTransform = new LiteTransform();
   /** @internal */
@@ -39,13 +43,21 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(position: Vector3): void {
-    this._transform.setPosition(position.x, position.y, position.z);
+    if (position !== this._position) {
+      this._position.copyFrom(position);
+    }
+    this._setLocalPose();
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  abstract setWorldScale(scale: Vector3): void;
+  setWorldScale(scale: Vector3): void {
+    if (scale !== this._worldScale) {
+      this._worldScale.copyFrom(scale);
+    }
+    this._setLocalPose();
+  }
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
@@ -124,5 +136,11 @@ export abstract class LiteColliderShape implements IColliderShape {
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
+  }
+
+  private _setLocalPose() {
+    const shapePosition = LiteColliderShape._tempPoint;
+    Vector3.multiply(this._position, this._worldScale, shapePosition);
+    this._transform.position = shapePosition;
   }
 }

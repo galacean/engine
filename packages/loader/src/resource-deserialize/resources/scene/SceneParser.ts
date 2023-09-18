@@ -1,7 +1,7 @@
-import { Engine, Entity, Loader, Scene } from "@oasis-engine/core";
-import { IScene } from "../prefab/PrefabDesign";
-import { PrefabParser } from "../prefab/PrefabParser";
-import { ReflectionParser } from "../prefab/ReflectionParser";
+import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
+import { PrefabParser } from "../parser/PrefabParser";
+import { ReflectionParser } from "../parser/ReflectionParser";
+import type { IScene } from "../schema";
 import { SceneParserContext } from "./SceneParserContext";
 
 /** @Internal */
@@ -84,7 +84,7 @@ export class SceneParser {
     }
   }
 
-  private _parseComponents() {
+  private _parseComponents(): Promise<any[]> {
     const entitiesConfig = this.context.originalData.entities;
     const entityMap = this.context.entityMap;
 
@@ -105,6 +105,7 @@ export class SceneParser {
         promises.push(promise);
       }
     }
+    return Promise.all(promises);
   }
 
   private _clearAndResolveScene() {

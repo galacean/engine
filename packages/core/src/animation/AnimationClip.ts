@@ -1,3 +1,4 @@
+import { EngineObject } from "../base/EngineObject";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
@@ -8,7 +9,7 @@ import { KeyframeValueType } from "./Keyframe";
 /**
  * Stores keyframe based animations.
  */
-export class AnimationClip {
+export class AnimationClip extends EngineObject {
   /** @internal */
   _curveBindings: AnimationClipCurveBinding[] = [];
 
@@ -39,7 +40,9 @@ export class AnimationClip {
   /**
    * @param name - The AnimationClip's name
    */
-  constructor(public readonly name: string) {}
+  constructor(public readonly name: string) {
+    super(null);
+  }
 
   /**
    * Adds an animation event to the clip.
@@ -56,16 +59,27 @@ export class AnimationClip {
   addEvent(event: AnimationEvent): void;
 
   addEvent(param: AnimationEvent | string, time?: number, parameter?: Object): void {
+    let newEvent: AnimationEvent;
     if (typeof param === "string") {
       const event = new AnimationEvent();
       event.functionName = param;
       event.time = time;
       event.parameter = parameter;
-      this._events.push(event);
+      newEvent = event;
     } else {
-      this._events.push(param);
+      newEvent = param;
     }
-    this._events.sort((a, b) => a.time - b.time);
+    const events = this._events;
+    const count = events.length;
+    const eventTime = newEvent.time;
+    const maxEventTime = count ? events[count - 1].time : 0;
+    if (eventTime >= maxEventTime) {
+      events.push(newEvent);
+    } else {
+      let index = count;
+      while (--index >= 0 && eventTime < events[index].time);
+      events.splice(index + 1, 0, newEvent);
+    }
   }
 
   /**
@@ -120,7 +134,8 @@ export class AnimationClip {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        curveOwner.evaluateAndApplyValue(curveData.curve, time, 1, false);
+        const value = curveOwner.evaluateValue(curveData.curve, time, false);
+        curveOwner.applyValue(value, 1, false);
       }
     }
   }

@@ -1,4 +1,4 @@
-import { GLTFUtil } from "../../gltf/GLTFUtil";
+import { Utils } from "@galacean/engine-core";
 
 export class FileHeader {
   totalLength: number = 0;
@@ -16,8 +16,8 @@ export class FileHeader {
     const nameLen = dataView.getUint16(7 + typeLen, true);
     const nameUint8Array = new Uint8Array(arrayBuffer, 9 + typeLen, nameLen);
 
-    const name = GLTFUtil.decodeText(nameUint8Array);
-    const type = GLTFUtil.decodeText(typeUint8Array);
+    const name = Utils.decodeText(nameUint8Array);
+    const type = Utils.decodeText(typeUint8Array);
     const header = new FileHeader();
     header.totalLength = totalLen;
     header.name = name;

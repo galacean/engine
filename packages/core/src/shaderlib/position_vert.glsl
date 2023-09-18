@@ -1,1 +1,1 @@
-    gl_Position = u_MVPMat * position;
+    gl_Position = renderer_MVPMat * position;

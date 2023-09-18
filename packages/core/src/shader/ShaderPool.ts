@@ -1,9 +1,16 @@
+import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
+import skyProceduralVs from "../shaderlib/extra/SkyProcedural.vs.glsl";
+import backgroundTextureFs from "../shaderlib/extra/background-texture.fs.glsl";
+import backgroundTextureVs from "../shaderlib/extra/background-texture.vs.glsl";
 import blinnPhongFs from "../shaderlib/extra/blinn-phong.fs.glsl";
 import blinnPhongVs from "../shaderlib/extra/blinn-phong.vs.glsl";
+import depthOnlyFs from "../shaderlib/extra/depthOnly.fs.glsl";
+import depthOnlyVs from "../shaderlib/extra/depthOnly.vs.glsl";
 import particleFs from "../shaderlib/extra/particle.fs.glsl";
 import particleVs from "../shaderlib/extra/particle.vs.glsl";
-import pbrFs from "../shaderlib/extra/pbr.fs.glsl";
 import pbrSpecularFs from "../shaderlib/extra/pbr-specular.fs.glsl";
+import pbrFs from "../shaderlib/extra/pbr.fs.glsl";
 import pbrVs from "../shaderlib/extra/pbr.vs.glsl";
 import shadowMapFs from "../shaderlib/extra/shadow-map.fs.glsl";
 import shadowMapVs from "../shaderlib/extra/shadow-map.vs.glsl";
@@ -15,9 +22,8 @@ import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
-import backgroundTextureVs from "../shaderlib/extra/background-texture.vs.glsl";
-import backgroundTextureFs from "../shaderlib/extra/background-texture.fs.glsl";
 import { Shader } from "./Shader";
+import { ShaderPass } from "./ShaderPass";
 
 /**
  * Internal shader pool.
@@ -25,15 +31,34 @@ import { Shader } from "./Shader";
  */
 export class ShaderPool {
   static init(): void {
-    Shader.create("blinn-phong", blinnPhongVs, blinnPhongFs);
-    Shader.create("pbr", pbrVs, pbrFs);
-    Shader.create("pbr-specular", pbrVs, pbrSpecularFs);
-    Shader.create("unlit", unlitVs, unlitFs);
-    Shader.create("shadow-map", shadowMapVs, shadowMapFs);
-    Shader.create("skybox", skyboxVs, skyboxFs);
-    Shader.create("particle-shader", particleVs, particleFs);
-    Shader.create("SpriteMask", spriteMaskVs, spriteMaskFs);
-    Shader.create("Sprite", spriteVs, spriteFs);
-    Shader.create("background-texture", backgroundTextureVs, backgroundTextureFs);
+    const shadowCasterPass = new ShaderPass("ShadowCaster", shadowMapVs, shadowMapFs, {
+      pipelineStage: PipelineStage.ShadowCaster
+    });
+    const depthOnlyPass = new ShaderPass("DepthOnly", depthOnlyVs, depthOnlyFs, {
+      pipelineStage: PipelineStage.DepthOnly
+    });
+    const basePasses = [shadowCasterPass, depthOnlyPass];
+
+    const forwardPassTags = {
+      pipelineStage: PipelineStage.Forward
+    };
+
+    Shader.create("blinn-phong", [
+      new ShaderPass("Forward", blinnPhongVs, blinnPhongFs, forwardPassTags),
+      ...basePasses
+    ]);
+    Shader.create("pbr", [new ShaderPass("Forward", pbrVs, pbrFs, forwardPassTags), ...basePasses]);
+    Shader.create("pbr-specular", [new ShaderPass("Forward", pbrVs, pbrSpecularFs, forwardPassTags), ...basePasses]);
+    Shader.create("unlit", [new ShaderPass("Forward", unlitVs, unlitFs, forwardPassTags), ...basePasses]);
+
+    Shader.create("skybox", [new ShaderPass("Forward", skyboxVs, skyboxFs, forwardPassTags)]);
+    Shader.create("SkyProcedural", [new ShaderPass("Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)]);
+
+    Shader.create("particle-shader", [new ShaderPass("Forward", particleVs, particleFs, forwardPassTags)]);
+    Shader.create("SpriteMask", [new ShaderPass("Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)]);
+    Shader.create("Sprite", [new ShaderPass("Forward", spriteVs, spriteFs, forwardPassTags)]);
+    Shader.create("background-texture", [
+      new ShaderPass("Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
+    ]);
   }
 }

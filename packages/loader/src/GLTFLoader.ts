@@ -1,35 +1,16 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
-import { GLTFParser } from "./gltf/GLTFParser";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
 import { GLTFResource } from "./gltf/GLTFResource";
-import { ParserContext } from "./gltf/parser/ParserContext";
+import { GLTFParserContext } from "./gltf/parser";
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+@resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-  load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
-    const context = new ParserContext(url);
+    const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, url);
-    const masterPromiseInfo = context.masterPromiseInfo;
+    const context = new GLTFParserContext(glTFResource, resourceManager, !!params?.keepMeshData);
 
-    context.glTFResource = glTFResource;
-    context.keepMeshData = item.params?.keepMeshData ?? false;
-
-    masterPromiseInfo.onCancel(() => {
-      const { chainPromises } = context;
-      for (const promise of chainPromises) {
-        promise.cancel();
-      }
-    });
-
-    GLTFParser.defaultPipeline
-      .parse(context)
-      .then(masterPromiseInfo.resolve)
-      .catch((e) => {
-        console.error(e);
-        masterPromiseInfo.reject(`Error loading glTF model from ${url} .`);
-      });
-
-    return context.promiseMap;
+    return <AssetPromise<GLTFResource>>context.parse();
   }
 }
 
@@ -37,6 +18,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
  * GlTF loader params.
  */
 export interface GLTFParams {
-  /** Keep raw mesh data for glTF parser, default is false. */
-  keepMeshData: boolean;
+  /**
+   * @beta Now only contains vertex information, need to improve.
+   * Keep raw mesh data for glTF parser, default is false.
+   */
+  keepMeshData?: boolean;
 }

@@ -1,11 +1,13 @@
-import { Color, Vector4 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { BlinnPhongMaterial, Texture2D } from "@oasis-engine/core";
+import { Color, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { BlinnPhongMaterial, Texture2D } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe("BlinnPhongMaterial", () => {
-  const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+describe("BlinnPhongMaterial",  () => {
+  let engine: WebGLEngine;
+  before(async function () {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  });
 
   it("参数测试", () => {
     const material = new BlinnPhongMaterial(engine);

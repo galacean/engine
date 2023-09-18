@@ -1,19 +1,16 @@
-import type { Component, Engine, Entity, ResourceManager, Scene } from "@oasis-engine/core";
-import type { IEntity, IScene } from "../prefab/PrefabDesign";
+import { Component, Entity, Scene } from "@galacean/engine-core";
+import type { IEntity, IScene } from "../schema";
 
 export class SceneParserContext {
-  readonly entityMap: Map<string, Entity> = new Map();
-  readonly components: Map<string, Component> = new Map();
-  readonly assets: Map<string, any> = new Map();
-  readonly entityConfigMap: Map<string, IEntity> = new Map();
-  readonly rootIds: string[] = [];
-  readonly engine: Engine;
-  readonly resourceManager: ResourceManager;
-
-  constructor(public readonly originalData: IScene, public readonly scene: Scene) {
-    this.engine = scene.engine;
-    this.resourceManager = scene.engine.resourceManager;
-  }
+  entityMap: Map<string, Entity> = new Map();
+  components: Map<string, Component> = new Map();
+  assets: Map<string, any> = new Map();
+  entityConfigMap: Map<string, IEntity> = new Map();
+  rootIds: string[] = [];
+  constructor(
+    public readonly originalData: IScene,
+    public readonly scene: Scene
+  ) {}
 
   destroy() {
     this.entityMap.clear();

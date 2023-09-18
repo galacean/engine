@@ -1,7 +1,8 @@
-import { RefObject } from "../asset/RefObject";
+import { GraphicsResource } from "../asset/GraphicsResource";
+import { TypedArray } from "../base";
 import { Engine } from "../Engine";
-import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
-import { BufferUtil } from "./BufferUtil";
+import { IPlatformBuffer } from "../renderingHardwareInterface";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
 import { BufferUsage } from "./enums/BufferUsage";
 import { SetDataOptions } from "./enums/SetDataOptions";
@@ -9,15 +10,16 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 /**
  * Buffer.
  */
-export class Buffer extends RefObject {
-  _glBindTarget: number;
-  _glBufferUsage: number;
-  _nativeBuffer: WebGLBuffer;
+export class Buffer extends GraphicsResource {
+  /** @internal */
+  _dataUpdateManager: UpdateFlagManager = new UpdateFlagManager();
 
-  private _hardwareRenderer: IHardwareRenderer;
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
+  private _platformBuffer: IPlatformBuffer;
+  private _readable: boolean;
+  private _data: Uint8Array;
 
   /**
    * Buffer binding flag.
@@ -41,61 +43,89 @@ export class Buffer extends RefObject {
   }
 
   /**
-   * Create Buffer.
-   * @param engine - Engine
-   * @param type - Buffer binding flag
-   * @param byteLength - Byte length
-   * @param bufferUsage - Buffer usage
+   * If buffer is readable.
    */
-  constructor(engine: Engine, type: BufferBindFlag, byteLength: number, bufferUsage?: BufferUsage);
+  get readable(): boolean {
+    return this._readable;
+  }
+
+  /**
+   * Buffer data cache.
+   *
+   * @remarks
+   * Buffer must be readable.
+   * If the data you get is modified, must call `setData()` to update buffer to GPU.
+   */
+  get data(): Uint8Array {
+    if (this._readable) {
+      return this._data;
+    } else {
+      throw "Buffer is not readable.";
+    }
+  }
 
   /**
    * Create Buffer.
    * @param engine - Engine
    * @param type - Buffer binding flag
-   * @param data - Byte
+   * @param byteLength - Byte length
    * @param bufferUsage - Buffer usage
+   * @param readable - If buffer is readable
    */
-  constructor(engine: Engine, type: BufferBindFlag, data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage);
+  constructor(engine: Engine, type: BufferBindFlag, byteLength: number, bufferUsage?: BufferUsage, readable?: boolean);
+
+  /**
+   * Create Buffer.
+   * @param engine - Engine
+   * @param type - Buffer binding flag
+   * @param data - Buffer data, if `readable` is true, the`data` property will store a copy of this
+   * @param bufferUsage - Buffer usage
+   * @param readable - If buffer is readable
+   */
+  constructor(
+    engine: Engine,
+    type: BufferBindFlag,
+    data: ArrayBuffer | ArrayBufferView,
+    bufferUsage?: BufferUsage,
+    readable?: boolean
+  );
 
   constructor(
     engine: Engine,
     type: BufferBindFlag,
     byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
-    bufferUsage: BufferUsage = BufferUsage.Static
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    readable: boolean = false
   ) {
     super(engine);
     this._engine = engine;
     this._type = type;
     this._bufferUsage = bufferUsage;
+    this._readable = readable;
 
-    const hardwareRenderer = engine._hardwareRenderer;
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
-    const glBufferUsage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
-    const glBindTarget = type === BufferBindFlag.VertexBuffer ? gl.ARRAY_BUFFER : gl.ELEMENT_ARRAY_BUFFER;
-
-    this._nativeBuffer = gl.createBuffer();
-    this._hardwareRenderer = hardwareRenderer;
-    this._glBufferUsage = glBufferUsage;
-    this._glBindTarget = glBindTarget;
-
-    this.bind();
     if (typeof byteLengthOrData === "number") {
       this._byteLength = byteLengthOrData;
-      gl.bufferData(glBindTarget, byteLengthOrData, glBufferUsage);
+      this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLengthOrData, bufferUsage);
+      if (readable) {
+        this._data = new Uint8Array(byteLengthOrData);
+      }
     } else {
-      this._byteLength = byteLengthOrData.byteLength;
-      gl.bufferData(glBindTarget, byteLengthOrData, glBufferUsage);
+      const data = byteLengthOrData;
+      const byteLength = data.byteLength;
+      this._byteLength = byteLength;
+      this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLength, bufferUsage, data);
+      if (readable) {
+        const buffer = (data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer).slice(0, byteLength);
+        this._data = new Uint8Array(buffer);
+      }
     }
-    gl.bindBuffer(glBindTarget, null);
   }
 
   /**
    * Bind buffer.
    */
   bind(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bindBuffer(this._glBindTarget, this._nativeBuffer);
+    this._platformBuffer.bind();
   }
 
   /**
@@ -143,35 +173,22 @@ export class Buffer extends RefObject {
     dataLength?: number,
     options: SetDataOptions = SetDataOptions.None
   ): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
-    const glBindTarget: number = this._glBindTarget;
-    this.bind();
+    this._platformBuffer.setData(this._byteLength, data, bufferByteOffset, dataOffset, dataLength, options);
 
-    if (options === SetDataOptions.Discard) {
-      gl.bufferData(glBindTarget, this._byteLength, this._glBufferUsage);
-    }
+    if (this._readable) {
+      const arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
 
-    // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
-    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1;
-    const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
-
-    if (dataOffset !== 0 || dataByteLength < data.byteLength) {
-      const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
-      if (isWebGL2 && isArrayBufferView) {
-        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataByteLength / byteSize);
-      } else {
-        const subData = new Uint8Array(
-          isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
-          dataOffset * byteSize,
-          dataByteLength
-        );
-        gl.bufferSubData(glBindTarget, bufferByteOffset, subData);
+      if (this._data.buffer !== arrayBuffer) {
+        const byteSize = (<TypedArray>data).BYTES_PER_ELEMENT || 1; // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
+        const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
+        const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
+        const byteOffset = isArrayBufferView ? (<ArrayBufferView>data).byteOffset + dataOffset * byteSize : dataOffset;
+        const srcData = new Uint8Array(arrayBuffer, byteOffset, dataByteLength);
+        this._data.set(srcData, bufferByteOffset);
       }
-    } else {
-      gl.bufferSubData(glBindTarget, bufferByteOffset, data);
     }
-    gl.bindBuffer(glBindTarget, null);
+    this._isContentLost = false;
+    this._dataUpdateManager.dispatch();
   }
 
   /**
@@ -197,35 +214,31 @@ export class Buffer extends RefObject {
   getData(data: ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
   getData(data: ArrayBufferView, bufferByteOffset: number = 0, dataOffset: number = 0, dataLength?: number): void {
-    const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
-
-    if (isWebGL2) {
-      const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-      this.bind();
-      gl.getBufferSubData(this._glBindTarget, bufferByteOffset, data, dataOffset, dataLength);
-    } else {
-      throw "Buffer is write-only on WebGL1.0 platforms.";
-    }
+    this._platformBuffer.getData(data, bufferByteOffset, dataOffset, dataLength);
   }
 
   /**
-   * @override
-   * Destroy.
+   * Mark buffer as readable, the `data` property will be not accessible anymore.
    */
-  _onDestroy() {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.deleteBuffer(this._nativeBuffer);
-    this._nativeBuffer = null;
-    this._hardwareRenderer = null;
+  markAsUnreadable(): void {
+    this._data = null;
+    this._readable = false;
+  }
+
+  override _rebuild(): void {
+    const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(
+      this._type,
+      this._byteLength,
+      this._bufferUsage
+    );
+    this._platformBuffer = platformBuffer;
   }
 
   /**
-   * @deprecated
+   * @internal
    */
-  resize(dataLength: number) {
-    this.bind();
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bufferData(this._glBindTarget, dataLength, this._glBufferUsage);
-    this._byteLength = dataLength;
+  protected override _onDestroy() {
+    super._onDestroy();
+    this._platformBuffer.destroy();
   }
 }

@@ -6,7 +6,7 @@ import {
   LoadItem,
   ResourceManager,
   ModelMesh
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Mesh, ["mesh"])

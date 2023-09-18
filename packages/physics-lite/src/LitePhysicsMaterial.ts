@@ -1,4 +1,4 @@
-import { IPhysicsMaterial } from "@oasis-engine/design";
+import { IPhysicsMaterial } from "@galacean/engine-design";
 
 /**
  * Physics material describes how to handle colliding objects (friction, bounciness).

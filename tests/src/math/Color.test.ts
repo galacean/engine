@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("Color test", () => {
@@ -58,6 +58,23 @@ describe("Color test", () => {
     expect(Color.equals(a, out)).to.eq(true);
   });
 
+  it("copyFromArray", () => {
+    const a = new Color();
+    const b = new Color(0, 0, 1, 1);
+    const data = [1, 0, 0, 1, 1];
+
+    a.copyFromArray(data, 1);
+    expect(Color.equals(a, b)).to.eq(true);
+  });
+
+  it("copyToArray", () => {
+    const a = new Color(0, 0, 1, 1);
+    const data = [1, 0, 0, 0, 0];
+
+    a.copyToArray(data, 1);
+    expect(data).to.deep.eq([1, 0, 0, 1, 1]);
+  });
+
   it("LinearAndGamma", () => {
     const fixColor = (color: Color) => {
       color.r = Math.floor(color.r * 1000) / 1000;
@@ -83,5 +100,11 @@ describe("Color test", () => {
 
       expect(Color.equals(colorLinear, colorNewLinear)).to.eq(true);
     }
+  });
+
+  it("toJSON", () => {
+    const color = new Color(1, 0.5, 0.5, 1);
+    const json = color.toJSON();
+    expect(json).to.deep.eq({ r: 1, g: 0.5, b: 0.5, a: 1 });
   });
 });

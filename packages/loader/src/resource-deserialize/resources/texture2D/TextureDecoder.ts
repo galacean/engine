@@ -1,4 +1,4 @@
-import { Engine, Texture2D } from "@oasis-engine/core";
+import { Engine, Texture2D } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
@@ -27,12 +27,12 @@ export class Texture2DDecoder {
       texture2D.wrapModeV = wrapModeV;
 
       if (isPixelBuffer) {
-        const pixelBuffer = new Uint8Array(imagesData[0]);
+        const pixelBuffer = imagesData[0];
         texture2D.setPixelBuffer(pixelBuffer);
         if (mipmap) {
           texture2D.generateMipmaps();
           for (let i = 1; i < mipCount; i++) {
-            const pixelBuffer = new Uint8Array(imagesData[i]);
+            const pixelBuffer = imagesData[i];
             texture2D.setPixelBuffer(pixelBuffer, i);
           }
         }

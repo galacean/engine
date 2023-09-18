@@ -6,7 +6,8 @@ import { StencilOperation } from "../shader/enums/StencilOperation";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { Basic2DBatcher } from "./Basic2DBatcher";
-import { SpriteMaskElement } from "./SpriteMaskElement";
+import { RenderElement } from "./RenderElement";
+import { SpriteMaskRenderData } from "./SpriteMaskRenderData";
 
 export class SpriteMaskBatcher extends Basic2DBatcher {
   createVertexElements(vertexElements: VertexElement[]): number {
@@ -15,14 +16,17 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
     return 20;
   }
 
-  canBatch(preElement: SpriteMaskElement, curElement: SpriteMaskElement): boolean {
-    if (preElement.isAdd !== curElement.isAdd) {
+  canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    const preSpriteData = <SpriteMaskRenderData>preElement.data;
+    const curSpriteData = <SpriteMaskRenderData>curElement.data;
+
+    if (preSpriteData.isAdd !== curSpriteData.isAdd) {
       return false;
     }
 
     // Compare renderer property
-    const preShaderData = (<SpriteMask>preElement.component).shaderData;
-    const curShaderData = (<SpriteMask>curElement.component).shaderData;
+    const preShaderData = (<SpriteMask>preSpriteData.component).shaderData;
+    const curShaderData = (<SpriteMask>curSpriteData.component).shaderData;
     const textureProperty = SpriteMask._textureProperty;
     const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
 
@@ -32,8 +36,8 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
     );
   }
 
-  updateVertices(element: SpriteMaskElement, vertices: Float32Array, vertexIndex: number): number {
-    const { positions, uvs, vertexCount } = element.renderData;
+  updateVertices(element: SpriteMaskRenderData, vertices: Float32Array, vertexIndex: number): number {
+    const { positions, uvs, vertexCount } = element.verticesData;
     for (let i = 0; i < vertexCount; i++) {
       const curPos = positions[i];
       const curUV = uvs[i];
@@ -56,14 +60,15 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
-      const spriteMaskElement = <SpriteMaskElement>batchedQueue[i];
+      const spriteMaskElement = batchedQueue[i];
+      const spritMaskData = <SpriteMaskRenderData>spriteMaskElement.data;
 
       if (!subMesh || !spriteMaskElement) {
         return;
       }
 
-      const renderer = <SpriteMask>spriteMaskElement.component;
-      const material = spriteMaskElement.material;
+      const renderer = <SpriteMask>spritMaskData.component;
+      const material = spritMaskData.material;
 
       const compileMacros = Shader._compileMacros;
       // union render global macro and material self macro.
@@ -75,11 +80,12 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
 
       // Update stencil state
       const stencilState = material.renderState.stencilState;
-      const op = spriteMaskElement.isAdd ? StencilOperation.IncrementSaturate : StencilOperation.DecrementSaturate;
+      const op = spritMaskData.isAdd ? StencilOperation.IncrementSaturate : StencilOperation.DecrementSaturate;
       stencilState.passOperationFront = op;
       stencilState.passOperationBack = op;
 
-      const program = material.shader.passes[0]._getShaderProgram(engine, compileMacros);
+      const pass = material.shader.subShaders[0].passes[0];
+      const program = pass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }
@@ -91,9 +97,9 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine, false);
+      material.renderState._apply(engine, false, pass._renderStateDataMap, material.shaderData);
 
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      engine._hardwareRenderer.drawPrimitive(mesh._primitive, subMesh, program);
     }
   }
 }

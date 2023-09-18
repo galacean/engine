@@ -1,5 +1,5 @@
 import { IColliderShape } from "./IColliderShape";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 
 /**
  * Interface of physics box collider shape.

@@ -1,5 +1,6 @@
-import { Quaternion } from "@oasis-engine/math";
+import { Quaternion } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -11,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
 
   /** @internal */
   private static _tempConjugateQuat = new Quaternion();
@@ -26,6 +27,13 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     owner.fixedPoseValue = new Quaternion();
     owner.baseEvaluateData.value = new Quaternion();
     owner.crossEvaluateData.value = new Quaternion();
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Quaternion();
   }
 
   /**
@@ -70,7 +78,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _copyValue(source: Quaternion, out: Quaternion): Quaternion {
+  static _setValue(source: Quaternion, out: Quaternion): Quaternion {
     out.copyFrom(source);
     return out;
   }

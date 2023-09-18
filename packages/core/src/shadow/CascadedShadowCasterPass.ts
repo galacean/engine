@@ -1,45 +1,46 @@
-import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { GLCapabilityType } from "../base/Constant";
+import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { DirectLight } from "../lighting";
+import { PipelineStage } from "../RenderPipeline/index";
+import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
-import { Shader } from "../shader";
+import { GLCapabilityType } from "../base/Constant";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { DirectLight } from "../lighting";
+import { ShaderProperty } from "../shader";
+import { RenderTarget } from "../texture/RenderTarget";
+import { Texture2D } from "../texture/Texture2D";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
-import { RenderTarget } from "../texture/RenderTarget";
-import { Texture2D } from "../texture/Texture2D";
-import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
+import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
+import { PipelinePass } from "../RenderPipeline/PipelinePass";
 
 /**
- * Cascade shadow caster.
+ * Cascade shadow caster pass.
  */
-export class CascadedShadowCasterPass {
-  private static _lightShadowBiasProperty = Shader.getPropertyByName("u_shadowBias");
-  private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
+export class CascadedShadowCasterPass extends PipelinePass {
+  private static _lightShadowBiasProperty = ShaderProperty.getByName("scene_ShadowBias");
+  private static _lightDirectionProperty = ShaderProperty.getByName("scene_LightDirection");
 
-  private static _shadowMatricesProperty = Shader.getPropertyByName("u_shadowMatrices");
-  private static _shadowMapSize = Shader.getPropertyByName("u_shadowMapSize");
-  private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfo");
-  private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMap");
-  private static _shadowSplitSpheresProperty = Shader.getPropertyByName("u_shadowSplitSpheres");
+  private static _shadowMatricesProperty = ShaderProperty.getByName("scene_ShadowMatrices");
+  private static _shadowMapSize = ShaderProperty.getByName("scene_ShadowMapSize");
+  private static _shadowInfosProperty = ShaderProperty.getByName("scene_ShadowInfo");
+  private static _shadowMapsProperty = ShaderProperty.getByName("scene_ShadowMap");
+  private static _shadowSplitSpheresProperty = ShaderProperty.getByName("scene_ShadowSplitSpheres");
 
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
 
+  private static _viewport = new Vector4(0, 0, 1, 1);
   private static _clearColor = new Color(1, 1, 1, 1);
   private static _tempVector = new Vector3();
   private static _tempMatrix0 = new Matrix();
 
   private readonly _camera: Camera;
-  private readonly _engine: Engine;
-  private readonly _shadowCasterShader: Shader;
   private readonly _supportDepthTexture: boolean;
 
   private _shadowMapResolution: number;
@@ -54,27 +55,26 @@ export class CascadedShadowCasterPass {
   private _existShadowMap: boolean = false;
 
   private _splitBoundSpheres = new Float32Array(CascadedShadowCasterPass._maxCascades * 4);
-  /** The end is project prcision problem in shader. */
+  /** The end is project precision problem in shader. */
   private _shadowMatrices = new Float32Array((CascadedShadowCasterPass._maxCascades + 1) * 16);
   // strength, null, lightIndex
   private _shadowInfos = new Vector3();
   private _depthTexture: Texture2D;
-  private _renderTargets: RenderTarget;
+  private _renderTarget: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   constructor(camera: Camera) {
+    super(camera.engine);
     this._camera = camera;
-    this._engine = camera.engine;
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
-    this._shadowCasterShader = Shader.find("shadow-map");
     this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
 
   /**
    * @internal
    */
-  _render(context: RenderContext): void {
+  override onRender(context: RenderContext): void {
     this._updateShadowSettings();
     this._existShadowMap = false;
     this._renderDirectShadowMap(context);
@@ -88,22 +88,18 @@ export class CascadedShadowCasterPass {
     const {
       _engine: engine,
       _camera: camera,
-      _shadowCasterShader: shadowCasterShader,
       _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
       _splitBoundSpheres: splitBoundSpheres,
       _shadowMatrices: shadowMatrices
     } = this;
 
-    const {
-      _opaqueQueue: opaqueQueue,
-      _alphaTestQueue: alphaTestQueue,
-      _transparentQueue: transparentQueue
-    } = camera._renderPipeline;
+    const { opaqueQueue, alphaTestQueue, transparentQueue } = camera._renderPipeline._cullingResults;
 
-    const componentsManager = engine._componentsManager;
+    const scene = camera.scene;
+    const componentsManager = scene._componentsManager;
     const rhi = engine._hardwareRenderer;
-    const shadowCascades = camera.scene.shadowCascades;
+    const shadowCascades = scene.shadowCascades;
     const splitDistance = CascadedShadowCasterPass._cascadesSplitDistance;
     const boundSphere = shadowSliceData.splitBoundSphere;
     const lightWorld = CascadedShadowCasterPass._tempMatrix0;
@@ -112,30 +108,65 @@ export class CascadedShadowCasterPass {
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
 
-    const sunLightIndex = engine._lightManager._getSunLightIndex();
-
-    if (sunLightIndex !== -1) {
-      const light = camera.scene._sunLight;
+    const light = camera.scene._sunLight;
+    if (light) {
       const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
       this._getCascadesSplitDistance(shadowFar);
-      // prepare render target
-      const renderTarget = this._getAvailableRenderTarget();
+
+      // Prepare render target
+      const { z: width, w: height } = this._shadowMapSize;
+      const format = this._shadowMapFormat;
+      let renderTarget: RenderTarget;
+      let shadowTexture: Texture2D;
+      if (this._supportDepthTexture) {
+        renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._renderTarget,
+          width,
+          height,
+          null,
+          format,
+          false
+        );
+        shadowTexture = <Texture2D>renderTarget.depthTexture;
+      } else {
+        renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._renderTarget,
+          width,
+          height,
+          format,
+          null,
+          false
+        );
+        shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
+      }
+
+      shadowTexture.wrapModeU = shadowTexture.wrapModeV = TextureWrapMode.Clamp;
+      if (engine._hardwareRenderer._isWebGL2) {
+        shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
+      }
+
+      this._renderTarget = renderTarget;
+      this._depthTexture = shadowTexture;
+
       // @todo: shouldn't set viewport and scissor in activeRenderTarget
-      rhi.activeRenderTarget(renderTarget, null, 0);
+      rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
       if (this._supportDepthTexture) {
         rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
       } else {
         rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
       }
       this._shadowInfos.x = light.shadowStrength;
-      this._shadowInfos.z = sunLightIndex;
+      this._shadowInfos.z = 0; // @todo: sun light index always 0
 
       // prepare light and camera direction
       Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
       lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
       lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
       lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
-      camera.entity.transform.getWorldForward(CascadedShadowCasterPass._tempVector);
+      const cameraForward = CascadedShadowCasterPass._tempVector;
+      cameraForward.copyFrom(camera.entity.transform.worldForward);
 
       const shadowTileResolution = this._shadowTileResolution;
 
@@ -144,7 +175,7 @@ export class CascadedShadowCasterPass {
           splitDistance[j],
           splitDistance[j + 1],
           camera,
-          CascadedShadowCasterPass._tempVector.normalize(),
+          cameraForward,
           shadowSliceData
         );
         ShadowUtils.getDirectionLightShadowCullPlanes(
@@ -166,11 +197,10 @@ export class CascadedShadowCasterPass {
           shadowMatrices
         );
         if (shadowCascades > 1) {
-          const shadowMapSize = this._shadowMapSize;
           ShadowUtils.applySliceTransform(
             shadowTileResolution,
-            shadowMapSize.z,
-            shadowMapSize.w,
+            width,
+            height,
             j,
             this._viewportOffsets[j],
             shadowMatrices
@@ -195,21 +225,21 @@ export class CascadedShadowCasterPass {
           ShadowUtils.shadowCullFrustum(context, light, elements[k], shadowSliceData);
         }
 
-        if (opaqueQueue.items.length || alphaTestQueue.items.length) {
+        if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {
           opaqueQueue.sort(RenderQueue._compareFromNearToFar);
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
 
           const { x, y } = viewports[j];
 
           rhi.setGlobalDepthBias(1.0, 1.0);
-      
+
           rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
           // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
           engine._renderCount++;
 
-          opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
-          alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+          opaqueQueue.render(camera, Layer.Everything, PipelineStage.ShadowCaster);
+          alphaTestQueue.render(camera, Layer.Everything, PipelineStage.ShadowCaster);
           rhi.setGlobalDepthBias(0, 0);
         }
       }
@@ -285,33 +315,6 @@ export class CascadedShadowCasterPass {
     return Math.sqrt((radius * radius) / denominator);
   }
 
-  private _getAvailableRenderTarget(): RenderTarget {
-    const engine = this._engine;
-    const format = this._shadowMapFormat;
-    const { z: width, w: height } = this._shadowMapSize;
-    let depthTexture = this._depthTexture;
-    let renderTarget = this._renderTargets;
-    if (
-      renderTarget == null ||
-      depthTexture?.width !== width ||
-      depthTexture?.height !== height ||
-      depthTexture?.format !== format
-    ) {
-      depthTexture = this._depthTexture = new Texture2D(engine, width, height, format, false);
-      depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
-      if (engine._hardwareRenderer._isWebGL2) {
-        depthTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
-      }
-
-      if (this._supportDepthTexture) {
-        renderTarget = this._renderTargets = new RenderTarget(engine, width, height, null, depthTexture);
-      } else {
-        renderTarget = this._renderTargets = new RenderTarget(engine, width, height, depthTexture);
-      }
-    }
-    return renderTarget;
-  }
-
   private _updateShadowSettings(): void {
     const scene = this._camera.scene;
     const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
@@ -343,7 +346,7 @@ export class CascadedShadowCasterPass {
         this._shadowMapSize.set(1.0 / width, 1.0 / height, width, height);
       }
 
-      this._renderTargets = null;
+      this._renderTarget = null;
 
       const viewportOffset = this._viewportOffsets;
       const shadowTileResolution = this._shadowTileResolution;

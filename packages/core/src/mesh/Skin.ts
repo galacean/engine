@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix } from "@galacean/engine-math";
 import { EngineObject } from "../base/EngineObject";
 import { Entity } from "../Entity";
 
@@ -9,6 +9,10 @@ export class Skin extends EngineObject {
   public inverseBindMatrices: Matrix[];
   public joints: string[];
   public skeleton: string;
+
+  public _rootBone: Entity;
+  public _bones: Entity[] = [];
+
   /**
    * Constructor of skin
    * @param name - name

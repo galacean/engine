@@ -1,11 +1,13 @@
-import { Color, Vector4 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { PBRMaterial, Texture2D } from "@oasis-engine/core";
+import { Color, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe("PBRBaseMaterial", () => {
-  const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+describe("PBRBaseMaterial",  () => {
+  let engine: WebGLEngine;
+  before(async function () {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  });
 
   it("pbr base 参数测试", () => {
     const material = new PBRMaterial(engine);

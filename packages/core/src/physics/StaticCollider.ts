@@ -1,6 +1,6 @@
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 
 /**
  * A static collider component that will not move.
@@ -13,7 +13,7 @@ export class StaticCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsManager._nativePhysics.createStaticCollider(
+    this._nativeCollider = PhysicsScene._nativePhysics.createStaticCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );

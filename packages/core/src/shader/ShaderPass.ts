@@ -1,27 +1,84 @@
-import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
+import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import { GLCapabilityType } from "../base/Constant";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
-import { Shader } from "./Shader";
+import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
+import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
+import { ShaderProperty } from "./ShaderProperty";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader pass containing vertex and fragment source.
  */
-export class ShaderPass {
+export class ShaderPass extends ShaderPart {
   private static _shaderPassCounter: number = 0;
 
   /** @internal */
   _shaderPassId: number = 0;
 
+  /**
+   * @internal
+   * @remarks If undefined, the blend state of the material will be used ( deprecate mode ).
+   */
+  _renderState: RenderState;
+  /** @internal */
+  _renderStateDataMap: Record<number, ShaderProperty> = {};
+
   private _vertexSource: string;
   private _fragmentSource: string;
 
-  constructor(vertexSource: string, fragmentSource: string) {
+  /**
+   * Create a shader pass.
+   * @param name - Shader pass name
+   * @param vertexSource - Vertex shader source
+   * @param fragmentSource - Fragment shader source
+   * @param tags - Tags
+   */
+  constructor(
+    name: string,
+    vertexSource: string,
+    fragmentSource: string,
+    tags?: Record<string, number | string | boolean>
+  );
+
+  /**
+   * Create a shader pass.
+   * @param vertexSource - Vertex shader source
+   * @param fragmentSource - Fragment shader source
+   * @param tags - Tags
+   */
+  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
+
+  constructor(
+    nameOrVertexSource: string,
+    vertexSourceOrFragmentSource: string,
+    fragmentSourceOrTags: string | Record<string, number | string | boolean>,
+    tags?: Record<string, number | string | boolean>
+  ) {
+    super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
-    this._vertexSource = vertexSource;
-    this._fragmentSource = fragmentSource;
+    if (typeof fragmentSourceOrTags === "string") {
+      this._name = nameOrVertexSource;
+      this._vertexSource = vertexSourceOrFragmentSource;
+      this._fragmentSource = fragmentSourceOrTags;
+      tags = tags ?? {
+        pipelineStage: PipelineStage.Forward
+      };
+    } else {
+      this._name = "Default";
+      this._vertexSource = nameOrVertexSource;
+      this._fragmentSource = vertexSourceOrFragmentSource;
+      tags = fragmentSourceOrTags ?? {
+        pipelineStage: PipelineStage.Forward
+      };
+    }
+
+    for (const key in tags) {
+      this.setTag(key, tags[key]);
+    }
   }
 
   /**
@@ -36,7 +93,7 @@ export class ShaderPass {
 
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const macroNameList = [];
-    Shader._getNamesByMacros(macroCollection, macroNameList);
+    ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
     const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
@@ -57,21 +114,18 @@ export class ShaderPass {
       precisionStr += "#define HAS_DERIVATIVES\n";
     }
 
-    let vertexSource = ShaderFactory.parseIncludes(
+    let vertexSource =
       ` ${versionStr}
         ${graphicAPI}
         ${macroNameStr}
-      ` + this._vertexSource
-    );
-
-    let fragmentSource = ShaderFactory.parseIncludes(
+      ` + ShaderFactory.parseIncludes(this._vertexSource);
+    let fragmentSource =
       ` ${versionStr}
         ${graphicAPI}
-        ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
+        ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
         ${macroNameStr}
-      ` + this._fragmentSource
-    );
+      ` + ShaderFactory.parseIncludes(this._fragmentSource);
 
     if (isWebGL2) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);

@@ -1,16 +1,30 @@
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { RenderBufferDepthFormat, RenderTarget, Texture2D } from "@oasis-engine/core";
+import { RenderBufferDepthFormat, RenderTarget, Texture2D } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("RenderTarget", () => {
+describe("RenderTarget", async () => {
   const width = 1024;
   const height = 1024;
 
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
-  const rhi = engine._hardwareRenderer;
-  const isWebGL2 = rhi.isWebGL2;
-  const maxAntiAliasing = rhi.capability._maxAntiAliasing;
+
+  let engine: WebGLEngine;
+  let rhi: any;
+  let isWebGL2: boolean;
+  let maxAntiAliasing: number;
+  let renderColorTexture: Texture2D;
+  let renderColorTexture2: Texture2D;
+  let renderDepthTexture: Texture2D;
+  before(async function () {
+    engine = await WebGLEngine.create({ canvas: canvas });
+    // @ts-ignore
+    rhi = engine._hardwareRenderer;
+    isWebGL2 = rhi.isWebGL2;
+    maxAntiAliasing = rhi.capability._maxAntiAliasing;
+    renderColorTexture = new Texture2D(engine, width, height);
+    renderColorTexture2 = new Texture2D(engine, width, height);
+    renderDepthTexture = new Texture2D(engine, width, height);
+  });
 
   beforeEach(() => {
     rhi._isWebGL2 = isWebGL2;
@@ -18,10 +32,6 @@ describe("RenderTarget", () => {
   });
 
   describe("创建渲染目标", () => {
-    const renderColorTexture = new Texture2D(engine, width, height);
-    const renderColorTexture2 = new Texture2D(engine, width, height);
-    const renderDepthTexture = new Texture2D(engine, width, height);
-
     it("创建渲染目标-通过颜色纹理和深度格式", () => {
       const renderTarget = new RenderTarget(engine, width, height, renderColorTexture);
 
@@ -112,7 +122,7 @@ describe("RenderTarget", () => {
       renderTarget.destroy();
 
       expect(renderTarget.colorTextureCount).to.eq(0);
-      expect(renderTarget.getColorTexture()).to.be.undefined;
+      expect(renderTarget.getColorTexture()).to.be.null;
     });
   });
 });

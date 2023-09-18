@@ -1,18 +1,15 @@
-import { ICharacterController } from "@oasis-engine/design";
-import { Vector3 } from "@oasis-engine/math";
+import { ICharacterController } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
+import { PhysicsScene } from "./PhysicsScene";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
-import { PhysicsManager } from "./PhysicsManager";
 import { ColliderShape } from "./shape";
 
 /**
  * The character controllers.
  */
 export class CharacterController extends Collider {
-  /** @internal */
-  _index: number = -1;
-
   private _stepOffset: number = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
@@ -78,7 +75,7 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
+    (<ICharacterController>this._nativeCollider) = PhysicsScene._nativePhysics.createCharacterController();
 
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
@@ -99,9 +96,8 @@ export class CharacterController extends Collider {
   /**
    * Add collider shape on this controller.
    * @param shape - Collider shape
-   * @override
    */
-  addShape(shape: ColliderShape): void {
+  override addShape(shape: ColliderShape): void {
     if (this._shapes.length > 0) {
       throw "only allow single shape on controller!";
     }
@@ -111,9 +107,8 @@ export class CharacterController extends Collider {
 
   /**
    * Remove all shape attached.
-   * @override
    */
-  clearShapes(): void {
+  override clearShapes(): void {
     if (this._shapes.length > 0) {
       super.removeShape(this._shapes[0]);
     }
@@ -121,9 +116,8 @@ export class CharacterController extends Collider {
 
   /**
    * @internal
-   * @override
    */
-  _onUpdate() {
+  override _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
       const shapes = this.shapes;
@@ -139,9 +133,8 @@ export class CharacterController extends Collider {
 
   /**
    * @internal
-   * @override
    */
-  _onLateUpdate() {
+  override _onLateUpdate() {
     const position = this.entity.transform.worldPosition;
     (<ICharacterController>this._nativeCollider).getWorldPosition(position);
     this.entity.transform.worldPosition = position;
@@ -149,19 +142,17 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onEnable() {
-    this.engine.physicsManager._addCharacterController(this);
+  override _onEnableInScene() {
+    this.scene.physics._addCharacterController(this);
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDisable() {
-    this.engine.physicsManager._removeCharacterController(this);
+  override _onDisableInScene() {
+    this.scene.physics._removeCharacterController(this);
   }
 
   private _setUpDirection(): void {

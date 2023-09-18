@@ -1,4 +1,7 @@
+import { Engine } from "../../Engine";
 import { DisorderedArray } from "../../DisorderedArray";
+import { Platform } from "../../Platform";
+import { SystemInfo } from "../../SystemInfo";
 import { Keys } from "../enums/Keys";
 import { IInput } from "../interface/IInput";
 
@@ -21,6 +24,7 @@ export class KeyboardManager implements IInput {
   /** @internal */
   _curFrameUpList: DisorderedArray<Keys> = new DisorderedArray();
 
+  private _engine: Engine;
   private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: KeyboardEvent[] = [];
   private _hadListener: boolean = false;
@@ -28,7 +32,10 @@ export class KeyboardManager implements IInput {
   /**
    * Create a KeyboardManager.
    */
-  constructor(htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine) {
+    // @ts-ignore
+    const htmlCanvas = engine._canvas._webCanvas;
+    this._engine = engine;
     this._htmlCanvas = htmlCanvas;
     // Need to set tabIndex to make the canvas focus.
     htmlCanvas.tabIndex = htmlCanvas.tabIndex;
@@ -41,11 +48,12 @@ export class KeyboardManager implements IInput {
   /**
    * @internal
    */
-  _update(frameCount: number): void {
+  _update(): void {
     const { _nativeEvents: nativeEvents, _curFrameDownList: curFrameDownList, _curFrameUpList: curFrameUpList } = this;
     curFrameDownList.length = 0;
     curFrameUpList.length = 0;
     if (nativeEvents.length > 0) {
+      const frameCount = this._engine.time.frameCount;
       const {
         _curHeldDownKeyToIndexMap: curHeldDownKeyToIndexMap,
         _curFrameHeldDownList: curFrameHeldDownList,
@@ -74,17 +82,16 @@ export class KeyboardManager implements IInput {
             }
             curFrameUpList.add(codeKey);
             upKeyToFrameCountMap[codeKey] = frameCount;
-            // @todo
-            // Because on the mac, the keyup event is not responded to when the meta key is held down, 
-            // in order to maintain the correct keystroke record, it is necessary to clear the record 
+            // Because on the mac, the keyup event is not responded to when the meta key is held down,
+            // in order to maintain the correct keystroke record, it is necessary to clear the record
             // when the meta key is lifted.
             // link: https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
-            // if (codeKey === Keys.MetaLeft || codeKey === Keys.MetaRight) {
-            //   for (let i = 0, len = curFrameHeldDownList.length; i < len; i++) {
-            //     curHeldDownKeyToIndexMap[curFrameHeldDownList.get(i)] = null;
-            //   }
-            //   curFrameHeldDownList.length = 0;
-            // }
+            if (SystemInfo.platform === Platform.Mac && (codeKey === Keys.MetaLeft || codeKey === Keys.MetaRight)) {
+              for (let i = 0, n = curFrameHeldDownList.length; i < n; i++) {
+                curHeldDownKeyToIndexMap[curFrameHeldDownList.get(i)] = null;
+              }
+              curFrameHeldDownList.length = 0;
+            }
             break;
           default:
             break;
@@ -130,14 +137,22 @@ export class KeyboardManager implements IInput {
       this._htmlCanvas.removeEventListener("keyup", this._onKeyEvent);
       this._hadListener = false;
     }
+    this._curHeldDownKeyToIndexMap.length = 0;
     this._curHeldDownKeyToIndexMap = null;
+    this._upKeyToFrameCountMap.length = 0;
     this._upKeyToFrameCountMap = null;
+    this._downKeyToFrameCountMap.length = 0;
     this._downKeyToFrameCountMap = null;
+    this._nativeEvents.length = 0;
     this._nativeEvents = null;
-
+    this._curFrameHeldDownList.length = 0;
     this._curFrameHeldDownList = null;
+    this._curFrameDownList.length = 0;
     this._curFrameDownList = null;
+    this._curFrameUpList.length = 0;
     this._curFrameUpList = null;
+    this._htmlCanvas = null;
+    this._engine = null;
   }
 
   private _onKeyEvent(evt: KeyboardEvent): void {

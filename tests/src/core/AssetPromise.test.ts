@@ -1,4 +1,4 @@
-import { AssetPromise } from "@oasis-engine/core";
+import { AssetPromise } from "@galacean/engine-core";
 import { expect } from "chai";
 
 describe("Asset Promise test", function () {
@@ -96,7 +96,6 @@ describe("Asset Promise test", function () {
     let expectProgress = 0;
     assetPromise.onProgress((progress) => {
       expectProgress += 0.1;
-      console.log("set progress", expectProgress, progress);
       expect(progress).to.approximately(expectProgress, 0.0001);
     });
 

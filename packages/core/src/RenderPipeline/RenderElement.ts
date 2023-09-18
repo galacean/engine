@@ -1,12 +1,17 @@
-import { Material } from "../material/Material";
-import { Renderer } from "../Renderer";
-import { ShaderPass } from "../shader";
-import { RenderState } from "../shader/state/RenderState";
+import { ShaderPass } from "../shader/ShaderPass";
+import { IPoolElement } from "./IPoolElement";
+import { RenderData } from "./RenderData";
 
-export class RenderElement {
-  component: Renderer;
-  material: Material;
-  multiRenderData: boolean;
-  renderState: RenderState;
-  shaderPass: ShaderPass;
+export class RenderElement implements IPoolElement {
+  data: RenderData;
+  shaderPasses: ReadonlyArray<ShaderPass>;
+
+  set(data: RenderData, shaderPasses: ReadonlyArray<ShaderPass>): void {
+    this.data = data;
+    this.shaderPasses = shaderPasses;
+  }
+
+  dispose(): void {
+    this.data = this.shaderPasses = null;
+  }
 }
