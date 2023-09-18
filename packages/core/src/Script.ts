@@ -234,6 +234,10 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.scene._componentsManager.addPendingDestroyScript(this);
+    if (this.scene) {
+      this.scene._componentsManager.addPendingDestroyScript(this);
+    } else {
+      this.onDestroy();
+    }
   }
 }
