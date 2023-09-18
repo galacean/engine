@@ -234,7 +234,7 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    if (this._phasedActiveInScene) {
+    if (this.scene) {
       this.scene._componentsManager.addPendingDestroyScript(this);
     } else {
       this.onDestroy();
