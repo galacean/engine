@@ -297,6 +297,29 @@ export class DynamicCollider extends Collider {
   /**
    * @internal
    */
+  override _onUpdate(): void {
+    if (this._updateFlag.flag) {
+      const { transform } = this.entity;
+      if (this.isKinematic) {
+        (<IDynamicCollider>this._nativeCollider).move(transform.worldPosition, transform.worldRotationQuaternion);
+      } else {
+        (<IDynamicCollider>this._nativeCollider).setWorldTransform(
+          transform.worldPosition,
+          transform.worldRotationQuaternion
+        );
+      }
+
+      const worldScale = transform.lossyWorldScale;
+      for (let i = 0, n = this.shapes.length; i < n; i++) {
+        this.shapes[i]._nativeShape.setWorldScale(worldScale);
+      }
+      this._updateFlag.flag = false;
+    }
+  }
+
+  /**
+   * @internal
+   */
   override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
