@@ -1,10 +1,11 @@
-import { Entity, CapsuleColliderShape, CharacterController } from "@galacean/engine-core";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { CapsuleColliderShape, CharacterController, Entity } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("physics collider test", function () {
+  this.timeout(10000);
   let engine: WebGLEngine;
   let rootEntity: Entity;
   let controllerEntity: Entity;

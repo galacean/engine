@@ -7,18 +7,22 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
  * @internal
  */
 export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Float32Array> {
-  private _skinnedMeshRenderer: SkinnedMeshRenderer;
+  private _skinnedMeshRenderer: SkinnedMeshRenderer[] = [];
 
   initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
-    this._skinnedMeshRenderer = owner.target.getComponent(SkinnedMeshRenderer);
+    // @todo: Compatible with multiple SkinnedMeshRenderer in a entity, optimize later.
+    owner.target.getComponents(SkinnedMeshRenderer, this._skinnedMeshRenderer);
   }
 
   getTargetValue(): Float32Array {
-    return this._skinnedMeshRenderer.blendShapeWeights;
+    return this._skinnedMeshRenderer[0].blendShapeWeights;
   }
 
   setTargetValue(value: Float32Array): void {
-    this._skinnedMeshRenderer.blendShapeWeights = value;
+    const skinnedMeshRenderer = this._skinnedMeshRenderer;
+    for (let i = 0, n = skinnedMeshRenderer.length; i < n; i++) {
+      skinnedMeshRenderer[i].blendShapeWeights = value;
+    }
   }
 }
 
