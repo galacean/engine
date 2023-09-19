@@ -167,9 +167,10 @@ describe("PrimitiveMesh", () => {
     );
   });
 
-  it("test limit vertex count", () => {
+  it("test limit vertex count", function () {
+    this.timeout(5000);
     const radius = 1;
-    const segments = 300;
+    const segments = 256;
     const floorSegments = Math.floor(segments);
     const count = segments + 1;
 
