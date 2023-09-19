@@ -36,9 +36,7 @@ export class GLTFTextureParser extends GLTFParser {
                 }
               })
               .then((texture) => {
-                if (!texture.name) {
-                  texture.name = textureName || imageName || `texture_${index}`;
-                }
+                texture.name = textureName || imageName || texture.name || `texture_${index}`;
                 if (sampler !== undefined) {
                   this._parseSampler(texture, samplerInfo);
                 }
