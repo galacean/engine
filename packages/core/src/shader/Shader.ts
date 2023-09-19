@@ -1,19 +1,20 @@
 import { IShaderLab } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
-import { RenderState } from "./state/RenderState";
-import { RenderStateElementKey } from "./enums/RenderStateElementKey";
-import { BlendOperation } from "./enums/BlendOperation";
 import { BlendFactor } from "./enums/BlendFactor";
+import { BlendOperation } from "./enums/BlendOperation";
 import { ColorWriteMask } from "./enums/ColorWriteMask";
-import { Color } from "@galacean/engine-math";
 import { CompareFunction } from "./enums/CompareFunction";
-import { StencilOperation } from "./enums/StencilOperation";
 import { CullMode } from "./enums/CullMode";
+import { RenderQueueType } from "./enums/RenderQueueType";
+import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { StencilOperation } from "./enums/StencilOperation";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader for rendering.
@@ -21,12 +22,7 @@ import { CullMode } from "./enums/CullMode";
 export class Shader {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  static readonly _shaderExtension: string[] = [
-    "GL_EXT_shader_texture_lod",
-    "GL_OES_standard_derivatives",
-    "GL_EXT_draw_buffers"
-  ];
+
   /** @internal */
   static _shaderLab?: IShaderLab;
 
@@ -95,8 +91,20 @@ export class Shader {
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
-          const shaderPass = new ShaderPass(passInfo.vertexSource, passInfo.fragmentSource, passInfo.tags);
+          if (typeof passInfo === "string") {
+            // Use pass reference
+            const paths = passInfo.split("/");
+            return Shader.find(paths[0])
+              ?.subShaders.find((subShader) => subShader.name === paths[1])
+              ?.passes.find((pass) => pass.name === paths[2]);
+          }
 
+          const shaderPass = new ShaderPass(
+            passInfo.name,
+            passInfo.vertexSource,
+            passInfo.fragmentSource,
+            passInfo.tags
+          );
           const renderStates = passInfo.renderStates;
           const renderState = new RenderState();
           shaderPass._renderState = renderState;
@@ -104,7 +112,7 @@ export class Shader {
           // Parse const render state
           const constRenderStateInfo = renderStates[0];
           for (let k in constRenderStateInfo) {
-            Shader._applyConstRenderStates(renderState, (<unknown>k) as RenderStateElementKey, constRenderStateInfo[k]);
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
           }
 
           // Parse variable render state
@@ -289,6 +297,9 @@ export class Shader {
         break;
       case RenderStateElementKey.RasterStateSlopeScaledDepthBias:
         renderState.rasterState.slopeScaledDepthBias = <number>value;
+        break;
+      case RenderStateElementKey.RenderQueueType:
+        renderState.renderQueueType = <RenderQueueType>value;
         break;
     }
   }

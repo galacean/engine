@@ -229,6 +229,7 @@ export class RenderTarget extends GraphicsResource {
    */
   _setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
     this._platformRenderTarget.setRenderTargetInfo(faceIndex, mipLevel);
+    this._isContentLost = false;
   }
 
   /**

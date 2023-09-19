@@ -1,3 +1,4 @@
+export { GLTFSchemaParser } from "./GLTFSchemaParser";
 export { GLTFAnimationParser } from "./GLTFAnimationParser";
 export { GLTFBufferParser } from "./GLTFBufferParser";
 export { GLTFEntityParser } from "./GLTFEntityParser";
@@ -8,4 +9,4 @@ export { GLTFSceneParser } from "./GLTFSceneParser";
 export { GLTFSkinParser } from "./GLTFSkinParser";
 export { GLTFTextureParser } from "./GLTFTextureParser";
 export { GLTFValidator } from "./GLTFValidator";
-export { GLTFParserContext } from "./GLTFParserContext";
+export { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";

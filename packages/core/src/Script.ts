@@ -33,8 +33,6 @@ export class Script extends Component {
   _onPostRenderIndex: number = -1;
   @ignoreClone
   _entityScriptsIndex: number = -1;
-  @ignoreClone
-  _waitHandlingInValid: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -192,40 +190,33 @@ export class Script extends Component {
    * @internal
    */
   override _onEnableInScene(): void {
-    if (this._waitHandlingInValid) {
-      this._waitHandlingInValid = false;
-    } else {
-      const { _componentsManager: componentsManager } = this.scene;
-      const { prototype } = Script;
-      if (!this._started) {
-        componentsManager.addOnStartScript(this);
-      }
-      if (this.onUpdate !== prototype.onUpdate) {
-        componentsManager.addOnUpdateScript(this);
-      }
-      if (this.onLateUpdate !== prototype.onLateUpdate) {
-        componentsManager.addOnLateUpdateScript(this);
-      }
-      if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
-        componentsManager.addOnPhysicsUpdateScript(this);
-      }
-      this._entity._addScript(this);
+    const { _componentsManager: componentsManager } = this.scene;
+    const { prototype } = Script;
+    if (!this._started) {
+      componentsManager.addOnStartScript(this);
     }
+    if (this.onUpdate !== prototype.onUpdate) {
+      componentsManager.addOnUpdateScript(this);
+    }
+    if (this.onLateUpdate !== prototype.onLateUpdate) {
+      componentsManager.addOnLateUpdateScript(this);
+    }
+    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+      componentsManager.addOnPhysicsUpdateScript(this);
+    }
+    this._entity._addScript(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this._waitHandlingInValid = true;
-    this.scene._componentsManager.addDisableScript(this);
-  }
-
-  /**
-   * @internal
-   */
-  _handlingInValid(componentsManager: ComponentsManager): void {
+    const componentsManager = this.scene._componentsManager;
     const { prototype } = Script;
+
+    if (!this._started) {
+      componentsManager.removeOnStartScript(this);
+    }
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
     }
@@ -237,7 +228,6 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
-    this._waitHandlingInValid = false;
   }
 
   /**
@@ -245,6 +235,10 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.scene._componentsManager.addPendingDestroyScript(this);
+    if (this.scene) {
+      this.scene._componentsManager.addPendingDestroyScript(this);
+    } else {
+      this.onDestroy();
+    }
   }
 }

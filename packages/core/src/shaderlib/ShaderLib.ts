@@ -51,6 +51,7 @@ import noise_simplex_4D from "./noise_simplex_4D.glsl";
 
 import PBRShaderLib from "./pbr";
 import ShadowLib from "./shadow";
+import ParticleShaderLib from "./particle";
 
 import normal_get from "./normal_get.glsl";
 
@@ -108,5 +109,6 @@ export const ShaderLib = {
 
   ...ShadowLib,
   ...PBRShaderLib,
-  normal_get
+  normal_get,
+  ...ParticleShaderLib
 };

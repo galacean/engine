@@ -84,7 +84,7 @@ export class SpriteBatcher extends Basic2DBatcher {
   drawBatches(camera: Camera): void {
     const { _engine: engine, _batchedQueue: batchedQueue } = this;
     const mesh = this._meshes[this._flushId];
-    const subMeshes = mesh.subMeshes;
+    const { subMeshes, _primitive: primitive } = mesh;
     const maskManager = engine._spriteMaskManager;
     const sceneData = camera.scene.shaderData;
     const cameraData = camera.shaderData;
@@ -126,7 +126,7 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
       material.renderState._apply(engine, false, shaderPass._renderStateDataMap, material.shaderData);
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      engine._hardwareRenderer.drawPrimitive(primitive, subMesh, program);
 
       maskManager.postRender(renderer);
     }

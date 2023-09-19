@@ -319,11 +319,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {
+  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: any) {
     // todo: VAO not support morph animation
     if (primitive) {
-      //@ts-ignore
-      primitive._draw(shaderProgram, subPrimitive);
+      primitive.draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
     }

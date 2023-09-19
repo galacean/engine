@@ -16,22 +16,10 @@ export class SpotLight extends Light {
   private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightAngleCos");
   private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPenumbraCos");
 
-  private static _combinedData = {
-    cullingMask: new Int32Array(Light._maxLight * 2),
-    color: new Float32Array(Light._maxLight * 3),
-    position: new Float32Array(Light._maxLight * 3),
-    direction: new Float32Array(Light._maxLight * 3),
-    distance: new Float32Array(Light._maxLight),
-    angleCos: new Float32Array(Light._maxLight),
-    penumbraCos: new Float32Array(Light._maxLight)
-  };
-
   /**
    * @internal
    */
-  static _updateShaderData(shaderData: ShaderData): void {
-    const data = SpotLight._combinedData;
-
+  static _updateShaderData(shaderData: ShaderData, data: ISpotLightShaderData): void {
     shaderData.setIntArray(SpotLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(SpotLight._colorProperty, data.color);
     shaderData.setFloatArray(SpotLight._positionProperty, data.position);
@@ -86,7 +74,7 @@ export class SpotLight extends Light {
   /**
    * @internal
    */
-  _appendData(lightIndex: number): void {
+  _appendData(lightIndex: number, data: ISpotLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
@@ -98,8 +86,6 @@ export class SpotLight extends Light {
     const lightColor = this._getLightIntensityColor();
     const position = this.position;
     const direction = this.direction;
-
-    const data = SpotLight._combinedData;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
@@ -138,4 +124,24 @@ export class SpotLight extends Light {
   override _onDisableInScene(): void {
     this.scene._lightManager._detachSpotLight(this);
   }
+}
+
+/**
+ * Shader properties data of spot lights in the scene.
+ */
+export interface ISpotLightShaderData {
+  // Culling mask - which layers the light affect.
+  cullingMask: Int32Array;
+  // Light Color.
+  color: Float32Array;
+  // Light position.
+  position: Float32Array;
+  // Light direction
+  direction: Float32Array;
+  // Defines a distance cutoff at which the light's intensity must be considered zero.
+  distance: Float32Array;
+  // Angle, in radians, from centre of spotlight where falloff begins.
+  angleCos: Float32Array;
+  // Angle, in radians, from falloff begins to ends.
+  penumbraCos: Float32Array;
 }

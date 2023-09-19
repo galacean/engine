@@ -9,7 +9,7 @@ function genDts(opts?: { outDir?: string }) {
   let dtsContent = generateCstDts(productions);
 
   dtsContent = dtsContent.replace(
-    /((BlendFactor|BlendOperation|CompareFunction|StencilOperation|CullMode)\.\w+?)\?:/g,
+    /((BlendFactor|BlendOperation|CompareFunction|StencilOperation|CullMode|RenderQueueType)\.\w+?)\?:/g,
     '"$1"?:'
   );
 

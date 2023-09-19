@@ -28,17 +28,6 @@ export interface IPrefabFile {
 
 export type IMethodParams = Array<IBasicType>;
 
-export type IClassObject = {
-  class: string;
-  constructParams?: IMethodParams;
-  methods?: { [methodName: string]: Array<IMethodParams> };
-  props?: { [key: string]: IBasicType | IMethodParams };
-};
-
-export type IBasicType = string | number | boolean | null | undefined | IAssetRef | IClassObject | IMethodParams;
-
-export type IAssetRef = { key?: string; refId: string };
-
 export interface IBasicEntity {
   name?: string;
   id?: string;
@@ -60,3 +49,25 @@ export interface IRefEntity extends IBasicEntity {
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;
+
+export type IClassObject = {
+  class: string;
+  constructParams?: IMethodParams;
+  methods?: { [methodName: string]: Array<IMethodParams> };
+  props?: { [key: string]: IBasicType | IMethodParams };
+};
+
+export type IBasicType =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | IAssetRef
+  | IClassObject
+  | IMethodParams
+  | IEntityRef;
+
+export type IAssetRef = { key?: string; refId: string };
+
+export type IEntityRef = { entityId: string };

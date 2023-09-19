@@ -33,7 +33,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.move }
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._pxController.move(disp, minDist, elapsedTime);
+    return this._pxController?.move(disp, minDist, elapsedTime) ?? 0;
   }
 
   /**
@@ -51,36 +51,38 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.getWorldPosition }
    */
   getWorldPosition(position: Vector3): void {
-    position.copyFrom(this._pxController.getPosition());
-    position.subtract(this._scaledOffset);
+    if (this._pxController) {
+      position.copyFrom(this._pxController.getPosition());
+      position.subtract(this._scaledOffset);
+    }
   }
 
   /**
    * {@inheritDoc ICharacterController.setStepOffset }
    */
   setStepOffset(offset: number): void {
-    this._pxController.setStepOffset(offset);
+    this._pxController?.setStepOffset(offset);
   }
 
   /**
    * {@inheritDoc ICharacterController.setNonWalkableMode }
    */
   setNonWalkableMode(flag: number): void {
-    this._pxController.setNonWalkableMode(flag);
+    this._pxController?.setNonWalkableMode(flag);
   }
 
   /**
    * {@inheritDoc ICharacterController.setUpDirection }
    */
   setUpDirection(up: Vector3): void {
-    this._pxController.setUpDirection(up);
+    this._pxController?.setUpDirection(up);
   }
 
   /**
    * {@inheritDoc ICharacterController.setSlopeLimit }
    */
   setSlopeLimit(slopeLimit: number): void {
-    this._pxController.setSlopeLimit(slopeLimit);
+    this._pxController?.setSlopeLimit(slopeLimit);
   }
 
   /**
@@ -148,6 +150,6 @@ export class PhysXCharacterController implements ICharacterController {
    */
   _setLocalPosition(position: Vector3, scale: Vector3): void {
     Vector3.multiply(position, scale, this._scaledOffset);
-    this.setWorldPosition(this._position);
+    this.setWorldPosition(position);
   }
 }

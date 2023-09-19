@@ -181,7 +181,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
-      if (this._isKhronosSupported(options.priorityFormats, engine)) {
+      if (this._isKhronosSupported(options.priorityFormats, engine) && options.workerCount !== 0) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
         return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();

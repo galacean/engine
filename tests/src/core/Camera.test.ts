@@ -206,6 +206,15 @@ describe("camera test", function () {
     expect(worldPoint.z).to.be.closeTo(expectedworldPoint.z, 0.1, "Result z should match expected value");
   });
 
+  it("precision of viewportPointToRay", () => {
+    camera.farClipPlane = 1000000000;
+    camera.nearClipPlane = 0.1;
+    const ray = camera.viewportPointToRay(new Vector2(0.5, 0.5), new Ray());
+    expect(ray.direction.x).not.to.be.NaN;
+    expect(ray.direction.y).not.to.be.NaN;
+    expect(Math.abs(ray.direction.z)).not.eq(Infinity);
+  });
+
   /*
     Attention:
     Below methods will change the default view of current Camera. 

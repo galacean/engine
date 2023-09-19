@@ -1,19 +1,28 @@
 import {
-  AssetPromise,
+  BlinnPhongMaterial,
+  Engine,
   Logger,
   Material,
   PBRMaterial,
   PBRSpecularMaterial,
   RenderFace,
+  Texture2D,
   TextureCoordinate,
   UnlitMaterial
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Material)
 export class GLTFMaterialParser extends GLTFParser {
+  /** @internal */
+  static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
+    return (GLTFMaterialParser._defaultMaterial ||= new BlinnPhongMaterial(engine));
+  }
+  private static _defaultMaterial: BlinnPhongMaterial;
+
   /**
    * @internal
    */
@@ -31,7 +40,6 @@ export class GLTFMaterialParser extends GLTFParser {
     material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial,
     materialInfo: IMaterial
   ) {
-    const { textures } = context.glTFResource;
     const {
       pbrMetallicRoughness,
       normalTexture,
@@ -56,24 +64,37 @@ export class GLTFMaterialParser extends GLTFParser {
         );
       }
       if (baseColorTexture) {
-        material.baseTexture = textures[baseColorTexture.index];
-        GLTFParser.executeExtensionsAdditiveAndParse(baseColorTexture.extensions, context, material, baseColorTexture);
+        context.get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
+          material.baseTexture = texture;
+          GLTFParser.executeExtensionsAdditiveAndParse(
+            baseColorTexture.extensions,
+            context,
+            material,
+            baseColorTexture
+          );
+        });
       }
 
       if (material.constructor === PBRMaterial) {
         material.metallic = metallicFactor ?? 1;
         material.roughness = roughnessFactor ?? 1;
         if (metallicRoughnessTexture) {
-          material.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
           GLTFMaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
+
+          context.get<Texture2D>(GLTFParserType.Texture, metallicRoughnessTexture.index).then((texture) => {
+            material.roughnessMetallicTexture = texture;
+          });
         }
       }
     }
 
     if (material.constructor === PBRMaterial || material.constructor === PBRSpecularMaterial) {
       if (emissiveTexture) {
-        material.emissiveTexture = textures[emissiveTexture.index];
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
+
+        context.get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
+          material.emissiveTexture = texture;
+        });
       }
 
       if (emissiveFactor) {
@@ -86,8 +107,11 @@ export class GLTFMaterialParser extends GLTFParser {
 
       if (normalTexture) {
         const { index, scale } = normalTexture;
-        material.normalTexture = textures[index];
         GLTFMaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
+
+        context.get<Texture2D>(GLTFParserType.Texture, index).then((texture) => {
+          material.normalTexture = texture;
+        });
 
         if (scale !== undefined) {
           material.normalTextureIntensity = scale;
@@ -96,8 +120,11 @@ export class GLTFMaterialParser extends GLTFParser {
 
       if (occlusionTexture) {
         const { index, strength, texCoord } = occlusionTexture;
-        material.occlusionTexture = textures[index];
         GLTFMaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
+
+        context.get<Texture2D>(GLTFParserType.Texture, index).then((texture) => {
+          material.occlusionTexture = texture;
+        });
 
         if (strength !== undefined) {
           material.occlusionTextureIntensity = strength;
@@ -129,38 +156,24 @@ export class GLTFMaterialParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext): AssetPromise<Material[]> {
-    const { glTF, glTFResource, materialsPromiseInfo } = context;
-    if (!glTF.materials) return;
+  parse(context: GLTFParserContext, index: number): Promise<Material> {
+    const materialInfo = context.glTF.materials[index];
+    const engine = context.glTFResource.engine;
 
-    const { engine } = glTFResource;
+    let material = <Material | Promise<Material>>(
+      GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
+    );
 
-    let materialPromises = [];
-
-    for (let i = 0; i < glTF.materials.length; i++) {
-      const materialInfo = glTF.materials[i];
-
-      let material = <Material | Promise<Material>>(
-        GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
-      );
-
-      if (!material) {
-        material = new PBRMaterial(engine);
-        material.name = materialInfo.name;
-        GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
-      }
-
-      materialPromises.push(material);
+    if (!material) {
+      material = new PBRMaterial(engine);
+      material.name = materialInfo.name;
+      GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
     }
 
-    return AssetPromise.all(materialPromises).then((materials) => {
-      glTFResource.materials = materials;
-      for (let i = 0; i < glTF.materials.length; i++) {
-        const materialInfo = glTF.materials[i];
-        GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, materials[i], materialInfo);
-      }
-      materialsPromiseInfo.resolve(materials);
-      return materialsPromiseInfo.promise;
+    return Promise.resolve(material).then((material) => {
+      material ||= GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
+      GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
+      return material;
     });
   }
 }

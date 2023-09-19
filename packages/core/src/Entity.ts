@@ -8,8 +8,8 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { EngineObject } from "./base";
 import { ReferResource } from "./asset/ReferResource";
+import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 
@@ -267,12 +267,15 @@ export class Entity extends EngineObject {
       if (!this._isActiveInHierarchy) {
         child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
-      if (this._isActiveInScene) {
-        // cross scene should inActive first and then active
-        child._isActiveInScene && oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      } else {
-        child._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      if (child._isActiveInScene) {
+        if (this._isActiveInScene) {
+          // Cross scene should inActive first and then active
+          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+        } else {
+          inActiveChangeFlag |= ActiveChangeFlag.Scene;
+        }
       }
+
       inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
 
       if (child._scene !== newScene) {
@@ -444,6 +447,7 @@ export class Entity extends EngineObject {
       this._hookResource._addReferCount(-1);
       this._hookResource = null;
     }
+
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
@@ -456,11 +460,12 @@ export class Entity extends EngineObject {
     }
 
     if (this._isRoot) {
-      this._scene._removeFromEntityList(this);
-      this._isRoot = false;
+      this._scene.removeRootEntity(this);
     } else {
-      this._removeFromParent();
+      this._setParent(null);
     }
+
+    this.isActive = false;
   }
 
   /**

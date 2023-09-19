@@ -48,6 +48,7 @@ export class ResourceManager {
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
   private _contentRestorerPool: Record<number, ContentRestorer<any>> = Object.create(null);
+  private _subAssetPromiseCallbacks: SubAssetPromiseCallbacks = {};
 
   /**
    * Create a ResourceManager.
@@ -179,6 +180,22 @@ export class ResourceManager {
   /**
    * @internal
    */
+  _onSubAssetSuccess<T>(assetURL: string, value: T): void {
+    this._subAssetPromiseCallbacks[assetURL]?.resolve(value);
+    delete this._subAssetPromiseCallbacks[assetURL];
+  }
+
+  /**
+   * @internal
+   */
+  _onSubAssetFail(assetURL: string, value: (reason: any) => void): void {
+    this._subAssetPromiseCallbacks[assetURL]?.reject(value);
+    delete this._subAssetPromiseCallbacks[assetURL];
+  }
+
+  /**
+   * @internal
+   */
   _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
@@ -238,6 +255,16 @@ export class ResourceManager {
     const graphicResourcePool = this._graphicResourcePool;
     for (const id in graphicResourcePool) {
       graphicResourcePool[id]._rebuild();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _lostGraphicResources(): void {
+    const graphicResourcePool = this._graphicResourcePool;
+    for (const id in graphicResourcePool) {
+      graphicResourcePool[id]._isContentLost = true;
     }
   }
 
@@ -304,6 +331,11 @@ export class ResourceManager {
     let assetURL = assetBaseURL;
     if (queryPath) {
       assetURL += "?q=" + paths.shift();
+
+      let index: string;
+      while ((index = paths.shift())) {
+        assetURL += `[${index}]`;
+      }
     }
 
     // Check is loading
@@ -313,7 +345,7 @@ export class ResourceManager {
       return new AssetPromise((resolve, reject) => {
         loadingPromise
           .then((resource: EngineObject) => {
-            resolve(this._getResolveResource(resource, paths) as T);
+            resolve(resource as T);
           })
           .catch((error: Error) => {
             reject(error);
@@ -322,7 +354,7 @@ export class ResourceManager {
     }
 
     // Check loader
-    const loader = ResourceManager._loaders[item.type];
+    const loader = <Loader<T>>ResourceManager._loaders[item.type];
     if (!loader) {
       throw `loader not found: ${item.type}`;
     }
@@ -330,41 +362,46 @@ export class ResourceManager {
     // Load asset
     item.url = assetBaseURL;
     const promise = loader.load(item, this);
-    if (promise instanceof AssetPromise) {
-      loadingPromises[assetBaseURL] = promise;
-      promise.then(
-        (resource: EngineObject) => {
-          if (loader.useCache) {
-            this._addAsset(assetBaseURL, resource);
-          }
-          delete loadingPromises[assetBaseURL];
+    loadingPromises[assetBaseURL] = promise;
+
+    promise.then(
+      (resource: T) => {
+        if (loader.useCache) {
+          this._addAsset(assetBaseURL, resource as EngineObject);
+        }
+        delete loadingPromises[assetBaseURL];
+      },
+      () => delete loadingPromises[assetBaseURL]
+    );
+
+    if (queryPath) {
+      const subPromise = new AssetPromise<T>((resolve, reject) => {
+        this._pushSubAssetPromiseCallback(assetURL, resolve, reject);
+      });
+
+      loadingPromises[assetURL] = subPromise;
+      subPromise.then(
+        () => {
+          delete loadingPromises[assetURL];
         },
-        () => delete loadingPromises[assetBaseURL]
+        () => delete loadingPromises[assetURL]
       );
-      return promise;
-    } else {
-      for (let subURL in promise) {
-        const subPromise = promise[subURL];
-        const isMaster = assetBaseURL === subURL;
-        loadingPromises[subURL] = subPromise;
 
-        subPromise.then(
-          (resource: EngineObject) => {
-            if (isMaster) {
-              if (loader.useCache) {
-                this._addAsset(subURL, resource);
-                for (let k in promise) delete loadingPromises[k];
-              }
-            }
-          },
-          () => {
-            for (let k in promise) delete loadingPromises[k];
-          }
-        );
-      }
+      promise.catch((e) => {
+        this._onSubAssetFail(assetURL, e);
+      });
 
-      return promise[assetURL].then((resource: EngineObject) => this._getResolveResource(resource, paths) as T);
+      return subPromise;
     }
+
+    return promise;
+  }
+
+  private _pushSubAssetPromiseCallback(assetURL: string, resolve: (value: any) => void, reject: (reason: any) => void) {
+    this._subAssetPromiseCallbacks[assetURL] = {
+      resolve,
+      reject
+    };
   }
 
   private _gc(forceDestroy: boolean): void {
@@ -503,3 +540,10 @@ const rePropName = RegExp(
 
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
+type SubAssetPromiseCallbacks = Record<
+  string,
+  {
+    resolve: (value: any) => void;
+    reject: (reason: any) => void;
+  }
+>;

@@ -1,9 +1,8 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
-import { Shader } from "../shader";
+import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { MeshRenderData } from "./MeshRenderData";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
@@ -33,10 +32,13 @@ export class RenderQueue {
   }
 
   readonly elements: RenderElement[] = [];
-  private _spriteBatcher: SpriteBatcher;
 
-  constructor(engine: Engine) {
+  private _spriteBatcher: SpriteBatcher;
+  private readonly _renderQueueType: RenderQueueType;
+
+  constructor(engine: Engine, renderQueueType: RenderQueueType) {
     this._initSpriteBatcher(engine);
+    this._renderQueueType = renderQueueType;
   }
 
   /**
@@ -58,27 +60,28 @@ export class RenderQueue {
     const sceneData = scene.shaderData;
     const cameraData = camera.shaderData;
     const pipelineStageKey = RenderContext.pipelineStageKey;
+    const renderQueueType = this._renderQueueType;
 
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
       const { data, shaderPasses } = element;
 
-      const renderStates = data.material.renderStates;
       const renderPassFlag = data.component.entity.layer;
 
       if (!(renderPassFlag & mask)) {
         continue;
       }
 
-      if (!!(data as MeshRenderData).mesh) {
+      if (data.primitive) {
         this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
-        const meshData = <MeshRenderData>data;
-        const renderer = meshData.component;
-        const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
+        const primitive = data.primitive;
+        const renderer = data.component;
+        const material = data.material.destroyed ? engine._magentaMaterial : data.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
+        const renderStates = material.renderStates;
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -90,6 +93,10 @@ export class RenderQueue {
         for (let j = 0, m = shaderPasses.length; j < m; j++) {
           const shaderPass = shaderPasses[j];
           if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
+            continue;
+          }
+
+          if ((shaderPass._renderState ?? renderStates[j]).renderQueueType !== renderQueueType) {
             continue;
           }
 
@@ -157,7 +164,7 @@ export class RenderQueue {
             material.shaderData
           );
 
-          rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
+          rhi.drawPrimitive(primitive, data.subPrimitive, program);
         }
       } else {
         this._spriteBatcher.drawElement(element, camera);
