@@ -45,22 +45,25 @@ export class SceneManager {
 
     const scenes = this._scenes;
 
-    if (scene._sceneManager) {
-      const currentIndex = scenes.indexOf(scene);
-      scenes.removeByIndex(currentIndex);
-    }
-
+    let addedIndex: number;
     if (typeof indexOrScene === "number") {
       if (indexOrScene < 0 || indexOrScene > scenes.length) {
         throw "The index is out of range.";
       }
-      scenes.add(indexOrScene, scene);
+      addedIndex = indexOrScene;
     } else {
-      scenes.push(scene);
+      addedIndex = scenes.length;
     }
 
-    if (!scene._sceneManager) {
+    if (scene._sceneManager) {
+      const currentIndex = scenes.indexOf(scene);
+      if (currentIndex !== addedIndex) {
+        scenes.removeByIndex(currentIndex);
+        scenes.add(addedIndex, scene);
+      }
+    } else {
       scene._sceneManager = this;
+      scenes.add(addedIndex, scene);
       scene.isActive && scene._processActive(true);
     }
   }
