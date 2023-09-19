@@ -5,7 +5,7 @@ import { expect } from "chai";
 describe("Scene", () => {
   let engine: Engine;
   let scene: Scene;
- before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     engine.run();
@@ -140,9 +140,41 @@ describe("Scene", () => {
 
       engine.sceneManager.addScene(scene);
       expect(engine.sceneManager.scenes.length).eq(2);
+      engine.sceneManager.addScene(0, scene);
+      expect(engine.sceneManager.scenes.length).eq(2);
 
       engine.sceneManager.removeScene(scene);
       expect(engine.sceneManager.scenes.length).eq(1);
+      engine.sceneManager.removeScene(scene);
+      expect(engine.sceneManager.scenes.length).eq(1);
+    });
+
+    it("The second scene destroy", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+
+      scene.destroy();
+      expect(engine.sceneManager.scenes.length).eq(1);
+    });
+  });
+
+  describe("MultiScene isActive test", () => {
+    it("Add and remove", () => {
+      const scene = new Scene(engine);
+      expect(scene.isActive).eq(true);
+      scene.isActive = false;
+      expect(scene.isActive).eq(false);
+
+      engine.sceneManager.addScene(scene);
+      expect(scene["_isActiveInEngine"]).eq(false);
+      scene.isActive = true;
+      expect(scene["_isActiveInEngine"]).eq(true);
+
+      engine.sceneManager.removeScene(scene);
+      expect(scene["_isActiveInEngine"]).eq(false);
+      engine.sceneManager.addScene(scene);
+      expect(scene["_isActiveInEngine"]).eq(true);
+      engine.sceneManager.removeScene(scene);
     });
 
     it("The second scene destroy", () => {
