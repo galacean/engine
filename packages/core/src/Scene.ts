@@ -4,6 +4,7 @@ import { Camera } from "./Camera";
 import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
@@ -56,6 +57,8 @@ export class Scene extends EngineObject {
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
+  _sceneManager: SceneManager;
+  /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
@@ -72,16 +75,23 @@ export class Scene extends EngineObject {
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
+  private _isActive: boolean = true;
 
+  /**
+   * Whether the scene is active.
+   */
   get isActive(): boolean {
-    return this._isActiveInEngine;
+    return this._isActive;
   }
 
-  set isActive(v: boolean) {
-    if (v) {
-      this.engine.sceneManager.addScene(this);
-    } else {
-      this.engine.sceneManager.removeScene(this);
+  set isActive(value: boolean) {
+    if (this._isActive !== value) {
+      this._isActive = value;
+      if (value) {
+        this._sceneManager && this._processActive(true);
+      } else {
+        this._sceneManager && this._processActive(false);
+      }
     }
   }
 

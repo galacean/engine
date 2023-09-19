@@ -28,25 +28,41 @@ export class SceneManager {
   /**
    * Add scene.
    * @param scene - The scene which want to be added
-   * @param scene - The scene which want to be added
    */
-  addScene(scene: Scene, index?: number): void {
+  addScene(scene: Scene): void;
+
+  /**
+   * Add scene at specified index.
+   * @param index - specified index
+   * @param child - The scene which want to be added
+   */
+  addScene(index: number, scene: Scene): void;
+
+  addScene(indexOrScene: number | Scene, scene?: Scene): void {
     if (scene.engine !== this.engine) {
       throw "The scene is not belong to this engine.";
     }
+
     const scenes = this._scenes;
-    const checkIndex = scenes.indexOf(scene);
-    if (checkIndex > -1) {
-      scenes.removeByIndex(checkIndex);
+
+    if (scene._sceneManager) {
+      const currentIndex = scenes.indexOf(scene);
+      scenes.removeByIndex(currentIndex);
     }
 
-    if (typeof index === "number") {
-      scenes.add(index, scene);
+    if (typeof indexOrScene === "number") {
+      if (indexOrScene < 0 || indexOrScene > scenes.length) {
+        throw "The index is out of range.";
+      }
+      scenes.add(indexOrScene, scene);
     } else {
       scenes.push(scene);
     }
 
-    scene._processActive(true);
+    if (!scene._sceneManager) {
+      scene._sceneManager = this;
+      scene.isActive && scene._processActive(true);
+    }
   }
 
   /**
@@ -57,8 +73,9 @@ export class SceneManager {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     if (index !== -1) {
+      const removedScene = scenes.getArray()[index];
       scenes.removeByIndex(index);
-      scene._processActive(false);
+      removedScene.isActive && removedScene._processActive(false);
     }
   }
 
@@ -120,6 +137,6 @@ export class SceneManager {
     if (firstScene) {
       this.removeScene(firstScene);
     }
-    scene && this.addScene(scene, 0);
+    scene && this.addScene(0, scene);
   }
 }
