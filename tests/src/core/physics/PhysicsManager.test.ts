@@ -394,7 +394,6 @@ describe("Physics Test", () => {
 
       // Test that raycast works correctly if shape is not at origin of coordinate.
       ray = new Ray(new Vector3(-2, 0, 0.85), new Vector3(1, 0, 0).normalize());
-      rootEntityCharacter.transform.position = new Vector3(0, 0, 0.85);
       boxShape2.position = new Vector3(0, 0, 0.85);
       expect(enginePhysX.physicsManager.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
