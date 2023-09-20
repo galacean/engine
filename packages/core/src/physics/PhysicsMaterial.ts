@@ -100,7 +100,6 @@ export class PhysicsMaterial {
    * @internal
    */
   _destroy() {
-    
     !this._destroyed && this._nativeMaterial.destroy();
     this._destroyed = true;
   }
