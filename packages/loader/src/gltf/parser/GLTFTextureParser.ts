@@ -42,7 +42,7 @@ export class GLTFTextureParser extends GLTFParser {
             }
           })
           .then<Texture2D>((texture) => {
-            texture.name ||= textureName || imageName || `texture_${index}`;
+            texture.name = textureName || imageName || texture.name || `texture_${index}`;
             useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
             return texture;
           });
