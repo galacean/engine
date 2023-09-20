@@ -57,7 +57,7 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.getVelocity }
    */
-  getVelocity(): Readonly<Vector3> {
+  getVelocity(): Readonly<number> {
     return this._pxJoint.getVelocity();
   }
 

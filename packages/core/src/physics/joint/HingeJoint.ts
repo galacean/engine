@@ -63,7 +63,7 @@ export class HingeJoint extends Joint {
   /**
    * The angular velocity of the joint in degrees per second.
    */
-  get velocity(): Readonly<Vector3> {
+  get velocity(): Readonly<number> {
     return (<IHingeJoint>this._nativeJoint).getVelocity();
   }
 
