@@ -12,8 +12,6 @@ export class WebXRSessionManager extends XRSessionManager {
   // @internal
   _platformSpace: XRReferenceSpace;
 
-  viewerReferenceSpace: XRReferenceSpace;
-
   private _engine: Engine;
   private _rhi: WebGLGraphicDevice;
   private _preRequestAnimationFrame: any;
@@ -56,11 +54,9 @@ export class WebXRSessionManager extends XRSessionManager {
               layers: [this._platformLayer]
             });
           }
-          session.requestReferenceSpace("viewer").then((value: XRReferenceSpace) => {
-            this.viewerReferenceSpace = value;
-          });
           session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
             this._platformSpace = value;
+            console.log("initialize 完毕");
             resolve();
           }, reject);
         }, reject);
@@ -69,6 +65,7 @@ export class WebXRSessionManager extends XRSessionManager {
   }
 
   start(): Promise<void> {
+    console.log("start 开始");
     return new Promise((resolve, reject) => {
       const { _platformSession: session } = this;
       if (!session) {
@@ -80,13 +77,17 @@ export class WebXRSessionManager extends XRSessionManager {
       this._preRequestAnimationFrame = ticker.requestAnimationFrame;
       this._preCancelAnimationFrame = ticker.cancelAnimationFrame;
       this._preAnimationLoop = ticker.animationLoop;
-      ticker.requestAnimationFrame = session.requestAnimationFrame.bind(session);
-      ticker.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
-      ticker.animationLoop = this._webXRUpdate;
-      ticker.resume();
+      this._onAnimationFrame = this._onAnimationFrame.bind(this);
+      session.requestAnimationFrame(this._onAnimationFrame);
       this._dispatchStateChange(SessionStateChangeFlags.start);
+      console.log("start 完毕");
       resolve();
     });
+  }
+
+  private _onAnimationFrame(time: number, frame: XRFrame) {
+    this._platformSession.requestAnimationFrame(this._onAnimationFrame);
+    this._webXRUpdate(time, frame);
   }
 
   stop(): Promise<void> {

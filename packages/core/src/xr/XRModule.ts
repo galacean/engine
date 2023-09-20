@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRSessionManager } from "@galacean/engine-design";
+import { IXRFeatureDescriptor } from "@galacean/engine-design";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { XRFeatureManager } from "./feature/XRFeatureManager";

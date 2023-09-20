@@ -44,6 +44,9 @@ importers:
       '@types/node':
         specifier: ^18.7.16
         version: 18.17.0
+      '@types/webxr':
+        specifier: latest
+        version: 0.5.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6)
@@ -80,6 +83,9 @@ importers:
       lint-staged:
         specifier: ^10.5.3
         version: 10.5.4
+      miniprogram-api-typings:
+        specifier: ^3.10.0
+        version: 3.10.0
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -198,6 +204,15 @@ importers:
       chevrotain:
         specifier: ^10.5.0
         version: 10.5.0
+    devDependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+
+  packages/xr-webxr:
     devDependencies:
       '@galacean/engine':
         specifier: workspace:*
@@ -759,8 +774,8 @@ packages:
   /@jridgewell/trace-mapping@0.3.9:
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
     dependencies:
-      '@jridgewell/resolve-uri': 3.1.0
-      '@jridgewell/sourcemap-codec': 1.4.14
+      '@jridgewell/resolve-uri': 3.1.1
+      '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
   /@nodelib/fs.scandir@2.1.5:
@@ -789,7 +804,7 @@ packages:
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
     dependencies:
       cross-spawn: 7.0.3
-      fast-glob: 3.3.0
+      fast-glob: 3.3.1
       is-glob: 4.0.3
       open: 9.1.0
       picocolors: 1.0.0
@@ -820,7 +835,7 @@ packages:
       '@rollup/pluginutils': 3.1.0(rollup@2.79.1)
       estree-walker: 2.0.2
       magic-string: 0.25.9
-      rollup: 2.36.1
+      rollup: 2.79.1
     dev: true
 
   /@rollup/plugin-node-resolve@11.2.1(rollup@2.79.1):
@@ -845,7 +860,7 @@ packages:
     dependencies:
       '@rollup/pluginutils': 3.1.0(rollup@2.79.1)
       magic-string: 0.25.9
-      rollup: 2.36.1
+      rollup: 2.79.1
     dev: true
 
   /@rollup/pluginutils@3.1.0(rollup@2.79.1):
@@ -857,7 +872,7 @@ packages:
       '@types/estree': 0.0.39
       estree-walker: 1.0.1
       picomatch: 2.3.1
-      rollup: 2.36.1
+      rollup: 2.79.1
     dev: true
 
   /@rollup/pluginutils@4.2.1:
@@ -1019,7 +1034,7 @@ packages:
   /@types/chai-spies@1.0.3:
     resolution: {integrity: sha512-RBZjhVuK7vrg4rWMt04UF5zHYwfHnpk5mIWu3nQvU3AKGDixXzSjZ6v0zke6pBcaJqMv3IBZ5ibLWPMRDL0sLw==}
     dependencies:
-      '@types/chai': 4.3.1
+      '@types/chai': 4.3.5
     dev: true
 
   /@types/chai@4.3.5:
@@ -1082,6 +1097,10 @@ packages:
 
   /@types/semver@7.5.0:
     resolution: {integrity: sha512-G8hZ6XJiHnuhQKR7ZmysCeJWE08o8T0AXtk5darsCaTVsYZhhgUrq53jizaR2FvsoeCwJhlmwTjkXBY5Pn/ZHw==}
+    dev: true
+
+  /@types/webxr@0.5.1:
+    resolution: {integrity: sha512-xlFXPfgJR5vIuDefhaHuUM9uUgvPaXB6GKdXy2gdEh8gBWQZ2ul24AJz3foUd8NNKlSTQuWYJpCb1/pL81m1KQ==}
     dev: true
 
   /@typescript-eslint/eslint-plugin@6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6):
@@ -1512,7 +1531,7 @@ packages:
     peerDependencies:
       chai: '*'
     dependencies:
-      chai: 4.3.6
+      chai: 4.3.7
     dev: true
 
   /chai@4.3.7:
@@ -1521,7 +1540,7 @@ packages:
     dependencies:
       assertion-error: 1.1.0
       check-error: 1.0.2
-      deep-eql: 3.0.1
+      deep-eql: 4.1.3
       get-func-name: 2.0.0
       loupe: 2.3.6
       pathval: 1.1.1
@@ -1770,7 +1789,6 @@ packages:
     hasBin: true
     dependencies:
       cross-spawn: 6.0.5
-      is-windows: 1.0.2
     dev: true
 
   /cross-spawn@6.0.5:
@@ -1893,7 +1911,7 @@ packages:
     dependencies:
       bundle-name: 3.0.0
       default-browser-id: 3.0.0
-      execa: 7.1.1
+      execa: 7.2.0
       titleize: 3.0.0
     dev: true
 
@@ -1984,7 +2002,7 @@ packages:
     requiresBuild: true
     dependencies:
       '@electron/get': 1.14.1
-      '@types/node': 14.18.53
+      '@types/node': 14.18.54
       extract-zip: 1.7.0
     transitivePeerDependencies:
       - supports-color
@@ -2130,7 +2148,6 @@ packages:
       globals: 13.20.0
       graphemer: 1.4.0
       ignore: 5.2.4
-      import-fresh: 3.3.0
       imurmurhash: 0.1.4
       is-glob: 4.0.3
       is-path-inside: 3.0.3
@@ -2142,7 +2159,6 @@ packages:
       natural-compare: 1.4.0
       optionator: 0.9.3
       strip-ansi: 6.0.1
-      strip-json-comments: 3.1.1
       text-table: 0.2.0
     transitivePeerDependencies:
       - supports-color
@@ -2386,7 +2402,7 @@ packages:
     dependencies:
       chalk: 4.1.2
       commander: 7.2.0
-      electron: 13.0.0
+      electron: 13.6.9
       glob: 7.2.3
       mocha: 8.4.0
       nyc: 15.1.0
@@ -2619,7 +2635,7 @@ packages:
     dependencies:
       array-union: 2.1.0
       dir-glob: 3.0.1
-      fast-glob: 3.3.0
+      fast-glob: 3.3.1
       ignore: 5.2.4
       merge2: 1.4.1
       slash: 3.0.0
@@ -3504,6 +3520,10 @@ packages:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
     dev: true
 
+  /miniprogram-api-typings@3.10.0:
+    resolution: {integrity: sha512-pvGZmj9uamahlqfPj1bwn5Cd/bjImc5ehyAha/QfA9limG6HO9Plj/yROfSChK6J6+VUoVB9cnNthx4XuI0T2Q==}
+    dev: true
+
   /mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
     hasBin: true
@@ -3739,7 +3759,7 @@ packages:
       levn: 0.3.0
       prelude-ls: 1.1.2
       type-check: 0.3.2
-      word-wrap: 1.2.4
+      word-wrap: 1.2.5
     dev: true
 
   /optionator@0.9.3:
@@ -4198,7 +4218,7 @@ packages:
       '@rollup/pluginutils': 4.2.1
       '@swc/core': 1.3.70(@swc/helpers@0.5.1)
       get-tsconfig: 4.6.2
-      rollup: 2.36.1
+      rollup: 2.79.1
     dev: true
 
   /rollup-pluginutils@2.8.2:
@@ -4212,7 +4232,7 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
     optionalDependencies:
-      fsevents: 2.1.3
+      fsevents: 2.3.2
     dev: true
 
   /run-applescript@5.0.0:
@@ -4636,8 +4656,8 @@ packages:
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
-      '@swc/core': '>=1.2.45'
-      '@swc/wasm': '>=1.2.45'
+      '@swc/core': '>=1.2.50'
+      '@swc/wasm': '>=1.2.50'
       '@types/node': '*'
       typescript: '>=2.7'
     peerDependenciesMeta:
@@ -4659,8 +4679,8 @@ packages:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      source-map-support: 0.5.21
       typescript: 5.1.6
+      v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
     dev: true
 

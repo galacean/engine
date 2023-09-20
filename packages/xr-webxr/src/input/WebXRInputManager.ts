@@ -41,40 +41,12 @@ export class WebXRInputManager extends XRInputManager {
     this._onSessionStop();
   }
 
-  private _logTime: number = 0;
   _onUpdate() {
     const { _inputs: inputs, _engine: engine, _listeningSession: platformSession } = this;
     const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
     const { _platformFrame, _platformLayer, _platformSpace } = sessionManager;
     if (!platformSession || !_platformFrame || !_platformSpace) {
       return;
-    }
-    let showLog = false;
-    const nowTime = this._engine.time.actualElapsedTime;
-    if (nowTime - this._logTime >= 1) {
-      showLog = true;
-      console.log(
-        "local x, y, z",
-        // @ts-ignore
-        _platformSpace._baseMatrix[12],
-        // @ts-ignore
-        _platformSpace._baseMatrix[13],
-        // @ts-ignore
-        _platformSpace._baseMatrix[14]
-      );
-      if (sessionManager.viewerReferenceSpace) {
-        const viewSpace = sessionManager.viewerReferenceSpace;
-        console.log(
-          "viewer x, y, z",
-          // @ts-ignore
-          viewSpace._baseMatrix[12],
-          // @ts-ignore
-          viewSpace._baseMatrix[13],
-          // @ts-ignore
-          viewSpace._baseMatrix[14]
-        );
-      }
-      this._logTime = nowTime;
     }
 
     const { frameCount } = engine.time;
@@ -112,22 +84,6 @@ export class WebXRInputManager extends XRInputManager {
               input.targetRayQuaternion.copyFrom(transform.orientation);
             }
           }
-          if (showLog) {
-            console.log(
-              inputSource.handedness + "after grip x, y, z",
-              input.position.x,
-              input.position.y,
-              input.position.z
-            );
-          }
-          if (showLog) {
-            console.log(
-              inputSource.handedness + "after target ray x, y, z",
-              input.targetRayPosition.x,
-              input.targetRayPosition.y,
-              input.targetRayPosition.z
-            );
-          }
           break;
         default:
           break;
@@ -136,11 +92,14 @@ export class WebXRInputManager extends XRInputManager {
 
     const viewerPose = _platformFrame.getViewerPose(_platformSpace);
     if (viewerPose) {
+      let hadUpdateCenterViewer: boolean = false;
       const views = viewerPose.views;
       for (let i = 0, n = views.length; i < n; i++) {
         const view = views[i];
         const { transform } = views[i];
-        const xrCamera = inputs[this._eyeToInputSource(view.eye)] as XRViewer;
+        const type = this._eyeToInputSource(view.eye);
+        const xrCamera = inputs[type] as XRViewer;
+        hadUpdateCenterViewer = type === EnumXRInputSource.Viewer;
         xrCamera.matrix.copyFromArray(transform.matrix);
         xrCamera.position.copyFrom(transform.position);
         xrCamera.quaternion.copyFrom(transform.orientation);
@@ -169,7 +128,7 @@ export class WebXRInputManager extends XRInputManager {
         }
       }
 
-      if (engine.xrModule.mode === EnumXRMode.AR) {
+      if (!hadUpdateCenterViewer && engine.xrModule.mode === EnumXRMode.AR) {
         const leftViewer = inputs[EnumXRInputSource.LeftViewer] as XRViewer;
         const rightViewer = inputs[EnumXRInputSource.RightViewer] as XRViewer;
         const viewer = inputs[EnumXRInputSource.Viewer] as XRViewer;
