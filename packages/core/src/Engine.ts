@@ -121,6 +121,12 @@ export class Engine extends EventDispatcher {
   _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _customAnimationFrameRequester: {
+    requestAnimationFrame: any;
+    cancelAnimationFrame: any;
+    update: any;
+  };
 
   /** @internal */
   protected _canvas: Canvas;
@@ -143,9 +149,15 @@ export class Engine extends EventDispatcher {
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
 
-  private _animate = () => {
+  private _animate = (...param) => {
     if (this._vSyncCount) {
-      this._requestId = requestAnimationFrame(this._animate);
+      const { _customAnimationFrameRequester: customAnimationFrameRequester } = this;
+      if (customAnimationFrameRequester) {
+        this._requestId = customAnimationFrameRequester.requestAnimationFrame(this._animate);
+        customAnimationFrameRequester.update(...param);
+      } else {
+        this._requestId = requestAnimationFrame(this._animate);
+      }
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
         this._vSyncCounter = 1;
@@ -252,11 +264,6 @@ export class Engine extends EventDispatcher {
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
-
-    const ticker = this._ticker;
-    ticker.animationLoop = this.update.bind(this);
-    ticker.requestAnimationFrame = window.requestAnimationFrame;
-    ticker.cancelAnimationFrame = window.cancelAnimationFrame;
 
     this.inputManager = new InputManager(this);
 

@@ -77,8 +77,13 @@ export class WebXRSessionManager extends XRSessionManager {
       this._preRequestAnimationFrame = ticker.requestAnimationFrame;
       this._preCancelAnimationFrame = ticker.cancelAnimationFrame;
       this._preAnimationLoop = ticker.animationLoop;
-      this._onAnimationFrame = this._onAnimationFrame.bind(this);
-      session.requestAnimationFrame(this._onAnimationFrame);
+
+      ticker.requestAnimationFrame = session.requestAnimationFrame.bind(session);
+      ticker.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
+      ticker.animationLoop = this._webXRUpdate;
+      ticker.resume();
+      // this._onAnimationFrame = this._onAnimationFrame.bind(this);
+      // session.requestAnimationFrame(this._onAnimationFrame);
       this._dispatchStateChange(SessionStateChangeFlags.start);
       console.log("start 完毕");
       resolve();
