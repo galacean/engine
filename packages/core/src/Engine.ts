@@ -131,7 +131,6 @@ export class Engine extends EventDispatcher {
   /** @internal */
   protected _canvas: Canvas;
 
-  private _ticker: Ticker = new Ticker();
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
@@ -167,13 +166,6 @@ export class Engine extends EventDispatcher {
       this.update();
     }
   };
-
-  /**
-   * Ticker of Engine.
-   */
-  get ticker(): Ticker {
-    return this._ticker;
-  }
 
   /**
    * Settings of Engine.
