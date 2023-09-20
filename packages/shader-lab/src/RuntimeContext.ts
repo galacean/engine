@@ -270,7 +270,7 @@ export default class RuntimeContext {
 
   getMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[], needSort = false): string {
     const list = needSort ? macros.sort(AstNodeUtils.astSortAsc) : macros;
-    return list.map((item) => item.serialize(this)).join("\n");
+    return list?.map((item) => item.serialize(this)).join("\n");
   }
 
   getGlobalText(): string {
