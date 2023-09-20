@@ -1,3 +1,4 @@
+export { ParticleGenerator } from "./ParticleGenerator";
 export { ParticleMaterial } from "./ParticleMaterial";
 export { ParticleRenderer } from "./ParticleRenderer";
 export { ParticleCurveMode } from "./enums/ParticleCurveMode";

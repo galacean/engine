@@ -137,6 +137,9 @@ export class ParticleGenerator {
     this.useAutoRandomSeed = false;
   }
 
+  /**
+   * @internal
+   */
   constructor(renderer: ParticleRenderer) {
     this._renderer = renderer;
     const subPrimitive = new SubPrimitive();
