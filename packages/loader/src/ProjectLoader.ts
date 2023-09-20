@@ -9,7 +9,7 @@ import {
 } from "@galacean/engine-core";
 import { IProject } from "./resource-deserialize";
 
-@resourceLoader(AssetType.Project, ["proj"], true)
+@resourceLoader(AssetType.Project, ["proj"], false)
 class ProjectLoader extends Loader<void> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void> {
     const { engine } = resourceManager;
