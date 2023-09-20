@@ -195,4 +195,9 @@ describe("ShaderLab", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/planarShadow.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });
+
+  it("Empty macro shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/triangle.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
 });

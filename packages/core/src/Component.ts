@@ -16,9 +16,10 @@ export class Component extends EngineObject {
   _awoken: boolean = false;
 
   @ignoreClone
-  private _phasedActive: boolean = false;
+  protected _phasedActiveInScene: boolean = false;
+
   @ignoreClone
-  private _phasedActiveInScene: boolean = false;
+  private _phasedActive: boolean = false;
   @assignmentClone
   private _enabled: boolean = true;
 

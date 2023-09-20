@@ -137,6 +137,9 @@ export class ParticleGenerator {
     this.useAutoRandomSeed = false;
   }
 
+  /**
+   * @internal
+   */
   constructor(renderer: ParticleRenderer) {
     this._renderer = renderer;
     const subPrimitive = new SubPrimitive();
@@ -483,7 +486,7 @@ export class ParticleGenerator {
       );
     } else {
       instanceVertices[offset + 15] = MathUtil.degreeToRadian(
-        main.startRotation.evaluate(undefined, startRotationRand.random())
+        main.startRotationZ.evaluate(undefined, startRotationRand.random())
       );
     }
 

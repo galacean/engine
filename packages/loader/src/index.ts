@@ -15,6 +15,7 @@ import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./ProjectLoader";
 import "./ktx2/KTX2Loader";
 
 export type { GLTFParams } from "./GLTFLoader";

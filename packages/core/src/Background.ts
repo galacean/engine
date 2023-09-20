@@ -1,5 +1,5 @@
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { ModelMesh } from ".";
+import { CompareFunction, Material, ModelMesh, Shader } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -35,6 +35,8 @@ export class Background {
 
   /** @internal */
   _mesh: ModelMesh;
+  /** @internal */
+  _material: Material;
 
   private _texture: Texture2D = null;
 
@@ -51,7 +53,7 @@ export class Background {
       value?._addReferCount(1);
       this._texture?._addReferCount(-1);
       this._texture = value;
-      this._engine._backgroundTextureMaterial.shaderData.setTexture("material_BaseTexture", value);
+      this._material.shaderData.setTexture("material_BaseTexture", value);
     }
   }
 
@@ -76,9 +78,11 @@ export class Background {
    * @internal
    */
   destroy(): void {
+    this.texture = null;
     this._mesh._addReferCount(-1);
     this._mesh = null;
-    this.texture = null;
+    this._material._addReferCount(-1);
+    this._material = null;
     this.solidColor = null;
     this.sky.destroy();
   }
@@ -89,15 +93,7 @@ export class Background {
    */
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
-  }
-
-  /**
-   * @internal
-   * Standalone for CanvasRenderer plugin.
-   */
-  _initMesh(engine): void {
-    this._mesh = this._createPlane(engine);
-    this._mesh._addReferCount(1);
+    this._initMaterial(_engine);
   }
 
   /**
@@ -136,6 +132,17 @@ export class Background {
     }
     _backgroundTextureMesh.setPositions(positions);
     _backgroundTextureMesh.uploadData(false);
+  }
+
+  private _initMesh(engine: Engine): void {
+    this._mesh = this._createPlane(engine);
+    this._mesh._addReferCount(1);
+  }
+
+  private _initMaterial(engine: Engine): void {
+    const material = (this._material = new Material(engine, Shader.find("background-texture")));
+    material.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    material._addReferCount(1);
   }
 
   private _createPlane(engine: Engine): ModelMesh {

@@ -8,11 +8,6 @@ import { ShadowType } from "../shadow";
  * Light base class.
  */
 export abstract class Light extends Component {
-  /**
-   * Each type of light source is at most 10, beyond which it will not take effect.
-   * */
-  protected static _maxLight: number = 10;
-
   /** Light Intensity */
   intensity: number = 1;
 
