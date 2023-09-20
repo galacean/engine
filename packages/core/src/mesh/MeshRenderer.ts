@@ -74,20 +74,20 @@ export class MeshRenderer extends Renderer {
   /**
    * @internal
    */
+  override _cloneTo(target: MeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.mesh = this._mesh;
+  }
+
+  /**
+   * @internal
+   */
   override _prepareRender(context: RenderContext): void {
     if (!this._mesh) {
       Logger.error("mesh is null.");
       return;
     }
     super._prepareRender(context);
-  }
-
-  /**
-   * @internal
-   */
-  override _cloneTo(target: MeshRenderer): void {
-    super._cloneTo(target);
-    target.mesh = this._mesh;
   }
 
   /**
@@ -112,7 +112,7 @@ export class MeshRenderer extends Renderer {
     const mesh = this._mesh;
     if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
       const shaderData = this.shaderData;
-      const vertexElements = mesh._vertexElements;
+      const vertexElements = mesh._primitive.vertexElements;
 
       shaderData.disableMacro(MeshRenderer._uvMacro);
       shaderData.disableMacro(MeshRenderer._uv1Macro);
@@ -121,7 +121,7 @@ export class MeshRenderer extends Renderer {
       shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
 
       for (let i = 0, n = vertexElements.length; i < n; i++) {
-        switch (vertexElements[i].semantic) {
+        switch (vertexElements[i].attribute) {
           case "TEXCOORD_0":
             shaderData.enableMacro(MeshRenderer._uvMacro);
             break;
@@ -145,12 +145,15 @@ export class MeshRenderer extends Renderer {
     const materials = this._materials;
     const subMeshes = mesh.subMeshes;
     const renderPipeline = context.camera._renderPipeline;
-    const meshRenderDataPool = this._engine._meshRenderDataPool;
+    const meshRenderDataPool = this._engine._renderDataPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       const material = materials[i];
-      if (!material) continue;
+      if (!material) {
+        continue;
+      }
+
       const renderData = meshRenderDataPool.getFromPool();
-      renderData.set(this, material, mesh, subMeshes[i]);
+      renderData.setX(this, material, mesh._primitive, subMeshes[i]);
       renderPipeline.pushRenderData(context, renderData);
     }
   }

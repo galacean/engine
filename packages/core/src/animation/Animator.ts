@@ -4,7 +4,7 @@ import { Entity } from "../Entity";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
-import { Logger } from "../base";
+import { Logger } from "../base/Logger";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -20,6 +20,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+
 /**
  * The controller of the animation system.
  */
@@ -203,7 +204,6 @@ export class Animator extends Component {
    * @internal
    */
   override _onEnable(): void {
-    this.engine._componentsManager.addOnUpdateAnimations(this);
     this.animatorController && this._checkAutoPlay();
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
@@ -211,8 +211,14 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  override _onDisable(): void {
-    this.engine._componentsManager.removeOnUpdateAnimations(this);
+  override _onEnableInScene(): void {
+    this.scene._componentsManager.addOnUpdateAnimations(this);
+  }
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    this.scene._componentsManager.removeOnUpdateAnimations(this);
   }
 
   /**
@@ -719,7 +725,6 @@ export class Animator extends Component {
     const clipDuration = state.clip.length;
 
     if (this.speed * state.speed >= 0) {
-      console.log(999, clipTime, lastClipTime);
       if (clipTime < lastClipTime) {
         this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, state.clipEndTime * clipDuration);
         playState.currentTransitionIndex = 0;

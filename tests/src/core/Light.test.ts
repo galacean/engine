@@ -1,5 +1,18 @@
 import { expect } from "chai";
-import { Layer, DirectLight, PointLight, SpotLight, AmbientLight, Entity, AssetType, SkyBoxMaterial, BackgroundMode, PrimitiveMesh, Scene, Engine } from "@galacean/engine-core";
+import {
+  Layer,
+  DirectLight,
+  PointLight,
+  SpotLight,
+  AmbientLight,
+  Entity,
+  AssetType,
+  SkyBoxMaterial,
+  BackgroundMode,
+  PrimitiveMesh,
+  Scene,
+  Engine
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 
@@ -13,6 +26,7 @@ canvasDOM.height = 1024;
 describe("Light test", function () {
   let engine: Engine;
   let scene: Scene;
+  let sceneAno: Scene;
   let lightEntity: Entity;
   let sunLight: DirectLight;
   let directLight: DirectLight;
@@ -22,16 +36,57 @@ describe("Light test", function () {
   let ambientLightB: AmbientLight;
 
   before(async () => {
-    engine = await WebGLEngine.create({ canvas: canvasDOM , colorSpace: ColorSpace.Gamma });
-    const rootEntity = engine.sceneManager.activeScene.createRootEntity(); 
+    engine = await WebGLEngine.create({ canvas: canvasDOM, colorSpace: ColorSpace.Gamma });
+    const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     scene = engine.sceneManager.activeScene;
- 
+
     lightEntity = rootEntity.createChild("light");
     directLight = lightEntity.addComponent(DirectLight);
     pointLight = lightEntity.addComponent(PointLight);
     spotLight = lightEntity.addComponent(SpotLight);
 
+    sceneAno = new Scene(engine);
+    const lightEntityAno = sceneAno.createRootEntity().createChild("light");
+    const directLightAno = lightEntityAno.addComponent(DirectLight);
+    directLightAno.color.set(1, 0, 0, 1);
+    const pointLightAno = lightEntityAno.addComponent(PointLight);
+    pointLightAno.color.set(0, 1, 0, 1);
+    const spotLightAno = lightEntityAno.addComponent(SpotLight);
+    spotLightAno.color.set(0, 0, 1, 1);
+
     engine.run();
+  });
+
+  it("multi scene light", function () {
+    engine.sceneManager.addScene(sceneAno);
+    engine.update();
+    console.log("light shader data");
+    const directLightColor: Float32Array = scene.shaderData.getPropertyValue("scene_DirectLightColor");
+    const pointLightColor: Float32Array = scene.shaderData.getPropertyValue("scene_PointLightColor");
+    const spotLightColor: Float32Array = scene.shaderData.getPropertyValue("scene_SpotLightColor");
+    expect(directLightColor[0]).to.equal(1);
+    expect(directLightColor[1]).to.equal(1);
+    expect(directLightColor[2]).to.equal(1);
+    expect(pointLightColor[0]).to.equal(1);
+    expect(pointLightColor[1]).to.equal(1);
+    expect(pointLightColor[2]).to.equal(1);
+    expect(spotLightColor[0]).to.equal(1);
+    expect(spotLightColor[1]).to.equal(1);
+    expect(spotLightColor[2]).to.equal(1);
+
+    const directLightColorAno: Float32Array = sceneAno.shaderData.getPropertyValue("scene_DirectLightColor");
+    const pointLightColorAno: Float32Array = sceneAno.shaderData.getPropertyValue("scene_PointLightColor");
+    const spotLightColorAno: Float32Array = sceneAno.shaderData.getPropertyValue("scene_SpotLightColor");
+    expect(directLightColorAno[0]).to.equal(1);
+    expect(directLightColorAno[1]).to.equal(0);
+    expect(directLightColorAno[2]).to.equal(0);
+    expect(pointLightColorAno[0]).to.equal(0);
+    expect(pointLightColorAno[1]).to.equal(1);
+    expect(pointLightColorAno[2]).to.equal(0);
+    expect(spotLightColorAno[0]).to.equal(0);
+    expect(spotLightColorAno[1]).to.equal(0);
+    expect(spotLightColorAno[2]).to.equal(1);
+    engine.sceneManager.removeScene(sceneAno);
   });
 
   it("light default values", function () {
@@ -56,7 +111,7 @@ describe("Light test", function () {
   it("update viewMatrix", function () {
     const viewMatrix = directLight.viewMatrix.elements;
     const inverseViewMatrix = directLight.inverseViewMatrix.elements;
-    
+
     expect(viewMatrix[0]).to.deep.equal(inverseViewMatrix[0]);
     expect(viewMatrix[1]).to.deep.equal(inverseViewMatrix[1]);
     expect(viewMatrix[2]).to.deep.equal(inverseViewMatrix[2]);
@@ -78,8 +133,8 @@ describe("Light test", function () {
   it("update intensity", function () {
     directLight.intensity = 2;
     expect(directLight.intensity).to.equal(2);
-
-    const expectedColor = new Color(1, 1, 1);
+    const expectedColor = new Color(1, 1, 1, 2);
+    engine.update();
     const calculatedColor = directLight["_lightColor"];
     expect(calculatedColor).to.deep.equal(expectedColor);
   });
@@ -160,32 +215,30 @@ describe("Light test", function () {
     sky.material = skyMaterial;
     sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
-    ambientLightA = await 
-    engine.resourceManager
-    .load<AmbientLight>({
-        type: AssetType.Env,
-        url: lightResource,//'https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin'
+    ambientLightA = await engine.resourceManager.load<AmbientLight>({
+      type: AssetType.Env,
+      url: lightResource //'https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin'
     });
-    if(ambientLightA){
-        scene.ambientLight = ambientLightA;
-        skyMaterial.texture = ambientLightA.specularTexture;
-        skyMaterial.textureDecodeRGBM = true;
+    if (ambientLightA) {
+      scene.ambientLight = ambientLightA;
+      skyMaterial.texture = ambientLightA.specularTexture;
+      skyMaterial.textureDecodeRGBM = true;
     }
-    
+
     const diffuseSphericalHarmonics = ambientLightA.diffuseSphericalHarmonics;
     expect(diffuseSphericalHarmonics).to.be.instanceOf(SphericalHarmonics3);
 
     const coefficients = diffuseSphericalHarmonics.coefficients;
     expect(coefficients).to.have.lengthOf(27);
-    
-    expect(coefficients[0]).to.be.closeTo(0.740, 0.001);
+
+    expect(coefficients[0]).to.be.closeTo(0.74, 0.001);
     expect(coefficients[2]).to.be.closeTo(0.589, 0.001);
     expect(coefficients[5]).to.be.closeTo(-0.425, 0.001);
-    expect(coefficients[8]).to.be.closeTo(0.170, 0.001);
+    expect(coefficients[8]).to.be.closeTo(0.17, 0.001);
     expect(coefficients[11]).to.be.closeTo(-0.419, 0.001);
     expect(coefficients[14]).to.be.closeTo(0.407, 0.001);
     expect(coefficients[17]).to.be.closeTo(-0.168, 0.001);
-    expect(coefficients[20]).to.be.closeTo(-0.070, 0.001);
+    expect(coefficients[20]).to.be.closeTo(-0.07, 0.001);
     expect(coefficients[23]).to.be.closeTo(-0.189, 0.001);
     expect(coefficients[26]).to.be.closeTo(0.111, 0.001);
   });
@@ -214,8 +267,8 @@ describe("Light test", function () {
     expect(currentIntensity).to.eq(expectIntensity);
   });
 
-  it("ambientLight specularTextureDecodeRGBM", async () =>  {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM , colorSpace: 0});
+  it("ambientLight specularTextureDecodeRGBM", async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM, colorSpace: 0 });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     const lightEntity = rootEntity.createChild("light");
@@ -234,7 +287,7 @@ describe("Light test", function () {
     expect(decodeRGBM).to.eq(expectDecodeRGBM);
 
     ambientLightB.specularTextureDecodeRGBM = !expectDecodeRGBM;
-    const currentDecodeRGBM =  ambientLightB.specularTextureDecodeRGBM;
+    const currentDecodeRGBM = ambientLightB.specularTextureDecodeRGBM;
     expect(currentDecodeRGBM).to.eq(!expectDecodeRGBM);
   });
 

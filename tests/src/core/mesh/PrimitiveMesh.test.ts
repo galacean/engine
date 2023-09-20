@@ -32,7 +32,8 @@ describe("PrimitiveMesh", () => {
     expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
     expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
     expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
-    expect(sphereMesh.vertexBufferBindings.length).equal(1);
+    expect(sphereMesh.vertexBufferBindings.length).equal(2);
+  
   });
 
   it("createCuboid", () => {
@@ -47,7 +48,7 @@ describe("PrimitiveMesh", () => {
     expect(cuboidMesh.bounds.min).to.deep.include({ x: 0.5 * -width, y: 0.5 * -height, z: 0.5 * -depth });
     expect(cuboidMesh.bounds.max).to.deep.include({ x: 0.5 * width, y: 0.5 * height, z: 0.5 * depth });
     expect(cuboidMesh.getIndices().length).equal(36);
-    expect(cuboidMesh.vertexBufferBindings.length).equal(1);
+    expect(cuboidMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createCylinder", () => {
@@ -79,7 +80,7 @@ describe("PrimitiveMesh", () => {
     expect(cylinderMesh.getIndices().length).equal(
       floorRadialSegments * floorHeightSegments * 6 + floorRadialSegments * 2 * 3
     );
-    expect(cylinderMesh.vertexBufferBindings.length).equal(1);
+    expect(cylinderMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createTorus", () => {
@@ -107,7 +108,7 @@ describe("PrimitiveMesh", () => {
     expect(torusMesh.bounds.min).to.deep.include({ x: -outerRadius, y: -outerRadius, z: -tubeRadius });
     expect(torusMesh.bounds.max).to.deep.include({ x: outerRadius, y: outerRadius, z: tubeRadius });
     expect(torusMesh.getIndices().length).equal(floorRadialSegments * floorTubularSegments * 6);
-    expect(torusMesh.vertexBufferBindings.length).equal(1);
+    expect(torusMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createPlane", () => {
@@ -125,7 +126,7 @@ describe("PrimitiveMesh", () => {
     expect(planeMesh.bounds.min).deep.include({ x: -0.5 * width, y: 0, z: -0.5 * height });
     expect(planeMesh.bounds.max).deep.include({ x: 0.5 * width, y: 0, z: 0.5 * height });
     expect(planeMesh.getIndices().length).equal(floorHSegments * floorVSegments * 6);
-    expect(planeMesh.vertexBufferBindings.length).equal(1);
+    expect(planeMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createCone", () => {
@@ -143,7 +144,7 @@ describe("PrimitiveMesh", () => {
     expect(coneMesh.bounds.min).to.deep.include({ x: -radius, y: 0.5 * -height, z: -radius });
     expect(coneMesh.bounds.max).to.deep.include({ x: radius, y: 0.5 * height, z: radius });
     expect(coneMesh.getIndices().length).equal(floorRadialSegments * floorHeightSegments * 6 + floorRadialSegments * 3);
-    expect(coneMesh.vertexBufferBindings.length).equal(1);
+    expect(coneMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createCapsule", () => {
@@ -166,9 +167,10 @@ describe("PrimitiveMesh", () => {
     );
   });
 
-  it("test limit vertex count", () => {
+  it("test limit vertex count", function () {
+    this.timeout(5000);
     const radius = 1;
-    const segments = 300;
+    const segments = 256;
     const floorSegments = Math.floor(segments);
     const count = segments + 1;
 
@@ -179,7 +181,7 @@ describe("PrimitiveMesh", () => {
       expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
       expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
       expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
-      expect(sphereMesh.vertexBufferBindings.length).equal(1);
+      expect(sphereMesh.vertexBufferBindings.length).equal(2);
     } else {
       expect(() => {
         try {

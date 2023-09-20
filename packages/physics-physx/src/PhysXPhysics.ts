@@ -1,3 +1,4 @@
+import { Quaternion, Vector3, version } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
@@ -8,22 +9,23 @@ import {
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
+  IPhysicsScene,
   IPlaneColliderShape,
   ISphereColliderShape,
   ISpringJoint,
   IStaticCollider
 } from "@galacean/engine-design";
-import { Quaternion, Vector3, version } from "@galacean/engine";
-import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
-import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
-import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
-import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
+import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXStaticCollider } from "./PhysXStaticCollider";
+import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
@@ -128,16 +130,25 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsManager }
    */
-  createPhysicsManager(
+  createPhysicsManager(): IPhysicsManager {
+    return new PhysXPhysicsManager();
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createPhysicsScene }
+   */
+  createPhysicsScene(
+    physicsManager: PhysXPhysicsManager,
     onContactBegin?: (obj1: number, obj2: number) => void,
     onContactEnd?: (obj1: number, obj2: number) => void,
     onContactStay?: (obj1: number, obj2: number) => void,
     onTriggerBegin?: (obj1: number, obj2: number) => void,
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
-  ): IPhysicsManager {
-    const manager = new PhysXPhysicsManager(
+  ): IPhysicsScene {
+    const manager = new PhysXPhysicsScene(
       this,
+      physicsManager,
       onContactBegin,
       onContactEnd,
       onContactStay,

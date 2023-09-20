@@ -39,7 +39,8 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {
+  override setWorldScale(scale: Vector3): void {
+    super.setWorldScale(scale);
     this._maxScale = Math.max(scale.x, scale.y, scale.z);
   }
 

@@ -3,7 +3,6 @@ import {
   AnimationFloatArrayCurve,
   AnimationQuaternionCurve,
   AnimationVector3Curve,
-  AssetPromise,
   Component,
   Entity,
   InterpolationType,
@@ -13,7 +12,6 @@ import {
   TypedArray
 } from "@galacean/engine-core";
 import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
-import { GLTFUtils } from "../GLTFUtils";
 import {
   AccessorType,
   AnimationChannelTargetPath,
@@ -21,9 +19,11 @@ import {
   IAnimation,
   IAnimationChannel
 } from "../GLTFSchema";
+import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Animation)
 export class GLTFAnimationParser extends GLTFParser {
   /**
    * @internal
@@ -32,16 +32,16 @@ export class GLTFAnimationParser extends GLTFParser {
     context: GLTFParserContext,
     animationClip: AnimationClip,
     animationInfo: IAnimation
-  ): Promise<void> {
-    const { glTF, glTFResource } = context;
-    const { entities } = glTFResource;
+  ): Promise<AnimationClip> {
+    const { glTF } = context;
     const { accessors, bufferViews } = glTF;
     const { channels, samplers } = animationInfo;
-
     const sampleDataCollection = new Array<SampleData>();
+    const entities = context.get<Entity>(GLTFParserType.Entity);
 
     let duration = -1;
     let promises = new Array<Promise<void>>();
+
     // parse samplers
     for (let j = 0, m = samplers.length; j < m; j++) {
       const gltfSampler = samplers[j];
@@ -133,6 +133,7 @@ export class GLTFAnimationParser extends GLTFParser {
         const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
         animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
       }
+      return animationClip;
     });
   }
 
@@ -195,12 +196,12 @@ export class GLTFAnimationParser extends GLTFParser {
           if (curve.interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = Array.from(output.subarray(offset, offset + outputSize));
             offset += outputSize;
-            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
             keyframe.outTangent = Array.from(output.subarray(offset, offset + outputSize));
             offset += outputSize;
           } else {
-            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
           }
           curve.addKey(keyframe);
@@ -210,59 +211,22 @@ export class GLTFAnimationParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> | void {
-    const { glTF, glTFResource } = context;
-    const { entities } = glTFResource;
-    const { animations, accessors, bufferViews } = glTF;
-    if (!animations) {
-      return;
-    }
-    const animationClipsPromiseInfo = context.animationClipsPromiseInfo;
+  parse(context: GLTFParserContext, index: number): Promise<AnimationClip> {
+    const animationInfo = context.glTF.animations[index];
+    const { name = `AnimationClip${index}` } = animationInfo;
 
-    const animationClipCount = animations.length;
-    const animationClipPromises = [];
-    const animationsIndices = new Array<{
-      name: string;
-      index: number;
-    }>(animationClipCount);
-
-    let parseStandardPropertyPromises = new Array<Promise<void>>();
-    for (let i = 0; i < animationClipCount; i++) {
-      const animationInfo = animations[i];
-      const { name = `AnimationClip${i}` } = animationInfo;
-
-      let animationClip = <AnimationClip>(
+    const animationClipPromise =
+      <Promise<AnimationClip> | AnimationClip>(
         GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
-      );
+      ) || GLTFAnimationParser._parseStandardProperty(context, new AnimationClip(name), animationInfo);
 
-      if (!animationClip) {
-        animationClip = new AnimationClip(name);
-        parseStandardPropertyPromises.push(
-          GLTFAnimationParser._parseStandardProperty(context, animationClip, animationInfo)
-        );
-      }
-
-      animationClipPromises.push(animationClip);
-    }
-
-    return AssetPromise.all(parseStandardPropertyPromises).then(() => {
-      return AssetPromise.all(animationClipPromises).then((animationClips) => {
-        glTFResource.animations = animationClips;
-        for (let i = 0; i < glTF.animations.length; i++) {
-          const animationInfo = glTF.animations[i];
-          GLTFParser.executeExtensionsAdditiveAndParse(
-            animationInfo.extensions,
-            context,
-            animationClips[i],
-            animationInfo
-          );
-        }
-        animationClipsPromiseInfo.resolve(animationClips);
-        return animationClipsPromiseInfo.promise;
-      });
+    return Promise.resolve(animationClipPromise).then((animationClip) => {
+      GLTFParser.executeExtensionsAdditiveAndParse(animationInfo.extensions, context, animationClip, animationInfo);
+      return animationClip;
     });
   }
 }
+
 interface SampleData {
   type: AccessorType;
   input: TypedArray;

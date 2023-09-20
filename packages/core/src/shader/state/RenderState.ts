@@ -1,5 +1,8 @@
+import { ShaderData, ShaderProperty } from "..";
 import { Engine } from "../../Engine";
+import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -10,12 +13,16 @@ import { StencilState } from "./StencilState";
  */
 export class RenderState {
   /** Blend state. */
+  @deepClone
   readonly blendState: BlendState = new BlendState();
   /** Depth state. */
+  @deepClone
   readonly depthState: DepthState = new DepthState();
   /** Stencil state. */
+  @deepClone
   readonly stencilState: StencilState = new StencilState();
   /** Raster state. */
+  @deepClone
   readonly rasterState: RasterState = new RasterState();
 
   /** Render queue type. */
@@ -23,8 +30,30 @@ export class RenderState {
 
   /**
    * @internal
+   * @todo Should merge when we can delete material render state.
    */
-  _apply(engine: Engine, frontFaceInvert: boolean): void {
+  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+
+    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueType !== undefined) {
+      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _apply(
+    engine: Engine,
+    frontFaceInvert: boolean,
+    renderStateDataMap: Record<number, ShaderProperty>,
+    shaderData: ShaderData
+  ): void {
+    renderStateDataMap && this._applyShaderDataValue(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     this.blendState._apply(hardwareRenderer, lastRenderState);
