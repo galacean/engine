@@ -81,8 +81,8 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.setDriveVelocity }
    */
-  setDriveVelocity(velocity: number): void {
-    this._pxJoint.setDriveVelocity(velocity);
+  setDriveVelocity(velocity: number, autowake: boolean = true): void {
+    this._pxJoint.setDriveVelocity(velocity, autowake);
   }
 
   /**
