@@ -34,7 +34,6 @@ import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { BlendFactor } from "./shader/enums/BlendFactor";
 import { BlendOperation } from "./shader/enums/BlendOperation";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
-import { CompareFunction } from "./shader/enums/CompareFunction";
 import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
@@ -102,8 +101,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _depthTexture2D: Texture2D;
 
-  /* @internal */
-  _backgroundTextureMaterial: Material;
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
@@ -256,11 +253,6 @@ export class Engine extends EventDispatcher {
     magentaMaterial.isGCIgnored = true;
     magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
-
-    const backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
-    backgroundTextureMaterial.isGCIgnored = true;
-    backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
-    this._backgroundTextureMaterial = backgroundTextureMaterial;
 
     const innerSettings = this._settings;
     const colorSpace = configuration.colorSpace || ColorSpace.Linear;

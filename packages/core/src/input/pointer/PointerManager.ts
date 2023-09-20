@@ -295,8 +295,8 @@ export class PointerManager implements IInput {
         continue;
       }
       const { _activeCameras: cameras } = scene;
-      for (let j = 0; j < cameras.length; j++) {
-        const camera = cameras[i];
+      for (let j = cameras.length - 1; j >= 0; j--) {
+        const camera = cameras[j];
         if (!camera.enabled || camera.renderTarget) {
           continue;
         }

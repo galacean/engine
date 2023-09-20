@@ -163,7 +163,7 @@ export class ComponentsManager {
     const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
     this._disposeDestroyScripts = disposeDestroyScripts;
     this._pendingDestroyScripts = pendingDestroyScripts;
-    length = disposeDestroyScripts.length;
+    const length = disposeDestroyScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
         disposeDestroyScripts[i].onDestroy();
