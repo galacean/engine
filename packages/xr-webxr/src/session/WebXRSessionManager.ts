@@ -14,9 +14,6 @@ export class WebXRSessionManager extends XRSessionManager {
 
   private _engine: Engine;
   private _rhi: WebGLGraphicDevice;
-  private _preRequestAnimationFrame: any;
-  private _preCancelAnimationFrame: any;
-  private _preAnimationLoop: any;
 
   initialize(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -56,7 +53,6 @@ export class WebXRSessionManager extends XRSessionManager {
           }
           session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
             this._platformSpace = value;
-            console.log("initialize 完毕");
             resolve();
           }, reject);
         }, reject);
@@ -65,34 +61,23 @@ export class WebXRSessionManager extends XRSessionManager {
   }
 
   start(): Promise<void> {
-    console.log("start 开始");
     return new Promise((resolve, reject) => {
       const { _platformSession: session } = this;
       if (!session) {
         reject();
         return;
       }
-      const { ticker } = this._engine;
-      ticker.pause();
-      this._preRequestAnimationFrame = ticker.requestAnimationFrame;
-      this._preCancelAnimationFrame = ticker.cancelAnimationFrame;
-      this._preAnimationLoop = ticker.animationLoop;
-
-      ticker.requestAnimationFrame = session.requestAnimationFrame.bind(session);
-      ticker.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
-      ticker.animationLoop = this._webXRUpdate;
-      ticker.resume();
-      // this._onAnimationFrame = this._onAnimationFrame.bind(this);
-      // session.requestAnimationFrame(this._onAnimationFrame);
+      this._engine.pause();
+      // @ts-ignore
+      this._engine._customAnimationFrameRequester = {
+        requestAnimationFrame: session.requestAnimationFrame.bind(session),
+        cancelAnimationFrame: session.cancelAnimationFrame.bind(session),
+        update: this._webXRUpdate
+      };
+      this._engine.resume();
       this._dispatchStateChange(SessionStateChangeFlags.start);
-      console.log("start 完毕");
       resolve();
     });
-  }
-
-  private _onAnimationFrame(time: number, frame: XRFrame) {
-    this._platformSession.requestAnimationFrame(this._onAnimationFrame);
-    this._webXRUpdate(time, frame);
   }
 
   stop(): Promise<void> {
@@ -102,10 +87,8 @@ export class WebXRSessionManager extends XRSessionManager {
         reject();
         return;
       }
-      const { ticker } = this._engine;
-      ticker.requestAnimationFrame = this._preRequestAnimationFrame;
-      ticker.cancelAnimationFrame = this._preCancelAnimationFrame;
-      ticker.animationLoop = this._preAnimationLoop;
+      // @ts-ignore
+      this._engine._customAnimationFrameRequester = null;
       this._dispatchStateChange(SessionStateChangeFlags.stop);
       resolve();
     });

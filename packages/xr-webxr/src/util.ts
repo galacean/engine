@@ -19,8 +19,14 @@ export function parseFeatures(descriptors: IXRFeatureDescriptor[], out: string[]
       case EnumXRFeature.HandTracking:
         out.push("hand-tracking");
         break;
+      case EnumXRFeature.ImageTracking:
+        out.push("image-tracking");
+        break;
       case EnumXRFeature.HitTest:
         out.push("hit-test");
+        break;
+      case EnumXRFeature.PlaneTracking:
+        out.push("plane-detection");
         break;
       default:
         break;

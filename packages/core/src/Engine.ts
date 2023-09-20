@@ -40,7 +40,6 @@ import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { XRModule } from "./xr/XRModule";
-import { Ticker } from "./Ticker";
 import { IXRDevice } from "./xr";
 
 ShaderPool.init();
@@ -123,9 +122,9 @@ export class Engine extends EventDispatcher {
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _customAnimationFrameRequester: {
-    requestAnimationFrame: any;
-    cancelAnimationFrame: any;
-    update: any;
+    requestAnimationFrame: Function;
+    cancelAnimationFrame: Function;
+    update: Function;
   };
 
   /** @internal */
@@ -315,7 +314,12 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    this._requestId = requestAnimationFrame(this._animate);
+    const { _customAnimationFrameRequester: customAnimationFrameRequester } = this;
+    if (customAnimationFrameRequester) {
+      this._requestId = customAnimationFrameRequester.requestAnimationFrame(this._animate);
+    } else {
+      this._requestId = requestAnimationFrame(this._animate);
+    }
   }
 
   /**

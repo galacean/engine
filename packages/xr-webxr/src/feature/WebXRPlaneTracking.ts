@@ -1,5 +1,4 @@
 import { IXRFeatureDescriptor, IXRPlaneTracking } from "@galacean/engine-design";
-import { WebXRSessionManager } from "../session/WebXRSessionManager";
 import { EnumXRFeature } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 

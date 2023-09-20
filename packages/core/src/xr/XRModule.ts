@@ -94,7 +94,12 @@ export class XRModule {
           const featureDescriptor = requestFeatures[i];
           const { type } = featureDescriptor;
           if (type !== EnumXRFeature.MovementTracking) {
-            const feature = (features[type] ||= new featureMap[type](engine));
+            const featureConstructor = featureMap[type];
+            if (!featureConstructor) {
+              console.warn("功能" + EnumXRFeature[type] + "没有实现");
+              continue;
+            }
+            const feature = (features[type] ||= new featureConstructor(engine));
             promiseArr.push(feature.initialize(featureDescriptor));
           }
         }
