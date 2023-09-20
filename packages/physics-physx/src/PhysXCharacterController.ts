@@ -150,6 +150,6 @@ export class PhysXCharacterController implements ICharacterController {
    */
   _setLocalPosition(position: Vector3, scale: Vector3): void {
     Vector3.multiply(position, scale, this._scaledOffset);
-    this.setWorldPosition(position);
+    this.setWorldPosition(this._position);
   }
 }
