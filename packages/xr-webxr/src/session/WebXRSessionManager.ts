@@ -52,7 +52,7 @@ export class WebXRSessionManager extends XRSessionManager {
             });
           }
           session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
-            this._platformSpace = value;
+            this._platformSpace = value.getOffsetReferenceSpace(new XRRigidTransform({ x: 0, y: -1.5, z: 0, w: 1.0 }));
             resolve();
           }, reject);
         }, reject);
@@ -111,7 +111,6 @@ export class WebXRSessionManager extends XRSessionManager {
   private _webXRUpdate(time: DOMHighResTimeStamp, frame: XRFrame) {
     this._platformFrame = frame;
     this._setMainFBO();
-    this._engine.update();
   }
 
   private _setMainFBO(): void {
