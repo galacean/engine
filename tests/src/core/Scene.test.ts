@@ -1,4 +1,4 @@
-import { Engine, Entity, Scene } from "@galacean/engine-core";
+import { BackgroundMode, Engine, Entity, Scene, TextureFormat, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
@@ -10,6 +10,10 @@ describe("Scene", () => {
 
     engine.run();
     scene = engine.sceneManager.scenes[0];
+    scene.background.mode = BackgroundMode.Texture;
+    const texture2D = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+    texture2D.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
+    scene.background.texture = texture2D;
   });
 
   beforeEach(() => {

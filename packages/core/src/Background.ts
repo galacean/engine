@@ -78,11 +78,11 @@ export class Background {
    * @internal
    */
   destroy(): void {
+    this.texture = null;
     this._mesh._addReferCount(-1);
     this._mesh = null;
     this._material._addReferCount(-1);
     this._material = null;
-    this.texture = null;
     this.solidColor = null;
     this.sky.destroy();
   }
