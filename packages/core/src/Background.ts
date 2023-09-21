@@ -59,7 +59,6 @@ export class Background {
   }
 
   /**
-   * @internal
    * Background texture fill mode.
    * @remarks When `mode` is `BackgroundMode.Texture`, the property will take effects.
    * @defaultValue `BackgroundTextureFillMode.FitHeight`
