@@ -66,14 +66,14 @@ export class DisorderedArray<T> {
     return end;
   }
 
-  forEach(callbackFn: (e: T) => void): void {
+  forEach(callbackFn: (e: T) => void, swapFn: (e: T, idx: number) => void): void {
     this._startLoop();
     const elements = this._elements;
     for (let i = 0; i < this.length; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
-    this._endLoop();
+    this._endLoop(swapFn);
   }
 
   forEachAndClean(callbackFn: (e: T) => void): void {
@@ -94,17 +94,19 @@ export class DisorderedArray<T> {
     this._isLooping = true;
   }
 
-  private _endLoop(): void {
+  private _endLoop(swapFn: (e: T, idx: number) => void): void {
     this._isLooping = false;
-
     if (this._blankCount) {
+      let from = 0;
+      let to = this.length - 1;
       const elements = this._elements;
-      for (let i = 0, j = 0, n = this.length; i < n; i++) {
-        const element = elements[i];
-        if (element) {
-          elements[j++] = element;
-        }
-      }
+      partition: do {
+        while (elements[from]) if (++from >= to) break partition;
+        while (!elements[to]) if (from >= --to) break partition;
+        swapFn(elements[to], from);
+        elements[from++] = elements[to];
+        elements[to--] = null;
+      } while (from < to);
       this.length -= this._blankCount;
       this._blankCount = 0;
     }
