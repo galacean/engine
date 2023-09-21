@@ -1,7 +1,6 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { ComponentsManager } from "./ComponentsManager";
 import { Pointer } from "./input";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
