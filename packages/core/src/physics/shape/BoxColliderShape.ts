@@ -21,7 +21,6 @@ export class BoxColliderShape extends ColliderShape {
   set size(value: Vector3) {
     if (this._size !== value) {
       this._size.copyFrom(value);
-      this._setSize();
     }
   }
 
