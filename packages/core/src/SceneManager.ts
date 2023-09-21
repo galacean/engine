@@ -39,18 +39,34 @@ export class SceneManager {
   addScene(index: number, scene: Scene): void;
 
   addScene(indexOrScene: number | Scene, scene?: Scene): void {
+    const scenes = this._scenes;
+
+    let index: number;
     if (typeof indexOrScene === "number") {
-      this._scenes.add(indexOrScene, scene);
+      if (indexOrScene < 0 || indexOrScene > scenes.length) {
+        throw "The index is out of range.";
+      }
+      index = indexOrScene;
     } else {
+      index = scenes.length;
       scene = indexOrScene;
-      this._scenes.push(scene);
     }
 
     if (scene.engine !== this.engine) {
       throw "The scene is not belong to this engine.";
     }
 
-    scene._processActive(true);
+    if (scene._sceneManager) {
+      const currentIndex = scenes.indexOf(scene);
+      if (currentIndex !== index) {
+        scenes.removeByIndex(currentIndex);
+        scenes.add(index, scene);
+      }
+    } else {
+      scene._sceneManager = this;
+      scenes.add(index, scene);
+      scene.isActive && scene._processActive(true);
+    }
   }
 
   /**
@@ -63,7 +79,8 @@ export class SceneManager {
     if (index !== -1) {
       const removedScene = scenes.getArray()[index];
       scenes.removeByIndex(index);
-      removedScene._processActive(false);
+      scene._sceneManager = null;
+      removedScene.isActive && removedScene._processActive(false);
     }
   }
 
