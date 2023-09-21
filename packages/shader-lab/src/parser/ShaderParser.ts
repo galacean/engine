@@ -334,6 +334,16 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Symbols.Semicolon);
   });
 
+  private _ruleBreakStatement = this.RULE("_ruleBreakStatement", () => {
+    this.CONSUME(GLKeywords.Break);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
+  private _ruleContinueStatement = this.RULE("_ruleContinueStatement", () => {
+    this.CONSUME(GLKeywords.Continue);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
   private _ruleFnStatement = this.RULE("_ruleFnStatement", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnCall) },
@@ -342,6 +352,8 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
       { ALT: () => this.SUBRULE(this._ruleFnConditionStatement) },
       { ALT: () => this.SUBRULE(this._ruleDiscardStatement) },
+      { ALT: () => this.SUBRULE(this._ruleBreakStatement) },
+      { ALT: () => this.SUBRULE(this._ruleContinueStatement) },
       { ALT: () => this.SUBRULE(this._ruleForLoopStatement) },
       { ALT: () => this.SUBRULE(this._ruleFn) }
     ]);
