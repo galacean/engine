@@ -41,6 +41,8 @@ export class ResourceManager {
   private _assetPool: Record<number, string> = Object.create(null);
   /** Asset url pool, key is the asset path and the value is the asset. */
   private _assetUrlPool: Record<string, Object> = Object.create(null);
+  /** Asset alias pool, key is the asset name and the value is the asset. */
+  private _assetAliasPool: Record<string, Object> = Object.create(null);
 
   /** Referable resource pool, key is the `instanceID` of resource. */
   private _referResourcePool: Record<number, ReferResource> = Object.create(null);
@@ -54,7 +56,7 @@ export class ResourceManager {
    * Create a ResourceManager.
    * @param engine - Engine to which the current ResourceManager belongs
    */
-  constructor(public readonly engine: Engine) {}
+  constructor(public readonly engine: Engine) { }
 
   /**
    * Load asset asynchronously through the path.
@@ -68,7 +70,7 @@ export class ResourceManager {
    * @param paths - Path collections
    * @returns Asset Promise
    */
-  load(paths: string[]): AssetPromise<Object[]>;
+  load(paths: string[]): AssetPromise<EngineObject[]>;
 
   /**
    * Load the asset asynchronously by asset item information.
@@ -82,9 +84,9 @@ export class ResourceManager {
    * @param assetItems - Asset collection
    * @returns AssetPromise
    */
-  load(assetItems: LoadItem[]): AssetPromise<Object[]>;
+  load(assetItems: LoadItem[]): AssetPromise<EngineObject[]>;
 
-  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
+  load<T extends EngineObject>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<EngineObject | EngineObject[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);
@@ -95,12 +97,12 @@ export class ResourceManager {
   }
 
   /**
-   * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
-   * @param url - Resource url
+   * Get the resource from cache by asset name or url, return the resource object if it loaded, otherwise return null.
+   * @param aliasOrUrl - Resource name or url
    * @returns Resource object
    */
-  getFromCache<T>(url: string): T {
-    return (this._assetUrlPool[url] as T) ?? null;
+  getFromCache<T extends EngineObject>(aliasOrUrl: string): T {
+    return (this._assetAliasPool[aliasOrUrl] as T) ?? (this._assetUrlPool[aliasOrUrl] as T) ?? null;
   }
 
   /**
@@ -196,9 +198,12 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: EngineObject): void {
-    this._assetPool[asset.instanceId] = path;
-    this._assetUrlPool[path] = asset;
+  _addAsset(item: string, asset: EngineObject, name?: string): void {
+    this._assetPool[asset.instanceId] = item;
+    this._assetUrlPool[item] = asset;
+    if (name) {
+      this._setAssetAlias(asset, name);
+    }
   }
 
   /**
@@ -308,7 +313,22 @@ export class ResourceManager {
     return assetInfo;
   }
 
-  private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
+  private _setAssetAlias(obj: Object, name?: string) {
+    if (!name) {
+      return;
+    }
+    const cache = this._assetAliasPool[name];
+    if (cache) {
+      if (obj !== cache) {
+        console.warn(`Cache already has an asset named "${name}, the newest asset will replace the old one if they have same name."`, obj, "will replace", cache);
+      } else {
+        return;
+      }
+    }
+    this._assetAliasPool[name] = obj;
+  }
+
+  private _loadSingleItem<T extends EngineObject>(itemOrURL: LoadItem | string): AssetPromise<EngineObject> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
 
     // Check url mapping
@@ -322,6 +342,7 @@ export class ResourceManager {
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
+      this._setAssetAlias(cacheObject, item.name); // sometimes user could give one resource different names if used in different scenes
       return new AssetPromise((resolve) => {
         resolve(this._getResolveResource(cacheObject, paths) as T);
       });
@@ -344,8 +365,8 @@ export class ResourceManager {
     if (loadingPromise) {
       return new AssetPromise((resolve, reject) => {
         loadingPromise
-          .then((resource: EngineObject) => {
-            resolve(resource as T);
+          .then((resource: T) => {
+            resolve(resource);
           })
           .catch((error: Error) => {
             reject(error);
@@ -367,7 +388,7 @@ export class ResourceManager {
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
-          this._addAsset(assetBaseURL, resource as EngineObject);
+          this._addAsset(assetBaseURL, resource, item.name);
         }
         delete loadingPromises[assetBaseURL];
       },
@@ -512,7 +533,7 @@ export class ResourceManager {
  * @param extNames - Name of file extension
  */
 export function resourceLoader(assetType: string, extNames: string[], useCache: boolean = true) {
-  return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
+  return <T extends Loader<any>>(Target: { new(useCache: boolean): T }) => {
     const loader = new Target(useCache);
     ResourceManager._addLoader(assetType, loader, extNames);
   };
@@ -523,18 +544,18 @@ const reEscapeChar = /\\(\\)?/g;
 const rePropName = RegExp(
   // Match anything that isn't a dot or bracket.
   "[^.[\\]]+" +
-    "|" +
-    // Or match property names within brackets.
-    "\\[(?:" +
-    // Match a non-string expression.
-    "([^\"'][^[]*)" +
-    "|" +
-    // Or match strings (supports escaping characters).
-    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
-    ")\\]" +
-    "|" +
-    // Or match "" as the space between consecutive dots or empty brackets.
-    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+  "|" +
+  // Or match property names within brackets.
+  "\\[(?:" +
+  // Match a non-string expression.
+  "([^\"'][^[]*)" +
+  "|" +
+  // Or match strings (supports escaping characters).
+  "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+  ")\\]" +
+  "|" +
+  // Or match "" as the space between consecutive dots or empty brackets.
+  "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
   "g"
 );
 
