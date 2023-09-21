@@ -56,7 +56,7 @@ export class ResourceManager {
    * Create a ResourceManager.
    * @param engine - Engine to which the current ResourceManager belongs
    */
-  constructor(public readonly engine: Engine) { }
+  constructor(public readonly engine: Engine) {}
 
   /**
    * Load asset asynchronously through the path.
@@ -86,7 +86,9 @@ export class ResourceManager {
    */
   load(assetItems: LoadItem[]): AssetPromise<EngineObject[]>;
 
-  load<T extends EngineObject>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<EngineObject | EngineObject[]> {
+  load<T extends EngineObject>(
+    assetInfo: string | LoadItem | (LoadItem | string)[]
+  ): AssetPromise<EngineObject | EngineObject[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);
@@ -320,7 +322,12 @@ export class ResourceManager {
     const cache = this._assetAliasPool[name];
     if (cache) {
       if (obj !== cache) {
-        console.warn(`Cache already has an asset named "${name}, the newest asset will replace the old one if they have same name."`, obj, "will replace", cache);
+        console.warn(
+          `Cache already has an asset named "${name}", the newest asset will replace the old one if they have same name."`,
+          obj,
+          "will replace",
+          cache
+        );
       } else {
         return;
       }
