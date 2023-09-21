@@ -12,6 +12,9 @@ export abstract class ParticleGeneratorModule {
   @ignoreClone
   protected _generator: ParticleGenerator;
 
+  /**
+   * @internal
+   */
   constructor(generator: ParticleGenerator) {
     this._generator = generator;
   }
