@@ -37,14 +37,11 @@ export class BoxColliderShape extends ColliderShape {
     this._size._onValueChanged = this._setSize;
   }
 
-  clone(): BoxColliderShape {
-    const dest = new BoxColliderShape();
-    this.cloneTo(dest);
-    return dest;
-  }
-
-  override cloneTo(target: BoxColliderShape) {
-    super.cloneTo(target);
+  /**
+   * @internal
+   */
+  override _cloneTo(target: BoxColliderShape) {
+    super._cloneTo(target);
     target.size = this.size;
   }
 

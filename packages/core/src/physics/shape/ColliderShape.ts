@@ -1,13 +1,14 @@
-import { IClone, IColliderShape } from "@galacean/engine-design";
+import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 import { ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape implements IClone {
+export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
@@ -131,9 +132,10 @@ export abstract class ColliderShape implements IClone {
     this._position._onValueChanged = this._setPosition;
   }
 
-  abstract clone(): ColliderShape;
-
-  cloneTo(target: ColliderShape) {
+  /**
+   * @internal
+   */
+  _cloneTo(target: ColliderShape) {
     target.contactOffset = this.contactOffset;
     target.rotation = this.rotation;
     target.position = this.position;

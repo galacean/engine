@@ -8,7 +8,7 @@ import { Joint } from "./Joint";
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
  */
-export class SpringJoint extends Joint implements ICustomClone {
+export class SpringJoint extends Joint {
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
   private _tolerance: number = 0.25;

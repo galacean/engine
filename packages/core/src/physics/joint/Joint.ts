@@ -5,13 +5,14 @@ import { Component } from "../../Component";
 import { dependentComponents, DependentMode } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { Collider } from "../Collider";
+import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
  * A base class providing common functionality for joints.
  * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
  */
 @dependentComponents(Collider, DependentMode.CheckOnly)
-export class Joint extends Component {
+export class Joint extends Component implements ICustomClone {
   @ignoreClone
   protected _colliderInfo = new JointColliderInfo();
   @ignoreClone
