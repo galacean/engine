@@ -4,7 +4,7 @@ import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
 import { ICustomClone } from "../clone/ComponentCloner";
 
