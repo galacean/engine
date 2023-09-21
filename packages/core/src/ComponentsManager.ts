@@ -124,39 +124,64 @@ export class ComponentsManager {
   }
 
   callScriptOnUpdate(deltaTime: number): void {
-    this._onUpdateScripts.forEach((element: Script) => {
-      if (element._started) {
-        element.onUpdate(deltaTime);
+    this._onUpdateScripts.forEach(
+      (element: Script) => {
+        if (element._started) {
+          element.onUpdate(deltaTime);
+        }
+      },
+      (element: Script, idx: number) => {
+        element._onUpdateIndex = idx;
       }
-    });
+    );
   }
 
   callScriptOnLateUpdate(deltaTime: number): void {
-    this._onLateUpdateScripts.forEach((element: Script) => {
-      if (element._started) {
-        element.onLateUpdate(deltaTime);
+    this._onLateUpdateScripts.forEach(
+      (element: Script) => {
+        if (element._started) {
+          element.onLateUpdate(deltaTime);
+        }
+      },
+      (element: Script, idx: number) => {
+        element._onLateUpdateIndex = idx;
       }
-    });
+    );
   }
 
   callScriptOnPhysicsUpdate(): void {
-    this._onPhysicsUpdateScripts.forEach((element: Script) => {
-      if (element._started) {
-        element.onPhysicsUpdate();
+    this._onPhysicsUpdateScripts.forEach(
+      (element: Script) => {
+        if (element._started) {
+          element.onPhysicsUpdate();
+        }
+      },
+      (element: Script, idx: number) => {
+        element._onPhysicsUpdateIndex = idx;
       }
-    });
+    );
   }
 
   callAnimationUpdate(deltaTime: number): void {
-    this._onUpdateAnimations.forEach((element: Animator) => {
-      element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
-    });
+    this._onUpdateAnimations.forEach(
+      (element: Animator) => {
+        element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
+      },
+      (element: Animator, idx: number) => {
+        element._onUpdateIndex = idx;
+      }
+    );
   }
 
   callRendererOnUpdate(deltaTime: number): void {
-    this._onUpdateRenderers.forEach((element: Renderer) => {
-      element.update(deltaTime);
-    });
+    this._onUpdateRenderers.forEach(
+      (element: Renderer) => {
+        element.update(deltaTime);
+      },
+      (element: Renderer, idx: number) => {
+        element._onUpdateIndex = idx;
+      }
+    );
   }
 
   handlingInvalidScripts(): void {
@@ -173,15 +198,25 @@ export class ComponentsManager {
   }
 
   callCameraOnBeginRender(camera: Camera): void {
-    camera.entity._scripts.forEach((element: Script) => {
-      element.onBeginRender(camera);
-    });
+    camera.entity._scripts.forEach(
+      (element: Script) => {
+        element.onBeginRender(camera);
+      },
+      (element: Script, idx: number) => {
+        element._entityScriptsIndex = idx;
+      }
+    );
   }
 
   callCameraOnEndRender(camera: Camera): void {
-    camera.entity._scripts.forEach((element: Script) => {
-      element.onEndRender(camera);
-    });
+    camera.entity._scripts.forEach(
+      (element: Script) => {
+        element.onEndRender(camera);
+      },
+      (element: Script, idx: number) => {
+        element._entityScriptsIndex = idx;
+      }
+    );
   }
 
   getActiveChangedTempList(): Component[] {
