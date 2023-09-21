@@ -42,11 +42,11 @@ export class HingeJoint extends Joint {
    * The swing offset.
    */
   get swingOffset(): Vector3 {
-    return this._connectedColliderInfo.localPosition;
+    return this._colliderInfo.localPosition;
   }
 
   set swingOffset(value: Vector3) {
-    const swingOffset = this._connectedColliderInfo.localPosition;
+    const swingOffset = this._colliderInfo.localPosition;
     if (value !== swingOffset) {
       swingOffset.copyFrom(value);
     }
@@ -148,7 +148,7 @@ export class HingeJoint extends Joint {
    * @internal
    */
   override _onAwake() {
-    const collider = this._connectedColliderInfo;
+    const collider = this._colliderInfo;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(collider.collider._nativeCollider);

@@ -13,7 +13,9 @@ import { Collider } from "../Collider";
 @dependentComponents(Collider, DependentMode.CheckOnly)
 export class Joint extends Component {
   @ignoreClone
-  protected _connectedColliderInfo = new JointCollider();
+  protected _colliderInfo = new JointColliderInfo();
+  @ignoreClone
+  protected _connectedColliderInfo = new JointColliderInfo();
   @ignoreClone
   protected _nativeJoint: IJoint;
   @ignoreClone
@@ -83,12 +85,12 @@ export class Joint extends Component {
    * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
    */
   get massScale(): number {
-    return this._connectedColliderInfo.massScale;
+    return this._colliderInfo.massScale;
   }
 
   set massScale(value: number) {
-    if (value !== this._connectedColliderInfo.massScale) {
-      this._connectedColliderInfo.massScale = value;
+    if (value !== this._colliderInfo.massScale) {
+      this._colliderInfo.massScale = value;
       this._nativeJoint.setMassScale(value);
     }
   }
@@ -97,12 +99,12 @@ export class Joint extends Component {
    * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
    */
   get inertiaScale(): number {
-    return this._connectedColliderInfo.inertiaScale;
+    return this._colliderInfo.inertiaScale;
   }
 
   set inertiaScale(value: number) {
-    if (value !== this._connectedColliderInfo.inertiaScale) {
-      this._connectedColliderInfo.inertiaScale = value;
+    if (value !== this._colliderInfo.inertiaScale) {
+      this._colliderInfo.inertiaScale = value;
       this._nativeJoint.setInertiaScale(value);
     }
   }
@@ -158,7 +160,7 @@ export class Joint extends Component {
 /**
  * @internal
  */
-class JointCollider {
+class JointColliderInfo {
   collider: Collider = null;
   localPosition: Vector3;
   localRotation: Quaternion;
