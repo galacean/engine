@@ -272,6 +272,18 @@ export class DiscardStatementAstNode extends AstNode {
   }
 }
 
+export class BreakStatementAstNode extends AstNode {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return "break;";
+  }
+}
+
+export class ContinueStatementAstNode extends AstNode {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return "continue;";
+  }
+}
+
 export class FnParenthesisAtomicAstNode extends AstNode<IParenthesisAtomicAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     let ret = `(${this.content.parenthesisNode.serialize(context)})`;
