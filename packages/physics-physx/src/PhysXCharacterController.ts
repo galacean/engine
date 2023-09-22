@@ -21,7 +21,7 @@ export class PhysXCharacterController implements ICharacterController {
   /** @internal */
   _shape: PhysXColliderShape;
   private _scaledOffset = new Vector3();
-  private _position: Vector3 = new Vector3();
+  private _position: Vector3 = null;
 
   private _physXPhysics: PhysXPhysics;
 
@@ -154,8 +154,9 @@ export class PhysXCharacterController implements ICharacterController {
    * @internal
    */
   _setPosition() {
-    if (this._pxController) {
-      Vector3.add(this._position, this._scaledOffset, PhysXCharacterController._tempVec);
+    const position = this._position;
+    if (this._pxController && position) {
+      Vector3.add(position, this._scaledOffset, PhysXCharacterController._tempVec);
       this._pxController.setPosition(PhysXCharacterController._tempVec);
     }
   }
