@@ -50,8 +50,8 @@ export class Pointer {
           (element: Script) => {
             element.onPointerExit(this);
           },
-          (element: Script, idx: number) => {
-            element._entityScriptsIndex = idx;
+          (element: Script, index: number) => {
+            element._entityScriptsIndex = index;
           }
         );
       }
@@ -60,8 +60,8 @@ export class Pointer {
           (element: Script) => {
             element.onPointerEnter(this);
           },
-          (element: Script, idx: number) => {
-            element._entityScriptsIndex = idx;
+          (element: Script, index: number) => {
+            element._entityScriptsIndex = index;
           }
         );
       }
@@ -78,8 +78,8 @@ export class Pointer {
         (element: Script) => {
           element.onPointerDown(this);
         },
-        (element: Script, idx: number) => {
-          element._entityScriptsIndex = idx;
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
         }
       );
     }
@@ -95,8 +95,8 @@ export class Pointer {
         (element: Script) => {
           element.onPointerDrag(this);
         },
-        (element: Script, idx: number) => {
-          element._entityScriptsIndex = idx;
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
         }
       );
     }
@@ -114,8 +114,8 @@ export class Pointer {
           sameTarget && element.onPointerClick(this);
           element.onPointerUp(this);
         },
-        (element: Script, idx: number) => {
-          element._entityScriptsIndex = idx;
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
         }
       );
       this._currentPressedEntity = null;
