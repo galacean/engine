@@ -130,8 +130,8 @@ export class ComponentsManager {
           element.onUpdate(deltaTime);
         }
       },
-      (element: Script, idx: number) => {
-        element._onUpdateIndex = idx;
+      (element: Script, index: number) => {
+        element._onUpdateIndex = index;
       }
     );
   }
@@ -143,8 +143,8 @@ export class ComponentsManager {
           element.onLateUpdate(deltaTime);
         }
       },
-      (element: Script, idx: number) => {
-        element._onLateUpdateIndex = idx;
+      (element: Script, index: number) => {
+        element._onLateUpdateIndex = index;
       }
     );
   }
@@ -156,8 +156,8 @@ export class ComponentsManager {
           element.onPhysicsUpdate();
         }
       },
-      (element: Script, idx: number) => {
-        element._onPhysicsUpdateIndex = idx;
+      (element: Script, index: number) => {
+        element._onPhysicsUpdateIndex = index;
       }
     );
   }
@@ -167,8 +167,8 @@ export class ComponentsManager {
       (element: Animator) => {
         element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
       },
-      (element: Animator, idx: number) => {
-        element._onUpdateIndex = idx;
+      (element: Animator, index: number) => {
+        element._onUpdateIndex = index;
       }
     );
   }
@@ -178,8 +178,8 @@ export class ComponentsManager {
       (element: Renderer) => {
         element.update(deltaTime);
       },
-      (element: Renderer, idx: number) => {
-        element._onUpdateIndex = idx;
+      (element: Renderer, index: number) => {
+        element._onUpdateIndex = index;
       }
     );
   }
@@ -202,8 +202,8 @@ export class ComponentsManager {
       (element: Script) => {
         element.onBeginRender(camera);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   }
@@ -213,8 +213,8 @@ export class ComponentsManager {
       (element: Script) => {
         element.onEndRender(camera);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   }

@@ -66,7 +66,7 @@ export class DisorderedArray<T> {
     return end;
   }
 
-  forEach(callbackFn: (e: T) => void, swapFn: (e: T, idx: number) => void): void {
+  forEach(callbackFn: (element: T) => void, swapFn: (element: T, index: number) => void): void {
     this._startLoop();
     const elements = this._elements;
     for (let i = 0; i < this.length; i++) {
@@ -101,12 +101,22 @@ export class DisorderedArray<T> {
       let to = this.length - 1;
       const elements = this._elements;
       partition: do {
-        while (elements[from]) if (++from >= to) break partition;
-        while (!elements[to]) if (from >= --to) break partition;
-        swapFn(elements[to], from);
-        elements[from++] = elements[to];
+        while (elements[from])
+          if (++from >= to) {
+            break partition;
+          }
+
+        while (!elements[to])
+          if (from >= --to) {
+            break partition;
+          }
+
+        const swapElement = elements[to];
+        swapFn(swapElement, from);
+        elements[from++] = swapElement;
         elements[to--] = null;
       } while (from < to);
+
       this.length -= this._blankCount;
       this._blankCount = 0;
     }
