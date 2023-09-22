@@ -42,7 +42,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
-  private _isCloneMode: boolean;
+  private _isCopyMode: boolean;
 
   constructor(
     target: Entity,
@@ -56,7 +56,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this.component = target.getComponent(type);
     this.cureType = cureType;
     const isBlendShape = this.component instanceof SkinnedMeshRenderer;
-    this._isCloneMode = this._isCloneMode && !isBlendShape;
+    this._isCopyMode = cureType._isCopyMode && !isBlendShape;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
@@ -136,7 +136,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   getEvaluateValue(out: V): V {
-    if (this._isCloneMode) {
+    if (this._isCopyMode) {
       this.cureType._setValue(this.baseEvaluateData.value, out);
       return out;
     } else {
@@ -145,7 +145,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveDefaultValue(): void {
-    if (this._isCloneMode) {
+    if (this._isCopyMode) {
       this.cureType._setValue(this.referenceTargetValue, this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
@@ -153,7 +153,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveFixedPoseValue(): void {
-    if (this._isCloneMode) {
+    if (this._isCopyMode) {
       this.cureType._setValue(this.referenceTargetValue, this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
@@ -163,7 +163,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   applyValue(value: V, weight: number, additive: boolean): void {
     const cureType = this.cureType;
     if (additive) {
-      if (this._isCloneMode) {
+      if (this._isCopyMode) {
         cureType._additiveValue(value, weight, this.referenceTargetValue);
       } else {
         const assembler = this._assembler;
@@ -173,13 +173,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       }
     } else {
       if (weight === 1.0) {
-        if (this._isCloneMode) {
+        if (this._isCopyMode) {
           cureType._setValue(value, this.referenceTargetValue);
         } else {
           this._assembler.setTargetValue(value);
         }
       } else {
-        if (this._isCloneMode) {
+        if (this._isCopyMode) {
           const targetValue = this.referenceTargetValue;
           cureType._lerpValue(targetValue, value, weight, targetValue);
         } else {
@@ -192,7 +192,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   private _lerpValue(srcValue: V, destValue: V, crossWeight: number): KeyframeValueType {
-    if (this._isCloneMode) {
+    if (this._isCopyMode) {
       return this.cureType._lerpValue(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
     } else {
       this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);
