@@ -21,7 +21,7 @@ export class PhysXCharacterController implements ICharacterController {
   /** @internal */
   _shape: PhysXColliderShape;
   private _scaledOffset = new Vector3();
-  private _position: Vector3 = null;
+  private _position: Vector3 = new Vector3();
 
   private _physXPhysics: PhysXPhysics;
 
