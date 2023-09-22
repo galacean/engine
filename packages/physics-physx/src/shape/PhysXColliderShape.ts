@@ -72,7 +72,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     }
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._setLocalPosition(this._position, this._worldScale);
+      controllers.get(i)._updateLocalPosition(this._position, this._worldScale);
     }
 
     this._setLocalPose();
@@ -87,7 +87,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._setLocalPosition(this._position, this._worldScale);
+      controllers.get(i)._updateLocalPosition(this._position, this._worldScale);
     }
   }
 

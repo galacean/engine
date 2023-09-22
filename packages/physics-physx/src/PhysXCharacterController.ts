@@ -41,10 +41,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setWorldPosition(position: Vector3): void {
     this._position = position;
-    if (this._pxController) {
-      Vector3.add(position, this._scaledOffset, PhysXCharacterController._tempVec);
-      this._pxController.setPosition(PhysXCharacterController._tempVec);
-    }
+    this._setPosition();
   }
 
   /**
@@ -148,8 +145,18 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * @internal
    */
-  _setLocalPosition(position: Vector3, scale: Vector3): void {
-    Vector3.multiply(position, scale, this._scaledOffset);
-    this.setWorldPosition(this._position);
+  _updateLocalPosition(position: Vector3, worldScale: Vector3): void {
+    Vector3.multiply(position, worldScale, this._scaledOffset);
+    this._setPosition();
+  }
+
+  /**
+   * @internal
+   */
+  _setPosition() {
+    if (this._pxController) {
+      Vector3.add(this._position, this._scaledOffset, PhysXCharacterController._tempVec);
+      this._pxController.setPosition(PhysXCharacterController._tempVec);
+    }
   }
 }
