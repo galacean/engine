@@ -126,9 +126,7 @@ export class ComponentsManager {
   callScriptOnUpdate(deltaTime: number): void {
     this._onUpdateScripts.forEach(
       (element: Script) => {
-        if (element._started) {
-          element.onUpdate(deltaTime);
-        }
+        element._started && element.onUpdate(deltaTime);
       },
       (element: Script, index: number) => {
         element._onUpdateIndex = index;
@@ -139,9 +137,7 @@ export class ComponentsManager {
   callScriptOnLateUpdate(deltaTime: number): void {
     this._onLateUpdateScripts.forEach(
       (element: Script) => {
-        if (element._started) {
-          element.onLateUpdate(deltaTime);
-        }
+        element._started && element.onLateUpdate(deltaTime);
       },
       (element: Script, index: number) => {
         element._onLateUpdateIndex = index;
@@ -152,9 +148,7 @@ export class ComponentsManager {
   callScriptOnPhysicsUpdate(): void {
     this._onPhysicsUpdateScripts.forEach(
       (element: Script) => {
-        if (element._started) {
-          element.onPhysicsUpdate();
-        }
+        element._started && element.onPhysicsUpdate();
       },
       (element: Script, index: number) => {
         element._onPhysicsUpdateIndex = index;
