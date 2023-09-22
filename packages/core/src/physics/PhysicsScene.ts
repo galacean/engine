@@ -307,6 +307,9 @@ export class PhysicsScene {
 
     const onRaycast = (obj: number) => {
       const shape = this._scene.engine._physicalObjectsMap[obj];
+      if (!shape) {
+        return false;
+      }
       return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
     };
 
