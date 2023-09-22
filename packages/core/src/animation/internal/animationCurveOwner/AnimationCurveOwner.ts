@@ -56,6 +56,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this.component = target.getComponent(type);
     this.cureType = cureType;
     const isBlendShape = this.component instanceof SkinnedMeshRenderer;
+    // @todo: Temp solution with blendShape
     this._isCopyMode = cureType._isCopyMode && !isBlendShape;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
