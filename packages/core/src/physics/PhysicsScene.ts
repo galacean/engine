@@ -39,8 +39,8 @@ export class PhysicsScene {
         collision.shape = shape2;
         element.onCollisionEnter(collision);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
 
@@ -50,8 +50,8 @@ export class PhysicsScene {
         collision.shape = shape1;
         element.onCollisionEnter(collision);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   };
@@ -67,8 +67,8 @@ export class PhysicsScene {
         collision.shape = shape2;
         element.onCollisionExit(collision);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
 
@@ -78,8 +78,8 @@ export class PhysicsScene {
         collision.shape = shape1;
         element.onCollisionExit(collision);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   };
@@ -94,8 +94,8 @@ export class PhysicsScene {
         collision.shape = shape2;
         element.onCollisionStay(collision);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
 
@@ -105,8 +105,8 @@ export class PhysicsScene {
         collision.shape = shape1;
         element.onCollisionStay(collision);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   };
@@ -119,8 +119,8 @@ export class PhysicsScene {
       (element: Script) => {
         element.onTriggerEnter(shape2);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
 
@@ -128,8 +128,8 @@ export class PhysicsScene {
       (element: Script) => {
         element.onTriggerEnter(shape1);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   };
@@ -143,8 +143,8 @@ export class PhysicsScene {
       (element: Script) => {
         element.onTriggerExit(shape2);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
 
@@ -152,8 +152,8 @@ export class PhysicsScene {
       (element: Script) => {
         element.onTriggerExit(shape1);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   };
@@ -167,8 +167,8 @@ export class PhysicsScene {
       (element: Script) => {
         element.onTriggerStay(shape2);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
 
@@ -176,8 +176,8 @@ export class PhysicsScene {
       (element: Script) => {
         element.onTriggerStay(shape1);
       },
-      (element: Script, idx: number) => {
-        element._entityScriptsIndex = idx;
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
     );
   };
@@ -307,6 +307,9 @@ export class PhysicsScene {
 
     const onRaycast = (obj: number) => {
       const shape = this._scene.engine._physicalObjectsMap[obj];
+      if (!shape) {
+        return false;
+      }
       return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
     };
 

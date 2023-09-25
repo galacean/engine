@@ -137,7 +137,6 @@ export class CharacterController extends Collider {
   override _onLateUpdate() {
     const position = this.entity.transform.worldPosition;
     (<ICharacterController>this._nativeCollider).getWorldPosition(position);
-    this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
   }
 

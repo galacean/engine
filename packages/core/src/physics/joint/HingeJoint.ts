@@ -6,15 +6,21 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
+  @ignoreClone
   private _axis = new Vector3(1, 0, 0);
+  @ignoreClone
   private _hingeFlags = HingeJointFlag.None;
+  @ignoreClone
   private _useSpring = false;
+  @ignoreClone
   private _jointMonitor: JointMotor;
+  @ignoreClone
   private _limits: JointLimits;
 
   /**
@@ -36,11 +42,11 @@ export class HingeJoint extends Joint {
    * The swing offset.
    */
   get swingOffset(): Vector3 {
-    return this._collider.localPosition;
+    return this._colliderInfo.localPosition;
   }
 
   set swingOffset(value: Vector3) {
-    const swingOffset = this._collider.localPosition;
+    const swingOffset = this._colliderInfo.localPosition;
     if (value !== swingOffset) {
       swingOffset.copyFrom(value);
     }
@@ -57,7 +63,7 @@ export class HingeJoint extends Joint {
   /**
    * The angular velocity of the joint in degrees per second.
    */
-  get velocity(): Readonly<Vector3> {
+  get velocity(): Readonly<number> {
     return (<IHingeJoint>this._nativeJoint).getVelocity();
   }
 
@@ -142,9 +148,22 @@ export class HingeJoint extends Joint {
    * @internal
    */
   override _onAwake() {
-    const collider = this._collider;
+    const collider = this._colliderInfo;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(collider.collider._nativeCollider);
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: HingeJoint): void {
+    target.axis = this.axis;
+    target.swingOffset = this.swingOffset;
+    target.useLimits = this.useLimits;
+    target.useMotor = this.useMotor;
+    target.useSpring = this.useSpring;
+    target.motor = this.motor;
+    target.limits = this.limits;
   }
 }

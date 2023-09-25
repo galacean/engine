@@ -133,6 +133,7 @@ export class CloneManager {
           for (let i = 0; i < length; i++) {
             CloneManager.cloneProperty(<Array<any>>sourceProperty, targetPropertyA, i, cloneMode);
           }
+          break;
         default:
           const targetOProperty = <Object>(target[k] ||= new sourceProperty.constructor());
           const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);

@@ -49,7 +49,7 @@ export const _init = function init() {
 
 export const init = _init();
 
-export function transcode(buffer: ArrayBuffer, targetFormat: any, KTX2File: any): TranscodeResult {
+export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any): TranscodeResult {
   enum BasisFormat {
     ETC1 = 0,
     ETC2 = 1,
@@ -121,6 +121,11 @@ export function transcode(buffer: ArrayBuffer, targetFormat: any, KTX2File: any)
   if (!ktx2File.isValid()) {
     cleanup();
     throw new Error("Invalid or unsupported .ktx2 file");
+  }
+
+  if (!ktx2File.startTranscoding()) {
+    cleanup();
+    throw new Error("KTX2 startTranscoding failed");
   }
 
   const width = ktx2File.getWidth();

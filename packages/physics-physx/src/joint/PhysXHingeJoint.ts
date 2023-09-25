@@ -10,7 +10,6 @@ import { PhysXJoint } from "./PhysXJoint";
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _axisRotationQuaternion = new Quaternion();
   private _swingOffset = new Vector3();
-  private _velocity = new Vector3();
 
   constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
     super(physXPhysics);
@@ -58,10 +57,8 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.getVelocity }
    */
-  getVelocity(): Readonly<Vector3> {
-    const velocity = this._velocity;
-    velocity.copyFrom(this._pxJoint.getVelocity());
-    return velocity;
+  getVelocity(): Readonly<number> {
+    return this._pxJoint.getVelocity();
   }
 
   /**
@@ -81,8 +78,8 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.setDriveVelocity }
    */
-  setDriveVelocity(velocity: number): void {
-    this._pxJoint.setDriveVelocity(velocity);
+  setDriveVelocity(velocity: number, autowake: boolean = true): void {
+    this._pxJoint.setDriveVelocity(velocity, autowake);
   }
 
   /**
