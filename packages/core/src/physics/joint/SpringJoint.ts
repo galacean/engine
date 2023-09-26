@@ -1,5 +1,6 @@
 import { ISpringJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { Collider } from "../Collider";
 import { PhysicsScene } from "../PhysicsScene";
 import { Joint } from "./Joint";
@@ -18,11 +19,11 @@ export class SpringJoint extends Joint {
    * The swing offset.
    */
   get swingOffset(): Vector3 {
-    return this._collider.localPosition;
+    return this._colliderInfo.localPosition;
   }
 
   set swingOffset(value: Vector3) {
-    const swingOffset = this._collider.localPosition;
+    const swingOffset = this._colliderInfo.localPosition;
     if (value !== swingOffset) {
       swingOffset.copyFrom(value);
     }
@@ -103,9 +104,21 @@ export class SpringJoint extends Joint {
    * @internal
    */
   override _onAwake() {
-    const collider = this._collider;
+    const collider = this._colliderInfo;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsScene._nativePhysics.createSpringJoint(collider.collider._nativeCollider);
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: SpringJoint): void {
+    target.swingOffset = this.swingOffset;
+    target.minDistance = this.minDistance;
+    target.maxDistance = this.maxDistance;
+    target.tolerance = this.tolerance;
+    target.stiffness = this.stiffness;
+    target.damping = this.damping;
   }
 }

@@ -1,11 +1,13 @@
 import { ColliderShape } from "./ColliderShape";
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { PhysicsScene } from "../PhysicsScene";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for sphere.
  */
 export class SphereColliderShape extends ColliderShape {
+  @ignoreClone
   private _radius: number = 1;
 
   /**
@@ -29,5 +31,10 @@ export class SphereColliderShape extends ColliderShape {
       this._radius,
       this._material._nativeMaterial
     );
+  }
+
+  override _cloneTo(target: SphereColliderShape) {
+    super._cloneTo(target);
+    target.radius = this.radius;
   }
 }
