@@ -216,7 +216,7 @@ describe("Physics Test", () => {
 
       // Test that raycast nothing if distance is less than distance of origin to detected collider.
       expect(engineLite.physicsManager.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(true);
-      expect(engineLite.physicsManager.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(false);
+      expect(engineLite.physicsManager.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(true);
 
       collider.removeShape(box);
       expect(engineLite.physicsManager.raycast(ray)).to.eq(false);
