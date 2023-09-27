@@ -4,22 +4,25 @@ import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
+import { ICustomClone } from "../clone/ComponentCloner";
 
 /**
  * Base class for all colliders.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Collider extends Component {
+export class Collider extends Component implements ICustomClone {
   /** @internal */
   @ignoreClone
   _index: number = -1;
   /** @internal */
+  @ignoreClone
   _nativeCollider: ICollider;
-
+  @ignoreClone
   protected _updateFlag: BoolUpdateFlag;
+  @deepClone
   protected _shapes: ColliderShape[] = [];
 
   /**
@@ -134,9 +137,26 @@ export class Collider extends Component {
   /**
    * @internal
    */
+  _cloneTo(target: Collider): void {
+    const shapes = target._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      target._addPhysicsShape(shapes[i]);
+    }
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this.clearShapes();
     this._nativeCollider.destroy();
+  }
+
+  protected _addPhysicsShape(shape: ColliderShape): void {
+    shape._collider = this;
+
+    this._nativeCollider.addShape(shape._nativeShape);
+    this._phasedActiveInScene && this.scene.physics._addColliderShape(shape);
   }
 }

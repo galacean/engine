@@ -2,6 +2,7 @@ import {
   AssetPromise,
   AssetType,
   BackgroundMode,
+  DiffuseMode,
   Engine,
   Font,
   Loader,
@@ -26,32 +27,36 @@ class SceneLoader extends Loader<Scene> {
             // parse ambient light
             const ambient = data.scene.ambient;
             const useCustomAmbient = ambient.specularMode === "Custom";
+            const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
+
+            scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
+            scene.ambientLight.specularIntensity = ambient.specularIntensity;
+            scene.ambientLight.diffuseMode = ambient.diffuseMode;
+            scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
+            scene.ambientLight.specularTextureDecodeRGBM = true;
+
             if (useCustomAmbient && ambient.customAmbientLight) {
-              // @ts-ignore
-              // prettier-ignore
-              const customAmbientPromise = resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
-                  scene.ambientLight = ambientLight;
-                  scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-                  scene.ambientLight.specularIntensity = ambient.specularIntensity;
-                  scene.ambientLight.diffuseMode = ambient.diffuseMode;
-                  scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
-                });
-              promises.push(customAmbientPromise);
-            } else if (!useCustomAmbient && ambient.ambientLight) {
-              // @ts-ignore
-              // prettier-ignore
-              const ambientLightPromise = resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
-                  scene.ambientLight = ambientLight;
-                  scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-                  scene.ambientLight.specularIntensity = ambient.specularIntensity;
-                  scene.ambientLight.diffuseMode = ambient.diffuseMode;
-                  scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
-                });
-              promises.push(ambientLightPromise);
-            } else {
-              scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-              scene.ambientLight.specularIntensity = ambient.specularIntensity;
-              scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
+              promises.push(
+                // @ts-ignore
+                resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
+                  scene.ambientLight.specularTexture = ambientLight.specularTexture;
+                })
+              );
+            }
+
+            if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
+              promises.push(
+                // @ts-ignore
+                resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
+                  if (!useCustomAmbient) {
+                    scene.ambientLight.specularTexture = ambientLight.specularTexture;
+                  }
+
+                  if (useSH) {
+                    scene.ambientLight.diffuseSphericalHarmonics = ambientLight.diffuseSphericalHarmonics;
+                  }
+                })
+              );
             }
 
             const background = data.scene.background;
@@ -110,11 +115,11 @@ class SceneLoader extends Loader<Scene> {
 
 ReflectionParser.registerCustomParseComponent(
   "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">, engine: Engine) => {
+  async (instance: any, item: Omit<IClassObject, "class">) => {
     const { props } = item;
     if (!props.font) {
       // @ts-ignore
-      instance.font = Font.createFromOS(engine, props.fontFamily || "Arial");
+      instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
     }
     return instance;
   }

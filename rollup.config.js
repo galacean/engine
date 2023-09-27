@@ -7,7 +7,7 @@ import glslify from "rollup-plugin-glslify";
 import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
-import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
+import { swc, defineRollupSwcOption, minify, defineRollupSwcMinifyOption } from "rollup-plugin-swc3";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -68,15 +68,23 @@ function config({ location, pkgJson }) {
 
   return {
     umd: (compress) => {
-      const umdConfig = pkgJson.umd
+      const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
-        plugins.push(minify());
+        plugins.push(
+          minify(
+            defineRollupSwcMinifyOption({
+              mangle: {
+                reserved: ["_init", "init"]
+              }
+            })
+          )
+        );
         file = path.join(location, "dist", "browser.min.js");
       }
 
-      const umdExternal = Object.keys(umdConfig.globals ?? {})
+      const umdExternal = Object.keys(umdConfig.globals ?? {});
 
       return {
         input,
@@ -104,9 +112,7 @@ function config({ location, pkgJson }) {
             sourcemap: false
           }
         ],
-        external: external
-          .concat("@galacean/engine-miniprogram-adapter")
-          .map((name) => `${name}/dist/miniprogram`),
+        external: external.concat("@galacean/engine-miniprogram-adapter").map((name) => `${name}/dist/miniprogram`),
         plugins
       };
     },

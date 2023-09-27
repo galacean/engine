@@ -2,23 +2,33 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
+import { ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape {
+export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
+  @ignoreClone
   _collider: Collider;
   /** @internal */
+  @ignoreClone
   _nativeShape: IColliderShape;
 
+  @ignoreClone
   protected _id: number;
+  @ignoreClone
   protected _material: PhysicsMaterial;
+  @ignoreClone
   private _isTrigger: boolean = false;
+  @ignoreClone
   private _rotation: Vector3 = new Vector3();
+  @ignoreClone
   private _position: Vector3 = new Vector3();
+  @ignoreClone
   private _contactOffset: number = 0.02;
 
   /**
@@ -120,6 +130,17 @@ export abstract class ColliderShape {
     this._rotation._onValueChanged = this._setRotation;
     //@ts-ignore
     this._position._onValueChanged = this._setPosition;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: ColliderShape) {
+    target.contactOffset = this.contactOffset;
+    target.rotation = this.rotation;
+    target.position = this.position;
+    target.isTrigger = this.isTrigger;
+    target.material = this.material;
   }
 
   /**

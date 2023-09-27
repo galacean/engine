@@ -49,7 +49,7 @@ export class BinomialLLCTranscoder extends AbstractTranscoder {
     });
   }
 
-  transcode(buffer: ArrayBuffer, format: KTX2TargetFormat): Promise<TranscodeResult> {
+  transcode(buffer: Uint8Array, format: KTX2TargetFormat): Promise<TranscodeResult> {
     if (this.workerLimitCount === 0) {
       return init().then((KTX2File) => transcode(buffer, format, KTX2File));
     } else {

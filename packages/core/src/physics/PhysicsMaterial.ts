@@ -11,6 +11,7 @@ export class PhysicsMaterial {
   private _staticFriction: number = 0.1;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
+  private _destroyed: boolean;
 
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
@@ -99,6 +100,7 @@ export class PhysicsMaterial {
    * @internal
    */
   _destroy() {
-    this._nativeMaterial.destroy();
+    !this._destroyed && this._nativeMaterial.destroy();
+    this._destroyed = true;
   }
 }

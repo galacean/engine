@@ -56,7 +56,7 @@ export interface InitMessage extends BaseMessage {
 export interface BinomialTranscodeMessage extends BaseMessage {
   type: "transcode";
   format: number;
-  buffer: ArrayBuffer;
+  buffer: Uint8Array;
 }
 
 export type IBinomialMessage = InitMessage | BinomialTranscodeMessage;
