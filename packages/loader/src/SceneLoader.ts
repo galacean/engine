@@ -115,11 +115,11 @@ class SceneLoader extends Loader<Scene> {
 
 ReflectionParser.registerCustomParseComponent(
   "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">, engine: Engine) => {
+  async (instance: any, item: Omit<IClassObject, "class">) => {
     const { props } = item;
     if (!props.font) {
       // @ts-ignore
-      instance.font = Font.createFromOS(engine, props.fontFamily || "Arial");
+      instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
     }
     return instance;
   }
