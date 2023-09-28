@@ -433,7 +433,8 @@ export class ResourceManager {
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
         url,
-        type: this._editorResourceConfig[refId].type
+        type: this._editorResourceConfig[refId].type,
+        params: this._editorResourceConfig[refId].params
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));
@@ -484,5 +485,5 @@ const rePropName = RegExp(
   "g"
 );
 
-type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
+type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string; params?: any };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
