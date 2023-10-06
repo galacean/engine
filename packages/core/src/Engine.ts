@@ -315,7 +315,7 @@ export class Engine extends EventDispatcher {
     // Sort cameras and fire script `onStart`
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
-      if (scene.isActive && scene.destroyed) continue;
+      if (!scene.isActive || scene.destroyed) continue;
       scene._cameraNeedSorting && scene._sortCameras();
       scene._componentsManager.callScriptOnStart();
     }
@@ -324,7 +324,7 @@ export class Engine extends EventDispatcher {
     if (physicsInitialized) {
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
-        if (scene.isActive && scene.destroyed) continue;
+        if (!scene.isActive || scene.destroyed) continue;
         scene.physics._update(deltaTime);
       }
     }
@@ -335,21 +335,21 @@ export class Engine extends EventDispatcher {
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
-      if (scene.isActive && scene.destroyed) continue;
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callScriptOnUpdate(deltaTime);
     }
 
     // Update `Animator` logic
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
-      if (scene.isActive && scene.destroyed) continue;
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callAnimationUpdate(deltaTime);
     }
 
     // Fire `onLateUpdate`
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
-      if (scene.isActive && scene.destroyed) continue;
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callScriptOnLateUpdate(deltaTime);
     }
 
@@ -364,7 +364,7 @@ export class Engine extends EventDispatcher {
       // Handling invalid scripts and fire `onDestroy`
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
-        if (scene.isActive && scene.destroyed) continue;
+        if (!scene.isActive || scene.destroyed) continue;
         scene._componentsManager.handlingInvalidScripts();
       }
     }
@@ -472,7 +472,7 @@ export class Engine extends EventDispatcher {
     const deltaTime = this.time.deltaTime;
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
-      if (scene.isActive && scene.destroyed) continue;
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callRendererOnUpdate(deltaTime);
       scene._updateShaderData();
     }
@@ -480,7 +480,7 @@ export class Engine extends EventDispatcher {
     // Fire script `onBeginRender` and `onEndRender`
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
-      if (scene.isActive && scene.destroyed) continue;
+      if (!scene.isActive || scene.destroyed) continue;
       const cameras = scene._activeCameras;
       const cameraCount = cameras.length;
       if (cameraCount > 0) {
