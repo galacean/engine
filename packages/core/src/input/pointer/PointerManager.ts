@@ -3,13 +3,13 @@ import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
+import { Scene } from "../../Scene";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
-import { Scene } from "../../Scene";
 
 /**
  * Pointer Manager.
@@ -291,7 +291,7 @@ export class PointerManager implements IInput {
     const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
-      if (scene.destroyed) {
+      if (!scene.isActive || scene.destroyed) {
         continue;
       }
       const { _activeCameras: cameras } = scene;
