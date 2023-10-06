@@ -143,7 +143,6 @@ export class PointerManager implements IInput {
             case "pointercancel":
               pointer.phase = PointerPhase.Leave;
               pointer._firePointerExitAndEnter(null);
-            default:
               break;
           }
         }
