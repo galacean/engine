@@ -20,8 +20,8 @@ export class PhysXCharacterController implements ICharacterController {
   _pxManager: PhysXPhysicsScene;
   /** @internal */
   _shape: PhysXColliderShape;
-  private _scaledOffset = new Vector3();
-  private _position: Vector3 = null;
+  private _shapeScaledPosition = new Vector3();
+  private _worldPosition: Vector3 = null;
 
   private _physXPhysics: PhysXPhysics;
 
@@ -40,11 +40,8 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
   setWorldPosition(position: Vector3): void {
-    this._position = position;
-    if (this._pxController) {
-      Vector3.add(position, this._scaledOffset, PhysXCharacterController._tempVec);
-      this._pxController.setPosition(PhysXCharacterController._tempVec);
-    }
+    this._worldPosition = position;
+    this._updateNativePosition();
   }
 
   /**
@@ -53,7 +50,7 @@ export class PhysXCharacterController implements ICharacterController {
   getWorldPosition(position: Vector3): void {
     if (this._pxController) {
       position.copyFrom(this._pxController.getPosition());
-      position.subtract(this._scaledOffset);
+      position.subtract(this._shapeScaledPosition);
     }
   }
 
@@ -129,7 +126,7 @@ export class PhysXCharacterController implements ICharacterController {
       throw "unsupported shape type";
     }
 
-    desc.setMaterial(shape._pxMaterials[0]);
+    desc.setMaterial(shape._pxMaterial);
 
     this._pxController = pxManager._getControllerManager().createController(desc);
     this._pxController.setUUID(shape._id);
@@ -148,8 +145,16 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * @internal
    */
-  _setLocalPosition(position: Vector3, scale: Vector3): void {
-    Vector3.multiply(position, scale, this._scaledOffset);
-    this.setWorldPosition(position);
+  _updateShapePosition(shapePosition: Vector3, worldScale: Vector3): void {
+    Vector3.multiply(shapePosition, worldScale, this._shapeScaledPosition);
+    this._updateNativePosition();
+  }
+
+  private _updateNativePosition() {
+    const worldPosition = this._worldPosition;
+    if (this._pxController && worldPosition) {
+      Vector3.add(worldPosition, this._shapeScaledPosition, PhysXCharacterController._tempVec);
+      this._pxController.setPosition(PhysXCharacterController._tempVec);
+    }
   }
 }

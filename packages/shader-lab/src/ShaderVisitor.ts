@@ -9,8 +9,10 @@ import {
   BlendFactorAstNode,
   BlendOperationAstNode,
   BooleanAstNode,
+  BreakStatementAstNode,
   CompareFunctionAstNode,
   ConditionExprAstNode,
+  ContinueStatementAstNode,
   CullModeAstNode,
   DeclarationWithoutAssignAstNode,
   DiscardStatementAstNode,
@@ -80,8 +82,10 @@ import {
   _ruleBlendStatePropertyDeclarationCstChildren,
   _ruleBlendStateValueCstChildren,
   _ruleBooleanCstChildren,
+  _ruleBreakStatementCstChildren,
   _ruleCompareFunctionCstChildren,
   _ruleConditionExprCstChildren,
+  _ruleContinueStatementCstChildren,
   _ruleCullModeCstChildren,
   _ruleDeclarationWithoutAssignCstChildren,
   _ruleDepthSatePropertyDeclarationCstChildren,
@@ -415,6 +419,22 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
     };
     return new DiscardStatementAstNode(position, null);
+  }
+
+  _ruleBreakStatement(children: _ruleBreakStatementCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.break[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+    };
+    return new BreakStatementAstNode(position, null);
+  }
+
+  _ruleContinueStatement(children: _ruleContinueStatementCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.continue[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+    };
+    return new ContinueStatementAstNode(position, null);
   }
 
   _ruleFnCall(ctx: _ruleFnCallCstChildren) {

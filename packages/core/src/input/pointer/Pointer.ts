@@ -46,14 +46,24 @@ export class Pointer {
   _firePointerExitAndEnter(rayCastEntity: Entity): void {
     if (this._currentEnteredEntity !== rayCastEntity) {
       if (this._currentEnteredEntity) {
-        this._currentEnteredEntity._scripts.forEach((element: Script) => {
-          element.onPointerExit(this);
-        });
+        this._currentEnteredEntity._scripts.forEach(
+          (element: Script) => {
+            element.onPointerExit(this);
+          },
+          (element: Script, index: number) => {
+            element._entityScriptsIndex = index;
+          }
+        );
       }
       if (rayCastEntity) {
-        rayCastEntity._scripts.forEach((element: Script) => {
-          element.onPointerEnter(this);
-        });
+        rayCastEntity._scripts.forEach(
+          (element: Script) => {
+            element.onPointerEnter(this);
+          },
+          (element: Script, index: number) => {
+            element._entityScriptsIndex = index;
+          }
+        );
       }
       this._currentEnteredEntity = rayCastEntity;
     }
@@ -64,9 +74,14 @@ export class Pointer {
    */
   _firePointerDown(rayCastEntity: Entity): void {
     if (rayCastEntity) {
-      rayCastEntity._scripts.forEach((element: Script) => {
-        element.onPointerDown(this);
-      });
+      rayCastEntity._scripts.forEach(
+        (element: Script) => {
+          element.onPointerDown(this);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
     }
     this._currentPressedEntity = rayCastEntity;
   }
@@ -76,9 +91,14 @@ export class Pointer {
    */
   _firePointerDrag(): void {
     if (this._currentPressedEntity) {
-      this._currentPressedEntity._scripts.forEach((element: Script) => {
-        element.onPointerDrag(this);
-      });
+      this._currentPressedEntity._scripts.forEach(
+        (element: Script) => {
+          element.onPointerDrag(this);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
     }
   }
 
@@ -89,10 +109,15 @@ export class Pointer {
     const { _currentPressedEntity: pressedEntity } = this;
     if (pressedEntity) {
       const sameTarget = pressedEntity === rayCastEntity;
-      pressedEntity._scripts.forEach((element: Script) => {
-        sameTarget && element.onPointerClick(this);
-        element.onPointerUp(this);
-      });
+      pressedEntity._scripts.forEach(
+        (element: Script) => {
+          sameTarget && element.onPointerClick(this);
+          element.onPointerUp(this);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
       this._currentPressedEntity = null;
     }
   }
