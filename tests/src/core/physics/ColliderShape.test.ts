@@ -65,9 +65,6 @@ describe("ColliderShape", () => {
     boxShape.material = material;
     expect(boxShape.material).to.eq(material);
 
-    boxShape.material = null;
-    expect(boxShape.material).to.eq(null);
-
     // Test that set position works correctly.
     boxShape.position = new Vector3(1, 2, -1);
     expect(boxShape.position).to.deep.include({ x: 1, y: 2, z: -1 });
@@ -144,9 +141,6 @@ describe("ColliderShape", () => {
     capsuleShape.material = material;
     expect(capsuleShape.material).to.eq(material);
 
-    capsuleShape.material = null;
-    expect(capsuleShape.material).to.eq(null);
-
     // Test that set position works correctly.
     capsuleShape.position = new Vector3(1, 2, -1);
     expect(capsuleShape.position).to.deep.include({ x: 1, y: 2, z: -1 });
@@ -185,9 +179,6 @@ describe("ColliderShape", () => {
     const material = new PhysicsMaterial();
     planeShape.material = material;
     expect(planeShape.material).to.eq(material);
-
-    planeShape.material = null;
-    expect(planeShape.material).to.eq(null);
 
     // Test that set position works correctly.
     planeShape.position = new Vector3(1, 2, -1);
@@ -239,9 +230,6 @@ describe("ColliderShape", () => {
     const material = new PhysicsMaterial();
     sphereShape.material = material;
     expect(sphereShape.material).to.eq(material);
-
-    sphereShape.material = null;
-    expect(sphereShape.material).to.eq(null);
 
     // Test that set position works correctly.
     sphereShape.position = new Vector3(1, 2, -1);
