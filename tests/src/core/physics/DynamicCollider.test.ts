@@ -14,12 +14,12 @@ import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { expect } from "chai";
 
-describe("DynamicCollider", () => {
+describe("DynamicCollider", function () {
   let engine: Engine;
   let rootEntity: Entity;
   let defaultDynamicCollider: DynamicCollider;
 
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
@@ -33,7 +33,7 @@ describe("DynamicCollider", () => {
     engine.run();
   });
 
-  it("test addShape and removeShape", () => {
+  it("test addShape and removeShape", function () {
     // Test that addShape works correctly.
     const collider = rootEntity.createChild("entity").addComponent(DynamicCollider);
     const boxCollider = new BoxColliderShape();
@@ -64,7 +64,7 @@ describe("DynamicCollider", () => {
     expect(collider.shapes.length).to.equal(0);
   });
 
-  it("test linearDamping", () => {
+  it("test linearDamping", function () {
     // Test that set linearDamping will change the value of linearDamping.
     defaultDynamicCollider.linearDamping = 0;
     expect(defaultDynamicCollider.linearDamping).to.equal(0);
@@ -73,7 +73,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.linearDamping).to.equal(0.5);
   });
 
-  it("test angularDamping", () => {
+  it("test angularDamping", function () {
     // Test that set angularDamping will change the value of angularDamping.
     defaultDynamicCollider.angularDamping = 0.05;
     expect(defaultDynamicCollider.angularDamping).to.equal(0.05);
@@ -82,7 +82,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.angularDamping).to.equal(0);
   });
 
-  it("test linearVelocity", () => {
+  it("test linearVelocity", function () {
     // Test that set linearVelocity will change the value of linearVelocity.
     defaultDynamicCollider.linearVelocity = defaultDynamicCollider.linearVelocity;
     expect(defaultDynamicCollider.linearVelocity).to.deep.include({ x: 0, y: 0, z: 0 });
@@ -91,7 +91,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.linearVelocity).to.deep.include({ x: 1, y: 2, z: 0 });
   });
 
-  it("test angularVelocity", () => {
+  it("test angularVelocity", function () {
     // Test that set angularVelocity will change the value of angularVelocity.
     defaultDynamicCollider.angularVelocity = defaultDynamicCollider.angularVelocity;
     expect(defaultDynamicCollider.angularVelocity).to.deep.include({ x: 0, y: 0, z: 0 });
@@ -100,7 +100,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.angularVelocity).to.deep.include({ x: 0, y: 2, z: 0 });
   });
 
-  it("test mass", () => {
+  it("test mass", function () {
     // Test that set mass will change the value of mass.
     defaultDynamicCollider.mass = 1;
     expect(defaultDynamicCollider.mass).to.equal(1);
@@ -109,7 +109,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.mass).to.equal(0);
   });
 
-  it("test centerOfMass", () => {
+  it("test centerOfMass", function () {
     // Test that set centerOfMass will change the value of centerOfMass.
     defaultDynamicCollider.centerOfMass = defaultDynamicCollider.centerOfMass;
     expect(defaultDynamicCollider.centerOfMass).to.deep.include({ x: 0, y: 0, z: 0 });
@@ -118,7 +118,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.centerOfMass).to.deep.include({ x: 1, y: 0, z: 0 });
   });
 
-  it("test inertiaTensor", () => {
+  it("test inertiaTensor", function () {
     // Test that set inertiaTensor will change the value of inertiaTensor.
     defaultDynamicCollider.inertiaTensor = defaultDynamicCollider.inertiaTensor;
     expect(defaultDynamicCollider.inertiaTensor).to.deep.include({ x: 1, y: 1, z: 1 });
@@ -127,7 +127,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.inertiaTensor).to.deep.include({ x: 1, y: 0, z: 0 });
   });
 
-  it("test maxAngularVelocity", () => {
+  it("test maxAngularVelocity", function () {
     // Test that set maxAngularVelocity will change the value of maxAngularVelocity.
     defaultDynamicCollider.maxAngularVelocity = 100;
     expect(defaultDynamicCollider.maxAngularVelocity).to.equal(100);
@@ -136,7 +136,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.maxAngularVelocity).to.equal(0);
   });
 
-  it("test maxDepenetrationVelocity", () => {
+  it("test maxDepenetrationVelocity", function () {
     // Test that set maxDepenetrationVelocity will change the value of maxDepenetrationVelocity.
     defaultDynamicCollider.maxDepenetrationVelocity = 1000;
     expect(defaultDynamicCollider.maxDepenetrationVelocity).to.equal(1000);
@@ -145,7 +145,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.maxDepenetrationVelocity).to.equal(0);
   });
 
-  it("test sleepThreshold", () => {
+  it("test sleepThreshold", function () {
     // Test that set sleepThreshold will change the value of sleepThreshold.
     defaultDynamicCollider.sleepThreshold = 5e-3;
     expect(defaultDynamicCollider.sleepThreshold).to.equal(5e-3);
@@ -154,7 +154,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.sleepThreshold).to.equal(10);
   });
 
-  it("test solverIterations", () => {
+  it("test solverIterations", function () {
     // Test that set solverIterations will change the value of solverIterations.
     defaultDynamicCollider.solverIterations = 4;
     expect(defaultDynamicCollider.solverIterations).to.equal(4);
@@ -163,7 +163,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.solverIterations).to.equal(0);
   });
 
-  it("test isKinematic", () => {
+  it("test isKinematic", function () {
     // Test that set isKinematic will change the value of isKinematic.
     defaultDynamicCollider.isKinematic = false;
     expect(defaultDynamicCollider.isKinematic).to.equal(false);
@@ -172,7 +172,7 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.isKinematic).to.equal(true);
   });
 
-  it("test constraints", () => {
+  it("test constraints", function () {
     // Test that set constraints will change the value of constraints.
     defaultDynamicCollider.constraints = DynamicColliderConstraints.None;
     expect(defaultDynamicCollider.constraints).to.equal(DynamicColliderConstraints.None);
@@ -184,7 +184,7 @@ describe("DynamicCollider", () => {
     );
   });
 
-  it("test collisionDetectionMode", () => {
+  it("test collisionDetectionMode", function () {
     // Test that set collisionDetectionMode will change the value of collisionDetectionMode.
     defaultDynamicCollider.collisionDetectionMode = CollisionDetectionMode.Discrete;
     expect(defaultDynamicCollider.collisionDetectionMode).to.equal(CollisionDetectionMode.Discrete);
@@ -199,19 +199,19 @@ describe("DynamicCollider", () => {
     expect(defaultDynamicCollider.collisionDetectionMode).to.equal(CollisionDetectionMode.ContinuousSpeculative);
   });
 
-  it("test sleep", () => {
-    expect(() => {
+  it("test sleep", function () {
+    expect(function () {
       defaultDynamicCollider.sleep();
     }).not.to.throw();
   });
 
-  it("test wakeUp", () => {
-    expect(() => {
+  it("test wakeUp", function () {
+    expect(function () {
       defaultDynamicCollider.wakeUp();
     }).not.to.throw();
   });
 
-  it("test applyForce", () => {
+  it("test applyForce", function () {
     const nonKinematicCollider = rootEntity.createChild("nonKinematicCollider").addComponent(DynamicCollider);
     nonKinematicCollider.entity.transform.setPosition(0, 1, 1.5);
     nonKinematicCollider.isKinematic = false;
@@ -224,7 +224,7 @@ describe("DynamicCollider", () => {
     kinematicCollider.addShape(new BoxColliderShape());
     kinematicCollider.applyForce(new Vector3(0, 0, 10));
 
-    setTimeout(() => {
+    setTimeout(function () {
       // Test that applyForce works correctly.
       expect(nonKinematicCollider.entity.transform.position.x).to.be.greaterThan(0);
       expect(nonKinematicCollider.entity.transform.position.y).to.be.eq(1);
@@ -237,7 +237,7 @@ describe("DynamicCollider", () => {
     }, 1000);
   });
 
-  it("test applyTorque", () => {
+  it("test applyTorque", function () {
     const nonKinematicCollider = rootEntity.createChild("nonKinematicCollider").addComponent(DynamicCollider);
     nonKinematicCollider.entity.transform.setPosition(0, 20, 1.5);
     nonKinematicCollider.isKinematic = false;
@@ -252,7 +252,7 @@ describe("DynamicCollider", () => {
     kinematicCollider.applyTorque(new Vector3(0, 0, 10));
     kinematicCollider.applyForce(new Vector3(0, 0, 10));
 
-    setTimeout(() => {
+    setTimeout(function () {
       // Test that applyTorque works correctly.
       expect(nonKinematicCollider.entity.transform.rotation.x).to.be.eq(0);
       expect(nonKinematicCollider.entity.transform.rotation.y).to.be.eq(0);
@@ -265,7 +265,7 @@ describe("DynamicCollider", () => {
     }, 1000);
   });
 
-  it("test move", () => {
+  it("test move", function () {
     const nonKinematicCollider = rootEntity.createChild("nonKinematicCollider").addComponent(DynamicCollider);
     nonKinematicCollider.addShape(new BoxColliderShape());
     nonKinematicCollider.isKinematic = false;
@@ -284,7 +284,7 @@ describe("DynamicCollider", () => {
       new Quaternion().rotateAxisAngle(new Vector3(0, 1, 0), MathUtil.degreeToRadian(30))
     );
 
-    setTimeout(() => {
+    setTimeout(function () {
       // Test that move position and rotation works correctly.
       expect(nonKinematicCollider.entity.transform.position).to.deep.include({ x: 1, y: 5, z: 0 });
       expect(nonKinematicCollider.entity.transform.rotation).to.deep.include({ x: 0, y: 0, z: 0 });
@@ -296,7 +296,7 @@ describe("DynamicCollider", () => {
     }, 1000);
   });
 
-  it("test destroy", () => {
+  it("test destroy", function () {
     const entity = rootEntity.createChild("collider");
     const collider = entity.addComponent(DynamicCollider);
     collider.addShape(new BoxColliderShape());
