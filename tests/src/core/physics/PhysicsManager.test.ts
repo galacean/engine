@@ -392,11 +392,15 @@ describe("Physics Test", () => {
       expect(enginePhysX.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Layer3, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
 
+      boxShape2.position = new Vector3(0, 0, 0.85);
+      updatePhysics(enginePhysX.physicsManager);
+
       // Test that raycast works correctly if shape is not at origin of coordinate.
       ray = new Ray(new Vector3(-2, 0, 0.85), new Vector3(1, 0, 0).normalize());
-      boxShape2.position = new Vector3(0, 0, 0.85);
       expect(enginePhysX.physicsManager.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
+      // Test that set collider position not effect entity position.
+      expect(rootEntityCharacter.transform.position).to.be.deep.include({ x: 0, y: 0, z: 0 });
 
       // Test that raycast nothing if character controller is disabled.
       characterController.enabled = false;
