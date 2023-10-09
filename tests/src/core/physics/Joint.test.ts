@@ -12,21 +12,21 @@ import { Vector3, Quaternion } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { expect } from "chai";
 
-describe("Joint", () => {
+describe("Joint", function () {
   let root: Entity;
 
-  before(async () => {
+  before(async function () {
     const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     engine.run();
 
     root = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
-  beforeEach(() => {
+  beforeEach(function () {
     root.clearChildren();
   });
 
-  it("Fixed Joint", () => {
+  it("Fixed Joint", function () {
     const entity = root.createChild("FixedJoint");
     // Must add a collider to the entity before add a joint.
     entity.addComponent(DynamicCollider);
@@ -158,7 +158,7 @@ describe("Joint", () => {
     expect(joint.breakTorque).to.eq(tempBreakTorque);
   });
 
-  it("Hinge Joint", () => {
+  it("Hinge Joint", function () {
     const entity = root.createChild("HingeJoint");
     // Must add a collider to the entity before add a joint.
     entity.addComponent(DynamicCollider);
@@ -183,13 +183,13 @@ describe("Joint", () => {
     expect(joint.swingOffset).to.deep.include({ x: 1, y: 2, z: 3 });
 
     // Test that angle works correctly.
-    expect(() => {
+    expect(function () {
       let tempAngle = joint.angle;
       expect(joint.angle).to.eq(tempAngle);
     }).to.not.throw();
 
     // Test that velocity works correctly.
-    expect(() => {
+    expect(function () {
       let tempVelocity = joint.velocity;
       expect(joint.velocity).to.deep.eq(tempVelocity);
     }).to.not.throw();
@@ -237,7 +237,7 @@ describe("Joint", () => {
     tempMotor.freeSpin = true;
     tempMotor.targetVelocity = 10;
     tempMotor.gearRation = 10;
-    expect(() => {
+    expect(function () {
       joint.motor = tempMotor;
       expect(joint.motor).to.be.eq(tempMotor);
     }).to.not.throw();
@@ -253,7 +253,7 @@ describe("Joint", () => {
     tempLimits.max = 10;
     tempLimits.min = -10;
     tempLimits.stiffness = 0;
-    expect(() => {
+    expect(function () {
       joint.limits = tempLimits;
       expect(joint.limits).to.be.eq(tempLimits);
     }).to.not.throw();
@@ -266,13 +266,13 @@ describe("Joint", () => {
     tempLimits.max = 10;
     tempLimits.min = -10;
     tempLimits.stiffness = 0;
-    expect(() => {
+    expect(function () {
       joint.limits = tempLimits;
       expect(joint.limits).to.be.eq(tempLimits);
     }).to.not.throw();
   });
 
-  it("Spring Joint", () => {
+  it("Spring Joint", function () {
     const entity = root.createChild("SpringJoint");
     // Must add a collider to the entity before add a joint.
     entity.addComponent(DynamicCollider);
