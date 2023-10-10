@@ -1,4 +1,4 @@
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger, ShaderProperty } from "..";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
@@ -19,6 +19,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearCoatRoughnessProp = ShaderProperty.getByName("material_ClearCoatRoughness");
   private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
   private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
+
+  private static _anisotropyProp = ShaderProperty.getByName("material_Anisotropy");
+  private static _anisotropyDirectionProp = ShaderProperty.getByName("material_AnisotropyDirection");
 
   /**
    * Base color.
@@ -244,6 +247,38 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * The Amount of anisotropy. Scalar between −1 and 1.
+   */
+  get anisotropy(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._anisotropyProp);
+  }
+
+  set anisotropy(value: number) {
+    if (!!this.shaderData.getFloat(PBRBaseMaterial._anisotropyProp) !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_ANISOTROPY");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_ANISOTROPY");
+      }
+    }
+    this.shaderData.setFloat(PBRBaseMaterial._anisotropyProp, value);
+  }
+
+  /**
+   * The direction of the surface to control the shape of the specular highlights
+   */
+  get anisotropyDirection(): Vector3 {
+    return this.shaderData.getVector3(PBRBaseMaterial._anisotropyDirectionProp);
+  }
+
+  set anisotropyDirection(value: Vector3) {
+    const direction = this.shaderData.getVector3(PBRBaseMaterial._anisotropyDirectionProp);
+    if (value !== direction) {
+      direction.copyFrom(value);
+    }
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -266,5 +301,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setFloat(PBRBaseMaterial._clearCoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearCoatRoughnessProp, 0);
+
+    shaderData.setFloat(PBRBaseMaterial._anisotropyProp, 0);
+    shaderData.setVector3(PBRBaseMaterial._anisotropyDirectionProp, new Vector3(1, 0, 0));
   }
 }

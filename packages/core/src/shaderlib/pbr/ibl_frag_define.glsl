@@ -43,15 +43,35 @@ float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {
     return roughness * float(maxMIPLevel);
 }
 
-vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
+/**
+ * Returns the reflected vector at the current shading point. The reflected vector
+ * return by this function might be different from shading_reflected:
+ * - For anisotropic material, we bend the reflection vector to simulate
+ *   anisotropic indirect lighting
+ * - The reflected vector may be modified to point towards the dominant specular
+ *   direction to match reference renderings when the roughness increases
+ */
+vec3 getReflectedVector(Geometry geometry, vec3 n, float roughness) {
+    #if defined(MATERIAL_ENABLE_ANISOTROPY)
+        vec3  anisotropyDirection = geometry.anisotropy >= 0.0 ? geometry.anisotropicB : geometry.anisotropicT;
+        vec3  anisotropicTangent  = cross(anisotropyDirection, geometry.viewDir);
+        vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
+        float bendFactor          = abs(geometry.anisotropy) * saturate(5.0 * roughness);
+        vec3  bentNormal          = normalize(mix(n, anisotropicNormal, bendFactor));
+
+        vec3 r = reflect(-geometry.viewDir, bentNormal);
+    #else
+        vec3 r = reflect(-geometry.viewDir, n);
+    #endif
+    return r;
+}
+
+vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
 
     #ifndef SCENE_USE_SPECULAR_ENV
-
         return vec3(0);
-
     #else
-
-        vec3 reflectVec = reflect( -viewDir, normal );
+        vec3 reflectVec = getReflectedVector(geometry, normal, roughness);
         reflectVec.x = -reflectVec.x; // TextureCube is left-hand,so x need inverse
         
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );

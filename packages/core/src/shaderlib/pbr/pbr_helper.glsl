@@ -21,7 +21,7 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(camera_Position - v_pos);
 
-    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE)
+    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
         mat3 tbn = getTBN(isFrontFacing);
     #endif
 
@@ -43,6 +43,11 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
         geometry.clearCoatDotNV = saturate( dot(geometry.clearCoatNormal, geometry.viewDir) );
     #endif
 
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        geometry.anisotropy = material_Anisotropy;
+        geometry.anisotropicT = normalize(tbn * material_AnisotropyDirection);
+        geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
+    #endif
 }
 
 void initMaterial(out Material material, const in Geometry geometry){

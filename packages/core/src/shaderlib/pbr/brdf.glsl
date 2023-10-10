@@ -29,6 +29,17 @@ float G_GGX_SmithCorrelated(float alpha, float dotNL, float dotNV ) {
 
 }
 
+#if defined(MATERIAL_ENABLE_ANISOTROPY)
+float G_GGX_SmithCorrelated_Anisotropic(float at, float ab, float ToV, float BoV,
+        float ToL, float BoL, float NoV, float NoL) {
+    // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
+    // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
+    float lambdaV = NoL * length(vec3(at * ToV, ab * BoV, NoV));
+    float lambdaL = NoV * length(vec3(at * ToL, ab * BoL, NoL));
+    return 0.5 / max(lambdaV + lambdaL, EPSILON);
+}
+#endif
+
 // Microfacet Models for Refraction through Rough Surfaces - equation (33)
 // http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
 // alpha is "roughness squared" in Disney’s reparameterization
@@ -42,18 +53,22 @@ float D_GGX(float alpha, float dotNH ) {
 
 }
 
-// GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
-vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 specularColor, float roughness ) {
+#if defined(MATERIAL_ENABLE_ANISOTROPY)
+float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
+    // Burley 2012, "Physically-Based Shading at Disney"
 
-	float alpha = pow2( roughness ); // UE4's roughness
+    // The values at and ab are perceptualRoughness^2, a2 is therefore perceptualRoughness^4
+    // The dot product below computes perceptualRoughness^8. We cannot fit in fp16 without clamping
+    // the roughness to too high values so we perform the dot product and the division in fp32
+    float a2 = at * ab;
+    highp vec3 d = vec3(ab * ToH, at * BoH, a2 * NoH);
+    highp float d2 = dot(d, d);
+    float b2 = a2 / d2;
+    return a2 * b2 * b2 * RECIPROCAL_PI;
+}
+#endif
 
-	vec3 halfDir = normalize( incidentDirection + viewDir );
-
-	float dotNL = saturate( dot( normal, incidentDirection ) );
-	float dotNV = saturate( dot( normal, viewDir ) );
-	float dotNH = saturate( dot( normal, halfDir ) );
-	float dotLH = saturate( dot( incidentDirection, halfDir ) );
-
+vec3 isotropicLobe(vec3 specularColor, float alpha, float dotNV, float dotNL, float dotNH, float dotLH) {
 	vec3 F = F_Schlick( specularColor, dotLH );
 
 	float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
@@ -61,6 +76,54 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 s
 	float D = D_GGX( alpha, dotNH );
 
 	return F * ( G * D );
+}
+
+#if defined(MATERIAL_ENABLE_ANISOTROPY)
+vec3 anisotropicLobe(vec3 h, vec3 l, Geometry geometry, vec3 specularColor, float alpha, float dotNV, float dotNL, float dotNH, float dotLH) {
+    vec3 t = geometry.anisotropicT;
+    vec3 b = geometry.anisotropicB;
+    vec3 v = geometry.viewDir;
+
+    float dotTV = dot(t, v);
+    float dotBV = dot(b, v);
+    float dotTL = dot(t, l);
+    float dotBL = dot(b, l);
+    float dotTH = dot(t, h);
+    float dotBH = dot(b, h);
+
+    float MIN_ROUGHNESS = 0.007921; // mobile
+    // Anisotropic parameters: at and ab are the roughness along the tangent and bitangent
+    // to simplify materials, we derive them from a single roughness parameter
+    // Kulla 2017, "Revisiting Physically Based Shading at Imageworks"
+    float at = max(alpha * (1.0 + geometry.anisotropy), MIN_ROUGHNESS);
+    float ab = max(alpha * (1.0 - geometry.anisotropy), MIN_ROUGHNESS);
+
+    // specular anisotropic BRDF
+    float D = D_GGX_Anisotropic(at, ab, dotTH, dotBH, dotNH);
+    float V = G_GGX_SmithCorrelated_Anisotropic(at, ab, dotTV, dotBV, dotTL, dotBL, dotNV, dotNL);
+	vec3 F = F_Schlick( specularColor, dotLH );
+
+    return (D * V) * F;
+}
+#endif
+
+// GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, Geometry geometry, vec3 normal, vec3 specularColor, float roughness ) {
+
+	float alpha = pow2( roughness ); // UE4's roughness
+
+	vec3 halfDir = normalize( incidentDirection + geometry.viewDir );
+
+	float dotNL = saturate( dot( normal, incidentDirection ) );
+	float dotNV = saturate( dot( normal, geometry.viewDir ) );
+	float dotNH = saturate( dot( normal, halfDir ) );
+	float dotLH = saturate( dot( incidentDirection, halfDir ) );
+
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        return anisotropicLobe(halfDir, incidentDirection, geometry, specularColor, alpha, dotNV, dotNL, dotNH, dotLH);
+    #else
+        return isotropicLobe(specularColor, alpha, dotNV, dotNL, dotNH, dotLH);
+    #endif
 
 }
 
