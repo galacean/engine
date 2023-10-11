@@ -138,7 +138,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     ]
   ): KTX2TargetFormat | null {
     for (let i = 0; i < priorityFormats.length; i++) {
-      const capabilities = this._supportedMap[priorityFormats[i]];
+      const capabilities = this._supportedMap[priorityFormats[i]] ?? [];
       for (let j = 0; j < capabilities.length; j++) {
         if (renderer.canIUse(capabilities[j])) {
           return priorityFormats[i];
