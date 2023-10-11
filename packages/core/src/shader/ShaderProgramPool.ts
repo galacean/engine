@@ -19,8 +19,10 @@ export class ShaderProgramPool {
   get(macros: ShaderMacroCollection): ShaderProgram | null {
     let cacheMap = this._cacheMap;
     const maskLength = macros._length;
-    if (maskLength > this._cacheHierarchy) {
-      this._resizeCacheMapHierarchy(cacheMap, 0, maskLength);
+    const cacheHierarchy = this._cacheHierarchy;
+    if (maskLength > cacheHierarchy) {
+      this._resizeCacheMapHierarchy(cacheMap, 0, cacheHierarchy, maskLength - cacheHierarchy);
+      this._cacheHierarchy = maskLength;
     }
 
     const mask = macros._mask;
@@ -54,25 +56,26 @@ export class ShaderProgramPool {
     this._lastQueryMap[this._lastQueryKey] = shaderProgram;
   }
 
-  private _resizeCacheMapHierarchy(cacheMap: object, hierarchy: number, resizeLength: number): void {
-    // only expand but not shrink.
-    const end = this._cacheHierarchy - 1;
-    if (hierarchy == end) {
+  private _resizeCacheMapHierarchy(
+    cacheMap: object,
+    hierarchy: number,
+    currentHierarchy: number,
+    increaseHierarchy: number
+  ): void {
+    // Only expand but not shrink
+    if (hierarchy == currentHierarchy - 1) {
       for (let k in cacheMap) {
-        const shader: ShaderProgram = cacheMap[k];
+        const shader = <ShaderProgram>cacheMap[k];
         let subCacheMap = cacheMap;
-        for (let i = 0, n = resizeLength - end; i < n; i++) {
-          if (i == n - 1) {
-            subCacheMap[0] = shader;
-          } else {
-            subCacheMap = subCacheMap[i == 0 ? k : 0] = Object.create(null);
-          }
+        for (let i = 0; i < increaseHierarchy; i++) {
+          subCacheMap[i == 0 ? k : 0] = subCacheMap = Object.create(null);
         }
+        subCacheMap[0] = shader;
       }
-      this._cacheHierarchy = resizeLength;
     } else {
+      ++hierarchy;
       for (let k in cacheMap) {
-        this._resizeCacheMapHierarchy(cacheMap[k], ++hierarchy, resizeLength);
+        this._resizeCacheMapHierarchy(cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
     }
   }
