@@ -73,7 +73,7 @@ export class ShaderProgramPool {
         subCacheMap[0] = shader;
       }
     } else {
-      ++hierarchy;
+      hierarchy++;
       for (let k in cacheMap) {
         this._resizeCacheMapHierarchy(cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
