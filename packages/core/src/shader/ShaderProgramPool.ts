@@ -6,8 +6,8 @@ import { ShaderProgram } from "./ShaderProgram";
  * @internal
  */
 export class ShaderProgramPool {
-  private _cacheHierarchy: number = 1;
-  private _cacheMap: object = Object.create(null);
+  private _cacheHierarchyDepth: number = 1;
+  private _cacheMap: Tree<ShaderProgram> = Object.create(null);
   private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
 
@@ -19,18 +19,18 @@ export class ShaderProgramPool {
   get(macros: ShaderMacroCollection): ShaderProgram | null {
     let cacheMap = this._cacheMap;
     const maskLength = macros._length;
-    const cacheHierarchy = this._cacheHierarchy;
-    if (maskLength > cacheHierarchy) {
-      this._resizeCacheMapHierarchy(cacheMap, 0, cacheHierarchy, maskLength - cacheHierarchy);
-      this._cacheHierarchy = maskLength;
+    const cacheHierarchyDepth = this._cacheHierarchyDepth;
+    if (maskLength > cacheHierarchyDepth) {
+      this._resizeCacheMapHierarchy(cacheMap, 0, cacheHierarchyDepth, maskLength - cacheHierarchyDepth);
+      this._cacheHierarchyDepth = maskLength;
     }
 
     const mask = macros._mask;
     const endIndex = macros._length - 1;
-    const maxEndIndex = this._cacheHierarchy - 1;
+    const maxEndIndex = this._cacheHierarchyDepth - 1;
     for (let i = 0; i < maxEndIndex; i++) {
       const subMask = endIndex < i ? 0 : mask[i];
-      let subCacheShaders: object = cacheMap[subMask];
+      let subCacheShaders = <Tree<ShaderProgram>>cacheMap[subMask];
       subCacheShaders || (cacheMap[subMask] = subCacheShaders = Object.create(null));
       cacheMap = subCacheShaders;
     }
@@ -57,7 +57,7 @@ export class ShaderProgramPool {
   }
 
   private _resizeCacheMapHierarchy(
-    cacheMap: object,
+    cacheMap: Tree<ShaderProgram>,
     hierarchy: number,
     currentHierarchy: number,
     increaseHierarchy: number
@@ -75,8 +75,12 @@ export class ShaderProgramPool {
     } else {
       hierarchy++;
       for (let k in cacheMap) {
-        this._resizeCacheMapHierarchy(cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
+        this._resizeCacheMapHierarchy(<Tree<ShaderProgram>>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
     }
   }
 }
+
+type Tree<T> = {
+  [key: number]: Tree<T> | T;
+};
