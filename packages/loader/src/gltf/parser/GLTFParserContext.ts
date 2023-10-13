@@ -20,7 +20,7 @@ import { GLTFParser } from "./GLTFParser";
 export class GLTFParserContext {
   private static readonly _parsers: Record<string, GLTFParser> = {};
 
-  static addParser(parserType: string, parser: GLTFParser) {
+  static addParser(parserType: GLTFParserType, parser: GLTFParser) {
     this._parsers[parserType] = parser;
   }
 
@@ -43,9 +43,9 @@ export class GLTFParserContext {
   get<T>(type: GLTFParserType.Entity): Entity[];
   get<T>(type: GLTFParserType.Schema): Promise<T>;
   get<T>(type: GLTFParserType.Validator): Promise<T>;
-  get<T>(type: string, index: number): Promise<T>;
-  get<T>(type: string): Promise<T[]>;
-  get<T>(type: string, index?: number): Entity | Entity[] | Promise<T> | Promise<T[]> {
+  get<T>(type: GLTFParserType, index: number): Promise<T>;
+  get<T>(type: GLTFParserType): Promise<T[]>;
+  get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | Promise<T> | Promise<T[]> {
     const parser = GLTFParserContext._parsers[type];
 
     if (!parser) {
@@ -105,7 +105,7 @@ export class GLTFParserContext {
 
   private _handleSubAsset<T>(
     resource: Entity | Entity[] | Promise<T> | Promise<T[]>,
-    type: string,
+    type: GLTFParserType,
     index: number
   ): void {
     const glTFResourceKey = glTFResourceMap[type];
@@ -154,16 +154,16 @@ export class BufferInfo {
 }
 
 export enum GLTFParserType {
-  Schema = "Schema",
-  Validator = "Validator",
-  Scene = "Scene",
-  Buffer = "Buffer",
-  Texture = "Texture",
-  Material = "Material",
-  Mesh = "Mesh",
-  Entity = "Entity",
-  Skin = "Skin",
-  Animation = "Animation"
+  Schema,
+  Validator,
+  Scene,
+  Buffer,
+  Texture,
+  Material,
+  Mesh,
+  Entity,
+  Skin,
+  Animation
 }
 
 const glTFSchemaMap = {
@@ -187,7 +187,7 @@ const glTFResourceMap = {
   [GLTFParserType.Animation]: "animations"
 };
 
-export function registerGLTFParser(pipeline: string) {
+export function registerGLTFParser(pipeline: GLTFParserType) {
   return (Parser: new () => GLTFParser) => {
     const parser = new Parser();
     GLTFParserContext.addParser(pipeline, parser);
