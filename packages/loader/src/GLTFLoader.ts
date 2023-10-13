@@ -23,4 +23,5 @@ export interface GLTFParams {
    * Keep raw mesh data for glTF parser, default is false.
    */
   keepMeshData?: boolean;
+  [key: string]: any;
 }
