@@ -28,6 +28,7 @@ export class GLTFSceneParser extends GLTFParser {
       glTFResource
     } = context;
     const sceneInfo = scenes[index];
+    const sceneExtensions = sceneInfo.extensions;
 
     const engine = glTFResource.engine;
     const isDefaultScene = scene === index;
@@ -60,6 +61,7 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return Promise.all(promises).then(() => {
+      GLTFParser.executeExtensionsAdditiveAndParse(sceneExtensions, context, sceneRoot, sceneInfo);
       if (isDefaultScene) {
         return Promise.all([
           context.get<Skin>(GLTFParserType.Skin),
