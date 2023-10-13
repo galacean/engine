@@ -320,7 +320,7 @@ export class GLTFMeshParser extends GLTFParser {
                 return GLTFUtils.getAccessorData(glTF, indexAccessor, buffers);
               });
             },
-            context.keepMeshData
+            context.params.keepMeshData
           ).then(resolve);
         }
       });
