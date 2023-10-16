@@ -2,6 +2,7 @@ import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
+import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
  * @internal
@@ -12,13 +13,15 @@ export class SlicedSpriteAssembler {
   static resetData(renderer: SpriteRenderer): void {
     const { _verticesData: verticesData } = renderer;
     const { positions, uvs } = verticesData;
-    if (positions.length < 16) {
-      for (let i = positions.length; i < 16; i++) {
-        positions.push(new Vector3());
-        uvs.push(new Vector2());
-      }
+    positions.length = uvs.length = 16;
+    for (let i = 0; i < 16; i++) {
+      positions[i] ||= new Vector3();
+      uvs[i] ||= new Vector2();
     }
-    verticesData.triangles = [];
+    const { triangles } = verticesData;
+    if (triangles === SimpleSpriteAssembler._rectangleTriangles || !triangles) {
+      verticesData.triangles = [];
+    }
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
