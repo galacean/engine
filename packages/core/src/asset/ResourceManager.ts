@@ -408,7 +408,7 @@ export class ResourceManager {
     const objects = Utils.objectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
-        objects[i].destroy();
+        (<ReferResource>objects[i]).destroy(forceDestroy);
       }
     }
   }
