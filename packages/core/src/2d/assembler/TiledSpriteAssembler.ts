@@ -21,10 +21,7 @@ export class TiledSpriteAssembler {
   static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
 
   static resetData(renderer: SpriteRenderer): void {
-    const { triangles } = renderer._verticesData;
-    if (triangles === SimpleSpriteAssembler._rectangleTriangles || !triangles) {
-      renderer._verticesData.triangles = [];
-    }
+    renderer._verticesData.triangles = [];
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
