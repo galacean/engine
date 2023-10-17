@@ -28,10 +28,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _khronosTranscoder: KhronosTranscoder;
   private static _priorityFormats: KTX2TargetFormat[][] = [
     [
-      KTX2TargetFormat.ASTC,
-      KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC7,
+      KTX2TargetFormat.ASTC,
       KTX2TargetFormat.BC1_BC3,
+      KTX2TargetFormat.ETC,
       KTX2TargetFormat.PVRTC
     ]
   ];
