@@ -223,7 +223,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
  * KTX2 loader params interface.
  */
 export interface KTX2Params {
-  /** Priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+  /** Priority transcoding format queue which is preferred options, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/RGBA8. */
   priorityFormats: KTX2TargetFormat[];
 }
 
@@ -233,7 +233,7 @@ declare module "@galacean/engine-core" {
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
-      /** Pre-initialization according to the priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
+      /** Global transcoding format queue which will be used if not specified in params/KV data, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/RGBA8. */
       priorityFormats?: KTX2TargetFormat[];
     };
   }
