@@ -19,7 +19,7 @@ export class MeshDecoder {
       // @ts-ignore Vector3 is not compatible with {x: number, y: number, z: number}.
       encodedMeshData.bounds && modelMesh.bounds.copyFrom(encodedMeshData.bounds);
 
-      const offset = Math.ceil(bufferReader.offset / 4) * 4;
+      const offset = Math.ceil(bufferReader.position / 4) * 4;
       const buffer = bufferReader.data.buffer;
       const byteOffset = bufferReader.data.byteOffset;
 

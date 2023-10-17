@@ -185,7 +185,7 @@ export class KTX2Container {
       };
     }
 
-    const endpointsByteOffset = sgdByteOffset + sgdReader.offset;
+    const endpointsByteOffset = sgdByteOffset + sgdReader.position;
     const selectorsByteOffset = endpointsByteOffset + endpointsByteLength;
     const tablesByteOffset = selectorsByteOffset + selectorsByteLength;
     const extendedByteOffset = tablesByteOffset + tablesByteLength;
