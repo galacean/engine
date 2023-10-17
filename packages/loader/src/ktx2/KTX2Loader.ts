@@ -247,7 +247,7 @@ export interface KTX2Params {
   usage: KTX2Usage;
 }
 
-/** KTX2 Texture Usage */
+/** KTX2 Texture Usage. */
 export enum KTX2Usage {
   /** Default. */
   Default,
