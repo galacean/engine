@@ -404,9 +404,6 @@ export class Engine extends EventDispatcher {
     this._sceneManager._destroyAllScene();
 
     this._resourceManager._destroy();
-    this._whiteTexture2D.destroy(true);
-    this._magentaTexture2D.destroy(true);
-    this._magentaTextureCube.destroy(true);
     this._textDefaultFont = null;
     this._fontMap = null;
 
