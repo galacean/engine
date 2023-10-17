@@ -233,7 +233,7 @@ declare module "@galacean/engine-core" {
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
-      /** Global transcoding format queue which will be used if not specified in params/KV data, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
+      /** Global transcoding format queue which will be used if not specified in per-instance param, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
       priorityFormats?: KTX2TargetFormat[];
     };
   }
