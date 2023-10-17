@@ -26,14 +26,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
   private static _khronosTranscoder: KhronosTranscoder;
-  private static _priorityFormats: KTX2TargetFormat[][] = [
-    [
-      KTX2TargetFormat.BC7,
-      KTX2TargetFormat.ASTC,
-      KTX2TargetFormat.BC1_BC3,
-      KTX2TargetFormat.ETC,
-      KTX2TargetFormat.PVRTC
-    ]
+  private static _priorityFormats: KTX2TargetFormat[] = [
+    KTX2TargetFormat.BC7,
+    KTX2TargetFormat.ASTC,
+    KTX2TargetFormat.BC1_BC3,
+    KTX2TargetFormat.ETC,
+    KTX2TargetFormat.PVRTC
   ];
   private static _supportedMap = {
     [KTX2TargetFormat.ASTC]: [GLCapabilityType.astc],
@@ -57,7 +55,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   /** @internal */
   static _parseBuffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
     const ktx2Container = new KTX2Container(buffer);
-    const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats[params?.usage ?? KTX2Usage.Default];
+    const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats;
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
     let transcodeResultPromise: Promise<TranscodeResult>;
     if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
@@ -180,13 +178,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
-      if (options.priorityFormats) {
-        if (Array.isArray(options.priorityFormats[0])) {
-          KTX2Loader._priorityFormats = options.priorityFormats as KTX2TargetFormat[][];
-        } else {
-          KTX2Loader._priorityFormats[0] = options.priorityFormats as KTX2TargetFormat[];
-        }
-      }
+      if (options.priorityFormats) KTX2Loader._priorityFormats = options.priorityFormats;
       if (this._isKhronosSupported(options.priorityFormats, engine) && options.workerCount !== 0) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
@@ -211,7 +203,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private _isKhronosSupported(
-    priorityFormats: KTX2TargetFormat[] | KTX2TargetFormat[][] = [
+    priorityFormats: KTX2TargetFormat[] = [
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC7,
@@ -221,19 +213,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     ],
     engine: any
   ): boolean {
-    const supportedList = new Array<KTX2TargetFormat>();
-    if (Array.isArray(priorityFormats[0])) {
-      for (let i = 0; i < priorityFormats.length; i++) {
-        supportedList.push(
-          KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats[i])
-        );
-      }
-    } else {
-      supportedList.push(
-        KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, <KTX2TargetFormat[]>priorityFormats)
-      );
-    }
-    return supportedList.every((format) => KhronosTranscoder.transcoderMap[format]);
+    return !!KhronosTranscoder.transcoderMap[
+      KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, priorityFormats)
+    ];
   }
 }
 
@@ -243,18 +225,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 export interface KTX2Params {
   /** Priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
   priorityFormats: KTX2TargetFormat[];
-  /** Usage for texture.  */
-  usage: KTX2Usage;
-}
-
-/** KTX2 Texture Usage. */
-export enum KTX2Usage {
-  /** Default. */
-  Default,
-  /** Normal map. */
-  Normal,
-  /** Sprite. */
-  Sprite
 }
 
 declare module "@galacean/engine-core" {
@@ -264,7 +234,7 @@ declare module "@galacean/engine-core" {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
       /** Pre-initialization according to the priority transcoding format queue, default is ASTC/ETC/DXT/PVRTC/RGBA8. */
-      priorityFormats?: KTX2TargetFormat[] | KTX2TargetFormat[][];
+      priorityFormats?: KTX2TargetFormat[];
     };
   }
 }
