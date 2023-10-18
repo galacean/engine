@@ -991,24 +991,18 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     const m11 = e[0];
     const m12 = e[1];
     const m13 = e[2];
-    const m14 = e[3];
     const m21 = e[4];
     const m22 = e[5];
     const m23 = e[6];
-    const m24 = e[7];
     const m31 = e[8];
     const m32 = e[9];
     const m33 = e[10];
-    const m34 = e[11];
     translation.set(e[12], e[13], e[14]);
 
-    const xs = Math.sign(m11 * m12 * m13 * m14) < 0 ? -1 : 1;
-    const ys = Math.sign(m21 * m22 * m23 * m24) < 0 ? -1 : 1;
-    const zs = Math.sign(m31 * m32 * m33 * m34) < 0 ? -1 : 1;
-
-    const sx = xs * Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
-    const sy = ys * Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
-    const sz = zs * Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+    let sx = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    const sy = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    const sz = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+    if (this.determinant() < 0) sx = -sx;
     scale.set(sx, sy, sz);
 
     if (
