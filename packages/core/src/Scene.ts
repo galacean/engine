@@ -8,7 +8,7 @@ import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
-import { Light } from "./lighting";
+import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
@@ -63,7 +63,9 @@ export class Scene extends EngineObject {
   /** @internal */
   _rootEntities: Entity[] = [];
   /** @internal */
-  _sunLight: Light;
+  _sunlight: DirectLight | null;
+  /** @internal */
+  _shadowLight: DirectLight | null;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -76,6 +78,8 @@ export class Scene extends EngineObject {
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
+  private _sunSource: DirectLight | null;
+  private _defaultSunlightDirection = new Vector3(0, 0, 0);
 
   /**
    * Whether the scene is active.
@@ -230,6 +234,20 @@ export class Scene extends EngineObject {
    */
   get rootEntities(): Readonly<Entity[]> {
     return this._rootEntities;
+  }
+
+  /**
+   * Sun light source.
+   * @remarks If set this to null, scene will use the brightest directional light.
+   */
+  get sunSource(): DirectLight | null {
+    return this._sunSource;
+  }
+
+  set sunSource(light: DirectLight | null) {
+    if (light == null || light instanceof DirectLight) {
+      this._sunSource = light;
+    }
   }
 
   /**
@@ -452,22 +470,24 @@ export class Scene extends EngineObject {
     const lightManager = this._lightManager;
 
     engine.time._updateSceneShaderData(shaderData);
-
     lightManager._updateShaderData(this.shaderData);
-    lightManager._updateSunLightIndex();
 
-    if (lightManager._directLights.length > 0) {
-      const sunlight = lightManager._directLights.get(0);
+    const sunlight = (this._sunlight = this._getSunlight());
+    const shadowLight = (this._shadowLight = lightManager._getMaxBrightestShadowLight());
 
-      shaderData.setColor(Scene._sunlightColorProperty, sunlight._getLightIntensityColor());
+    if (sunlight) {
+      shaderData.setColor(Scene._sunlightColorProperty, sunlight._lightColor);
       shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
-      this._sunLight = sunlight;
     } else {
-      this._sunLight = null;
+      shaderData.setVector3(Scene._sunlightDirectionProperty, this._defaultSunlightDirection);
     }
 
-    if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._sunLight.shadowType.toString());
+    if (shadowLight) {
+      lightManager._updateShadowLightIndex(shadowLight);
+    }
+
+    if (this.castShadows && shadowLight) {
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", shadowLight.shadowType.toString());
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
@@ -544,5 +564,17 @@ export class Scene extends EngineObject {
   private _computeExponentialFogParams(density: number) {
     this._fogParams.z = density / Math.LN2;
     this._fogParams.w = density / Math.sqrt(Math.LN2);
+  }
+
+  private _getSunlight(): DirectLight | null {
+    let sunlight = null;
+
+    if (this._sunSource) {
+      sunlight = this._sunSource.enabled ? this._sunSource : null;
+    } else {
+      sunlight = this._lightManager._getMaxBrightestSunlight();
+    }
+
+    return sunlight;
   }
 }
