@@ -79,6 +79,7 @@ export class Scene extends EngineObject {
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
   private _sunSource: DirectLight | null;
+  private _shadowSource: DirectLight | null;
   private _defaultSunlightDirection = new Vector3(0, 0, 0);
 
   /**
@@ -247,6 +248,20 @@ export class Scene extends EngineObject {
   set sunSource(light: DirectLight | null) {
     if (light == null || light instanceof DirectLight) {
       this._sunSource = light;
+    }
+  }
+
+  /**
+   * Shadow light source.
+   * @remarks If set this to null, shadow map will use the brightest directional light with shadowType is open.
+   */
+  get shadowSource(): DirectLight | null {
+    return this._shadowSource;
+  }
+
+  set shadowSource(light: DirectLight | null) {
+    if (light == null || light instanceof DirectLight) {
+      this._shadowSource = light;
     }
   }
 
@@ -473,7 +488,7 @@ export class Scene extends EngineObject {
     lightManager._updateShaderData(this.shaderData);
 
     const sunlight = (this._sunlight = this._getSunlight());
-    const shadowLight = (this._shadowLight = lightManager._getMaxBrightestShadowLight());
+    const shadowLight = (this._shadowLight = this._getShadowLight());
 
     if (sunlight) {
       shaderData.setColor(Scene._sunlightColorProperty, sunlight._lightColor);
@@ -576,5 +591,17 @@ export class Scene extends EngineObject {
     }
 
     return sunlight;
+  }
+
+  private _getShadowLight(): DirectLight | null {
+    let shadowLight = null;
+
+    if (this._shadowSource) {
+      shadowLight = this._shadowSource.enabled ? this._shadowSource : null;
+    } else {
+      shadowLight = this._lightManager._getMaxBrightestShadowLight();
+    }
+
+    return shadowLight;
   }
 }
