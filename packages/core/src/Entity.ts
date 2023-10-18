@@ -408,7 +408,11 @@ export class Entity extends EngineObject {
     }
     cloneEntity.layer = srcEntity.layer;
     cloneEntity._isActive = srcEntity._isActive;
-    cloneEntity.transform.localMatrix = srcEntity.transform.localMatrix;
+    const { transform: cloneTransform } = cloneEntity;
+    const { transform: srcTransform } = srcEntity;
+    cloneTransform.position = srcTransform.position;
+    cloneTransform.rotation = srcTransform.rotation;
+    cloneTransform.scale = srcTransform.scale;
 
     const children = srcEntity._children;
     for (let i = 0, n = srcEntity._children.length; i < n; i++) {
