@@ -1,13 +1,12 @@
 import * as Keywords from "./Keyword";
 import * as Symbols from "./Symbol";
-import * as EditorTypes from "./EditorTypes";
 import * as Types from "./GLSLTypes";
 import * as GLKeywords from "./GLSLKeywords";
 import * as Others from "./Other";
 import * as Values from "./Value";
 import * as RenderState from "./render-state";
 
-export { Keywords, Symbols, EditorTypes, Types, GLKeywords, Others, Values, RenderState };
+export { Keywords, Symbols, Types, GLKeywords, Others, Values, RenderState };
 
 export const _allTokens = [
   Others.WhiteSpace,
@@ -21,7 +20,6 @@ export const _allTokens = [
   ...Values.tokenList,
   ...Types.tokenList,
   ...Types.precisionTokenList,
-  ...EditorTypes.tokenList,
   ...RenderState.BlendFactorTokenList,
   ...RenderState.BlendOperationTokenList,
   ...RenderState.CompareFunctionTokenList,
