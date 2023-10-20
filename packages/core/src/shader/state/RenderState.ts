@@ -1,6 +1,8 @@
 import { ShaderData, ShaderProperty } from "..";
 import { Engine } from "../../Engine";
+import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -11,12 +13,16 @@ import { StencilState } from "./StencilState";
  */
 export class RenderState {
   /** Blend state. */
+  @deepClone
   readonly blendState: BlendState = new BlendState();
   /** Depth state. */
+  @deepClone
   readonly depthState: DepthState = new DepthState();
   /** Stencil state. */
+  @deepClone
   readonly stencilState: StencilState = new StencilState();
   /** Raster state. */
+  @deepClone
   readonly rasterState: RasterState = new RasterState();
 
   /** Render queue type. */
@@ -31,6 +37,11 @@ export class RenderState {
     this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+
+    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueType !== undefined) {
+      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    }
   }
 
   /**

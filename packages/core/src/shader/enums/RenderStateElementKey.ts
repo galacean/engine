@@ -1,4 +1,4 @@
-export enum RenderStateDataKey {
+export enum RenderStateElementKey {
   /** Blend state enabled for target 0 key. */
   BlendStateEnabled0 = 0,
   /** Blend state color blend operation for target 0 key. */
@@ -57,5 +57,8 @@ export enum RenderStateDataKey {
   /** Raster state cull mode key. */
   RasterStateDepthBias = 26,
   /** Raster state depth bias key. */
-  RasterStateSlopeScaledDepthBias = 27
+  RasterStateSlopeScaledDepthBias = 27,
+
+  /** Render queue type key. */
+  RenderQueueType = 28
 }

@@ -11,7 +11,7 @@ describe("Texture2D", () => {
   let engine: Engine;
   let rhi: any;
   let isWebGL2: boolean;
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;
@@ -25,7 +25,6 @@ describe("Texture2D", () => {
   describe("格式测试", () => {
     it("不支持浮点纹理", () => {
       expect(() => {
-        debugger;
         rhi.canIUse.mockReturnValueOnce(false);
         new Texture2D(engine, width, height, TextureFormat.R32G32B32A32);
       }).to.throw;

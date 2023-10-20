@@ -1,10 +1,19 @@
 import { IShaderLab } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
+import { BlendFactor } from "./enums/BlendFactor";
+import { BlendOperation } from "./enums/BlendOperation";
+import { ColorWriteMask } from "./enums/ColorWriteMask";
+import { CompareFunction } from "./enums/CompareFunction";
+import { CullMode } from "./enums/CullMode";
+import { RenderQueueType } from "./enums/RenderQueueType";
+import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { StencilOperation } from "./enums/StencilOperation";
 import { RenderState } from "./state/RenderState";
 
 /**
@@ -13,12 +22,7 @@ import { RenderState } from "./state/RenderState";
 export class Shader {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  static readonly _shaderExtension: string[] = [
-    "GL_EXT_shader_texture_lod",
-    "GL_OES_standard_derivatives",
-    "GL_EXT_draw_buffers"
-  ];
+
   /** @internal */
   static _shaderLab?: IShaderLab;
 
@@ -85,15 +89,42 @@ export class Shader {
       }
 
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
-      const subShaderList = shaderInfo.subShaders.map((subShader) => {
-        const passList = subShader.passes.map((pass) => {
-          const shaderPass = new ShaderPass(pass.vert, pass.frag, pass.tags);
-          shaderPass._renderState = new RenderState();
-          // TODO: render state with `shaderPass._renderStateDataMap`, key is `RenderStateDataKey`，value is `ShaderProperty`
-          shaderPass._renderStateDataMap = {};
+      const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
+        const passList = subShaderInfo.passes.map((passInfo) => {
+          if (typeof passInfo === "string") {
+            // Use pass reference
+            const paths = passInfo.split("/");
+            return Shader.find(paths[0])
+              ?.subShaders.find((subShader) => subShader.name === paths[1])
+              ?.passes.find((pass) => pass.name === paths[2]);
+          }
+
+          const shaderPass = new ShaderPass(
+            passInfo.name,
+            passInfo.vertexSource,
+            passInfo.fragmentSource,
+            passInfo.tags
+          );
+          const renderStates = passInfo.renderStates;
+          const renderState = new RenderState();
+          shaderPass._renderState = renderState;
+
+          // Parse const render state
+          const constRenderStateInfo = renderStates[0];
+          for (let k in constRenderStateInfo) {
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
+          }
+
+          // Parse variable render state
+          const variableRenderStateInfo = renderStates[1];
+          const renderStateDataMap = {} as Record<number, ShaderProperty>;
+          for (let k in variableRenderStateInfo) {
+            renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
+          }
+          shaderPass._renderStateDataMap = renderStateDataMap;
           return shaderPass;
         });
-        return new SubShader(shaderInfo.name, passList, subShader.tags);
+        return new SubShader(shaderInfo.name, passList, subShaderInfo.tags);
       });
 
       shader = new Shader(shaderInfo.name, subShaderList);
@@ -181,6 +212,96 @@ export class Shader {
       if (isValid) return true;
     }
     return false;
+  }
+
+  private static _applyConstRenderStates(
+    renderState: RenderState,
+    key: RenderStateElementKey,
+    value: boolean | string | number | Color
+  ): void {
+    switch (key) {
+      case RenderStateElementKey.BlendStateEnabled0:
+        renderState.blendState.targetBlendState.enabled = <boolean>value;
+        break;
+      case RenderStateElementKey.BlendStateColorBlendOperation0:
+        renderState.blendState.targetBlendState.colorBlendOperation = <BlendOperation>value;
+        break;
+      case RenderStateElementKey.BlendStateAlphaBlendOperation0:
+        renderState.blendState.targetBlendState.alphaBlendOperation = <BlendOperation>value;
+        break;
+      case RenderStateElementKey.BlendStateSourceColorBlendFactor0:
+        renderState.blendState.targetBlendState.sourceColorBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateDestinationColorBlendFactor0:
+        renderState.blendState.targetBlendState.destinationColorBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateSourceAlphaBlendFactor0:
+        renderState.blendState.targetBlendState.sourceAlphaBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0:
+        renderState.blendState.targetBlendState.destinationAlphaBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateColorWriteMask0:
+        renderState.blendState.targetBlendState.colorWriteMask = <ColorWriteMask>value;
+        break;
+      case RenderStateElementKey.DepthStateEnabled:
+        renderState.depthState.enabled = <boolean>value;
+        break;
+      case RenderStateElementKey.DepthStateWriteEnabled:
+        renderState.depthState.writeEnabled = <boolean>value;
+        break;
+      case RenderStateElementKey.DepthStateCompareFunction:
+        renderState.depthState.compareFunction = <CompareFunction>value;
+        break;
+      case RenderStateElementKey.StencilStateEnabled:
+        renderState.stencilState.enabled = <boolean>value;
+        break;
+      case RenderStateElementKey.StencilStateReferenceValue:
+        renderState.stencilState.referenceValue = <number>value;
+        break;
+      case RenderStateElementKey.StencilStateMask:
+        renderState.stencilState.mask = <number>value;
+        break;
+      case RenderStateElementKey.StencilStateWriteMask:
+        renderState.stencilState.writeMask = <number>value;
+        break;
+      case RenderStateElementKey.StencilStateCompareFunctionFront:
+        renderState.stencilState.compareFunctionFront = <CompareFunction>value;
+        break;
+      case RenderStateElementKey.StencilStateCompareFunctionBack:
+        renderState.stencilState.compareFunctionBack = <CompareFunction>value;
+        break;
+      case RenderStateElementKey.StencilStatePassOperationFront:
+        renderState.stencilState.passOperationFront = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStatePassOperationBack:
+        renderState.stencilState.passOperationBack = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateFailOperationFront:
+        renderState.stencilState.failOperationFront = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateFailOperationBack:
+        renderState.stencilState.failOperationBack = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateZFailOperationFront:
+        renderState.stencilState.zFailOperationFront = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateZFailOperationBack:
+        renderState.stencilState.zFailOperationBack = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.RasterStateCullMode:
+        renderState.rasterState.cullMode = <CullMode>value;
+        break;
+      case RenderStateElementKey.RasterStateDepthBias:
+        renderState.rasterState.depthBias = <number>value;
+        break;
+      case RenderStateElementKey.RasterStateSlopeScaledDepthBias:
+        renderState.rasterState.slopeScaledDepthBias = <number>value;
+        break;
+      case RenderStateElementKey.RenderQueueType:
+        renderState.renderQueueType = <RenderQueueType>value;
+        break;
+    }
   }
 
   /**

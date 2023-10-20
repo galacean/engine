@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Entity } from "../../Entity";
+import { Script } from "../../Script";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 
@@ -45,18 +46,24 @@ export class Pointer {
   _firePointerExitAndEnter(rayCastEntity: Entity): void {
     if (this._currentEnteredEntity !== rayCastEntity) {
       if (this._currentEnteredEntity) {
-        const scripts = this._currentEnteredEntity._scripts;
-        for (let i = scripts.length - 1; i >= 0; i--) {
-          const script = scripts.get(i);
-          script._waitHandlingInValid || script.onPointerExit(this);
-        }
+        this._currentEnteredEntity._scripts.forEach(
+          (element: Script) => {
+            element.onPointerExit(this);
+          },
+          (element: Script, index: number) => {
+            element._entityScriptsIndex = index;
+          }
+        );
       }
       if (rayCastEntity) {
-        const scripts = rayCastEntity._scripts;
-        for (let i = scripts.length - 1; i >= 0; i--) {
-          const script = scripts.get(i);
-          script._waitHandlingInValid || script.onPointerEnter(this);
-        }
+        rayCastEntity._scripts.forEach(
+          (element: Script) => {
+            element.onPointerEnter(this);
+          },
+          (element: Script, index: number) => {
+            element._entityScriptsIndex = index;
+          }
+        );
       }
       this._currentEnteredEntity = rayCastEntity;
     }
@@ -67,11 +74,14 @@ export class Pointer {
    */
   _firePointerDown(rayCastEntity: Entity): void {
     if (rayCastEntity) {
-      const scripts = rayCastEntity._scripts;
-      for (let i = scripts.length - 1; i >= 0; i--) {
-        const script = scripts.get(i);
-        script._waitHandlingInValid || script.onPointerDown(this);
-      }
+      rayCastEntity._scripts.forEach(
+        (element: Script) => {
+          element.onPointerDown(this);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
     }
     this._currentPressedEntity = rayCastEntity;
   }
@@ -81,11 +91,14 @@ export class Pointer {
    */
   _firePointerDrag(): void {
     if (this._currentPressedEntity) {
-      const scripts = this._currentPressedEntity._scripts;
-      for (let i = scripts.length - 1; i >= 0; i--) {
-        const script = scripts.get(i);
-        script._waitHandlingInValid || script.onPointerDrag(this);
-      }
+      this._currentPressedEntity._scripts.forEach(
+        (element: Script) => {
+          element.onPointerDrag(this);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
     }
   }
 
@@ -96,14 +109,15 @@ export class Pointer {
     const { _currentPressedEntity: pressedEntity } = this;
     if (pressedEntity) {
       const sameTarget = pressedEntity === rayCastEntity;
-      const scripts = pressedEntity._scripts;
-      for (let i = scripts.length - 1; i >= 0; i--) {
-        const script = scripts.get(i);
-        if (!script._waitHandlingInValid) {
-          sameTarget && script.onPointerClick(this);
-          script.onPointerUp(this);
+      pressedEntity._scripts.forEach(
+        (element: Script) => {
+          sameTarget && element.onPointerClick(this);
+          element.onPointerUp(this);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
         }
-      }
+      );
       this._currentPressedEntity = null;
     }
   }

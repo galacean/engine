@@ -19,8 +19,8 @@ import {
   TextureMagFilter,
   TextureMinFilter
 } from "./GLTFSchema";
-import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
 import { GLTFParser, GLTFTextureParser } from "./parser";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "./parser/GLTFParserContext";
 
 /**
  * @internal
@@ -179,6 +179,24 @@ export class GLTFUtils {
       }
       return bufferInfo;
     });
+  }
+
+  public static bufferToVector3Array(
+    data: TypedArray,
+    byteStride: number,
+    accessorByteOffset: number,
+    count: number
+  ): Vector3[] {
+    const bytesPerElement = data.BYTES_PER_ELEMENT;
+    const offset = (accessorByteOffset % byteStride) / bytesPerElement;
+    const stride = byteStride / bytesPerElement;
+
+    const vector3s = new Array<Vector3>(count);
+    for (let i = 0; i < count; i++) {
+      const index = offset + i * stride;
+      vector3s[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
+    }
+    return vector3s;
   }
 
   /**

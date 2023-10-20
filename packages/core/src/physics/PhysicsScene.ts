@@ -1,5 +1,5 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsScene } from "@galacean/engine-design";
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
@@ -8,6 +8,7 @@ import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
+import { Script } from "../Script";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -20,6 +21,7 @@ export class PhysicsScene {
 
   private _scene: Scene;
   private _restTime: number = 0;
+  private _fixedTimeStep: number = 1 / 60;
 
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
@@ -31,92 +33,105 @@ export class PhysicsScene {
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+    shape1.collider.entity._scripts.forEach(
+      (element: Script) => {
         let collision = PhysicsScene._collision;
         collision.shape = shape2;
-        script.onCollisionEnter(collision);
+        element.onCollisionEnter(collision);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
-    }
+    );
 
-    scripts = shape2.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+    shape2.collider.entity._scripts.forEach(
+      (element: Script) => {
         let collision = PhysicsScene._collision;
         collision.shape = shape1;
-        script.onCollisionEnter(collision);
+        element.onCollisionEnter(collision);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
-    }
+    );
   };
+
   private _onContactExit = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+    shape1.collider.entity._scripts.forEach(
+      (element: Script) => {
         let collision = PhysicsScene._collision;
         collision.shape = shape2;
-        script.onCollisionExit(collision);
+        element.onCollisionExit(collision);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
-    }
+    );
 
-    scripts = shape2.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+    shape2.collider.entity._scripts.forEach(
+      (element: Script) => {
         let collision = PhysicsScene._collision;
         collision.shape = shape1;
-        script.onCollisionExit(collision);
+        element.onCollisionExit(collision);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
-    }
+    );
   };
   private _onContactStay = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+    shape1.collider.entity._scripts.forEach(
+      (element: Script) => {
         let collision = PhysicsScene._collision;
         collision.shape = shape2;
-        script.onCollisionStay(collision);
+        element.onCollisionStay(collision);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
-    }
+    );
 
-    scripts = shape2.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      if (!script._waitHandlingInValid) {
+    shape2.collider.entity._scripts.forEach(
+      (element: Script) => {
         let collision = PhysicsScene._collision;
         collision.shape = shape1;
-        script.onCollisionStay(collision);
+        element.onCollisionStay(collision);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
       }
-    }
+    );
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
     const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerEnter(shape2);
-    }
+    shape1.collider.entity._scripts.forEach(
+      (element: Script) => {
+        element.onTriggerEnter(shape2);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
 
-    scripts = shape2.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerEnter(shape1);
-    }
+    shape2.collider.entity._scripts.forEach(
+      (element: Script) => {
+        element.onTriggerEnter(shape1);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
@@ -124,17 +139,23 @@ export class PhysicsScene {
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerExit(shape2);
-    }
+    shape1.collider.entity._scripts.forEach(
+      (element: Script) => {
+        element.onTriggerExit(shape2);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
 
-    scripts = shape2.collider.entity._scripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerExit(shape1);
-    }
+    shape2.collider.entity._scripts.forEach(
+      (element: Script) => {
+        element.onTriggerExit(shape1);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
@@ -142,21 +163,24 @@ export class PhysicsScene {
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerStay(shape2);
-    }
+    shape1.collider.entity._scripts.forEach(
+      (element: Script) => {
+        element.onTriggerStay(shape2);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
 
-    scripts = shape2.collider.entity._scripts;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onTriggerStay(shape1);
-    }
+    shape2.collider.entity._scripts.forEach(
+      (element: Script) => {
+        element.onTriggerStay(shape1);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
   };
-
-  /** The fixed time step in seconds at which physics are performed. */
-  fixedTimeStep: number = 1 / 60;
 
   /**
    * The gravity of physics scene.
@@ -170,6 +194,17 @@ export class PhysicsScene {
     if (gravity !== value) {
       gravity.copyFrom(value);
     }
+  }
+
+  /**
+   * The fixed time step in seconds at which physics are performed.
+   */
+  get fixedTimeStep(): number {
+    return this._fixedTimeStep;
+  }
+
+  set fixedTimeStep(value: number) {
+    this._fixedTimeStep = Math.max(value, MathUtil.zeroTolerance);
   }
 
   constructor(scene: Scene) {
@@ -272,6 +307,9 @@ export class PhysicsScene {
 
     const onRaycast = (obj: number) => {
       const shape = this._scene.engine._physicalObjectsMap[obj];
+      if (!shape) {
+        return false;
+      }
       return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
     };
 
@@ -302,7 +340,7 @@ export class PhysicsScene {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
+    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
     const componentsManager = this._scene._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;

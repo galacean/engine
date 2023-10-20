@@ -137,7 +137,6 @@ export class CharacterController extends Collider {
   override _onLateUpdate() {
     const position = this.entity.transform.worldPosition;
     (<ICharacterController>this._nativeCollider).getWorldPosition(position);
-    this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
   }
 
@@ -145,14 +144,24 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onEnableInScene() {
-    this.scene.physics._addCharacterController(this);
+    const physics = this.scene.physics;
+    physics._addCharacterController(this);
+    const shapes = this.shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      physics._addColliderShape(shapes[i]);
+    }
   }
 
   /**
    * @internal
    */
   override _onDisableInScene() {
-    this.scene.physics._removeCharacterController(this);
+    const physics = this.scene.physics;
+    physics._removeCharacterController(this);
+    const shapes = this.shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      physics._removeColliderShape(shapes[i]);
+    }
   }
 
   private _setUpDirection(): void {

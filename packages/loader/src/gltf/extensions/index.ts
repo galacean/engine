@@ -6,7 +6,7 @@ import "./KHR_materials_pbrSpecularGlossiness";
 import "./KHR_materials_sheen";
 import "./KHR_materials_transmission";
 import "./KHR_materials_unlit";
-export type { IGLTFExtensionVariants } from "./KHR_materials_variants";
+import "./KHR_materials_variants";
 import "./KHR_materials_volume";
 import "./KHR_mesh_quantization";
 import "./KHR_texture_basisu";
@@ -17,4 +17,5 @@ import "./GALACEAN_animation_event";
 import "./EXT_meshopt_compression";
 
 export { GLTFExtensionParser, GLTFExtensionMode } from "./GLTFExtensionParser";
+
 export * from "./GLTFExtensionSchema";

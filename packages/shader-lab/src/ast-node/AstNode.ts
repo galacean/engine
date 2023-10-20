@@ -1,14 +1,34 @@
+import {
+  BlendFactor,
+  BlendOperation,
+  Color,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  RenderStateDataKey,
+  StencilOperation,
+  Vector4
+} from "@galacean/engine";
+import { IShaderPassInfo } from "@galacean/engine-design";
 import { AstNodeUtils } from "../AstNodeUtils";
 import { DiagnosticSeverity } from "../Constants";
 import RuntimeContext from "../RuntimeContext";
+import { BlendStatePropertyTokens } from "../parser/tokens/render-state";
 import {
   IAddOperatorAstContent,
+  IArrayIndexAstContent,
   IAssignableValueAstContent,
+  IBlendFactorAstContent,
+  IBlendOperationAstContent,
   IBooleanAstContent,
-  IDeclarationAstContent,
+  ICompareFunctionAstContent,
+  IConditionExprAstContent,
+  ICullModeAstContent,
+  IDeclarationWithoutAssignAstContent,
   IFnAddExprAstContent,
   IFnArgAstContent,
-  IFnAssignLOAstContent,
+  IFnArrayVariableAstContent,
+  IFnAssignExprAstContent,
   IFnAssignStatementAstContent,
   IFnAstContent,
   IFnAtomicExprAstContent,
@@ -17,29 +37,42 @@ import {
   IFnCallAstContent,
   IFnConditionStatementAstContent,
   IFnMacroConditionAstContent,
-  IFnMacroConditionBranchAstContent,
+  IFnMacroConditionElifBranchAstContent,
+  IFnMacroConditionElseBranchAstContent,
   IFnMacroDefineAstContent,
-  IFnMacroIncludeAstContent,
+  IFnMacroDefineVariableAstContent,
+  IFnMacroUndefineAstContent,
   IFnMultiplicationExprAstContent,
   IFnRelationExprAstContent,
   IFnReturnStatementAstContent,
   IFnReturnTypeAstContent,
   IFnVariableAstContent,
   IFnVariableDeclarationAstContent,
+  IFnVariableDeclareUnitAstContent,
+  IForLoopAstContent,
   IMultiplicationOperatorAstContent,
   INumberAstContent,
+  IParenthesisAtomicAstContent,
   IPassPropertyAssignmentAstContent,
+  IPrecisionAstContent,
   IPropertyAstContent,
   IPropertyItemAstContent,
   IRelationOperatorAstContent,
+  IRenderQueueAstContent,
   IRenderStateDeclarationAstContent,
-  IStatePropertyAssignAstContent,
+  IRenderStatePropertyItemAstContent,
+  IRuleRenderQueueAssignmentAstContent,
+  ISelfAssignAstContent,
+  ISelfAssignOperatorAstContent,
+  IShaderPropertyDeclareAstContent,
+  IStencilOperationAstContent,
   IStructAstContent,
   ITagAssignmentAstContent,
   ITagAstContent,
   ITupleNumber2,
   ITupleNumber3,
   ITupleNumber4,
+  IVariablePropertyAstContent,
   IVariableTypeAstContent
 } from "./AstNodeContent";
 
@@ -53,42 +86,51 @@ export interface IPositionRange {
   end: IPosition;
 }
 
-export interface IAstInfo<T = any> {
-  position: IPositionRange;
-  content: T;
-}
-
-export class AstNode<T = any> implements IAstInfo<T> {
+export class AstNode<T = any> {
   position: IPositionRange;
   content: T;
 
   /** @internal */
-  private _isAstNode = true;
+  _isAstNode = true;
 
-  constructor(ast: IAstInfo<T>) {
-    this.position = ast.position;
-    this.content = ast.content;
+  constructor(position: IPositionRange, content: T) {
+    this.position = position;
+    this.content = content;
   }
 
   /** @internal */
-  _doSerialization(context: RuntimeContext, args?: any): string {
+  getContentValue(context?: RuntimeContext): any {
+    if (typeof this.content === "string") return this.content.replace(/"(.*)"/, "$1");
+    if (typeof this.content !== "object") return this.content;
     throw { message: "NOT IMPLEMENTED", astNode: this, ...this.position };
   }
 
-  /** @internal */
-  _beforeSerialization(context: RuntimeContext, args?: any) {
-    context.serializingAstNode = this;
+  serialize(context?: RuntimeContext, args?: any): string {
+    this._beforeSerialization(context, args);
+    const ret = this._doSerialization(context, args);
+    this._afterSerialization(context);
+    return ret;
   }
 
-  serialize(context: RuntimeContext, args?: any): string {
-    this._beforeSerialization(context, args);
-    return this._doSerialization(context, args);
+  /** @internal */
+  _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content as string;
+  }
+
+  /** @internal */
+  _beforeSerialization(context?: RuntimeContext, args?: any) {
+    context?.setSerializingNode(this);
+  }
+
+  /** @internal */
+  _afterSerialization(context?: RuntimeContext, args?: any) {
+    context?.unsetSerializingNode();
   }
 
   private _jsonifyObject(obj: any, includePos: boolean, withClass = false) {
     if (typeof obj !== "object") return obj;
     const ret = {} as any;
-    if (obj._isAstNode) {
+    if (obj?._isAstNode) {
       return obj.toJson(includePos, withClass);
     }
     for (const k in obj) {
@@ -129,9 +171,6 @@ export class AstNode<T = any> implements IAstInfo<T> {
 
 export class ReturnTypeAstNode extends AstNode<IFnReturnTypeAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    if (this.content.isCustom) {
-      context.findGlobal(this.content.text);
-    }
     return this.content.text;
   }
 }
@@ -140,7 +179,8 @@ export class ObjectAstNode<T = any> extends AstNode<Record<string, AstNode<T>>> 
   override _doSerialization(context: RuntimeContext): string {
     const astList = Object.values(this.content)
       .sort(AstNodeUtils.astSortAsc)
-      .filter((item) => item.constructor.name !== "AstNode");
+      .filter((item) => item._isAstNode);
+
     return astList.map((ast) => ast.serialize(context)).join("\n");
   }
 }
@@ -178,19 +218,81 @@ export class FnBodyAstNode extends AstNode<IFnBodyAstContent> {
   }
 }
 
-export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {}
+export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
+    return `#define ${this.content.variable.serialize(context)} ${this.content.value?.serialize(context) ?? ""}`;
+  }
+}
 
-export class FnMacroIncludeAstNode extends AstNode<IFnMacroIncludeAstContent> {}
+export class FnMacroDefineVariableAstNode extends AstNode<IFnMacroDefineVariableAstContent> {
+  getVariableName(): string {
+    if (typeof this.content === "string") return this.content;
+    return this.content.content.function;
+  }
+
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    if (typeof this.content === "string") return this.content;
+    return this.content.serialize(context);
+  }
+}
+
+export class FnMacroUndefineAstNode extends AstNode<IFnMacroUndefineAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `#undef ${this.content.variable}`;
+  }
+}
 
 export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const body = this.content.body.serialize(context);
-    const branch = this.content.branch?.serialize(context) ?? "";
-    return `${this.content.command} ${this.content.identifier}\n  ${body}\n${branch}\n#endif`;
+    const elifBranch = this.content.elifBranch?.serialize(context) ?? "";
+    const elseBranch = this.content.elseBranch?.serialize(context) ?? "";
+    return `${this.content.command} ${this.content.condition.serialize(context)}\n ${[body, elifBranch, elseBranch]
+      .filter((item) => item)
+      .join("\n")}\n#endif`;
   }
 }
 
-export class FnMacroConditionBranchAstNode extends AstNode<IFnMacroConditionBranchAstContent> {}
+export class FnMacroConditionElifBranchAstNode extends AstNode<IFnMacroConditionElifBranchAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `#elif ${this.content.condition.serialize(context)}\n  ${this.content.body.serialize(context)}`;
+  }
+}
+
+export class FnMacroConditionElseBranchAstNode extends AstNode<IFnMacroConditionElseBranchAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `#else\n  ${this.content.body.serialize(context)}`;
+  }
+}
+
+export class DiscardStatementAstNode extends AstNode {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return "discard;";
+  }
+}
+
+export class BreakStatementAstNode extends AstNode {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return "break;";
+  }
+}
+
+export class ContinueStatementAstNode extends AstNode {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return "continue;";
+  }
+}
+
+export class FnParenthesisAtomicAstNode extends AstNode<IParenthesisAtomicAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    let ret = `(${this.content.parenthesisNode.serialize(context)})`;
+    if (this.content.property) {
+      ret += `.${this.content.property.serialize(context)}`;
+    }
+    return ret;
+  }
+}
 
 export class FnCallAstNode extends AstNode<IFnCallAstContent> {
   override _doSerialization(context: RuntimeContext): string {
@@ -206,25 +308,82 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
     const args = this.content.args.map((item) => item.serialize(context)).join(", ");
     return `${this.content.function}(${args})`;
   }
-}
 
-export class FnConditionStatementAstNode extends AstNode<IFnConditionStatementAstContent> {}
-
-export class FnBlockStatementAstNode extends AstNode<IFnBlockStatementAstContent> {}
-
-export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent> {
-  override _doSerialization(context: RuntimeContext): string {
-    return this.content.text;
+  override getContentValue(context: RuntimeContext) {
+    switch (this.content.function) {
+      case "vec4":
+        const args1 = this.content.args.map((item) => item.getContentValue());
+        if (context.payload?.parsingRenderState) {
+          return new Color(...args1);
+        }
+        return new Vector4(...args1);
+      case "Color":
+        const args2 = this.content.args.map((item) => item.getContentValue());
+        return new Color(...args2);
+      default:
+        throw `Not supported builtin function ${this.content.function}`;
+    }
   }
 }
 
-export class RelationExprAstNode extends AstNode<IFnRelationExprAstContent> {}
+export class FnConditionStatementAstNode extends AstNode<IFnConditionStatementAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    const elseIfBranches = this.content.elseIfBranches?.map((item) => "else " + item.serialize(context)) ?? "";
+    const elseBranch = this.content.elseBranch ? "else " + this.content.elseBranch?.serialize(context) : "";
+    const body = this.content.body.serialize(context);
+    const relation = this.content.relation.serialize(context);
+    return `if (${relation})
+${body}
+${elseIfBranches}
+${elseBranch}`;
+  }
+}
+
+export class FnBlockStatementAstNode extends AstNode<IFnBlockStatementAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `{ 
+  ${this.content.serialize(context)}
+}`;
+  }
+}
+
+export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent> {
+  override _doSerialization(context: RuntimeContext): string {
+    return this.content;
+  }
+}
+
+export class ConditionExprAstNode extends AstNode<IConditionExprAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    let ret = this.content.leftExpr.serialize(context);
+    if (this.content.operator) {
+      ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightExpr.serialize(context)}`;
+    }
+    return `${ret}`;
+  }
+}
+
+export class RelationExprAstNode extends AstNode<IFnRelationExprAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    let ret = this.content.leftOperand.serialize(context);
+    if (this.content.operator) {
+      ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightOperand?.serialize(context)}`;
+    }
+    return ret;
+  }
+}
 
 export class FnAssignStatementAstNode extends AstNode<IFnAssignStatementAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content.serialize(context) + ";";
+  }
+}
+
+export class FnAssignExprAstNode extends AstNode<IFnAssignExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const { value } = this.content;
-    const valueStr = value.serialize(context);
-    return `${this.content.assignee.serialize(context)} ${this.content.operator} ${valueStr};`;
+    const valueStr = value?.serialize(context);
+    return `${this.content.assignee.serialize(context)} ${this.content.operator ?? ""} ${valueStr ?? ""}`.trimEnd();
   }
 }
 
@@ -259,45 +418,58 @@ export class FnAtomicExprAstNode extends AstNode<IFnAtomicExprAstContent> {
     const signStr = this.content.sign?.serialize(context) ?? "";
     return signStr + this.content.RuleFnAtomicExpr.serialize(context);
   }
+
+  override getContentValue() {
+    const expressionValue = this.content.RuleFnAtomicExpr.getContentValue();
+    if (typeof expressionValue === "number") {
+      return expressionValue * (this.content.sign?.content === "-" ? -1 : 1);
+    }
+    return expressionValue;
+  }
 }
 
 export class NumberAstNode extends AstNode<INumberAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    return this.content;
+    return this.content.text;
+  }
+
+  override getContentValue() {
+    return this.content.value;
   }
 }
 
 export class BooleanAstNode extends AstNode<IBooleanAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    return this.content;
+    return this.content.text;
   }
-}
 
-export class AssignLoAstNode extends AstNode<IFnAssignLOAstContent> {
-  override _doSerialization(context: RuntimeContext): string {
-    return this.content;
+  override getContentValue() {
+    return this.content.value;
   }
 }
 
 export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    const objName = this.content[0];
-    const propName = this.content[1];
+    const objName = this.content.variable;
+    const propName = this.content.properties?.[0].content;
     if (propName) {
       if (objName === context.varyingStructInfo.objectName) {
-        const ref = context.varyingStructInfo.reference.find((ref) => ref.property.content.variable === propName);
+        const ref = context.varyingStructInfo.reference.find(
+          (ref) => ref.property.content.variableNode.content.variable === propName
+        );
         ref && (ref.referenced = true);
-        return this.content.slice(1).join(".");
+        return this.content.properties.map((item) => item.content).join(".");
       } else {
         const attribStruct = context.attributeStructListInfo.find((struct) => struct.objectName === objName);
         if (attribStruct) {
-          const ref = attribStruct.reference.find((ref) => ref.property.content.variable === propName);
+          const ref = attribStruct.reference.find(
+            (ref) => ref.property.content.variableNode.content.variable === propName
+          );
           ref && (ref.referenced = true);
-          return this.content.slice(1).join(".");
+          return this.content.properties.map((item) => item.content).join(".");
         }
       }
     }
-
     if (!context.findLocal(objName)) {
       if (!context.referenceGlobal(objName)) {
         context.diagnostics.push({
@@ -307,8 +479,17 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
         });
       }
     }
+    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])]
+      .sort(AstNodeUtils.astSortAsc)
+      .map((item) => item.serialize(context))
+      .join("");
+    return objName + propList;
+  }
+}
 
-    return this.content.join(".");
+export class FnArrayVariableAstNode extends AstNode<IFnArrayVariableAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content.variable;
   }
 }
 
@@ -324,21 +505,84 @@ export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstConte
 export class FnArgAstNode extends AstNode<IFnArgAstContent> {
   override _doSerialization(context: RuntimeContext, args?: any): string {
     context.currentFunctionInfo.localDeclaration.push(
-      new DeclarationAstNode({
-        position: this.position,
-        content: {
-          variable: this.content.name,
-          type: new VariableTypeAstNode({ position: this.position, content: this.content.type })
-        }
+      new VariableDeclarationAstNode(this.position, {
+        variableList: [
+          new FnVariableDeclareUnitAstNode(this.position, {
+            variable: new FnArrayVariableAstNode(this.position, { variable: this.content.name })
+          })
+        ],
+        type: new VariableTypeAstNode(this.position, this.content.type)
       })
     );
     return `${this.content.type.text} ${this.content.name}`;
   }
 }
 
-export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {}
+export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
+  override getContentValue(context?: RuntimeContext): {
+    variable: string;
+    properties: IShaderPassInfo["renderStates"];
+    renderStateType: string;
+  } {
+    const properties: IShaderPassInfo["renderStates"] = [{}, {}];
+    for (const prop of this.content.properties) {
+      const propContent = prop.getContentValue(context);
+      let _propertyKey = this.content.renderStateType + propContent.property;
+      if (
+        this.content.renderStateType === "BlendState" &&
+        (!!BlendStatePropertyTokens[propContent.property] || propContent.property === "Enabled")
+      ) {
+        _propertyKey += propContent.index ?? "0";
+      }
+      const renderStateKey = RenderStateDataKey[_propertyKey];
+      if (renderStateKey === undefined) {
+        context?.diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          message: "invalid render state key",
+          token: prop.position
+        });
+        return;
+      }
 
-export class StatePropertyAssignAstNode extends AstNode<IStatePropertyAssignAstContent> {}
+      if (propContent.isVariable) {
+        properties[1][renderStateKey] = propContent.value;
+      } else {
+        properties[0][renderStateKey] = propContent.value;
+      }
+    }
+
+    return {
+      renderStateType: this.content.renderStateType as any,
+      properties,
+      variable: this.content.variable
+    };
+  }
+}
+
+export class RenderStatePropertyItemAstNode extends AstNode<IRenderStatePropertyItemAstContent> {
+  /** Where the value is a variable */
+  isVariable: boolean;
+
+  override getContentValue(context?: RuntimeContext) {
+    const isVariable = this.isVariable;
+    if (isVariable && context) {
+      const global = context.findGlobal(this.content.value.content);
+      if (!global) {
+        context.diagnostics.push({
+          severity: DiagnosticSeverity.Warning,
+          message: "not found variable definition",
+          token: this.content.value.position
+        });
+      }
+    }
+    return {
+      property: this.content.property,
+      index: this.content.index,
+      value: this.content.value.getContentValue(context),
+      isVariable
+    };
+  }
+}
 
 export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> {
   override _doSerialization(context: RuntimeContext): string {
@@ -358,14 +602,7 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
     }
     const typeNode = this.content.type;
     if (typeNode.content.text === context.varyingTypeAstNode.content.text) {
-      if (this.content.default) {
-        context.diagnostics.push({
-          severity: DiagnosticSeverity.Error,
-          message: "不应该给 varying 对象赋值",
-          token: this.content.default.position
-        });
-      }
-      context.varyingStructInfo.objectName = this.content.variable;
+      context.varyingStructInfo.objectName = this.content.variableList[0].getVariableName();
 
       return "";
     }
@@ -378,18 +615,50 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
         });
       }
     }
-    let ret = `${typeNode.content.text} ${this.content.variable}`;
-    if (opts?.global) {
-      ret = "uniform " + ret;
-    }
-    if (this.content.default) {
-      ret += " = " + this.content.default.serialize(context);
+    const variableList = this.content.variableList.map((item) => item.serialize(context));
+    let ret = `${typeNode.content.text} ${variableList.join(",")}`;
+    if (this.content.precision) {
+      ret = `${this.content.precision.serialize(context)} ${ret}`;
     }
     return ret + ";";
   }
 }
 
-export class DeclarationAstNode extends AstNode<IDeclarationAstContent> {}
+export class FnVariableDeclareUnitAstNode extends AstNode<IFnVariableDeclareUnitAstContent> {
+  getVariableName() {
+    return this.content.variable.content.variable;
+  }
+
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    const variable = this.content.variable.serialize(context);
+    if (this.content.default) {
+      return `${variable} = ${this.content.default.serialize(context)}`;
+    }
+    return variable;
+  }
+}
+
+export class PrecisionAstNode extends AstNode<IPrecisionAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content;
+  }
+}
+
+export class ShaderPropertyDeclareAstNode extends AstNode<IShaderPropertyDeclareAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `uniform ${this.content.prefix?.serialize(context) ?? ""} ${this.content.declare.serialize(context)};`;
+  }
+
+  getVariable() {
+    return this.content.declare.content.variableNode.content.variable;
+  }
+}
+
+export class DeclarationWithoutAssignAstNode extends AstNode<IDeclarationWithoutAssignAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `${this.content.type.serialize(context)} ${this.content.variableNode.serialize(context)}`;
+  }
+}
 
 export class StructAstNode extends AstNode<IStructAstContent> {}
 
@@ -402,10 +671,10 @@ export class TagAssignmentAstNode extends AstNode<ITagAssignmentAstContent> {
 }
 
 export class TagAstNode extends AstNode<ITagAstContent> {
-  toObj(): Record<string, any> {
-    const ret = {} as any;
+  override getContentValue(context?: RuntimeContext) {
+    const ret = {} as IShaderPassInfo["tags"];
     for (const t of this.content) {
-      ret[t.content.tag] = t.content.value.replace(/"(.*)"/, "$1");
+      ret[t.content.tag] = t.content.value.getContentValue();
     }
     return ret;
   }
@@ -422,3 +691,86 @@ export class TupleNumber3AstNode extends AstNode<ITupleNumber3> {}
 export class TupleNumber2AstNode extends AstNode<ITupleNumber2> {}
 
 export class RangeAstNode extends AstNode<ITupleNumber2> {}
+
+export class CullModeAstNode extends AstNode<ICullModeAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return CullMode[prop];
+  }
+}
+
+export class BlendFactorAstNode extends AstNode<IBlendFactorAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return BlendFactor[prop];
+  }
+}
+
+export class BlendOperationAstNode extends AstNode<IBlendOperationAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return BlendOperation[prop];
+  }
+}
+
+export class StencilOperationAstNode extends AstNode<IStencilOperationAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return StencilOperation[prop];
+  }
+}
+
+export class CompareFunctionAstNode extends AstNode<ICompareFunctionAstContent> {
+  override getContentValue() {
+    const prop = this.content.split(".")[1];
+    return CompareFunction[prop];
+  }
+}
+
+export class RenderQueueValueAstNode extends AstNode<IRenderQueueAstContent> {
+  isVariable: boolean;
+
+  override getContentValue() {
+    if (this.isVariable) return this.content;
+    const prop = this.content.split(".")[1];
+    return RenderQueueType[prop];
+  }
+}
+
+export class RenderQueueAssignmentAstNode extends AstNode<IRuleRenderQueueAssignmentAstContent> {}
+
+export class ForLoopAstNode extends AstNode<IForLoopAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `for (${this.content.init.serialize(context)} ${this.content.condition.serialize(
+      context
+    )}; ${this.content.update.serialize(context)}) ${this.content.body.serialize(context)}`;
+  }
+}
+
+export class ArrayIndexAstNode extends AstNode<IArrayIndexAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `[${this.content.serialize(context)}]`;
+  }
+}
+
+export class VariablePropertyAstNode extends AstNode<IVariablePropertyAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `.${this.content}`;
+  }
+}
+
+export class SelfAssignAstNode extends AstNode<ISelfAssignAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return [this.content.operator, this.content.variable]
+      .filter((item) => !!item)
+      .sort(AstNodeUtils.astSortAsc)
+      .map((item) => item.serialize(context))
+      .join("");
+  }
+}
+
+export class SelfAssignOperatorAstNode extends AstNode<ISelfAssignOperatorAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content;
+  }
+}

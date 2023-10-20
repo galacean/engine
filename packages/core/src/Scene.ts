@@ -4,6 +4,7 @@ import { Camera } from "./Camera";
 import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
@@ -56,6 +57,8 @@ export class Scene extends EngineObject {
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
+  _sceneManager: SceneManager;
+  /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
@@ -72,6 +75,25 @@ export class Scene extends EngineObject {
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
+  private _isActive: boolean = true;
+
+  /**
+   * Whether the scene is active.
+   */
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  set isActive(value: boolean) {
+    if (this._isActive !== value) {
+      this._isActive = value;
+      if (value) {
+        this._sceneManager && this._processActive(true);
+      } else {
+        this._sceneManager && this._processActive(false);
+      }
+    }
+  }
 
   /**
    * Scene-related shader data.
@@ -286,12 +308,13 @@ export class Scene extends EngineObject {
 
     // Process entity active/inActive
     let inActiveChangeFlag = ActiveChangeFlag.None;
-    if (this._isActiveInEngine) {
-      // Cross scene should inActive first and then active
-      entity._isActiveInHierarchy && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-    } else {
-      entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+    if (entity._isActiveInHierarchy) {
+      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
     }
+
+    // Cross scene should inActive first and then active
+    entity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+
     inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
 
     if (oldScene !== this) {
@@ -299,8 +322,10 @@ export class Scene extends EngineObject {
     }
 
     let activeChangeFlag = ActiveChangeFlag.None;
-    if (this._isActiveInEngine && entity._isActive) {
-      !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+    if (entity._isActive) {
+      if (this._isActiveInEngine) {
+        !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+      }
       (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
     activeChangeFlag && entity._processActive(activeChangeFlag);

@@ -13,6 +13,7 @@ export class AnimatorStatePlayData {
   playState: AnimatorStatePlayState;
   clipTime: number;
   currentEventIndex: number;
+  currentTransitionIndex: number;
 
   reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.state = state;
@@ -21,6 +22,7 @@ export class AnimatorStatePlayData {
     this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
+    this.currentTransitionIndex = 0;
   }
 
   update(isBackwards: boolean): void {

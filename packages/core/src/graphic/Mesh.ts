@@ -1,44 +1,24 @@
-import { IPlatformPrimitive } from "@galacean/engine-design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { UpdateFlagManager } from "../UpdateFlagManager";
-import { GraphicsResource } from "../asset/GraphicsResource";
-import { BufferUtil } from "../graphic/BufferUtil";
+import { ReferResource } from "../asset/ReferResource";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
-import { ShaderProgram } from "../shader/ShaderProgram";
+import { Primitive } from "./Primitive";
 
 /**
  * Mesh.
  */
-export abstract class Mesh extends GraphicsResource {
+export abstract class Mesh extends ReferResource {
   /** Name. */
   name: string;
 
   /** @internal */
-  _vertexElementMap: Record<string, VertexElement> = {};
-  /** @internal */
-  _glIndexType: number;
-  /** @internal */
-  _glIndexByteCount: number;
-  /** @internal */
-  _bufferStructChanged: boolean;
-  /** @internal */
-  _platformPrimitive: IPlatformPrimitive;
+  _primitive: Primitive;
 
-  /** @internal */
-  _instanceCount: number = 0;
-  /** @internal */
-  _vertexBufferBindings: VertexBufferBinding[] = [];
-  /** @internal */
-  _indexBufferBinding: IndexBufferBinding = null;
-  /** @internal */
-  _vertexElements: VertexElement[] = [];
-  /** @internal */
-  _enableVAO: boolean = true;
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -80,7 +60,7 @@ export abstract class Mesh extends GraphicsResource {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
-    this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
+    this._primitive = new Primitive(engine);
     this._onBoundsChanged = this._onBoundsChanged.bind(this);
 
     const bounds = this._bounds;
@@ -141,45 +121,24 @@ export abstract class Mesh extends GraphicsResource {
    * @internal
    */
   _clearVertexElements(): void {
-    this._vertexElements.length = 0;
-    const vertexElementMap = this._vertexElementMap;
-    for (const k in vertexElementMap) {
-      delete vertexElementMap[k];
-    }
+    this._primitive.clearVertexElements();
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
   }
 
   /**
    * @internal
    */
   _addVertexElement(element: VertexElement): void {
-    const vertexElementMap = this._vertexElementMap;
-    const vertexElements = this._vertexElements;
-
-    const semantic = element.semantic;
-    const oldVertexElement = vertexElementMap[semantic];
-    if (oldVertexElement) {
-      console.warn(`VertexElement ${semantic} already exists.`);
-      vertexElements.splice(vertexElements.indexOf(oldVertexElement), 1);
-    }
-    vertexElementMap[semantic] = element;
-    vertexElements.push(element);
+    this._primitive.addVertexElement(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
-    this._bufferStructChanged = true;
   }
 
   /**
    * @internal
    */
   _removeVertexElement(index: number): void {
-    const vertexElements = this._vertexElements;
-
-    // Delete the old vertex element
-    const vertexElement = vertexElements[index];
-    vertexElements.splice(index, 1);
-    delete this._vertexElementMap[vertexElement.semantic];
-
+    this._primitive.removeVertexElement(index);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
-    this._bufferStructChanged = true;
   }
 
   /**
@@ -187,17 +146,8 @@ export abstract class Mesh extends GraphicsResource {
    * @remarks should use together with `_setVertexElementsLength`
    */
   _setVertexElement(index: number, element: VertexElement): void {
-    const vertexElementMap = this._vertexElementMap;
-    const vertexElements = this._vertexElements;
-
-    // Delete the old vertex element
-    const oldVertexElement = vertexElements[index];
-    oldVertexElement && delete vertexElementMap[oldVertexElement.semantic];
-
-    vertexElementMap[element.semantic] = element;
-    vertexElements[index] = element;
+    this._primitive.setVertexElement(index, element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
-    this._bufferStructChanged = true;
   }
 
   /**
@@ -205,48 +155,19 @@ export abstract class Mesh extends GraphicsResource {
    *
    */
   _setVertexElementsLength(length: number): void {
-    const vertexElementMap = this._vertexElementMap;
-    const vertexElements = this._vertexElements;
-
-    for (let i = length, n = vertexElements.length; i < n; i++) {
-      const element = vertexElements[i];
-      delete vertexElementMap[element.semantic];
-    }
-    vertexElements.length = length;
+    this._primitive.setVertexElementsLength(length);
   }
 
   /**
    * @internal
    */
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    const referCount = this._getReferCount();
-    if (referCount > 0) {
-      this._vertexBufferBindings[index]?.buffer._addReferCount(-referCount);
-      binding?.buffer._addReferCount(referCount);
-    }
-    this._vertexBufferBindings[index] = binding;
-    this._bufferStructChanged = true;
-  }
-
-  /**
-   * @internal
-   */
-  _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
-    this._platformPrimitive.draw(shaderProgram, subMesh);
-    this._bufferStructChanged = false;
+    this._primitive.setVertexBufferBinding(index, binding);
   }
 
   override _addReferCount(value: number): void {
     super._addReferCount(value);
-    const vertexBufferBindings = this._vertexBufferBindings;
-    for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-      vertexBufferBindings[i]?.buffer._addReferCount(value);
-    }
-    this._indexBufferBinding?._buffer._addReferCount(value);
-  }
-
-  override _rebuild(): void {
-    this._engine._hardwareRenderer.createPlatformPrimitive(this);
+    this._primitive._addReferCount(value);
   }
 
   /**
@@ -254,11 +175,7 @@ export abstract class Mesh extends GraphicsResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._vertexBufferBindings = null;
-    this._indexBufferBinding = null;
-    this._vertexElements = null;
-    this._vertexElementMap = null;
-    this._platformPrimitive.destroy();
+    this._primitive.destroy();
   }
 
   /**
@@ -275,22 +192,7 @@ export abstract class Mesh extends GraphicsResource {
    * @internal
    */
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
-    const lastBinding = this._indexBufferBinding;
-    const referCount = this._getReferCount();
-    if (referCount > 0) {
-      lastBinding?.buffer._addReferCount(-referCount);
-      binding?.buffer._addReferCount(referCount);
-    }
-    if (binding) {
-      this._indexBufferBinding = binding;
-      this._glIndexType = BufferUtil._getGLIndexType(binding.format);
-      this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
-      (!lastBinding || lastBinding._buffer !== binding._buffer) && (this._bufferStructChanged = true);
-    } else {
-      this._indexBufferBinding = null;
-      this._glIndexType = undefined;
-      lastBinding && (this._bufferStructChanged = true);
-    }
+    this._primitive.setIndexBufferBinding(binding);
   }
 
   private _onBoundsChanged(): void {

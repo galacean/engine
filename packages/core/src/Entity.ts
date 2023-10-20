@@ -8,8 +8,8 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { EngineObject } from "./base";
 import { ReferResource } from "./asset/ReferResource";
+import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 
@@ -189,7 +189,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
     // @todo: should inverse traversal
     for (let i = components.length - 1; i >= 0; i--) {
@@ -198,6 +198,7 @@ export class Entity extends EngineObject {
         return component;
       }
     }
+    return null;
   }
 
   /**
@@ -266,12 +267,15 @@ export class Entity extends EngineObject {
       if (!this._isActiveInHierarchy) {
         child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
-      if (this._isActiveInScene) {
-        // cross scene should inActive first and then active
-        child._isActiveInScene && oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      } else {
-        child._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      if (child._isActiveInScene) {
+        if (this._isActiveInScene) {
+          // Cross scene should inActive first and then active
+          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+        } else {
+          inActiveChangeFlag |= ActiveChangeFlag.Scene;
+        }
       }
+
       inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
 
       if (child._scene !== newScene) {
@@ -388,32 +392,46 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = new Entity(this._engine, this.name);
+    const cloneEntity = this._createCloneEntity(this);
+    this._parseCloneEntity(this, cloneEntity, this, cloneEntity);
+
+    return cloneEntity;
+  }
+
+  private _createCloneEntity(srcEntity: Entity): Entity {
+    const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
+
     const { _hookResource: hookResource } = this;
     if (hookResource) {
       cloneEntity._hookResource = hookResource;
       hookResource._addReferCount(1);
     }
-    cloneEntity.layer = this.layer;
-    cloneEntity._isActive = this._isActive;
-    cloneEntity.transform.localMatrix = this.transform.localMatrix;
+    cloneEntity.layer = srcEntity.layer;
+    cloneEntity._isActive = srcEntity._isActive;
+    cloneEntity.transform.localMatrix = srcEntity.transform.localMatrix;
 
-    const children = this._children;
-    for (let i = 0, len = this._children.length; i < len; i++) {
-      const child = children[i];
-      cloneEntity.addChild(child.clone());
+    const children = srcEntity._children;
+    for (let i = 0, n = srcEntity._children.length; i < n; i++) {
+      cloneEntity.addChild(this._createCloneEntity(children[i]));
+    }
+    return cloneEntity;
+  }
+
+  private _parseCloneEntity(srcEntity: Entity, targetEntity: Entity, srcRoot: Entity, targetRoot: Entity): void {
+    const srcChildren = srcEntity._children;
+    const targetChildren = targetEntity._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot);
     }
 
-    const components = this._components;
+    const components = srcEntity._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = cloneEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        ComponentCloner.cloneComponent(sourceComp, targetComp);
+        const targetComp = targetEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot);
       }
     }
-
-    return cloneEntity;
   }
 
   /**
@@ -429,6 +447,7 @@ export class Entity extends EngineObject {
       this._hookResource._addReferCount(-1);
       this._hookResource = null;
     }
+
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();
@@ -441,11 +460,12 @@ export class Entity extends EngineObject {
     }
 
     if (this._isRoot) {
-      this._scene._removeFromEntityList(this);
-      this._isRoot = false;
+      this._scene.removeRootEntity(this);
     } else {
-      this._removeFromParent();
+      this._setParent(null);
     }
+
+    this.isActive = false;
   }
 
   /**

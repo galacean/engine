@@ -3,13 +3,13 @@ import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
+import { Scene } from "../../Scene";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
-import { Scene } from "../../Scene";
 
 /**
  * Pointer Manager.
@@ -62,45 +62,57 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(): void {
-    const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
+    const { _pointers: pointers, _nativeEvents: nativeEvents, _htmlCanvas: htmlCanvas } = this;
+    const { width, height } = this._canvas;
+    const { clientWidth, clientHeight } = htmlCanvas;
+    const { left, top } = htmlCanvas.getBoundingClientRect();
+    const widthDPR = width / clientWidth;
+    const heightDPR = height / clientHeight;
+
     // Clean up the pointer released in the previous frame
-    let lastIndex = pointers.length - 1;
-    if (lastIndex >= 0) {
-      for (let i = lastIndex; i >= 0; i--) {
-        if (pointers[i].phase === PointerPhase.Leave) {
-          pointers.splice(i, 1);
-        }
+    for (let i = pointers.length - 1; i >= 0; i--) {
+      if (pointers[i].phase === PointerPhase.Leave) {
+        pointers.splice(i, 1);
       }
     }
 
     // Generate the pointer received for this frame
-    lastIndex = nativeEvents.length - 1;
-    if (lastIndex >= 0) {
-      for (let i = 0; i <= lastIndex; i++) {
-        const evt = nativeEvents[i];
-        this._getPointer(evt.pointerId)?._events.push(evt);
+    for (let i = 0, n = nativeEvents.length; i < n; i++) {
+      const evt = nativeEvents[i];
+      const { pointerId } = evt;
+      let pointer = this._getPointerByID(pointerId);
+      if (pointer) {
+        pointer._events.push(evt);
+      } else {
+        const lastCount = pointers.length;
+        if (lastCount === 0 || this._multiPointerEnabled) {
+          const { _pointerPool: pointerPool } = this;
+          // Get Pointer smallest index
+          let i = 0;
+          for (; i < lastCount; i++) {
+            if (pointers[i].id > i) {
+              break;
+            }
+          }
+          pointer = pointerPool[i] ||= new Pointer(i);
+          pointer._uniqueID = pointerId;
+          pointer._events.push(evt);
+          pointer.position.set((evt.clientX - left) * widthDPR, (evt.clientY - top) * heightDPR);
+          pointers.splice(i, 0, pointer);
+        }
       }
-      nativeEvents.length = 0;
     }
+    nativeEvents.length = 0;
 
     // Pointer handles its own events
     this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
-    lastIndex = pointers.length - 1;
-    if (lastIndex >= 0) {
-      const frameCount = this._engine.time.frameCount;
-      const { left, top } = this._htmlCanvas.getBoundingClientRect();
-      const { clientWidth, clientHeight } = this._htmlCanvas;
-      const { width, height } = this._canvas;
-      // Device Pixel Ratio
-      const widthDPR = width / clientWidth;
-      const heightDPR = height / clientHeight;
-      for (let i = lastIndex; i >= 0; i--) {
-        const pointer = pointers[i];
-        pointer._upList.length = pointer._downList.length = 0;
-        this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
-        this._buttons |= pointer.pressedButtons;
-      }
+    const frameCount = this._engine.time.frameCount;
+    for (let i = 0, n = pointers.length; i < n; i++) {
+      const pointer = pointers[i];
+      pointer._upList.length = pointer._downList.length = 0;
+      this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
+      this._buttons |= pointer.pressedButtons;
     }
   }
 
@@ -131,7 +143,6 @@ export class PointerManager implements IInput {
             case "pointercancel":
               pointer.phase = PointerPhase.Leave;
               pointer._firePointerExitAndEnter(null);
-            default:
               break;
           }
         }
@@ -211,43 +222,14 @@ export class PointerManager implements IInput {
     this._nativeEvents.push(evt);
   }
 
-  private _getIndexByPointerID(pointerId: number): number {
+  private _getPointerByID(pointerId: number): Pointer {
     const { _pointers: pointers } = this;
     for (let i = pointers.length - 1; i >= 0; i--) {
       if (pointers[i]._uniqueID === pointerId) {
-        return i;
+        return pointers[i];
       }
     }
-    return -1;
-  }
-
-  private _getPointer(pointerId: number): Pointer {
-    const { _pointers: pointers } = this;
-    const index = this._getIndexByPointerID(pointerId);
-    if (index >= 0) {
-      return pointers[index];
-    } else {
-      const lastCount = pointers.length;
-      if (lastCount === 0 || this._multiPointerEnabled) {
-        const { _pointerPool: pointerPool } = this;
-        // Get Pointer smallest index
-        let i = 0;
-        for (; i < lastCount; i++) {
-          if (pointers[i].id > i) {
-            break;
-          }
-        }
-        let pointer = pointerPool[i];
-        if (!pointer) {
-          pointer = pointerPool[i] = new Pointer(i);
-        }
-        pointer._uniqueID = pointerId;
-        pointers.splice(i, 0, pointer);
-        return pointer;
-      } else {
-        return null;
-      }
-    }
+    return null;
   }
 
   private _updatePointerInfo(
@@ -308,12 +290,12 @@ export class PointerManager implements IInput {
     const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
-      if (scene.destroyed) {
+      if (!scene.isActive || scene.destroyed) {
         continue;
       }
       const { _activeCameras: cameras } = scene;
-      for (let j = 0; j < cameras.length; j++) {
-        const camera = cameras[i];
+      for (let j = cameras.length - 1; j >= 0; j--) {
+        const camera = cameras[j];
         if (!camera.enabled || camera.renderTarget) {
           continue;
         }

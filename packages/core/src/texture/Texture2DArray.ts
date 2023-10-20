@@ -81,6 +81,7 @@ export class Texture2DArray extends Texture {
       height,
       length
     );
+    this._isContentLost = false;
   }
 
   /**
@@ -111,6 +112,7 @@ export class Texture2DArray extends Texture {
       x,
       y
     );
+    this._isContentLost = false;
   }
 
   /**
