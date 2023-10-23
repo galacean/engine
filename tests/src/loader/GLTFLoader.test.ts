@@ -39,6 +39,12 @@ before(async function () {
   @registerGLTFParser(GLTFParserType.Schema)
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
+      if (context.params.tag === "sceneA") {
+        // ...
+      } else if (context.params.tag === "sceneA") {
+        // ...
+      }
+
       const glTF = <any>{
         buffers: [
           {
@@ -121,6 +127,17 @@ before(async function () {
                 }
               }
             ]
+          },
+          EXT_lights_image_based: {
+            lights: [
+              {
+                intensity: 1.0,
+                rotation: [0, 0, 0, 1],
+                irradianceCoefficients: [],
+                specularImageSize: 256,
+                specularImages: []
+              }
+            ]
           }
         },
         nodes: [
@@ -148,7 +165,17 @@ before(async function () {
           }
         ],
         scene: 0,
-        scenes: [{ name: "scene", nodes: [0] }],
+        scenes: [
+          {
+            name: "scene",
+            nodes: [0],
+            extensions: {
+              EXT_lights_image_based: {
+                light: 0
+              }
+            }
+          }
+        ],
         materials: [
           {
             name: "pbr",
@@ -312,6 +339,21 @@ before(async function () {
     }
   }
 
+  @registerGLTFExtension("EXT_lights_image_based", GLTFExtensionMode.AdditiveParse)
+  class EXT_lights_image_based extends GLTFExtensionParser {
+    override additiveParse(
+      context: GLTFParserContext,
+      entity: Entity,
+      extensionSchema: {
+        light: number;
+      }
+    ): void {
+      const lightsSchema = context.glTF.extensions.EXT_lights_image_based.lights;
+      const lightSchema = lightsSchema[extensionSchema.light];
+      // ...
+    }
+  }
+
   @registerGLTFExtension("Custom_Material", GLTFExtensionMode.CreateAndParse)
   class CustomMaterial extends GLTFExtensionParser {
     createAndParse(
@@ -342,7 +384,10 @@ describe("glTF Loader test", function () {
   it("Pipeline Parser", async () => {
     const glTFResource: any = await engine.resourceManager.load({
       type: AssetType.GLTF,
-      url: ""
+      url: "",
+      params: {
+        flag: "sceneA"
+      }
     });
     const { materials, entities, defaultSceneRoot, textures, meshes } = glTFResource;
 

@@ -68,7 +68,7 @@ function config({ location, pkgJson }) {
 
   return {
     umd: (compress) => {
-      const umdConfig = pkgJson.umd
+      const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
@@ -76,7 +76,7 @@ function config({ location, pkgJson }) {
         file = path.join(location, "dist", "browser.min.js");
       }
 
-      const umdExternal = Object.keys(umdConfig.globals ?? {})
+      const umdExternal = Object.keys(umdConfig.globals ?? {});
 
       return {
         input,
@@ -104,9 +104,7 @@ function config({ location, pkgJson }) {
             sourcemap: false
           }
         ],
-        external: external
-          .concat("@galacean/engine-miniprogram-adapter")
-          .map((name) => `${name}/dist/miniprogram`),
+        external: external.concat("@galacean/engine-miniprogram-adapter").map((name) => `${name}/dist/miniprogram`),
         plugins
       };
     },

@@ -43,7 +43,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
+  @ignoreClone
   _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
