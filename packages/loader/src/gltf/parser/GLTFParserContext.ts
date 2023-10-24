@@ -31,6 +31,11 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
 
   private _resourceCache = new Map<string, any>();
+  private _taskCount = 0;
+  private _finishedTaskCount = 0;
+
+  /** @internal */
+  _setProgress: (number) => void;
 
   constructor(
     public glTFResource: GLTFResource,
@@ -111,14 +116,17 @@ export class GLTFParserContext {
   ): void {
     const glTFResourceKey = glTFResourceMap[type];
     if (!glTFResourceKey) return;
+    this._taskCount++;
 
     if (type === GLTFParserType.Entity) {
       (this.glTFResource[glTFResourceKey] ||= [])[index] = <Entity>resource;
+      this._setProgress(++this._finishedTaskCount / this._taskCount);
     } else {
       const url = this.glTFResource.url;
 
       (<Promise<T>>resource).then((item: T) => {
         (this.glTFResource[glTFResourceKey] ||= [])[index] = item;
+        this._setProgress(++this._finishedTaskCount / this._taskCount);
 
         if (type === GLTFParserType.Mesh) {
           for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
