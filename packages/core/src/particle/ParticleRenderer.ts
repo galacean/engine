@@ -199,6 +199,7 @@ export class ParticleRenderer extends Renderer {
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
     this.generator._destroy();
   }
 }
