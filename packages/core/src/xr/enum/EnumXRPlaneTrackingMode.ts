@@ -1,5 +1,4 @@
 export enum EnumXRPlaneTrackingMode {
-    None,
-    Auto
-  }
-  
+  None,
+  Auto
+}

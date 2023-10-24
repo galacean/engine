@@ -1,4 +1,3 @@
-
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 import { EnumXRHandTrackingMode } from "../enum/EnumXRHandTrackingMode";
 

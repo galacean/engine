@@ -1,5 +1,5 @@
 export enum SessionStateChangeFlags {
-    start,
-    stop,
-    exit
+  start,
+  stop,
+  exit
 }
