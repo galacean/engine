@@ -14,7 +14,7 @@ import { WebXRSessionManager } from "../session/WebXRSessionManager";
 
 export class WebXRInputManager extends XRInputManager {
   private _listeningSession: XRSession;
-  private _pointerList: XRInputSource[] = [];
+  private _screenInputSource: XRInputSource[] = [];
   private _canvas: HTMLCanvasElement;
   private _eventList: {
     event: Event;
@@ -41,7 +41,10 @@ export class WebXRInputManager extends XRInputManager {
     this._onSessionStop();
   }
 
-  _onUpdate() {
+  /**
+   * @internal
+   */
+  _onUpdate(): void {
     const { _inputs: inputs, _engine: engine, _listeningSession: platformSession } = this;
     const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
     const { _platformFrame, _platformLayer, _platformSpace } = sessionManager;
@@ -49,6 +52,20 @@ export class WebXRInputManager extends XRInputManager {
       return;
     }
 
+    // Select event does not dispatch the move event, so we need to simulate dispatching the move here.
+    const { _screenInputSource: screenInputSource, _canvas: canvas } = this;
+    for (let i = 0; i < screenInputSource.length; i++) {
+      const inputSource = screenInputSource[i];
+      if (!inputSource) continue;
+      const { gamepad } = inputSource;
+      const { clientWidth, clientHeight } = canvas;
+      const [screenX, screenY] = gamepad.axes;
+      const clientX = clientWidth * (screenX + 1) * 0.5;
+      const clientY = clientHeight * (screenY + 1) * 0.5;
+      canvas.dispatchEvent(this.makeUpPointerEvent("pointermove", i, clientX, clientY));
+    }
+
+    // Handle pressure flow events.
     const { frameCount } = engine.time;
     const { _eventList: eventList } = this;
     for (let i = 0, n = eventList.length; i < n; i++) {
@@ -56,6 +73,8 @@ export class WebXRInputManager extends XRInputManager {
       event.handle(frameCount, event.event, inputs);
     }
     eventList.length = 0;
+
+    // Update the pose of xr input.
     const { inputSources } = platformSession;
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
@@ -63,8 +82,6 @@ export class WebXRInputManager extends XRInputManager {
       const input = <XRController>inputs[type];
       input.connected = true;
       switch (inputSource.targetRayMode) {
-        case "gaze":
-          break;
         case "screen":
         case "tracked-pointer":
           const { gripSpace, targetRaySpace } = inputSource;
@@ -85,14 +102,17 @@ export class WebXRInputManager extends XRInputManager {
             }
           }
           break;
+        case "gaze":
+          break;
         default:
           break;
       }
     }
 
+    // Update xr viewer information.
     const viewerPose = _platformFrame.getViewerPose(_platformSpace);
     if (viewerPose) {
-      let hadUpdateCenterViewer: boolean = false;
+      let hadUpdateCenterViewer = false;
       const views = viewerPose.views;
       for (let i = 0, n = views.length; i < n; i++) {
         const view = views[i];
@@ -201,7 +221,7 @@ export class WebXRInputManager extends XRInputManager {
         }
         break;
       case "screen":
-        const { _pointerList: pointerList, _canvas: canvas } = this;
+        const { _screenInputSource: screenInputSource, _canvas: canvas } = this;
         const { gamepad } = inputSource;
         const { clientWidth, clientHeight } = canvas;
         const [screenX, screenY] = gamepad.axes;
@@ -211,8 +231,8 @@ export class WebXRInputManager extends XRInputManager {
         switch (event.type) {
           case "selectstart":
             let emptyIdx = -1;
-            for (let i = pointerList.length - 1; i >= 0; i--) {
-              const pointer = pointerList[i];
+            for (let i = screenInputSource.length - 1; i >= 0; i--) {
+              const pointer = screenInputSource[i];
               if (pointer === inputSource) {
                 idx = i;
                 break;
@@ -223,17 +243,18 @@ export class WebXRInputManager extends XRInputManager {
             }
             if (idx === -1) {
               if (emptyIdx === -1) {
-                idx = pointerList.push(inputSource) - 1;
+                idx = screenInputSource.push(inputSource) - 1;
               } else {
-                pointerList[emptyIdx] = inputSource;
+                idx = emptyIdx;
+                screenInputSource[emptyIdx] = inputSource;
               }
             }
             canvas.dispatchEvent(this.makeUpPointerEvent("pointerdown", idx, clientX, clientY));
             break;
           case "selectend":
-            for (let i = pointerList.length - 1; i >= 0; i--) {
-              if (pointerList[i] === inputSource) {
-                pointerList[i] = null;
+            for (let i = screenInputSource.length - 1; i >= 0; i--) {
+              if (screenInputSource[i] === inputSource) {
+                screenInputSource[i] = null;
                 idx = i;
               }
             }
@@ -271,6 +292,7 @@ export class WebXRInputManager extends XRInputManager {
       default:
         break;
     }
+    console.log(type, "id:", pointerId, "pos:", clientX, clientY);
     return new PointerEvent(type, eventInitDict);
   }
 

@@ -53,14 +53,14 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
   /**
    * @internal
    */
-  _onSessionStop(): void {}
+  _onUpdate(): void {
+    this._platformFeature?._onUpdate();
+  }
 
   /**
    * @internal
    */
-  _onUpdate(): void {
-    this._platformFeature?._onUpdate();
-  }
+  _onSessionStop(): void {}
 
   /**
    * @internal

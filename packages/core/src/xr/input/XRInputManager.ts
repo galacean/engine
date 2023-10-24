@@ -14,26 +14,6 @@ export abstract class XRInputManager implements IXRInputManager {
     return this._inputs[inputSource] as T;
   }
 
-  /**
-   * @internal
-   */
-  _onSessionStart(): void {}
-
-  /**
-   * @internal
-   */
-  _onSessionStop(): void {}
-
-  /**
-   * @internal
-   */
-  _onUpdate(): void {}
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {}
-
   constructor(engine: Engine) {
     this._engine = engine;
     const { _inputs: inputs } = this;
@@ -56,4 +36,24 @@ export abstract class XRInputManager implements IXRInputManager {
       }
     }
   }
+
+  /**
+   * @internal
+   */
+  _onSessionStart(): void {}
+
+  /**
+   * @internal
+   */
+  _onUpdate(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionStop(): void {}
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {}
 }
