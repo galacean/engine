@@ -12,7 +12,7 @@ import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
 import { expect } from "chai";
 
-describe("CharacterController", () => {
+describe("CharacterController", function () {
   this.timeout(10000);
   let engine: Engine;
   let roleEntity: Entity;
