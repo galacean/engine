@@ -1,8 +1,8 @@
 import { MathUtil, Matrix } from "@galacean/engine-math";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Logger } from "../base/Logger";
 import { Mesh } from "../graphic/Mesh";
 import { Material } from "../material";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
@@ -96,7 +96,9 @@ export class Sky {
       materialShaderData._macroCollection,
       compileMacros
     );
-    const program = shader.subShaders[0].passes[0]._getShaderProgram(engine, compileMacros);
+
+    const pass = shader.subShaders[0].passes[0];
+    const program = pass._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.sceneUniformBlock, sceneData);
@@ -104,8 +106,8 @@ export class Sky {
     program.uploadAll(program.materialUniformBlock, materialShaderData);
     program.uploadUnGroupTextures();
 
-    renderState._apply(engine, false);
-    rhi.drawPrimitive(mesh, mesh.subMesh, program);
+    renderState._apply(engine, false, pass._renderStateDataMap, materialShaderData);
+    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, originViewProjMatrix);
   }
 }

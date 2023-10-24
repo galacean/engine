@@ -8,3 +8,5 @@ export { AnimationQuaternionCurve } from "./AnimationQuaternionCurve";
 export { AnimationVector2Curve } from "./AnimationVector2Curve";
 export { AnimationVector3Curve } from "./AnimationVector3Curve";
 export { AnimationVector4Curve } from "./AnimationVector4Curve";
+export { AnimationRefCurve } from "./AnimationRefCurve";
+export { AnimationRectCurve } from "./AnimationRectCurve";

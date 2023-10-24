@@ -1,12 +1,14 @@
 import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysicsManager } from "../PhysicsManager";
+import { PhysicsScene } from "../PhysicsScene";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for box.
  */
 export class BoxColliderShape extends ColliderShape {
+  @ignoreClone
   private _size: Vector3 = new Vector3(1, 1, 1);
 
   /**
@@ -24,7 +26,7 @@ export class BoxColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsManager._nativePhysics.createBoxColliderShape(
+    this._nativeShape = PhysicsScene._nativePhysics.createBoxColliderShape(
       this._id,
       this._size,
       this._material._nativeMaterial
@@ -33,6 +35,14 @@ export class BoxColliderShape extends ColliderShape {
     this._setSize = this._setSize.bind(this);
     //@ts-ignore
     this._size._onValueChanged = this._setSize;
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: BoxColliderShape) {
+    super._cloneTo(target);
+    target.size = this.size;
   }
 
   private _setSize(): void {

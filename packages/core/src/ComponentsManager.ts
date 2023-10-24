@@ -17,7 +17,6 @@ export class ComponentsManager {
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _disableScripts: Script[] = [];
 
   private _pendingDestroyScripts: Script[] = [];
   private _disposeDestroyScripts: Script[] = [];
@@ -108,10 +107,6 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addDisableScript(component: Script): void {
-    this._disableScripts.push(component);
-  }
-
   addPendingDestroyScript(component: Script): void {
     this._pendingDestroyScripts.push(component);
   }
@@ -119,80 +114,75 @@ export class ComponentsManager {
   callScriptOnStart(): void {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
-      const elements = onStartScripts._elements;
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
-      for (let i = 0; i < onStartScripts.length; i++) {
-        const script = elements[i];
-        if (!script._waitHandlingInValid) {
-          script._started = true;
-          script._onStartIndex = -1;
-          script.onStart();
-        }
-      }
-      onStartScripts.length = 0;
+      onStartScripts.forEachAndClean((script: Script) => {
+        script._started = true;
+        this.removeOnStartScript(script);
+        script.onStart();
+      });
     }
   }
 
   callScriptOnUpdate(deltaTime: number): void {
-    const elements = this._onUpdateScripts._elements;
-    for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (!element._waitHandlingInValid && element._started) {
-        element.onUpdate(deltaTime);
+    this._onUpdateScripts.forEach(
+      (element: Script) => {
+        element._started && element.onUpdate(deltaTime);
+      },
+      (element: Script, index: number) => {
+        element._onUpdateIndex = index;
       }
-    }
+    );
   }
 
   callScriptOnLateUpdate(deltaTime: number): void {
-    const elements = this._onLateUpdateScripts._elements;
-    for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (!element._waitHandlingInValid && element._started) {
-        element.onLateUpdate(deltaTime);
+    this._onLateUpdateScripts.forEach(
+      (element: Script) => {
+        element._started && element.onLateUpdate(deltaTime);
+      },
+      (element: Script, index: number) => {
+        element._onLateUpdateIndex = index;
       }
-    }
+    );
   }
 
   callScriptOnPhysicsUpdate(): void {
-    const elements = this._onPhysicsUpdateScripts._elements;
-    for (let i = this._onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (!element._waitHandlingInValid && element._started) {
-        element.onPhysicsUpdate();
+    this._onPhysicsUpdateScripts.forEach(
+      (element: Script) => {
+        element._started && element.onPhysicsUpdate();
+      },
+      (element: Script, index: number) => {
+        element._onPhysicsUpdateIndex = index;
       }
-    }
+    );
   }
 
   callAnimationUpdate(deltaTime: number): void {
-    const elements = this._onUpdateAnimations._elements;
-    for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
-      const animator = elements[i];
-      animator.update(animator._playFrameCount === animator.engine.time.frameCount ? 0 : deltaTime);
-    }
+    this._onUpdateAnimations.forEach(
+      (element: Animator) => {
+        element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
+      },
+      (element: Animator, index: number) => {
+        element._onUpdateIndex = index;
+      }
+    );
   }
 
   callRendererOnUpdate(deltaTime: number): void {
-    const elements = this._onUpdateRenderers._elements;
-    for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
-      elements[i].update(deltaTime);
-    }
+    this._onUpdateRenderers.forEach(
+      (element: Renderer) => {
+        element.update(deltaTime);
+      },
+      (element: Renderer, index: number) => {
+        element._onUpdateIndex = index;
+      }
+    );
   }
 
   handlingInvalidScripts(): void {
-    const { _disableScripts: disableScripts } = this;
-    let length = disableScripts.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        const disableScript = disableScripts[i];
-        disableScript._waitHandlingInValid && disableScript._handlingInValid();
-      }
-      disableScripts.length = 0;
-    }
-
     const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
     this._disposeDestroyScripts = disposeDestroyScripts;
     this._pendingDestroyScripts = pendingDestroyScripts;
-    length = disposeDestroyScripts.length;
+    const length = disposeDestroyScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
         disposeDestroyScripts[i].onDestroy();
@@ -202,19 +192,25 @@ export class ComponentsManager {
   }
 
   callCameraOnBeginRender(camera: Camera): void {
-    const scripts = camera.entity._scripts;
-    for (let i = scripts.length - 1; i >= 0; --i) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onBeginRender(camera);
-    }
+    camera.entity._scripts.forEach(
+      (element: Script) => {
+        element.onBeginRender(camera);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
   }
 
   callCameraOnEndRender(camera: Camera): void {
-    const scripts = camera.entity._scripts;
-    for (let i = scripts.length - 1; i >= 0; --i) {
-      const script = scripts.get(i);
-      script._waitHandlingInValid || script.onEndRender(camera);
-    }
+    camera.entity._scripts.forEach(
+      (element: Script) => {
+        element.onEndRender(camera);
+      },
+      (element: Script, index: number) => {
+        element._entityScriptsIndex = index;
+      }
+    );
   }
 
   getActiveChangedTempList(): Component[] {

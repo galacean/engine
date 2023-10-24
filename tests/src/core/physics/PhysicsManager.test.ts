@@ -6,16 +6,16 @@ import { expect } from "chai";
 
 describe("physics manager test", () => {
   let engine: WebGLEngine;
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new LitePhysics() });
   });
 
-  it("constructor", async () => {
+  it("constructor", () => {
     expect(engine.physicsManager.gravity.y).to.eq(-9.81);
     expect(engine.physicsManager.fixedTimeStep).to.eq(1 / 60);
   });
 
-  it("raycast", async () => {
+  it("raycast", () => {
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
 

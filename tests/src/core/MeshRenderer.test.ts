@@ -9,7 +9,7 @@ describe("MeshRenderer", async function () {
   let cubeEntity: Entity;
   let cubeMesh: ModelMesh;
 
-  before(async () => {
+ before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
 

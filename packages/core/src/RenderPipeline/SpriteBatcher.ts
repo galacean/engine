@@ -24,7 +24,10 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (!this._engine._canSpriteBatch || curElement.shaderPass.getTagValue(Basic2DBatcher._disableBatchTag) === true) {
+    if (
+      !this._engine._canSpriteBatch ||
+      curElement.shaderPasses[0].getTagValue(Basic2DBatcher._disableBatchTag) === true
+    ) {
       return false;
     }
 
@@ -81,7 +84,7 @@ export class SpriteBatcher extends Basic2DBatcher {
   drawBatches(camera: Camera): void {
     const { _engine: engine, _batchedQueue: batchedQueue } = this;
     const mesh = this._meshes[this._flushId];
-    const subMeshes = mesh.subMeshes;
+    const { subMeshes, _primitive: primitive } = mesh;
     const maskManager = engine._spriteMaskManager;
     const sceneData = camera.scene.shaderData;
     const cameraData = camera.shaderData;
@@ -107,7 +110,8 @@ export class SpriteBatcher extends Basic2DBatcher {
         compileMacros
       );
 
-      const program = spriteElement.shaderPass._getShaderProgram(engine, compileMacros);
+      const shaderPass = spriteElement.shaderPasses[0];
+      const program = shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }
@@ -121,8 +125,8 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      spriteElement.renderState._apply(engine, false);
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      material.renderState._apply(engine, false, shaderPass._renderStateDataMap, material.shaderData);
+      engine._hardwareRenderer.drawPrimitive(primitive, subMesh, program);
 
       maskManager.postRender(renderer);
     }

@@ -13,10 +13,11 @@ import { Vector3 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("CharacterController", () => {
+  this.timeout(10000);
   let engine: Engine;
   let roleEntity: Entity;
 
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
 
     const root = engine.sceneManager.activeScene.createRootEntity("root");

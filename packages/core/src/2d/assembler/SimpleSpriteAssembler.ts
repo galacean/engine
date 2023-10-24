@@ -14,13 +14,11 @@ export class SimpleSpriteAssembler {
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
     const { _verticesData: verticesData } = renderer;
-    const vertexCount = (verticesData.vertexCount = 4);
     const { positions, uvs } = verticesData;
-    if (positions.length < vertexCount) {
-      for (let i = positions.length; i < vertexCount; i++) {
-        positions.push(new Vector3());
-        uvs.push(new Vector2());
-      }
+    verticesData.vertexCount = positions.length = uvs.length = 4;
+    for (let i = 0; i < 4; i++) {
+      positions[i] ||= new Vector3();
+      uvs[i] ||= new Vector2();
     }
     verticesData.triangles = SimpleSpriteAssembler._rectangleTriangles;
   }

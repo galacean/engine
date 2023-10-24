@@ -19,11 +19,13 @@ export class MeshDecoder {
       // @ts-ignore Vector3 is not compatible with {x: number, y: number, z: number}.
       encodedMeshData.bounds && modelMesh.bounds.copyFrom(encodedMeshData.bounds);
 
-      const offset = Math.ceil(bufferReader.offset / 4) * 4;
+      const offset = Math.ceil(bufferReader.position / 4) * 4;
+      const buffer = bufferReader.data.buffer;
+      const byteOffset = bufferReader.data.byteOffset;
 
       const float32Array = new Float32Array(
-        bufferReader.buffer,
-        encodedMeshData.positions.start + offset,
+        buffer,
+        encodedMeshData.positions.start + offset + byteOffset,
         (encodedMeshData.positions.end - encodedMeshData.positions.start) / 4
       );
       const vertexCount = float32Array.length / 3;
@@ -31,8 +33,8 @@ export class MeshDecoder {
       modelMesh.setPositions(positions);
       if (encodedMeshData.normals) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.normals.start + offset,
+          buffer,
+          encodedMeshData.normals.start + offset + byteOffset,
           (encodedMeshData.normals.end - encodedMeshData.normals.start) / 4
         );
         const normals = float32ArrayToVector3(float32Array, vertexCount);
@@ -40,88 +42,88 @@ export class MeshDecoder {
       }
       if (encodedMeshData.uvs) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uvs.start + offset,
+          buffer,
+          encodedMeshData.uvs.start + offset + byteOffset,
           (encodedMeshData.uvs.end - encodedMeshData.uvs.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount));
       }
       if (encodedMeshData.uv1) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv1.start + offset,
+          buffer,
+          encodedMeshData.uv1.start + offset + byteOffset,
           (encodedMeshData.uv1.end - encodedMeshData.uv1.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 1);
       }
       if (encodedMeshData.uv2) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv2.start + offset,
+          buffer,
+          encodedMeshData.uv2.start + offset + byteOffset,
           (encodedMeshData.uv2.end - encodedMeshData.uv2.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 2);
       }
       if (encodedMeshData.uv3) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv3.start + offset,
+          buffer,
+          encodedMeshData.uv3.start + offset + byteOffset,
           (encodedMeshData.uv3.end - encodedMeshData.uv3.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 3);
       }
       if (encodedMeshData.uv4) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv4.start + offset,
+          buffer,
+          encodedMeshData.uv4.start + offset + byteOffset,
           (encodedMeshData.uv4.end - encodedMeshData.uv4.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 4);
       }
       if (encodedMeshData.uv5) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv5.start + offset,
+          buffer,
+          encodedMeshData.uv5.start + offset + byteOffset,
           (encodedMeshData.uv5.end - encodedMeshData.uv5.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 5);
       }
       if (encodedMeshData.uv6) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv6.start + offset,
+          buffer,
+          encodedMeshData.uv6.start + offset + byteOffset,
           (encodedMeshData.uv6.end - encodedMeshData.uv6.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 6);
       }
       if (encodedMeshData.uv7) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.uv7.start + offset,
+          buffer,
+          encodedMeshData.uv7.start + offset + byteOffset,
           (encodedMeshData.uv7.end - encodedMeshData.uv7.start) / 4
         );
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount), 7);
       }
       if (encodedMeshData.colors) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.colors.start + offset,
+          buffer,
+          encodedMeshData.colors.start + offset + byteOffset,
           (encodedMeshData.colors.end - encodedMeshData.colors.start) / 4
         );
         modelMesh.setColors(float32ArrayToVColor(float32Array, vertexCount));
       }
       if (encodedMeshData.boneWeights) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.boneWeights.start + offset,
+          buffer,
+          encodedMeshData.boneWeights.start + offset + byteOffset,
           (encodedMeshData.boneWeights.end - encodedMeshData.boneWeights.start) / 4
         );
         modelMesh.setBoneWeights(float32ArrayToVector4(float32Array, vertexCount));
       }
       if (encodedMeshData.boneIndices) {
         const float32Array = new Float32Array(
-          bufferReader.buffer,
-          encodedMeshData.boneIndices.start + offset,
+          buffer,
+          encodedMeshData.boneIndices.start + offset + byteOffset,
           (encodedMeshData.boneIndices.end - encodedMeshData.boneIndices.start) / 4
         );
         modelMesh.setBoneIndices(float32ArrayToVector4(float32Array, vertexCount));
@@ -131,8 +133,8 @@ export class MeshDecoder {
           const blendShape = new BlendShape(blendShapeData.name);
           blendShapeData.frames.forEach((frameData) => {
             const positionArray = new Float32Array(
-              bufferReader.buffer,
-              frameData.deltaPosition.start + offset,
+              buffer,
+              frameData.deltaPosition.start + offset + byteOffset,
               (frameData.deltaPosition.end - frameData.deltaPosition.start) / 4
             );
             const count = positionArray.length / 3;
@@ -140,8 +142,8 @@ export class MeshDecoder {
             let deltaNormals: Vector3[] | null = null;
             if (frameData.deltaNormals) {
               const normalsArray = new Float32Array(
-                bufferReader.buffer,
-                frameData.deltaNormals.start + offset,
+                buffer,
+                frameData.deltaNormals.start + offset + byteOffset,
                 (frameData.deltaNormals.end - frameData.deltaNormals.start) / 4
               );
               deltaNormals = float32ArrayToVector3(normalsArray, count);
@@ -149,8 +151,8 @@ export class MeshDecoder {
             let deltaTangents: Vector4[] | null = null;
             if (frameData.deltaTangents) {
               const tangentsArray = new Float32Array(
-                bufferReader.buffer,
-                frameData.deltaTangents.start + offset,
+                buffer,
+                frameData.deltaTangents.start + offset + byteOffset,
                 (frameData.deltaTangents.end - frameData.deltaTangents.start) / 4
               );
               deltaTangents = float32ArrayToVector4(tangentsArray, count);
@@ -164,14 +166,14 @@ export class MeshDecoder {
         let indices: Uint16Array | Uint32Array = null;
         if (encodedMeshData.indices.type === 0) {
           indices = new Uint16Array(
-            bufferReader.buffer,
-            encodedMeshData.indices.start + offset,
+            buffer,
+            encodedMeshData.indices.start + offset + byteOffset,
             (encodedMeshData.indices.end - encodedMeshData.indices.start) / 2
           );
         } else {
           indices = new Uint32Array(
-            bufferReader.buffer,
-            encodedMeshData.indices.start + offset,
+            buffer,
+            encodedMeshData.indices.start + offset + byteOffset,
             (encodedMeshData.indices.end - encodedMeshData.indices.start) / 4
           );
         }
