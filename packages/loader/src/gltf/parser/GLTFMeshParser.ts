@@ -267,10 +267,8 @@ export class GLTFMeshParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
     const meshInfo = context.glTF.meshes[index];
 
-    const {
-      glTF,
-      glTFResource: { engine }
-    } = context;
+    const { glTF, glTFResource } = context;
+    const engine = glTFResource.engine;
     const primitivePromises = new Array<Promise<ModelMesh>>();
 
     for (let i = 0, length = meshInfo.primitives.length; i < length; i++) {
@@ -326,6 +324,12 @@ export class GLTFMeshParser extends GLTFParser {
       });
     }
 
-    return Promise.all(primitivePromises);
+    return Promise.all(primitivePromises).then((meshes) => {
+      for (let i = 0, n = meshes.length; i < n++; i++) {
+        // @ts-ignore
+        meshes[i]._associationSuperResource(glTFResource);
+      }
+      return meshes;
+    });
   }
 }

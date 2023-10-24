@@ -15,10 +15,10 @@ import {
 } from "@galacean/engine-core";
 import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { GLTFResource } from "../GLTFResource";
-import { CameraType, ICamera, INode, IScene } from "../GLTFSchema";
+import { CameraType, ICamera, INode } from "../GLTFSchema";
+import { GLTFMaterialParser } from "./GLTFMaterialParser";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
-import { GLTFMaterialParser } from "./GLTFMaterialParser";
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
@@ -45,13 +45,8 @@ export class GLTFSceneParser extends GLTFParser {
       }
     }
 
-    // @ts-ignore
-    sceneRoot._hookResource = glTFResource;
-    // @ts-ignore
-    glTFResource._addReferCount(1);
-
     if (isDefaultScene) {
-      glTFResource.defaultSceneRoot = sceneRoot;
+      glTFResource._defaultSceneRoot = sceneRoot;
     }
 
     const promises = new Array<Promise<void[]>>();

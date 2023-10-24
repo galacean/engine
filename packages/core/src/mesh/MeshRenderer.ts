@@ -65,7 +65,7 @@ export class MeshRenderer extends Renderer {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh) {
-      mesh.destroyed || mesh._addReferCount(-1);
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
       mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
@@ -161,11 +161,11 @@ export class MeshRenderer extends Renderer {
   private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
-      lastMesh._addReferCount(-1);
+      this._addResourceReferCount(lastMesh, -1);
       lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
-      mesh._addReferCount(1);
+      this._addResourceReferCount(mesh, 1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }
