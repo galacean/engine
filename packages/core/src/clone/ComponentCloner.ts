@@ -10,6 +10,7 @@ export interface ICustomClone {
    * @internal
    */
   _cloneTo(target: ICustomClone): void;
+  copyFrom(source: ICustomClone): void;
 }
 
 export interface IComponentCustomClone {
