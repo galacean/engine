@@ -466,7 +466,6 @@ describe("glTF instance test", function () {
       url: "mock/path/testB.gltf"
     });
     const { materials, textures, meshes } = glTFResource;
-    const pbrMaterials = materials as PBRSpecularMaterial[] & PBRMaterial[];
 
     let glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.not.be.null;
@@ -476,17 +475,46 @@ describe("glTF instance test", function () {
     engine.resourceManager.gc();
     glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.be.not.null;
+    expect(materials[0].destroyed).to.be.false;
 
     // Test GC with part instance exist
     instance.children[0].destroy();
     engine.resourceManager.gc();
     glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.be.not.null;
+    expect(materials[0].destroyed).to.be.false;
 
-     // Test GC with no instance exist
+    // Test GC with no instance exist
     instance.destroy();
     engine.resourceManager.gc();
     glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.be.null;
+    expect(materials[0].destroyed).to.be.true;
+  });
+});
+
+describe("glTF instance test", function () {
+  it("GLTFResource destroy directly", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testC.gltf"
+    });
+    const { materials, textures, meshes } = glTFResource;
+
+    let glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testC.gltf");
+    expect(glTFResourceCache).to.not.be.null;
+
+    // Test destroy sub resource directly with not destroy glTFResource
+    materials[0].destroy();
+    expect(materials[0].destroyed).to.be.false;
+
+    // Test destroy glTFResource directly
+    glTFResource.destroy();
+    expect(glTFResource.destroyed).to.be.true;
+
+    // Test destroy glTFResource directly with glTFResource already destroyed
+    expect(materials[0].destroyed).to.be.false;
+    materials[0].destroy();
+    expect(materials[0].destroyed).to.be.true;
   });
 });
