@@ -294,6 +294,11 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
+    if (this._font) {
+      this._addResourceReferCount(this._font, -1);
+      this._font = null;
+    }
+
     super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
@@ -302,10 +307,6 @@ export class TextRenderer extends Renderer {
     }
     charRenderDatas.length = 0;
 
-    if (this._font) {
-      this._addResourceReferCount(this._font, -1);
-      this._font = null;
-    }
     this._subFont && (this._subFont = null);
   }
 

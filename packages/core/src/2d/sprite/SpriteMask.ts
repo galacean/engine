@@ -231,13 +231,14 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const sprite = this._sprite;
     if (sprite) {
       this._addResourceReferCount(sprite, -1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
-    this._entity = null;
+
+    super._onDestroy();
+
     this._sprite = null;
     this._verticesData = null;
   }

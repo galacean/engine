@@ -332,12 +332,14 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const sprite = this._sprite;
     if (sprite) {
       this._addResourceReferCount(sprite, -1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
+
+    super._onDestroy();
+
     this._entity = null;
     this._color = null;
     this._sprite = null;

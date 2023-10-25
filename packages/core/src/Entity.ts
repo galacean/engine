@@ -69,7 +69,7 @@ export class Entity extends EngineObject {
   _siblingIndex: number = -1;
 
   /** @internal */
-  _isTemplate: boolean;
+  _isTemplate: boolean = false;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;

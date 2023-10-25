@@ -46,10 +46,10 @@ export abstract class ReferResource extends EngineObject implements IReferable {
               return false;
             }
           }
-        }
-      } else {
-        if (this._superResources.length > 0) {
-          return false;
+        } else {
+          if (superResources.length > 0) {
+            return false;
+          }
         }
       }
     }
