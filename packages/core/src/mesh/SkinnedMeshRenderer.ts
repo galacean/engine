@@ -21,6 +21,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
   private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
+  @deepClone
+  private _localBounds: BoundingBox = new BoundingBox();
+
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
   @ignoreClone
@@ -29,8 +32,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _maxVertexUniformVectors: number;
   @ignoreClone
   private _rootBone: Entity;
-  @deepClone
-  private _localBounds: BoundingBox = new BoundingBox();
   @ignoreClone
   private _jointMatrices: Float32Array;
   @ignoreClone
