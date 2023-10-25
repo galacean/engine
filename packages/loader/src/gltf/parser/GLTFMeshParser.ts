@@ -325,7 +325,7 @@ export class GLTFMeshParser extends GLTFParser {
     }
 
     return Promise.all(primitivePromises).then((meshes) => {
-      for (let i = 0, n = meshes.length; i < n++; i++) {
+      for (let i = 0, n = meshes.length; i < n; i++) {
         // @ts-ignore
         meshes[i]._associationSuperResource(glTFResource);
       }
