@@ -33,6 +33,7 @@ export class GLTFParserContext {
   private _resourceCache = new Map<string, any>();
   private _taskCount = 0;
   private _finishedTaskCount = 0;
+  private _progress = 0;
 
   /** @internal */
   _setProgress: (number) => void;
@@ -104,6 +105,7 @@ export class GLTFParserContext {
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
         this.resourceManager.addContentRestorer(this.contentRestorer);
+        this._setProgress(1);
         return this.glTFResource;
       });
     });
@@ -120,13 +122,13 @@ export class GLTFParserContext {
 
     if (type === GLTFParserType.Entity) {
       (this.glTFResource[glTFResourceKey] ||= [])[index] = <Entity>resource;
-      this._setProgress(++this._finishedTaskCount / this._taskCount);
+      this._increaseProgress();
     } else {
       const url = this.glTFResource.url;
 
       (<Promise<T>>resource).then((item: T) => {
         (this.glTFResource[glTFResourceKey] ||= [])[index] = item;
-        this._setProgress(++this._finishedTaskCount / this._taskCount);
+        this._increaseProgress();
 
         if (type === GLTFParserType.Mesh) {
           for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
@@ -143,6 +145,14 @@ export class GLTFParserContext {
           }
         }
       });
+    }
+  }
+
+  private _increaseProgress() {
+    const progress = ++this._finishedTaskCount / this._taskCount;
+    if (progress > this._progress && progress < 1) {
+      this._progress = progress;
+      this._setProgress(progress);
     }
   }
 }
