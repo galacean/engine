@@ -51,6 +51,8 @@ export abstract class ReferResource extends EngineObject implements IReferable {
             return false;
           }
         }
+      } else {
+        return false;
       }
     }
     super.destroy();
