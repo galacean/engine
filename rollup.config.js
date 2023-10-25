@@ -7,7 +7,7 @@ import glslify from "rollup-plugin-glslify";
 import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
-import { swc, defineRollupSwcOption, minify, defineRollupSwcMinifyOption } from "rollup-plugin-swc3";
+import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -72,15 +72,7 @@ function config({ location, pkgJson }) {
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
-        plugins.push(
-          minify(
-            defineRollupSwcMinifyOption({
-              mangle: {
-                reserved: ["_init", "init"]
-              }
-            })
-          )
-        );
+        plugins.push(minify());
         file = path.join(location, "dist", "browser.min.js");
       }
 

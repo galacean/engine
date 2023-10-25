@@ -10,6 +10,7 @@ import {
   TypedArray
 } from "@galacean/engine-core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
+import { GLTFParams } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
 import type { IGLTF } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
@@ -34,7 +35,7 @@ export class GLTFParserContext {
   constructor(
     public glTFResource: GLTFResource,
     public resourceManager: ResourceManager,
-    public keepMeshData: boolean
+    public params: GLTFParams
   ) {
     this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }

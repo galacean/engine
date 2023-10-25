@@ -23,11 +23,12 @@ export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
+  /** @internal */
+  _frameRateTime: number = 0;
 
   @deepClone
   private _bursts: Burst[] = [];
 
-  private _frameRateTime: number = 0;
   private _currentBurstIndex: number = 0;
 
   @ignoreClone
@@ -96,7 +97,8 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _resetBurst(): void {
+  _reset(): void {
+    this._frameRateTime = 0;
     this._currentBurstIndex = 0;
   }
 

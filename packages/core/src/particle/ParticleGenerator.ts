@@ -199,7 +199,7 @@ export class ParticleGenerator {
         this._firstNewElement = firstFreeElement;
         this._playTime = 0;
 
-        this.emission._resetBurst();
+        this.emission._reset();
       }
     }
   }
@@ -240,23 +240,27 @@ export class ParticleGenerator {
    * @internal
    */
   _update(elapsedTime: number): void {
+    const { main, emission } = this;
+    const duration = main.duration;
     const lastPlayTime = this._playTime;
     this._playTime += elapsedTime;
 
     this._retireActiveParticles();
     this._freeRetiredParticles();
 
-    if (this.emission.enabled && this._isPlaying) {
-      this.emission._emit(lastPlayTime, this._playTime);
+    if (emission.enabled && this._isPlaying) {
+      emission._emit(lastPlayTime, this._playTime);
 
-      if (!this.main.isLoop && this._playTime > this.main.duration) {
+      if (!main.isLoop && this._playTime > duration) {
         this._isPlaying = false;
       }
     }
 
     // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
     if (!this.isAlive) {
-      this._playTime = 0;
+      const discardTime = Math.min(emission._frameRateTime, Math.floor(this._playTime / duration) * duration);
+      this._playTime -= discardTime;
+      emission._frameRateTime -= discardTime;
     }
 
     // Add new particles to vertex buffer when has wait process retired element or new particle

@@ -108,6 +108,11 @@ export class GLTFAnimationParser extends GLTFParser {
           entity = entity.parent;
         }
 
+        // If the target node is in the default scene, relativePath will be empty
+        if (entity !== context.glTFResource.defaultSceneRoot) {
+          continue;
+        }
+
         let ComponentType: new (entity: Entity) => Component;
         let propertyName: string;
         switch (target.path) {
