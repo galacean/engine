@@ -31,9 +31,9 @@ export class GLTFResource extends ReferResource {
   /** @internal */
   _defaultSceneRoot: Entity;
   /** @internal */
+  _sceneRoots: Entity[];
+  /** @internal */
   _extensionsData: Record<string, any>;
-
-  private _sceneRoots: Entity[];
 
   /**
    * Extensions data.
@@ -62,26 +62,21 @@ export class GLTFResource extends ReferResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
+
     const { textures, materials, meshes } = this;
-    if (textures) {
-      for (let i = 0, n = textures.length; i < n; i++) {
-        // @ts-ignore
-        textures[i]._disassociationSuperResource(this);
+    textures && this._disassociationSuperResource(textures);
+    materials && this._disassociationSuperResource(materials);
+    if (meshes) {
+      for (let i = 0, n = meshes.length; i < n; i++) {
+        this._disassociationSuperResource(meshes[i]);
       }
-      if (materials) {
-        for (let i = 0, n = materials.length; i < n; i++) {
-          // @ts-ignore
-          materials[i]._disassociationSuperResource(this);
-        }
-      }
-      if (meshes) {
-        for (let i = 0, n = meshes.length; i < n; i++) {
-          for (let j = 0, m = meshes[i].length; j < m; j++) {
-            // @ts-ignore
-            meshes[i][j]._disassociationSuperResource(this);
-          }
-        }
-      }
+    }
+  }
+
+  private _disassociationSuperResource(resources: ReferResource[]): void {
+    for (let i = 0, n = resources.length; i < n; i++) {
+      // @ts-ignore
+      resources[i]._disassociationSuperResource(this);
     }
   }
 
@@ -104,7 +99,7 @@ export class GLTFResource extends ReferResource {
   lights?: Light[];
 
   /**
-   * @deprecated
+   * @deprecated Please use `instantiateSceneRoot` instead.
    * RootEntities after SceneParser.
    */
   get sceneRoots(): Entity[] {
@@ -112,7 +107,7 @@ export class GLTFResource extends ReferResource {
   }
 
   /**
-   * @deprecated
+   * @deprecated Please use `instantiateSceneRoot` instead.
    * RootEntity after SceneParser.
    */
   get defaultSceneRoot(): Entity {
