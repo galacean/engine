@@ -1,5 +1,12 @@
+import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
+
 export interface IXRFeatureManager {
+  descriptor: IXRFeatureDescriptor;
   enabled: boolean;
+
+  isSupported(descriptor?: IXRFeatureDescriptor): Promise<void>;
+  initialize(): Promise<void>;
+
   /**
    * Enable an instance of a feature.
    * This method needs to be override.
@@ -13,6 +20,8 @@ export interface IXRFeatureManager {
    * @returns
    */
   _onDisable(): void;
+
+  _onSessionInit(): void;
 
   _onSessionStart(): void;
 

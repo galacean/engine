@@ -11,9 +11,10 @@ import {
   Vector3
 } from "@galacean/engine";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { getInputSource } from "../util";
 
 export class WebXRInputManager extends XRInputManager {
-  private _listeningSession: XRSession;
+  private _platformSession: XRSession;
   private _screenInputSource: XRInputSource[] = [];
   private _canvas: HTMLCanvasElement;
   private _eventList: {
@@ -23,17 +24,17 @@ export class WebXRInputManager extends XRInputManager {
 
   _onSessionStart(): void {
     const session = (<WebXRSessionManager>this._engine.xrModule.sessionManager)._platformSession;
-    if (this._listeningSession !== session) {
-      this._listeningSession && this._removeListener(this._listeningSession);
+    if (this._platformSession !== session) {
+      this._platformSession && this._removeListener(this._platformSession);
       this._addListener(session);
-      this._listeningSession = session;
+      this._platformSession = session;
     }
   }
 
   _onSessionStop(): void {
-    if (this._listeningSession) {
-      this._removeListener(this._listeningSession);
-      this._listeningSession = null;
+    if (this._platformSession) {
+      this._removeListener(this._platformSession);
+      this._platformSession = null;
     }
   }
 
@@ -45,7 +46,7 @@ export class WebXRInputManager extends XRInputManager {
    * @internal
    */
   _onUpdate(): void {
-    const { _inputs: inputs, _engine: engine, _listeningSession: platformSession } = this;
+    const { _inputs: inputs, _engine: engine, _platformSession: platformSession } = this;
     const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
     const { _platformFrame, _platformLayer, _platformSpace } = sessionManager;
     if (!platformSession || !_platformFrame || !_platformSpace) {
@@ -73,113 +74,6 @@ export class WebXRInputManager extends XRInputManager {
       event.handle(frameCount, event.event, inputs);
     }
     eventList.length = 0;
-
-    // Update the pose of xr input.
-    const { inputSources } = platformSession;
-    for (let i = 0, n = inputSources.length; i < n; i++) {
-      const inputSource = inputSources[i];
-      const type = this._getInputSource(inputSource);
-      const input = <XRController>inputs[type];
-      input.connected = true;
-      switch (inputSource.targetRayMode) {
-        case "screen":
-        case "tracked-pointer":
-          const { gripSpace, targetRaySpace } = inputSource;
-          if (gripSpace) {
-            const { transform } = _platformFrame.getPose(gripSpace, _platformSpace);
-            if (transform) {
-              input.matrix.copyFromArray(transform.matrix);
-              input.position.copyFrom(transform.position);
-              input.quaternion.copyFrom(transform.orientation);
-            }
-          }
-          if (targetRaySpace) {
-            const { transform } = _platformFrame.getPose(targetRaySpace, _platformSpace);
-            if (transform) {
-              input.targetRayMatrix.copyFromArray(transform.matrix);
-              input.targetRayPosition.copyFrom(transform.position);
-              input.targetRayQuaternion.copyFrom(transform.orientation);
-            }
-          }
-          break;
-        case "gaze":
-          break;
-        default:
-          break;
-      }
-    }
-
-    // Update xr viewer information.
-    const viewerPose = _platformFrame.getViewerPose(_platformSpace);
-    if (viewerPose) {
-      let hadUpdateCenterViewer = false;
-      const views = viewerPose.views;
-      for (let i = 0, n = views.length; i < n; i++) {
-        const view = views[i];
-        const { transform } = views[i];
-        const type = this._eyeToInputSource(view.eye);
-        const xrCamera = inputs[type] as XRViewer;
-        hadUpdateCenterViewer = type === EnumXRInputSource.Viewer;
-        xrCamera.matrix.copyFromArray(transform.matrix);
-        xrCamera.position.copyFrom(transform.position);
-        xrCamera.quaternion.copyFrom(transform.orientation);
-        xrCamera.projectionMatrix.copyFromArray(view.projectionMatrix);
-        xrCamera.connected = true;
-        if (_platformLayer) {
-          const { framebufferWidth, framebufferHeight } = _platformLayer;
-          const xrViewport = _platformLayer.getViewport(view);
-          const width = xrViewport.width / framebufferWidth;
-          const height = xrViewport.height / framebufferHeight;
-          const x = xrViewport.x / framebufferWidth;
-          const y = 1 - xrViewport.y / framebufferHeight - height;
-          xrCamera.viewport.set(x, y, width, height);
-          const { camera } = xrCamera;
-          if (camera) {
-            // sync viewport
-            const vec4 = camera.viewport;
-            if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
-              camera.viewport = vec4.set(x, y, width, height);
-            }
-            // sync project matrix
-            if (!Matrix.equals(camera.projectionMatrix, xrCamera.projectionMatrix)) {
-              camera.projectionMatrix = xrCamera.projectionMatrix;
-            }
-          }
-        }
-      }
-
-      if (!hadUpdateCenterViewer && engine.xrModule.mode === EnumXRMode.AR) {
-        const leftViewer = inputs[EnumXRInputSource.LeftViewer] as XRViewer;
-        const rightViewer = inputs[EnumXRInputSource.RightViewer] as XRViewer;
-        const viewer = inputs[EnumXRInputSource.Viewer] as XRViewer;
-        viewer.quaternion.copyFrom(leftViewer.quaternion);
-        const { position, matrix } = viewer;
-        Vector3.add(leftViewer.position, rightViewer.position, position);
-        position.scale(0.5);
-        matrix.copyFrom(leftViewer.matrix);
-        const { elements } = matrix;
-        elements[12] = position.x;
-        elements[13] = position.y;
-        elements[14] = position.z;
-        viewer.projectionMatrix.copyFrom(leftViewer.projectionMatrix);
-        viewer.connected = true;
-        viewer.viewport =
-          leftViewer.viewport.width && leftViewer.viewport.height ? leftViewer.viewport : rightViewer.viewport;
-        const { camera } = viewer;
-        if (camera) {
-          // sync viewport
-          const vec4 = camera.viewport;
-          const { x, y, width, height } = viewer.viewport;
-          if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
-            camera.viewport = vec4.set(x, y, width, height);
-          }
-          // sync project matrix
-          if (!Matrix.equals(camera.projectionMatrix, viewer.projectionMatrix)) {
-            camera.projectionMatrix = viewer.projectionMatrix;
-          }
-        }
-      }
-    }
   }
 
   private _onSessionEvent(event: XRInputSourceEvent) {
@@ -192,7 +86,7 @@ export class WebXRInputManager extends XRInputManager {
 
   private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInput[]): void {
     const { inputSource } = event;
-    const input = inputs[this._getInputSource(inputSource)] as XRController;
+    const input = inputs[getInputSource(inputSource)] as XRController;
     switch (inputSource.targetRayMode) {
       case "tracked-pointer":
         switch (event.type) {
@@ -292,59 +186,17 @@ export class WebXRInputManager extends XRInputManager {
       default:
         break;
     }
-    console.log(type, "id:", pointerId, "pos:", clientX, clientY);
     return new PointerEvent(type, eventInitDict);
   }
 
   private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
     const { removed, added } = event;
     for (let i = 0, n = added.length; i < n; i++) {
-      inputs[this._getInputSource(added[i])].connected = true;
+      inputs[getInputSource(added[i])].connected = true;
     }
 
     for (let i = 0, n = removed.length; i < n; i++) {
-      inputs[this._getInputSource(removed[i])].connected = false;
-    }
-  }
-
-  private _getInputSource(inputSource: XRInputSource): EnumXRInputSource {
-    let type: EnumXRInputSource;
-    switch (inputSource.targetRayMode) {
-      case "gaze":
-        break;
-      case "screen":
-        return EnumXRInputSource.Controller;
-      case "tracked-pointer":
-        if (inputSource.hand) {
-          switch (inputSource.handedness) {
-            case "left":
-              return EnumXRInputSource.LeftHand;
-            case "right":
-              return EnumXRInputSource.RightHand;
-          }
-        } else {
-          switch (inputSource.handedness) {
-            case "left":
-              return EnumXRInputSource.LeftController;
-            case "right":
-              return EnumXRInputSource.RightController;
-          }
-        }
-        break;
-      default:
-        break;
-    }
-    return type;
-  }
-
-  private _eyeToInputSource(eye: XREye): EnumXRInputSource {
-    switch (eye) {
-      case "left":
-        return EnumXRInputSource.LeftViewer;
-      case "right":
-        return EnumXRInputSource.RightViewer;
-      default:
-        return EnumXRInputSource.Viewer;
+      inputs[getInputSource(removed[i])].connected = false;
     }
   }
 

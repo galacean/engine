@@ -1,5 +1,5 @@
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { EnumXRTrackingMode } from "../enum/EnumXRTrackingMode";
+import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
 export interface IXRMovementTrackingDescriptor extends IXRFeatureDescriptor {
-  mode: EnumXRTrackingMode;
+  mode: XRMovementTrackingMode;
 }

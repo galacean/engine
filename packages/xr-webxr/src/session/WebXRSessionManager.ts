@@ -25,12 +25,20 @@ export class WebXRSessionManager extends XRSessionManager {
       const requiredFeatures = parseFeatures(requestFeatures, ["local"]);
       navigator.xr.requestSession(sessionMode, { requiredFeatures }).then((session) => {
         this._platformSession = session;
+
+        session.addEventListener("end", () => {
+          this._platformSession = this._platformFrame = this._platformLayer = this._platformSpace = null;
+          this._clearCustomAnimationFrameRequester();
+          this._dispatchStateChange(SessionStateChangeFlags.stop);
+        });
+
         const { _rhi: rhi } = this;
         const { gl } = rhi;
         const attributes = gl.getContextAttributes();
         if (!attributes) {
           reject(Error("GetContextAttributes Error!"));
         }
+
         gl.makeXRCompatible().then(() => {
           const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
           if (session.renderState.layers === undefined || !!!rhi.isWebGL2) {
@@ -53,6 +61,7 @@ export class WebXRSessionManager extends XRSessionManager {
           }
           session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
             this._platformSpace = value.getOffsetReferenceSpace(new XRRigidTransform({ x: 0, y: -1.5, z: 0, w: 1.0 }));
+            this._makeUpCustomAnimationFrameRequester(session);
             resolve();
           }, reject);
         }, reject);
@@ -68,12 +77,6 @@ export class WebXRSessionManager extends XRSessionManager {
         return;
       }
       this._engine.pause();
-      // @ts-ignore
-      this._engine._customAnimationFrameRequester = {
-        requestAnimationFrame: session.requestAnimationFrame.bind(session),
-        cancelAnimationFrame: session.cancelAnimationFrame.bind(session),
-        update: this._webXRUpdate
-      };
       this._engine.resume();
       this._dispatchStateChange(SessionStateChangeFlags.start);
       resolve();
@@ -82,13 +85,10 @@ export class WebXRSessionManager extends XRSessionManager {
 
   stop(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const { _platformSession: session } = this;
-      if (!session) {
+      if (!this._platformSession) {
         reject();
         return;
       }
-      // @ts-ignore
-      this._engine._customAnimationFrameRequester = null;
       this._dispatchStateChange(SessionStateChangeFlags.stop);
       resolve();
     });
@@ -96,7 +96,12 @@ export class WebXRSessionManager extends XRSessionManager {
 
   destroy(): Promise<void> {
     return new Promise((resolve, reject) => {
-      resolve();
+      const { _platformSession: session } = this;
+      if (session) {
+        session.end().then(resolve, reject);
+      } else {
+        resolve();
+      }
     });
   }
 
@@ -131,5 +136,19 @@ export class WebXRSessionManager extends XRSessionManager {
       // @ts-ignore
       rhi._mainFrameHeight = 0;
     }
+  }
+
+  private _makeUpCustomAnimationFrameRequester(session: XRSession): void {
+    // @ts-ignore
+    this._engine._customAnimationFrameRequester = {
+      requestAnimationFrame: session.requestAnimationFrame.bind(session),
+      cancelAnimationFrame: session.cancelAnimationFrame.bind(session),
+      update: this._webXRUpdate
+    };
+  }
+
+  private _clearCustomAnimationFrameRequester(): void {
+    // @ts-ignore
+    this._engine._customAnimationFrameRequester = null;
   }
 }

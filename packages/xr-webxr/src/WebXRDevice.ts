@@ -1,11 +1,10 @@
-import { IXRFeature, IXRFeatureDescriptor } from "@galacean/engine-design";
+import { IXRFeature } from "@galacean/engine-design";
 import { Engine, EnumXRMode, EnumXRFeature, IXRDevice } from "@galacean/engine";
 import { WebXRSessionManager } from "./session/WebXRSessionManager";
 import { parseXRMode } from "./util";
-
 import { WebXRInputManager } from "./input/WebXRInputManager";
 
-type FeatureConstructor = new (engine: Engine) => IXRFeature;
+type FeatureConstructor = new (engine: Engine, type: EnumXRFeature) => IXRFeature;
 export class WebXRDevice implements IXRDevice {
   // @internal
   static _platformFeatureMap: FeatureConstructor[] = [];
@@ -38,26 +37,4 @@ export class WebXRDevice implements IXRDevice {
   createSessionManager(engine: Engine): WebXRSessionManager {
     return new WebXRSessionManager(engine);
   }
-
-  isSupportedFeature(descriptor: IXRFeatureDescriptor): Promise<void> {
-    return new Promise((resolve: () => void, reject: (reason: Error) => void) => {
-      const { _platformFeatureMap: platformFeatureMap } = WebXRDevice;
-      const { type } = descriptor;
-      if (!platformFeatureMap[type]) {
-        reject(new Error("@galacean/engine-xr-webxr 未实现" + EnumXRFeature[type] + "功能类"));
-      } else {
-        resolve();
-      }
-    });
-  }
-
-  createFeature(engine: Engine, descriptor: IXRFeatureDescriptor): Promise<IXRFeature> {
-    return this.isSupportedFeature(descriptor).then(() => new WebXRDevice._platformFeatureMap[descriptor.type](engine));
-  }
-}
-
-export function registerXRPlatformFeature(feature: EnumXRFeature) {
-  return (featureConstructor: FeatureConstructor) => {
-    WebXRDevice._platformFeatureMap[feature] = featureConstructor;
-  };
 }

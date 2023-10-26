@@ -1,4 +1,4 @@
-import { EnumXRMode, EnumXRFeature } from "@galacean/engine";
+import { EnumXRMode, EnumXRFeature, EnumXRInputSource } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 
 export function parseXRMode(mode: EnumXRMode): XRSessionMode {
@@ -33,4 +33,45 @@ export function parseFeatures(descriptors: IXRFeatureDescriptor[], out: string[]
     }
   }
   return out;
+}
+
+export function getInputSource(inputSource: XRInputSource): EnumXRInputSource {
+  let type: EnumXRInputSource;
+  switch (inputSource.targetRayMode) {
+    case "gaze":
+      break;
+    case "screen":
+      return EnumXRInputSource.Controller;
+    case "tracked-pointer":
+      if (inputSource.hand) {
+        switch (inputSource.handedness) {
+          case "left":
+            return EnumXRInputSource.LeftHand;
+          case "right":
+            return EnumXRInputSource.RightHand;
+        }
+      } else {
+        switch (inputSource.handedness) {
+          case "left":
+            return EnumXRInputSource.LeftController;
+          case "right":
+            return EnumXRInputSource.RightController;
+        }
+      }
+      break;
+    default:
+      break;
+  }
+  return type;
+}
+
+export function eyeToInputSource(eye: XREye): EnumXRInputSource {
+  switch (eye) {
+    case "left":
+      return EnumXRInputSource.LeftViewer;
+    case "right":
+      return EnumXRInputSource.RightViewer;
+    default:
+      return EnumXRInputSource.Viewer;
+  }
 }

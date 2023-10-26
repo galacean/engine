@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor } from "@galacean/engine-design";
+import { IXRFeature, IXRFeatureDescriptor } from "@galacean/engine-design";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { XRFeatureManager } from "./feature/XRFeatureManager";
@@ -9,12 +9,17 @@ import { EnumXRMode } from "./enum/EnumXRMode";
 import { EnumXRInputSource } from "./enum/EnumXRInputSource";
 import { EnumXRFeature } from "./enum/EnumXRFeature";
 import { XRSessionManager } from "./session/XRSessionManager";
+import { EnumXRSessionState } from "./enum/EnumXRSessionState";
+import { Logger } from "../base";
 
-type FeatureConstructor = new (engine: Engine) => XRFeatureManager;
+type FeatureManagerConstructor = new (engine: Engine) => XRFeatureManager;
+type PlatformFeatureConstructor = new (engine: Engine) => IXRFeature;
 
 export class XRModule {
   // @internal
-  static _featureMap: FeatureConstructor[] = [];
+  static _featureManagerMap: FeatureManagerConstructor[] = [];
+  // @internal
+  static _platformFeatureMap: PlatformFeatureConstructor[] = [];
 
   xrDevice: IXRDevice;
   inputManager: XRInputManager;
@@ -22,7 +27,7 @@ export class XRModule {
 
   private _engine: Engine;
   private _features: XRFeatureManager[] = [];
-  private _isPaused: boolean = true;
+  private _sessionState: EnumXRSessionState = EnumXRSessionState.NotInitialized;
 
   private _mode: EnumXRMode;
   private _requestFeatures: IXRFeatureDescriptor[];
@@ -40,11 +45,10 @@ export class XRModule {
   }
 
   isSupportedFeature(descriptors: IXRFeatureDescriptor | IXRFeatureDescriptor[]): Promise<void> {
-    const { xrDevice } = this;
     if (descriptors instanceof Array) {
       const promiseArr = [];
       for (let i = 0, n = descriptors.length; i < n; i++) {
-        promiseArr.push(xrDevice.isSupportedFeature(descriptors[i]));
+        promiseArr.push(this.isSupportedFeature(descriptors[i]));
       }
       return new Promise((resolve, reject) => {
         Promise.all(promiseArr).then(() => {
@@ -52,24 +56,40 @@ export class XRModule {
         }, reject);
       });
     } else {
-      return xrDevice.isSupportedFeature(descriptors);
+      const feature = this.getFeature(descriptors.type);
+      if (feature) {
+        return feature.isSupported(descriptors);
+      } else {
+        return new Promise((resolve, reject) => {
+          reject(new Error("没有实现对应的 XRPlatformFeature : " + EnumXRFeature[descriptors.type]));
+        });
+      }
     }
   }
 
-  enableFeature(type: EnumXRFeature): void {
-    this._features[type].enabled = true;
-  }
-
-  disableFeature(type: EnumXRFeature): void {
-    this._features[type].enabled = false;
-  }
-
-  getFeature<T extends XRFeatureManager>(type: new (engine: Engine, descriptor: IXRFeatureDescriptor) => T): T {
+  disableAllFeatures(): void {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      if (feature instanceof type) {
-        return feature;
+      features[i] && (features[i].enabled = false);
+    }
+  }
+
+  getFeature<T extends XRFeatureManager>(type: EnumXRFeature): T {
+    const { _features: features } = this;
+    const feature = features[type];
+    if (feature) {
+      return <T>feature;
+    } else {
+      const { _featureManagerMap: featureManagerMap, _platformFeatureMap: platformFeatureMap } = XRModule;
+      const featureManagerConstructor = featureManagerMap[type];
+      const platformFeatureConstructor = platformFeatureMap[type];
+      if (platformFeatureConstructor) {
+        const feature = (features[type] = new featureManagerConstructor(this._engine));
+        feature._platformFeature = new platformFeatureConstructor(this._engine);
+        return <T>feature;
+      } else {
+        Logger.warn(EnumXRFeature[type] + "的平台接口层未实现.");
+        return null;
       }
     }
   }
@@ -82,34 +102,51 @@ export class XRModule {
     this.inputManager.getInput<XRViewer>(source).camera = null;
   }
 
-  initSession(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
-    this._mode = mode;
-    this._requestFeatures = requestFeatures;
+  initSession(mode: EnumXRMode, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
+    if (this._sessionState !== EnumXRSessionState.NotInitialized) {
+      return Promise.reject(new Error("请先销毁旧的 XR 会话"));
+    }
     return new Promise((resolve, reject) => {
-      const { _engine: engine, _features: features } = this;
-      const initializeFeature = () => {
-        const { _featureMap: featureMap } = XRModule;
-        const promiseArr = [];
-        for (let i = 0, n = requestFeatures.length; i < n; i++) {
-          const featureDescriptor = requestFeatures[i];
-          const { type } = featureDescriptor;
-          if (type !== EnumXRFeature.MovementTracking) {
-            const featureConstructor = featureMap[type];
-            if (!featureConstructor) {
-              console.warn("功能" + EnumXRFeature[type] + "没有实现");
-              continue;
+      // 1. Check if this xr mode is supported
+      this.xrDevice.isSupported(mode).then(() => {
+        if (requestFeatures) {
+          // 2. Reset all feature
+          this.disableAllFeatures();
+          // 3. Check is this class is implemented
+          const supportedArr = [];
+          for (let i = requestFeatures.length - 1; i >= 0; i--) {
+            const descriptor = requestFeatures[i];
+            const feature = this.getFeature(descriptor.type);
+            if (feature) {
+              feature.enabled = true;
+              feature.descriptor = descriptor;
+              supportedArr.push(feature.isSupported());
+            } else {
+              reject(new Error(EnumXRFeature[descriptor.type] + " class is not implemented."));
+              return;
             }
-            const feature = (features[type] ||= new featureConstructor(engine));
-            promiseArr.push(feature.initialize(featureDescriptor));
           }
+          // 4. Check if this feature is supported
+          Promise.all(supportedArr).then(() => {
+            // 5. Initialize session
+            this.sessionManager.initialize(mode, requestFeatures).then(() => {
+              // 6. Initialize all features
+              const initializeArr = [];
+              const { _features: features } = this;
+              for (let i = features.length - 1; i >= 0; i--) {
+                const feature = features[i];
+                feature?.enabled && initializeArr.push(feature.initialize());
+              }
+              Promise.all(initializeArr).then(() => {
+                this._mode = mode;
+                this._sessionState = EnumXRSessionState.Paused;
+                resolve();
+              }, reject);
+            }, reject);
+          }, reject);
+        } else {
+          reject(new Error("Without any feature"));
         }
-        Promise.all(promiseArr).then(() => {
-          resolve();
-        }, reject);
-      };
-
-      this.sessionManager.initialize(mode, requestFeatures).then(() => {
-        initializeFeature();
       }, reject);
     });
   }
@@ -117,7 +154,7 @@ export class XRModule {
   destroySession(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager.destroy().then(() => {
-        this._isPaused = true;
+        this._sessionState = EnumXRSessionState.NotInitialized;
         resolve();
       }, reject);
     });
@@ -132,7 +169,7 @@ export class XRModule {
         for (let i = 0, n = features.length; i < n; i++) {
           features[i]?._onSessionStart();
         }
-        this._isPaused = false;
+        this._sessionState = EnumXRSessionState.Running;
         resolve();
       }, reject);
     });
@@ -147,14 +184,13 @@ export class XRModule {
         for (let i = 0, n = features.length; i < n; i++) {
           features[i]?._onSessionStop();
         }
-        this._isPaused = true;
+        this._sessionState = EnumXRSessionState.Paused;
         resolve();
       }, reject);
     });
   }
 
   destroy(): void {
-    this._isPaused = true;
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       features[i]?._onDestroy();
@@ -175,7 +211,7 @@ export class XRModule {
    * @internal
    */
   _update(): void {
-    if (this._isPaused) return;
+    if (this._sessionState !== EnumXRSessionState.Running) return;
     this.inputManager._onUpdate();
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
@@ -185,7 +221,13 @@ export class XRModule {
 }
 
 export function registerXRFeatureManager(feature: EnumXRFeature) {
-  return (featureConstructor: FeatureConstructor) => {
-    XRModule._featureMap[feature] = featureConstructor;
+  return (featureManagerConstructor: FeatureManagerConstructor) => {
+    XRModule._featureManagerMap[feature] = featureManagerConstructor;
+  };
+}
+
+export function registerXRPlatformFeature(feature: EnumXRFeature) {
+  return (platformFeatureConstructor: PlatformFeatureConstructor) => {
+    XRModule._platformFeatureMap[feature] = platformFeatureConstructor;
   };
 }
