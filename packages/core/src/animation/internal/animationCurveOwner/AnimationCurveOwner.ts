@@ -56,7 +56,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this.component = target.getComponent(type);
     this.cureType = cureType;
     const isBlendShape = this.component instanceof SkinnedMeshRenderer;
-    // @todo: Temp solution with blendShape
+    // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
     this._isCopyMode = cureType._isCopyMode && !isBlendShape;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
@@ -185,7 +185,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           cureType._lerpValue(targetValue, value, weight, targetValue);
         } else {
           const originValue = this._assembler.getTargetValue();
-          const lerpValue = cureType._lerpValue(originValue, value, weight);
+          const lerpValue = cureType._lerpValue(originValue, value, weight, originValue);
           this._assembler.setTargetValue(lerpValue);
         }
       }
@@ -196,7 +196,12 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     if (this._isCopyMode) {
       return this.cureType._lerpValue(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
     } else {
-      this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);
+      this.baseEvaluateData.value = this.cureType._lerpValue(
+        srcValue,
+        destValue,
+        crossWeight,
+        this.baseEvaluateData.value
+      );
       return this.baseEvaluateData.value;
     }
   }
