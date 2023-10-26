@@ -1,7 +1,6 @@
 import { _ruleFnMacroCstChildren } from "../types";
 import {
   AstNode,
-  PropertyItemAstNode,
   TagAstNode,
   PassPropertyAssignmentAstNode,
   StructAstNode,
@@ -48,7 +47,6 @@ import {
 
 export interface IShaderAstContent {
   name: string;
-  editorProperties?: AstNode<PropertyItemAstNode[]>;
   subShader: AstNode<ISubShaderAstContent>[];
   functions?: FnAstNode[];
   renderStates?: RenderStateDeclarationAstNode[];
@@ -310,8 +308,6 @@ export interface ITagAssignmentAstContent {
 }
 
 export type ITagAstContent = TagAssignmentAstNode[];
-
-export type IPropertyAstContent = PropertyItemAstNode[];
 
 export type ITupleNumber4 = [number, number, number, number];
 export type ITupleNumber3 = [number, number, number];
