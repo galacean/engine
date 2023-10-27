@@ -42,7 +42,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
-  private _isCopyMode: boolean;
+  private _isBlendShape: boolean;
 
   constructor(
     target: Entity,
@@ -55,13 +55,14 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this.property = property;
     this.component = target.getComponent(type);
     this.cureType = cureType;
-    this._isCopyMode = cureType._isCopyMode;
+
+    this._isBlendShape = this.component instanceof SkinnedMeshRenderer;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
 
-    if (this._isCopyMode) {
+    if (cureType._isCopyMode) {
       this.referenceTargetValue = this._assembler.getTargetValue();
     }
   }
@@ -135,7 +136,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   getEvaluateValue(out: V): V {
-    if (this._isCopyMode) {
+    if (this.cureType._isCopyMode) {
       this.cureType._setValue(this.baseEvaluateData.value, out);
       return out;
     } else {
@@ -144,7 +145,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveDefaultValue(): void {
-    if (this._isCopyMode) {
+    if (this.cureType._isCopyMode) {
       this.cureType._setValue(this.referenceTargetValue, this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
@@ -152,7 +153,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveFixedPoseValue(): void {
-    if (this._isCopyMode) {
+    if (this.cureType._isCopyMode) {
       this.cureType._setValue(this.referenceTargetValue, this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
@@ -161,11 +162,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   applyValue(value: V, weight: number, additive: boolean): void {
     const cureType = this.cureType;
-    const isBlendShape = this.component instanceof SkinnedMeshRenderer;
 
     if (additive) {
       // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-      if (this._isCopyMode && !isBlendShape) {
+      if (this.cureType._isCopyMode && !this._isBlendShape) {
         cureType._additiveValue(value, weight, this.referenceTargetValue);
       } else {
         const assembler = this._assembler;
@@ -176,14 +176,14 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     } else {
       if (weight === 1.0) {
         // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-        if (this._isCopyMode && !isBlendShape) {
+        if (this.cureType._isCopyMode && !this._isBlendShape) {
           cureType._setValue(value, this.referenceTargetValue);
         } else {
           this._assembler.setTargetValue(value);
         }
       } else {
         // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-        if (this._isCopyMode && !isBlendShape) {
+        if (this.cureType._isCopyMode && !this._isBlendShape) {
           const targetValue = this.referenceTargetValue;
           cureType._lerpValue(targetValue, value, weight, targetValue);
         } else {
@@ -197,7 +197,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   private _lerpValue(srcValue: V, destValue: V, crossWeight: number): KeyframeValueType {
-    if (this._isCopyMode) {
+    if (this.cureType._isCopyMode) {
       return this.cureType._lerpValue(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
     } else {
       this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);
