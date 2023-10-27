@@ -164,32 +164,41 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     const cureType = this.cureType;
 
     if (additive) {
-      // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-      if (this.cureType._isCopyMode && !this._isBlendShape) {
-        cureType._additiveValue(value, weight, this.referenceTargetValue);
+      const assembler = this._assembler;
+
+      if (cureType._isCopyMode) {
+        const additiveValue = cureType._additiveValue(value, weight, this.referenceTargetValue);
+        // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
+        if (this._isBlendShape) {
+          assembler.setTargetValue(additiveValue);
+        }
       } else {
-        const assembler = this._assembler;
         const originValue = assembler.getTargetValue();
         const additiveValue = cureType._additiveValue(value, weight, originValue);
         assembler.setTargetValue(additiveValue);
       }
     } else {
       if (weight === 1.0) {
-        // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-        if (this.cureType._isCopyMode && !this._isBlendShape) {
+        if (cureType._isCopyMode) {
           cureType._setValue(value, this.referenceTargetValue);
+          // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
+          if (this._isBlendShape) {
+            this._assembler.setTargetValue(this.referenceTargetValue);
+          }
         } else {
           this._assembler.setTargetValue(value);
         }
       } else {
-        // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-        if (this.cureType._isCopyMode && !this._isBlendShape) {
+        if (cureType._isCopyMode) {
           const targetValue = this.referenceTargetValue;
           cureType._lerpValue(targetValue, value, weight, targetValue);
+          // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
+          if (this._isBlendShape) {
+            this._assembler.setTargetValue(targetValue);
+          }
         } else {
           const originValue = this._assembler.getTargetValue();
-          // @todo: Temp solution in PR: https://github.com/galacean/engine/pull/1840
-          const lerpValue = cureType._lerpValue(originValue, value, weight, originValue);
+          const lerpValue = cureType._lerpValue(originValue, value, weight);
           this._assembler.setTargetValue(lerpValue);
         }
       }
