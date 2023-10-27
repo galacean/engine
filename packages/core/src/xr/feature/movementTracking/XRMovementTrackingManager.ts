@@ -9,6 +9,6 @@ import { EnumXRFeature } from "../../enum/EnumXRFeature";
 export class XRMovementTrackingManager extends XRFeatureManager {
   setTrackingMode(value: XRMovementTrackingMode) {
     (this._descriptor as IXRMovementTrackingDescriptor).mode = value;
-    this._platformFeature._onFlagChange(EnumXRFeatureChangeFlag.MovementTrackingMode, value);
+    this.platformFeature._onFlagChange(EnumXRFeatureChangeFlag.MovementTrackingMode, value);
   }
 }

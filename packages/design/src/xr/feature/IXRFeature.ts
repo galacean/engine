@@ -6,6 +6,9 @@ export interface IXRFeature {
   _initialize(descriptor: IXRFeatureDescriptor): Promise<void>;
   _onUpdate(): void;
   _onDestroy(): void;
-
+  _onSessionInit(): void;
+  _onSessionStart(): void;
+  _onSessionStop(): void;
+  _onSessionDestroy(): void;
   _onFlagChange(flag: number, ...param): void;
 }

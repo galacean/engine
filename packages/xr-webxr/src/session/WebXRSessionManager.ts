@@ -1,6 +1,6 @@
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { Engine, EnumXRMode, SessionStateChangeFlags, WebGLGraphicDevice, XRSessionManager } from "@galacean/engine";
-import { parseFeatures, parseXRMode } from "../util";
+import { Engine, EnumXRMode, WebGLGraphicDevice, XRSessionManager } from "@galacean/engine";
+import { parseFeature, parseXRMode } from "../util";
 
 export class WebXRSessionManager extends XRSessionManager {
   // @internal
@@ -18,51 +18,55 @@ export class WebXRSessionManager extends XRSessionManager {
   initialize(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
-      if (!sessionMode) {
-        reject(new Error("Mode must be a value from the XRMode."));
-        return;
+      const options: XRSessionInit = { requiredFeatures: ["local"] };
+      const promiseArr = [];
+      for (let i = 0, n = requestFeatures.length; i < n; i++) {
+        const promise = parseFeature(requestFeatures[i], options);
+        promise && promiseArr.push(promise);
       }
-      const requiredFeatures = parseFeatures(requestFeatures, ["local"]);
-      navigator.xr.requestSession(sessionMode, { requiredFeatures }).then((session) => {
-        this._platformSession = session;
+      Promise.all(promiseArr).then(() => {
+        navigator.xr.requestSession(sessionMode, options).then((session) => {
+          this._platformSession = session;
 
-        session.addEventListener("end", () => {
-          this._platformSession = this._platformFrame = this._platformLayer = this._platformSpace = null;
-          this._clearCustomAnimationFrameRequester();
-          this._dispatchStateChange(SessionStateChangeFlags.stop);
-        });
+          session.addEventListener("end", () => {
+            this._platformSession = this._platformFrame = this._platformLayer = this._platformSpace = null;
+            this._clearCustomAnimationFrameRequester();
+            this._unBindMainFBO();
+          });
 
-        const { _rhi: rhi } = this;
-        const { gl } = rhi;
-        const attributes = gl.getContextAttributes();
-        if (!attributes) {
-          reject(Error("GetContextAttributes Error!"));
-        }
-
-        gl.makeXRCompatible().then(() => {
-          const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
-          if (session.renderState.layers === undefined || !!!rhi.isWebGL2) {
-            const layerInit = {
-              antialias: session.renderState.layers === undefined ? attributes.antialias : true,
-              alpha: true,
-              depth: attributes.depth,
-              stencil: attributes.stencil,
-              framebufferScaleFactor: scaleFactor
-            };
-            this._platformLayer = new XRWebGLLayer(session, gl, layerInit);
-            session.updateRenderState({
-              baseLayer: this._platformLayer
-            });
-          } else {
-            this._platformLayer = new XRWebGLLayer(session, gl);
-            session.updateRenderState({
-              layers: [this._platformLayer]
-            });
+          const { _rhi: rhi } = this;
+          const { gl } = rhi;
+          const attributes = gl.getContextAttributes();
+          if (!attributes) {
+            reject(Error("GetContextAttributes Error!"));
           }
-          session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
-            this._platformSpace = value.getOffsetReferenceSpace(new XRRigidTransform({ x: 0, y: -1.5, z: 0, w: 1.0 }));
-            this._makeUpCustomAnimationFrameRequester(session);
-            resolve();
+
+          gl.makeXRCompatible().then(() => {
+            const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
+            if (session.renderState.layers === undefined || !!!rhi.isWebGL2) {
+              const layerInit = {
+                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+                alpha: true,
+                depth: attributes.depth,
+                stencil: attributes.stencil,
+                framebufferScaleFactor: scaleFactor
+              };
+              this._platformLayer = new XRWebGLLayer(session, gl, layerInit);
+              session.updateRenderState({
+                baseLayer: this._platformLayer
+              });
+            } else {
+              this._platformLayer = new XRWebGLLayer(session, gl);
+              session.updateRenderState({
+                layers: [this._platformLayer]
+              });
+            }
+            session.requestReferenceSpace("local").then((value: XRReferenceSpace) => {
+              this._platformSpace = value.getOffsetReferenceSpace(
+                new XRRigidTransform({ x: 0, y: -1.5, z: 0, w: 1.0 })
+              );
+              resolve();
+            }, reject);
           }, reject);
         }, reject);
       }, reject);
@@ -76,9 +80,9 @@ export class WebXRSessionManager extends XRSessionManager {
         reject();
         return;
       }
+      this._makeUpCustomAnimationFrameRequester(session);
       this._engine.pause();
       this._engine.resume();
-      this._dispatchStateChange(SessionStateChangeFlags.start);
       resolve();
     });
   }
@@ -89,7 +93,10 @@ export class WebXRSessionManager extends XRSessionManager {
         reject();
         return;
       }
-      this._dispatchStateChange(SessionStateChangeFlags.stop);
+      this._clearCustomAnimationFrameRequester();
+      this._unBindMainFBO();
+      this._engine.pause();
+      this._engine.resume();
       resolve();
     });
   }
@@ -118,6 +125,14 @@ export class WebXRSessionManager extends XRSessionManager {
     this._setMainFBO();
   }
 
+  private _unBindMainFBO(): void {
+    const { _rhi: rhi } = this;
+    // @ts-ignore
+    rhi._mainFrameBuffer = null;
+    // @ts-ignore
+    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+  }
+
   private _setMainFBO(): void {
     const { framebuffer, framebufferWidth, framebufferHeight } = this._platformLayer;
     const { _rhi: rhi } = this;
@@ -132,9 +147,7 @@ export class WebXRSessionManager extends XRSessionManager {
       // @ts-ignore
       rhi._mainFrameBuffer = null;
       // @ts-ignore
-      rhi._mainFrameWidth = 0;
-      // @ts-ignore
-      rhi._mainFrameHeight = 0;
+      rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     }
   }
 

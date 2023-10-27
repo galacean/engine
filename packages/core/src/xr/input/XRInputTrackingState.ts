@@ -1,4 +1,4 @@
-export enum EnumTrackingState {
+export enum XRInputTrackingState {
   NotTracking,
   TrackingLost,
   Tracking

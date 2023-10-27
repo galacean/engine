@@ -1,4 +1,4 @@
-import { EnumXRMode, EnumXRFeature, EnumXRInputSource } from "@galacean/engine";
+import { EnumXRMode, EnumXRFeature, EnumXRInputSource, IXRImageTrackingDescriptor, request } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 
 export function parseXRMode(mode: EnumXRMode): XRSessionMode {
@@ -12,27 +12,51 @@ export function parseXRMode(mode: EnumXRMode): XRSessionMode {
   }
 }
 
-export function parseFeatures(descriptors: IXRFeatureDescriptor[], out: string[]): string[] {
-  for (let i = 0, n = descriptors.length; i < n; i++) {
-    const feature = descriptors[i];
-    switch (feature.type) {
-      case EnumXRFeature.HandTracking:
-        out.push("hand-tracking");
-        break;
-      case EnumXRFeature.ImageTracking:
-        out.push("image-tracking");
-        break;
-      case EnumXRFeature.HitTest:
-        out.push("hit-test");
-        break;
-      case EnumXRFeature.PlaneTracking:
-        out.push("plane-detection");
-        break;
-      default:
-        break;
-    }
+export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessionInit): Promise<void> | null {
+  const { requiredFeatures } = options;
+  switch (descriptor.type) {
+    case EnumXRFeature.ImageTracking:
+      requiredFeatures.push("image-tracking");
+      const { referenceImages } = <IXRImageTrackingDescriptor>descriptor;
+      const promiseArr: Promise<ImageBitmap>[] = [];
+      if (referenceImages) {
+        for (let i = 0, n = referenceImages.length; i < n; i++) {
+          const referenceImage = referenceImages[i];
+          const { src } = referenceImages[i];
+          if (!src) {
+            return Promise.reject(new Error("referenceImage[" + referenceImage.name + "].src is null"));
+          } else {
+            if (typeof src === "string") {
+              promiseArr.push(createImageBitmapByURL(src));
+            } else {
+              promiseArr.push(createImageBitmap(src));
+            }
+          }
+        }
+        return new Promise((resolve, reject) => {
+          // @ts-ignore
+          const trackedImages = (options.trackedImages = []);
+          Promise.all(promiseArr).then((bitmaps: ImageBitmap[]) => {
+            for (let i = 0, n = bitmaps.length; i < n; i++) {
+              const bitmap = bitmaps[i];
+              trackedImages.push({
+                image: bitmap,
+                widthInMeters: referenceImages[i].physicalWidth ?? bitmap.width / 100
+              });
+            }
+            resolve();
+          }, reject);
+        });
+      } else {
+        return Promise.reject(new Error("referenceImages.length is 0"));
+      }
+    case EnumXRFeature.HitTest:
+      requiredFeatures.push("hit-test");
+      break;
+    case EnumXRFeature.PlaneTracking:
+      requiredFeatures.push("plane-detection");
+      break;
   }
-  return out;
 }
 
 export function getInputSource(inputSource: XRInputSource): EnumXRInputSource {
@@ -74,4 +98,12 @@ export function eyeToInputSource(eye: XREye): EnumXRInputSource {
     default:
       return EnumXRInputSource.Viewer;
   }
+}
+
+function createImageBitmapByURL(url: string): Promise<ImageBitmap> {
+  return new Promise((resolve, reject) => {
+    request<HTMLImageElement>(url, { type: "image" }).then((image) => {
+      createImageBitmap(image).then(resolve, reject);
+    }, reject);
+  });
 }

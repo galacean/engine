@@ -27,6 +27,7 @@ export interface IXRFeatureManager {
 
   _onSessionStop(): void;
 
+  _onSessionDestroy(): void;
   /**
    * Update an instance of a feature.
    * This method needs to be override.

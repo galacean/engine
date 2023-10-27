@@ -1,58 +1,54 @@
 import {
   Engine,
   XRController,
-  XRViewer,
   XRInput,
-  EnumXRInputSource,
   EnumXRButton,
   XRInputManager,
-  Matrix,
-  EnumXRMode,
-  Vector3
+  XRInputTrackingState,
+  Time
 } from "@galacean/engine";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
 import { getInputSource } from "../util";
 
 export class WebXRInputManager extends XRInputManager {
-  private _platformSession: XRSession;
+  private _session: XRSession;
   private _screenInputSource: XRInputSource[] = [];
   private _canvas: HTMLCanvasElement;
+  private _time: Time;
   private _eventList: {
     event: Event;
-    handle: (frameCount: number, event: Event, inputs: XRInput[]) => void;
+    handle: (event: Event, inputs: XRInput[]) => void;
   }[] = [];
 
   _onSessionStart(): void {
-    const session = (<WebXRSessionManager>this._engine.xrModule.sessionManager)._platformSession;
-    if (this._platformSession !== session) {
-      this._platformSession && this._removeListener(this._platformSession);
-      this._addListener(session);
-      this._platformSession = session;
+    const nowSession = (<WebXRSessionManager>this._engine.xrModule.sessionManager)._platformSession;
+    const preSession = this._session;
+    if (preSession !== nowSession) {
+      preSession && this._removeListener(preSession);
+      this._addListener(nowSession);
+      this._session = nowSession;
     }
   }
 
   _onSessionStop(): void {
-    if (this._platformSession) {
-      this._removeListener(this._platformSession);
-      this._platformSession = null;
+    if (this._session) {
+      this._removeListener(this._session);
+      this._session = null;
     }
   }
 
   _onDestroy(): void {
-    this._onSessionStop();
+    if (this._session) {
+      this._removeListener(this._session);
+      this._session = null;
+    }
   }
 
   /**
    * @internal
    */
   _onUpdate(): void {
-    const { _inputs: inputs, _engine: engine, _platformSession: platformSession } = this;
-    const sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
-    const { _platformFrame, _platformLayer, _platformSpace } = sessionManager;
-    if (!platformSession || !_platformFrame || !_platformSpace) {
-      return;
-    }
-
+    const { _inputs: inputs, _engine: engine } = this;
     // Select event does not dispatch the move event, so we need to simulate dispatching the move here.
     const { _screenInputSource: screenInputSource, _canvas: canvas } = this;
     for (let i = 0; i < screenInputSource.length; i++) {
@@ -67,11 +63,10 @@ export class WebXRInputManager extends XRInputManager {
     }
 
     // Handle pressure flow events.
-    const { frameCount } = engine.time;
     const { _eventList: eventList } = this;
     for (let i = 0, n = eventList.length; i < n; i++) {
       const event = eventList[i];
-      event.handle(frameCount, event.event, inputs);
+      event.handle(event.event, inputs);
     }
     eventList.length = 0;
   }
@@ -84,7 +79,7 @@ export class WebXRInputManager extends XRInputManager {
     this._eventList.push({ event, handle: this._handleInputSourceEvent });
   }
 
-  private _handleButtonEvent(frameCount: number, event: XRInputSourceEvent, inputs: XRInput[]): void {
+  private _handleButtonEvent(event: XRInputSourceEvent, inputs: XRInput[]): void {
     const { inputSource } = event;
     const input = inputs[getInputSource(inputSource)] as XRController;
     switch (inputSource.targetRayMode) {
@@ -92,22 +87,22 @@ export class WebXRInputManager extends XRInputManager {
         switch (event.type) {
           case "selectstart":
             input.downList.add(EnumXRButton.Select);
-            input.downMap[EnumXRButton.Select] = frameCount;
+            input.downMap[EnumXRButton.Select] = this._time.frameCount;
             input.pressedButtons |= EnumXRButton.Select;
             break;
           case "selectend":
             input.upList.add(EnumXRButton.Select);
-            input.upMap[EnumXRButton.Select] = frameCount;
+            input.upMap[EnumXRButton.Select] = this._time.frameCount;
             input.pressedButtons &= ~EnumXRButton.Select;
             break;
           case "squeezestart":
             input.downList.add(EnumXRButton.Squeeze);
-            input.downMap[EnumXRButton.Squeeze] = frameCount;
+            input.downMap[EnumXRButton.Squeeze] = this._time.frameCount;
             input.pressedButtons |= EnumXRButton.Squeeze;
             break;
           case "squeezeend":
             input.upList.add(EnumXRButton.Squeeze);
-            input.upMap[EnumXRButton.Squeeze] = frameCount;
+            input.upMap[EnumXRButton.Squeeze] = this._time.frameCount;
             input.pressedButtons &= ~EnumXRButton.Squeeze;
             break;
           default:
@@ -189,14 +184,10 @@ export class WebXRInputManager extends XRInputManager {
     return new PointerEvent(type, eventInitDict);
   }
 
-  private _handleInputSourceEvent(frameCount: number, event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
-    const { removed, added } = event;
-    for (let i = 0, n = added.length; i < n; i++) {
-      inputs[getInputSource(added[i])].connected = true;
-    }
-
+  private _handleInputSourceEvent(event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
+    const { removed } = event;
     for (let i = 0, n = removed.length; i < n; i++) {
-      inputs[getInputSource(removed[i])].connected = false;
+      inputs[getInputSource(removed[i])].trackingState = XRInputTrackingState.NotTracking;
     }
   }
 
@@ -226,7 +217,8 @@ export class WebXRInputManager extends XRInputManager {
   constructor(engine: Engine) {
     super(engine);
     // @ts-ignore
-    this._canvas = this._engine._canvas._webCanvas;
+    this._canvas = engine._canvas._webCanvas;
+    this._time = engine.time;
     this._onSessionEvent = this._onSessionEvent.bind(this);
     this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
     this._handleButtonEvent = this._handleButtonEvent.bind(this);

@@ -1,14 +1,8 @@
-import { IXRFeature } from "@galacean/engine-design";
-import { Engine, EnumXRMode, EnumXRFeature, IXRDevice } from "@galacean/engine";
+import { Engine, EnumXRMode, IXRDevice } from "@galacean/engine";
 import { WebXRSessionManager } from "./session/WebXRSessionManager";
 import { parseXRMode } from "./util";
 import { WebXRInputManager } from "./input/WebXRInputManager";
-
-type FeatureConstructor = new (engine: Engine, type: EnumXRFeature) => IXRFeature;
 export class WebXRDevice implements IXRDevice {
-  // @internal
-  static _platformFeatureMap: FeatureConstructor[] = [];
-
   isSupported(mode: EnumXRMode): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (window.isSecureContext === false) {

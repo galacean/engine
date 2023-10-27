@@ -40,6 +40,11 @@ export abstract class XRInputManager implements IXRInputManager {
   /**
    * @internal
    */
+  _onSessionInit(): void {}
+
+  /**
+   * @internal
+   */
   _onSessionStart(): void {}
 
   /**
@@ -51,6 +56,11 @@ export abstract class XRInputManager implements IXRInputManager {
    * @internal
    */
   _onSessionStop(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void {}
 
   /**
    * @internal

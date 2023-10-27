@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { EnumTrackingState } from "../enum/EnumTrackingState";
+import { TrackingStateChangeFlags } from "../enum/TrackingStateChangeFlags";
 
 type StateChangeListenerConstructor = (type?: number, param?: Object) => void;
 export abstract class XRDisplayManager {
@@ -21,7 +21,7 @@ export abstract class XRDisplayManager {
     Utils.removeFromArray(this._listeners, listener);
   }
 
-  protected _dispatchStateChange(state: EnumTrackingState): void {
+  protected _dispatchTrackingStateChange(state: TrackingStateChangeFlags): void {
     const listeners = this._listeners;
     for (let i = listeners.length - 1; i >= 0; i--) {
       listeners[i](state);

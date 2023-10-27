@@ -2,6 +2,7 @@
 export { XRModule, registerXRFeatureManager, registerXRPlatformFeature } from "./XRModule";
 
 // feature
+export { XRPlatformFeature } from "./feature/XRPlatformFeature";
 // -- Movement --
 export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
 export { XRMovementTrackingMode } from "./feature/movementTracking/XRMovementTrackingMode";
@@ -27,11 +28,11 @@ export { EnumXRInputSource } from "./enum/EnumXRInputSource";
 export { EnumXRMode } from "./enum/EnumXRMode";
 export { EnumXRPlaneTrackingMode } from "./enum/EnumXRPlaneTrackingMode";
 export { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
-export { SessionStateChangeFlags } from "./enum/SessionStateChangeFlags";
-export { EnumTrackingState } from "./enum/EnumTrackingState";
 export { EnumXRFeatureChangeFlag } from "./enum/EnumXRFeatureChangeFlag";
+export { TrackingStateChangeFlags } from "./enum/TrackingStateChangeFlags";
 
 // input
+export { XRInputTrackingState } from "./input/XRInputTrackingState";
 export { XRController } from "./input/XRController";
 export { XRInput } from "./input/XRInput";
 export { XRInputManager } from "./input/XRInputManager";

@@ -5,16 +5,14 @@ import {
   EnumXRInputSource,
   IXRHitTestDescriptor,
   registerXRPlatformFeature,
-  Matrix
+  Matrix,
+  XRPlatformFeature
 } from "@galacean/engine";
 import { IXRFeatureDescriptor, IXRHitTest } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
 
 @registerXRPlatformFeature(EnumXRFeature.HitTest)
-export class WebXRHitTest implements IXRHitTest {
-  descriptor: IXRHitTestDescriptor;
-
-  private _engine: Engine;
+export class WebXRHitTest extends XRPlatformFeature {
   private _sessionManager: WebXRSessionManager;
   private _screenX: number;
   private _screenY: number;
@@ -59,21 +57,14 @@ export class WebXRHitTest implements IXRHitTest {
     // }
   }
 
-  _isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
-    return new Promise((resolve) => {
-      resolve();
-    });
-  }
-
   _initialize(descriptor: IXRHitTestDescriptor): Promise<void> {
     return new Promise((resolve, reject) => {
       this.descriptor = descriptor;
       const { _platformSession: platformSession } = this._sessionManager;
-      const promiseArr = [
+      Promise.all([
         platformSession.requestReferenceSpace("local"),
         platformSession.requestReferenceSpace("viewer")
-      ];
-      Promise.all(promiseArr).then(([localReferenceSpace, viewerReferenceSpace]) => {
+      ]).then(([localReferenceSpace, viewerReferenceSpace]) => {
         this._localReferenceSpace = localReferenceSpace;
         this._viewerReferenceSpace = viewerReferenceSpace;
         resolve();
@@ -119,7 +110,7 @@ export class WebXRHitTest implements IXRHitTest {
   }
 
   constructor(engine: Engine) {
-    this._engine = engine;
+    super(engine);
     this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
   }
 }

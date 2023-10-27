@@ -1,10 +1,10 @@
-import { IXRFeature, IXRFeatureDescriptor, IXRFeatureManager } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRFeatureManager } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { EnumXRFeatureChangeFlag } from "../enum/EnumXRFeatureChangeFlag";
+import { XRPlatformFeature } from "./XRPlatformFeature";
 
 export abstract class XRFeatureManager implements IXRFeatureManager {
-  // @internal
-  _platformFeature: IXRFeature;
+  platformFeature: XRPlatformFeature;
 
   protected _engine: Engine;
   protected _descriptor: IXRFeatureDescriptor;
@@ -16,7 +16,7 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
 
   set descriptor(value: IXRFeatureDescriptor) {
     this._descriptor = value;
-    this._platformFeature._onFlagChange(EnumXRFeatureChangeFlag.Descriptor, value);
+    this.platformFeature._onFlagChange(EnumXRFeatureChangeFlag.Descriptor, value);
   }
 
   get enabled(): boolean {
@@ -27,16 +27,16 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
     if (this.enabled !== value) {
       this._enabled = value;
       value ? this._onEnable() : this._onDisable();
-      this._platformFeature._onFlagChange(EnumXRFeatureChangeFlag.Enable, value);
+      this.platformFeature._onFlagChange(EnumXRFeatureChangeFlag.Enable, value);
     }
   }
 
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void> {
-    return this._platformFeature._isSupported(descriptor || this._descriptor);
+    return this.platformFeature._isSupported(descriptor || this._descriptor);
   }
 
   initialize(): Promise<void> {
-    return this._platformFeature._initialize(this._descriptor);
+    return this.platformFeature._initialize(this._descriptor);
   }
 
   constructor(engine: Engine) {
@@ -57,28 +57,41 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
    * @internal
    */
   _onUpdate(): void {
-    this._platformFeature._onUpdate();
+    this.platformFeature._onUpdate();
   }
 
   /**
    * @internal
    */
-  _onSessionInit(): void {}
+  _onSessionInit(): void {
+    this.platformFeature._onSessionInit();
+  }
 
   /**
    * @internal
    */
-  _onSessionStart(): void {}
+  _onSessionStart(): void {
+    this.platformFeature._onSessionStart();
+  }
 
   /**
    * @internal
    */
-  _onSessionStop(): void {}
+  _onSessionStop(): void {
+    this.platformFeature._onSessionStop();
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void {
+    this.platformFeature._onSessionDestroy();
+  }
 
   /**
    * @internal
    */
   _onDestroy(): void {
-    this._platformFeature._onDestroy();
+    this.platformFeature._onDestroy();
   }
 }
