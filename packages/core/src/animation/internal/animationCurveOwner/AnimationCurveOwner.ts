@@ -188,6 +188,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           cureType._lerpValue(targetValue, value, weight, targetValue);
         } else {
           const originValue = this._assembler.getTargetValue();
+          // @todo: Temp solution in PR: https://github.com/galacean/engine/pull/1840
           const lerpValue = cureType._lerpValue(originValue, value, weight, originValue);
           this._assembler.setTargetValue(lerpValue);
         }
@@ -199,12 +200,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     if (this._isCopyMode) {
       return this.cureType._lerpValue(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
     } else {
-      this.baseEvaluateData.value = this.cureType._lerpValue(
-        srcValue,
-        destValue,
-        crossWeight,
-        this.baseEvaluateData.value
-      );
+      this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);
       return this.baseEvaluateData.value;
     }
   }
