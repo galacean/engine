@@ -1,10 +1,10 @@
 import { Script } from "../../Script";
 import { XRInputManager } from "../input/XRInputManager";
 import { EnumXRTrackingMode } from "../enum/EnumXRTrackingMode";
-import { EnumXRInputSource } from "../enum/EnumXRInputSource";
+import { XRInputType } from "../input/XRInputType";
 
 export class XRPoseDriver extends Script {
-  source: EnumXRInputSource = EnumXRInputSource.Viewer;
+  source: XRInputType = XRInputType.Viewer;
   updateType: EnumXRTrackingMode = EnumXRTrackingMode.RotationAndPosition;
 
   private _inputManager: XRInputManager;

@@ -1,10 +1,9 @@
 import {
   Engine,
-  EnumXRFeature,
-  EnumXRFeatureChangeFlag,
-  registerXRPlatformFeature,
+  XRFeatureType,
+  XRFeatureChangeFlag,
   Matrix,
-  EnumXRInputSource,
+  XRInputType,
   EnumXRMode,
   XRViewer,
   Vector3,
@@ -15,8 +14,9 @@ import {
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
 import { WebXRInputManager } from "../input/WebXRInputManager";
 import { eyeToInputSource, getInputSource } from "../util";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 
-@registerXRPlatformFeature(EnumXRFeature.MovementTracking)
+@registerXRPlatformFeature(XRFeatureType.MovementTracking)
 export class WebXRMovementTracking extends XRPlatformFeature {
   private _inputManager: WebXRInputManager;
   private _sessionManager: WebXRSessionManager;
@@ -74,7 +74,7 @@ export class WebXRMovementTracking extends XRPlatformFeature {
         const view = views[i];
         const { transform } = views[i];
         const type = eyeToInputSource(view.eye);
-        if (type === EnumXRInputSource.Viewer) {
+        if (type === XRInputType.Viewer) {
           hadUpdateCenterViewer ||= true;
         }
         const viewer = inputManager.getInput<XRViewer>(type);
@@ -107,9 +107,9 @@ export class WebXRMovementTracking extends XRPlatformFeature {
       }
 
       if (!hadUpdateCenterViewer && engine.xrModule.mode === EnumXRMode.AR) {
-        const leftViewer = inputManager.getInput<XRViewer>(EnumXRInputSource.LeftViewer);
-        const rightViewer = inputManager.getInput<XRViewer>(EnumXRInputSource.RightViewer);
-        const viewer = inputManager.getInput<XRViewer>(EnumXRInputSource.Viewer);
+        const leftViewer = inputManager.getInput<XRViewer>(XRInputType.LeftViewer);
+        const rightViewer = inputManager.getInput<XRViewer>(XRInputType.RightViewer);
+        const viewer = inputManager.getInput<XRViewer>(XRInputType.Viewer);
         viewer.quaternion.copyFrom(leftViewer.quaternion);
         const { position, matrix } = viewer;
         Vector3.add(leftViewer.position, rightViewer.position, position);
@@ -140,9 +140,9 @@ export class WebXRMovementTracking extends XRPlatformFeature {
     }
   }
 
-  _onFlagChange(flag: EnumXRFeatureChangeFlag, ...param): void {
+  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {
     switch (flag) {
-      case EnumXRFeatureChangeFlag.Enable:
+      case XRFeatureChangeFlag.Enable:
         break;
 
       default:

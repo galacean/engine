@@ -1,22 +1,25 @@
 import { IXRFeatureDescriptor, IXRFeatureManager } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { EnumXRFeatureChangeFlag } from "../enum/EnumXRFeatureChangeFlag";
+import { XRFeatureChangeFlag } from "./XRFeatureChangeFlag";
 import { XRPlatformFeature } from "./XRPlatformFeature";
 
-export abstract class XRFeatureManager implements IXRFeatureManager {
+export abstract class XRFeatureManager<T extends IXRFeatureDescriptor> implements IXRFeatureManager {
   platformFeature: XRPlatformFeature;
 
   protected _engine: Engine;
-  protected _descriptor: IXRFeatureDescriptor;
+  protected _descriptor: T;
   protected _enabled: boolean = true;
 
-  get descriptor(): IXRFeatureDescriptor {
+  /**
+   * @readonly
+   */
+  get descriptor(): T {
     return this._descriptor;
   }
 
-  set descriptor(value: IXRFeatureDescriptor) {
+  set descriptor(value: T) {
     this._descriptor = value;
-    this.platformFeature._onFlagChange(EnumXRFeatureChangeFlag.Descriptor, value);
+    this.platformFeature._onFeatureChange(XRFeatureChangeFlag.Descriptor, value);
   }
 
   get enabled(): boolean {
@@ -27,7 +30,7 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
     if (this.enabled !== value) {
       this._enabled = value;
       value ? this._onEnable() : this._onDisable();
-      this.platformFeature._onFlagChange(EnumXRFeatureChangeFlag.Enable, value);
+      this.platformFeature._onFeatureChange(XRFeatureChangeFlag.Enable, value);
     }
   }
 
@@ -56,9 +59,7 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
   /**
    * @internal
    */
-  _onUpdate(): void {
-    this.platformFeature._onUpdate();
-  }
+  _onUpdate(): void {}
 
   /**
    * @internal
@@ -72,6 +73,13 @@ export abstract class XRFeatureManager implements IXRFeatureManager {
    */
   _onSessionStart(): void {
     this.platformFeature._onSessionStart();
+  }
+
+  /**
+   * @internal
+   */
+  _onFrameUpdate(): void {
+    this.platformFeature._onUpdate();
   }
 
   /**

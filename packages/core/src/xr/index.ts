@@ -1,5 +1,5 @@
 // manager
-export { XRModule, registerXRFeatureManager, registerXRPlatformFeature } from "./XRModule";
+export { XRModule, registerXRFeatureManager } from "./XRModule";
 
 // feature
 export { XRPlatformFeature } from "./feature/XRPlatformFeature";
@@ -11,25 +11,25 @@ export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovement
 export type { IXRHitTestDescriptor } from "./feature/hitTest/IXRHitTestDescriptor";
 export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
 // -- ImageTracking --
-export type { IXRImageTrackingDescriptor } from "./feature/ImageTracking/IXRImageTrackingDescriptor";
-export { XRReferenceImage } from "./feature/ImageTracking/XRReferenceImage";
-export { XRImageTrackingManager } from "./feature/ImageTracking/XRImageTrackingManager";
+export type { IXRImageTrackingDescriptor } from "./feature/trackable/image/IXRImageTrackingDescriptor";
+export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
+export { XRImageTrackingManager } from "./feature/trackable/image/XRImageTrackingManager";
 // --- PlaneTracking --
-export type { IXRPlaneTrackingDescriptor } from "./feature/planeTracking/IXRPlaneTrackingDescriptor";
-export { XRPlaneTrackingManager } from "./feature/planeTracking/XRPlaneTrackingManager";
+export type { IXRPlaneTrackingDescriptor } from "./feature/trackable/plane/IXRPlaneTrackingDescriptor";
+export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackingManager";
 
 // enum
-export { EnumXRAnchorTrackingMode } from "./enum/EnumXRAnchorTrackingMode";
+export { XRAnchorTrackingMode } from "./feature/trackable/anchor/XRAnchorTrackingMode";
 export { EnumXRButton } from "./enum/EnumXRButton";
-export { EnumXRFeature } from "./enum/EnumXRFeature";
-export { EnumXRHitTestMode } from "./enum/EnumXRHitTestMode";
-export { EnumXRImageTrackingMode } from "./enum/EnumXRImageTrackingMode";
-export { EnumXRInputSource } from "./enum/EnumXRInputSource";
+export { XRFeatureType } from "./feature/XRFeatureType";
+export { XRHitTestMode } from "./feature/hitTest/XRHitTestMode";
+export { XRImageTrackingMode } from "./feature/trackable/image/XRImageTrackingMode";
+export { XRInputType } from "./input/XRInputType";
 export { EnumXRMode } from "./enum/EnumXRMode";
-export { EnumXRPlaneTrackingMode } from "./enum/EnumXRPlaneTrackingMode";
+export { XRPlaneTrackingMode } from "./feature/trackable/plane/XRPlaneTrackingMode";
 export { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
-export { EnumXRFeatureChangeFlag } from "./enum/EnumXRFeatureChangeFlag";
-export { TrackingStateChangeFlags } from "./enum/TrackingStateChangeFlags";
+export { XRFeatureChangeFlag } from "./feature/XRFeatureChangeFlag";
+export { XRTrackingState } from "./enum/XRTrackedState";
 
 // input
 export { XRInputTrackingState } from "./input/XRInputTrackingState";

@@ -1,8 +1,8 @@
-import { IXRFeature, IXRFeatureDescriptor } from "@galacean/engine-design";
+import { IXRPlatformFeature, IXRFeatureDescriptor } from "@galacean/engine-design";
 import { Logger } from "../../base";
 import { Engine } from "../../Engine";
 
-export abstract class XRPlatformFeature implements IXRFeature {
+export abstract class XRPlatformFeature implements IXRPlatformFeature {
   descriptor: IXRFeatureDescriptor;
   protected _engine: Engine;
 
@@ -43,7 +43,7 @@ export abstract class XRPlatformFeature implements IXRFeature {
     Logger.warn("This method needs to be override.");
   }
 
-  _onFlagChange(flag: number, ...param: any[]): void {
+  _onFeatureChange(flag: number, ...param: any[]): void {
     Logger.warn("This method needs to be override.");
   }
 }

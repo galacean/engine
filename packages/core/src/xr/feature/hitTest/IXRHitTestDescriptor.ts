@@ -1,6 +1,6 @@
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { EnumXRHitTestMode } from "../../enum/EnumXRHitTestMode";
+import { XRHitTestMode } from "./XRHitTestMode";
 
 export interface IXRHitTestDescriptor extends IXRFeatureDescriptor {
-  mode: EnumXRHitTestMode;
+  mode: XRHitTestMode;
 }

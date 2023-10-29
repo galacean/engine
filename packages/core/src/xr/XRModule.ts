@@ -1,35 +1,28 @@
-import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { Camera } from "../Camera";
+import { IXRFeatureDescriptor, IXRFeatureManager } from "@galacean/engine-design";
 import { Engine } from "../Engine";
-import { XRFeatureManager } from "./feature/XRFeatureManager";
 import { IXRDevice } from "./IXRDevice";
-import { XRViewer } from "./input/XRViewer";
 import { XRInputManager } from "./input/XRInputManager";
 import { EnumXRMode } from "./enum/EnumXRMode";
-import { EnumXRInputSource } from "./enum/EnumXRInputSource";
-import { EnumXRFeature } from "./enum/EnumXRFeature";
+import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { EnumXRSessionState } from "./enum/EnumXRSessionState";
 import { Logger } from "../base";
 import { Utils } from "../Utils";
 import { XRPlatformFeature } from "./feature/XRPlatformFeature";
 
-type FeatureManagerConstructor = new (engine: Engine) => XRFeatureManager;
-type PlatformFeatureConstructor = new (engine: Engine) => XRPlatformFeature;
+type FeatureManagerConstructor = new (engine: Engine) => IXRFeatureManager;
 type SessionStateChangeListener = (from: EnumXRSessionState, to: EnumXRSessionState) => void;
 
 export class XRModule {
   // @internal
   static _featureManagerMap: FeatureManagerConstructor[] = [];
-  // @internal
-  static _platformFeatureMap: PlatformFeatureConstructor[] = [];
 
   xrDevice: IXRDevice;
   inputManager: XRInputManager;
   sessionManager: XRSessionManager;
 
   private _engine: Engine;
-  private _features: XRFeatureManager[] = [];
+  private _features: IXRFeatureManager[] = [];
   private _sessionState: EnumXRSessionState = EnumXRSessionState.NotInitialized;
   private _listeners: SessionStateChangeListener[] = [];
 
@@ -68,9 +61,7 @@ export class XRModule {
       if (feature) {
         return feature.isSupported(descriptors);
       } else {
-        return new Promise((resolve, reject) => {
-          reject(new Error("没有实现对应的 XRPlatformFeature : " + EnumXRFeature[descriptors.type]));
-        });
+        return Promise.reject(new Error("没有实现对应的 XRPlatformFeature : " + XRFeatureType[descriptors.type]));
       }
     }
   }
@@ -82,32 +73,24 @@ export class XRModule {
     }
   }
 
-  getFeature<T extends XRFeatureManager>(type: EnumXRFeature): T {
+  getFeature<T extends IXRFeatureManager>(type: XRFeatureType): T {
     const { _features: features } = this;
     const feature = features[type];
     if (feature) {
       return <T>feature;
     } else {
-      const { _featureManagerMap: featureManagerMap, _platformFeatureMap: platformFeatureMap } = XRModule;
+      const { _featureManagerMap: featureManagerMap } = XRModule;
       const featureManagerConstructor = featureManagerMap[type];
-      const platformFeatureConstructor = platformFeatureMap[type];
-      if (platformFeatureConstructor) {
+      const platformFeature = this.xrDevice.createPlatformFeature(this._engine, type);
+      if (platformFeature) {
         const feature = (features[type] = new featureManagerConstructor(this._engine));
-        feature.platformFeature = new platformFeatureConstructor(this._engine);
+        feature.platformFeature = platformFeature;
         return <T>feature;
       } else {
-        Logger.warn(EnumXRFeature[type] + "的平台接口层未实现.");
+        Logger.warn(XRFeatureType[type] + "的平台接口层未实现.");
         return null;
       }
     }
-  }
-
-  attachCamera(source: EnumXRInputSource, camera: Camera): void {
-    this.inputManager.getInput<XRViewer>(source).camera = camera;
-  }
-
-  detachCamera(source: EnumXRInputSource): void {
-    this.inputManager.getInput<XRViewer>(source).camera = null;
   }
 
   initSession(mode: EnumXRMode, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
@@ -130,7 +113,7 @@ export class XRModule {
               feature.descriptor = descriptor;
               supportedArr.push(feature.isSupported());
             } else {
-              reject(new Error(EnumXRFeature[descriptor.type] + " class is not implemented."));
+              reject(new Error(XRFeatureType[descriptor.type] + " class is not implemented."));
               return;
             }
           }
@@ -276,14 +259,8 @@ export class XRModule {
   }
 }
 
-export function registerXRFeatureManager(feature: EnumXRFeature) {
+export function registerXRFeatureManager(feature: XRFeatureType) {
   return (featureManagerConstructor: FeatureManagerConstructor) => {
     XRModule._featureManagerMap[feature] = featureManagerConstructor;
-  };
-}
-
-export function registerXRPlatformFeature(feature: EnumXRFeature) {
-  return (platformFeatureConstructor: PlatformFeatureConstructor) => {
-    XRModule._platformFeatureMap[feature] = platformFeatureConstructor;
   };
 }

@@ -1,4 +1,4 @@
-import { EnumXRMode, EnumXRFeature, EnumXRInputSource, IXRImageTrackingDescriptor, request } from "@galacean/engine";
+import { EnumXRMode, XRFeatureType, XRInputType, IXRImageTrackingDescriptor, request } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 
 export function parseXRMode(mode: EnumXRMode): XRSessionMode {
@@ -15,7 +15,7 @@ export function parseXRMode(mode: EnumXRMode): XRSessionMode {
 export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessionInit): Promise<void> | null {
   const { requiredFeatures } = options;
   switch (descriptor.type) {
-    case EnumXRFeature.ImageTracking:
+    case XRFeatureType.ImageTracking:
       requiredFeatures.push("image-tracking");
       const { referenceImages } = <IXRImageTrackingDescriptor>descriptor;
       const promiseArr: Promise<ImageBitmap>[] = [];
@@ -50,36 +50,34 @@ export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessio
       } else {
         return Promise.reject(new Error("referenceImages.length is 0"));
       }
-    case EnumXRFeature.HitTest:
-      requiredFeatures.push("hit-test");
-      break;
-    case EnumXRFeature.PlaneTracking:
+    case XRFeatureType.HitTest:
+    case XRFeatureType.PlaneTracking:
       requiredFeatures.push("plane-detection");
       break;
   }
 }
 
-export function getInputSource(inputSource: XRInputSource): EnumXRInputSource {
-  let type: EnumXRInputSource;
+export function getInputSource(inputSource: XRInputSource): XRInputType {
+  let type: XRInputType;
   switch (inputSource.targetRayMode) {
     case "gaze":
       break;
     case "screen":
-      return EnumXRInputSource.Controller;
+      return XRInputType.Controller;
     case "tracked-pointer":
       if (inputSource.hand) {
         switch (inputSource.handedness) {
           case "left":
-            return EnumXRInputSource.LeftHand;
+            return XRInputType.LeftHand;
           case "right":
-            return EnumXRInputSource.RightHand;
+            return XRInputType.RightHand;
         }
       } else {
         switch (inputSource.handedness) {
           case "left":
-            return EnumXRInputSource.LeftController;
+            return XRInputType.LeftController;
           case "right":
-            return EnumXRInputSource.RightController;
+            return XRInputType.RightController;
         }
       }
       break;
@@ -89,14 +87,14 @@ export function getInputSource(inputSource: XRInputSource): EnumXRInputSource {
   return type;
 }
 
-export function eyeToInputSource(eye: XREye): EnumXRInputSource {
+export function eyeToInputSource(eye: XREye): XRInputType {
   switch (eye) {
     case "left":
-      return EnumXRInputSource.LeftViewer;
+      return XRInputType.LeftViewer;
     case "right":
-      return EnumXRInputSource.RightViewer;
+      return XRInputType.RightViewer;
     default:
-      return EnumXRInputSource.Viewer;
+      return XRInputType.Viewer;
   }
 }
 

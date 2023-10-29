@@ -1,4 +1,4 @@
-export enum TrackingStateChangeFlags {
+export enum XRTrackingState {
   NotTracking,
   TrackingLost,
   Tracking

@@ -1,13 +1,8 @@
-import {
-  Engine,
-  EnumXRFeature,
-  EnumXRFeatureChangeFlag,
-  XRPlatformFeature,
-  registerXRPlatformFeature
-} from "@galacean/engine";
+import { Engine, XRFeatureType, XRFeatureChangeFlag, XRPlatformFeature } from "@galacean/engine";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 
-@registerXRPlatformFeature(EnumXRFeature.PlaneTracking)
+@registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 export class WebXRPlaneTracking extends XRPlatformFeature {
   private _sessionManager: WebXRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
@@ -57,7 +52,7 @@ export class WebXRPlaneTracking extends XRPlatformFeature {
     this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   }
 
-  _onFlagChange(flag: EnumXRFeatureChangeFlag, ...param): void {}
+  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {}
 
   constructor(engine: Engine) {
     super(engine);

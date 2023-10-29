@@ -1,11 +1,9 @@
-export enum EnumXRInputSource {
+export enum XRInputType {
   Controller,
   LeftController,
   RightController,
   Viewer,
   LeftViewer,
   RightViewer,
-  LeftHand,
-  RightHand,
   Length
 }

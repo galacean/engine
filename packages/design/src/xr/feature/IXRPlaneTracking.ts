@@ -1,3 +1,3 @@
-import { IXRFeature } from "./IXRFeature";
+import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
-export interface IXRPlaneTracking extends IXRFeature {}
+export interface IXRPlaneTracking extends IXRPlatformFeature {}

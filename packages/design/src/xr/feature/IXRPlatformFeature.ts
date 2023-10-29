@@ -1,6 +1,6 @@
 import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
 
-export interface IXRFeature {
+export interface IXRPlatformFeature {
   descriptor: IXRFeatureDescriptor;
   _isSupported(descriptor: IXRFeatureDescriptor): Promise<void>;
   _initialize(descriptor: IXRFeatureDescriptor): Promise<void>;
@@ -10,5 +10,5 @@ export interface IXRFeature {
   _onSessionStart(): void;
   _onSessionStop(): void;
   _onSessionDestroy(): void;
-  _onFlagChange(flag: number, ...param): void;
+  _onFeatureChange(flag: number, ...param): void;
 }

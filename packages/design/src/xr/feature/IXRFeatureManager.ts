@@ -1,7 +1,9 @@
 import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
+import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
 export interface IXRFeatureManager {
   descriptor: IXRFeatureDescriptor;
+  platformFeature: IXRPlatformFeature;
   enabled: boolean;
 
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void>;
@@ -21,13 +23,6 @@ export interface IXRFeatureManager {
    */
   _onDisable(): void;
 
-  _onSessionInit(): void;
-
-  _onSessionStart(): void;
-
-  _onSessionStop(): void;
-
-  _onSessionDestroy(): void;
   /**
    * Update an instance of a feature.
    * This method needs to be override.
@@ -41,4 +36,29 @@ export interface IXRFeatureManager {
    * @returns
    */
   _onDestroy(): void;
+
+  /**
+   * @internal
+   */
+  _onSessionInit(): void;
+
+  /**
+   * @internal
+   */
+  _onSessionStart(): void;
+
+  /**
+   * @internal
+   */
+  _onFrameUpdate(): void;
+
+  /**
+   * @internal
+   */
+  _onSessionStop(): void;
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void;
 }

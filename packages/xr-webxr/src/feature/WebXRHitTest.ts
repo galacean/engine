@@ -1,17 +1,16 @@
 import {
   Engine,
-  EnumXRFeature,
-  EnumXRFeatureChangeFlag,
-  EnumXRInputSource,
+  XRFeatureType,
+  XRFeatureChangeFlag,
+  XRInputType,
   IXRHitTestDescriptor,
-  registerXRPlatformFeature,
   Matrix,
   XRPlatformFeature
 } from "@galacean/engine";
-import { IXRFeatureDescriptor, IXRHitTest } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 
-@registerXRPlatformFeature(EnumXRFeature.HitTest)
+@registerXRPlatformFeature(XRFeatureType.HitTest)
 export class WebXRHitTest extends XRPlatformFeature {
   private _sessionManager: WebXRSessionManager;
   private _screenX: number;
@@ -25,7 +24,7 @@ export class WebXRHitTest extends XRPlatformFeature {
   hitTest(screenX: number, screenY: number): Promise<void> {
     let origin: DOMPointReadOnly;
     let direction: DOMPointReadOnly;
-    const controller = this._engine.xrModule.inputManager.getInput(EnumXRInputSource.Controller);
+    const controller = this._engine.xrModule.inputManager.getInput(XRInputType.Controller);
     const xrRay = new XRRay(origin, direction);
     if (this._hitTestSource) {
     }
@@ -72,9 +71,9 @@ export class WebXRHitTest extends XRPlatformFeature {
     });
   }
 
-  _onFlagChange(flag: EnumXRFeatureChangeFlag, ...param): void {
+  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {
     switch (flag) {
-      case EnumXRFeatureChangeFlag.Enable:
+      case XRFeatureChangeFlag.Enable:
         break;
 
       default:

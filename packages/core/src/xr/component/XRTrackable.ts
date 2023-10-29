@@ -1,11 +1,11 @@
 import { Component } from "../../Component";
-import { TrackingStateChangeFlags } from "../enum/TrackingStateChangeFlags";
+import { XRTrackingState } from "../enum/XRTrackedState";
 
 export class XRTrackable extends Component {
-  private _trackingState: TrackingStateChangeFlags = TrackingStateChangeFlags.NotTracking;
+  private _trackingState: XRTrackingState = XRTrackingState.NotTracking;
   private _sessionRelativeData: any;
 
-  get trackingState(): TrackingStateChangeFlags {
+  get trackingState(): XRTrackingState {
     return this._trackingState;
   }
 

@@ -1,4 +1,4 @@
-export enum EnumXRFeatureChangeFlag {
+export enum XRFeatureChangeFlag {
   Enable,
   Descriptor,
   MovementTrackingMode

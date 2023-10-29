@@ -1,16 +1,18 @@
 import {
   Engine,
-  EnumXRFeature,
-  EnumXRFeatureChangeFlag,
+  XRFeatureType,
+  XRFeatureChangeFlag,
   IXRImageTrackingDescriptor,
   Logger,
-  XRPlatformFeature,
-  registerXRPlatformFeature
+  XRPlatformFeature
 } from "@galacean/engine";
+import { IXRTrackable } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 
-@registerXRPlatformFeature(EnumXRFeature.ImageTracking)
+@registerXRPlatformFeature(XRFeatureType.ImageTracking)
 export class WebXRImageTracking extends XRPlatformFeature {
+  private _trackedImage: IXRTrackable[] = [];
   private _sessionManager: WebXRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
 
@@ -31,7 +33,7 @@ export class WebXRImageTracking extends XRPlatformFeature {
     this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   }
 
-  _onFlagChange(flag: EnumXRFeatureChangeFlag, ...param): void {}
+  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {}
 
   private _requestTrackingScore(): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
