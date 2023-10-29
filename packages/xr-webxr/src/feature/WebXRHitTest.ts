@@ -1,17 +1,9 @@
-import {
-  Engine,
-  XRFeatureType,
-  XRFeatureChangeFlag,
-  XRInputType,
-  IXRHitTestDescriptor,
-  Matrix,
-  XRPlatformFeature
-} from "@galacean/engine";
+import { Engine, XRFeatureType, XRInputType, IXRHitTestDescriptor, Matrix, XRPlatformHitTest } from "@galacean/engine";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
 @registerXRPlatformFeature(XRFeatureType.HitTest)
-export class WebXRHitTest extends XRPlatformFeature {
+export class WebXRHitTest extends XRPlatformHitTest {
   private _sessionManager: WebXRSessionManager;
   private _screenX: number;
   private _screenY: number;
@@ -21,7 +13,7 @@ export class WebXRHitTest extends XRPlatformFeature {
   private _localReferenceSpace: XRReferenceSpace;
   private _viewerReferenceSpace: XRReferenceSpace;
 
-  hitTest(screenX: number, screenY: number): Promise<void> {
+  override hitTest(screenX: number, screenY: number): Promise<void> {
     let origin: DOMPointReadOnly;
     let direction: DOMPointReadOnly;
     const controller = this._engine.xrModule.inputManager.getInput(XRInputType.Controller);
@@ -34,7 +26,7 @@ export class WebXRHitTest extends XRPlatformFeature {
     }
   }
 
-  _onUpdate(): void {
+  override _onUpdate(): void {
     const { _hitTestSource: hitTestSource } = this;
     if (!this._hitTestSource) {
       return;
@@ -56,7 +48,7 @@ export class WebXRHitTest extends XRPlatformFeature {
     // }
   }
 
-  _initialize(descriptor: IXRHitTestDescriptor): Promise<void> {
+  override _initialize(descriptor: IXRHitTestDescriptor): Promise<void> {
     return new Promise((resolve, reject) => {
       this.descriptor = descriptor;
       const { _platformSession: platformSession } = this._sessionManager;
@@ -71,17 +63,7 @@ export class WebXRHitTest extends XRPlatformFeature {
     });
   }
 
-  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {
-    switch (flag) {
-      case XRFeatureChangeFlag.Enable:
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  _onDestroy(): void {
+  override _onDestroy(): void {
     this._clearHitTestSource();
   }
 

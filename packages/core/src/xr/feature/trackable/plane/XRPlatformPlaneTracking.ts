@@ -1,7 +1,7 @@
 import { IXRTrackedPlane } from "@galacean/engine-design";
-import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRTrackablePlatformFeature } from "../XRTrackablePlatformFeature";
 import { XRPlaneTrackingMode } from "./XRPlaneTrackingMode";
 
-export abstract class XRPlatformPlaneTracking extends XRTrackableFeature<IXRTrackedPlane> {
+export abstract class XRPlatformPlaneTracking extends XRTrackablePlatformFeature<IXRTrackedPlane> {
   trackingMode: XRPlaneTrackingMode;
 }

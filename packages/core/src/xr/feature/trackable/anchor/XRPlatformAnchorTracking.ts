@@ -1,7 +1,7 @@
 import { IXRTrackedAnchor } from "@galacean/engine-design";
-import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRTrackablePlatformFeature } from "../XRTrackablePlatformFeature";
 
-export abstract class XRPlatformAnchorTracking extends XRTrackableFeature<IXRTrackedAnchor> {
+export abstract class XRPlatformAnchorTracking extends XRTrackablePlatformFeature<IXRTrackedAnchor> {
   addAnchor() {}
   removeAnchor() {}
 }

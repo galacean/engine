@@ -1,14 +1,14 @@
 import { IXRFeatureDescriptor, IXRTrackable } from "@galacean/engine-design";
-import { XRTrackableFeature } from "./XRTrackableFeature";
+import { XRTrackablePlatformFeature } from "./XRTrackablePlatformFeature";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
 import { XRFeatureManager } from "../XRFeatureManager";
 
 export abstract class XRTrackableManager<
   TDescriptor extends IXRFeatureDescriptor,
-  TPlatformFeature extends XRTrackableFeature<TXRTrackable>,
+  TTrackablePlatformFeature extends XRTrackablePlatformFeature<TXRTrackable>,
   TXRTrackable extends IXRTrackable
-> extends XRFeatureManager<TDescriptor, TPlatformFeature> {
+> extends XRFeatureManager<TDescriptor, TTrackablePlatformFeature> {
   private _trackables: TXRTrackable[];
   private _idToIdx: Record<number, number> = {};
 
@@ -22,7 +22,7 @@ export abstract class XRTrackableManager<
     return this._trackables[this._idToIdx[id]];
   }
 
-  override _onFrameUpdate(): void {
+  override _onUpdate(): void {
     const { added, updated, removed } = this.platformFeature.getChanges();
     const { _trackedUpdate: trackedUpdate, _trackables: trackables, _idToIdx: idToIdx } = this;
     if (added?.length > 0) {

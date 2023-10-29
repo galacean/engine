@@ -17,18 +17,18 @@ export abstract class XRSessionManager implements IXRSessionManager {
   }
 
   initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
-    return new Promise((resolve, reject) => {});
+    return Promise.reject(new Error("This method needs to be override."));
   }
 
   start(): Promise<void> {
-    return new Promise((resolve, reject) => {});
+    return Promise.reject(new Error("This method needs to be override."));
   }
 
   stop(): Promise<void> {
-    return new Promise((resolve, reject) => {});
+    return Promise.reject(new Error("This method needs to be override."));
   }
 
   destroy(): Promise<void> {
-    return new Promise((resolve, reject) => {});
+    return Promise.reject(new Error("This method needs to be override."));
   }
 }

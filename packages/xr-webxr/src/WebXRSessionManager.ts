@@ -15,7 +15,7 @@ export class WebXRSessionManager extends XRSessionManager {
   private _engine: Engine;
   private _rhi: WebGLGraphicDevice;
 
-  initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
+  override initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
       const options: XRSessionInit = { requiredFeatures: ["local"] };
@@ -73,43 +73,41 @@ export class WebXRSessionManager extends XRSessionManager {
     });
   }
 
-  start(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const { _platformSession: session } = this;
-      if (!session) {
-        reject();
-        return;
-      }
-      this._makeUpCustomAnimationFrameRequester(session);
-      this._engine.pause();
-      this._engine.resume();
-      resolve();
-    });
-  }
-
-  stop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this._platformSession) {
-        reject();
-        return;
-      }
-      this._clearCustomAnimationFrameRequester();
-      this._unBindMainFBO();
-      this._engine.pause();
-      this._engine.resume();
-      resolve();
-    });
-  }
-
-  destroy(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const { _platformSession: session } = this;
-      if (session) {
-        session.end().then(resolve, reject);
-      } else {
+  override start(): Promise<void> {
+    const { _platformSession: session } = this;
+    if (session) {
+      return new Promise((resolve) => {
+        this._makeUpCustomAnimationFrameRequester(session);
+        this._engine.pause();
+        this._engine.resume();
         resolve();
-      }
-    });
+      });
+    } else {
+      return Promise.reject("Without session to start.");
+    }
+  }
+
+  override stop(): Promise<void> {
+    if (this._platformSession) {
+      return new Promise((resolve) => {
+        this._clearCustomAnimationFrameRequester();
+        this._unBindMainFBO();
+        this._engine.pause();
+        this._engine.resume();
+        resolve();
+      });
+    } else {
+      return Promise.reject(new Error("Without session to stop."));
+    }
+  }
+
+  override destroy(): Promise<void> {
+    const { _platformSession: session } = this;
+    if (session) {
+      return session.end();
+    } else {
+      Promise.reject(new Error("Without session to destroy."));
+    }
   }
 
   constructor(engine: Engine) {

@@ -173,7 +173,6 @@ export class WebXRInputManager extends XRInputManager {
         const { pose: leftCameraPose } = leftCameraDevice;
         const { pose: rightCameraPose } = rightCameraDevice;
         const { pose: cameraPose } = cameraDevice;
-
         cameraPose.rotation.copyFrom(leftCameraPose.rotation);
         const { position, matrix } = cameraPose;
         Vector3.add(leftCameraPose.position, rightCameraPose.position, position);

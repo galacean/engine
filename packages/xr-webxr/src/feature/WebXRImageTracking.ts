@@ -1,22 +1,15 @@
-import {
-  Engine,
-  XRFeatureType,
-  XRFeatureChangeFlag,
-  IXRImageTrackingDescriptor,
-  Logger,
-  XRPlatformFeature
-} from "@galacean/engine";
+import { Engine, XRFeatureType, IXRImageTrackingDescriptor, Logger, XRPlatformImageTracking } from "@galacean/engine";
 import { IXRTrackable } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
-export class WebXRImageTracking extends XRPlatformFeature {
+export class WebXRImageTracking extends XRPlatformImageTracking {
   private _trackedImage: IXRTrackable[] = [];
   private _sessionManager: WebXRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
 
-  _onUpdate() {
+  override _onUpdate() {
     switch (this._trackingScoreStatus) {
       case ImageTrackingScoreStatus.NotReceived:
         this._requestTrackingScore();
@@ -29,11 +22,9 @@ export class WebXRImageTracking extends XRPlatformFeature {
     }
   }
 
-  _onSessionDestroy(): void {
+  override _onSessionDestroy(): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   }
-
-  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {}
 
   private _requestTrackingScore(): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;

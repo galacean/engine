@@ -1,6 +1,5 @@
 import { IXRFeatureDescriptor, IXRFeatureManager } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { XRFeatureChangeFlag } from "./XRFeatureChangeFlag";
 import { XRPlatformFeature } from "./XRPlatformFeature";
 
 export abstract class XRFeatureManager<
@@ -33,7 +32,6 @@ export abstract class XRFeatureManager<
     if (this.enabled !== value) {
       this._enabled = value;
       value ? this._onEnable() : this._onDisable();
-      this.platformFeature._onFeatureChange(XRFeatureChangeFlag.Enable, value);
     }
   }
 
@@ -62,7 +60,9 @@ export abstract class XRFeatureManager<
   /**
    * @internal
    */
-  _onUpdate(): void {}
+  _onUpdate(): void {
+    this.platformFeature._onUpdate();
+  }
 
   /**
    * @internal
@@ -76,13 +76,6 @@ export abstract class XRFeatureManager<
    */
   _onSessionStart(): void {
     this.platformFeature._onSessionStart();
-  }
-
-  /**
-   * @internal
-   */
-  _onFrameUpdate(): void {
-    this.platformFeature._onUpdate();
   }
 
   /**

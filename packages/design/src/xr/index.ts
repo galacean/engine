@@ -1,8 +1,4 @@
 export type { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
-export type { IXRHitTest } from "./feature/IXRHitTest";
-export type { IXRPlaneTracking } from "./feature/IXRPlaneTracking";
-export type { IXRImageTracking } from "./feature/IXRImageTracking";
-
 export type { IXRFeatureManager } from "./feature/IXRFeatureManager";
 export type { IXRFeatureDescriptor } from "./feature/IXRFeatureDescriptor";
 

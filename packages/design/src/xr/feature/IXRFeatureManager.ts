@@ -50,11 +50,6 @@ export interface IXRFeatureManager {
   /**
    * @internal
    */
-  _onFrameUpdate(): void;
-
-  /**
-   * @internal
-   */
   _onSessionStop(): void;
 
   /**

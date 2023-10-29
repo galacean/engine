@@ -1,10 +1,10 @@
-import { Engine, XRFeatureType, XRPlatformFeature } from "@galacean/engine";
+import { Engine, XRFeatureType, XRPlatformAnchorTracking, XRPlatformCamera, XRPlatformFeature } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRInputManager } from "../WebXRInputManager";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 
 @registerXRPlatformFeature(XRFeatureType.CameraDevice)
-export class WebXRAnchorTracking extends XRPlatformFeature {
+export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
   private _inputManager: WebXRInputManager;
   private _sessionManager: WebXRSessionManager;
 

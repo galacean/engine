@@ -1,47 +1,56 @@
-// manager
+// xr manager
 export { XRModule, registerXRFeatureManager } from "./XRModule";
 
-// feature
-export { XRPlatformFeature } from "./feature/XRPlatformFeature";
-// -- Movement --
-export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
-export { XRMovementTrackingMode } from "./feature/movementTracking/XRMovementTrackingMode";
-export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovementTrackingManager";
-// -- HitTest --
-export type { IXRHitTestDescriptor } from "./feature/hitTest/IXRHitTestDescriptor";
-export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
-// -- ImageTracking --
-export type { IXRImageTrackingDescriptor } from "./feature/trackable/image/IXRImageTrackingDescriptor";
-export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
-export { XRImageTrackingManager } from "./feature/trackable/image/XRImageTrackingManager";
-// --- PlaneTracking --
-export type { IXRPlaneTrackingDescriptor } from "./feature/trackable/plane/IXRPlaneTrackingDescriptor";
-export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackingManager";
-
-// enum
-export { XRAnchorTrackingMode } from "./feature/trackable/anchor/XRAnchorTrackingMode";
-export { XRInputButton } from "./input/XRInputButton";
-export { XRFeatureType } from "./feature/XRFeatureType";
-export { XRHitTestMode } from "./feature/hitTest/XRHitTestMode";
-export { XRInputType } from "./input/XRInputType";
-export { XRSessionType } from "./session/XRSessionType";
-export { XRPlaneTrackingMode } from "./feature/trackable/plane/XRPlaneTrackingMode";
-export { XRTrackingMode } from "./component/XRTrackingMode";
-export { XRFeatureChangeFlag } from "./feature/XRFeatureChangeFlag";
-export { XRTrackingState } from "./input/XRTrackedState";
-
-// input
-export { XRInputTrackingState } from "./input/XRInputTrackingState";
-export { XRController } from "./input/XRController";
-export { XRInput } from "./input/XRInput";
-export { XRInputManager } from "./input/XRInputManager";
-export { XRCamera } from "./input/XRCamera";
-
-// session
-export { XRSessionManager } from "./session/XRSessionManager";
-
-// interface
+// xr device
 export type { IXRDevice } from "./IXRDevice";
 
-// component
+// xr feature
+export { XRPlatformFeature } from "./feature/XRPlatformFeature";
+export { XRFeatureType } from "./feature/XRFeatureType";
+// camera
+export type { IXRCameraDescriptor } from "./feature/camera/IXRCameraDescriptor";
+export { XRPlatformCamera } from "./feature/camera/XRPlatformCamera";
+export { XRCameraManager } from "./feature/camera/XRCameraManager";
+// hitTest
+export type { IXRHitTestDescriptor } from "./feature/hitTest/IXRHitTestDescriptor";
+export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
+export { XRHitTestMode } from "./feature/hitTest/XRHitTestMode";
+export { XRPlatformHitTest } from "./feature/hitTest/XRPlatformHitTest";
+// movement tracking
+export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
+export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovementTrackingManager";
+export { XRMovementTrackingMode } from "./feature/movementTracking/XRMovementTrackingMode";
+export { XRPlatformMovementTracking } from "./feature/movementTracking/XRPlatformMovementTracking";
+// anchor tracking
+export type { IXRAnchorTrackingDescriptor } from "./feature/trackable/anchor/IXRAnchorTrackingDescriptor";
+export { XRAnchorTrackingManager } from "./feature/trackable/anchor/XRAnchorTrackingManager";
+export { XRAnchorTrackingMode } from "./feature/trackable/anchor/XRAnchorTrackingMode";
+export { XRPlatformAnchorTracking } from "./feature/trackable/anchor/XRPlatformAnchorTracking";
+// image tracking
+export type { IXRImageTrackingDescriptor } from "./feature/trackable/image/IXRImageTrackingDescriptor";
+export { XRImageTrackingManager } from "./feature/trackable/image/XRImageTrackingManager";
+export { XRPlatformImageTracking } from "./feature/trackable/image/XRPlatformImageTracking";
+export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
+// plane Tracking
+export type { IXRPlaneTrackingDescriptor } from "./feature/trackable/plane/IXRPlaneTrackingDescriptor";
+export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackingManager";
+export { XRPlaneTrackingMode } from "./feature/trackable/plane/XRPlaneTrackingMode";
+export { XRPlatformPlaneTracking } from "./feature/trackable/plane/XRPlatformPlaneTracking";
+
+// xr input
+export { XRInputTrackingState } from "./input/XRInputTrackingState";
+export { XRTrackingState } from "./input/XRTrackedState";
+export { XRInputManager } from "./input/XRInputManager";
+export { XRInputButton } from "./input/XRInputButton";
+export { XRController } from "./input/XRController";
+export { XRInputType } from "./input/XRInputType";
+export { XRCamera } from "./input/XRCamera";
+export { XRInput } from "./input/XRInput";
+
+// xr session
+export { XRSessionManager } from "./session/XRSessionManager";
+export { XRSessionType } from "./session/XRSessionType";
+
+// xr component
+export { XRTrackingMode } from "./component/XRTrackingMode";
 export { XRPoseDriver } from "./component/XRPoseDriver";

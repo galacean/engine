@@ -32,11 +32,11 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPla
   }
 
   set fixedFoveation(value: number) {
-    this.platformFeature.fixedFoveation = Math.max(0, Math.min(1, value || 0));
+    this.platformFeature.setFixedFoveation(value);
   }
 
   get fixedFoveation() {
-    return this.platformFeature.fixedFoveation;
+    return this.platformFeature.getFixedFoveation();
   }
 
   constructor(engine: Engine) {

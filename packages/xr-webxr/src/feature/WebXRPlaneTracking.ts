@@ -1,4 +1,4 @@
-import { Engine, XRFeatureType, XRFeatureChangeFlag, XRPlatformFeature } from "@galacean/engine";
+import { Engine, XRFeatureType, XRPlatformFeature } from "@galacean/engine";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
@@ -7,7 +7,7 @@ export class WebXRPlaneTracking extends XRPlatformFeature {
   private _sessionManager: WebXRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
 
-  _onUpdate() {
+  override _onUpdate() {
     const { _platformFrame: platformFrame } = this._sessionManager;
     if (!platformFrame) {
       return;
@@ -48,11 +48,9 @@ export class WebXRPlaneTracking extends XRPlatformFeature {
     // }
   }
 
-  _onSessionDestroy(): void {
+  override _onSessionDestroy(): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   }
-
-  _onFlagChange(flag: XRFeatureChangeFlag, ...param): void {}
 
   constructor(engine: Engine) {
     super(engine);
