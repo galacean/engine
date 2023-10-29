@@ -1,4 +1,4 @@
-export enum EnumXRSessionState {
+export enum XRSessionState {
   NotInitialized,
   Initialized,
   Running,

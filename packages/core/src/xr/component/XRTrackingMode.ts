@@ -1,4 +1,4 @@
-export enum EnumXRTrackingMode {
+export enum XRTrackingMode {
   None,
   RotationOnly,
   PositionOnly,

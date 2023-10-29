@@ -1,5 +1,5 @@
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { Engine, EnumXRMode, WebGLGraphicDevice, XRSessionManager } from "@galacean/engine";
+import { Engine, XRSessionType, WebGLGraphicDevice, XRSessionManager } from "@galacean/engine";
 import { parseFeature, parseXRMode } from "./util";
 
 export class WebXRSessionManager extends XRSessionManager {
@@ -15,7 +15,7 @@ export class WebXRSessionManager extends XRSessionManager {
   private _engine: Engine;
   private _rhi: WebGLGraphicDevice;
 
-  initialize(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
+  initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
       const options: XRSessionInit = { requiredFeatures: ["local"] };

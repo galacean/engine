@@ -2,7 +2,7 @@ import {
   Engine,
   XRController,
   XRInput,
-  EnumXRButton,
+  XRInputButton,
   XRInputManager,
   XRInputTrackingState,
   Time,
@@ -10,7 +10,7 @@ import {
   Vector3,
   XRCamera,
   XRInputType,
-  EnumXRMode
+  XRSessionType
 } from "@galacean/engine";
 import { viewToCamera, getInputSource } from "./util";
 import { WebXRSessionManager } from "./WebXRSessionManager";
@@ -166,7 +166,7 @@ export class WebXRInputManager extends XRInputManager {
         }
       }
 
-      if (!hadUpdateCenterViewer && engine.xrModule.mode === EnumXRMode.AR) {
+      if (!hadUpdateCenterViewer && engine.xrModule.mode === XRSessionType.AR) {
         const leftCameraDevice = this.getInput<XRCamera>(XRInputType.LeftCamera);
         const rightCameraDevice = this.getInput<XRCamera>(XRInputType.RightCamera);
         const cameraDevice = this.getInput<XRCamera>(XRInputType.Camera);
@@ -223,24 +223,24 @@ export class WebXRInputManager extends XRInputManager {
       case "tracked-pointer":
         switch (event.type) {
           case "selectstart":
-            input.downList.add(EnumXRButton.Select);
-            input.downMap[EnumXRButton.Select] = this._time.frameCount;
-            input.pressedButtons |= EnumXRButton.Select;
+            input.downList.add(XRInputButton.Select);
+            input.downMap[XRInputButton.Select] = this._time.frameCount;
+            input.pressedButtons |= XRInputButton.Select;
             break;
           case "selectend":
-            input.upList.add(EnumXRButton.Select);
-            input.upMap[EnumXRButton.Select] = this._time.frameCount;
-            input.pressedButtons &= ~EnumXRButton.Select;
+            input.upList.add(XRInputButton.Select);
+            input.upMap[XRInputButton.Select] = this._time.frameCount;
+            input.pressedButtons &= ~XRInputButton.Select;
             break;
           case "squeezestart":
-            input.downList.add(EnumXRButton.Squeeze);
-            input.downMap[EnumXRButton.Squeeze] = this._time.frameCount;
-            input.pressedButtons |= EnumXRButton.Squeeze;
+            input.downList.add(XRInputButton.Squeeze);
+            input.downMap[XRInputButton.Squeeze] = this._time.frameCount;
+            input.pressedButtons |= XRInputButton.Squeeze;
             break;
           case "squeezeend":
-            input.upList.add(EnumXRButton.Squeeze);
-            input.upMap[EnumXRButton.Squeeze] = this._time.frameCount;
-            input.pressedButtons &= ~EnumXRButton.Squeeze;
+            input.upList.add(XRInputButton.Squeeze);
+            input.upMap[XRInputButton.Squeeze] = this._time.frameCount;
+            input.pressedButtons &= ~XRInputButton.Squeeze;
             break;
           default:
             break;

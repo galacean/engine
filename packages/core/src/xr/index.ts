@@ -20,15 +20,15 @@ export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackin
 
 // enum
 export { XRAnchorTrackingMode } from "./feature/trackable/anchor/XRAnchorTrackingMode";
-export { EnumXRButton } from "./enum/EnumXRButton";
+export { XRInputButton } from "./input/XRInputButton";
 export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRHitTestMode } from "./feature/hitTest/XRHitTestMode";
 export { XRInputType } from "./input/XRInputType";
-export { EnumXRMode } from "./enum/EnumXRMode";
+export { XRSessionType } from "./session/XRSessionType";
 export { XRPlaneTrackingMode } from "./feature/trackable/plane/XRPlaneTrackingMode";
-export { EnumXRTrackingMode } from "./enum/EnumXRTrackingMode";
+export { XRTrackingMode } from "./component/XRTrackingMode";
 export { XRFeatureChangeFlag } from "./feature/XRFeatureChangeFlag";
-export { XRTrackingState } from "./enum/XRTrackedState";
+export { XRTrackingState } from "./input/XRTrackedState";
 
 // input
 export { XRInputTrackingState } from "./input/XRInputTrackingState";

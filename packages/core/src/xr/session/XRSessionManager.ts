@@ -1,5 +1,5 @@
 import { IXRFeatureDescriptor, IXRSessionManager } from "@galacean/engine-design";
-import { EnumXRMode } from "../enum/EnumXRMode";
+import { XRSessionType } from "./XRSessionType";
 
 export abstract class XRSessionManager implements IXRSessionManager {
   /**
@@ -16,7 +16,7 @@ export abstract class XRSessionManager implements IXRSessionManager {
     return 0;
   }
 
-  initialize(mode: EnumXRMode, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
+  initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<void> {
     return new Promise((resolve, reject) => {});
   }
 

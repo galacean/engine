@@ -1,4 +1,4 @@
-import { Engine, EnumXRMode, IXRDevice } from "@galacean/engine";
+import { Engine, XRSessionType, IXRDevice } from "@galacean/engine";
 import { IXRPlatformFeature } from "@galacean/engine-design";
 import { WebXRSessionManager } from "./WebXRSessionManager";
 import { parseXRMode } from "./util";
@@ -10,7 +10,7 @@ export class WebXRDevice implements IXRDevice {
   // @internal
   static _platformFeatureMap: PlatformFeatureConstructor[] = [];
 
-  isSupported(mode: EnumXRMode): Promise<void> {
+  isSupported(mode: XRSessionType): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (window.isSecureContext === false) {
         reject(new Error("WebXR is available only in secure contexts (HTTPS)."));

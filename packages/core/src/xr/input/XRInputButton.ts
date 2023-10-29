@@ -1,4 +1,4 @@
-export enum EnumXRButton {
+export enum XRInputButton {
   None = 0x0,
   Select = 0x1,
   Trigger = 0x1,

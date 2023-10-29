@@ -1,11 +1,11 @@
-import { EnumXRMode, XRFeatureType, XRInputType, IXRImageTrackingDescriptor, request } from "@galacean/engine";
+import { XRSessionType, XRFeatureType, XRInputType, IXRImageTrackingDescriptor, request } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 
-export function parseXRMode(mode: EnumXRMode): XRSessionMode {
+export function parseXRMode(mode: XRSessionType): XRSessionMode {
   switch (mode) {
-    case EnumXRMode.AR:
+    case XRSessionType.AR:
       return "immersive-ar";
-    case EnumXRMode.VR:
+    case XRSessionType.VR:
       return "immersive-vr";
     default:
       return null;
