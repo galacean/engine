@@ -1,5 +1,3 @@
-import { XRFeatureManager } from "../../XRFeatureManager";
-import { UpdateFlagManager } from "../../../../UpdateFlagManager";
 import { registerXRFeatureManager } from "../../../XRModule";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRReferenceImage } from "./XRReferenceImage";

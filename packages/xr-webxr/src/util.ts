@@ -87,14 +87,14 @@ export function getInputSource(inputSource: XRInputSource): XRInputType {
   return type;
 }
 
-export function eyeToInputSource(eye: XREye): XRInputType {
-  switch (eye) {
+export function viewToCamera(type: XREye): XRInputType {
+  switch (type) {
     case "left":
-      return XRInputType.LeftViewer;
+      return XRInputType.LeftCamera;
     case "right":
-      return XRInputType.RightViewer;
+      return XRInputType.RightCamera;
     default:
-      return XRInputType.Viewer;
+      return XRInputType.Camera;
   }
 }
 

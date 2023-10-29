@@ -1,9 +1,9 @@
 import { IXRInputManager } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
-import { XRInput } from "./XRInput";
-import { XRViewer } from "./XRViewer";
+import { XRCamera } from "./XRCamera";
 import { XRInputType } from "./XRInputType";
+import { XRInput } from "./XRInput";
 
 export abstract class XRInputManager implements IXRInputManager {
   protected _engine: Engine;
@@ -23,10 +23,10 @@ export abstract class XRInputManager implements IXRInputManager {
         case XRInputType.RightController:
           inputs[i] = new XRController(engine);
           break;
-        case XRInputType.Viewer:
-        case XRInputType.LeftViewer:
-        case XRInputType.RightViewer:
-          inputs[i] = new XRViewer(engine);
+        case XRInputType.Camera:
+        case XRInputType.LeftCamera:
+        case XRInputType.RightCamera:
+          inputs[i] = new XRCamera();
           break;
       }
     }

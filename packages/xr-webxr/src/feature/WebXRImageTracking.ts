@@ -7,7 +7,7 @@ import {
   XRPlatformFeature
 } from "@galacean/engine";
 import { IXRTrackable } from "@galacean/engine-design";
-import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)

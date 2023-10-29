@@ -3,7 +3,7 @@ import { Engine } from "../../../Engine";
 import { Logger } from "../../../base";
 import { XRInputType } from "../../input/XRInputType";
 import { XRInputManager } from "../../input/XRInputManager";
-import { XRViewer } from "../../input/XRViewer";
+import { XRCamera } from "../../input/XRCamera";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
 
@@ -17,7 +17,7 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
   private _fixedFoveation: number;
 
   attachCamera(source: XRInputType, camera: Camera): void {
-    const xrViewer = this._inputManager.getInput<XRViewer>(source);
+    const xrViewer = this._inputManager.getInput<XRCamera>(source);
     if (xrViewer) {
       xrViewer.camera = camera;
     } else {
@@ -26,7 +26,7 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
   }
 
   detachCamera(source: XRInputType): Camera {
-    const xrViewer = this._inputManager.getInput<XRViewer>(source);
+    const xrViewer = this._inputManager.getInput<XRCamera>(source);
     const preCamera = xrViewer.camera;
     xrViewer.camera = null;
     return preCamera;

@@ -4,23 +4,23 @@ import { EnumXRTrackingMode } from "../enum/EnumXRTrackingMode";
 import { XRInputType } from "../input/XRInputType";
 
 export class XRPoseDriver extends Script {
-  source: XRInputType = XRInputType.Viewer;
+  source: XRInputType = XRInputType.Camera;
   updateType: EnumXRTrackingMode = EnumXRTrackingMode.RotationAndPosition;
 
   private _inputManager: XRInputManager;
 
   override onLateUpdate() {
-    const pose = this._inputManager.getInput(this.source);
-    if (pose) {
+    const input = this._inputManager.getInput(this.source);
+    if (input) {
       switch (this.updateType) {
         case EnumXRTrackingMode.RotationOnly:
-          this.entity.transform.rotationQuaternion = pose.quaternion;
+          this.entity.transform.rotationQuaternion = input.pose.rotation;
           break;
         case EnumXRTrackingMode.PositionOnly:
-          this.entity.transform.position = pose.position;
+          this.entity.transform.position = input.pose.position;
           break;
         case EnumXRTrackingMode.RotationAndPosition:
-          this.entity.transform.localMatrix = pose.matrix;
+          this.entity.transform.localMatrix = input.pose.matrix;
           break;
         default:
           break;

@@ -1,8 +1,8 @@
 import { Engine, EnumXRMode, IXRDevice } from "@galacean/engine";
 import { IXRPlatformFeature } from "@galacean/engine-design";
-import { WebXRSessionManager } from "./session/WebXRSessionManager";
+import { WebXRSessionManager } from "./WebXRSessionManager";
 import { parseXRMode } from "./util";
-import { WebXRInputManager } from "./input/WebXRInputManager";
+import { WebXRInputManager } from "./WebXRInputManager";
 import { XRFeatureType } from "packages/core/src";
 
 type PlatformFeatureConstructor = new (engine: Engine) => IXRPlatformFeature;

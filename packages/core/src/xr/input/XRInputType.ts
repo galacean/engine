@@ -2,8 +2,10 @@ export enum XRInputType {
   Controller,
   LeftController,
   RightController,
-  Viewer,
-  LeftViewer,
-  RightViewer,
+  Camera,
+  LeftCamera,
+  RightCamera,
+  LeftHand,
+  RightHand,
   Length
 }

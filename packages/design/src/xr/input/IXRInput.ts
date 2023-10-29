@@ -1,10 +1,7 @@
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { IXRPose } from "./IXRPose";
-
-export class IXRInput {
-  matrix: Matrix;
-  position: Vector3;
-  quaternion: Quaternion;
+export interface IXRInput {
   pose: IXRPose;
   trackingState: number;
+  addTrackingStateChangeListener(listener: (from: number, to: number) => any): void;
+  removeTrackingStateChangeListener(listener: (from: number, to: number) => any): void;
 }

@@ -1,5 +1,5 @@
 import { Engine, XRFeatureType, XRFeatureChangeFlag, XRPlatformFeature } from "@galacean/engine";
-import { WebXRSessionManager } from "../session/WebXRSessionManager";
+import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)

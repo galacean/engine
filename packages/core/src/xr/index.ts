@@ -36,7 +36,7 @@ export { XRInputTrackingState } from "./input/XRInputTrackingState";
 export { XRController } from "./input/XRController";
 export { XRInput } from "./input/XRInput";
 export { XRInputManager } from "./input/XRInputManager";
-export { XRViewer } from "./input/XRViewer";
+export { XRCamera } from "./input/XRCamera";
 
 // session
 export { XRSessionManager } from "./session/XRSessionManager";

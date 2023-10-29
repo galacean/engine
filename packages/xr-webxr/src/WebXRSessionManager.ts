@@ -1,6 +1,6 @@
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 import { Engine, EnumXRMode, WebGLGraphicDevice, XRSessionManager } from "@galacean/engine";
-import { parseFeature, parseXRMode } from "../util";
+import { parseFeature, parseXRMode } from "./util";
 
 export class WebXRSessionManager extends XRSessionManager {
   // @internal
