@@ -23,7 +23,6 @@ export { XRAnchorTrackingMode } from "./feature/trackable/anchor/XRAnchorTrackin
 export { EnumXRButton } from "./enum/EnumXRButton";
 export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRHitTestMode } from "./feature/hitTest/XRHitTestMode";
-export { XRImageTrackingMode } from "./feature/trackable/image/XRImageTrackingMode";
 export { XRInputType } from "./input/XRInputType";
 export { EnumXRMode } from "./enum/EnumXRMode";
 export { XRPlaneTrackingMode } from "./feature/trackable/plane/XRPlaneTrackingMode";

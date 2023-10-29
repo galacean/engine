@@ -2,16 +2,21 @@ import { registerXRFeatureManager } from "../../../XRModule";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRReferenceImage } from "./XRReferenceImage";
 import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
-import { XRFeatureChangeFlag } from "../../XRFeatureChangeFlag";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { IXRTrackedImage } from "@galacean/engine-design";
+import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
-export class XRImageTrackingManager extends XRTrackableManager<IXRImageTrackingDescriptor, IXRTrackedImage> {
+export class XRImageTrackingManager extends XRTrackableManager<
+  IXRImageTrackingDescriptor,
+  XRPlatformImageTracking,
+  IXRTrackedImage
+> {
   addReferenceImage(image: XRReferenceImage): void {
     const { referenceImages } = <IXRImageTrackingDescriptor>this._descriptor;
     if (referenceImages.indexOf(image) < 0) {
       referenceImages.push(image);
+      this.platformFeature.addReferenceImage(image);
     }
   }
 
@@ -24,7 +29,7 @@ export class XRImageTrackingManager extends XRTrackableManager<IXRImageTrackingD
         referenceImages[idx] = referenceImages[lastIdx];
       }
       referenceImages.length = lastIdx;
+      this.platformFeature.removeReferenceImage(image);
     }
-    this.platformFeature._onFeatureChange(XRFeatureChangeFlag.Descriptor, this._descriptor);
   }
 }

@@ -54,6 +54,9 @@ export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessio
     case XRFeatureType.PlaneTracking:
       requiredFeatures.push("plane-detection");
       break;
+    case XRFeatureType.AnchorTracking:
+      requiredFeatures.push("anchors");
+      break;
   }
 }
 

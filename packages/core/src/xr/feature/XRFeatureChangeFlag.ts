@@ -1,5 +1,17 @@
 export enum XRFeatureChangeFlag {
   Enable,
-  Descriptor,
-  MovementTrackingMode
+  Disable,
+  // ImageTracking
+  AddReferenceImage,
+  RemoveReferenceImage,
+  // MovementTracking
+  MovementTrackingMode,
+  // Anchor
+  AddAnchor,
+  RemoveAnchor,
+  // PlaneTrackingMode
+  PlaneTrackingMode,
+  // Camera
+  FixedFoveation
+  // HitTest
 }

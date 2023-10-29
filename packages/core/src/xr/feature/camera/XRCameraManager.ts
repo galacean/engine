@@ -6,16 +6,15 @@ import { XRInputManager } from "../../input/XRInputManager";
 import { XRCamera } from "../../input/XRCamera";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
+import { XRPlatformCamera } from "./XRPlatformCamera";
 
 /**
  * 1. 管理相机前置后置
  * 2. 管理相机焦距
  * 3. 设置虚拟相机与现实相机的链接
  */
-export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
+export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPlatformCamera> {
   private _inputManager: XRInputManager;
-  private _fixedFoveation: number;
-
   attachCamera(source: XRInputType, camera: Camera): void {
     const xrViewer = this._inputManager.getInput<XRCamera>(source);
     if (xrViewer) {
@@ -33,15 +32,15 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
   }
 
   set fixedFoveation(value: number) {
-    value = Math.max(0, Math.min(1, value || 0));
-    this._fixedFoveation = value;
+    this.platformFeature.fixedFoveation = Math.max(0, Math.min(1, value || 0));
   }
 
   get fixedFoveation() {
-    return this._fixedFoveation;
+    return this.platformFeature.fixedFoveation;
   }
 
   constructor(engine: Engine) {
     super(engine);
+    this._inputManager = engine.xrModule.inputManager;
   }
 }

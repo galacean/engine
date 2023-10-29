@@ -3,23 +3,26 @@ import { Engine } from "../../Engine";
 import { XRFeatureChangeFlag } from "./XRFeatureChangeFlag";
 import { XRPlatformFeature } from "./XRPlatformFeature";
 
-export abstract class XRFeatureManager<T extends IXRFeatureDescriptor> implements IXRFeatureManager {
-  platformFeature: XRPlatformFeature;
+export abstract class XRFeatureManager<
+  TDescriptor extends IXRFeatureDescriptor,
+  TPlatformFeature extends XRPlatformFeature
+> implements IXRFeatureManager
+{
+  platformFeature: TPlatformFeature;
 
   protected _engine: Engine;
-  protected _descriptor: T;
+  protected _descriptor: TDescriptor;
   protected _enabled: boolean = true;
 
   /**
    * @readonly
    */
-  get descriptor(): T {
+  get descriptor(): TDescriptor {
     return this._descriptor;
   }
 
-  set descriptor(value: T) {
+  set descriptor(value: TDescriptor) {
     this._descriptor = value;
-    this.platformFeature._onFeatureChange(XRFeatureChangeFlag.Descriptor, value);
   }
 
   get enabled(): boolean {

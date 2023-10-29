@@ -4,23 +4,26 @@ import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
 import { XRFeatureManager } from "../XRFeatureManager";
 
-export class XRTrackableManager<D extends IXRFeatureDescriptor, T extends IXRTrackable> extends XRFeatureManager<D> {
-  private _trackables: T[];
+export abstract class XRTrackableManager<
+  TDescriptor extends IXRFeatureDescriptor,
+  TPlatformFeature extends XRTrackableFeature<TXRTrackable>,
+  TXRTrackable extends IXRTrackable
+> extends XRFeatureManager<TDescriptor, TPlatformFeature> {
+  private _trackables: TXRTrackable[];
   private _idToIdx: Record<number, number> = {};
 
-  private _platformFeature: XRTrackableFeature<T>;
   private _trackedUpdate: UpdateFlagManager = new UpdateFlagManager();
 
-  get trackables(): readonly T[] {
+  get trackables(): readonly TXRTrackable[] {
     return this._trackables;
   }
 
-  getTrackable(id: number): T {
+  getTrackable(id: number): TXRTrackable {
     return this._trackables[this._idToIdx[id]];
   }
 
   override _onFrameUpdate(): void {
-    const { added, updated, removed } = this._platformFeature.getChanges();
+    const { added, updated, removed } = this.platformFeature.getChanges();
     const { _trackedUpdate: trackedUpdate, _trackables: trackables, _idToIdx: idToIdx } = this;
     if (added?.length > 0) {
       for (let i = 0, n = added.length; i < n; i++) {

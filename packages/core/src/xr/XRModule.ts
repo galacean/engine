@@ -8,7 +8,6 @@ import { XRSessionManager } from "./session/XRSessionManager";
 import { EnumXRSessionState } from "./enum/EnumXRSessionState";
 import { Logger } from "../base";
 import { Utils } from "../Utils";
-import { XRPlatformFeature } from "./feature/XRPlatformFeature";
 
 type FeatureManagerConstructor = new (engine: Engine) => IXRFeatureManager;
 type SessionStateChangeListener = (from: EnumXRSessionState, to: EnumXRSessionState) => void;
