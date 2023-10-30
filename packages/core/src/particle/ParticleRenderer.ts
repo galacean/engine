@@ -193,9 +193,11 @@ export class ParticleRenderer extends Renderer {
     }
 
     const material = this.getMaterial();
-    const renderData = this._engine._renderDataPool.getFromPool();
-    renderData.setX(this, material, generator._primitive, generator._subPrimitive);
-    context.camera._renderPipeline.pushRenderData(context, renderData);
+    if (material) {
+      const renderData = this._engine._renderDataPool.getFromPool();
+      renderData.setX(this, material, generator._primitive, generator._subPrimitive);
+      context.camera._renderPipeline.pushRenderData(context, renderData);
+    }
   }
 
   protected override _onDestroy(): void {
