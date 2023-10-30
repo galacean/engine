@@ -37,20 +37,22 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   override destroy(force: boolean, isGC: boolean): boolean;
 
   override destroy(force: boolean = false, isGC?: boolean): boolean {
-    if (!force && this._refCount !== 0) {
-      return false;
-    }
-
-    const superResources = this._superResources;
-    if (superResources?.length) {
-      if (isGC) {
-        for (let i = 0, n = superResources.length; i < n; i++) {
-          if (superResources[i].refCount > 0) {
-            return false;
-          }
-        }
-      } else {
+    if (!force) {
+      if (this._refCount !== 0) {
         return false;
+      }
+
+      const superResources = this._superResources;
+      if (superResources?.length) {
+        if (isGC) {
+          for (let i = 0, n = superResources.length; i < n; i++) {
+            if (superResources[i].refCount > 0) {
+              return false;
+            }
+          }
+        } else {
+          return false;
+        }
       }
     }
 
