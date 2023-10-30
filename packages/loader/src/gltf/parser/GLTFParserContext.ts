@@ -179,7 +179,7 @@ const glTFSchemaMap = {
 };
 
 const glTFResourceMap = {
-  [GLTFParserType.Scene]: "sceneRoots",
+  [GLTFParserType.Scene]: "_sceneRoots",
   [GLTFParserType.Texture]: "textures",
   [GLTFParserType.Material]: "materials",
   [GLTFParserType.Mesh]: "meshes",

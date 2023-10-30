@@ -405,10 +405,11 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = Utils.objectValues(this._referResourcePool);
-    for (let i = 0, len = objects.length; i < len; i++) {
-      if (!objects[i].isGCIgnored || forceDestroy) {
-        (<ReferResource>objects[i]).destroy(forceDestroy);
+    const objects = <ReferResource[]>Utils.objectValues(this._referResourcePool);
+    for (let i = 0, n = objects.length; i < n; i++) {
+      const object = objects[i];
+      if (!object.isGCIgnored || forceDestroy) {
+        object.destroy(forceDestroy, true);
       }
     }
   }

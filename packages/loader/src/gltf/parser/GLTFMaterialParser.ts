@@ -158,7 +158,8 @@ export class GLTFMaterialParser extends GLTFParser {
 
   parse(context: GLTFParserContext, index: number): Promise<Material> {
     const materialInfo = context.glTF.materials[index];
-    const engine = context.glTFResource.engine;
+    const glTFResource = context.glTFResource;
+    const engine = glTFResource.engine;
 
     let material = <Material | Promise<Material>>(
       GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
@@ -171,8 +172,10 @@ export class GLTFMaterialParser extends GLTFParser {
     }
 
     return Promise.resolve(material).then((material) => {
-      material ||= GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
+      material ||= GLTFMaterialParser._getDefaultMaterial(engine);
       GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
+      // @ts-ignore
+      material._associationSuperResource(glTFResource);
       return material;
     });
   }
