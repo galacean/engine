@@ -281,12 +281,20 @@ export class GLTFMeshParser extends GLTFParser {
 
         if (mesh) {
           if (mesh instanceof ModelMesh) {
+            // @ts-ignore
+            mesh._associationSuperResource(glTFResource);
             resolve(mesh);
           } else {
-            mesh.then((mesh) => resolve(mesh));
+            mesh.then((mesh) => {
+              // @ts-ignore
+              mesh._associationSuperResource(glTFResource);
+              resolve(mesh);
+            });
           }
         } else {
           const mesh = new ModelMesh(engine, meshInfo.name || i + "");
+          // @ts-ignore
+          mesh._associationSuperResource(glTFResource);
 
           const meshRestoreInfo = new ModelMeshRestoreInfo();
           meshRestoreInfo.mesh = mesh;
@@ -324,12 +332,6 @@ export class GLTFMeshParser extends GLTFParser {
       });
     }
 
-    return Promise.all(primitivePromises).then((meshes) => {
-      for (let i = 0, n = meshes.length; i < n; i++) {
-        // @ts-ignore
-        meshes[i]._associationSuperResource(glTFResource);
-      }
-      return meshes;
-    });
+    return Promise.all(primitivePromises);
   }
 }
