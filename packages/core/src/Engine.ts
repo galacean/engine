@@ -101,7 +101,9 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _magentaTexture2DArray: Texture2DArray;
   /* @internal */
-  _magentaMaterial: Material;
+  _meshMagentaMaterial: Material;
+  /* @internal */
+  _particleMagentaMaterial: Material;
   /* @internal */
   _depthTexture2D: Texture2D;
 
@@ -262,10 +264,15 @@ export class Engine extends EventDispatcher {
       this._depthTexture2D = depthTexture2D;
     }
 
-    const magentaMaterial = new Material(this, Shader.find("unlit"));
-    magentaMaterial.isGCIgnored = true;
-    magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._magentaMaterial = magentaMaterial;
+    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
+    meshMagentaMaterial.isGCIgnored = true;
+    meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    this._meshMagentaMaterial = meshMagentaMaterial;
+
+    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
+    particleMagentaMaterial.isGCIgnored = true;
+    particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    this._particleMagentaMaterial = particleMagentaMaterial;
 
     const innerSettings = this._settings;
     const colorSpace = configuration.colorSpace || ColorSpace.Linear;
