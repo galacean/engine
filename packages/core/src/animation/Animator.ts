@@ -20,7 +20,6 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
-
 /**
  * The controller of the animation system.
  */
@@ -32,7 +31,7 @@ export class Animator extends Component {
   speed: number = 1.0;
 
   /** @internal */
-  _playFrameCount: number;
+  _playFrameCount: number = -1;
   /** @internal */
   _onUpdateIndex: number = -1;
 
@@ -69,7 +68,6 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      animatorController && this._checkAutoPlay();
     }
   }
 
