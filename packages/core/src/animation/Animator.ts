@@ -20,6 +20,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+
 /**
  * The controller of the animation system.
  */
