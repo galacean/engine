@@ -134,8 +134,10 @@ export class AnimationClip extends EngineObject {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        const value = curveOwner.evaluateValue(curveData.curve, time, false);
-        curveOwner.applyValue(value, 1, false);
+        if (curveData.curve.keys.length) {
+          const value = curveOwner.evaluateValue(curveData.curve, time, false);
+          curveOwner.applyValue(value, 1, false);
+        }
       }
     }
   }
