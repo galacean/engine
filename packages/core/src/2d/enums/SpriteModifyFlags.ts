@@ -9,5 +9,6 @@ export enum SpriteModifyFlags {
   atlasRegionOffset = 0x10,
   region = 0x20,
   pivot = 0x40,
-  border = 0x80
+  border = 0x80,
+  destroy = 0x100
 }
