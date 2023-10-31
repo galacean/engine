@@ -412,6 +412,9 @@ export class SpriteRenderer extends Renderer {
       case SpriteModifyFlags.pivot:
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         break;
+      case SpriteModifyFlags.destroy:
+        this.sprite = null;
+        break;
     }
   }
 }
