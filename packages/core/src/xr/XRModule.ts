@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRFeatureManager } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRPlatformFeature } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { IXRDevice } from "./IXRDevice";
 import { XRInputManager } from "./input/XRInputManager";
@@ -6,24 +6,27 @@ import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionType } from "./session/XRSessionType";
+import { XRFeatureManager } from "./feature/XRFeatureManager";
+import { XRPlatformFeature } from "./feature/XRPlatformFeature";
 import { Logger } from "../base";
 import { Utils } from "../Utils";
 
-type FeatureManagerConstructor = new (engine: Engine) => IXRFeatureManager;
-type SessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
+type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRPlatformFeature>;
+type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
+type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
 
 export class XRModule {
   // @internal
-  static _featureManagerMap: FeatureManagerConstructor[] = [];
+  static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
 
   xrDevice: IXRDevice;
   inputManager: XRInputManager;
   sessionManager: XRSessionManager;
 
   private _engine: Engine;
-  private _features: IXRFeatureManager[] = [];
+  private _features: TXRFeatureManager[] = [];
   private _sessionState: XRSessionState = XRSessionState.NotInitialized;
-  private _listeners: SessionStateChangeListener[] = [];
+  private _listeners: TXRSessionStateChangeListener[] = [];
 
   private _mode: XRSessionType;
   private _requestFeatures: IXRFeatureDescriptor[];
@@ -60,7 +63,9 @@ export class XRModule {
       if (feature) {
         return feature.isSupported(descriptors);
       } else {
-        return Promise.reject(new Error("没有实现对应的 XRPlatformFeature : " + XRFeatureType[descriptors.type]));
+        return Promise.reject(
+          "The platform interface layer of the " + XRFeatureType[descriptors.type] + " is not implemented."
+        );
       }
     }
   }
@@ -72,7 +77,7 @@ export class XRModule {
     }
   }
 
-  getFeature<T extends IXRFeatureManager>(type: XRFeatureType): T {
+  getFeature<T extends XRFeatureManager<IXRFeatureDescriptor, XRPlatformFeature>>(type: XRFeatureType): T {
     const { _features: features } = this;
     const feature = features[type];
     if (feature) {
@@ -86,7 +91,7 @@ export class XRModule {
         feature.platformFeature = platformFeature;
         return <T>feature;
       } else {
-        Logger.warn(XRFeatureType[type] + "的平台接口层未实现.");
+        Logger.warn("The platform interface layer of the ", XRFeatureType[type], " is not implemented.");
         return null;
       }
     }
@@ -94,7 +99,7 @@ export class XRModule {
 
   initSession(mode: XRSessionType, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
     if (this._sessionState !== XRSessionState.NotInitialized) {
-      return Promise.reject(new Error("请先销毁旧的 XR 会话"));
+      return Promise.reject(new Error("Please destroy the old session first"));
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
@@ -180,11 +185,11 @@ export class XRModule {
     this.resetSessionStateChangeListener();
   }
 
-  addSessionStateChangeListener(listener: SessionStateChangeListener): void {
+  addSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
     this._listeners.push(listener);
   }
 
-  removeSessionStateChangeListener(listener: SessionStateChangeListener): void {
+  removeSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
     Utils.removeFromArray(this._listeners, listener);
   }
 
@@ -259,7 +264,7 @@ export class XRModule {
 }
 
 export function registerXRFeatureManager(feature: XRFeatureType) {
-  return (featureManagerConstructor: FeatureManagerConstructor) => {
+  return (featureManagerConstructor: TXRFeatureManagerConstructor) => {
     XRModule._featureManagerMap[feature] = featureManagerConstructor;
   };
 }
