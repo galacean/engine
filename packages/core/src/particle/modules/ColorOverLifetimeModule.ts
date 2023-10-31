@@ -49,9 +49,7 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
       const mode = this.color.mode;
 
       if (mode !== ParticleGradientMode.Gradient && mode !== ParticleGradientMode.TwoGradients) {
-        throw new Error(
-          "Invalid color gradient mode, only gradient and two gradients are supported in color over lifetime."
-        );
+        throw new Error("Invalid color mode, only gradient and two gradients are supported in color over lifetime.");
       }
 
       const color = this.color;
