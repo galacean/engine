@@ -32,7 +32,7 @@ export class Animator extends Component {
   speed: number = 1.0;
 
   /** @internal */
-  _playFrameCount: number;
+  _playFrameCount: number = -1;
   /** @internal */
   _onUpdateIndex: number = -1;
 
