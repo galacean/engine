@@ -7,7 +7,7 @@ function searchTests(root: string) {
   fs.readdirSync(root).forEach((file) => {
     const filePath = path.join(root, file);
     const stat = fs.statSync(filePath);
-    if (stat.isFile() && filePath.endsWith("Quaternion.test.ts")) {
+    if (stat.isFile() && filePath.endsWith(".test.ts")) {
       if (IS_COV && path.basename(filePath) === "KTX2Loader.test.ts") {
         return;
       }
