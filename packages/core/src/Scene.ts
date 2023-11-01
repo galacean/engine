@@ -480,7 +480,7 @@ export class Scene extends EngineObject {
     }
 
     if (sunlight) {
-      lightManager._updateShadowLightIndex(sunlight);
+      lightManager._updateSunlightIndex(sunlight);
     }
 
     if (this.castShadows && this._sunlight && this._sunlight.shadowType !== ShadowType.None) {

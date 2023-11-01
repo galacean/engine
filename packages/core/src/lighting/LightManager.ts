@@ -151,18 +151,18 @@ export class LightManager {
   /**
    * @internal
    */
-  _updateShadowLightIndex(shadowLight: DirectLight): void {
+  _updateSunlightIndex(light: DirectLight): void {
     const directLights = this._directLights;
-    const index = shadowLight._lightIndex;
+    const index = light._lightIndex;
 
-    // -1 means no shadow light, 0 means the first light already is shadow light
+    // -1 means no sun light, 0 means the first direct light already is sun light
     if (index > 0) {
       const firstLight = directLights.get(0);
-      const shadowLight = directLights.get(index);
-      directLights.set(0, shadowLight);
+      const sunlight = directLights.get(index);
+      directLights.set(0, sunlight);
       directLights.set(index, firstLight);
 
-      shadowLight._lightIndex = 0;
+      sunlight._lightIndex = 0;
       firstLight._lightIndex = index;
     }
   }
