@@ -243,7 +243,8 @@ export class ParticleGenerator {
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
-    this._playTime += elapsedTime;
+
+    this._playTime += elapsedTime * main.simulationSpeed;
 
     this._retireActiveParticles();
     this._freeRetiredParticles();
