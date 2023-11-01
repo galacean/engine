@@ -76,7 +76,7 @@ export class Scene extends EngineObject {
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
-  private _sunSource: DirectLight | null;
+  private _sun: DirectLight | null;
   private _defaultSunlightDirection = new Vector3(0, 0, 0);
 
   /**
@@ -238,27 +238,13 @@ export class Scene extends EngineObject {
    * Sun light source.
    * @remarks If set this to null, scene will use the brightest directional light.
    */
-  get sunSource(): DirectLight | null {
-    return this._sunSource;
+  get sun(): DirectLight | null {
+    return this._sun;
   }
 
-  set sunSource(light: DirectLight | null) {
+  set sun(light: DirectLight | null) {
     if (light == null || light instanceof DirectLight) {
-      this._sunSource = light;
-    }
-  }
-
-  /**
-   * Shadow light source.
-   * @remarks If set this to null, shadow map will use the brightest directional light with shadowType is open.
-   */
-  get shadowSource(): DirectLight | null {
-    return this._shadowSource;
-  }
-
-  set shadowSource(light: DirectLight | null) {
-    if (light == null || light instanceof DirectLight) {
-      this._shadowSource = light;
+      this._sun = light;
     }
   }
 
@@ -580,8 +566,8 @@ export class Scene extends EngineObject {
   private _getSunlight(): DirectLight | null {
     let sunlight = null;
 
-    if (this._sunSource) {
-      sunlight = this._sunSource.enabled ? this._sunSource : null;
+    if (this._sun) {
+      sunlight = this._sun.enabled ? this._sun : null;
     } else {
       sunlight = this._lightManager._getMaxBrightestSunlight();
     }
