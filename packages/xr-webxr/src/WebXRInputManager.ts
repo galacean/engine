@@ -16,7 +16,6 @@ import { viewToCamera, getInputSource } from "./util";
 import { WebXRSessionManager } from "./WebXRSessionManager";
 
 export class WebXRInputManager extends XRInputManager {
-  private _sessionManager: WebXRSessionManager;
   private _session: XRSession;
   private _screenInputSource: XRInputSource[] = [];
   private _canvas: HTMLCanvasElement;
@@ -77,7 +76,9 @@ export class WebXRInputManager extends XRInputManager {
     eventList.length = 0;
 
     // Update the pose of xr input
-    const { _platformSession, _platformFrame, _platformLayer, _platformSpace } = this._sessionManager;
+    const { _platformSession, _platformFrame, _platformLayer, _platformSpace } = <WebXRSessionManager>(
+      engine.xrModule.sessionManager
+    );
     if (!_platformFrame || !_platformLayer || !_platformSpace) {
       return;
     }
@@ -355,7 +356,6 @@ export class WebXRInputManager extends XRInputManager {
     // @ts-ignore
     this._canvas = engine._canvas._webCanvas;
     this._time = engine.time;
-    this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
     this._onSessionEvent = this._onSessionEvent.bind(this);
     this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
     this._handleButtonEvent = this._handleButtonEvent.bind(this);

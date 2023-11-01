@@ -1,4 +1,4 @@
-import { Matrix, Rect } from "@galacean/engine-math";
+import { Matrix, Quaternion, Rect, Vector3 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { XRInput } from "./XRInput";
 
@@ -14,5 +14,10 @@ export class XRCamera extends XRInput {
 
   get camera(): Camera {
     return this._camera;
+  }
+
+  constructor() {
+    super();
+    this._pose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
   }
 }

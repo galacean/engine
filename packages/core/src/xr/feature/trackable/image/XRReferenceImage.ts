@@ -1,4 +1,6 @@
-export class XRReferenceImage {
+import { IXRReferenceImage } from "@galacean/engine-design/types/xr/feature/trackable/IXRReferenceImage";
+
+export class XRReferenceImage implements IXRReferenceImage {
   constructor(
     public name: string,
     public src:

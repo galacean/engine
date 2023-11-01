@@ -9,7 +9,7 @@ export abstract class XRTrackableManager<
   TTrackablePlatformFeature extends XRTrackablePlatformFeature<TXRTrackable>,
   TXRTrackable extends IXRTrackable
 > extends XRFeatureManager<TDescriptor, TTrackablePlatformFeature> {
-  private _trackables: TXRTrackable[];
+  private _trackables: TXRTrackable[] = [];
   private _idToIdx: Record<number, number> = {};
 
   private _trackedUpdate: UpdateFlagManager = new UpdateFlagManager();
@@ -23,7 +23,11 @@ export abstract class XRTrackableManager<
   }
 
   override _onUpdate(): void {
-    const { added, updated, removed } = this.platformFeature.getChanges();
+    const changes = this.platformFeature.getChanges();
+    if (!changes) {
+      return;
+    }
+    const { added, updated, removed } = changes;
     const { _trackedUpdate: trackedUpdate, _trackables: trackables, _idToIdx: idToIdx } = this;
     if (added?.length > 0) {
       for (let i = 0, n = added.length; i < n; i++) {

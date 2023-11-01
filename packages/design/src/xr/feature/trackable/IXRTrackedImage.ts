@@ -1,7 +1,7 @@
-import { Vector2 } from "@galacean/engine-math";
 import { IXRTrackable } from "./IXRTrackable";
+import { IXRReferenceImage } from "./IXRReferenceImage";
 
 export interface IXRTrackedImage extends IXRTrackable {
-  referIdx: number;
-  size: Vector2;
+  referenceImage: IXRReferenceImage;
+  measuredWidthInMeters: number;
 }

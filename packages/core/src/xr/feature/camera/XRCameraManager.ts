@@ -7,12 +7,15 @@ import { XRCamera } from "../../input/XRCamera";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
 import { XRPlatformCamera } from "./XRPlatformCamera";
+import { registerXRFeatureManager } from "../../XRModule";
+import { XRFeatureType } from "../XRFeatureType";
 
 /**
  * 1. 管理相机前置后置
  * 2. 管理相机焦距
  * 3. 设置虚拟相机与现实相机的链接
  */
+@registerXRFeatureManager(XRFeatureType.CameraDevice)
 export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPlatformCamera> {
   private _inputManager: XRInputManager;
   attachCamera(source: XRInputType, camera: Camera): void {
