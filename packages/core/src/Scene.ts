@@ -77,7 +77,6 @@ export class Scene extends EngineObject {
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
-  private _defaultSunlightDirection = new Vector3(0, 0, 0);
 
   /**
    * Whether the scene is active.
@@ -476,7 +475,8 @@ export class Scene extends EngineObject {
       shaderData.setColor(Scene._sunlightColorProperty, sunlight._lightColor);
       shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
     } else {
-      shaderData.setVector3(Scene._sunlightDirectionProperty, this._defaultSunlightDirection);
+      // @ts-ignore
+      shaderData.setVector3(Scene._sunlightDirectionProperty, Vector3._zero);
     }
 
     if (sunlight) {
