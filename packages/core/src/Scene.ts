@@ -64,8 +64,6 @@ export class Scene extends EngineObject {
   _rootEntities: Entity[] = [];
   /** @internal */
   _sunlight: DirectLight | null;
-  /** @internal */
-  _shadowLight: DirectLight | null;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -79,7 +77,6 @@ export class Scene extends EngineObject {
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
   private _sunSource: DirectLight | null;
-  private _shadowSource: DirectLight | null;
   private _defaultSunlightDirection = new Vector3(0, 0, 0);
 
   /**
@@ -488,7 +485,6 @@ export class Scene extends EngineObject {
     lightManager._updateShaderData(this.shaderData);
 
     const sunlight = (this._sunlight = this._getSunlight());
-    const shadowLight = (this._shadowLight = this._getShadowLight());
 
     if (sunlight) {
       shaderData.setColor(Scene._sunlightColorProperty, sunlight._lightColor);
@@ -497,12 +493,12 @@ export class Scene extends EngineObject {
       shaderData.setVector3(Scene._sunlightDirectionProperty, this._defaultSunlightDirection);
     }
 
-    if (shadowLight) {
-      lightManager._updateShadowLightIndex(shadowLight);
+    if (sunlight) {
+      lightManager._updateShadowLightIndex(sunlight);
     }
 
-    if (this.castShadows && shadowLight) {
-      shaderData.enableMacro("SCENE_SHADOW_TYPE", shadowLight.shadowType.toString());
+    if (this.castShadows && this._sunlight && this._sunlight.shadowType !== ShadowType.None) {
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._sunlight.shadowType.toString());
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
@@ -591,17 +587,5 @@ export class Scene extends EngineObject {
     }
 
     return sunlight;
-  }
-
-  private _getShadowLight(): DirectLight | null {
-    let shadowLight = null;
-
-    if (this._shadowSource) {
-      shadowLight = this._shadowSource.enabled ? this._shadowSource : null;
-    } else {
-      shadowLight = this._lightManager._getMaxBrightestShadowLight();
-    }
-
-    return shadowLight;
   }
 }

@@ -175,38 +175,26 @@ export class LightManager {
 
     let sunlight = null;
     let maxIntensity = Number.NEGATIVE_INFINITY;
-
+    let hasShadowLight = false;
     for (let i = 0, n = directLights.length; i < n; i++) {
       const currentLight = directLights.get(i);
-      const intensity = currentLight.intensity * currentLight.color.getBrightness();
-      if (maxIntensity < intensity) {
-        maxIntensity = intensity;
-        sunlight = currentLight;
+      if (currentLight.shadowType !== ShadowType.None && !hasShadowLight) {
+        maxIntensity = Number.NEGATIVE_INFINITY;
+        hasShadowLight = true;
       }
-    }
-    return sunlight;
-  }
-
-  /**
-   * @internal
-   */
-  _getMaxBrightestShadowLight(): DirectLight | null {
-    const directLights = this._directLights;
-
-    let shadowLight = null;
-    let maxIntensity = Number.NEGATIVE_INFINITY;
-
-    for (let i = 0, n = directLights.length; i < n; i++) {
-      const currentLight = directLights.get(i);
-      if (currentLight.shadowType !== ShadowType.None) {
-        const intensity = currentLight.intensity * currentLight.color.getBrightness();
-
+      const intensity = currentLight.intensity * currentLight.color.getBrightness();
+      if (hasShadowLight) {
+        if (currentLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
+          maxIntensity = intensity;
+          sunlight = currentLight;
+        }
+      } else {
         if (maxIntensity < intensity) {
           maxIntensity = intensity;
-          shadowLight = currentLight;
+          sunlight = currentLight;
         }
       }
     }
-    return shadowLight;
+    return sunlight;
   }
 }
