@@ -76,7 +76,7 @@ import {
 
 export interface IPosition {
   line: number;
-  offset: number;
+  character: number;
 }
 
 export interface IPositionRange {
@@ -299,7 +299,7 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
         context.diagnostics.push({
           severity: DiagnosticSeverity.Warning,
           message: `Not found function definition: ${this.content.function}`,
-          token: this.position
+          range: this.position
         });
       }
     }
@@ -473,7 +473,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
         context.diagnostics.push({
           severity: DiagnosticSeverity.Error,
           message: `Not found variable definition: ${objName}`,
-          token: this.position
+          range: this.position
         });
       }
     }
@@ -537,7 +537,7 @@ export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarati
         context?.diagnostics.push({
           severity: DiagnosticSeverity.Error,
           message: "invalid render state key",
-          token: prop.position
+          range: prop.position
         });
         return;
       }
@@ -569,7 +569,7 @@ export class RenderStatePropertyItemAstNode extends AstNode<IRenderStateProperty
         context.diagnostics.push({
           severity: DiagnosticSeverity.Warning,
           message: "not found variable definition",
-          token: this.content.value.position
+          range: this.content.value.position
         });
       }
     }
@@ -609,7 +609,7 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
         context.diagnostics.push({
           severity: DiagnosticSeverity.Error,
           message: `Undefined type ${typeNode.content.text}`,
-          token: this.position
+          range: this.position
         });
       }
     }

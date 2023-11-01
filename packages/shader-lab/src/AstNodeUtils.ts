@@ -37,8 +37,8 @@ export class AstNodeUtils {
 
   static defaultVisit(this: ICstVisitor<any, AstNode>, ctx: CstChildrenDictionary): ObjectAstNode {
     const content = {} as Record<string, AstNode>;
-    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, offset: -1 },
-      end: IPosition = { line: 0, offset: -1 };
+    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1 },
+      end: IPosition = { line: 0, character: -1 };
 
     for (const k in ctx) {
       if (AstNodeUtils.isCstNode(ctx[k][0])) {
@@ -69,11 +69,11 @@ export class AstNodeUtils {
     return {
       start: {
         line: token.startLine,
-        offset: token.startColumn
+        character: token.startColumn
       },
       end: {
         line: token.endLine,
-        offset: token.endColumn
+        character: token.endColumn
       }
     };
   }
@@ -94,7 +94,7 @@ export class AstNodeUtils {
 
   static astSortAsc(a: AstNode, b: AstNode) {
     return a.position.start.line > b.position.start.line ||
-      (a.position.start.line === b.position.start.line && a.position.start.offset >= b.position.start.offset)
+      (a.position.start.line === b.position.start.line && a.position.start.character >= b.position.start.character)
       ? 1
       : -1;
   }
@@ -103,26 +103,22 @@ export class AstNodeUtils {
     return -AstNodeUtils.astSortAsc(a, b);
   }
 
-  static parseShader(input: string, parser: ShaderParser, visitor: ShaderVisitor): IShaderInfo {
+  static parseShader(
+    input: string,
+    parser: ShaderParser,
+    visitor: ShaderVisitor,
+    context: RuntimeContext
+  ): IShaderInfo | null {
     parser.parse(input);
     const cst = parser.ruleShader();
     if (parser.errors.length > 0) {
-      console.log(parser.errors);
-      throw parser.errors;
+      console.error(parser.errors);
+      return null;
     }
 
     const ast = visitor.visit(cst);
 
-    const context = new RuntimeContext();
     const shaderInfo = context.parse(ast);
-
-    // context.diagnostics.forEach((item) => {
-    //   if (item.severity !== DiagnosticSeverity.Error) {
-    //     Logger.warn(item);
-    //   } else {
-    //     Logger.error(item);
-    //   }
-    // });
 
     return shaderInfo;
   }

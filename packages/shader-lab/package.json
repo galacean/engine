@@ -8,6 +8,7 @@
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "scripts": {

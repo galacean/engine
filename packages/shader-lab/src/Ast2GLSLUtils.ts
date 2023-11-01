@@ -15,7 +15,7 @@ export class Ast2GLSLUtils {
       context.diagnostics.push({
         severity: DiagnosticSeverity.Error,
         message: `Not found vertex shader definition: ${vertexFnProperty.content.value}`,
-        token: vertexFnProperty.position
+        range: vertexFnProperty.position
       });
       return "";
     }
@@ -28,7 +28,7 @@ export class Ast2GLSLUtils {
       context.diagnostics.push({
         severity: DiagnosticSeverity.Error,
         message: "no varying struct definition",
-        token: vertFnAst.content.returnType.position
+        range: vertFnAst.content.returnType.position
       });
       return "";
     }
@@ -48,7 +48,7 @@ export class Ast2GLSLUtils {
           context.diagnostics.push({
             severity: DiagnosticSeverity.Error,
             message: "no attribute struct definition",
-            token: arg.position
+            range: arg.position
           });
           return;
         } else {
@@ -95,7 +95,7 @@ export class Ast2GLSLUtils {
       context.diagnostics.push({
         severity: DiagnosticSeverity.Error,
         message: `Not found fragment shader definition: ${fragmentFnProperty.content.value}`,
-        token: fragmentFnProperty.position
+        range: fragmentFnProperty.position
       });
       return "";
     }

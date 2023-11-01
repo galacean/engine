@@ -28,8 +28,8 @@ import { RenderStateDataKey } from "@galacean/engine";
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
   message: string;
-  /** The token which caused the parser error. */
-  token: IPositionRange;
+  /** The range which caused the parser error. */
+  range: IPositionRange;
 }
 
 interface IReference {
@@ -156,7 +156,7 @@ export default class RuntimeContext {
           this.diagnostics.push({
             severity: DiagnosticSeverity.Error,
             message: "multiple vertex main function found",
-            token: prop.position
+            range: prop.position
           });
           return;
         }
@@ -168,7 +168,7 @@ export default class RuntimeContext {
           this.diagnostics.push({
             severity: DiagnosticSeverity.Error,
             message: "multiple fragment main function found",
-            token: prop.position
+            range: prop.position
           });
           return;
         }
@@ -183,7 +183,7 @@ export default class RuntimeContext {
           this.diagnostics.push({
             severity: DiagnosticSeverity.Error,
             message: "variable definition not found",
-            token: prop.position
+            range: prop.position
           });
         } else {
           renderStates.push(astNode);
@@ -305,6 +305,7 @@ export default class RuntimeContext {
     this._shaderGlobalMap.clear();
     this._serializingNodeStack.length = 0;
     this._subShaderReset();
+    this.diagnostics.length = 0;
   }
 
   private _subShaderReset() {
