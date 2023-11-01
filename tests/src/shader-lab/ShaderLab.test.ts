@@ -117,7 +117,7 @@ describe("ShaderLab", () => {
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     usePass = <string>passList[0];
-    pass = <IShaderPassInfo>passList[1];
+    pass = <IShaderPassInfo>passList[2];
   });
 
   it("create shaderLab", async () => {

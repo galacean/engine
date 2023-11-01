@@ -27,6 +27,8 @@ Shader "Water" {
 
     UsePass "pbr/Default/Forward"
 
+    UsePass "blinn-phong/Default/Forward"
+
     Pass "default" {
       Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
 
