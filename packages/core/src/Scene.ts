@@ -466,6 +466,7 @@ export class Scene extends EngineObject {
     const sunlight = (this._lightManager._sunlight = this._getSunlight());
 
     if (sunlight) {
+      lightManager._updateSunlightIndex(sunlight);
       shaderData.setColor(LightManager._sunlightColorProperty, sunlight._lightColor);
       shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
     } else {
@@ -473,12 +474,8 @@ export class Scene extends EngineObject {
       shaderData.setVector3(Scene._sunlightDirectionProperty, Vector3._zero);
     }
 
-    if (sunlight) {
-      lightManager._updateSunlightIndex(sunlight);
-    }
-
-    if (this.castShadows && this._lightManager._sunlight?.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._lightManager._sunlight.shadowType.toString());
+    if (this.castShadows && sunlight?.shadowType !== ShadowType.None) {
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", sunlight.shadowType.toString());
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
