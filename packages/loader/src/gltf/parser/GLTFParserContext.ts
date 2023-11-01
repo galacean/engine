@@ -1,5 +1,9 @@
 import {
   AnimationClip,
+  Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorStateMachine,
   Buffer,
   Entity,
   Material,
@@ -98,10 +102,37 @@ export class GLTFParserContext {
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
+        const glTFResource = this.glTFResource;
+        if (glTFResource.skins || glTFResource.animations) {
+          this._createAnimator(this, glTFResource.animations);
+        }
         this.resourceManager.addContentRestorer(this.contentRestorer);
-        return this.glTFResource;
+        return glTFResource;
       });
     });
+  }
+
+  private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {
+    const defaultSceneRoot = context.glTFResource.defaultSceneRoot;
+    const animator = defaultSceneRoot.addComponent(Animator);
+    const animatorController = new AnimatorController();
+    const layer = new AnimatorControllerLayer("layer");
+    const animatorStateMachine = new AnimatorStateMachine();
+    animatorController.addLayer(layer);
+    animator.animatorController = animatorController;
+    layer.stateMachine = animatorStateMachine;
+    if (animations) {
+      for (let i = 0; i < animations.length; i++) {
+        const animationClip = animations[i];
+        const name = animationClip.name;
+        const uniqueName = animatorStateMachine.makeUniqueStateName(name);
+        if (uniqueName !== name) {
+          console.warn(`AnimatorState name is existed, name: ${name} reset to ${uniqueName}`);
+        }
+        const animatorState = animatorStateMachine.addState(uniqueName);
+        animatorState.clip = animationClip;
+      }
+    }
   }
 
   private _handleSubAsset<T>(

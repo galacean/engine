@@ -192,7 +192,15 @@ export class ParticleRenderer extends Renderer {
       primitive.instanceCount = instanceCount;
     }
 
-    const material = this.getMaterial();
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+
+    if (material.destroyed) {
+      material = this.engine._particleMagentaMaterial;
+    }
+
     const renderData = this._engine._renderDataPool.getFromPool();
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);

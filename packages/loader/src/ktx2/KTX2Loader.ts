@@ -135,10 +135,21 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
   private static _detectSupportedFormat(renderer: any, priorityFormats: KTX2TargetFormat[]): KTX2TargetFormat | null {
     for (let i = 0; i < priorityFormats.length; i++) {
-      const capabilities = this._supportedMap[priorityFormats[i]];
-      for (let j = 0; j < capabilities.length; j++) {
-        if (renderer.canIUse(capabilities[j])) {
-          return priorityFormats[i];
+      const format = priorityFormats[i];
+      const capabilities = this._supportedMap[format];
+      if (capabilities) {
+        for (let j = 0; j < capabilities.length; j++) {
+          if (renderer.canIUse(capabilities[j])) {
+            return format;
+          }
+        }
+      } else {
+        switch (priorityFormats[i]) {
+          case KTX2TargetFormat.R8G8B8A8:
+            return format;
+          case KTX2TargetFormat.R8:
+          case KTX2TargetFormat.R8G8:
+            if (renderer.isWebGL2) return format;
         }
       }
     }
@@ -202,17 +213,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     );
   }
 
-  private _isKhronosSupported(
-    priorityFormats: KTX2TargetFormat[] = [
-      KTX2TargetFormat.ASTC,
-      KTX2TargetFormat.ETC,
-      KTX2TargetFormat.BC7,
-      KTX2TargetFormat.BC1_BC3,
-      KTX2TargetFormat.PVRTC,
-      KTX2TargetFormat.R8G8B8A8
-    ],
-    engine: any
-  ): boolean {
+  private _isKhronosSupported(priorityFormats: KTX2TargetFormat[], engine: any): boolean {
     return !!KhronosTranscoder.transcoderMap[
       KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, priorityFormats)
     ];
