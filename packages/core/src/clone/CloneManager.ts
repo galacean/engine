@@ -145,6 +145,9 @@ export class CloneManager {
           if ((<ICustomClone>sourceProperty)._cloneTo) {
             (<ICustomClone>sourceProperty)._cloneTo(<ICustomClone>targetOProperty);
           }
+          if ((<ICustomClone>sourceProperty).copyFrom) {
+            (<ICustomClone>targetOProperty).copyFrom(<ICustomClone>sourceProperty);
+          }
           break;
       }
     } else {

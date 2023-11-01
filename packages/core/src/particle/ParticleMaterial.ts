@@ -46,7 +46,6 @@ export class ParticleMaterial extends BaseMaterial {
     super(engine, Shader.find("particle-shader"));
 
     const shaderData = this.shaderData;
-    shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
     shaderData.setColor(BaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
 
     this.isTransparent = true;

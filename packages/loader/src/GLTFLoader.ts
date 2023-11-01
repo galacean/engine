@@ -8,7 +8,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const url = item.url;
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, url);
-    const context = new GLTFParserContext(glTFResource, resourceManager, !!params?.keepMeshData);
+    const context = new GLTFParserContext(glTFResource, resourceManager, {
+      keepMeshData: false,
+      ...params
+    });
 
     return <AssetPromise<GLTFResource>>context.parse();
   }
@@ -23,4 +26,5 @@ export interface GLTFParams {
    * Keep raw mesh data for glTF parser, default is false.
    */
   keepMeshData?: boolean;
+  [key: string]: any;
 }

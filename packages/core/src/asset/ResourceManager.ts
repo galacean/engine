@@ -19,13 +19,13 @@ export class ResourceManager {
   static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
     this._loaders[type] = loader;
     for (let i = 0, len = extNames.length; i < len; i++) {
-      this._extTypeMapping[extNames[i]] = type;
+      this._extTypeMapping[extNames[i].toLowerCase()] = type;
     }
   }
 
   private static _getTypeByUrl(url: string): string {
     const path = url.split("?")[0];
-    return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1)];
+    return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1).toLowerCase()];
   }
 
   /** The number of retries after failing to load assets. */
@@ -408,7 +408,7 @@ export class ResourceManager {
     const objects = Utils.objectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
-        objects[i].destroy();
+        (<ReferResource>objects[i]).destroy(forceDestroy);
       }
     }
   }

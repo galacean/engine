@@ -2,6 +2,25 @@ import { IBinomialMessage, TranscodeResult } from "./AbstractTranscoder";
 
 /** @internal */
 export function TranscodeWorkerCode() {
+  let initPromise: any;
+
+  const init = function (wasmBinary?) {
+    if (!initPromise) {
+      initPromise = new Promise((resolve, reject) => {
+        const BasisModule = {
+          wasmBinary,
+          onRuntimeInitialized: () => resolve(BasisModule),
+          onAbort: reject
+        };
+        self["BASIS"](BasisModule);
+      }).then((BasisModule: any) => {
+        BasisModule.initializeBasis();
+        return BasisModule.KTX2File;
+      });
+    }
+    return initPromise;
+  };
+
   self.onmessage = function onmessage(event: MessageEvent<IBinomialMessage>) {
     const message = event.data;
 

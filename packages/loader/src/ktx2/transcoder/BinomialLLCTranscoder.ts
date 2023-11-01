@@ -37,7 +37,6 @@ export class BinomialLLCTranscoder extends AbstractTranscoder {
 
         const workerCode = `
         ${jsCode}
-        var init = (${_init.toString()})();
         ${transcode.toString()}
         ${transcodeString}
         `;
