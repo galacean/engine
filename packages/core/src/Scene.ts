@@ -26,8 +26,6 @@ import { ShadowType } from "./shadow/enum/ShadowType";
 export class Scene extends EngineObject {
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
-  private static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
-  private static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
 
   /** Scene name. */
   name: string;
@@ -62,8 +60,6 @@ export class Scene extends EngineObject {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
-  /** @internal */
-  _sunlight: DirectLight | null;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -242,9 +238,7 @@ export class Scene extends EngineObject {
   }
 
   set sun(light: DirectLight | null) {
-    if (light == null || light instanceof DirectLight) {
-      this._sun = light;
-    }
+    this._sun = light;
   }
 
   /**
@@ -469,11 +463,11 @@ export class Scene extends EngineObject {
     engine.time._updateSceneShaderData(shaderData);
     lightManager._updateShaderData(this.shaderData);
 
-    const sunlight = (this._sunlight = this._getSunlight());
+    const sunlight = (this._lightManager._sunlight = this._getSunlight());
 
     if (sunlight) {
-      shaderData.setColor(Scene._sunlightColorProperty, sunlight._lightColor);
-      shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
+      shaderData.setColor(LightManager._sunlightColorProperty, sunlight._lightColor);
+      shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
     } else {
       // @ts-ignore
       shaderData.setVector3(Scene._sunlightDirectionProperty, Vector3._zero);
@@ -483,8 +477,8 @@ export class Scene extends EngineObject {
       lightManager._updateSunlightIndex(sunlight);
     }
 
-    if (this.castShadows && this._sunlight && this._sunlight.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._sunlight.shadowType.toString());
+    if (this.castShadows && this._lightManager._sunlight?.shadowType !== ShadowType.None) {
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._lightManager._sunlight.shadowType.toString());
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }

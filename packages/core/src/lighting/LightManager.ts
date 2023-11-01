@@ -1,5 +1,5 @@
 import { DisorderedArray } from "../DisorderedArray";
-import { ShaderData } from "../shader";
+import { ShaderData, ShaderProperty } from "../shader";
 import { ShadowType } from "../shadow";
 import { DirectLight, IDirectLightShaderData } from "./DirectLight";
 import { PointLight, IPointLightShaderData } from "./PointLight";
@@ -9,6 +9,10 @@ import { SpotLight, ISpotLightShaderData } from "./SpotLight";
  * Light manager.
  */
 export class LightManager {
+  /** @internal */
+  static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
+  /** @internal */
+  static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
   /**
    * Each type of light source is at most 10, beyond which it will not take effect.
    * */
@@ -20,6 +24,8 @@ export class LightManager {
   _pointLights: DisorderedArray<PointLight> = new DisorderedArray();
   /** @internal */
   _directLights: DisorderedArray<DirectLight> = new DisorderedArray();
+  /** @internal */
+  _sunlight: DirectLight | null;
 
   private _directData: IDirectLightShaderData = {
     cullingMask: new Int32Array(LightManager._maxLight * 2),
