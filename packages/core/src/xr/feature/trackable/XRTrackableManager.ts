@@ -11,16 +11,10 @@ export abstract class XRTrackableManager<
   TTrackablePlatformFeature extends XRTrackablePlatformFeature<TXRTrackable>,
   TXRTrackable extends IXRTrackable
 > extends XRFeatureManager<TDescriptor, TTrackablePlatformFeature> {
-  private _trackables: TXRTrackable[] = [];
-  private _trackIdToIndex: Record<number, number> = {};
   private _trackedUpdate: UpdateFlagManager = new UpdateFlagManager();
 
-  get trackables(): readonly TXRTrackable[] {
-    return this._trackables;
-  }
-
-  getTrackable(trackId: number): TXRTrackable {
-    return this._trackables[this._trackIdToIndex[trackId]];
+  get trackedObjects(): readonly TXRTrackable[] {
+    return this.platformFeature.trackedObjects;
   }
 
   addListener(listener: TrackableListener) {
@@ -35,25 +29,9 @@ export abstract class XRTrackableManager<
     const { platformFeature } = this;
     platformFeature._onUpdate();
     const { added, updated, removed } = platformFeature.getChanges();
-    const { _trackedUpdate: trackedUpdate, _trackables: trackables, _trackIdToIndex: trackIdToIndex } = this;
-    if (added?.length > 0) {
-      for (let i = 0, n = added.length; i < n; i++) {
-        const trackable = added[i];
-        trackIdToIndex[trackable.id] = trackables.push(trackable) - 1;
-      }
-      trackedUpdate.dispatch(XRTrackedUpdateFlag.Added, added);
-    }
-    if (updated?.length > 0) {
-      trackedUpdate.dispatch(XRTrackedUpdateFlag.Updated, updated);
-    }
-    if (removed?.length > 0) {
-      for (let i = 0, n = removed.length; i < n; i++) {
-        const trackable = removed[i];
-        const trackId = trackable.id;
-        trackables[trackIdToIndex[trackId]] = null;
-        delete trackIdToIndex[trackId];
-      }
-      trackedUpdate.dispatch(XRTrackedUpdateFlag.Removed, removed);
-    }
+    const { _trackedUpdate: trackedUpdate } = this;
+    added.length > 0 && trackedUpdate.dispatch(XRTrackedUpdateFlag.Added, added);
+    updated.length > 0 && trackedUpdate.dispatch(XRTrackedUpdateFlag.Updated, updated);
+    removed.length > 0 && trackedUpdate.dispatch(XRTrackedUpdateFlag.Removed, removed);
   }
 }

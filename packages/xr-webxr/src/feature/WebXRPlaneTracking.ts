@@ -14,9 +14,7 @@ import { IXRTrackedPlane } from "@galacean/engine-design";
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
   private _sessionManager: WebXRSessionManager;
-
-  private _lastFrameDetected: XRPlaneSet;
-  private _trackedPlanes: IWebXRTrackedPlane[] = [];
+  private _lastDetectedPlanes: XRPlaneSet;
 
   override _onUpdate() {
     const { _platformFrame: platformFrame, _platformSpace: platformSpace } = this._sessionManager;
@@ -26,50 +24,56 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
 
     // @ts-ignore
     const detectedPlanes: XRPlaneSet = platformFrame.detectedPlanes || platformFrame.worldInformation?.detectedPlanes;
-    const { _trackedPlanes: trackedPlanes, _added: added, _updated: updated, _removed: removed } = this;
-    if (detectedPlanes) {
-      // remove all planes that are not currently detected in the frame
-      for (let i = trackedPlanes.length - 1; i >= 0; i--) {
-        const trackedPlane = trackedPlanes[i];
-        if (!detectedPlanes.has(trackedPlane.xrPlane)) {
-          trackedPlanes.splice(i--, 1);
+    const trackedPlanes = <IWebXRTrackedPlane[]>this._trackedObjects;
+    const { _lastDetectedPlanes: lastDetectedPlanes, _added: added, _updated: updated, _removed: removed } = this;
+    for (let i = trackedPlanes.length - 1; i >= 0; i--) {
+      const trackedPlane = trackedPlanes[i];
+      const { xrPlane } = trackedPlane;
+      if (detectedPlanes?.has(xrPlane)) {
+        if (trackedPlane.lastChangedTime < xrPlane.lastChangedTime) {
+          this._updatePlane(platformFrame, platformSpace, trackedPlane, xrPlane);
+          updated.push(trackedPlane);
         }
+      } else {
+        trackedPlanes.splice(i, 1);
         trackedPlane.state = XRInputTrackingState.NotTracking;
+        trackedPlane.lastChangedTime = 0;
+        trackedPlane.xrPlane = null;
         removed.push(trackedPlane);
       }
-
-      detectedPlanes.forEach((xrPlane) => {
-        if (this._lastFrameDetected?.has(xrPlane)) {
-          // const index = this._findIndexInPlaneArray(xrPlane);
-          // const plane = this._trackedPlanes[index];
-          // this._updatePlaneWithXRPlane(xrPlane, plane, platformFrame);
-          // this.onPlaneUpdatedObservable.notifyObservers(plane);
-        } else {
-          const plane: IWebXRTrackedPlane = {
-            id: this.generateUUID(),
-            pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-            state: XRInputTrackingState.Tracking,
-            xrPlane
-          };
-          this._trackedPlanes.push(plane);
-          added.push(plane);
-          const pose = platformFrame.getPose(xrPlane.planeSpace, platformSpace);
-          if (pose.emulatedPosition) {
-            plane.state = XRInputTrackingState.TrackingLost;
-          } else {
-            plane.state = XRInputTrackingState.Tracking;
-          }
-        }
-      });
-      this._lastFrameDetected = detectedPlanes;
     }
+    detectedPlanes.forEach((xrPlane) => {
+      if (!lastDetectedPlanes?.has(xrPlane)) {
+        const plane: IWebXRTrackedPlane = {
+          id: this._generateUUID(),
+          pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
+          state: XRInputTrackingState.NotTracking,
+          orientation: xrPlane.orientation,
+          xrPlane: xrPlane,
+          polygon: []
+        };
+        this._updatePlane(platformFrame, platformSpace, plane, xrPlane);
+        trackedPlanes.push(plane);
+        added.push(plane);
+      }
+    });
+    this._lastDetectedPlanes = detectedPlanes;
   }
 
-  private _addPlane() {}
-
-  private _updatePlane() {}
-
-  private _removePlane() {}
+  private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: IWebXRTrackedPlane, xrPlane: XRPlane): void {
+    const { transform, emulatedPosition } = frame.getPose(xrPlane.planeSpace, space);
+    if (emulatedPosition) {
+      trackedPlane.state = XRInputTrackingState.TrackingLost;
+    } else {
+      trackedPlane.state = XRInputTrackingState.Tracking;
+    }
+    trackedPlane.lastChangedTime = xrPlane.lastChangedTime;
+    trackedPlane.orientation = xrPlane.orientation;
+    const { pose } = trackedPlane;
+    pose.matrix.copyFromArray(transform.matrix);
+    pose.rotation.copyFrom(transform.orientation);
+    pose.position.copyFrom(transform.position);
+  }
 
   override _onSessionDestroy(): void {}
 
@@ -80,5 +84,6 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
 }
 
 interface IWebXRTrackedPlane extends IXRTrackedPlane {
-  xrPlane: XRPlane;
+  xrPlane?: XRPlane;
+  lastChangedTime?: number;
 }

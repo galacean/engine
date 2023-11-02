@@ -11,7 +11,6 @@ import {
   XRReferenceImage,
   XRSessionState
 } from "@galacean/engine";
-import { IXRTrackedImage } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
@@ -19,7 +18,6 @@ import { registerXRPlatformFeature } from "../WebXRDevice";
 export class WebXRImageTracking extends XRPlatformImageTracking {
   private _sessionManager: WebXRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
-  private _trackedImages: IXRTrackedImage[] = [];
 
   override addReferenceImage(image: XRReferenceImage): void {
     if (this._engine.xrModule.sessionState === XRSessionState.NotInitialized) {
@@ -54,10 +52,10 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
       .getTrackedImageScores()
       .then((trackingScores: ("untrackable" | "trackable")[]) => {
         if (trackingScores) {
-          const { _trackedImages: trackedImages } = this;
+          const { _trackedObjects: trackedObjects } = this;
           for (let i = 0, n = trackingScores.length; i < n; i++) {
             const trackingScore = trackingScores[i];
-            const { referenceImage } = trackedImages[i];
+            const { referenceImage } = trackedObjects[i];
             if (trackingScore === "trackable") {
               referenceImage.trackable = true;
               this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
@@ -83,7 +81,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
       readonly measuredWidthInMeters: number;
       // @ts-ignore
     }[] = platformFrame.getImageTrackingResults();
-    const { _trackedImages: trackedImages } = this;
+    const { _trackedObjects: trackedImages } = this;
     const { _added: added, _updated: updated, _removed: removed } = this;
     added.length = updated.length = removed.length = 0;
     for (let i = 0, n = trackingResults.length; i < n; i++) {
@@ -119,11 +117,11 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
 
   override _initialize(descriptor: IXRImageTrackingDescriptor): Promise<void> {
     const { referenceImages } = descriptor;
-    const { _trackedImages: trackedImages } = this;
+    const { _trackedObjects: trackedImages } = this;
     trackedImages.length = 0;
     for (let i = 0, n = referenceImages.length; i < n; i++) {
       trackedImages.push({
-        id: this.generateUUID(),
+        id: this._generateUUID(),
         referenceImage: referenceImages[i],
         pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
         state: XRTrackingState.NotTracking,
