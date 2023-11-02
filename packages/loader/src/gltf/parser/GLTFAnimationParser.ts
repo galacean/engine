@@ -40,7 +40,7 @@ export class GLTFAnimationParser extends GLTFParser {
     const entities = context.get<Entity>(GLTFParserType.Entity);
 
     let duration = -1;
-    let promises = new Array<Promise<void>>();
+    let promises = new Array<Promise<void | Entity[]>>();
 
     // parse samplers
     for (let j = 0, m = samplers.length; j < m; j++) {
@@ -95,6 +95,8 @@ export class GLTFAnimationParser extends GLTFParser {
       promises.push(promise);
     }
 
+    promises.push(context.get<Entity>(GLTFParserType.Scene));
+
     return Promise.all(promises).then(() => {
       for (let j = 0, m = channels.length; j < m; j++) {
         const gltfChannel = channels[j];
@@ -106,6 +108,11 @@ export class GLTFAnimationParser extends GLTFParser {
         while (entity.parent) {
           relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
           entity = entity.parent;
+        }
+
+        // If the target node is in the default scene, relativePath will be empty
+        if (context.glTFResource.sceneRoots.indexOf(entity) === -1) {
+          continue;
         }
 
         let ComponentType: new (entity: Entity) => Component;

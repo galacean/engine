@@ -2,6 +2,7 @@ import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
+import { GLCapabilityType } from "../base/Constant";
 import { deepClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -9,7 +10,6 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Particle Renderer Component.
@@ -192,13 +192,22 @@ export class ParticleRenderer extends Renderer {
       primitive.instanceCount = instanceCount;
     }
 
-    const material = this.getMaterial();
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+
+    if (material.destroyed) {
+      material = this.engine._particleMagentaMaterial;
+    }
+
     const renderData = this._engine._renderDataPool.getFromPool();
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
     this.generator._destroy();
   }
 }

@@ -71,7 +71,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
           () => {
             return decodedGeometry.index.array;
           },
-          context.keepMeshData
+          context.params.keepMeshData
         );
       });
     });

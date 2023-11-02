@@ -9,7 +9,6 @@ export type _ruleShaderCstChildren = {
   Shader: IToken[];
   ValueString: IToken[];
   LCurly: IToken[];
-  _ruleProperty?: _rulePropertyCstNode[];
   _ruleSubShader?: _ruleSubShaderCstNode[];
   _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   _ruleTag?: _ruleTagCstNode[];
@@ -1077,80 +1076,6 @@ export type _ruleRasterStatePropertyDeclarationCstChildren = {
   RCurly: IToken[];
 };
 
-export interface _rulePropertyCstNode extends CstNode {
-  name: "_ruleProperty";
-  children: _rulePropertyCstChildren;
-}
-
-export type _rulePropertyCstChildren = {
-  EditorProperties: IToken[];
-  LCurly: IToken[];
-  _rulePropertyItem?: _rulePropertyItemCstNode[];
-  RCurly: IToken[];
-};
-
-export interface _rulePropertyItemCstNode extends CstNode {
-  name: "_rulePropertyItem";
-  children: _rulePropertyItemCstChildren;
-}
-
-export type _rulePropertyItemCstChildren = {
-  Identifier: IToken[];
-  LBracket: IToken[];
-  ValueString: IToken[];
-  Comma: IToken[];
-  _rulePropertyItemType: _rulePropertyItemTypeCstNode[];
-  RBracket: IToken[];
-  SymbolEqual: IToken[];
-  _rulePropertyItemValue: _rulePropertyItemValueCstNode[];
-  Semicolon: IToken[];
-};
-
-export interface _rulePropertyItemTypeCstNode extends CstNode {
-  name: "_rulePropertyItemType";
-  children: _rulePropertyItemTypeCstChildren;
-}
-
-export type _rulePropertyItemTypeCstChildren = {
-  TypeInteger?: IToken[];
-  TypeString?: IToken[];
-  TypeFloat?: IToken[];
-  _ruleVariableType?: _ruleVariableTypeCstNode[];
-  _ruleRange?: _ruleRangeCstNode[];
-};
-
-export interface _ruleRangeCstNode extends CstNode {
-  name: "_ruleRange";
-  children: _ruleRangeCstChildren;
-}
-
-export type _ruleRangeCstChildren = {
-  Range: IToken[];
-  LBracket: IToken[];
-  ValueInt: IToken[];
-  Comma: IToken[];
-  RBracket: IToken[];
-};
-
-export interface _rulePropertyItemValueCstNode extends CstNode {
-  name: "_rulePropertyItemValue";
-  children: _rulePropertyItemValueCstChildren;
-}
-
-export type _rulePropertyItemValueCstChildren = {
-  _ruleTupleFloat4?: _ruleTupleFloat4CstNode[];
-  _ruleTupleFloat3?: _ruleTupleFloat3CstNode[];
-  _ruleTupleFloat2?: _ruleTupleFloat2CstNode[];
-  _ruleTupleInt4?: _ruleTupleInt4CstNode[];
-  _ruleTupleInt3?: _ruleTupleInt3CstNode[];
-  _ruleTupleInt2?: _ruleTupleInt2CstNode[];
-  ValueTrue?: IToken[];
-  ValueFalse?: IToken[];
-  ValueInt?: IToken[];
-  ValueString?: IToken[];
-  ValueFloat?: IToken[];
-};
-
 export interface _ruleTupleFloat4CstNode extends CstNode {
   name: "_ruleTupleFloat4";
   children: _ruleTupleFloat4CstChildren;
@@ -1310,11 +1235,6 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleCullMode(children: _ruleCullModeCstChildren, param?: IN): OUT;
   _ruleRasterStatePropertyItem(children: _ruleRasterStatePropertyItemCstChildren, param?: IN): OUT;
   _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: IN): OUT;
-  _ruleProperty(children: _rulePropertyCstChildren, param?: IN): OUT;
-  _rulePropertyItem(children: _rulePropertyItemCstChildren, param?: IN): OUT;
-  _rulePropertyItemType(children: _rulePropertyItemTypeCstChildren, param?: IN): OUT;
-  _ruleRange(children: _ruleRangeCstChildren, param?: IN): OUT;
-  _rulePropertyItemValue(children: _rulePropertyItemValueCstChildren, param?: IN): OUT;
   _ruleTupleFloat4(children: _ruleTupleFloat4CstChildren, param?: IN): OUT;
   _ruleTupleFloat3(children: _ruleTupleFloat3CstChildren, param?: IN): OUT;
   _ruleTupleFloat2(children: _ruleTupleFloat2CstChildren, param?: IN): OUT;

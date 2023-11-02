@@ -1,9 +1,4 @@
 import {
-  AnimationClip,
-  Animator,
-  AnimatorController,
-  AnimatorControllerLayer,
-  AnimatorStateMachine,
   Camera,
   Entity,
   Material,
@@ -15,10 +10,10 @@ import {
 } from "@galacean/engine-core";
 import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { GLTFResource } from "../GLTFResource";
-import { CameraType, ICamera, INode, IScene } from "../GLTFSchema";
+import { CameraType, ICamera, INode } from "../GLTFSchema";
+import { GLTFMaterialParser } from "./GLTFMaterialParser";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
-import { GLTFMaterialParser } from "./GLTFMaterialParser";
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
@@ -28,6 +23,7 @@ export class GLTFSceneParser extends GLTFParser {
       glTFResource
     } = context;
     const sceneInfo = scenes[index];
+    const sceneExtensions = sceneInfo.extensions;
 
     const engine = glTFResource.engine;
     const isDefaultScene = scene === index;
@@ -60,18 +56,7 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return Promise.all(promises).then(() => {
-      if (isDefaultScene) {
-        return Promise.all([
-          context.get<Skin>(GLTFParserType.Skin),
-          context.get<AnimationClip>(GLTFParserType.Animation)
-        ]).then(([skins, animations]) => {
-          if (skins || animations) {
-            this._createAnimator(context, animations);
-          }
-          return sceneRoot;
-        });
-      }
-
+      GLTFParser.executeExtensionsAdditiveAndParse(sceneExtensions, context, sceneRoot, sceneInfo);
       return sceneRoot;
     });
   }
@@ -202,29 +187,6 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return Promise.all(promises);
-  }
-
-  private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {
-    const defaultSceneRoot = context.glTFResource.defaultSceneRoot;
-    const animator = defaultSceneRoot.addComponent(Animator);
-    const animatorController = new AnimatorController();
-    const layer = new AnimatorControllerLayer("layer");
-    const animatorStateMachine = new AnimatorStateMachine();
-    animatorController.addLayer(layer);
-    animator.animatorController = animatorController;
-    layer.stateMachine = animatorStateMachine;
-    if (animations) {
-      for (let i = 0; i < animations.length; i++) {
-        const animationClip = animations[i];
-        const name = animationClip.name;
-        const uniqueName = animatorStateMachine.makeUniqueStateName(name);
-        if (uniqueName !== name) {
-          console.warn(`AnimatorState name is existed, name: ${name} reset to ${uniqueName}`);
-        }
-        const animatorState = animatorStateMachine.addState(uniqueName);
-        animatorState.clip = animationClip;
-      }
-    }
   }
 
   private _computeLocalBounds(

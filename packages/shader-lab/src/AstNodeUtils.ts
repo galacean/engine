@@ -1,12 +1,7 @@
 import { CstChildrenDictionary, CstNode, ICstVisitor, IToken } from "chevrotain";
 
-import { IShaderInfo } from "@galacean/engine-design";
-import RuntimeContext, { IDiagnostic } from "./RuntimeContext";
-import { ShaderVisitor, parser } from "./ShaderVisitor";
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";
-import { DiagnosticSeverity } from "./Constants";
-import { Logger } from "@galacean/engine";
 
 export class AstNodeUtils {
   static isCstNode(node: any) {
@@ -100,30 +95,5 @@ export class AstNodeUtils {
 
   static astSortDesc(a: AstNode, b: AstNode) {
     return -AstNodeUtils.astSortAsc(a, b);
-  }
-
-  static parseShader(input: string): IShaderInfo {
-    parser.parse(input);
-    const cst = parser.ruleShader();
-    if (parser.errors.length > 0) {
-      console.log(parser.errors);
-      throw parser.errors;
-    }
-
-    const visitor = new ShaderVisitor();
-    const ast = visitor.visit(cst);
-
-    const context = new RuntimeContext();
-    const shaderInfo = context.parse(ast);
-
-    // context.diagnostics.forEach((item) => {
-    //   if (item.severity !== DiagnosticSeverity.Error) {
-    //     Logger.warn(item);
-    //   } else {
-    //     Logger.error(item);
-    //   }
-    // });
-
-    return shaderInfo;
   }
 }

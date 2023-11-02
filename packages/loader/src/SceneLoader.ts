@@ -26,37 +26,39 @@ class SceneLoader extends Loader<Scene> {
             const promises = [];
             // parse ambient light
             const ambient = data.scene.ambient;
-            const useCustomAmbient = ambient.specularMode === "Custom";
-            const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
+            if (ambient) {
+              const useCustomAmbient = ambient.specularMode === "Custom";
+              const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
 
-            scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-            scene.ambientLight.specularIntensity = ambient.specularIntensity;
-            scene.ambientLight.diffuseMode = ambient.diffuseMode;
-            scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
-            scene.ambientLight.specularTextureDecodeRGBM = true;
+              scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
+              scene.ambientLight.specularIntensity = ambient.specularIntensity;
+              scene.ambientLight.diffuseMode = ambient.diffuseMode;
+              scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
+              scene.ambientLight.specularTextureDecodeRGBM = true;
 
-            if (useCustomAmbient && ambient.customAmbientLight) {
-              promises.push(
-                // @ts-ignore
-                resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
-                  scene.ambientLight.specularTexture = ambientLight.specularTexture;
-                })
-              );
-            }
+              if (useCustomAmbient && ambient.customAmbientLight) {
+                promises.push(
+                  // @ts-ignore
+                  resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
+                    scene.ambientLight.specularTexture = ambientLight?.specularTexture;
+                  })
+                );
+              }
 
-            if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
-              promises.push(
-                // @ts-ignore
-                resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
-                  if (!useCustomAmbient) {
-                    scene.ambientLight.specularTexture = ambientLight.specularTexture;
-                  }
+              if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
+                promises.push(
+                  // @ts-ignore
+                  resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
+                    if (!useCustomAmbient) {
+                      scene.ambientLight.specularTexture = ambientLight?.specularTexture;
+                    }
 
-                  if (useSH) {
-                    scene.ambientLight.diffuseSphericalHarmonics = ambientLight.diffuseSphericalHarmonics;
-                  }
-                })
-              );
+                    if (useSH) {
+                      scene.ambientLight.diffuseSphericalHarmonics = ambientLight?.diffuseSphericalHarmonics;
+                    }
+                  })
+                );
+              }
             }
 
             const background = data.scene.background;
