@@ -5,6 +5,7 @@ export { XRModule, registerXRFeatureManager } from "./XRModule";
 export type { IXRDevice } from "./IXRDevice";
 
 // xr feature
+export { XRTrackedUpdateFlag } from "./feature/trackable/XRTrackedUpdateFlag";
 export { XRPlatformFeature } from "./feature/XRPlatformFeature";
 export { XRFeatureType } from "./feature/XRFeatureType";
 // camera
@@ -50,6 +51,7 @@ export { XRInput } from "./input/XRInput";
 // xr session
 export { XRSessionManager } from "./session/XRSessionManager";
 export { XRSessionType } from "./session/XRSessionType";
+export { XRSessionState } from "./session/XRSessionState";
 
 // xr component
 export { XRTrackingMode } from "./component/XRTrackingMode";

@@ -7,7 +7,9 @@ import {
   XRTrackingState,
   Matrix,
   Vector3,
-  Quaternion
+  Quaternion,
+  XRReferenceImage,
+  XRSessionState
 } from "@galacean/engine";
 import { IXRTrackedImage } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../WebXRSessionManager";
@@ -17,33 +19,25 @@ import { registerXRPlatformFeature } from "../WebXRDevice";
 export class WebXRImageTracking extends XRPlatformImageTracking {
   private _sessionManager: WebXRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
-
   private _trackedImages: IXRTrackedImage[] = [];
-  private _added: IXRTrackedImage[] = [];
-  private _updated: IXRTrackedImage[] = [];
-  private _removed: IXRTrackedImage[] = [];
 
-  override getChanges(): {
-    readonly added: IXRTrackedImage[];
-    readonly updated: IXRTrackedImage[];
-    readonly removed: IXRTrackedImage[];
-  } {
+  override addReferenceImage(image: XRReferenceImage): void {
+    if (this._engine.xrModule.sessionState === XRSessionState.NotInitialized) {
+    }
+  }
+
+  override removeReferenceImage(image: XRReferenceImage): void {
+    if (this._engine.xrModule.sessionState === XRSessionState.NotInitialized) {
+    }
+  }
+
+  override _onUpdate(): void {
     switch (this._trackingScoreStatus) {
       case ImageTrackingScoreStatus.NotReceived:
         this._requestTrackingScore();
         break;
       case ImageTrackingScoreStatus.Received:
         this._handleTrackingResults();
-        if (this._added.length > 0) {
-          console.log("图片追踪 added", this._added[0].id, JSON.stringify(this._added[0].pose));
-        }
-        if (this._updated.length > 0) {
-          console.log("图片追踪 update", this._updated[0].id);
-        }
-        if (this._removed.length > 0) {
-          console.log("图片追踪 remove", this._removed[0].id);
-        }
-        return { added: this._added, updated: this._updated, removed: this._removed };
       default:
         break;
     }

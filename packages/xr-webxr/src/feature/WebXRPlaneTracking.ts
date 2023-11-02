@@ -1,56 +1,77 @@
-import { Engine, XRFeatureType, XRPlatformFeature } from "@galacean/engine";
+import {
+  Engine,
+  Matrix,
+  Quaternion,
+  Vector3,
+  XRFeatureType,
+  XRInputTrackingState,
+  XRPlatformPlaneTracking
+} from "@galacean/engine";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
+import { IXRTrackedPlane } from "@galacean/engine-design";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
-export class WebXRPlaneTracking extends XRPlatformFeature {
+export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
   private _sessionManager: WebXRSessionManager;
-  private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
+
+  private _lastFrameDetected: XRPlaneSet;
+  private _trackedPlanes: IWebXRTrackedPlane[] = [];
 
   override _onUpdate() {
-    const { _platformFrame: platformFrame } = this._sessionManager;
-    if (!platformFrame) {
+    const { _platformFrame: platformFrame, _platformSpace: platformSpace } = this._sessionManager;
+    if (!platformFrame || !platformSpace) {
       return;
     }
-    // // @ts-ignore
-    // const { detectedPlanes } = platformFrame;
-    // if (detectedPlanes) {
-    //   // remove all planes that are not currently detected in the frame
-    //   for (let i = 0; i < this._detectedPlanes.length; i++) {
-    //     const plane = this._detectedPlanes[i];
-    //     if (!detectedPlanes.has(plane.xrPlane)) {
-    //       this._detectedPlanes.splice(i--, 1);
-    //     }
-    //   }
 
-    //   // now check for new ones
-    //   detectedPlanes.forEach((xrPlane) => {
-    //     if (!this._lastFrameDetected.has(xrPlane)) {
-    //       const newPlane: Partial<IWebXRPlane> = {
-    //         id: planeIdProvider++,
-    //         xrPlane: xrPlane,
-    //         polygonDefinition: []
-    //       };
-    //       const plane = this._updatePlaneWithXRPlane(xrPlane, newPlane, platformFrame);
-    //       this._detectedPlanes.push(plane);
-    //       this.onPlaneAddedObservable.notifyObservers(plane);
-    //     } else {
-    //       // updated?
-    //       if (xrPlane.lastChangedTime === this._xrSessionManager.currentTimestamp) {
-    //         const index = this._findIndexInPlaneArray(xrPlane);
-    //         const plane = this._detectedPlanes[index];
-    //         this._updatePlaneWithXRPlane(xrPlane, plane, platformFrame);
-    //         this.onPlaneUpdatedObservable.notifyObservers(plane);
-    //       }
-    //     }
-    //   });
-    //   this._lastFrameDetected = detectedPlanes;
-    // }
+    // @ts-ignore
+    const detectedPlanes: XRPlaneSet = platformFrame.detectedPlanes || platformFrame.worldInformation?.detectedPlanes;
+    const { _trackedPlanes: trackedPlanes, _added: added, _updated: updated, _removed: removed } = this;
+    if (detectedPlanes) {
+      // remove all planes that are not currently detected in the frame
+      for (let i = trackedPlanes.length - 1; i >= 0; i--) {
+        const trackedPlane = trackedPlanes[i];
+        if (!detectedPlanes.has(trackedPlane.xrPlane)) {
+          trackedPlanes.splice(i--, 1);
+        }
+        trackedPlane.state = XRInputTrackingState.NotTracking;
+        removed.push(trackedPlane);
+      }
+
+      detectedPlanes.forEach((xrPlane) => {
+        if (this._lastFrameDetected?.has(xrPlane)) {
+          // const index = this._findIndexInPlaneArray(xrPlane);
+          // const plane = this._trackedPlanes[index];
+          // this._updatePlaneWithXRPlane(xrPlane, plane, platformFrame);
+          // this.onPlaneUpdatedObservable.notifyObservers(plane);
+        } else {
+          const plane: IWebXRTrackedPlane = {
+            id: this.generateUUID(),
+            pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
+            state: XRInputTrackingState.Tracking,
+            xrPlane
+          };
+          this._trackedPlanes.push(plane);
+          added.push(plane);
+          const pose = platformFrame.getPose(xrPlane.planeSpace, platformSpace);
+          if (pose.emulatedPosition) {
+            plane.state = XRInputTrackingState.TrackingLost;
+          } else {
+            plane.state = XRInputTrackingState.Tracking;
+          }
+        }
+      });
+      this._lastFrameDetected = detectedPlanes;
+    }
   }
 
-  override _onSessionDestroy(): void {
-    this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
-  }
+  private _addPlane() {}
+
+  private _updatePlane() {}
+
+  private _removePlane() {}
+
+  override _onSessionDestroy(): void {}
 
   constructor(engine: Engine) {
     super(engine);
@@ -58,14 +79,6 @@ export class WebXRPlaneTracking extends XRPlatformFeature {
   }
 }
 
-/**
- * Enum that describes the state of the image trackability score status for this session.
- */
-enum ImageTrackingScoreStatus {
-  // AR Session has not yet assessed image trackability scores.
-  NotReceived,
-  // A request to retrieve trackability scores has been sent, but no response has been received.
-  Waiting,
-  // Image trackability scores have been received for this session
-  Received
+interface IWebXRTrackedPlane extends IXRTrackedPlane {
+  xrPlane: XRPlane;
 }

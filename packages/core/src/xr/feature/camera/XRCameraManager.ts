@@ -10,14 +10,18 @@ import { XRPlatformCamera } from "./XRPlatformCamera";
 import { registerXRFeatureManager } from "../../XRModule";
 import { XRFeatureType } from "../XRFeatureType";
 
-/**
- * 1. 管理相机前置后置
- * 2. 管理相机焦距
- * 3. 设置虚拟相机与现实相机的链接
- */
 @registerXRFeatureManager(XRFeatureType.CameraDevice)
 export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPlatformCamera> {
   private _inputManager: XRInputManager;
+
+  override get enabled() {
+    return true;
+  }
+
+  override set enabled(value: boolean) {
+    Logger.warn("XRCameraManager.enabled is always true and cannot be changed.");
+  }
+
   attachCamera(source: XRInputType, camera: Camera): void {
     const xrViewer = this._inputManager.getInput<XRCamera>(source);
     if (xrViewer) {
@@ -45,5 +49,6 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPla
   constructor(engine: Engine) {
     super(engine);
     this._inputManager = engine.xrModule.inputManager;
+    this._enabled = true;
   }
 }

@@ -10,5 +10,4 @@ export interface IXRPlatformFeature {
   _onSessionStart(): void;
   _onSessionStop(): void;
   _onSessionDestroy(): void;
-  _onFeatureChange(flag: number, ...param): void;
 }

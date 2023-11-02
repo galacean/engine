@@ -42,8 +42,4 @@ export abstract class XRPlatformFeature implements IXRPlatformFeature {
   _onSessionDestroy(): void {
     Logger.warn("This method needs to be override.");
   }
-
-  _onFeatureChange(flag: number, ...param: any[]): void {
-    Logger.warn("This method needs to be override.");
-  }
 }
