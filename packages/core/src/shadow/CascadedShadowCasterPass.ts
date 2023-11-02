@@ -108,7 +108,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
 
-    const light = camera.scene._lightManager._sunlight;
+    const light = scene._lightManager._sunlight;
     if (light) {
       const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
       this._getCascadesSplitDistance(shadowFar);
