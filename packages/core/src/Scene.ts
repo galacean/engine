@@ -471,10 +471,10 @@ export class Scene extends EngineObject {
       shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
     } else {
       // @ts-ignore
-      shaderData.setVector3(Scene._sunlightDirectionProperty, Vector3._zero);
+      shaderData.setVector3(LightManager._sunlightDirectionProperty, Vector3._zero);
     }
 
-    if (this.castShadows && sunlight?.shadowType !== ShadowType.None) {
+    if (this.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       shaderData.enableMacro("SCENE_SHADOW_TYPE", sunlight.shadowType.toString());
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
