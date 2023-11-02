@@ -426,8 +426,9 @@ export class ResourceManager {
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
     const url = new URL(path);
+    const queryPath = url.searchParams.get("q");
     url.searchParams.delete("q");
-    return { assetBaseURL: url.toString(), queryPath: url.searchParams.get("q") };
+    return { assetBaseURL: url.toString(), queryPath };
   }
 
   private _parseQueryPath(string): string[] {
