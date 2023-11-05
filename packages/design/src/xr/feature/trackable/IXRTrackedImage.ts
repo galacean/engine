@@ -1,7 +1,7 @@
 import { IXRTrackable } from "./IXRTrackable";
-import { IXRReferenceImage } from "./IXRReferenceImage";
+import { IXRRequestTrackingImage } from "./IXRRequestTrackingImage";
 
 export interface IXRTrackedImage extends IXRTrackable {
-  referenceImage: IXRReferenceImage;
+  requestTracking: IXRRequestTrackingImage;
   measuredWidthInMeters: number;
 }

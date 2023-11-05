@@ -3,7 +3,6 @@ import { Logger } from "../../base";
 import { Engine } from "../../Engine";
 
 export abstract class XRPlatformFeature implements IXRPlatformFeature {
-  descriptor: IXRFeatureDescriptor;
   protected _engine: Engine;
 
   constructor(engine: Engine) {
@@ -14,8 +13,7 @@ export abstract class XRPlatformFeature implements IXRPlatformFeature {
     return Promise.resolve();
   }
 
-  _initialize(descriptor: IXRFeatureDescriptor): Promise<void> {
-    this.descriptor = descriptor;
+  _initialize(descriptor?: IXRFeatureDescriptor): Promise<void> {
     return Promise.resolve();
   }
 

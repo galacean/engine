@@ -7,6 +7,6 @@ import { XRPlatformHitTest } from "./XRPlatformHitTest";
 @registerXRFeatureManager(XRFeatureType.HitTest)
 export class XRHitTestManager extends XRFeatureManager<IXRHitTestDescriptor, XRPlatformHitTest> {
   hitTest(x: number, y: number): Promise<void> {
-    return this.platformFeature.hitTest(x, y);
+    return this._platformFeature.hitTest(x, y);
   }
 }

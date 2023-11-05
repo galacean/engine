@@ -13,10 +13,10 @@ export class XRPlaneTrackingManager extends XRTrackableManager<
   IXRTrackedPlane
 > {
   get trackingMode(): XRPlaneTrackingMode {
-    return this.platformFeature.trackingMode;
+    return this._platformFeature.trackingMode;
   }
 
   set trackingMode(value: XRPlaneTrackingMode) {
-    this.platformFeature.trackingMode = value;
+    this._platformFeature.trackingMode = value;
   }
 }

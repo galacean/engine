@@ -1,7 +1,7 @@
 import { registerXRFeatureManager } from "../../../XRModule";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableManager } from "../XRTrackableManager";
-import { IXRPose, IXRTrackedAnchor } from "@galacean/engine-design";
+import { IXRPose, IXRRequestTrackingAnchor, IXRTrackedAnchor } from "@galacean/engine-design";
 import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
 import { XRPlatformAnchorTracking } from "./XRPlatformAnchorTracking";
 
@@ -12,10 +12,10 @@ export class XRAnchorTrackingManager extends XRTrackableManager<
   IXRTrackedAnchor
 > {
   addAnchor(pose: IXRPose): void {
-    this.platformFeature.addAnchor();
+    // this._platformFeature.addAnchor(pose);
   }
 
-  removeAnchor(id: number): void {
-    this.platformFeature.removeAnchor();
+  removeAnchor(anchor: IXRRequestTrackingAnchor): void {
+    // this._platformFeature.removeAnchor(anchor);
   }
 }

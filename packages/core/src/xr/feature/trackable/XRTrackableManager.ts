@@ -14,7 +14,7 @@ export abstract class XRTrackableManager<
   private _trackedUpdate: UpdateFlagManager = new UpdateFlagManager();
 
   get trackedObjects(): readonly TXRTrackable[] {
-    return this.platformFeature.trackedObjects;
+    return this._platformFeature.trackedObjects;
   }
 
   addListener(listener: TrackableListener) {
@@ -26,7 +26,7 @@ export abstract class XRTrackableManager<
   }
 
   override _onUpdate(): void {
-    const { platformFeature } = this;
+    const { _platformFeature: platformFeature } = this;
     platformFeature._onUpdate();
     const { added, updated, removed } = platformFeature.getChanges();
     const { _trackedUpdate: trackedUpdate } = this;

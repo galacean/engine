@@ -3,7 +3,6 @@ import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
 export interface IXRFeatureManager {
   descriptor: IXRFeatureDescriptor;
-  platformFeature: IXRPlatformFeature;
   enabled: boolean;
 
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void>;

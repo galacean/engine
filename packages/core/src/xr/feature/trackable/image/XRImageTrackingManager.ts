@@ -5,6 +5,8 @@ import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { IXRTrackedImage } from "@galacean/engine-design";
 import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
+import { XRSessionState } from "../../../session/XRSessionState";
+import { Logger } from "../../../../base";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
 export class XRImageTrackingManager extends XRTrackableManager<
@@ -12,24 +14,68 @@ export class XRImageTrackingManager extends XRTrackableManager<
   XRPlatformImageTracking,
   IXRTrackedImage
 > {
-  addReferenceImage(image: XRReferenceImage): void {
-    const { referenceImages } = <IXRImageTrackingDescriptor>this._descriptor;
-    if (referenceImages.indexOf(image) < 0) {
-      referenceImages.push(image);
-      this.platformFeature.addReferenceImage(image);
+  /**
+   * Add a tracking image
+   * @param image - xr reference image
+   */
+  addTrackingImage(image: XRReferenceImage): void;
+
+  /**
+   * Add tracking images
+   * @param images - xr reference images
+   */
+  addTrackingImage(images: XRReferenceImage[]): void;
+
+  addTrackingImage(imageOrArr: XRReferenceImage | XRReferenceImage[]): void {
+    if (this._engine.xrModule.sessionState !== XRSessionState.NotInitialized) {
+      Logger.warn("Tracking images can only be added when the session is not initialized.");
+      return;
+    }
+    if (imageOrArr instanceof XRReferenceImage) {
+      this._platformFeature._addSingleImage(imageOrArr);
+    } else {
+      const { _platformFeature: platformFeature } = this;
+      for (let i = 0, n = imageOrArr.length; i < n; i++) {
+        platformFeature._addSingleImage(imageOrArr[i]);
+      }
     }
   }
 
-  removeReferenceImage(image: XRReferenceImage): void {
-    const { referenceImages } = <IXRImageTrackingDescriptor>this._descriptor;
-    const idx = referenceImages.indexOf(image);
-    const lastIdx = referenceImages.length - 1;
-    if (idx >= 0) {
-      if (idx !== lastIdx) {
-        referenceImages[idx] = referenceImages[lastIdx];
-      }
-      referenceImages.length = lastIdx;
-      this.platformFeature.removeReferenceImage(image);
+  /**
+   * Remove a tracking image
+   * @param image - xr reference image
+   */
+  removeTrackingImage(image: XRReferenceImage): void;
+
+  /**
+   * Remove tracking images
+   * @param images - xr reference images
+   */
+  removeTrackingImage(images: XRReferenceImage[]): void;
+
+  removeTrackingImage(imageOrArr: XRReferenceImage | XRReferenceImage[]): void {
+    if (this._engine.xrModule.sessionState !== XRSessionState.NotInitialized) {
+      Logger.warn("Tracking images can only be removed when the session is not initialized.");
+      return;
     }
+    if (imageOrArr instanceof XRReferenceImage) {
+      this._platformFeature._removeSingleImage(imageOrArr);
+    } else {
+      const { _platformFeature: platformFeature } = this;
+      for (let i = 0, n = imageOrArr.length; i < n; i++) {
+        platformFeature._removeSingleImage(imageOrArr[i]);
+      }
+    }
+  }
+
+  /**
+   * Remove all tracking images
+   */
+  removeAllTrackingImage(): void {
+    if (this._engine.xrModule.sessionState !== XRSessionState.NotInitialized) {
+      Logger.warn("Tracking images can only be removed when the session is not initialized.");
+      return;
+    }
+    this._platformFeature._removeAllImages();
   }
 }

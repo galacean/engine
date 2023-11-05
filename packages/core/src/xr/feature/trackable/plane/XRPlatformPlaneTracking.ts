@@ -3,5 +3,13 @@ import { XRTrackablePlatformFeature } from "../XRTrackablePlatformFeature";
 import { XRPlaneTrackingMode } from "./XRPlaneTrackingMode";
 
 export abstract class XRPlatformPlaneTracking extends XRTrackablePlatformFeature<IXRTrackedPlane> {
-  trackingMode: XRPlaneTrackingMode;
+  protected _trackingMode: XRPlaneTrackingMode = XRPlaneTrackingMode.Both;
+
+  get trackingMode(): XRPlaneTrackingMode {
+    return this._trackingMode;
+  }
+
+  set trackingMode(value: XRPlaneTrackingMode) {
+    value = value;
+  }
 }

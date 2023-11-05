@@ -11,10 +11,10 @@ export class XRMovementTrackingManager extends XRFeatureManager<
   XRPlatformMovementTracking
 > {
   get trackingMode(): XRMovementTrackingMode {
-    return this.platformFeature.trackingMode;
+    return this._platformFeature.trackingMode;
   }
 
   set trackingMode(value: XRMovementTrackingMode) {
-    this.platformFeature.trackingMode = value;
+    this._platformFeature.trackingMode = value;
   }
 }

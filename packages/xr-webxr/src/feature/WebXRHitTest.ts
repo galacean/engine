@@ -50,7 +50,6 @@ export class WebXRHitTest extends XRPlatformHitTest {
 
   override _initialize(descriptor: IXRHitTestDescriptor): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.descriptor = descriptor;
       const { _platformSession: platformSession } = this._sessionManager;
       Promise.all([
         platformSession.requestReferenceSpace("local"),

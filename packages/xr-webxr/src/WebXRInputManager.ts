@@ -4,7 +4,7 @@ import {
   XRInput,
   XRInputButton,
   XRInputManager,
-  XRInputTrackingState,
+  XRTrackingState,
   Time,
   Matrix,
   Vector3,
@@ -101,7 +101,7 @@ export class WebXRInputManager extends XRInputManager {
               gripPose.position.copyFrom(transform.position);
               gripPose.rotation.copyFrom(transform.orientation);
             }
-            input.trackingState = emulatedPosition ? XRInputTrackingState.TrackingLost : XRInputTrackingState.Tracking;
+            input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
           }
           if (targetRaySpace) {
             const { transform, emulatedPosition } = _platformFrame.getPose(targetRaySpace, _platformSpace);
@@ -110,9 +110,7 @@ export class WebXRInputManager extends XRInputManager {
               targetRayPose.matrix.copyFromArray(transform.matrix);
               targetRayPose.position.copyFrom(transform.position);
               targetRayPose.rotation.copyFrom(transform.orientation);
-              input.trackingState = emulatedPosition
-                ? XRInputTrackingState.TrackingLost
-                : XRInputTrackingState.Tracking;
+              input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
             }
           }
           break;
@@ -141,9 +139,7 @@ export class WebXRInputManager extends XRInputManager {
         pose.position.copyFrom(transform.position);
         pose.rotation.copyFrom(transform.orientation);
         cameraDevice.projectionMatrix.copyFromArray(view.projectionMatrix);
-        cameraDevice.trackingState = emulatedPosition
-          ? XRInputTrackingState.TrackingLost
-          : XRInputTrackingState.Tracking;
+        cameraDevice.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
         if (_platformLayer) {
           const { framebufferWidth, framebufferHeight } = _platformLayer;
           const xrViewport = _platformLayer.getViewport(view);
@@ -184,9 +180,7 @@ export class WebXRInputManager extends XRInputManager {
         elements[13] = position.y;
         elements[14] = position.z;
         cameraDevice.projectionMatrix.copyFrom(leftCameraDevice.projectionMatrix);
-        cameraDevice.trackingState = emulatedPosition
-          ? XRInputTrackingState.TrackingLost
-          : XRInputTrackingState.Tracking;
+        cameraDevice.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
         cameraDevice.viewport =
           leftCameraDevice.viewport.width && leftCameraDevice.viewport.height
             ? leftCameraDevice.viewport
@@ -324,7 +318,7 @@ export class WebXRInputManager extends XRInputManager {
   private _handleInputSourceEvent(event: XRInputSourceChangeEvent, inputs: XRInput[]): void {
     const { removed } = event;
     for (let i = 0, n = removed.length; i < n; i++) {
-      inputs[getInputSource(removed[i])].trackingState = XRInputTrackingState.NotTracking;
+      inputs[getInputSource(removed[i])].trackingState = XRTrackingState.NotTracking;
     }
   }
 

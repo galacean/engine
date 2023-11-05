@@ -17,12 +17,12 @@ export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessio
   switch (descriptor.type) {
     case XRFeatureType.ImageTracking:
       requiredFeatures.push("image-tracking");
-      const { referenceImages } = <IXRImageTrackingDescriptor>descriptor;
+      const { images } = <IXRImageTrackingDescriptor>descriptor;
       const promiseArr: Promise<ImageBitmap>[] = [];
-      if (referenceImages) {
-        for (let i = 0, n = referenceImages.length; i < n; i++) {
-          const referenceImage = referenceImages[i];
-          const { src } = referenceImages[i];
+      if (images) {
+        for (let i = 0, n = images.length; i < n; i++) {
+          const referenceImage = images[i];
+          const { src } = images[i];
           if (!src) {
             return Promise.reject(new Error("referenceImage[" + referenceImage.name + "].src is null"));
           } else {
@@ -41,14 +41,14 @@ export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessio
               const bitmap = bitmaps[i];
               trackedImages.push({
                 image: bitmap,
-                widthInMeters: referenceImages[i].physicalWidth ?? bitmap.width / 100
+                widthInMeters: images[i].physicalWidth ?? bitmap.width / 100
               });
             }
             resolve();
           }, reject);
         });
       } else {
-        return Promise.reject(new Error("referenceImages.length is 0"));
+        return Promise.reject(new Error("Images.length is 0"));
       }
     case XRFeatureType.HitTest:
     case XRFeatureType.PlaneTracking:

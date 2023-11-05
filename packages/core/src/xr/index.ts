@@ -5,6 +5,7 @@ export { XRModule, registerXRFeatureManager } from "./XRModule";
 export type { IXRDevice } from "./IXRDevice";
 
 // xr feature
+export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 export { XRTrackedUpdateFlag } from "./feature/trackable/XRTrackedUpdateFlag";
 export { XRPlatformFeature } from "./feature/XRPlatformFeature";
 export { XRFeatureType } from "./feature/XRFeatureType";
@@ -39,8 +40,7 @@ export { XRPlaneTrackingMode } from "./feature/trackable/plane/XRPlaneTrackingMo
 export { XRPlatformPlaneTracking } from "./feature/trackable/plane/XRPlatformPlaneTracking";
 
 // xr input
-export { XRInputTrackingState } from "./input/XRInputTrackingState";
-export { XRTrackingState } from "./input/XRTrackedState";
+export { XRTrackingState } from "./feature/trackable/XRTrackingState";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRInputButton } from "./input/XRInputButton";
 export { XRController } from "./input/XRController";

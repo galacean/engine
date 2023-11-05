@@ -6,10 +6,9 @@ export abstract class XRFeatureManager<
   TPlatformFeature extends IXRPlatformFeature
 > implements IXRFeatureManager
 {
-  platformFeature: TPlatformFeature;
-
   protected _engine: Engine;
   protected _descriptor: TDescriptor;
+  protected _platformFeature: TPlatformFeature;
   protected _enabled: boolean = true;
 
   /**
@@ -35,11 +34,11 @@ export abstract class XRFeatureManager<
   }
 
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void> {
-    return this.platformFeature._isSupported(descriptor || this._descriptor);
+    return this._platformFeature._isSupported(descriptor || this._descriptor);
   }
 
   initialize(): Promise<void> {
-    return this.platformFeature._initialize(this._descriptor);
+    return this._platformFeature._initialize(this._descriptor);
   }
 
   constructor(engine: Engine) {
@@ -60,41 +59,41 @@ export abstract class XRFeatureManager<
    * @internal
    */
   _onUpdate(): void {
-    this.platformFeature._onUpdate();
+    this._platformFeature._onUpdate();
   }
 
   /**
    * @internal
    */
   _onSessionInit(): void {
-    this.platformFeature._onSessionInit();
+    this._platformFeature._onSessionInit();
   }
 
   /**
    * @internal
    */
   _onSessionStart(): void {
-    this.platformFeature._onSessionStart();
+    this._platformFeature._onSessionStart();
   }
 
   /**
    * @internal
    */
   _onSessionStop(): void {
-    this.platformFeature._onSessionStop();
+    this._platformFeature._onSessionStop();
   }
 
   /**
    * @internal
    */
   _onSessionDestroy(): void {
-    this.platformFeature._onSessionDestroy();
+    this._platformFeature._onSessionDestroy();
   }
 
   /**
    * @internal
    */
   _onDestroy(): void {
-    this.platformFeature._onDestroy();
+    this._platformFeature._onDestroy();
   }
 }

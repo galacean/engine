@@ -1,5 +1,8 @@
-import { IXRReferenceImage } from "@galacean/engine-design/types/xr/feature/trackable/IXRReferenceImage";
+import { IXRReferenceImage } from "@galacean/engine-design";
 
+/**
+ *  A reference image is an image to look for in the physical environment.
+ */
 export class XRReferenceImage implements IXRReferenceImage {
   constructor(
     public name: string,

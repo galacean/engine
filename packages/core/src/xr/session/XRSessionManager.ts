@@ -3,7 +3,7 @@ import { XRSessionType } from "./XRSessionType";
 
 export abstract class XRSessionManager implements IXRSessionManager {
   /**
-   * Return a list of supported frame rates (only available in-session!
+   * Return a list of supported frame rates (only available in-session)
    */
   get supportedFrameRate(): number[] {
     return [];
