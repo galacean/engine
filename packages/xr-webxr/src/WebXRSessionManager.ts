@@ -27,7 +27,6 @@ export class WebXRSessionManager extends XRSessionManager {
       Promise.all(promiseArr).then(() => {
         navigator.xr.requestSession(sessionMode, options).then((session) => {
           this._platformSession = session;
-
           session.addEventListener("end", () => {
             this._platformSession = this._platformFrame = this._platformLayer = this._platformSpace = null;
             this._clearCustomAnimationFrameRequester();

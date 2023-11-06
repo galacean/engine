@@ -25,6 +25,10 @@ export abstract class XRTrackablePlatformFeature<T extends IXRTrackable> extends
     this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
+  override _onDestroy(): void {
+    this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
+  }
+
   protected _generateUUID(): number {
     return XRTrackablePlatformFeature._trackId++;
   }

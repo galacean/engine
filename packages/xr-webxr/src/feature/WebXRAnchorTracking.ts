@@ -2,6 +2,7 @@ import {
   Engine,
   Matrix,
   Quaternion,
+  Time,
   Vector3,
   XRFeatureType,
   XRPlatformAnchorTracking,
@@ -9,16 +10,13 @@ import {
   XRTrackingState
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { IXRPose, IXRRequestTrackingAnchor } from "@galacean/engine-design";
+import { IXRRequestTrackingAnchor } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
+  private _time: Time;
   private _sessionManager: WebXRSessionManager;
-
-  override _addSingleAnchor(pose: IXRPose): void {
-    this._requestTrackingAnchors.push({ state: XRRequestTrackingState.None, pose, dispose: this._disposeAnchor });
-  }
 
   override _onUpdate(): void {
     const { _platformFrame: platformFrame, _platformSpace: platformSpace } = this._sessionManager;
@@ -29,32 +27,25 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     const { _added: added, _updated: updated, _removed: removed, _trackedObjects: trackedObjects } = this;
     added.length = updated.length = removed.length = 0;
     const requestTrackingAnchors = <IWebXRRequestTrackingAnchor[]>this._requestTrackingAnchors;
-
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackingAnchors.length; i < n; i++) {
       const requestTrackingAnchor = requestTrackingAnchors[i];
       switch (requestTrackingAnchor.state) {
         case XRRequestTrackingState.Resolved:
-          const trackedResult = (requestTrackingAnchor.trackedResult ||= {
-            id: this._generateUUID(),
-            requestTracking: requestTrackingAnchor,
-            pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-            state: XRTrackingState.NotTracking
-          });
+          const { trackedAnchor } = requestTrackingAnchor;
           if (trackedAnchors.has(requestTrackingAnchor.xrAnchor)) {
-            if (trackedResult.state === XRTrackingState.Tracking) {
-              updated.push(trackedResult);
+            if (trackedAnchor.state === XRTrackingState.Tracking) {
+              updated.push(trackedAnchor);
             } else {
-              added.push(trackedResult);
-              trackedResult.state = XRTrackingState.Tracking;
-              trackedObjects.push(trackedResult);
+              added.push(trackedAnchor);
+              trackedAnchor.state = XRTrackingState.Tracking;
+              trackedObjects.push(trackedAnchor);
             }
           } else {
-            if (trackedResult.state === XRTrackingState.Tracking) {
-              removed.push(trackedResult);
-              trackedResult.state = XRTrackingState.TrackingLost;
-              const index = trackedObjects.indexOf(trackedResult);
-              index >= 0 && trackedObjects.splice(index, 1);
+            if (trackedAnchor.state === XRTrackingState.Tracking) {
+              removed.push(trackedAnchor);
+              trackedAnchor.state = XRTrackingState.TrackingLost;
+              trackedObjects.splice(trackedObjects.indexOf(trackedAnchor), 1);
             }
           }
           break;
@@ -70,6 +61,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
   constructor(engine: Engine) {
     super(engine);
     this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
+    this._time = engine.time;
   }
 
   private _createAnchor(frame: XRFrame, space: XRSpace, anchor: IWebXRRequestTrackingAnchor) {
@@ -88,10 +80,18 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
           (xrAnchor) => {
             if (anchor.state === XRRequestTrackingState.PendingDestroy) {
               xrAnchor.delete();
+              anchor.state = XRRequestTrackingState.Destroyed;
             } else {
               anchor.xrAnchor = xrAnchor;
+              anchor.state = XRRequestTrackingState.Resolved;
+              anchor.trackedAnchor = {
+                id: this._generateUUID(),
+                requestTracking: anchor,
+                pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
+                state: XRTrackingState.NotTracking,
+                frameCount: 0
+              };
             }
-            anchor.state = XRRequestTrackingState.Resolved;
           },
           () => {
             if (anchor.state === XRRequestTrackingState.PendingDestroy) {
@@ -104,29 +104,21 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     }
   }
 
-  private _disposeAnchor(anchor: IWebXRRequestTrackingAnchor) {
+  override _disposeAnchor(anchor: IWebXRRequestTrackingAnchor) {
     switch (anchor.state) {
-      case XRRequestTrackingState.None:
-        break;
       case XRRequestTrackingState.Submitted:
+        anchor.state = XRRequestTrackingState.PendingDestroy;
         break;
-      case XRRequestTrackingState.PendingDestroy:
+      case XRRequestTrackingState.Resolved:
+        anchor.xrAnchor.delete();
+        anchor.xrAnchor = null;
+        anchor.state = XRRequestTrackingState.Destroyed;
+        anchor.trackedAnchor = null;
         break;
       default:
+        anchor.state = XRRequestTrackingState.Destroyed;
         break;
     }
-    anchor.dispose = null;
-    anchor.state = XRRequestTrackingState.Destroyed;
-    if (anchor.state === XRRequestTrackingState.Submitted) {
-    }
-    const { xrAnchor } = anchor;
-    if (xrAnchor) {
-      xrAnchor.delete();
-      anchor.xrAnchor = null;
-    }
-    anchor.dispose = null;
-    anchor.trackedResult = null;
-    anchor.state = XRRequestTrackingState.Destroyed;
   }
 }
 

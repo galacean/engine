@@ -14,9 +14,19 @@ import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRTrackedPlane } from "@galacean/engine-design";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
+/**
+ *  WebXR implementation of XRPlatformPlaneTracking.
+ */
 export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
   private _sessionManager: WebXRSessionManager;
   private _lastDetectedPlanes: XRPlaneSet;
+
+  /**
+   * Return the plane tracking mode for WebXR, which is both (Horizontal and vertical).
+   */
+  override get trackingMode(): XRPlaneTrackingMode {
+    return XRPlaneTrackingMode.Both;
+  }
 
   override set trackingMode(value: XRPlaneTrackingMode) {
     Logger.warn("WebXR does not support modification plane tracking mode.");
@@ -57,7 +67,8 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
           state: XRTrackingState.NotTracking,
           orientation: xrPlane.orientation,
           xrPlane: xrPlane,
-          polygon: []
+          polygon: [],
+          frameCount: 0
         };
         this._updatePlane(platformFrame, platformSpace, plane, xrPlane);
         trackedPlanes.push(plane);

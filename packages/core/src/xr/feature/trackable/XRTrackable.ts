@@ -5,4 +5,5 @@ export class XRTrackable implements IXRTrackable {
   id: number;
   pose: IXRPose;
   state: XRTrackingState;
+  frameCount: number;
 }

@@ -1,6 +1,7 @@
 export type { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
 export type { IXRFeatureManager } from "./feature/IXRFeatureManager";
 export type { IXRFeatureDescriptor } from "./feature/IXRFeatureDescriptor";
+export type { IXRHitResult } from "./feature/IXRHitResult";
 
 export type { IXRInputManager } from "./input/IXRInputManager";
 export type { IXRInput } from "./input/IXRInput";

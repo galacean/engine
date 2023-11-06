@@ -31,13 +31,13 @@ export class XRImageTrackingManager extends XRTrackableManager<
       Logger.warn("Tracking images can only be added when the session is not initialized.");
       return;
     }
-    if (imageOrArr instanceof XRReferenceImage) {
-      this._platformFeature._addSingleImage(imageOrArr);
-    } else {
+    if (imageOrArr instanceof Array) {
       const { _platformFeature: platformFeature } = this;
       for (let i = 0, n = imageOrArr.length; i < n; i++) {
         platformFeature._addSingleImage(imageOrArr[i]);
       }
+    } else {
+      this._platformFeature._addSingleImage(imageOrArr);
     }
   }
 

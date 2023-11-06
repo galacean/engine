@@ -1,17 +1,19 @@
-import { Engine, XRFeatureType, XRPlatformFeature } from "@galacean/engine";
+import { Logger, XRFeatureType, XRMovementTrackingMode, XRPlatformMovementTracking } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { WebXRInputManager } from "../WebXRInputManager";
-import { WebXRSessionManager } from "../WebXRSessionManager";
 
 @registerXRPlatformFeature(XRFeatureType.MovementTracking)
-export class WebXRMovementTracking extends XRPlatformFeature {
-  private _inputManager: WebXRInputManager;
-  private _sessionManager: WebXRSessionManager;
+/**
+ * WebXR implementation of XRPlatformMovementTracking.
+ */
+export class WebXRMovementTracking extends XRPlatformMovementTracking {
+  /**
+   * Return the movement tracking mode for WebXR, which is Dof6 (Six Degrees of Freedom).
+   */
+  override get trackingMode(): XRMovementTrackingMode {
+    return XRMovementTrackingMode.Dof6;
+  }
 
-  constructor(engine: Engine) {
-    super(engine);
-    const { xrModule } = engine;
-    this._inputManager = <WebXRInputManager>xrModule.inputManager;
-    this._sessionManager = <WebXRSessionManager>xrModule.sessionManager;
+  override set trackingMode(value: XRMovementTrackingMode) {
+    Logger.warn("WebXR does not support modifying motion tracking mode.");
   }
 }

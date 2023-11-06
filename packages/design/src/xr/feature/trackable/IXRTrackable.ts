@@ -7,4 +7,5 @@ export interface IXRTrackable {
   id: number;
   pose: IXRPose;
   state: number;
+  frameCount: number;
 }

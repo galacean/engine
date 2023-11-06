@@ -23,6 +23,16 @@ export abstract class XRPlatformImageTracking extends XRTrackablePlatformFeature
     return Promise.resolve();
   }
 
+  override _onSessionDestroy(): void {
+    super._onSessionDestroy();
+    this._requestTrackingImages.length = 0;
+  }
+
+  override _onDestroy(): void {
+    super._onDestroy();
+    this._requestTrackingImages.length = 0;
+  }
+
   /**
    * @internal
    */
@@ -47,10 +57,10 @@ export abstract class XRPlatformImageTracking extends XRTrackablePlatformFeature
     const { _requestTrackingImages: requestTrackingImages } = this;
     const lastIndex = requestTrackingImages.length - 1;
     for (let i = 0; i <= lastIndex; i++) {
-      if (requestTrackingImages[i].image === image) {
-        if (i !== lastIndex) {
-          requestTrackingImages[i] = requestTrackingImages[lastIndex];
-        }
+      const requestTrackingImage = requestTrackingImages[i];
+      if (requestTrackingImage.image === image) {
+        i !== lastIndex && (requestTrackingImages[i] = requestTrackingImages[lastIndex]);
+        this._disposeImage(requestTrackingImage);
         requestTrackingImages.length = lastIndex;
         return;
       }
@@ -62,6 +72,15 @@ export abstract class XRPlatformImageTracking extends XRTrackablePlatformFeature
    * @internal
    */
   _removeAllImages(): void {
+    const { _requestTrackingImages: requestTrackingImages } = this;
+    for (let i = 0, n = requestTrackingImages.length; i < n; i++) {
+      this._disposeImage(requestTrackingImages[i]);
+    }
     this._requestTrackingImages.length = 0;
+  }
+
+  protected _disposeImage(image: IXRRequestTrackingImage): void {
+    image.state = XRRequestTrackingState.Destroyed;
+    image.trackedImage = null;
   }
 }
