@@ -114,5 +114,6 @@ Shader "Water" {
         #endif 
       }
     }
+    UsePass "blinn-phong/Default/Forward"
   }
 }

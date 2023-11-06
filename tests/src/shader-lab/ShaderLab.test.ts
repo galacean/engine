@@ -200,4 +200,9 @@ describe("ShaderLab", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/triangle.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });
+
+  it("No frag shader args", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/noFragArgs.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
 });

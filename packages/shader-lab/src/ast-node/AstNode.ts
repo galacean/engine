@@ -202,6 +202,18 @@ export class FnAstNode extends AstNode<IFnAstContent> {
     }
     const body = this.content.body.serialize(context);
 
+    if (
+      (this.content.returnType.content.text === "void" && this.content.returnStatement) ||
+      (this.content.returnType.content.text !== "void" && !this.content.returnStatement)
+    ) {
+      context.diagnostics.push({
+        severity: DiagnosticSeverity.Error,
+        message: "Mismatched return type",
+        token: this.position
+      });
+      throw "Mismatched return type";
+    }
+
     context.functionAstStack.pop();
     return `${returnType} ${fnName} (${args}) {\n${body}\n}`;
   }
@@ -493,6 +505,7 @@ export class FnArrayVariableAstNode extends AstNode<IFnArrayVariableAstContent> 
 
 export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstContent> {
   override _doSerialization(context: RuntimeContext): string {
+    context.currentFunctionInfo.fnAst.content.returnStatement = this;
     if (context.currentFunctionInfo.fnAst === context.currentMainFnAst) {
       return "";
     }
