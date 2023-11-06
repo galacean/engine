@@ -16,7 +16,7 @@ Shader "Test-Default" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      v2f vert(a2v v) {
+      void vert(a2v v) {
         gl_Position = renderer_MVPMat * v.POSITION;
       }
 
