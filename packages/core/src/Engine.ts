@@ -43,7 +43,6 @@ import { IXRDevice } from "./xr";
 import { CompareFunction } from "./shader";
 import { SpriteMaskInteraction } from "./2d";
 
-
 ShaderPool.init();
 
 /**
