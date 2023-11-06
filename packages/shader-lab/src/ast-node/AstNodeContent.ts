@@ -42,7 +42,8 @@ import {
   FnVariableDeclareUnitAstNode,
   FnMacroUndefineAstNode,
   FnMacroConditionAstNode,
-  RenderQueueValueAstNode
+  RenderQueueValueAstNode,
+  FnReturnStatementAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -111,6 +112,7 @@ export interface IFnAstContent {
   name: string;
   args: FnArgAstNode[];
   body: AstNode;
+  returnStatement?: FnReturnStatementAstNode;
 }
 
 export interface IFnBodyAstContent {
