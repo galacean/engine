@@ -1,6 +1,7 @@
 import * as CoreObjects from "@galacean/engine-core";
 import { Loader } from "@galacean/engine-core";
 
+//@ts-ignore
 export const version = `__buildVersion`;
 
 console.log(`Galacean engine version: ${version}`);
