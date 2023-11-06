@@ -36,9 +36,7 @@ export class ReflectionParser {
       for (let methodName in item.methods) {
         const methodParams = item.methods[methodName];
         for (let i = 0, count = methodParams.length; i < count; i++) {
-          const params = methodParams[i];
-          const promise = this.parseMethod(instance, methodName, params);
-          promises.push(promise);
+          promises.push(this.parseMethod(instance, methodName, methodParams[i]));
         }
       }
     }
