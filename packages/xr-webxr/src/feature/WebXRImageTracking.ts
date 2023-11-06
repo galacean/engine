@@ -110,13 +110,14 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
           if (trackedImage.state === XRTrackingState.Tracking) {
             updated.push(trackedImage);
           } else {
+            trackedImage.state = XRTrackingState.Tracking;
             added.push(trackedImage);
             trackedObjects.push(trackedImage);
           }
         } else {
           if (trackedImage.state === XRTrackingState.Tracking) {
-            removed.push(trackedImage);
             trackedImage.state = XRTrackingState.TrackingLost;
+            removed.push(trackedImage);
             trackedObjects.splice(trackedObjects.indexOf(trackedImage), 1);
           }
         }
@@ -129,10 +130,9 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
     for (let i = 0, n = requestTrackingImages.length; i < n; i++) {
       const { trackedImage } = requestTrackingImages[i];
       if (trackedImage.frameCount < frameCount && trackedImage.state === XRTrackingState.Tracking) {
-        removed.push(trackedImage);
         trackedImage.state = XRTrackingState.TrackingLost;
+        removed.push(trackedImage);
         trackedObjects.splice(trackedObjects.indexOf(trackedImage), 1);
-        trackedImage.frameCount = frameCount;
       }
     }
   }

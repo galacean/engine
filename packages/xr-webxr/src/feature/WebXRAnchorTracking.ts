@@ -37,17 +37,26 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
         case XRRequestTrackingState.Resolved:
           const { trackedAnchor } = requestTrackingAnchor;
           if (trackedAnchors.has(requestTrackingAnchor.xrAnchor)) {
-            if (trackedAnchor.state === XRTrackingState.Tracking) {
-              updated.push(trackedAnchor);
+            const emulated = this._updateTrackedAnchor(platformFrame, platformSpace, requestTrackingAnchor);
+            if (emulated) {
+              if (trackedAnchor.state === XRTrackingState.Tracking) {
+                trackedAnchor.state = XRTrackingState.TrackingLost;
+                removed.push(trackedAnchor);
+                trackedObjects.splice(trackedObjects.indexOf(trackedAnchor), 1);
+              }
             } else {
-              added.push(trackedAnchor);
-              trackedAnchor.state = XRTrackingState.Tracking;
-              trackedObjects.push(trackedAnchor);
+              if (trackedAnchor.state === XRTrackingState.Tracking) {
+                updated.push(trackedAnchor);
+              } else {
+                trackedAnchor.state = XRTrackingState.Tracking;
+                added.push(trackedAnchor);
+                trackedObjects.push(trackedAnchor);
+              }
             }
           } else {
             if (trackedAnchor.state === XRTrackingState.Tracking) {
-              removed.push(trackedAnchor);
               trackedAnchor.state = XRTrackingState.TrackingLost;
+              removed.push(trackedAnchor);
               trackedObjects.splice(trackedObjects.indexOf(trackedAnchor), 1);
             }
           }
@@ -65,6 +74,16 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     super(engine);
     this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
     this._time = engine.time;
+  }
+
+  private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, trackedAnchor: IWebXRRequestTrackingAnchor): boolean {
+    const { xrAnchor, pose } = trackedAnchor;
+    const xrPose = frame.getPose(xrAnchor.anchorSpace, space);
+    const { transform } = xrPose;
+    pose.matrix.copyFromArray(transform.matrix);
+    pose.rotation.copyFrom(transform.orientation);
+    pose.position.copyFrom(transform.position);
+    return xrPose.emulatedPosition;
   }
 
   private _createAnchor(frame: XRFrame, space: XRSpace, anchor: IWebXRRequestTrackingAnchor) {
