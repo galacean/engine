@@ -45,7 +45,7 @@ export class ReflectionParser {
     if (item.props) {
       for (let key in item.props) {
         const value = item.props[key];
-        const promise = this.parseBasicType(value).then((v) => {
+        const promise = this.parseBasicType(value, instance[key]).then((v) => {
           return (instance[key] = v);
         });
         promises.push(promise);
@@ -65,7 +65,7 @@ export class ReflectionParser {
     });
   }
 
-  parseBasicType(value: IBasicType): Promise<any> {
+  parseBasicType(value: IBasicType, originValue?: any): Promise<any> {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item)));
     } else if (typeof value === "object" && value != null) {
@@ -79,13 +79,16 @@ export class ReflectionParser {
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
-      } else {
-        // basic type
-        return Promise.resolve(value);
+      } else if (originValue) {
+        const promises: Promise<any>[] = [];
+        for (let key in value as any) {
+          promises.push(this.parseBasicType(value[key], originValue[key]).then((v) => (originValue[key] = v)));
+        }
+        return Promise.all(promises).then(() => originValue);
       }
-    } else {
-      return Promise.resolve(value);
     }
+    // primitive type
+    return Promise.resolve(value);
   }
 
   private _getEntityByConfig(entityConfig: IEntity) {
