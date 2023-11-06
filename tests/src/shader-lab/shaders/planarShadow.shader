@@ -123,6 +123,7 @@ Shader "PlanarShadow" {
         // shadow color
         o.color = u_planarShadowColor;
         o.color.a *= falloff;
+        return o;
       }
       
       VertexShader = vert;
