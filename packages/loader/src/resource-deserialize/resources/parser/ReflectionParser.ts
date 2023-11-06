@@ -25,8 +25,9 @@ export class ReflectionParser {
   parseClassObject(item: IClassObject) {
     const Class = Loader.getClass(item.class);
     const params = item.constructParams ?? [];
-    const instance = new Class(...params);
-    return this.parsePropsAndMethods(instance, item);
+    return Promise.all(params.map((param) => this.parseBasicType(param)))
+      .then((resultParams) => new Class(...resultParams))
+      .then((instance) => this.parsePropsAndMethods(instance, item));
   }
 
   parsePropsAndMethods(instance: any, item: Omit<IClassObject, "class">) {
@@ -82,7 +83,19 @@ export class ReflectionParser {
       } else if (originValue) {
         const promises: Promise<any>[] = [];
         for (let key in value as any) {
-          promises.push(this.parseBasicType(value[key], originValue[key]).then((v) => (originValue[key] = v)));
+          if (key === "methods") {
+            const methods: any = value[key];
+            for (let methodName in methods) {
+              const methodParams = methods[methodName];
+              for (let i = 0, count = methodParams.length; i < count; i++) {
+                const params = methodParams[i];
+                const promise = this.parseMethod(originValue, methodName, params);
+                promises.push(promise);
+              }
+            }
+          } else {
+            promises.push(this.parseBasicType(value[key], originValue[key]).then((v) => (originValue[key] = v)));
+          }
         }
         return Promise.all(promises).then(() => originValue);
       }
