@@ -13,7 +13,10 @@ import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRRequestTrackingAnchor } from "@galacean/engine-design";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 
-@registerXRPlatformFeature(XRFeatureType.PlaneTracking)
+@registerXRPlatformFeature(XRFeatureType.AnchorTracking)
+/**
+ * WebXR implementation of XRPlatformAnchorTracking.
+ */
 export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
   private _time: Time;
   private _sessionManager: WebXRSessionManager;

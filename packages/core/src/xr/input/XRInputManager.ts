@@ -7,7 +7,6 @@ import { XRInput } from "./XRInput";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { XRTrackedUpdateFlag } from "../feature/trackable/XRTrackedUpdateFlag";
 
-type TrackableListener = (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => {};
 export abstract class XRInputManager implements IXRInputManager {
   protected _engine: Engine;
   protected _inputs: XRInput[] = [];
@@ -39,11 +38,11 @@ export abstract class XRInputManager implements IXRInputManager {
     }
   }
 
-  addListener(listener: TrackableListener) {
+  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
     this._trackingUpdate.addListener(listener);
   }
 
-  removeListener(listener: TrackableListener) {
+  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
     this._trackingUpdate.removeListener(listener);
   }
 

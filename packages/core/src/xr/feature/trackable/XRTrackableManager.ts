@@ -4,8 +4,6 @@ import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
 import { XRFeatureManager } from "../XRFeatureManager";
 
-type TrackableListener = (type: XRTrackedUpdateFlag, param: readonly IXRTrackable[]) => {};
-
 export abstract class XRTrackableManager<
   TDescriptor extends IXRFeatureDescriptor,
   TTrackablePlatformFeature extends XRTrackablePlatformFeature<TXRTrackable>,
@@ -17,11 +15,11 @@ export abstract class XRTrackableManager<
     return this._platformFeature.trackedObjects;
   }
 
-  addListener(listener: TrackableListener) {
+  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly IXRTrackable[]) => any) {
     this._trackedUpdate.addListener(listener);
   }
 
-  removeListener(listener: TrackableListener) {
+  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly IXRTrackable[]) => any) {
     this._trackedUpdate.removeListener(listener);
   }
 
