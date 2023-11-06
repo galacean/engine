@@ -425,10 +425,12 @@ export class ResourceManager {
   }
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
-    const url = new URL(path);
-    const queryPath = url.searchParams.get("q");
-    url.searchParams.delete("q");
-    return { assetBaseURL: url.toString(), queryPath };
+    const [baseUrl, searchStr] = path.split("?");
+    const searchParams = new URLSearchParams(searchStr);
+    const queryPath = searchParams.get("q");
+    searchParams.delete("q");
+    const assetBaseURL = searchParams.size > 0 ? baseUrl + "?" + searchParams.toString() : baseUrl;
+    return { assetBaseURL, queryPath };
   }
 
   private _parseQueryPath(string): string[] {
