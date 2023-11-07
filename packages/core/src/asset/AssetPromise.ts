@@ -70,14 +70,14 @@ export class AssetPromise<T> implements PromiseLike<T> {
         if (this._state === PromiseState.Pending) {
           resolve(value);
           this._state = PromiseState.Fulfilled;
-          this._onProgressCallback.length = 0;
+          this._onProgressCallback = undefined;
         }
       };
       const onReject = (reason) => {
         if (this._state === PromiseState.Pending) {
           reject(reason);
           this._state = PromiseState.Rejected;
-          this._onProgressCallback.length = 0;
+          this._onProgressCallback = undefined;
         }
       };
       const onCancel = (callback) => {
