@@ -1,6 +1,9 @@
 import { XRPlatformFeature } from "../XRPlatformFeature";
 import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
 
+/**
+ * The base class of XR platform movement tracking.
+ */
 export abstract class XRPlatformMovementTracking extends XRPlatformFeature {
   private _trackingMode: XRMovementTrackingMode = XRMovementTrackingMode.Dof6;
 

@@ -1,6 +1,9 @@
 import { IXRTrackable } from "@galacean/engine-design";
 import { XRPlatformFeature } from "../XRPlatformFeature";
 
+/**
+ * The base class of XR trackable platform feature.
+ */
 export abstract class XRTrackablePlatformFeature<T extends IXRTrackable> extends XRPlatformFeature {
   private static _trackId: number = 0;
 
@@ -9,10 +12,17 @@ export abstract class XRTrackablePlatformFeature<T extends IXRTrackable> extends
   protected _updated: T[] = [];
   protected _removed: T[] = [];
 
+  /**
+   * Returns the tracked objects.
+   */
   get trackedObjects(): readonly T[] {
     return this._trackedObjects;
   }
 
+  /**
+   * Returns the changes tracked in this frame.
+   * @returns The changes of tracked objects
+   */
   getChanges(): { readonly added: T[]; readonly updated: T[]; readonly removed: T[] } {
     return { added: this._added, updated: this._updated, removed: this._removed };
   }

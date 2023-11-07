@@ -9,6 +9,9 @@ export abstract class XRInput implements IXRInput {
 
   protected _pose: IXRPose;
 
+  /**
+   * Returns the pose of the input.
+   */
   get pose(): IXRPose {
     return this._pose;
   }

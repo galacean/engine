@@ -11,6 +11,9 @@ import { registerXRFeatureManager } from "../../XRModule";
 import { XRFeatureType } from "../XRFeatureType";
 
 @registerXRFeatureManager(XRFeatureType.CameraDevice)
+/**
+ * The manager of XR camera.
+ */
 export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPlatformCamera> {
   private _inputManager: XRInputManager;
 
@@ -22,17 +25,27 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPla
     Logger.warn("XRCameraManager.enabled is always true and cannot be changed.");
   }
 
-  attachCamera(source: XRInputType, camera: Camera): void {
-    const xrViewer = this._inputManager.getInput<XRCamera>(source);
+  /**
+   * Attach the camera to the specified input type.
+   * @param type - The input type
+   * @param camera - The camera to be attached
+   */
+  attachCamera(type: XRInputType, camera: Camera): void {
+    const xrViewer = this._inputManager.getInput<XRCamera>(type);
     if (xrViewer) {
       xrViewer.camera = camera;
     } else {
-      Logger.warn(XRInputType[source], "not a legal input type.");
+      Logger.warn(XRInputType[type], "not a legal input type.");
     }
   }
 
-  detachCamera(source: XRInputType): Camera {
-    const xrViewer = this._inputManager.getInput<XRCamera>(source);
+  /**
+   * Detach the camera from the specified input type.
+   * @param type - The input type
+   * @returns The camera that was detached
+   */
+  detachCamera(type: XRInputType): Camera {
+    const xrViewer = this._inputManager.getInput<XRCamera>(type);
     const preCamera = xrViewer.camera;
     xrViewer.camera = null;
     return preCamera;

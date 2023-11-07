@@ -4,15 +4,15 @@ import { XRTrackingMode } from "./XRTrackingMode";
 import { XRInputType } from "../input/XRInputType";
 
 export class XRPoseDriver extends Script {
-  source: XRInputType = XRInputType.Camera;
-  updateType: XRTrackingMode = XRTrackingMode.RotationAndPosition;
+  type: XRInputType = XRInputType.Camera;
+  trackingMode: XRTrackingMode = XRTrackingMode.RotationAndPosition;
 
   private _inputManager: XRInputManager;
 
   override onLateUpdate() {
-    const input = this._inputManager.getInput(this.source);
+    const input = this._inputManager.getInput(this.type);
     if (input) {
-      switch (this.updateType) {
+      switch (this.trackingMode) {
         case XRTrackingMode.RotationOnly:
           this.entity.transform.rotationQuaternion = input.pose.rotation;
           break;

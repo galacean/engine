@@ -15,8 +15,29 @@ export abstract class XRInputManager implements IXRInputManager {
   protected _removed: XRInput[] = [];
   protected _trackingUpdate: UpdateFlagManager = new UpdateFlagManager();
 
+  /**
+   * Returns the input instance.
+   * @param inputSource - The input source type
+   * @returns The input instance
+   */
   getInput<T extends XRInput>(inputSource: XRInputType): T {
     return this._inputs[inputSource] as T;
+  }
+
+  /**
+   * Add a listener to the input update event.
+   * @param listener - The listener to add
+   */
+  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
+    this._trackingUpdate.addListener(listener);
+  }
+
+  /**
+   * Remove a listener from the input update event.
+   * @param listener - The listener to remove
+   */
+  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
+    this._trackingUpdate.removeListener(listener);
   }
 
   constructor(engine: Engine) {
@@ -36,14 +57,6 @@ export abstract class XRInputManager implements IXRInputManager {
           break;
       }
     }
-  }
-
-  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
-    this._trackingUpdate.addListener(listener);
-  }
-
-  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
-    this._trackingUpdate.removeListener(listener);
   }
 
   /**

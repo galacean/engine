@@ -3,17 +3,21 @@ import { Camera } from "../../Camera";
 import { XRInput } from "./XRInput";
 
 export class XRCamera extends XRInput {
+  /** The viewport of the camera. */
   viewport: Rect = new Rect();
+  /** The projection matrix of the camera. */
   projectionMatrix: Matrix = new Matrix();
 
   private _camera: Camera;
 
-  set camera(camera: Camera) {
-    this._camera = camera;
-  }
-
+  /**
+   * Returns the associated virtual camera.
+   */
   get camera(): Camera {
     return this._camera;
+  }
+  set camera(camera: Camera) {
+    this._camera = camera;
   }
 
   constructor() {

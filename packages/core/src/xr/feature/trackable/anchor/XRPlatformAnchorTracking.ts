@@ -3,6 +3,9 @@ import { XRTrackablePlatformFeature } from "../XRTrackablePlatformFeature";
 import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 
+/**
+ * The base class of XR anchor tracking.
+ */
 export abstract class XRPlatformAnchorTracking extends XRTrackablePlatformFeature<IXRTrackedAnchor> {
   protected _requestTrackingAnchors: IXRRequestTrackingAnchor[] = [];
   get requestTrackingAnchors(): readonly IXRRequestTrackingAnchor[] {

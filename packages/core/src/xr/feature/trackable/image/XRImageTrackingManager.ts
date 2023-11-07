@@ -9,6 +9,9 @@ import { XRSessionState } from "../../../session/XRSessionState";
 import { Logger } from "../../../../base";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
+/**
+ * The manager of XR image tracking.
+ */
 export class XRImageTrackingManager extends XRTrackableManager<
   IXRImageTrackingDescriptor,
   XRPlatformImageTracking,

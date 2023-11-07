@@ -6,6 +6,9 @@ import { XRFeatureType } from "../XRFeatureType";
 import { XRPlatformMovementTracking } from "./XRPlatformMovementTracking";
 
 @registerXRFeatureManager(XRFeatureType.MovementTracking)
+/**
+ * The manager of XR movement tracking.
+ */
 export class XRMovementTrackingManager extends XRFeatureManager<
   IXRMovementTrackingDescriptor,
   XRPlatformMovementTracking

@@ -5,6 +5,9 @@ import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { Logger } from "../../../../base";
 
+/**
+ * The base class of XR image tracking.
+ */
 export abstract class XRPlatformImageTracking extends XRTrackablePlatformFeature<IXRTrackedImage> {
   protected _requestTrackingImages: IXRRequestTrackingImage[] = [];
 

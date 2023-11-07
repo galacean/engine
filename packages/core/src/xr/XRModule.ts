@@ -15,12 +15,18 @@ type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRPlatformFeatu
 type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
 type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
 
+/**
+ * XRModule is the entry point of the XR system.
+ */
 export class XRModule {
   // @internal
   static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
 
+  /** Hardware adaptation for XR. */
   xrDevice: IXRDevice;
+  /** Input manager for XR. */
   inputManager: XRInputManager;
+  /** Session manager for XR. */
   sessionManager: XRSessionManager;
 
   private _engine: Engine;
@@ -31,22 +37,41 @@ export class XRModule {
   private _mode: XRSessionType;
   private _requestFeatures: IXRFeatureDescriptor[];
 
+  /**
+   * The current session mode( AR or VR ).
+   */
   get mode(): XRSessionType {
     return this._mode;
   }
 
+  /**
+   * The requested features.
+   */
   get requestFeatures(): IXRFeatureDescriptor[] {
     return this._requestFeatures;
   }
 
+  /**
+   * The current session state.
+   */
   get sessionState(): XRSessionState {
     return this._sessionState;
   }
 
+  /**
+   * Check if the specified mode is supported.
+   * @param mode - The mode to check
+   * @returns A promise that resolves if the mode is supported, otherwise rejects
+   */
   isSupported(mode: XRSessionType): Promise<void> {
     return this.xrDevice.isSupported(mode);
   }
 
+  /**
+   * Check if the specified feature is supported.
+   * @param descriptors - The feature descriptor to check
+   * @returns A promise that resolves if the feature is supported, otherwise rejects
+   */
   isSupportedFeature(descriptors: IXRFeatureDescriptor | IXRFeatureDescriptor[]): Promise<void> {
     if (descriptors instanceof Array) {
       const promiseArr = [];
@@ -70,6 +95,9 @@ export class XRModule {
     }
   }
 
+  /**
+   * Disable all features.
+   */
   disableAllFeatures(): void {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
@@ -77,6 +105,11 @@ export class XRModule {
     }
   }
 
+  /**
+   * Get the feature instance.
+   * @param type - The type of feature
+   * @returns The feature instance
+   */
   getFeature<T extends XRFeatureManager<IXRFeatureDescriptor, XRPlatformFeature>>(type: XRFeatureType): T {
     const { _features: features } = this;
     const feature = features[type];
@@ -98,6 +131,12 @@ export class XRModule {
     }
   }
 
+  /**
+   * Initialize the session.
+   * @param mode - The mode of the session
+   * @param requestFeatures - The requested features
+   * @returns A promise that resolves if the session is initialized, otherwise rejects
+   */
   initSession(mode: XRSessionType, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
     if (this._sessionState !== XRSessionState.NotInitialized) {
       return Promise.reject(new Error("Please destroy the old session first"));
@@ -148,6 +187,10 @@ export class XRModule {
     });
   }
 
+  /**
+   * Destroy the session.
+   * @returns A promise that resolves if the session is destroyed, otherwise rejects
+   */
   destroySession(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager.destroy().then(() => {
@@ -157,6 +200,10 @@ export class XRModule {
     });
   }
 
+  /**
+   * Start the session.
+   * @returns A promise that resolves if the session is started, otherwise rejects
+   */
   startSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager.start().then(() => {
@@ -166,6 +213,10 @@ export class XRModule {
     });
   }
 
+  /**
+   * Stop the session.
+   * @returns A promise that resolves if the session is stopped, otherwise rejects
+   */
   stopSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager.stop().then(() => {
@@ -175,6 +226,9 @@ export class XRModule {
     });
   }
 
+  /**
+   * Reset the session.
+   */
   destroy(): void {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
@@ -183,18 +237,29 @@ export class XRModule {
     features.length = 0;
     this.inputManager._onDestroy();
     this.sessionManager.destroy();
-    this.resetSessionStateChangeListener();
+    this.removeAllSessionStateChangeListener();
   }
 
+  /**
+   * Add a session state change listener.
+   * @param listener - The listener to add
+   */
   addSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
     this._listeners.push(listener);
   }
 
+  /**
+   * Remove a session state change listener.
+   * @param listener - The listener to remove
+   */
   removeSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
     Utils.removeFromArray(this._listeners, listener);
   }
 
-  resetSessionStateChangeListener(): void {
+  /**
+   * Remove all session state change listeners.
+   */
+  removeAllSessionStateChangeListener(): void {
     this._listeners.length = 0;
   }
 
