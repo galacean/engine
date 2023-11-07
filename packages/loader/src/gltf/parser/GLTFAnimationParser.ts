@@ -44,9 +44,9 @@ export class GLTFAnimationParser extends GLTFParser {
 
     // parse samplers
     for (let j = 0, m = samplers.length; j < m; j++) {
-      const gltfSampler = samplers[j];
-      const inputAccessor = accessors[gltfSampler.input];
-      const outputAccessor = accessors[gltfSampler.output];
+      const glTFSampler = samplers[j];
+      const inputAccessor = accessors[glTFSampler.input];
+      const outputAccessor = accessors[glTFSampler.output];
 
       const promise = Promise.all([
         GLTFUtils.getAccessorBuffer(context, bufferViews, inputAccessor),
@@ -65,7 +65,7 @@ export class GLTFAnimationParser extends GLTFParser {
 
         const outputStride = output.length / input.length;
 
-        const interpolation = gltfSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
+        const interpolation = glTFSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
         let samplerInterpolation: InterpolationType;
         switch (interpolation) {
           case AnimationSamplerInterpolation.CubicSpine:
@@ -99,10 +99,11 @@ export class GLTFAnimationParser extends GLTFParser {
 
     return Promise.all(promises).then(() => {
       for (let j = 0, m = channels.length; j < m; j++) {
-        const gltfChannel = channels[j];
-        const { target } = gltfChannel;
-
+        const glTFChannel = channels[j];
+        const { target } = glTFChannel;
+        const glTFMeshes = glTF.meshes[glTF.nodes[target.node].mesh];
         const channelTargetEntity = entities[target.node];
+
         let relativePath = "";
         let entity = channelTargetEntity;
         while (entity.parent) {
@@ -137,8 +138,15 @@ export class GLTFAnimationParser extends GLTFParser {
           default:
         }
 
-        const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
-        animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
+        const curve = this._addCurve(target.path, glTFChannel, sampleDataCollection);
+
+        if (target.path === AnimationChannelTargetPath.WEIGHTS) {
+          for (let i = 0, n = glTFMeshes.primitives.length; i < n; i++) {
+            animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, curve);
+          }
+        } else {
+          animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
+        }
       }
       return animationClip;
     });
@@ -146,10 +154,10 @@ export class GLTFAnimationParser extends GLTFParser {
 
   private static _addCurve(
     animationChannelTargetPath: AnimationChannelTargetPath,
-    gltfChannel: IAnimationChannel,
+    glTFChannel: IAnimationChannel,
     sampleDataCollection: SampleData[]
   ) {
-    const sampleData = sampleDataCollection[gltfChannel.sampler];
+    const sampleData = sampleDataCollection[glTFChannel.sampler];
     const { input, output, outputSize } = sampleData;
 
     switch (animationChannelTargetPath) {
