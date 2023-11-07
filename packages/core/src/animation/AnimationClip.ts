@@ -95,7 +95,6 @@ export class AnimationClip extends EngineObject {
    * @param type - The class type of the component that is animated
    * @param propertyName - The name or path to the property being animated
    * @param curve - The animation curve
-   * @param typeIndex - The type index of the component that is animated
    */
   addCurveBinding<T extends Component>(
     relativePath: string,
@@ -108,9 +107,10 @@ export class AnimationClip extends EngineObject {
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type - The class type of the component that is animated
+   * @param typeIndex - The type index of the component that is animated
    * @param propertyName - The name or path to the property being animated
    * @param curve - The animation curve
-   * @param typeIndex - The type index of the component that is animated
+   
    */
   addCurveBinding<T extends Component>(
     relativePath: string,
