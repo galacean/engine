@@ -101,7 +101,6 @@ export class GLTFAnimationParser extends GLTFParser {
       for (let j = 0, m = channels.length; j < m; j++) {
         const glTFChannel = channels[j];
         const { target } = glTFChannel;
-        const glTFMeshes = glTF.meshes[glTF.nodes[target.node].mesh];
         const channelTargetEntity = entities[target.node];
 
         let relativePath = "";
@@ -141,7 +140,8 @@ export class GLTFAnimationParser extends GLTFParser {
         const curve = this._addCurve(target.path, glTFChannel, sampleDataCollection);
 
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
-          for (let i = 0, n = glTFMeshes.primitives.length; i < n; i++) {
+          const mesh = glTF.nodes[target.node].mesh;
+          for (let i = 0, n = glTF.meshes[mesh].primitives.length; i < n; i++) {
             animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, curve);
           }
         } else {

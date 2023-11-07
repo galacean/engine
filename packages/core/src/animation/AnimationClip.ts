@@ -110,7 +110,6 @@ export class AnimationClip extends EngineObject {
    * @param typeIndex - The type index of the component that is animated
    * @param propertyName - The name or path to the property being animated
    * @param curve - The animation curve
-   
    */
   addCurveBinding<T extends Component>(
     relativePath: string,
@@ -119,6 +118,7 @@ export class AnimationClip extends EngineObject {
     propertyName: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
+
   addCurveBinding<T extends Component>(
     relativePath: string,
     type: new (entity: Entity) => T,
