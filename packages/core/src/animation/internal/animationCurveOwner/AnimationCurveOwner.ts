@@ -29,7 +29,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   readonly target: Entity;
-  readonly type: new (entity: Entity) => Component;
   readonly property: string;
   readonly component: Component;
 
@@ -51,10 +50,9 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
-    this.type = type;
-    this.property = property;
     this.component =
       typeIndex > 0 ? target.getComponents(type, AnimationCurveOwner._component)[typeIndex] : target.getComponent(type);
+    this.property = property;
 
     this.cureType = cureType;
 
