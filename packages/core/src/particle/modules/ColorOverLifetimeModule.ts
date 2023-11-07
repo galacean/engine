@@ -48,39 +48,41 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
     if (this.enabled) {
       const mode = this.color.mode;
 
-      if (mode === ParticleGradientMode.Gradient || mode === ParticleGradientMode.TwoGradients) {
-        const color = this.color;
-        const colorSpace = this._generator._renderer.engine.settings.colorSpace;
-        shaderData.setFloatArray(
-          ColorOverLifetimeModule._maxGradientColor,
-          color.gradientMax._getColorTypeArray(colorSpace)
-        );
-        shaderData.setFloatArray(ColorOverLifetimeModule._maxGradientAlpha, color.gradientMax._getAlphaTypeArray());
-
-        if (mode === ParticleGradientMode.Gradient) {
-          colorMacro = ColorOverLifetimeModule._gradientMacro;
-        } else {
-          shaderData.setFloatArray(
-            ColorOverLifetimeModule._minGradientColor,
-            color.gradientMin._getColorTypeArray(colorSpace)
-          );
-          shaderData.setFloatArray(ColorOverLifetimeModule._minGradientAlpha, color.gradientMin._getAlphaTypeArray());
-          colorMacro = ColorOverLifetimeModule._randomGradientsMacro;
-        }
-
-        const colorMinKeys = color.gradientMin.colorKeys;
-        const alphaMinKeys = color.gradientMin.alphaKeys;
-        const colorMaxKeys = color.gradientMax.colorKeys;
-        const alphaMaxKeys = color.gradientMax.alphaKeys;
-
-        this._gradientKeysCount.set(
-          colorMinKeys.length ? colorMinKeys[colorMinKeys.length - 1].time : 0,
-          alphaMinKeys.length ? alphaMinKeys[alphaMinKeys.length - 1].time : 0,
-          colorMaxKeys.length ? colorMaxKeys[colorMaxKeys.length - 1].time : 0,
-          alphaMaxKeys.length ? alphaMaxKeys[alphaMaxKeys.length - 1].time : 0
-        );
-        shaderData.setVector4(ColorOverLifetimeModule._gradientKeysCount, this._gradientKeysCount);
+      if (mode !== ParticleGradientMode.Gradient && mode !== ParticleGradientMode.TwoGradients) {
+        throw new Error("Invalid color mode, only gradient and two gradients are supported in color over lifetime.");
       }
+
+      const color = this.color;
+      const colorSpace = this._generator._renderer.engine.settings.colorSpace;
+      shaderData.setFloatArray(
+        ColorOverLifetimeModule._maxGradientColor,
+        color.gradientMax._getColorTypeArray(colorSpace)
+      );
+      shaderData.setFloatArray(ColorOverLifetimeModule._maxGradientAlpha, color.gradientMax._getAlphaTypeArray());
+
+      if (mode === ParticleGradientMode.Gradient) {
+        colorMacro = ColorOverLifetimeModule._gradientMacro;
+      } else {
+        shaderData.setFloatArray(
+          ColorOverLifetimeModule._minGradientColor,
+          color.gradientMin._getColorTypeArray(colorSpace)
+        );
+        shaderData.setFloatArray(ColorOverLifetimeModule._minGradientAlpha, color.gradientMin._getAlphaTypeArray());
+        colorMacro = ColorOverLifetimeModule._randomGradientsMacro;
+      }
+
+      const colorMinKeys = color.gradientMin.colorKeys;
+      const alphaMinKeys = color.gradientMin.alphaKeys;
+      const colorMaxKeys = color.gradientMax.colorKeys;
+      const alphaMaxKeys = color.gradientMax.alphaKeys;
+
+      this._gradientKeysCount.set(
+        colorMinKeys.length ? colorMinKeys[colorMinKeys.length - 1].time : 0,
+        alphaMinKeys.length ? alphaMinKeys[alphaMinKeys.length - 1].time : 0,
+        colorMaxKeys.length ? colorMaxKeys[colorMaxKeys.length - 1].time : 0,
+        alphaMaxKeys.length ? alphaMaxKeys[alphaMaxKeys.length - 1].time : 0
+      );
+      shaderData.setVector4(ColorOverLifetimeModule._gradientKeysCount, this._gradientKeysCount);
     }
 
     this._colorMacro = this._enableMacro(shaderData, this._colorMacro, colorMacro);
