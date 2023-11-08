@@ -19,7 +19,7 @@ class EXT_meshopt_compression extends GLTFExtensionParser {
   override createAndParse(context: GLTFParserContext, schema: MeshOptSchema): Promise<Uint8Array> {
     const { count, byteStride, mode, filter, buffer, byteLength, byteOffset } = schema;
     return context.get<ArrayBuffer>(GLTFParserType.Buffer, buffer).then((arrayBuffer) => {
-      return MeshoptDecoder.decodeGltfBufferAsync(
+      return MeshoptDecoder.decodeGltfBuffer(
         count,
         byteStride,
         new Uint8Array(arrayBuffer, byteOffset, byteLength),
