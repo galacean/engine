@@ -16,12 +16,7 @@ interface MeshOptSchema {
 
 @registerGLTFExtension("EXT_meshopt_compression", GLTFExtensionMode.CreateAndParse)
 class EXT_meshopt_compression extends GLTFExtensionParser {
-  override createAndParse(
-    context: GLTFParserContext,
-    schema: MeshOptSchema,
-    bufferView: IBufferView,
-    _: any
-  ): Promise<Uint8Array> {
+  override createAndParse(context: GLTFParserContext, schema: MeshOptSchema): Promise<Uint8Array> {
     const { count, byteStride, mode, filter, buffer, byteLength, byteOffset } = schema;
     return context.get<ArrayBuffer>(GLTFParserType.Buffer, buffer).then((arrayBuffer) => {
       return MeshoptDecoder.decodeGltfBufferAsync(
