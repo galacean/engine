@@ -62,33 +62,14 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPla
   }
 
   /**
-   * Get the camera by the specified screen position.
-   * @param screenX - The screen x position (normalized)
-   * @param screenY - The screen y position (normalized)
-   * @returns The camera
+   * Return fixed foveation of the camera.
    */
-  getCameraByScreenPosition(screenX: number, screenY: number): Camera {
-    if (this._engine.xrModule.mode === XRSessionType.AR) {
-      return this.getCameraByType(XRInputType.Camera);
-    } else {
-      for (const type of [XRInputType.LeftCamera, XRInputType.RightCamera]) {
-        const camera = this._inputManager.getInput<XRCamera>(type).camera;
-        if (camera?.viewport) {
-          const { x, y, z, w } = camera.viewport;
-          if (x <= screenX && x + z >= screenX && y <= screenY && y + w >= screenY) {
-            return camera;
-          }
-        }
-      }
-    }
+  get fixedFoveation() {
+    return this._platformFeature.fixedFoveation;
   }
 
   set fixedFoveation(value: number) {
     this._platformFeature.fixedFoveation = value;
-  }
-
-  get fixedFoveation() {
-    return this._platformFeature.fixedFoveation;
   }
 
   constructor(engine: Engine) {
