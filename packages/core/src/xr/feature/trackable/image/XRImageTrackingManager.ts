@@ -6,6 +6,7 @@ import { XRTrackableManager } from "../XRTrackableManager";
 import { IXRTrackedImage } from "@galacean/engine-design";
 import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
 import { XRSessionState } from "../../../session/XRSessionState";
+import { XRImage } from "../../../component/trackable/XRImage";
 import { Logger } from "../../../../base";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
@@ -15,7 +16,8 @@ import { Logger } from "../../../../base";
 export class XRImageTrackingManager extends XRTrackableManager<
   IXRImageTrackingDescriptor,
   XRPlatformImageTracking,
-  IXRTrackedImage
+  IXRTrackedImage,
+  XRImage
 > {
   /**
    * Add a tracking image

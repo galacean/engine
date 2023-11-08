@@ -4,6 +4,7 @@ import { XRTrackableManager } from "../XRTrackableManager";
 import { IXRPose, IXRRequestTrackingAnchor, IXRTrackedAnchor } from "@galacean/engine-design";
 import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
 import { XRPlatformAnchorTracking } from "./XRPlatformAnchorTracking";
+import { XRAnchor } from "../../../component/trackable/XRAnchor";
 
 @registerXRFeatureManager(XRFeatureType.AnchorTracking)
 /**
@@ -12,7 +13,8 @@ import { XRPlatformAnchorTracking } from "./XRPlatformAnchorTracking";
 export class XRAnchorTrackingManager extends XRTrackableManager<
   IXRAnchorTrackingDescriptor,
   XRPlatformAnchorTracking,
-  IXRTrackedAnchor
+  IXRTrackedAnchor,
+  XRAnchor
 > {
   /**
    * Add a tracking anchor.

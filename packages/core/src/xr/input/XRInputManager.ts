@@ -28,7 +28,7 @@ export abstract class XRInputManager implements IXRInputManager {
    * Add a listener to the input update event.
    * @param listener - The listener to add
    */
-  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
+  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any): void {
     this._trackingUpdate.addListener(listener);
   }
 
@@ -36,7 +36,7 @@ export abstract class XRInputManager implements IXRInputManager {
    * Remove a listener from the input update event.
    * @param listener - The listener to remove
    */
-  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any) {
+  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly XRInput[]) => any): void {
     this._trackingUpdate.removeListener(listener);
   }
 

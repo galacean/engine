@@ -5,6 +5,7 @@ import { IXRTrackedPlane } from "@galacean/engine-design";
 import { XRPlatformPlaneTracking } from "./XRPlatformPlaneTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRPlaneDetectionMode } from "./XRPlaneDetectionMode";
+import { XRPlane } from "../../../component/trackable/XRPlane";
 
 @registerXRFeatureManager(XRFeatureType.PlaneTracking)
 /**
@@ -13,7 +14,8 @@ import { XRPlaneDetectionMode } from "./XRPlaneDetectionMode";
 export class XRPlaneTrackingManager extends XRTrackableManager<
   IXRPlaneTrackingDescriptor,
   XRPlatformPlaneTracking,
-  IXRTrackedPlane
+  IXRTrackedPlane,
+  XRPlane
 > {
   /**
    * Return the plane detection mode for WebXR.

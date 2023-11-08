@@ -1,11 +1,15 @@
 import { IXRPose } from "../../input/IXRPose";
 
 /**
- * 可追踪的数据
+ * The base interface of XR trackable.
  */
 export interface IXRTrackable {
+  /** Id of the trackable. */
   id: number;
+  /** The pose of the trackable. */
   pose: IXRPose;
+  /** The tracking state of the trackable. */
   state: number;
+  /** The modified frame count of the trackable. */
   frameCount: number;
 }

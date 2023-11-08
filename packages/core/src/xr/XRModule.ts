@@ -10,10 +10,14 @@ import { XRFeatureManager } from "./feature/XRFeatureManager";
 import { XRPlatformFeature } from "./feature/XRPlatformFeature";
 import { Logger } from "../base";
 import { Utils } from "../Utils";
+import { Scene } from "../Scene";
+import { Entity } from "../Entity";
+import { Component } from "../Component";
 
 type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRPlatformFeature>;
 type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
 type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
+type TXRTrackedComponent = new (entity: Entity) => Component;
 
 /**
  * XRModule is the entry point of the XR system.
@@ -21,6 +25,8 @@ type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) 
 export class XRModule {
   // @internal
   static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
+  // @internal
+  static _componentMap: TXRTrackedComponent[] = [];
 
   /** Hardware adaptation for XR. */
   xrDevice: IXRDevice;
@@ -30,12 +36,41 @@ export class XRModule {
   sessionManager: XRSessionManager;
 
   private _engine: Engine;
+  private _scene: Scene;
+  private _origin: Entity;
   private _features: TXRFeatureManager[] = [];
   private _sessionState: XRSessionState = XRSessionState.NotInitialized;
   private _listeners: TXRSessionStateChangeListener[] = [];
 
   private _mode: XRSessionType;
   private _requestFeatures: IXRFeatureDescriptor[];
+
+  /**
+   * The current xr scene.
+   */
+  get scene(): Scene {
+    return (this._scene ||= this._engine.sceneManager.activeScene);
+  }
+
+  set scene(value: Scene) {
+    if (this._scene !== value) {
+      this._scene = value;
+      this._origin && value.addRootEntity(this._origin);
+    }
+  }
+
+  /**
+   * The current xr origin.
+   */
+  get origin(): Entity {
+    return (this._origin ||= this.scene?.createRootEntity());
+  }
+
+  set origin(value: Entity) {
+    if (this._origin !== value) {
+      this._origin = value;
+    }
+  }
 
   /**
    * The current session mode( AR or VR ).
@@ -332,5 +367,11 @@ export class XRModule {
 export function registerXRFeatureManager(feature: XRFeatureType) {
   return (featureManagerConstructor: TXRFeatureManagerConstructor) => {
     XRModule._featureManagerMap[feature] = featureManagerConstructor;
+  };
+}
+
+export function registerXRComponent(feature: XRFeatureType) {
+  return (componentConstructor: TXRTrackedComponent) => {
+    XRModule._componentMap[feature] = componentConstructor;
   };
 }

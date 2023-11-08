@@ -56,3 +56,6 @@ export { XRSessionState } from "./session/XRSessionState";
 // xr component
 export { XRTrackingMode } from "./component/XRTrackingMode";
 export { XRPoseDriver } from "./component/XRPoseDriver";
+export { XRImage } from "./component/trackable/XRImage";
+export { XRAnchor } from "./component/trackable/XRAnchor";
+export { XRPlane } from "./component/trackable/XRPlane";
