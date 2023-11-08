@@ -78,7 +78,7 @@ export class RenderQueue {
         const compileMacros = Shader._compileMacros;
         const primitive = data.primitive;
         const renderer = data.component;
-        const material = data.material.destroyed ? engine._magentaMaterial : data.material;
+        const material = data.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
         const renderStates = material.renderStates;

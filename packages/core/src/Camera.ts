@@ -312,8 +312,8 @@ export class Camera extends Component {
 
   set renderTarget(value: RenderTarget | null) {
     if (this._renderTarget !== value) {
-      value?._addReferCount(1);
-      this._renderTarget?._addReferCount(-1);
+      this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
+      value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._updatePixelViewport();
     }
@@ -331,7 +331,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = transform.registerWorldChangeFlag();
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
-    this.shaderData._addReferCount(1);
+    this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
   }
 
@@ -590,7 +590,7 @@ export class Camera extends Component {
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
-    this.shaderData._addReferCount(-1);
+    this._addResourceReferCount(this.shaderData, -1);
 
     this._entity = null;
     this._globalShaderMacro = null;

@@ -38,7 +38,7 @@ export class Shader {
    * // Import shaderLab
    * import { ShaderLab } from "@galacean/engine-shader-lab";
    * // Create engine with shaderLab
-   * const engine = await WebGLEngine.create({ canvas: "canvas", new ShaderLab() });
+   * const engine = await WebGLEngine.create({ canvas: "canvas", shader: new ShaderLab() });
    * ...
    * ```
    *
