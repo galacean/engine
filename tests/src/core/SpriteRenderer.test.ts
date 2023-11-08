@@ -1,4 +1,3 @@
-import { Color, Vector2, Vector4, Rect, Vector3 } from "@galacean/engine-math";
 import {
   Sprite,
   SpriteDrawMode,
@@ -9,6 +8,7 @@ import {
   Texture2D,
   TextureFormat
 } from "@galacean/engine-core";
+import { Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
@@ -1344,8 +1344,8 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
     expect(spriteRenderer.getMaterial()).to.eq(outsideMaterial);
 
-    const cloneRenderer = rootEntity.clone().getComponent(SpriteRenderer);
-    expect(cloneRenderer.getMaterial()).to.eq(outsideMaterial);
+    const cloneRenderers = rootEntity.clone().getComponents(SpriteRenderer, []);
+    expect(cloneRenderers[cloneRenderers.length - 1].getMaterial()).to.eq(outsideMaterial);
   });
 
   it("DirtyFlag", () => {
@@ -1420,9 +1420,9 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
 
     const rootEntityClone = rootEntity.clone();
-    const spriteRendererClone = rootEntityClone.getComponent(SpriteRenderer);
-    expect(spriteRendererClone.sprite).to.deep.eq(spriteRenderer.sprite);
-    expect(spriteRendererClone.drawMode).to.eq(SpriteDrawMode.Sliced);
+    const spriteRendererClones = rootEntityClone.getComponents(SpriteRenderer, []);
+    expect(spriteRendererClones[spriteRendererClones.length - 1].sprite).to.deep.eq(spriteRenderer.sprite);
+    expect(spriteRendererClones[spriteRendererClones.length - 1].drawMode).to.eq(SpriteDrawMode.Sliced);
   });
 
   it("destroy", () => {
