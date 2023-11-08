@@ -14,16 +14,16 @@ export abstract class XRTrackableManager<
   TDescriptor extends IXRFeatureDescriptor,
   TTrackablePlatformFeature extends XRTrackablePlatformFeature<TXRTrackable>,
   TXRTrackable extends IXRTrackable,
-  TXRTrackedObject extends XRTracked<TXRTrackable>
+  TXRTracked extends XRTracked<TXRTrackable>
 > extends XRFeatureManager<TDescriptor, TTrackablePlatformFeature> {
   private _trackedUpdate: UpdateFlagManager = new UpdateFlagManager();
-  private _trackedObjects: TXRTrackedObject[] = [];
+  private _trackedObjects: TXRTracked[] = [];
   private _trackIdToIndex: Record<string, number> = {};
   private _prefab: Entity;
 
-  private _added: TXRTrackedObject[] = [];
-  private _updated: TXRTrackedObject[] = [];
-  private _removed: TXRTrackedObject[] = [];
+  private _added: TXRTracked[] = [];
+  private _updated: TXRTracked[] = [];
+  private _removed: TXRTracked[] = [];
 
   /**
    * Returns the prefab of the tracked object.
@@ -39,7 +39,7 @@ export abstract class XRTrackableManager<
   /**
    * Returns the tracked objects.
    */
-  get trackedObjects(): readonly TXRTrackedObject[] {
+  get trackedObjects(): readonly TXRTracked[] {
     return this._trackedObjects;
   }
 
@@ -48,7 +48,7 @@ export abstract class XRTrackableManager<
    * @param id - The id of the tracked object
    * @returns The tracked object
    */
-  getTrackedObjectByID(id: number): TXRTrackedObject {
+  getTrackedObjectByID(id: number): TXRTracked {
     const index = this._trackIdToIndex[id];
     return index !== undefined ? this._trackedObjects[index] : null;
   }
@@ -57,7 +57,7 @@ export abstract class XRTrackableManager<
    * Add a listening function to track changes.
    * @param listener - The listening function
    */
-  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly TXRTrackedObject[]) => any): void {
+  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly TXRTracked[]) => any): void {
     this._trackedUpdate.addListener(listener);
   }
 
@@ -65,7 +65,7 @@ export abstract class XRTrackableManager<
    * Remove a listening function to track changes.
    * @param listener - The listening function
    */
-  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly TXRTrackedObject[]) => any): void {
+  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly TXRTracked[]) => any): void {
     this._trackedUpdate.removeListener(listener);
   }
 
@@ -112,7 +112,7 @@ export abstract class XRTrackableManager<
     }
   }
 
-  private _createOrUpdateTrackedObject(sessionRelativeData: TXRTrackable): TXRTrackedObject {
+  private _createOrUpdateTrackedObject(sessionRelativeData: TXRTrackable): TXRTracked {
     const { _trackIdToIndex: trackIdToIndex, _trackedObjects: trackedObjects } = this;
     let trackedObject = this.getTrackedObjectByID(sessionRelativeData.id);
     if (!trackedObject) {
@@ -129,7 +129,7 @@ export abstract class XRTrackableManager<
     return trackedObject;
   }
 
-  private _createTrackedObject(sessionRelativeData: TXRTrackable): TXRTrackedObject {
+  private _createTrackedObject(sessionRelativeData: TXRTrackable): TXRTracked {
     const origin = this._engine.xrModule.origin;
     const { _prefab: prefab } = this;
     let entity: Entity;
@@ -140,7 +140,7 @@ export abstract class XRTrackableManager<
     } else {
       entity = origin.createChild("trackable" + sessionRelativeData.id);
     }
-    const trackedObject = <TXRTrackedObject>entity.addComponent(XRModule._componentMap[this._descriptor.type]);
+    const trackedObject = <TXRTracked>entity.addComponent(XRModule._componentMap[this._descriptor.type]);
     return trackedObject;
   }
 }

@@ -1,6 +1,5 @@
 import { Engine, Logger, XRFeatureType, XRPlatformCamera } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { WebXRInputManager } from "../WebXRInputManager";
 import { WebXRSessionManager } from "../WebXRSessionManager";
 
 @registerXRPlatformFeature(XRFeatureType.CameraDevice)

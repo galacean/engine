@@ -43,7 +43,7 @@ export abstract class XRSessionManager implements IXRSessionManager {
   }
 
   /**
-   * Pause the session.
+   * Destroy the session.
    * @returns The promise of the session
    */
   destroy(): Promise<void> {
