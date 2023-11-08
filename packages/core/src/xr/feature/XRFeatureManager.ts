@@ -5,8 +5,8 @@ import { Engine } from "../../Engine";
  * The base class of XR feature manager.
  */
 export abstract class XRFeatureManager<
-  TDescriptor extends IXRFeatureDescriptor,
-  TPlatformFeature extends IXRPlatformFeature
+  TDescriptor extends IXRFeatureDescriptor = IXRFeatureDescriptor,
+  TPlatformFeature extends IXRPlatformFeature = IXRPlatformFeature
 > implements IXRFeatureManager
 {
   protected _engine: Engine;

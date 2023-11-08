@@ -14,10 +14,7 @@ export type { IXRCameraDescriptor } from "./feature/camera/IXRCameraDescriptor";
 export { XRPlatformCamera } from "./feature/camera/XRPlatformCamera";
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
-export type { IXRHitTestDescriptor } from "./feature/hitTest/IXRHitTestDescriptor";
 export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
-export { XRHitTestMode } from "./feature/hitTest/XRHitTestMode";
-export { XRPlatformHitTest } from "./feature/hitTest/XRPlatformHitTest";
 // movement tracking
 export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
 export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovementTrackingManager";

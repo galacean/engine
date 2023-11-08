@@ -22,7 +22,11 @@ export abstract class XRTracked<T extends IXRTrackable> extends Component {
     return this._platformData.state;
   }
 
-  setSessionRelativeData(data: T) {
-    this._platformData = data;
+  get platformData(): T {
+    return this._platformData;
+  }
+
+  set platformData(value: T) {
+    this._platformData = value;
   }
 }

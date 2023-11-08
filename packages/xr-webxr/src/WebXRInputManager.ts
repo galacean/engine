@@ -64,7 +64,7 @@ export class WebXRInputManager extends XRInputManager {
       const [screenX, screenY] = gamepad.axes;
       const clientX = clientWidth * (screenX + 1) * 0.5;
       const clientY = clientHeight * (screenY + 1) * 0.5;
-      canvas.dispatchEvent(this.makeUpPointerEvent("pointermove", i, clientX, clientY));
+      canvas.dispatchEvent(this._makeUpPointerEvent("pointermove", i, clientX, clientY));
     }
 
     // Handle pressure flow events
@@ -269,7 +269,7 @@ export class WebXRInputManager extends XRInputManager {
                 screenInputSource[emptyIdx] = inputSource;
               }
             }
-            canvas.dispatchEvent(this.makeUpPointerEvent("pointerdown", idx, clientX, clientY));
+            canvas.dispatchEvent(this._makeUpPointerEvent("pointerdown", idx, clientX, clientY));
             break;
           case "selectend":
             for (let i = screenInputSource.length - 1; i >= 0; i--) {
@@ -278,8 +278,8 @@ export class WebXRInputManager extends XRInputManager {
                 idx = i;
               }
             }
-            canvas.dispatchEvent(this.makeUpPointerEvent("pointerup", idx, clientX, clientY));
-            canvas.dispatchEvent(this.makeUpPointerEvent("pointerleave", idx, clientX, clientY));
+            canvas.dispatchEvent(this._makeUpPointerEvent("pointerup", idx, clientX, clientY));
+            canvas.dispatchEvent(this._makeUpPointerEvent("pointerleave", idx, clientX, clientY));
             break;
           default:
             break;
@@ -290,7 +290,7 @@ export class WebXRInputManager extends XRInputManager {
     }
   }
 
-  private makeUpPointerEvent(type: string, pointerId: number, clientX: number, clientY: number): PointerEvent {
+  private _makeUpPointerEvent(type: string, pointerId: number, clientX: number, clientY: number): PointerEvent {
     const eventInitDict: PointerEventInit = {
       pointerId,
       clientX,

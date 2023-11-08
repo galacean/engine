@@ -9,6 +9,7 @@ import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
 import { XRPlatformCamera } from "./XRPlatformCamera";
 import { registerXRFeatureManager } from "../../XRModule";
 import { XRFeatureType } from "../XRFeatureType";
+import { XRSessionType } from "../../session/XRSessionType";
 
 @registerXRFeatureManager(XRFeatureType.CameraDevice)
 /**
@@ -49,6 +50,37 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPla
     const preCamera = xrViewer.camera;
     xrViewer.camera = null;
     return preCamera;
+  }
+
+  /**
+   * Get the camera by the specified input type.
+   * @param type - The input type
+   * @returns The camera
+   */
+  getCameraByType(type: XRInputType): Camera {
+    return this._inputManager.getInput<XRCamera>(type).camera;
+  }
+
+  /**
+   * Get the camera by the specified screen position.
+   * @param screenX - The screen x position (normalized)
+   * @param screenY - The screen y position (normalized)
+   * @returns The camera
+   */
+  getCameraByScreenPosition(screenX: number, screenY: number): Camera {
+    if (this._engine.xrModule.mode === XRSessionType.AR) {
+      return this.getCameraByType(XRInputType.Camera);
+    } else {
+      for (const type of [XRInputType.LeftCamera, XRInputType.RightCamera]) {
+        const camera = this._inputManager.getInput<XRCamera>(type).camera;
+        if (camera?.viewport) {
+          const { x, y, z, w } = camera.viewport;
+          if (x <= screenX && x + z >= screenX && y <= screenY && y + w >= screenY) {
+            return camera;
+          }
+        }
+      }
+    }
   }
 
   set fixedFoveation(value: number) {

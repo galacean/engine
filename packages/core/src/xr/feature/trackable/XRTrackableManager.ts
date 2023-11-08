@@ -77,7 +77,7 @@ export abstract class XRTrackableManager<
     _added.length = _updated.length = _removed.length = 0;
 
     // Update tracked objects based on session data
-    const { _trackedUpdate: trackedUpdate } = this;
+    const { _trackedUpdate: trackedUpdate, _trackIdToIndex: trackIdToIndex, _trackedObjects: trackedObjects } = this;
     if (added.length > 0) {
       for (let i = 0, n = added.length; i < n; i++) {
         const trackedObject = this._createOrUpdateTrackedObject(added[i]);
@@ -92,13 +92,24 @@ export abstract class XRTrackableManager<
     }
     if (removed.length > 0) {
       for (let i = 0, n = removed.length; i < n; i++) {
-        const trackedObject = this.getTrackedObjectByID(removed[i].id);
-        trackedObject && _removed.push(trackedObject);
+        const { id } = removed[i];
+        const index = this._trackIdToIndex[id];
+        if (index !== undefined) {
+          delete trackIdToIndex[id];
+          _removed.push(trackedObjects[index]);
+          trackedObjects.splice(index, 1);
+        }
       }
     }
     _added.length > 0 && trackedUpdate.dispatch(XRTrackedUpdateFlag.Added, _added);
     _updated.length > 0 && trackedUpdate.dispatch(XRTrackedUpdateFlag.Updated, _updated);
-    _removed.length > 0 && trackedUpdate.dispatch(XRTrackedUpdateFlag.Removed, _removed);
+    if (_removed.length > 0) {
+      trackedUpdate.dispatch(XRTrackedUpdateFlag.Removed, _removed);
+      for (let i = 0, n = _removed.length; i < n; i++) {
+        const trackedObject = _removed[i];
+        trackedObject.destroyOnRemoval && trackedObject.entity.destroy();
+      }
+    }
   }
 
   private _createOrUpdateTrackedObject(sessionRelativeData: TXRTrackable): TXRTrackedObject {
@@ -109,7 +120,7 @@ export abstract class XRTrackableManager<
       trackIdToIndex[sessionRelativeData.id] = trackedObjects.length;
       trackedObjects.push(trackedObject);
     }
-    trackedObject.setSessionRelativeData(sessionRelativeData);
+    trackedObject.platformData = sessionRelativeData;
     // Sync transform
     const { transform } = trackedObject.entity;
     const { pose } = sessionRelativeData;

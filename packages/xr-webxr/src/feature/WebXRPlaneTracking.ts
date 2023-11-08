@@ -84,9 +84,10 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
     trackedPlane.state = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
     trackedPlane.lastChangedTime = xrPlane.lastChangedTime;
     trackedPlane.orientation = xrPlane.orientation;
-    pose.matrix.copyFromArray(transform.matrix);
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
+    pose.matrix.copyFromArray(transform.matrix);
+    pose.inverseMatrix.copyFromArray(transform.inverse.matrix);
     const { polygon: oriPolygon } = xrPlane;
     for (let i = 0, n = (polygon.length = oriPolygon.length); i < n; i++) {
       (polygon[i] ||= new Vector3()).copyFrom(oriPolygon[i]);

@@ -154,15 +154,10 @@ export class XRModule {
       const { _featureManagerMap: featureManagerMap } = XRModule;
       const featureManagerConstructor = featureManagerMap[type];
       const platformFeature = this.xrDevice.createPlatformFeature(this._engine, type);
-      if (platformFeature) {
-        const feature = (features[type] = new featureManagerConstructor(this._engine));
-        // @ts-ignore
-        feature._platformFeature = platformFeature;
-        return <T>feature;
-      } else {
-        Logger.warn("The platform interface layer of the ", XRFeatureType[type], " is not implemented.");
-        return null;
-      }
+      const feature = (features[type] = new featureManagerConstructor(this._engine));
+      // @ts-ignore
+      feature._platformFeature = platformFeature;
+      return <T>feature;
     }
   }
 

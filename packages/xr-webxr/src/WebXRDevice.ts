@@ -39,7 +39,8 @@ export class WebXRDevice implements IXRDevice {
   }
 
   createPlatformFeature(engine: Engine, type: XRFeatureType): IXRPlatformFeature {
-    return new WebXRDevice._platformFeatureMap[type](engine);
+    const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
+    return platformFeatureConstructor ? new platformFeatureConstructor(engine) : null;
   }
 }
 
