@@ -4,4 +4,7 @@ import { registerXRComponent } from "../../XRModule";
 import { XRFeatureType } from "../../feature/XRFeatureType";
 
 @registerXRComponent(XRFeatureType.AnchorTracking)
+/**
+ * Tracked anchor in the XR world.
+ */
 export class XRAnchor extends XRTracked<IXRTrackedAnchor> {}

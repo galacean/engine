@@ -4,6 +4,9 @@ import { registerXRComponent } from "../../XRModule";
 import { XRFeatureType } from "../../feature/XRFeatureType";
 
 @registerXRComponent(XRFeatureType.ImageTracking)
+/**
+ * Tracked image in the XR world.
+ */
 export class XRImage extends XRTracked<IXRTrackedImage> {
   get referenceImage(): IXRReferenceImage {
     return this._platformData.requestTracking.image;

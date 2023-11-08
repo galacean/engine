@@ -15,15 +15,14 @@ import * as WEBXR from "@galacean/engine-xr-webxr";
 or individual classes using:
 
 ```javascript
-import { WebXRProvider } from "@galacean/engine-xr-webxr";
+import { WebXRDevice } from "@galacean/engine-xr-webxr";
 ```
 
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
-const engine = await WebGLEngine.create({ canvas: "canvas-id", xrProvider: WebXRProvider});
-
+// Create engine by passing in the HTMLCanvasElement
+const engine = await WebGLEngine.create({ canvas: "canvas-id", xr: WebXRDevice});
 ......
 
 // Run engine.

@@ -5,6 +5,9 @@ import { XRFeatureType } from "../../feature/XRFeatureType";
 import { Vector3 } from "@galacean/engine-math";
 
 @registerXRComponent(XRFeatureType.PlaneTracking)
+/**
+ * Tracked plane in the XR world.
+ */
 export class XRPlane extends XRTracked<IXRTrackedPlane> {
   get polygon(): readonly Vector3[] {
     return this._platformData.polygon;
