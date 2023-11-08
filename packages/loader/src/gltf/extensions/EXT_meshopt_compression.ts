@@ -1,8 +1,7 @@
-import { IBufferView, IMeshPrimitive } from "../GLTFSchema";
+import { IBufferView } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
-import { GLTFExtensionSchema, IGalaceanAnimation } from "./GLTFExtensionSchema";
 import { MeshoptDecoder } from "./MeshoptDecoder";
 
 interface MeshOptSchema {
@@ -24,11 +23,11 @@ class EXT_meshopt_compression extends GLTFExtensionParser {
     _: any
   ): Promise<Uint8Array> {
     const { count, byteStride, mode, filter, buffer, byteLength, byteOffset } = schema;
-    return context.getBuffers().then((buffers) => {
+    return context.get<ArrayBuffer>(GLTFParserType.Buffer, buffer).then((arrayBuffer) => {
       return MeshoptDecoder.decodeGltfBufferAsync(
         count,
         byteStride,
-        new Uint8Array(buffers[buffer], byteOffset, byteLength),
+        new Uint8Array(arrayBuffer, byteOffset, byteLength),
         mode,
         filter
       );
