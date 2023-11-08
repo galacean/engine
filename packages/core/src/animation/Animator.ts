@@ -298,16 +298,16 @@ export class Animator extends Component {
       const curve = curves[i];
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       if (targetEntity) {
-        const { property } = curve;
+        const propertyPath = `${curve.typeIndex}.` + curve.property;
         const { instanceId } = targetEntity;
 
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
-        const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
+        const owner = (propertyOwners[propertyPath] ||= curve._createCurveOwner(targetEntity));
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
-        const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
+        const layerOwner = (layerPropertyOwners[propertyPath] ||= curve._createCurveLayerOwner(owner));
 
         curveLayerOwner[i] = layerOwner;
       } else {

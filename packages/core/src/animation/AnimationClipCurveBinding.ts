@@ -17,6 +17,8 @@ export class AnimationClipCurveBinding {
   relativePath: string;
   /** The class type of the component that is animated. */
   type: new (entity: Entity) => Component;
+  /** The index of the component that is animated. */
+  typeIndex: number = 0;
   /** The name or path to the property being animated. */
   property: string;
   /** The animation curve. */
@@ -29,7 +31,7 @@ export class AnimationClipCurveBinding {
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
     const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
-    const owner = new AnimationCurveOwner(entity, this.type, this.property, curveType);
+    const owner = new AnimationCurveOwner(entity, this.type, this.typeIndex, this.property, curveType);
     curveType._initializeOwner(owner);
     owner.saveDefaultValue();
     return owner;

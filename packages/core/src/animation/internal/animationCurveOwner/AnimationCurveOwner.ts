@@ -1,6 +1,5 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
-import { SkinnedMeshRenderer } from "../../../mesh";
 import { AnimationCurve } from "../../animationCurve/AnimationCurve";
 import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
@@ -11,6 +10,7 @@ import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnim
  * @internal
  */
 export class AnimationCurveOwner<V extends KeyframeValueType> {
+  private static _components: Component[] = [];
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   static registerAssembler(componentType: ComponentType, property: string, assemblerType: AssemblerType): void {
@@ -29,7 +29,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   readonly target: Entity;
-  readonly type: new (entity: Entity) => Component;
   readonly property: string;
   readonly component: Component;
 
@@ -42,21 +41,22 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
-  private _isBlendShape: boolean;
 
   constructor(
     target: Entity,
     type: new (entity: Entity) => Component,
+    typeIndex: number,
     property: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
-    this.type = type;
+    this.component =
+      typeIndex > 0
+        ? target.getComponents(type, AnimationCurveOwner._components)[typeIndex]
+        : target.getComponent(type);
     this.property = property;
-    this.component = target.getComponent(type);
-    this.cureType = cureType;
 
-    this._isBlendShape = this.component instanceof SkinnedMeshRenderer;
+    this.cureType = cureType;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
@@ -168,10 +168,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
       if (cureType._isCopyMode) {
         const additiveValue = cureType._additiveValue(value, weight, this.referenceTargetValue);
-        // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-        if (this._isBlendShape) {
-          assembler.setTargetValue(additiveValue);
-        }
       } else {
         const originValue = assembler.getTargetValue();
         const additiveValue = cureType._additiveValue(value, weight, originValue);
@@ -181,10 +177,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       if (weight === 1.0) {
         if (cureType._isCopyMode) {
           cureType._setValue(value, this.referenceTargetValue);
-          // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-          if (this._isBlendShape) {
-            this._assembler.setTargetValue(this.referenceTargetValue);
-          }
         } else {
           this._assembler.setTargetValue(value);
         }
@@ -192,10 +184,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
         if (cureType._isCopyMode) {
           const targetValue = this.referenceTargetValue;
           cureType._lerpValue(targetValue, value, weight, targetValue);
-          // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
-          if (this._isBlendShape) {
-            this._assembler.setTargetValue(targetValue);
-          }
         } else {
           const originValue = this._assembler.getTargetValue();
           const lerpValue = cureType._lerpValue(originValue, value, weight);
