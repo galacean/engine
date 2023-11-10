@@ -159,8 +159,8 @@ export class Camera extends Component {
    * the manual value will be kept. Call resetAspectRatio() to restore it.
    */
   get aspectRatio(): number {
-    const canvas = this._entity.engine.canvas;
-    return this._customAspectRatio ?? (canvas.width * this._viewport.z) / (canvas.height * this._viewport.w);
+    const pixelViewport = this._pixelViewport;
+    return this._customAspectRatio ?? pixelViewport.width / pixelViewport.height;
   }
 
   set aspectRatio(value: number) {
@@ -609,10 +609,19 @@ export class Camera extends Component {
   }
 
   private _updatePixelViewport(): void {
-    const viewport = this._viewport;
-    const width = this._renderTarget?.width ?? this.engine.canvas.width;
-    const height = this._renderTarget?.height ?? this.engine.canvas.height;
+    let width: number, height: number;
 
+    const renderTarget = this._renderTarget;
+    if (renderTarget) {
+      width = renderTarget.width;
+      height = renderTarget.height;
+    } else {
+      const canvas = this.engine.canvas;
+      width = canvas.width;
+      height = canvas.height;
+    }
+
+    const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
   }
 
