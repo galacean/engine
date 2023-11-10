@@ -181,8 +181,6 @@ export class Camera extends Component {
     if (value !== this._viewport) {
       this._viewport.copyFrom(value);
     }
-    this._projMatChange();
-    this._updatePixelViewport();
   }
 
   /**
@@ -333,6 +331,10 @@ export class Camera extends Component {
     this._renderPipeline = new BasicRenderPipeline(this);
     this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
+
+    this._onViewportChanged = this._onViewportChanged.bind(this);
+    //@ts-ignore
+    this._viewport._onValueChanged = this._onViewportChanged;
   }
 
   /**
@@ -606,6 +608,9 @@ export class Camera extends Component {
     this._inverseProjectionMatrix = null;
     this._lastAspectSize = null;
     this._invViewProjMat = null;
+
+    //@ts-ignore
+    this._viewport._onValueChanged = null;
   }
 
   private _updatePixelViewport(): void {
@@ -676,5 +681,11 @@ export class Camera extends Component {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
+  }
+
+  @ignoreClone
+  private _onViewportChanged(): void {
+    this._projMatChange();
+    this._updatePixelViewport();
   }
 }
