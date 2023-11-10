@@ -1,5 +1,5 @@
 import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math/src/Color";
+import { Color } from "@galacean/engine-math";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
@@ -618,6 +618,7 @@ export class Engine extends EventDispatcher {
         })
       );
     }
+
     const loaders = ResourceManager._loaders;
     for (let key in loaders) {
       const loader = loaders[key];

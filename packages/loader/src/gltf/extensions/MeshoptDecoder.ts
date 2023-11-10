@@ -97,12 +97,12 @@ const MeshoptDecoder = (function () {
     return worker;
   }
 
-  function initWorkers(count) {
+  function initWorkers(count: number) {
     const source =
-      "const instance; const ready = WebAssembly.instantiate(new Uint8Array([" +
+      "var instance; console.time('init wasm');var ready = WebAssembly.instantiate(new Uint8Array([" +
       new Uint8Array(unpack(wasm)) +
       "]), {})" +
-      ".then(function(result) { instance = result.instance; instance.exports.__wasm_call_ctors(); });" +
+      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();console.timeEnd('init wasm'); });" +
       "self.onmessage = workerProcess;" +
       decode.toString() +
       workerProcess.toString();
@@ -180,7 +180,7 @@ const MeshoptDecoder = (function () {
         return target;
       });
     },
-    release() {
+    destroy() {
       for (let i = 0; i < workers.length; i++) {
         workers[i].object.terminate();
       }
@@ -191,9 +191,11 @@ const MeshoptDecoder = (function () {
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
     /** meshopt options. */
-    meshOpt?: {
-      /** Worker count for transcoder, default is 4. */
-      workerCount?: number;
+    glTF?: {
+      meshOpt?: {
+        /** Worker count for transcoder, default is 4. */
+        workerCount?: number;
+      };
     };
   }
 }
