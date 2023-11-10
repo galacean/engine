@@ -586,6 +586,9 @@ export class Camera extends Component {
     this._isViewMatrixDirty.destroy();
     this._addResourceReferCount(this.shaderData, -1);
 
+    //@ts-ignore
+    this._viewport._onValueChanged = null;
+
     this._entity = null;
     this._globalShaderMacro = null;
     this._frustum = null;
@@ -599,9 +602,6 @@ export class Camera extends Component {
     this._viewport = null;
     this._inverseProjectionMatrix = null;
     this._invViewProjMat = null;
-
-    //@ts-ignore
-    this._viewport._onValueChanged = null;
   }
 
   private _updatePixelViewport(): void {
