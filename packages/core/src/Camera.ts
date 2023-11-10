@@ -107,8 +107,6 @@ export class Camera extends Component {
   @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
-  private _lastAspectSize: Vector2 = new Vector2(0, 0);
-  @deepClone
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
@@ -261,16 +259,10 @@ export class Camera extends Component {
     const projectionMatrix = virtualCamera.projectionMatrix;
     const canvas = this._entity.engine.canvas;
 
-    if (
-      (!this._isProjectionDirty || this._isProjMatSetting) &&
-      this._lastAspectSize.x === canvas.width &&
-      this._lastAspectSize.y === canvas.height
-    ) {
+    if (!this._isProjectionDirty || this._isProjMatSetting) {
       return projectionMatrix;
     }
     this._isProjectionDirty = false;
-    this._lastAspectSize.x = canvas.width;
-    this._lastAspectSize.y = canvas.height;
     const aspectRatio = this.aspectRatio;
     if (!virtualCamera.isOrthographic) {
       Matrix.perspective(
@@ -606,7 +598,6 @@ export class Camera extends Component {
     this._isInvViewProjDirty = null;
     this._viewport = null;
     this._inverseProjectionMatrix = null;
-    this._lastAspectSize = null;
     this._invViewProjMat = null;
 
     //@ts-ignore
