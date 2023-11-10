@@ -304,8 +304,7 @@ export class Camera extends Component {
       this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
-      this._updatePixelViewport();
-      this._customAspectRatio ?? this._projMatChange();
+      this._onPixelViewportChanged();
     }
   }
 
@@ -324,9 +323,9 @@ export class Camera extends Component {
     this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
 
-    this._onViewportChanged = this._onViewportChanged.bind(this);
+    this._onPixelViewportChanged = this._onPixelViewportChanged.bind(this);
     //@ts-ignore
-    this._viewport._onValueChanged = this._onViewportChanged;
+    this._viewport._onValueChanged = this._onPixelViewportChanged;
   }
 
   /**
@@ -675,8 +674,8 @@ export class Camera extends Component {
   }
 
   @ignoreClone
-  private _onViewportChanged(): void {
-    this._projMatChange();
+  private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
+    this._customAspectRatio ?? this._projMatChange();
   }
 }
