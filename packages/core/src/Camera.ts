@@ -257,7 +257,6 @@ export class Camera extends Component {
   get projectionMatrix(): Matrix {
     const virtualCamera = this._virtualCamera;
     const projectionMatrix = virtualCamera.projectionMatrix;
-    const canvas = this._entity.engine.canvas;
 
     if (!this._isProjectionDirty || this._isProjMatSetting) {
       return projectionMatrix;
@@ -306,6 +305,7 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._updatePixelViewport();
+      this._customAspectRatio ?? this._projMatChange();
     }
   }
 
