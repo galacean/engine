@@ -20,7 +20,7 @@ describe("camera test", function () {
     // Test default values
     expect(camera.aspectRatio).to.eq(1);
     expect(camera.entity.transform.worldPosition).not.to.be.undefined;
-    expect(camera.viewport).to.deep.eq(new Vector4(0, 0, 1, 1));
+    expect(camera.viewport).to.deep.include(new Vector4(0, 0, 1, 1).toJSON());
     expect(camera.fieldOfView).to.eq(45);
     expect(camera.isOrthographic).to.eq(false);
 
@@ -65,9 +65,9 @@ describe("camera test", function () {
     // Test viewport
     const originViewPort = new Vector4(0, 0, 1, 1);
     const expectedViewPort = new Vector4(0, 1, 0, 1);
-    expect(camera.viewport).to.deep.eq(originViewPort);
+    expect(camera.viewport).to.deep.include(originViewPort.toJSON());
     camera.viewport = expectedViewPort;
-    expect(camera.viewport).to.deep.eq(expectedViewPort);
+    expect(camera.viewport).to.deep.include(expectedViewPort.toJSON());
     camera.viewport = originViewPort;
 
     // Test orthographicSize
