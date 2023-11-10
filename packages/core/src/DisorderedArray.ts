@@ -86,6 +86,10 @@ export class DisorderedArray<T> {
     this._endLoopAndClear();
   }
 
+  sort(compareFn: (a: T, b: T) => number): void {
+    this._elements.sort(compareFn);
+  }
+
   garbageCollection(): void {
     this._elements.length = this.length;
   }

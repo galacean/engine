@@ -293,10 +293,12 @@ export class PointerManager implements IInput {
       if (!scene.isActive || scene.destroyed) {
         continue;
       }
-      const { _activeCameras: cameras } = scene;
-      for (let j = cameras.length - 1; j >= 0; j--) {
+      const { _activeCameras: cameraArray } = scene._componentsManager;
+      const cameras = cameraArray._elements;
+
+      for (let j = cameraArray.length - 1; j >= 0; j--) {
         const camera = cameras[j];
-        if (!camera.enabled || camera.renderTarget) {
+        if (camera.renderTarget) {
           continue;
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
