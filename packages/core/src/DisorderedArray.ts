@@ -69,7 +69,7 @@ export class DisorderedArray<T> {
   forEach(callbackFn: (element: T) => void, swapFn: (element: T, index: number) => void): void {
     this._startLoop();
     const elements = this._elements;
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
@@ -79,7 +79,7 @@ export class DisorderedArray<T> {
   forEachAndClean(callbackFn: (e: T) => void): void {
     this._startLoop();
     const elements = this._elements;
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
