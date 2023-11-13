@@ -44,11 +44,20 @@ export class ComponentsManager {
     const replaced = this._activeCameras.deleteByIndex(camera._cameraIndex);
     replaced && (replaced._cameraIndex = camera._cameraIndex);
     camera._cameraIndex = -1;
+    this._cameraNeedSorting = true;
   }
 
   sortCameras(): void {
     if (this._cameraNeedSorting) {
-      this._activeCameras.sort((a, b) => a.priority - b.priority);
+      this._activeCameras.sort((a, b) => {
+        const result = a.priority - b.priority;
+        if (result > 0) {
+          const temp = a._cameraIndex;
+          a._cameraIndex = b._cameraIndex;
+          b._cameraIndex = temp;
+        }
+        return result;
+      });
       this._cameraNeedSorting = false;
     }
   }
