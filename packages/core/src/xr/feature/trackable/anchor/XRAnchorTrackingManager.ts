@@ -1,4 +1,4 @@
-import { registerXRFeatureManager } from "../../../XRModule";
+import { registerXRFeatureManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { IXRPose, IXRRequestTrackingAnchor, IXRTrackedAnchor } from "@galacean/engine-design";

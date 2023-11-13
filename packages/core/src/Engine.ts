@@ -38,8 +38,8 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { XRModule } from "./xr/XRModule";
-import { IXRDevice } from "./xr";
+import { XRManager } from "./xr/XRManager";
+import { IXRDevice, XRSessionState } from "./xr";
 import { CompareFunction } from "./shader";
 import { SpriteMaskInteraction } from "./2d";
 
@@ -59,7 +59,7 @@ export class Engine extends EventDispatcher {
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
   /** XR manager of Engine. */
-  readonly xrModule: XRModule;
+  readonly xrManager: XRManager;
 
   /** @internal */
   _particleBufferUtils: ParticleBufferUtils;
@@ -123,12 +123,6 @@ export class Engine extends EventDispatcher {
   _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  _customAnimationFrameRequester: {
-    requestAnimationFrame: Function;
-    cancelAnimationFrame: Function;
-    update: Function;
-  };
 
   /** @internal */
   protected _canvas: Canvas;
@@ -150,22 +144,29 @@ export class Engine extends EventDispatcher {
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
 
-  private _animate = (...param) => {
-    if (this._vSyncCount) {
-      const { _customAnimationFrameRequester: customAnimationFrameRequester } = this;
-      if (customAnimationFrameRequester) {
-        this._requestId = customAnimationFrameRequester.requestAnimationFrame(this._animate);
-        customAnimationFrameRequester.update(...param);
+  private _animate = () => {
+    const { xrManager } = this;
+    if (xrManager) {
+      this._requestId = xrManager.sessionManager.requestAnimationFrame(this._animate);
+      if (this._vSyncCount) {
+        if (this._vSyncCounter++ % this._vSyncCount === 0) {
+          this.update();
+          this._vSyncCounter = 1;
+        }
       } else {
-        this._requestId = requestAnimationFrame(this._animate);
-      }
-      if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
-        this._vSyncCounter = 1;
       }
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
-      this.update();
+      this._requestId = window.requestAnimationFrame(this._animate);
+      if (this._vSyncCount) {
+        if (this._vSyncCounter++ % this._vSyncCount === 0) {
+          this.update();
+          this._vSyncCounter = 1;
+        }
+      } else {
+        this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+        this.update();
+      }
     }
   };
 
@@ -271,7 +272,7 @@ export class Engine extends EventDispatcher {
     this.inputManager = new InputManager(this);
 
     const { xr } = configuration;
-    xr && (this.xrModule = new XRModule(this, xr));
+    xr && (this.xrManager = new XRManager(this, xr));
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -315,7 +316,11 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    cancelAnimationFrame(this._requestId);
+    if (this.xrManager) {
+      this.xrManager.sessionManager.cancelAnimationFrame(this._requestId);
+    } else {
+      cancelAnimationFrame(this._requestId);
+    }
     clearTimeout(this._timeoutId);
   }
 
@@ -326,9 +331,9 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    const { _customAnimationFrameRequester: customAnimationFrameRequester } = this;
-    if (customAnimationFrameRequester) {
-      this._requestId = customAnimationFrameRequester.requestAnimationFrame(this._animate);
+    const { xrManager } = this;
+    if (xrManager) {
+      this._requestId = xrManager.sessionManager.requestAnimationFrame(this._animate);
     } else {
       this._requestId = requestAnimationFrame(this._animate);
     }
@@ -350,7 +355,7 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    this.xrModule?._update();
+    this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 

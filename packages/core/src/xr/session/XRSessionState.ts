@@ -3,7 +3,7 @@
  */
 export enum XRSessionState {
   /** Not initialized. */
-  NotInitialized,
+  None,
   /** Initialized but not started. */
   Initialized,
   /** Running. */

@@ -8,11 +8,12 @@ import {
   Quaternion,
   Vector3,
   XRRequestTrackingState,
-  Time
+  Time,
+  XRSessionManager
 } from "@galacean/engine";
-import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRTrackedImage } from "@galacean/engine-design";
+import { WebXRSession } from "../WebXRSession";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
@@ -23,7 +24,7 @@ import { IXRTrackedImage } from "@galacean/engine-design";
  * and this choice can change for future XRFrames.
  */
 export class WebXRImageTracking extends XRPlatformImageTracking {
-  private _sessionManager: WebXRSessionManager;
+  private _sessionManager: XRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   private _time: Time;
 
@@ -52,8 +53,9 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
   }
 
   private _requestTrackingScore(): void {
+    const session = <WebXRSession>this._sessionManager.session;
     this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
-    this._sessionManager._platformSession
+    session._platformSession
       // @ts-ignore
       .getTrackedImageScores()
       .then((trackingScores: ("untrackable" | "trackable")[]) => {
@@ -83,8 +85,9 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
   }
 
   private _handleTrackingResults(): void {
-    const { _platformFrame: platformFrame, _platformSpace: platformSpace } = this._sessionManager;
-    if (!platformFrame || !platformSpace) {
+    const session = <WebXRSession>this._sessionManager.session;
+    const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
+    if (!platformFrame || !platformReferenceSpace) {
       return;
     }
 
@@ -97,7 +100,6 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
       _removed: removed
     } = this;
     added.length = updated.length = removed.length = 0;
-
     // @ts-ignore
     const trackingResults = <XRImageTrackingResult[]>platformFrame.getImageTrackingResults();
     for (let i = 0, n = trackingResults.length; i < n; i++) {
@@ -106,7 +108,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
       if (requestTrackingImage) {
         const { trackedImage } = requestTrackingImage;
         if (trackingResult.trackingState === "tracked") {
-          this._updateTrackedImage(platformFrame, platformSpace, trackedImage, trackingResult);
+          this._updateTrackedImage(platformFrame, platformReferenceSpace, trackedImage, trackingResult);
           if (trackedImage.state === XRTrackingState.Tracking) {
             updated.push(trackedImage);
           } else {
@@ -148,7 +150,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
 
   constructor(engine: Engine) {
     super(engine);
-    this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
+    this._sessionManager = engine.xrManager.sessionManager;
     this._time = engine.time;
   }
 }

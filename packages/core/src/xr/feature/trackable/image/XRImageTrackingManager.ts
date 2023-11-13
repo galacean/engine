@@ -1,4 +1,4 @@
-import { registerXRFeatureManager } from "../../../XRModule";
+import { registerXRFeatureManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRReferenceImage } from "./XRReferenceImage";
 import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
@@ -32,7 +32,7 @@ export class XRImageTrackingManager extends XRTrackableManager<
   addTrackingImage(images: XRReferenceImage[]): void;
 
   addTrackingImage(imageOrArr: XRReferenceImage | XRReferenceImage[]): void {
-    if (this._engine.xrModule.sessionState !== XRSessionState.NotInitialized) {
+    if (this._engine.xrManager.sessionManager.state !== XRSessionState.None) {
       Logger.warn("Tracking images can only be added when the session is not initialized.");
       return;
     }
@@ -59,7 +59,7 @@ export class XRImageTrackingManager extends XRTrackableManager<
   removeTrackingImage(images: XRReferenceImage[]): void;
 
   removeTrackingImage(imageOrArr: XRReferenceImage | XRReferenceImage[]): void {
-    if (this._engine.xrModule.sessionState !== XRSessionState.NotInitialized) {
+    if (this._engine.xrManager.sessionManager.state !== XRSessionState.None) {
       Logger.warn("Tracking images can only be removed when the session is not initialized.");
       return;
     }
@@ -77,7 +77,7 @@ export class XRImageTrackingManager extends XRTrackableManager<
    * Remove all tracking images
    */
   removeAllTrackingImage(): void {
-    if (this._engine.xrModule.sessionState !== XRSessionState.NotInitialized) {
+    if (this._engine.xrManager.sessionManager.state !== XRSessionState.None) {
       Logger.warn("Tracking images can only be removed when the session is not initialized.");
       return;
     }

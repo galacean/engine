@@ -4,7 +4,7 @@ import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { XRTracked } from "../../component/trackable/XRTracked";
-import { XRModule } from "../../XRModule";
+import { XRManager } from "../../XRManager";
 import { Entity } from "../../../Entity";
 
 /**
@@ -130,7 +130,7 @@ export abstract class XRTrackableManager<
   }
 
   private _createTrackedObject(sessionRelativeData: TXRTrackable): TXRTracked {
-    const origin = this._engine.xrModule.origin;
+    const origin = this._engine.xrManager.origin;
     const { _prefab: prefab } = this;
     let entity: Entity;
     if (prefab) {
@@ -140,7 +140,7 @@ export abstract class XRTrackableManager<
     } else {
       entity = origin.createChild("trackable" + sessionRelativeData.id);
     }
-    const trackedObject = <TXRTracked>entity.addComponent(XRModule._componentMap[this._descriptor.type]);
+    const trackedObject = <TXRTracked>entity.addComponent(XRManager._componentMap[this._descriptor.type]);
     return trackedObject;
   }
 }

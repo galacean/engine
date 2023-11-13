@@ -1,5 +1,5 @@
 import { IXRFeatureDescriptor, IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
-import { registerXRFeatureManager } from "../../XRModule";
+import { registerXRFeatureManager } from "../../XRManager";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRHitTestType } from "./XRHItTestType";
@@ -40,7 +40,7 @@ export class XRHitTestManager extends XRFeatureManager {
    * @returns The hit result
    */
   hitTest(ray: Ray, type: XRHitTestType): IXRHitResult[] {
-    if (this._engine.xrModule.mode !== XRSessionType.AR) {
+    if (this._engine.xrManager.mode !== XRSessionType.AR) {
       Logger.warn("Only AR mode supports using screen ray detection.");
       return null;
     }
@@ -55,12 +55,15 @@ export class XRHitTestManager extends XRFeatureManager {
    * @returns The hit result
    */
   screenHitTest(x: number, y: number, type: XRHitTestType): IXRHitResult[] {
-    const { xrModule } = this._engine;
-    if (xrModule.mode !== XRSessionType.AR) {
+    const { xrManager } = this._engine;
+    if (xrManager.mode !== XRSessionType.AR) {
       Logger.warn("Only AR mode supports using screen ray detection.");
       return null;
     }
-    const camera = xrModule.getFeature<XRCameraManager>(XRFeatureType.CameraDevice).getCameraByType(XRInputType.Camera);
+
+    const camera = xrManager
+      .getFeature<XRCameraManager>(XRFeatureType.CameraDevice)
+      .getCameraByType(XRInputType.Camera);
     if (!camera) {
       Logger.warn("No camera available.");
       return null;
@@ -78,7 +81,7 @@ export class XRHitTestManager extends XRFeatureManager {
   }
 
   private _hitTestPlane(ray: Ray, result: IXRHitResult[]): void {
-    const planeManager = this._engine.xrModule.getFeature<XRPlaneTrackingManager>(XRFeatureType.PlaneTracking);
+    const planeManager = this._engine.xrManager.getFeature<XRPlaneTrackingManager>(XRFeatureType.PlaneTracking);
     if (!planeManager || !planeManager.enabled) {
       Logger.warn("The plane estimation function needs to be turned on for plane hit test.");
       return;

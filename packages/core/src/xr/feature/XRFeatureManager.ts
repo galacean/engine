@@ -12,7 +12,7 @@ export abstract class XRFeatureManager<
   protected _engine: Engine;
   protected _descriptor: TDescriptor;
   protected _platformFeature: TPlatformFeature;
-  protected _enabled: boolean = true;
+  protected _enabled: boolean = false;
 
   /**
    * Return the descriptor of the feature.
@@ -53,7 +53,11 @@ export abstract class XRFeatureManager<
    * @returns The promise of the feature
    */
   initialize(): Promise<void> {
-    return this._platformFeature._initialize(this._descriptor);
+    if (this._platformFeature) {
+      return this._platformFeature._initialize(this._descriptor);
+    } else {
+      return Promise.resolve();
+    }
   }
 
   constructor(engine: Engine) {
@@ -74,41 +78,41 @@ export abstract class XRFeatureManager<
    * @internal
    */
   _onUpdate(): void {
-    this._platformFeature._onUpdate();
+    this._platformFeature?._onUpdate();
   }
 
   /**
    * @internal
    */
   _onSessionInit(): void {
-    this._platformFeature._onSessionInit();
+    this._platformFeature?._onSessionInit();
   }
 
   /**
    * @internal
    */
   _onSessionStart(): void {
-    this._platformFeature._onSessionStart();
+    this._platformFeature?._onSessionStart();
   }
 
   /**
    * @internal
    */
   _onSessionStop(): void {
-    this._platformFeature._onSessionStop();
+    this._platformFeature?._onSessionStop();
   }
 
   /**
    * @internal
    */
   _onSessionDestroy(): void {
-    this._platformFeature._onSessionDestroy();
+    this._platformFeature?._onSessionDestroy();
   }
 
   /**
    * @internal
    */
   _onDestroy(): void {
-    this._platformFeature._onDestroy();
+    this._platformFeature?._onDestroy();
   }
 }

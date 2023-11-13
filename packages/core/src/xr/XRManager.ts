@@ -7,22 +7,18 @@ import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionType } from "./session/XRSessionType";
 import { XRFeatureManager } from "./feature/XRFeatureManager";
-import { XRPlatformFeature } from "./feature/XRPlatformFeature";
-import { Logger } from "../base";
-import { Utils } from "../Utils";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
 import { Component } from "../Component";
 
 type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRPlatformFeature>;
 type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
-type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
 type TXRTrackedComponent = new (entity: Entity) => Component;
 
 /**
- * XRModule is the entry point of the XR system.
+ * XRManager is the entry point of the XR system.
  */
-export class XRModule {
+export class XRManager {
   // @internal
   static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
   // @internal
@@ -39,8 +35,6 @@ export class XRModule {
   private _scene: Scene;
   private _origin: Entity;
   private _features: TXRFeatureManager[] = [];
-  private _sessionState: XRSessionState = XRSessionState.NotInitialized;
-  private _listeners: TXRSessionStateChangeListener[] = [];
 
   private _mode: XRSessionType;
   private _requestFeatures: IXRFeatureDescriptor[];
@@ -84,13 +78,6 @@ export class XRModule {
    */
   get requestFeatures(): IXRFeatureDescriptor[] {
     return this._requestFeatures;
-  }
-
-  /**
-   * The current session state.
-   */
-  get sessionState(): XRSessionState {
-    return this._sessionState;
   }
 
   /**
@@ -145,13 +132,13 @@ export class XRModule {
    * @param type - The type of feature
    * @returns The feature instance
    */
-  getFeature<T extends XRFeatureManager<IXRFeatureDescriptor, XRPlatformFeature>>(type: XRFeatureType): T {
+  getFeature<T extends XRFeatureManager>(type: XRFeatureType): T {
     const { _features: features } = this;
     const feature = features[type];
     if (feature) {
       return <T>feature;
     } else {
-      const { _featureManagerMap: featureManagerMap } = XRModule;
+      const { _featureManagerMap: featureManagerMap } = XRManager;
       const featureManagerConstructor = featureManagerMap[type];
       const platformFeature = this.xrDevice.createPlatformFeature(this._engine, type);
       const feature = (features[type] = new featureManagerConstructor(this._engine));
@@ -168,7 +155,7 @@ export class XRModule {
    * @returns A promise that resolves if the session is initialized, otherwise rejects
    */
   initSession(mode: XRSessionType, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
-    if (this._sessionState !== XRSessionState.NotInitialized) {
+    if (this.sessionManager.state !== XRSessionState.None) {
       return Promise.reject(new Error("Please destroy the old session first"));
     }
     return new Promise((resolve, reject) => {
@@ -194,7 +181,7 @@ export class XRModule {
           // 4. Check if this feature is supported
           Promise.all(supportedArr).then(() => {
             // 5. Initialize session
-            this.sessionManager.initialize(mode, requestFeatures).then(() => {
+            this.sessionManager.initialize(mode, requestFeatures).then((session) => {
               // 6. Initialize all features
               const initializeArr = [];
               const { _features: features } = this;
@@ -205,7 +192,11 @@ export class XRModule {
               Promise.all(initializeArr).then(() => {
                 this._mode = mode;
                 this._requestFeatures = requestFeatures;
-                this._setSessionState(XRSessionState.Initialized);
+                this.inputManager._onSessionInit(session);
+                for (let i = 0, n = features.length; i < n; i++) {
+                  const feature = features[i];
+                  feature?.enabled && feature._onSessionInit();
+                }
                 resolve();
               }, reject);
             }, reject);
@@ -223,8 +214,14 @@ export class XRModule {
    */
   destroySession(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.sessionManager.destroy().then(() => {
-        this._setSessionState(XRSessionState.NotInitialized);
+      const { sessionManager } = this;
+      sessionManager.destroy().then(() => {
+        const { _features: features } = this;
+        this.inputManager._onSessionDestroy();
+        for (let i = 0, n = features.length; i < n; i++) {
+          const feature = features[i];
+          feature?.enabled && feature._onSessionDestroy();
+        }
         resolve();
       }, reject);
     });
@@ -236,8 +233,14 @@ export class XRModule {
    */
   startSession(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.sessionManager.start().then(() => {
-        this._setSessionState(XRSessionState.Running);
+      const { sessionManager } = this;
+      sessionManager.start().then(() => {
+        const { _features: features } = this;
+        this.inputManager._onSessionStart();
+        for (let i = 0, n = features.length; i < n; i++) {
+          const feature = features[i];
+          feature?.enabled && feature._onSessionStart();
+        }
         resolve();
       }, reject);
     });
@@ -250,7 +253,12 @@ export class XRModule {
   stopSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager.stop().then(() => {
-        this._setSessionState(XRSessionState.Paused);
+        const { _features: features } = this;
+        this.inputManager._onSessionStop();
+        for (let i = 0, n = features.length; i < n; i++) {
+          const feature = features[i];
+          feature?.enabled && feature._onSessionStop();
+        }
         resolve();
       }, reject);
     });
@@ -267,106 +275,38 @@ export class XRModule {
     features.length = 0;
     this.inputManager._onDestroy();
     this.sessionManager.destroy();
-    this.removeAllSessionStateChangeListener();
-  }
-
-  /**
-   * Add a session state change listener.
-   * @param listener - The listener to add
-   */
-  addSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
-    this._listeners.push(listener);
-  }
-
-  /**
-   * Remove a session state change listener.
-   * @param listener - The listener to remove
-   */
-  removeSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
-    Utils.removeFromArray(this._listeners, listener);
-  }
-
-  /**
-   * Remove all session state change listeners.
-   */
-  removeAllSessionStateChangeListener(): void {
-    this._listeners.length = 0;
   }
 
   constructor(engine: Engine, xrDevice: IXRDevice) {
     this._engine = engine;
     this.xrDevice = xrDevice;
-    this.sessionManager = xrDevice.createSessionManager(engine);
-    this.inputManager = xrDevice.createInputManager(engine);
+    this.sessionManager = new XRSessionManager(engine);
+    this.inputManager = new XRInputManager(engine);
   }
 
   /**
    * @internal
    */
   _update(): void {
-    if (this._sessionState !== XRSessionState.Running) return;
+    if (this.sessionManager.state !== XRSessionState.Running) return;
+    this.sessionManager._onUpdate();
     this.inputManager._onUpdate();
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
-      features[i]?._onUpdate();
-    }
-  }
-
-  private _setSessionState(value: XRSessionState) {
-    const { _features: features } = this;
-    const from = this._sessionState;
-    this._sessionState = value;
-    this._dispatchSessionStateChange(from, value);
-    switch (value) {
-      case XRSessionState.Initialized:
-        this.inputManager._onSessionInit();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          feature?.enabled && feature._onSessionInit();
-        }
-        break;
-      case XRSessionState.Running:
-        this.inputManager._onSessionStart();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          feature?.enabled && feature._onSessionStart();
-        }
-        break;
-      case XRSessionState.Paused:
-        this.inputManager._onSessionStop();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          feature?.enabled && feature._onSessionStop();
-        }
-        break;
-      case XRSessionState.NotInitialized:
-        this.inputManager._onSessionDestroy();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          feature?.enabled && feature._onSessionDestroy();
-        }
-        break;
-      default:
-        break;
-    }
-  }
-
-  private _dispatchSessionStateChange(from: XRSessionState, to: XRSessionState): void {
-    const listeners = this._listeners;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i](from, to);
+      const feature = features[i];
+      feature?.enabled && feature._onUpdate();
     }
   }
 }
 
 export function registerXRFeatureManager(feature: XRFeatureType) {
   return (featureManagerConstructor: TXRFeatureManagerConstructor) => {
-    XRModule._featureManagerMap[feature] = featureManagerConstructor;
+    XRManager._featureManagerMap[feature] = featureManagerConstructor;
   };
 }
 
 export function registerXRComponent(feature: XRFeatureType) {
   return (componentConstructor: TXRTrackedComponent) => {
-    XRModule._componentMap[feature] = componentConstructor;
+    XRManager._componentMap[feature] = componentConstructor;
   };
 }

@@ -1,7 +1,7 @@
 import { IXRMovementTrackingDescriptor } from "./IXRMovementTrackingDescriptor";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
-import { registerXRFeatureManager } from "../../XRModule";
+import { registerXRFeatureManager } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRPlatformMovementTracking } from "./XRPlatformMovementTracking";
 

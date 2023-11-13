@@ -1,8 +1,0 @@
-import { IXRFeatureDescriptor } from "../feature/IXRFeatureDescriptor";
-
-export interface IXRSessionManager {
-  initialize(mode: number, requestFeatures: IXRFeatureDescriptor[]): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  destroy(): Promise<void>;
-}

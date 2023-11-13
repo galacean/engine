@@ -2,31 +2,30 @@ import {
   Engine,
   Matrix,
   Quaternion,
-  Time,
   Vector3,
   XRFeatureType,
   XRPlatformAnchorTracking,
   XRRequestTrackingState,
+  XRSessionManager,
   XRTrackingState
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRRequestTrackingAnchor } from "@galacean/engine-design";
-import { WebXRSessionManager } from "../WebXRSessionManager";
+import { WebXRSession } from "../WebXRSession";
 
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
 export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
-  private _time: Time;
-  private _sessionManager: WebXRSessionManager;
+  private _sessionManager: XRSessionManager;
 
   override _onUpdate(): void {
-    const { _platformFrame: platformFrame, _platformSpace: platformSpace } = this._sessionManager;
-    if (!platformFrame || !platformSpace) {
+    const session = <WebXRSession>this._sessionManager.session;
+    if (!session) {
       return;
     }
-
+    const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
     const { _added: added, _updated: updated, _removed: removed, _trackedObjects: trackedObjects } = this;
     added.length = updated.length = removed.length = 0;
     const requestTrackingAnchors = <IWebXRRequestTrackingAnchor[]>this._requestTrackingAnchors;
@@ -37,7 +36,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
         case XRRequestTrackingState.Resolved:
           const { trackedAnchor } = requestTrackingAnchor;
           if (trackedAnchors.has(requestTrackingAnchor.xrAnchor)) {
-            const emulated = this._updateTrackedAnchor(platformFrame, platformSpace, requestTrackingAnchor);
+            const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTrackingAnchor);
             if (emulated) {
               if (trackedAnchor.state === XRTrackingState.Tracking) {
                 trackedAnchor.state = XRTrackingState.TrackingLost;
@@ -62,7 +61,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
           }
           break;
         case XRRequestTrackingState.None:
-          this._createAnchor(platformFrame, platformSpace, requestTrackingAnchor);
+          this._createAnchor(platformFrame, platformReferenceSpace, requestTrackingAnchor);
           break;
         default:
           break;
@@ -72,8 +71,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
 
   constructor(engine: Engine) {
     super(engine);
-    this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
-    this._time = engine.time;
+    this._sessionManager = engine.xrManager.sessionManager;
   }
 
   private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, trackedAnchor: IWebXRRequestTrackingAnchor): boolean {

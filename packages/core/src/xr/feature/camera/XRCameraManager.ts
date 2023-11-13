@@ -6,17 +6,17 @@ import { XRInputManager } from "../../input/XRInputManager";
 import { XRCamera } from "../../input/XRCamera";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
-import { XRPlatformCamera } from "./XRPlatformCamera";
-import { registerXRFeatureManager } from "../../XRModule";
+import { registerXRFeatureManager } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
-import { XRSessionType } from "../../session/XRSessionType";
+import { XRSessionManager } from "../../session/XRSessionManager";
 
 @registerXRFeatureManager(XRFeatureType.CameraDevice)
 /**
  * The manager of XR camera.
  */
-export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPlatformCamera> {
+export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
   private _inputManager: XRInputManager;
+  private _sessionManager: XRSessionManager;
 
   override get enabled() {
     return true;
@@ -65,16 +65,26 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor, XRPla
    * Return fixed foveation of the camera.
    */
   get fixedFoveation() {
-    return this._platformFeature.fixedFoveation;
+    const { session } = this._sessionManager;
+    if (session) {
+      return session.fixedFoveation;
+    } else {
+      return 1;
+    }
   }
 
   set fixedFoveation(value: number) {
-    this._platformFeature.fixedFoveation = value;
+    const { session } = this._sessionManager;
+    if (session) {
+      session.fixedFoveation = value;
+    }
   }
 
   constructor(engine: Engine) {
     super(engine);
-    this._inputManager = engine.xrModule.inputManager;
+    const { xrManager } = engine;
+    this._inputManager = xrManager.inputManager;
+    this._sessionManager = xrManager.sessionManager;
     this._enabled = true;
   }
 }

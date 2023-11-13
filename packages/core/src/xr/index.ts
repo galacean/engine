@@ -1,5 +1,5 @@
 // xr manager
-export { XRModule, registerXRFeatureManager } from "./XRModule";
+export { XRManager, registerXRFeatureManager } from "./XRManager";
 
 // xr device
 export type { IXRDevice } from "./IXRDevice";
@@ -11,7 +11,6 @@ export { XRPlatformFeature } from "./feature/XRPlatformFeature";
 export { XRFeatureType } from "./feature/XRFeatureType";
 // camera
 export type { IXRCameraDescriptor } from "./feature/camera/IXRCameraDescriptor";
-export { XRPlatformCamera } from "./feature/camera/XRPlatformCamera";
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
 export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
@@ -40,10 +39,10 @@ export { XRPlatformPlaneTracking } from "./feature/trackable/plane/XRPlatformPla
 export { XRTrackingState } from "./feature/trackable/XRTrackingState";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRInputButton } from "./input/XRInputButton";
+export { XRInputEvent } from "./input/XRInputEvent";
 export { XRController } from "./input/XRController";
 export { XRInputType } from "./input/XRInputType";
 export { XRCamera } from "./input/XRCamera";
-export { XRInput } from "./input/XRInput";
 
 // xr session
 export { XRSessionManager } from "./session/XRSessionManager";

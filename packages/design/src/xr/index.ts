@@ -3,7 +3,6 @@ export type { IXRFeatureManager } from "./feature/IXRFeatureManager";
 export type { IXRFeatureDescriptor } from "./feature/IXRFeatureDescriptor";
 export type { IXRHitResult } from "./feature/IXRHitResult";
 
-export type { IXRInputManager } from "./input/IXRInputManager";
 export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
 
@@ -16,4 +15,6 @@ export type { IXRTrackedPlane } from "./feature/trackable/IXRTrackedPlane";
 export type { IXRRequestTrackingAnchor } from "./feature/trackable/IXRRequestTrackingAnchor";
 export type { IXRRequestTrackingImage } from "./feature/trackable/IXRRequestTrackingImage";
 
-export type { IXRSessionManager } from "./session/IXRSessionManager";
+export type { IXRFrame } from "./IXRFrame";
+export type { IXRSession } from "./IXRSession";
+export type { IXRInputEvent } from "./IXRInputEvent";

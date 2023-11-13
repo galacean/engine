@@ -1,6 +1,6 @@
 import { IXRTrackedAnchor } from "@galacean/engine-design";
 import { XRTracked } from "./XRTracked";
-import { registerXRComponent } from "../../XRModule";
+import { registerXRComponent } from "../../XRManager";
 import { XRFeatureType } from "../../feature/XRFeatureType";
 
 @registerXRComponent(XRFeatureType.AnchorTracking)

@@ -1,4 +1,4 @@
-import { registerXRFeatureManager } from "../../../XRModule";
+import { registerXRFeatureManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { IXRPlaneTrackingDescriptor } from "./IXRPlaneTrackingDescriptor";
 import { IXRTrackedPlane } from "@galacean/engine-design";

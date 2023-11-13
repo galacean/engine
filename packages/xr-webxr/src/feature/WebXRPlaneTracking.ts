@@ -7,18 +7,19 @@ import {
   XRTrackingState,
   XRPlatformPlaneTracking,
   XRPlaneDetectionMode,
-  Logger
+  Logger,
+  XRSessionManager
 } from "@galacean/engine";
-import { WebXRSessionManager } from "../WebXRSessionManager";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRTrackedPlane } from "@galacean/engine-design";
+import { WebXRSession } from "../WebXRSession";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
 export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
-  private _sessionManager: WebXRSessionManager;
+  private _sessionManager: XRSessionManager;
   private _lastDetectedPlanes: XRPlaneSet;
 
   /**
@@ -33,8 +34,9 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
   }
 
   override _onUpdate() {
-    const { _platformFrame: platformFrame, _platformSpace: platformSpace } = this._sessionManager;
-    if (!platformFrame || !platformSpace) {
+    const session = <WebXRSession>this._sessionManager.session;
+    const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
+    if (!platformFrame || !platformReferenceSpace) {
       return;
     }
 
@@ -48,7 +50,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
       const { xrPlane } = trackedPlane;
       if (detectedPlanes?.has(xrPlane)) {
         if (trackedPlane.lastChangedTime < xrPlane.lastChangedTime) {
-          this._updatePlane(platformFrame, platformSpace, trackedPlane, xrPlane);
+          this._updatePlane(platformFrame, platformReferenceSpace, trackedPlane, xrPlane);
           updated.push(trackedPlane);
         }
       } else {
@@ -70,7 +72,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
           polygon: [],
           frameCount: 0
         };
-        this._updatePlane(platformFrame, platformSpace, plane, xrPlane);
+        this._updatePlane(platformFrame, platformReferenceSpace, plane, xrPlane);
         trackedPlanes.push(plane);
         added.push(plane);
       }
@@ -96,7 +98,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
 
   constructor(engine: Engine) {
     super(engine);
-    this._sessionManager = <WebXRSessionManager>engine.xrModule.sessionManager;
+    this._sessionManager = engine.xrManager.sessionManager;
   }
 }
 

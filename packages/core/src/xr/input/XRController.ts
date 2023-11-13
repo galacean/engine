@@ -1,16 +1,16 @@
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
-import { DisorderedArray } from "../../DisorderedArray";
-import { XRInputButton } from "./XRInputButton";
-import { IXRPose } from "@galacean/engine-design";
-import { Engine } from "../../Engine";
-import { XRInput } from "./XRInput";
 import { XRControllerPoseMode } from "./XRControllerPoseMode";
+import { DisorderedArray } from "../../DisorderedArray";
+import { IXRInput, IXRPose } from "@galacean/engine-design";
+import { XRInputButton } from "./XRInputButton";
+import { XRTrackingState } from "../feature/trackable/XRTrackingState";
+import { XRInputType } from "./XRInputType";
 
-export class XRController extends XRInput {
-  /** The target ray pose of the controller. */
-  targetRayPose: IXRPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
-  /** The grip pose of the controller. */
-  gripPose: IXRPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
+export class XRController implements IXRInput {
+  /** The update frame count of xr input. */
+  frameCount: number = 0;
+  /** The tracking state of xr input. */
+  trackingState: XRTrackingState = XRTrackingState.NotTracking;
   /** The currently pressed buttons of this controller. */
   pressedButtons: XRInputButton = XRInputButton.None;
   /** Record button lifted. */
@@ -18,62 +18,34 @@ export class XRController extends XRInput {
   /** Record button pressed. */
   downMap: number[] = [];
   /** Record button lifted in the current frame. */
-  upList: DisorderedArray<XRInputButton> = new DisorderedArray();
+  upList: DisorderedArray<XRInputButton>;
   /** Record button pressed in the current frame. */
-  downList: DisorderedArray<XRInputButton> = new DisorderedArray();
+  downList: DisorderedArray<XRInputButton>;
+  /** the pose mode of the controller. (Default is Grip) */
+  poseMode: XRControllerPoseMode;
+  gripPose: IXRPose;
+  targetRayPose: IXRPose;
 
-  private _poseMode: XRControllerPoseMode;
+  protected _pose: IXRPose;
 
   /**
-   * Returns the pose mode of the controller. (Default is Grip)
+   * Returns the pose of the input.
    */
-  get poseMode(): XRControllerPoseMode {
-    return this._poseMode;
-  }
-
-  set poseMode(mode: XRControllerPoseMode) {
-    switch (mode) {
-      case XRControllerPoseMode.Auto:
-      case XRControllerPoseMode.Grip:
-        this.pose = this.gripPose;
-        break;
-      case XRControllerPoseMode.TargetRay:
-        this.pose = this.targetRayPose;
-        break;
-      default:
-        break;
+  get pose(): IXRPose {
+    if (this.poseMode === XRControllerPoseMode.Grip) {
+      return this.gripPose;
+    } else {
+      return this.targetRayPose;
     }
   }
 
-  /**
-   * Returns whether the button is pressed.
-   * @param button - The button to check
-   * @returns Whether the button is pressed
-   */
-  isButtonDown(button: XRInputButton): boolean {
-    return this.downMap[button] === this._engine.time.frameCount;
-  }
-
-  /**
-   * Returns whether the button is lifted.
-   * @param button - The button to check
-   * @returns Whether the button is lifted
-   */
-  isButtonUp(button: XRInputButton): boolean {
-    return this.upMap[button] === this._engine.time.frameCount;
-  }
-
-  /**
-   * Returns whether the button is held down.
-   * @param button - The button to check
-   * @returns Whether the button is held down
-   */
-  isButtonHeldDown(button: XRInputButton): boolean {
-    return (this.pressedButtons & button) !== 0;
-  }
-
-  constructor(protected _engine: Engine) {
-    super();
-    this.poseMode = XRControllerPoseMode.Auto;
+  constructor(public type: XRInputType) {
+    this.upMap = [];
+    this.downMap = [];
+    this.upList = new DisorderedArray();
+    this.downList = new DisorderedArray();
+    this.poseMode = XRControllerPoseMode.Grip;
+    this.gripPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
+    this.targetRayPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
   }
 }

@@ -1,6 +1,6 @@
 import { IXRTrackedPlane } from "@galacean/engine-design";
 import { XRTracked } from "./XRTracked";
-import { registerXRComponent } from "../../XRModule";
+import { registerXRComponent } from "../../XRManager";
 import { XRFeatureType } from "../../feature/XRFeatureType";
 import { Vector3 } from "@galacean/engine-math";
 
