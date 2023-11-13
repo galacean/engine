@@ -147,7 +147,7 @@ export class ParticleGenerator {
 
     this._primitive = new Primitive(renderer.engine);
     this._reorganizeGeometryBuffers();
-    this._resizeInstanceBuffer(ParticleGenerator._particleIncreaseCount);
+    this._resizeInstanceBuffer(true, ParticleGenerator._particleIncreaseCount);
 
     this.emission.enabled = true;
   }
@@ -216,9 +216,9 @@ export class ParticleGenerator {
    * @internal
    */
   _emit(time: number, count: number): void {
-    const position = ParticleGenerator._tempVector30;
-    const direction = ParticleGenerator._tempVector31;
     if (this.emission.enabled) {
+      const position = ParticleGenerator._tempVector30;
+      const direction = ParticleGenerator._tempVector31;
       const transform = this._renderer.entity.transform;
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
@@ -250,6 +250,14 @@ export class ParticleGenerator {
     this._freeRetiredParticles();
 
     if (emission.enabled && this._isPlaying) {
+      // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
+      if (this._currentParticleCount > main.maxParticles) {
+        const aliveParticleCount = this._getAliveParticleCount();
+        if (aliveParticleCount === main.maxParticles) {
+          this._resizeInstanceBuffer(false);
+        }
+      }
+
       emission._emit(lastPlayTime, this._playTime);
 
       if (!main.isLoop && this._playTime > duration) {
@@ -347,7 +355,7 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _resizeInstanceBuffer(increaseCount: number): void {
+  _resizeInstanceBuffer(isIncrease: boolean, increaseCount?: number): void {
     this._instanceVertexBufferBinding?.buffer.destroy();
 
     const particleUtils = this._renderer.engine._particleBufferUtils;
@@ -372,10 +380,48 @@ export class ParticleGenerator {
     if (lastInstanceVertices) {
       const floatStride = particleUtils.instanceVertexFloatStride;
 
-      const freeOffset = this._firstFreeElement * floatStride;
-      instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
-      const freeEndOffset = (this._firstFreeElement + increaseCount) * floatStride;
-      instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset * 4), freeEndOffset);
+      const firstFreeElement = this._firstFreeElement;
+      const firstRetiredElement = this._firstRetiredElement;
+      if (isIncrease) {
+        const freeOffset = this._firstFreeElement * floatStride;
+        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
+        const freeEndOffset = (this._firstFreeElement + increaseCount) * floatStride;
+        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset * 4), freeEndOffset);
+
+        // Maintain expanded pointers
+        this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
+        this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
+        firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
+      } else {
+        let migrateCount: number, bufferOffset: number;
+        if (firstRetiredElement < firstFreeElement) {
+          migrateCount = firstFreeElement - firstRetiredElement;
+          bufferOffset = 0;
+
+          // Maintain expanded pointers
+          this._firstFreeElement -= firstRetiredElement;
+          this._firstNewElement -= firstRetiredElement;
+          this._firstActiveElement -= firstRetiredElement;
+          this._firstRetiredElement = 0;
+        } else {
+          migrateCount = this._currentParticleCount - firstRetiredElement;
+          bufferOffset = firstFreeElement;
+
+          // Maintain expanded pointers
+          this._firstNewElement > firstFreeElement && (this._firstNewElement -= firstFreeElement);
+          this._firstActiveElement > firstFreeElement && (this._firstActiveElement -= firstFreeElement);
+          firstRetiredElement > firstFreeElement && (this._firstRetiredElement -= firstFreeElement);
+        }
+
+        instanceVertices.set(
+          new Float32Array(
+            lastInstanceVertices.buffer,
+            firstRetiredElement * floatStride * 4,
+            migrateCount * floatStride
+          ),
+          bufferOffset * floatStride
+        );
+      }
 
       this._instanceBufferResized = true;
     }
@@ -390,9 +436,55 @@ export class ParticleGenerator {
     this._currentParticleCount = newParticleCount;
   }
 
-  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
-    const particleUtils = this._renderer.engine._particleBufferUtils;
+  /**
+   * @internal
+   */
+  _updateShaderData(shaderData: ShaderData): void {
+    this.main._updateShaderData(shaderData);
+    this.velocityOverLifetime._updateShaderData(shaderData);
+    this.textureSheetAnimation._updateShaderData(shaderData);
+    this.sizeOverLifetime._updateShaderData(shaderData);
+    this.rotationOverLifetime._updateShaderData(shaderData);
+    this.colorOverLifetime._updateShaderData(shaderData);
+  }
 
+  /**
+   * @internal
+   */
+  _resetGlobalRandSeed(seed: number): void {
+    this._randomSeed = seed;
+    this.main._resetRandomSeed(seed);
+    this.emission._resetRandomSeed(seed);
+    this.textureSheetAnimation._resetRandomSeed(seed);
+    this.velocityOverLifetime._resetRandomSeed(seed);
+    this.rotationOverLifetime._resetRandomSeed(seed);
+    this.colorOverLifetime._resetRandomSeed(seed);
+  }
+
+  /**
+   * @internal
+   */
+  _getAliveParticleCount(): number {
+    if (this._firstActiveElement < this._firstFreeElement) {
+      return this._firstFreeElement - this._firstActiveElement;
+    } else {
+      let instanceCount = this._currentParticleCount - this._firstActiveElement;
+      if (this._firstFreeElement > 0) {
+        instanceCount += this._firstFreeElement;
+      }
+      return instanceCount;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._instanceVertexBufferBinding.buffer.destroy();
+    this._primitive.destroy();
+  }
+
+  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
     if (nextFreeElement >= this._currentParticleCount) {
@@ -400,26 +492,20 @@ export class ParticleGenerator {
     }
 
     const main = this.main;
-
     // Check if can be expanded
     if (nextFreeElement === this._firstRetiredElement) {
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
         main.maxParticles - this._currentParticleCount
       );
-      if (increaseCount === 0) {
+      if (increaseCount <= 0) {
         return;
       }
 
-      this._resizeInstanceBuffer(increaseCount);
+      this._resizeInstanceBuffer(true, increaseCount);
 
       // Recalculate nextFreeElement after resize
       nextFreeElement = firstFreeElement + 1;
-
-      // Maintain expanded pointers
-      this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
-      this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
-      this._firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
     }
 
     let pos: Vector3, rot: Quaternion;
@@ -428,6 +514,7 @@ export class ParticleGenerator {
       rot = transform.worldRotationQuaternion;
     }
 
+    const particleUtils = this._renderer.engine._particleBufferUtils;
     const startSpeed = main.startSpeed.evaluate(undefined, main._startSpeedRand.random());
 
     const instanceVertices = this._instanceVertices;
@@ -569,7 +656,7 @@ export class ParticleGenerator {
     const frameCount = engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
-    while (this._firstActiveElement != this._firstNewElement) {
+    while (this._firstActiveElement !== this._firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * particleUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + particleUtils.timeOffset;
 
@@ -590,44 +677,11 @@ export class ParticleGenerator {
     }
   }
 
-  /**
-   * @internal
-   */
-  _updateShaderData(shaderData: ShaderData): void {
-    this.main._updateShaderData(shaderData);
-    this.velocityOverLifetime._updateShaderData(shaderData);
-    this.textureSheetAnimation._updateShaderData(shaderData);
-    this.sizeOverLifetime._updateShaderData(shaderData);
-    this.rotationOverLifetime._updateShaderData(shaderData);
-    this.colorOverLifetime._updateShaderData(shaderData);
-  }
-
-  /**
-   * @internal
-   */
-  _resetGlobalRandSeed(seed: number): void {
-    this._randomSeed = seed;
-    this.main._resetRandomSeed(seed);
-    this.emission._resetRandomSeed(seed);
-    this.textureSheetAnimation._resetRandomSeed(seed);
-    this.velocityOverLifetime._resetRandomSeed(seed);
-    this.rotationOverLifetime._resetRandomSeed(seed);
-    this.colorOverLifetime._resetRandomSeed(seed);
-  }
-
-  /**
-   * @internal
-   */
-  _destroy(): void {
-    this._instanceVertexBufferBinding.buffer.destroy();
-    this._primitive.destroy();
-  }
-
   private _freeRetiredParticles(): void {
     const particleUtils = this._renderer.engine._particleBufferUtils;
     const frameCount = this._renderer.engine.time.frameCount;
 
-    while (this._firstRetiredElement != this._firstActiveElement) {
+    while (this._firstRetiredElement !== this._firstActiveElement) {
       const offset =
         this._firstRetiredElement * particleUtils.instanceVertexFloatStride + particleUtils.startLifeTimeOffset;
       const age = frameCount - this._instanceVertices[offset];

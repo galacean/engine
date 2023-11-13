@@ -110,14 +110,7 @@ export class MainModule implements ICustomClone {
   }
 
   set maxParticles(value: number) {
-    if (this._maxParticles !== value) {
-      this._maxParticles = value;
-
-      const generator = this._generator;
-      if (value < generator._currentParticleCount) {
-        generator._resizeInstanceBuffer(value);
-      }
-    }
+    this._maxParticles = value;
   }
 
   /**
