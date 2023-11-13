@@ -218,7 +218,7 @@ export class ParticleGenerator {
   _emit(time: number, count: number): void {
     if (this.emission.enabled) {
       // Wait the existing particles to be retired
-      if (this.main.maxParticles < this._currentParticleCount) {
+      if (this.main._maxParticleBuffer < this._currentParticleCount) {
         return;
       }
       const position = ParticleGenerator._tempVector30;
@@ -255,9 +255,9 @@ export class ParticleGenerator {
 
     if (emission.enabled && this._isPlaying) {
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
-      if (this._currentParticleCount > main.maxParticles) {
-        const aliveParticleCount = this._getAliveParticleCount();
-        if (aliveParticleCount <= main.maxParticles) {
+      if (this._currentParticleCount > main._maxParticleBuffer) {
+        const notRetireParticleCount = this._getNotRetiredParticleCount();
+        if (notRetireParticleCount < main._maxParticleBuffer) {
           this._resizeInstanceBuffer(false);
         }
       }
@@ -364,7 +364,7 @@ export class ParticleGenerator {
 
     const particleUtils = this._renderer.engine._particleBufferUtils;
     const stride = particleUtils.instanceVertexStride;
-    const newParticleCount = isIncrease ? this._currentParticleCount + increaseCount : this.main.maxParticles;
+    const newParticleCount = isIncrease ? this._currentParticleCount + increaseCount : this.main._maxParticleBuffer;
     const newByteLength = stride * newParticleCount;
     const engine = this._renderer.engine;
     const vertexInstanceBuffer = new Buffer(
@@ -483,6 +483,21 @@ export class ParticleGenerator {
   /**
    * @internal
    */
+  _getNotRetiredParticleCount(): number {
+    if (this._firstRetiredElement <= this._firstFreeElement) {
+      return this._firstFreeElement - this._firstRetiredElement;
+    } else {
+      let instanceCount = this._currentParticleCount - this._firstRetiredElement;
+      if (this._firstFreeElement > 0) {
+        instanceCount += this._firstFreeElement;
+      }
+      return instanceCount;
+    }
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     this._instanceVertexBufferBinding.buffer.destroy();
     this._primitive.destroy();
@@ -500,7 +515,7 @@ export class ParticleGenerator {
     if (nextFreeElement === this._firstRetiredElement) {
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
-        main.maxParticles - this._currentParticleCount
+        main._maxParticleBuffer - this._currentParticleCount
       );
       if (increaseCount === 0) {
         return;
