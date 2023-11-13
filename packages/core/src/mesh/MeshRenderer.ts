@@ -87,6 +87,10 @@ export class MeshRenderer extends Renderer {
       Logger.error("mesh is null.");
       return;
     }
+    if (this._mesh.destroyed) {
+      Logger.error("mesh is destroyed.");
+      return;
+    }
     super._prepareRender(context);
   }
 
