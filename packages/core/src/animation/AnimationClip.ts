@@ -134,7 +134,7 @@ export class AnimationClip extends EngineObject {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        if (curveData.curve.keys.length) {
+        if (curveOwner && curveData.curve.keys.length) {
           const value = curveOwner.evaluateValue(curveData.curve, time, false);
           curveOwner.applyValue(value, 1, false);
         }

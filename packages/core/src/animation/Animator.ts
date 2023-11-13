@@ -305,6 +305,12 @@ export class Animator extends Component {
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
 
+        // Entity don't have target component
+        if (!owner) {
+          delete propertyOwners[property];
+          continue;
+        }
+
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
         const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
