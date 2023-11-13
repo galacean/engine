@@ -166,7 +166,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
       for (let layer = 0; layer < layerCount; layer++) {
         const levelInfo = ktx2File.getImageLevelInfo(mip, layer, face);
         // see: https://github.com/KhronosGroup/KTX-Software/issues/254
-        if (isBC && mip === 0 && (width !== levelInfo.origWidth || height !== levelInfo.height)) {
+        if (isBC && mip === 0 && (width !== levelInfo.width || height !== levelInfo.height)) {
           mipWidth = levelInfo.width;
           mipHeight = levelInfo.height;
           width = mipWidth;
