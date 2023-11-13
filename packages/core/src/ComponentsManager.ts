@@ -49,15 +49,11 @@ export class ComponentsManager {
 
   sortCameras(): void {
     if (this._cameraNeedSorting) {
-      this._activeCameras.sort((a, b) => {
-        const result = a.priority - b.priority;
-        if (result > 0) {
-          const temp = a._cameraIndex;
-          a._cameraIndex = b._cameraIndex;
-          b._cameraIndex = temp;
-        }
-        return result;
-      });
+      const activeCameras = this._activeCameras;
+      activeCameras.sort((a, b) => a.priority - b.priority);
+      for (let i = 0, n = activeCameras.length; i < n; i++) {
+        activeCameras.get(i)._cameraIndex = i;
+      }
       this._cameraNeedSorting = false;
     }
   }
