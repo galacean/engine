@@ -217,6 +217,10 @@ export class ParticleGenerator {
    */
   _emit(time: number, count: number): void {
     if (this.emission.enabled) {
+      // Wait the existing particles to be retired
+      if (this.main.maxParticles - this._currentParticleCount < 0) {
+        return;
+      }
       const position = ParticleGenerator._tempVector30;
       const direction = ParticleGenerator._tempVector31;
       const transform = this._renderer.entity.transform;
@@ -360,7 +364,7 @@ export class ParticleGenerator {
 
     const particleUtils = this._renderer.engine._particleBufferUtils;
     const stride = particleUtils.instanceVertexStride;
-    const newParticleCount = this._currentParticleCount + increaseCount;
+    const newParticleCount = isIncrease ? this._currentParticleCount + increaseCount : this.main.maxParticles;
     const newByteLength = stride * newParticleCount;
     const engine = this._renderer.engine;
     const vertexInstanceBuffer = new Buffer(
@@ -498,7 +502,7 @@ export class ParticleGenerator {
         ParticleGenerator._particleIncreaseCount,
         main.maxParticles - this._currentParticleCount
       );
-      if (increaseCount <= 0) {
+      if (increaseCount === 0) {
         return;
       }
 
