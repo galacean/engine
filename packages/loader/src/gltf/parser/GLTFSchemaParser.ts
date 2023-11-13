@@ -18,6 +18,9 @@ export class GLTFSchemaParser extends GLTFParser {
     contentRestorer.isGLB = isGLB;
     const promise: AssetPromise<IGLTF> = isGLB
       ? request<ArrayBuffer>(url, requestConfig)
+          .onProgress((e) => {
+            context._addProgressEvent(e);
+          })
           .then((glb) => {
             restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
             return GLTFUtils.parseGLB(context, glb);

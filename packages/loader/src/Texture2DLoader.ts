@@ -16,13 +16,16 @@ class Texture2DLoader extends Loader<Texture2D> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       const url = item.url;
+      const params = item.params as Texture2DParams;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "image"
       };
       this.request<HTMLImageElement>(url, requestConfig)
+        .onProgress((v) => {
+          params?.setProgress?.(v);
+        })
         .then((image) => {
-          const params = item.params as Texture2DParams;
           const texture = new Texture2D(
             resourceManager.engine,
             image.width,
@@ -54,7 +57,8 @@ class Texture2DLoader extends Loader<Texture2D> {
  */
 export interface Texture2DParams {
   /** Texture format. default  `TextureFormat.R8G8B8A8` */
-  format: TextureFormat;
+  format?: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
-  mipmap: boolean;
+  mipmap?: boolean;
+  setProgress?: (v: ProgressEvent) => void;
 }

@@ -21,7 +21,13 @@ export class AssetPromise<T> implements PromiseLike<T> {
       function onComplete(index: number, resultValue: T) {
         completed++;
         results[index] = resultValue;
-        setProgress(completed / count);
+        setProgress(
+          new ProgressEvent("progress", {
+            lengthComputable: true,
+            loaded: completed,
+            total: count
+          })
+        );
         if (completed === count) {
           resolve(results);
         }
@@ -52,7 +58,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   private _promise: Promise<T>;
   private _state = PromiseState.Pending;
-  private _onProgressCallback: Array<(progress: number) => void> = [];
+  private _onProgressCallback: Array<(progress: ProgressEvent) => void> = [];
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
 
@@ -85,7 +91,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
           this._onCancelHandler = callback;
         }
       };
-      const setProgress = (progress: number) => {
+      const setProgress = (progress: ProgressEvent) => {
         if (this._state === PromiseState.Pending) {
           this._onProgressCallback.forEach((callback) => callback(progress));
         }
@@ -100,7 +106,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param callback
    * @returns AssetPromise
    */
-  onProgress(callback: (progress: number) => void): AssetPromise<T> {
+  onProgress(callback: (progress: ProgressEvent) => void): AssetPromise<T> {
     this._onProgressCallback.push(callback);
     return this;
   }
@@ -154,7 +160,7 @@ interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
     reject?: (reason?: any) => void,
-    setProgress?: (progress: number) => void,
+    setProgress?: (progress: ProgressEvent) => void,
     onCancel?: (callback: () => void) => void
   ): void;
 }

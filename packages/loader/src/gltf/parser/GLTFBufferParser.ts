@@ -21,6 +21,8 @@ export class GLTFBufferParser extends GLTFParser {
     const absoluteUrl = Utils.resolveAbsoluteUrl(url, bufferInfo.uri);
 
     restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
-    return request<ArrayBuffer>(absoluteUrl, requestConfig);
+    return request<ArrayBuffer>(absoluteUrl, requestConfig).onProgress((e) => {
+      context._addProgressEvent(e);
+    });
   }
 }

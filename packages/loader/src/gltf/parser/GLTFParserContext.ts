@@ -35,12 +35,10 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
 
   private _resourceCache = new Map<string, any>();
-  private _taskCount = 0;
-  private _finishedTaskCount = 0;
-  private _progress = 0;
+  private _progressEvents: Record<string, ProgressEvent> = {};
 
   /** @internal */
-  _setProgress: (number) => void;
+  _setProgress: (v: ProgressEvent) => void;
 
   constructor(
     public glTFResource: GLTFResource,
@@ -113,10 +111,33 @@ export class GLTFParserContext {
           this._createAnimator(this, glTFResource.animations);
         }
         this.resourceManager.addContentRestorer(this.contentRestorer);
-        this._setProgress(1);
         return this.glTFResource;
       });
     });
+  }
+
+  /**
+   * @internal
+   */
+  _addProgressEvent(event: ProgressEvent) {
+    if (event.lengthComputable) {
+      this._progressEvents[(event.target as XMLHttpRequest)?.responseURL ?? event.type] = event;
+    }
+    let total = 0;
+    let loaded = 0;
+    for (let type in this._progressEvents) {
+      total += this._progressEvents[type].total;
+      loaded += this._progressEvents[type].loaded;
+    }
+    if (total) {
+      this._setProgress(
+        new ProgressEvent("progress", {
+          lengthComputable: true,
+          total,
+          loaded
+        })
+      );
+    }
   }
 
   private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {
@@ -149,17 +170,14 @@ export class GLTFParserContext {
   ): void {
     const glTFResourceKey = glTFResourceMap[type];
     if (!glTFResourceKey) return;
-    this._taskCount++;
 
     if (type === GLTFParserType.Entity) {
       (this.glTFResource[glTFResourceKey] ||= [])[index] = <Entity>resource;
-      this._increaseProgress();
     } else {
       const url = this.glTFResource.url;
 
       (<Promise<T>>resource).then((item: T) => {
         (this.glTFResource[glTFResourceKey] ||= [])[index] = item;
-        this._increaseProgress();
 
         if (type === GLTFParserType.Mesh) {
           for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
@@ -176,14 +194,6 @@ export class GLTFParserContext {
           }
         }
       });
-    }
-  }
-
-  private _increaseProgress() {
-    const progress = ++this._finishedTaskCount / this._taskCount;
-    if (progress > this._progress && progress < 1) {
-      this._progress = progress;
-      this._setProgress(progress);
     }
   }
 }
