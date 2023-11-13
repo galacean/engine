@@ -218,7 +218,7 @@ export class ParticleGenerator {
   _emit(time: number, count: number): void {
     if (this.emission.enabled) {
       // Wait the existing particles to be retired
-      if (this.main.maxParticles - this._currentParticleCount < 0) {
+      if (this.main.maxParticles < this._currentParticleCount) {
         return;
       }
       const position = ParticleGenerator._tempVector30;
@@ -398,7 +398,7 @@ export class ParticleGenerator {
         firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
       } else {
         let migrateCount: number, bufferOffset: number;
-        if (firstRetiredElement < firstFreeElement) {
+        if (firstRetiredElement <= firstFreeElement) {
           migrateCount = firstFreeElement - firstRetiredElement;
           bufferOffset = 0;
 
@@ -469,7 +469,7 @@ export class ParticleGenerator {
    * @internal
    */
   _getAliveParticleCount(): number {
-    if (this._firstActiveElement < this._firstFreeElement) {
+    if (this._firstActiveElement <= this._firstFreeElement) {
       return this._firstFreeElement - this._firstActiveElement;
     } else {
       let instanceCount = this._currentParticleCount - this._firstActiveElement;
