@@ -1,3 +1,5 @@
+import { Utils } from "./Utils";
+
 /**
  * High-performance unordered array, delete uses exchange method to improve performance, internal capacity only increases.
  */
@@ -87,7 +89,7 @@ export class DisorderedArray<T> {
   }
 
   sort(compareFn: (a: T, b: T) => number): void {
-    this._elements.sort(compareFn);
+    Utils._quickSort(this._elements, 0, this.length, compareFn);
   }
 
   garbageCollection(): void {
