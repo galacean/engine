@@ -253,7 +253,7 @@ export class ParticleGenerator {
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
       if (this._currentParticleCount > main.maxParticles) {
         const aliveParticleCount = this._getAliveParticleCount();
-        if (aliveParticleCount === main.maxParticles) {
+        if (aliveParticleCount <= main.maxParticles) {
           this._resizeInstanceBuffer(false);
         }
       }
