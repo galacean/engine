@@ -77,6 +77,9 @@ export class Camera extends Component {
   _replacementShader: Shader = null;
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
+  /** @internal */
+  @ignoreClone
+  _cameraIndex: number = -1;
 
   private _priority: number = 0;
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
@@ -198,8 +201,8 @@ export class Camera extends Component {
 
   set priority(value: number) {
     if (this._priority !== value) {
-      if (this._entity._isActiveInScene && this.enabled) {
-        this.scene._cameraNeedSorting = true;
+      if (this._phasedActiveInScene) {
+        this.scene._componentsManager._cameraNeedSorting = true;
       }
       this._priority = value;
     }
@@ -564,14 +567,14 @@ export class Camera extends Component {
    * @inheritdoc
    */
   override _onEnableInScene(): void {
-    this.scene._attachRenderCamera(this);
+    this.scene._componentsManager.addCamera(this);
   }
 
   /**
    * @inheritdoc
    */
   override _onDisableInScene(): void {
-    this.scene._detachRenderCamera(this);
+    this.scene._componentsManager.removeCamera(this);
   }
 
   /**
