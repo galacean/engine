@@ -1304,12 +1304,48 @@ describe("SpriteRenderer", async () => {
   it("get set maskInteraction", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    const noneMaterial = spriteRenderer.getMaterial();
+
     spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
     expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.VisibleInsideMask);
+    const insideMaterial = spriteRenderer.getMaterial();
+
     spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
     expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.VisibleOutsideMask);
+    const outsideMaterial = spriteRenderer.getMaterial();
+
     spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
     expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.None);
+    expect(spriteRenderer.getMaterial()).to.eq(noneMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(insideMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(outsideMaterial);
+
+    spriteRenderer.setMaterial(noneMaterial.clone());
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
+    expect(spriteRenderer.getMaterial()).to.not.eq(noneMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.getMaterial()).to.not.eq(insideMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.getMaterial()).to.not.eq(outsideMaterial);
+
+    spriteRenderer.setMaterial(noneMaterial);
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
+    expect(spriteRenderer.getMaterial()).to.eq(noneMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(insideMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(outsideMaterial);
+
+    const cloneRenderer = rootEntity.clone().getComponent(SpriteRenderer);
+    expect(cloneRenderer.getMaterial()).to.eq(outsideMaterial);
   });
 
   it("DirtyFlag", () => {

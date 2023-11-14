@@ -268,6 +268,7 @@ export class Sprite extends ReferResource {
    * @internal
    */
   protected override _onDestroy(): void {
+    this._dispatchSpriteChange(SpriteModifyFlags.destroy);
     super._onDestroy();
     this._positions.length = 0;
     this._positions = null;

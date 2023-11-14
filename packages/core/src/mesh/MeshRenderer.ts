@@ -87,6 +87,10 @@ export class MeshRenderer extends Renderer {
       Logger.error("mesh is null.");
       return;
     }
+    if (this._mesh.destroyed) {
+      Logger.error("mesh is destroyed.");
+      return;
+    }
     super._prepareRender(context);
   }
 
@@ -147,9 +151,12 @@ export class MeshRenderer extends Renderer {
     const renderPipeline = context.camera._renderPipeline;
     const meshRenderDataPool = this._engine._renderDataPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
-      const material = materials[i];
+      let material = materials[i];
       if (!material) {
         continue;
+      }
+      if (material.destroyed) {
+        material = this.engine._meshMagentaMaterial;
       }
 
       const renderData = meshRenderDataPool.getFromPool();
