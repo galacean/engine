@@ -38,11 +38,11 @@ export class GLTFTextureParser extends GLTFParser {
             url: Utils.resolveAbsoluteUrl(url, uri),
             type,
             params: {
-              mipmap: samplerInfo?.mipmap,
-              onProgress: (e) => {
-                context._addProgressEvent(e);
-              }
+              mipmap: samplerInfo?.mipmap
             }
+          })
+          .onProgress((e) => {
+            context._addProgressEvent(e);
           })
           .then<Texture2D>((texture) => {
             texture.name = textureName || imageName || texture.name || `texture_${index}`;

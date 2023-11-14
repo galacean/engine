@@ -14,7 +14,7 @@ import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
+    return new AssetPromise((resolve, reject, setProgress) => {
       const url = item.url;
       const params = item.params as Texture2DParams;
       const requestConfig = <RequestConfig>{
@@ -23,7 +23,7 @@ class Texture2DLoader extends Loader<Texture2D> {
       };
       this.request<HTMLImageElement>(url, requestConfig)
         .onProgress((v) => {
-          params?.onProgress?.(v);
+          setProgress(v);
         })
         .then((image) => {
           const texture = new Texture2D(
@@ -57,8 +57,7 @@ class Texture2DLoader extends Loader<Texture2D> {
  */
 export interface Texture2DParams {
   /** Texture format. default  `TextureFormat.R8G8B8A8` */
-  format?: TextureFormat;
+  format: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
-  mipmap?: boolean;
-  onProgress?: (v: ProgressEvent) => void;
+  mipmap: boolean;
 }

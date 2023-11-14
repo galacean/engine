@@ -111,7 +111,7 @@ export class GLTFParserContext {
           this._createAnimator(this, glTFResource.animations);
         }
         this.resourceManager.addContentRestorer(this.contentRestorer);
-        return this.glTFResource;
+        return glTFResource;
       });
     });
   }

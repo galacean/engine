@@ -46,6 +46,7 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
 function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setProgress) => {
     const xhr = new XMLHttpRequest();
+    const isImg = config.type === "image";
 
     xhr.timeout = config.timeout;
     config.method = config.method ?? "get";
@@ -56,7 +57,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         return;
       }
       const result = xhr.response ?? xhr.responseText;
-      if (config.type === "image") {
+      if (isImg) {
         var blob = xhr.response;
         var img = new Image();
 
@@ -74,6 +75,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
 
         img.onerror = img.onabort = () => {
           reject(new Error(`request ${img.src} fail`));
+          URL.revokeObjectURL(img.src);
         };
 
         img.crossOrigin = "anonymous";
@@ -93,7 +95,8 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
     };
     xhr.open(config.method, url, true);
     xhr.withCredentials = config.credentials === "include";
-    xhr.responseType = config.type === "image" ? "blob" : config.type;
+    // @ts-ignore
+    xhr.responseType = isImg ? "blob" : config.type;
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {
