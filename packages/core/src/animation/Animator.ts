@@ -298,7 +298,7 @@ export class Animator extends Component {
       const curve = curves[i];
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       if (targetEntity) {
-        const component = entity.getComponent(curve.type);
+        const component = targetEntity.getComponent(curve.type);
         if (!component) {
           continue;
         }
