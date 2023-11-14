@@ -161,16 +161,14 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     const mipmaps = new Array(levelCount);
     for (let mip = 0; mip < levelCount; mip++) {
       const layerMips: Uint8Array[] = new Array(layerCount);
-      let mipWidth, mipHeight;
+      let mipWidth: number, mipHeight: number;
 
       for (let layer = 0; layer < layerCount; layer++) {
         const levelInfo = ktx2File.getImageLevelInfo(mip, layer, face);
         // see: https://github.com/KhronosGroup/KTX-Software/issues/254
         if (isBC && mip === 0 && (width !== levelInfo.width || height !== levelInfo.height)) {
-          mipWidth = levelInfo.width;
-          mipHeight = levelInfo.height;
-          width = mipWidth;
-          height = mipHeight;
+          width = mipWidth = levelInfo.width;
+          height = mipHeight = levelInfo.height;
           console.warn(
             `KTX2 transcode to BC will resize to width: ${width}, height: ${height}. You'd better use an image whose size if multiple of 4.`
           );
