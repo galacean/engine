@@ -23,7 +23,7 @@ class Texture2DLoader extends Loader<Texture2D> {
       };
       this.request<HTMLImageElement>(url, requestConfig)
         .onProgress((v) => {
-          params?.setProgress?.(v);
+          params?.onProgress?.(v);
         })
         .then((image) => {
           const texture = new Texture2D(
@@ -60,5 +60,5 @@ export interface Texture2DParams {
   format?: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
   mipmap?: boolean;
-  setProgress?: (v: ProgressEvent) => void;
+  onProgress?: (v: ProgressEvent) => void;
 }
