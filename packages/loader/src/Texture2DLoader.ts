@@ -16,7 +16,6 @@ class Texture2DLoader extends Loader<Texture2D> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject, setProgress) => {
       const url = item.url;
-      const params = item.params as Texture2DParams;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "image"
@@ -26,6 +25,7 @@ class Texture2DLoader extends Loader<Texture2D> {
           setProgress(v);
         })
         .then((image) => {
+          const params = item.params as Texture2DParams;
           const texture = new Texture2D(
             resourceManager.engine,
             image.width,

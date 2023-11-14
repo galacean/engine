@@ -29,8 +29,10 @@ export class GLTFSchemaParser extends GLTFParser {
             context.buffers = buffers;
             return glTF;
           })
-      : request(url, {
+      : request<IGLTF>(url, {
           type: "json"
+        }).onProgress((e) => {
+          context._addProgressEvent(e);
         });
 
     return promise;
