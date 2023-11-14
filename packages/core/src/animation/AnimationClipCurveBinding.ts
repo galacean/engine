@@ -27,15 +27,12 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
+  _createCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
     const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
-    const component = entity.getComponent(this.type);
-    if (component) {
-      const owner = new AnimationCurveOwner(entity, this.type, component, this.property, curveType);
-      curveType._initializeOwner(owner);
-      owner.saveDefaultValue();
-      return owner;
-    }
+    const owner = new AnimationCurveOwner(entity, this.type, component, this.property, curveType);
+    curveType._initializeOwner(owner);
+    owner.saveDefaultValue();
+    return owner;
   }
 
   /**
@@ -54,10 +51,10 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _getTempCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
+  _getTempCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
     const { instanceId } = entity;
     if (!this._tempCurveOwner[instanceId]) {
-      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity);
+      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity, component);
     }
     return this._tempCurveOwner[instanceId];
   }

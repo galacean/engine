@@ -133,6 +133,10 @@ export class AnimationClip extends EngineObject {
       const curveData = curveBindings[i];
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
+        const component = entity.getComponent(curveData.type);
+        if (!component) {
+          continue;
+        }
         const curveOwner = curveData._getTempCurveOwner(targetEntity);
         if (curveOwner && curveData.curve.keys.length) {
           const value = curveOwner.evaluateValue(curveData.curve, time, false);
