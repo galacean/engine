@@ -17,17 +17,17 @@ export class AnimatorLayerMask {
   checkMaskActive(path: string) {
     path = path.startsWith("/") ? path.slice(1) : path;
     const { _recursivePathList: recursivePathList } = this;
-    if (this._pathMaskActiveMap.get(path)) {
-      return true;
+    if (this._pathMaskActiveMap.has(path)) {
+      return this._pathMaskActiveMap.get(path);
     }
 
-    for (let i = recursivePathList.length - 1, n = recursivePathList.length; i >= 0; --i) {
+    for (let i = 0, n = recursivePathList.length; i < n; ++i) {
       const recursivePath = recursivePathList[i];
       if (path.startsWith(recursivePath)) {
         return this._pathMaskActiveMap.get(recursivePath);
       }
     }
-    return false;
+    return true;
   }
 
   /**
