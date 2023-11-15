@@ -6,11 +6,14 @@ import {
   XRFeatureType,
   XRTrackingState,
   Logger,
-  XRSessionManager
+  XRSessionManager,
+  XRPlatformPlaneTracking,
+  XRPlaneMode,
+  XRTrackedPlane,
+  XRRequestTrackingState
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
-import { XRPlaneMode, XRPlatformPlaneTracking, XRRequestTrackingState, XRTrackedPlane } from "@galacean/engine-xr";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**

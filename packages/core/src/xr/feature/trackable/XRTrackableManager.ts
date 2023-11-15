@@ -1,6 +1,8 @@
 import { IXRFeatureDescriptor, IXRRequestTracking, IXRTracked } from "@galacean/engine-design";
 import { XRTrackablePlatformFeature } from "./XRTrackablePlatformFeature";
-import { XRFeatureManager, XRTrackedUpdateFlag, UpdateFlagManager } from "@galacean/engine";
+import { XRFeatureManager } from "../XRFeatureManager";
+import { UpdateFlagManager } from "../../../UpdateFlagManager";
+import { XRTrackedUpdateFlag } from "../../input/XRTrackedUpdateFlag";
 
 /**
  * The base class of XR trackable manager.

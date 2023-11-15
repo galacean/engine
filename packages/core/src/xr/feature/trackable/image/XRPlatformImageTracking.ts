@@ -1,4 +1,4 @@
-import { Logger } from "@galacean/engine";
+import { Logger } from "../../../../base";
 import { XRTrackablePlatformFeature } from "../XRTrackablePlatformFeature";
 import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
 import { XRReferenceImage } from "./XRReferenceImage";

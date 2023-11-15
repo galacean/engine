@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine-math";
 import { XRTracked } from "../XRTracked";
 
 export class XRTrackedPlane extends XRTracked {

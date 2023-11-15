@@ -1,9 +1,12 @@
-import { Logger, XRFeatureType, XRSessionState, registerXRFeatureManager } from "@galacean/engine";
 import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
 import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRReferenceImage } from "./XRReferenceImage";
 import { XRTrackedImage } from "./XRTrackedImage";
+import { registerXRFeatureManager } from "../../../XRManager";
+import { XRFeatureType } from "../../XRFeatureType";
+import { XRSessionState } from "../../../session/XRSessionState";
+import { Logger } from "../../../../base";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
 /**

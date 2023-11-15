@@ -1,15 +1,13 @@
-import {
-  Camera,
-  Engine,
-  Logger,
-  XRCamera,
-  XRFeatureManager,
-  XRFeatureType,
-  XRInputManager,
-  XRInputType,
-  XRSessionManager,
-  registerXRFeatureManager
-} from "@galacean/engine";
+import { Camera } from "../../../Camera";
+import { Engine } from "../../../Engine";
+import { Logger } from "../../../base";
+import { registerXRFeatureManager } from "../../XRManager";
+import { XRCamera } from "../../input/XRCamera";
+import { XRInputManager } from "../../input/XRInputManager";
+import { XRInputType } from "../../input/XRInputType";
+import { XRSessionManager } from "../../session/XRSessionManager";
+import { XRFeatureManager } from "../XRFeatureManager";
+import { XRFeatureType } from "../XRFeatureType";
 import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
 
 @registerXRFeatureManager(XRFeatureType.CameraDevice)

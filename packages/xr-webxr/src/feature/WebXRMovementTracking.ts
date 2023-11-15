@@ -1,5 +1,4 @@
-import { Logger, XRFeatureType } from "@galacean/engine";
-import { XRMovementTrackingMode, XRPlatformMovementTracking } from "@galacean/engine-xr";
+import { Logger, XRFeatureType, XRMovementTrackingMode, XRPlatformMovementTracking } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
 @registerXRPlatformFeature(XRFeatureType.MovementTracking)

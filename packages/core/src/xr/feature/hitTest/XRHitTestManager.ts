@@ -1,20 +1,15 @@
 import { IXRFeatureDescriptor, IXRHitResult } from "@galacean/engine-design";
-import {
-  Logger,
-  Plane,
-  Ray,
-  Vector2,
-  Vector3,
-  XRFeatureManager,
-  XRFeatureType,
-  XRInputType,
-  XRSessionType,
-  registerXRFeatureManager
-} from "@galacean/engine";
 import { XRHitTestType } from "./XRHitTestType";
 import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTrackingManager } from "../trackable/plane/XRPlaneTrackingManager";
 import { XRTrackedPlane } from "../trackable/plane/XRTrackedPlane";
+import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
+import { XRFeatureManager } from "../XRFeatureManager";
+import { registerXRFeatureManager } from "../../XRManager";
+import { XRFeatureType } from "../XRFeatureType";
+import { XRSessionType } from "../../session/XRSessionType";
+import { Logger } from "../../../base";
+import { XRInputType } from "../../input/XRInputType";
 
 @registerXRFeatureManager(XRFeatureType.HitTest)
 /**

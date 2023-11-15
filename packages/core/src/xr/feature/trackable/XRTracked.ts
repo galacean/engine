@@ -1,5 +1,5 @@
-import { XRTrackingState } from "@galacean/engine";
 import { IXRPose, IXRTracked } from "@galacean/engine-design";
+import { XRTrackingState } from "../../input/XRTrackingState";
 
 export class XRTracked implements IXRTracked {
   constructor(

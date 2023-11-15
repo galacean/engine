@@ -1,10 +1,11 @@
 import { IXRPose } from "@galacean/engine-design";
-import { XRFeatureType, registerXRFeatureManager } from "@galacean/engine";
 import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
 import { XRPlatformAnchorTracking } from "./XRPlatformAnchorTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRRequestTrackingAnchor } from "./XRRequestTrackingAnchor";
 import { XRTracked } from "../XRTracked";
+import { XRFeatureType } from "../../XRFeatureType";
+import { registerXRFeatureManager } from "../../../XRManager";
 
 @registerXRFeatureManager(XRFeatureType.AnchorTracking)
 /**

@@ -1,5 +1,5 @@
-import { XRPlatformFeature } from "@galacean/engine";
 import { IXRRequestTracking, IXRTracked } from "@galacean/engine-design";
+import { XRPlatformFeature } from "../XRPlatformFeature";
 
 /**
  * The base class of XR trackable platform feature.

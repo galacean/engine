@@ -1,9 +1,10 @@
-import { XRFeatureType, registerXRFeatureManager } from "@galacean/engine";
 import { IXRPlaneTrackingDescriptor } from "./IXRPlaneTrackingDescriptor";
 import { XRPlatformPlaneTracking } from "./XRPlatformPlaneTracking";
 import { XRPlaneMode } from "./XRPlaneMode";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRTrackedPlane } from "./XRTrackedPlane";
+import { registerXRFeatureManager } from "../../../XRManager";
+import { XRFeatureType } from "../../XRFeatureType";
 
 @registerXRFeatureManager(XRFeatureType.PlaneTracking)
 /**

@@ -1,4 +1,4 @@
-import { XRPlatformFeature } from "@galacean/engine";
+import { XRPlatformFeature } from "../XRPlatformFeature";
 import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
 
 /**

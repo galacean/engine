@@ -1,6 +1,5 @@
-import { XRSessionType, XRFeatureType, XRInputType, request } from "@galacean/engine";
+import { XRSessionType, XRFeatureType, XRInputType, request, IXRImageTrackingDescriptor } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { IXRImageTrackingDescriptor } from "@galacean/engine-xr";
 
 export function parseXRMode(mode: XRSessionType): XRSessionMode {
   switch (mode) {

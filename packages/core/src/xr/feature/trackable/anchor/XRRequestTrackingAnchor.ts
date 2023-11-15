@@ -1,7 +1,7 @@
 import { IXRPose, IXRRequestTracking } from "@galacean/engine-design";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
-import { Quaternion, Vector3 } from "@galacean/engine";
 import { XRTracked } from "../XRTracked";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 
 export class XRRequestTrackingAnchor implements IXRRequestTracking<XRTracked> {
   constructor(

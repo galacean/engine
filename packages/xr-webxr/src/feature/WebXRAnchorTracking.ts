@@ -5,10 +5,12 @@ import {
   Quaternion,
   Vector3,
   XRFeatureType,
+  XRPlatformAnchorTracking,
+  XRRequestTrackingAnchor,
+  XRRequestTrackingState,
   XRSessionManager,
   XRTrackingState
 } from "@galacean/engine";
-import { XRPlatformAnchorTracking, XRRequestTrackingState, XRRequestTrackingAnchor } from "@galacean/engine-xr";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
 

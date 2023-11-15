@@ -1,7 +1,9 @@
-import { XRFeatureManager, XRFeatureType, registerXRFeatureManager } from "@galacean/engine";
 import { IXRMovementTrackingDescriptor } from "./IXRMovementTrackingDescriptor";
 import { XRPlatformMovementTracking } from "./XRPlatformMovementTracking";
 import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
+import { registerXRFeatureManager } from "../../XRManager";
+import { XRFeatureType } from "../XRFeatureType";
+import { XRFeatureManager } from "../XRFeatureManager";
 
 @registerXRFeatureManager(XRFeatureType.MovementTracking)
 /**
