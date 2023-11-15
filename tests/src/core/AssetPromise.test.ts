@@ -101,19 +101,46 @@ describe("Asset Promise test", function () {
       }, 20);
     });
 
-    let expectProgress: IProgress;
+    let currentProgress: IProgress;
     assetPromise.onProgress((progress) => {
-      expectProgress = progress;
+      currentProgress = progress;
     });
 
     await assetPromise.then((e) => {
-      expect(expectProgress).to.eql({
+      expect(currentProgress).to.eql({
         task: {
           loaded: 10,
           total: 10
         }
       });
       expect(e).to.eq(10);
+    });
+  });
+
+  it("promise immediately", async () => {
+    let currentProgress: IProgress;
+    const assetPromise = new AssetPromise<number>((resolve, reject, setProgress) => {
+      setProgress({
+        task: {
+          loaded: 10,
+          total: 10
+        }
+      });
+      resolve(1);
+    });
+
+    assetPromise.onProgress((progress) => {
+      currentProgress = progress;
+    });
+
+    await assetPromise.then((e) => {
+      expect(currentProgress).to.eql({
+        task: {
+          loaded: 10,
+          total: 10
+        }
+      });
+      expect(e).to.eq(1);
     });
   });
 

@@ -63,6 +63,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   private _promise: Promise<T>;
   private _state = PromiseState.Pending;
+  private _progress: IProgress;
   private _onProgressCallback: Array<(progress: IProgress) => void> = [];
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
@@ -98,6 +99,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
       };
       const setProgress = (progress: IProgress) => {
         if (this._state === PromiseState.Pending) {
+          this._progress = progress;
           this._onProgressCallback.forEach((callback) => callback(progress));
         }
       };
@@ -112,7 +114,12 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @returns AssetPromise
    */
   onProgress(callback: (progress: IProgress) => void): AssetPromise<T> {
-    this._onProgressCallback.push(callback);
+    if (this._progress) {
+      callback(this._progress);
+    }
+    if (this._state === PromiseState.Pending) {
+      this._onProgressCallback.push(callback);
+    }
     return this;
   }
 

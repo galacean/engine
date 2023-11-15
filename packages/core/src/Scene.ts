@@ -1,6 +1,5 @@
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
-import { Camera } from "./Camera";
 import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
@@ -45,13 +44,9 @@ export class Scene extends EngineObject {
   shadowDistance: number = 50;
 
   /* @internal */
-  _cameraNeedSorting: boolean = false;
-  /* @internal */
   _lightManager: LightManager = new LightManager();
   /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
-  /** @internal */
-  _activeCameras: Camera[] = [];
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
@@ -404,39 +399,6 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _sortCameras(): void {
-    this._activeCameras.sort((a, b) => a.priority - b.priority);
-    this._cameraNeedSorting = false;
-  }
-
-  /**
-   * @internal
-   */
-  _attachRenderCamera(camera: Camera): void {
-    const activeCameras = this._activeCameras;
-    const index = activeCameras.indexOf(camera);
-    if (index === -1) {
-      activeCameras.push(camera);
-      this._cameraNeedSorting = true;
-    } else {
-      Logger.warn("Camera already attached.");
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _detachRenderCamera(camera: Camera): void {
-    const activeCameras = this._activeCameras;
-    const index = activeCameras.indexOf(camera);
-    if (index !== -1) {
-      activeCameras.splice(index, 1);
-    }
-  }
-
-  /**
-   * @internal
-   */
   _processActive(active: boolean): void {
     this._isActiveInEngine = active;
     const rootEntities = this._rootEntities;
@@ -514,7 +476,6 @@ export class Scene extends EngineObject {
     while (this.rootEntitiesCount > 0) {
       this._rootEntities[0].destroy();
     }
-    this._activeCameras.length = 0;
     this.background.destroy();
     this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
