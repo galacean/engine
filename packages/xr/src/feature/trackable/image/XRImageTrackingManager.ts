@@ -14,8 +14,6 @@ export class XRImageTrackingManager extends XRTrackableManager<
   XRTrackedImage,
   XRPlatformImageTracking
 > {
-  private _referenceImages: XRReferenceImage[] = [];
-
   /**
    * Add a tracking image
    * @param image - xr reference image

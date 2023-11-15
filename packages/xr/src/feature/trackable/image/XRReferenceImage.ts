@@ -1,12 +1,9 @@
-import { IXRReferenceImage } from "@galacean/engine-design";
-
 /**
  *  A reference image is an image to look for in the physical environment.
  */
-export class XRReferenceImage implements IXRReferenceImage {
+export class XRReferenceImage {
   private static _uuid: number = 0;
 
-  private _id: number;
   constructor(
     public name: string,
     public src:
@@ -19,6 +16,7 @@ export class XRReferenceImage implements IXRReferenceImage {
       | ImageData
       | ImageBitmap
       | OffscreenCanvas,
+    private _id: number = XRReferenceImage._uuid++,
     public physicalWidth: number = undefined,
     public physicalHeight: number = undefined
   ) {

@@ -6,7 +6,6 @@ export type { IXRHitResult } from "./feature/IXRHitResult";
 export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
 
-export type { IXRReferenceImage } from "./feature/trackable/IXRReferenceImage";
 export type { IXRRequestTracking } from "./feature/trackable/IXRRequestTracking";
 export type { IXRTracked } from "./feature/trackable/IXRTracked";
 

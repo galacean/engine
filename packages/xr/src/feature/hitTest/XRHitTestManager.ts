@@ -66,7 +66,6 @@ export class XRHitTestManager extends XRFeatureManager {
       Logger.warn("Only AR mode supports using screen ray detection.");
       return null;
     }
-    console.log("x", x, "y", y);
 
     const camera = xrManager
       .getFeature<XRCameraManager>(XRFeatureType.CameraDevice)
@@ -109,7 +108,7 @@ export class XRHitTestManager extends XRFeatureManager {
             point: hitPoint.clone(),
             normal: normal.clone(),
             hitId: trackedPlane.id,
-            hitType: 0,
+            hitType: XRHitTestType.Plane,
             distance
           });
         }

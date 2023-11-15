@@ -1,10 +1,11 @@
-import { IXRReferenceImage, IXRRequestTracking } from "@galacean/engine-design";
+import { IXRRequestTracking } from "@galacean/engine-design";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { XRTrackedImage } from "./XRTrackedImage";
+import { XRReferenceImage } from "./XRReferenceImage";
 
 export class XRRequestTrackingImage implements IXRRequestTracking<XRTrackedImage> {
   constructor(
-    public image: IXRReferenceImage,
+    public image: XRReferenceImage,
     public state: XRRequestTrackingState = XRRequestTrackingState.None,
     public tracked: XRTrackedImage[] = []
   ) {}
