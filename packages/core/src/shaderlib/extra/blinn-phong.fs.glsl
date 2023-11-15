@@ -20,11 +20,16 @@ void main() {
     #include <mobile_blinnphong_frag>
 
     gl_FragColor = emission + ambient + diffuse + specular;
-    gl_FragColor.a = diffuse.a;
+
+    #ifdef MATERIAL_IS_TRANSPARENT
+        gl_FragColor.a = diffuse.a;
+    #else
+        gl_FragColor.a = 1.0;
+    #endif
 
     #include <FogFragment>
 
-    #ifndef OASIS_COLORSPACE_GAMMA
+    #ifndef ENGINE_IS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
 }

@@ -1,28 +1,5 @@
-import { MeshTopology } from "@oasis-engine/core";
-
-export interface IVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
-export interface IVector2 {
-  x: number;
-  y: number;
-}
-
-export interface IVector4 {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
-
-export interface IColor {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
+import { MeshTopology } from "@galacean/engine-core";
+import type { IColor, IVector2, IVector3, IVector4 } from "../schema/BasicSchema";
 
 export interface IEncodedModelMesh {
   positions: {
@@ -100,6 +77,10 @@ export interface IEncodedModelMesh {
     type: number;
     start: number;
     end: number;
+  };
+  bounds?: {
+    min: IVector3[];
+    max: IVector3[];
   };
   subMeshes: {
     start: number;

@@ -757,46 +757,42 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     out[outOffset + 3] = this._w;
   }
 
-  private _toYawPitchRoll(out: Vector3): void {
-    // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-    const { _x: x, _y: y, _z: z, _w: w } = this;
-    const xx = x * x;
-    const sinP = 2.0 * (x * w - y * z);
-
-    // use 90 degrees if out of range
-    out._y = Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP);
-    out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx));
-    out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx));
+  /**
+   * Serialize this quaternion to a JSON representation.
+   * @returns A JSON Object representation of this quaternion
+   */
+  toJSON(): QuaternionLike {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z,
+      w: this._w
+    };
   }
 
-  // @todo: this is yaw roll pitch, we need to waw pitch roll order, this version has better performance
-  // private _toYawRollPitch(out: Vector3): Vector3 {
-  //   // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
-  //   const { _x: x, _y: y, _z: z, _w: w } = this;
-  //   const sqw = w * w;
-  //   const sqx = x * x;
-  //   const sqy = y * y;
-  //   const sqz = z * z;
-  //   const unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
-  //   const test = x * y + z * w;
-  //   if (test > (0.5 - MathUtil.zeroTolerance) * unit) {
-  //     // singularity at north pole
-  //     out._x = 2 * Math.atan2(x, w);
-  //     out._y = Math.PI / 2;
-  //     out._z = 0;
-  //     return;
-  //   }
-  //   if (test < -(0.5 - MathUtil.zeroTolerance) * unit) {
-  //     // singularity at south pole
-  //     out._x = -2 * Math.atan2(x, w);
-  //     out._y = -Math.PI / 2;
-  //     out._z = 0;
-  //     return;
-  //   }
-  //   out._x = Math.atan2(2 * y * w - 2 * x * z, sqx - sqy - sqz + sqw);
-  //   out._y = Math.asin((2 * test) / unit);
-  //   out._z = Math.atan2(2 * x * w - 2 * y * z, -sqx + sqy - sqz + sqw);
-  // }
+  private _toYawPitchRoll(out: Vector3): void {
+    // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+    const { _x: x, _y: y, _z: z, _w: w } = this;
+    const xx = x * x;
+    const yy = y * y;
+    const zz = z * z;
+    const ww = w * w;
+    const unit = xx + yy + zz + ww;
+    const test = 2 * (x * w - y * z);
+    if (test > (1 - MathUtil.zeroTolerance) * unit) {
+      out._x = Math.atan2(2.0 * (w * y - x * z), zz + ww - yy - zz);
+      out._y = Math.PI / 2;
+      out._z = 0;
+    } else if (test < -(1 - MathUtil.zeroTolerance) * unit) {
+      out._x = Math.atan2(2.0 * (w * y - x * z), zz + ww - yy - zz);
+      out._y = -Math.PI / 2;
+      out._z = 0;
+    } else {
+      out._x = Math.atan2(2.0 * (z * x + y * w), zz + ww - yy - xx);
+      out._y = Math.asin(test / unit);
+      out._z = Math.atan2(2.0 * (x * y + z * w), yy + ww - zz - xx);
+    }
+  }
 }
 
 interface QuaternionLike {

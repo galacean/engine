@@ -3,8 +3,8 @@
  * ported from https://github.com/BabylonJS/Babylon.js/blob/master/src/Tools/babylon.khronosTextureContainer.ts
  */
 
-import { TextureFormat } from "@oasis-engine/core";
-import { GLCompressedTextureInternalFormat } from "@oasis-engine/rhi-webgl";
+import { TextureFormat } from "@galacean/engine-core";
+import { GLCompressedTextureInternalFormat } from "@galacean/engine-rhi-webgl";
 import { KTXContainer, Mipmap } from "./type";
 
 const HEADER_LEN = 12 + 13 * 4; // identifier + header elements (not including key value meta-data pairs)
@@ -79,9 +79,11 @@ function getEngineFormat(internalFormat: GLint): TextureFormat {
     // case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
     // break;
     case GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT:
-      return TextureFormat.DXT1;
+      return TextureFormat.BC1;
     case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
-      return TextureFormat.DXT5;
+      return TextureFormat.BC3;
+    case GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT:
+      return TextureFormat.BC7;
     case GLCompressedTextureInternalFormat.RGB_ETC1_WEBGL:
       return TextureFormat.ETC1_RGB;
     case GLCompressedTextureInternalFormat.RGB8_ETC2:
@@ -112,7 +114,7 @@ function getEngineFormat(internalFormat: GLint): TextureFormat {
       return TextureFormat.ASTC_12x12;
     default:
       const formatName: any = GLCompressedTextureInternalFormat[internalFormat];
-      throw new Error(`this format is not supported in Oasis Engine: ${formatName}`);
+      throw new Error(`this format is not supported in Galacean Engine: ${formatName}`);
   }
 }
 /**
@@ -126,7 +128,7 @@ export const khronosTextureContainerParser = {
    * @param facesExpected should be either 1 or 6, based whether a cube texture or or
    * @param threeDExpected provision for indicating that data should be a 3D texture, not implemented
    * @param textureArrayExpected provision for indicating that data should be a texture array, not implemented
-   * @param mapEngineFormat get Oasis Engine native TextureFormat?
+   * @param mapEngineFormat get Galacean Engine native TextureFormat?
    */
   parse(
     buffer: ArrayBuffer,

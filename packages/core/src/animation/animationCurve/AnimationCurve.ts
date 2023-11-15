@@ -24,7 +24,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   set interpolation(value: InterpolationType) {
-    if (!this._type._isInterpolationType && value !== InterpolationType.Step) {
+    if (!this._type._supportInterpolationMode && value !== InterpolationType.Step) {
       this._interpolation = InterpolationType.Step;
       console.warn("The interpolation type must be `InterpolationType.Step`.");
     } else {
@@ -41,7 +41,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   constructor() {
     const type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
-    this._interpolation = type._isInterpolationType ? InterpolationType.Linear : InterpolationType.Step;
+    this._interpolation = type._supportInterpolationMode ? InterpolationType.Linear : InterpolationType.Step;
     this._type = type;
   }
 
@@ -51,12 +51,16 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    */
   addKey(key: Keyframe<V>): void {
     const { time } = key;
-    this.keys.push(key);
-    if (time > this._length) {
-      this._length = time;
-    }
+    const { keys } = this;
 
-    this.keys.sort((a, b) => a.time - b.time);
+    if (time >= this._length) {
+      keys.push(key);
+      this._length = time;
+    } else {
+      let index = keys.length;
+      while (--index >= 0 && time < keys[index].time);
+      keys.splice(index + 1, 0, key);
+    }
   }
 
   /**
@@ -78,7 +82,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     let newLength = 0;
     for (let i = keys.length - 1; i >= 0; i--) {
       const key = keys[i];
-      if (key.time > length) {
+      if (key.time > this._length) {
         newLength = key.time;
       }
     }
@@ -118,9 +122,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     // Evaluate value.
     let value: V;
     if (curIndex === -1) {
-      value = this._type._copyValue(keys[0].value, evaluateData.value);
+      value = this._type._setValue(keys[0].value, evaluateData.value);
     } else if (nextIndex === length) {
-      value = this._type._copyValue(keys[curIndex].value, evaluateData.value);
+      value = this._type._setValue(keys[curIndex].value, evaluateData.value);
     } else {
       // Time between first frame and end frame.
       const curFrame = keys[curIndex];
@@ -134,7 +138,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
           value = this._type._lerpValue(curFrame.value, nextFrame.value, t, evaluateData.value);
           break;
         case InterpolationType.Step:
-          value = this._type._copyValue(curFrame.value, evaluateData.value);
+          value = this._type._setValue(curFrame.value, evaluateData.value);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
@@ -142,6 +146,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
           break;
       }
     }
+
+    evaluateData.value = value;
+
     return value;
   }
 

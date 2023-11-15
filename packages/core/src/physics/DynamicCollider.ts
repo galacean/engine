@@ -1,27 +1,43 @@
-import { IDynamicCollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { IDynamicCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
+  @ignoreClone
   private _linearDamping: number = 0;
-  private _angularDamping: number = 0;
+  @ignoreClone
+  private _angularDamping: number = 0.05;
+  @ignoreClone
   private _linearVelocity = new Vector3();
+  @ignoreClone
   private _angularVelocity = new Vector3();
-  private _mass: number = 0;
+  @ignoreClone
+  private _mass: number = 1.0;
+  @ignoreClone
   private _centerOfMass = new Vector3();
-  private _inertiaTensor = new Vector3();
-  private _maxAngularVelocity: number = 0;
-  private _maxDepenetrationVelocity: number = 0;
-  private _sleepThreshold: number = 0;
-  private _solverIterations: number = 0;
+  @ignoreClone
+  private _inertiaTensor = new Vector3(1, 1, 1);
+  @ignoreClone
+  private _maxAngularVelocity: number = 100;
+  @ignoreClone
+  private _maxDepenetrationVelocity: number = 1000;
+  @ignoreClone
+  private _solverIterations: number = 4;
+  @ignoreClone
   private _isKinematic: boolean = false;
+  @ignoreClone
   private _constraints: DynamicColliderConstraints = 0;
+  @ignoreClone
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
+  @ignoreClone
+  private _sleepThreshold: number = 5e-3;
 
   /**
    * The linear damping of the dynamic collider.
@@ -31,8 +47,10 @@ export class DynamicCollider extends Collider {
   }
 
   set linearDamping(value: number) {
-    this._linearDamping = value;
-    (<IDynamicCollider>this._nativeCollider).setLinearDamping(value);
+    if (this._linearDamping !== value) {
+      this._linearDamping = value;
+      (<IDynamicCollider>this._nativeCollider).setLinearDamping(value);
+    }
   }
 
   /**
@@ -43,8 +61,10 @@ export class DynamicCollider extends Collider {
   }
 
   set angularDamping(value: number) {
-    this._angularDamping = value;
-    (<IDynamicCollider>this._nativeCollider).setAngularDamping(value);
+    if (this._angularDamping !== value) {
+      this._angularDamping = value;
+      (<IDynamicCollider>this._nativeCollider).setAngularDamping(value);
+    }
   }
 
   /**
@@ -58,7 +78,6 @@ export class DynamicCollider extends Collider {
     if (this._linearVelocity !== value) {
       this._linearVelocity.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
   /**
@@ -72,7 +91,6 @@ export class DynamicCollider extends Collider {
     if (this._angularVelocity !== value) {
       this._angularVelocity.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
   /**
@@ -83,8 +101,10 @@ export class DynamicCollider extends Collider {
   }
 
   set mass(value: number) {
-    this._mass = value;
-    (<IDynamicCollider>this._nativeCollider).setMass(value);
+    if (this._mass !== value) {
+      this._mass = value;
+      (<IDynamicCollider>this._nativeCollider).setMass(value);
+    }
   }
 
   /**
@@ -98,7 +118,6 @@ export class DynamicCollider extends Collider {
     if (this._centerOfMass !== value) {
       this._centerOfMass.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
   }
 
   /**
@@ -112,7 +131,6 @@ export class DynamicCollider extends Collider {
     if (this._inertiaTensor !== value) {
       this._inertiaTensor.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
   /**
@@ -123,8 +141,10 @@ export class DynamicCollider extends Collider {
   }
 
   set maxAngularVelocity(value: number) {
-    this._maxAngularVelocity = value;
-    (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
+    if (this._maxAngularVelocity !== value) {
+      this._maxAngularVelocity = value;
+      (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
+    }
   }
 
   /**
@@ -135,8 +155,10 @@ export class DynamicCollider extends Collider {
   }
 
   set maxDepenetrationVelocity(value: number) {
-    this._maxDepenetrationVelocity = value;
-    (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
+    if (this._maxDepenetrationVelocity !== value) {
+      this._maxDepenetrationVelocity = value;
+      (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
+    }
   }
 
   /**
@@ -147,8 +169,10 @@ export class DynamicCollider extends Collider {
   }
 
   set sleepThreshold(value: number) {
-    this._sleepThreshold = value;
-    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
+    if (value !== this._sleepThreshold) {
+      this._sleepThreshold = value;
+      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
+    }
   }
 
   /**
@@ -159,8 +183,10 @@ export class DynamicCollider extends Collider {
   }
 
   set solverIterations(value: number) {
-    this._solverIterations = value;
-    (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+    if (this._solverIterations !== value) {
+      this._solverIterations = value;
+      (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+    }
   }
 
   /**
@@ -171,8 +197,10 @@ export class DynamicCollider extends Collider {
   }
 
   set isKinematic(value: boolean) {
-    this._isKinematic = value;
-    (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+    if (this._isKinematic !== value) {
+      this._isKinematic = value;
+      (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+    }
   }
 
   /**
@@ -183,8 +211,10 @@ export class DynamicCollider extends Collider {
   }
 
   set constraints(value: DynamicColliderConstraints) {
-    this._constraints = value;
-    (<IDynamicCollider>this._nativeCollider).setConstraints(value);
+    if (this._constraints !== value) {
+      this._constraints = value;
+      (<IDynamicCollider>this._nativeCollider).setConstraints(value);
+    }
   }
 
   /**
@@ -195,8 +225,10 @@ export class DynamicCollider extends Collider {
   }
 
   set collisionDetectionMode(value: CollisionDetectionMode) {
-    this._collisionDetectionMode = value;
-    (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+    if (this._collisionDetectionMode !== value) {
+      this._collisionDetectionMode = value;
+      (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+    }
   }
 
   /**
@@ -205,10 +237,24 @@ export class DynamicCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsManager._nativePhysics.createDynamicCollider(
+    this._nativeCollider = PhysicsScene._nativePhysics.createDynamicCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
+
+    this._setLinearVelocity = this._setLinearVelocity.bind(this);
+    this._setAngularVelocity = this._setAngularVelocity.bind(this);
+    this._setCenterOfMass = this._setCenterOfMass.bind(this);
+    this._setInertiaTensor = this._setInertiaTensor.bind(this);
+
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = this._setLinearVelocity;
+    //@ts-ignore
+    this._angularVelocity._onValueChanged = this._setAngularVelocity;
+    //@ts-ignore
+    this._centerOfMass._onValueChanged = this._setCenterOfMass;
+    //@ts-ignore
+    this._inertiaTensor._onValueChanged = this._setInertiaTensor;
   }
 
   /**
@@ -265,14 +311,50 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onLateUpdate(): void {
+  override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
     this._updateFlag.flag = false;
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: DynamicCollider): void {
+    super._cloneTo(target);
+    target.linearDamping = this.linearDamping;
+    target.angularDamping = this.angularDamping;
+    target.linearVelocity = this.linearVelocity;
+    target.angularVelocity = this.angularVelocity;
+    target.mass = this.mass;
+    target.centerOfMass = this.centerOfMass;
+    target.inertiaTensor = this.inertiaTensor;
+    target.maxAngularVelocity = this.maxAngularVelocity;
+    target.maxDepenetrationVelocity = this.maxDepenetrationVelocity;
+    target.sleepThreshold = this.sleepThreshold;
+    target.solverIterations = this.solverIterations;
+    target.isKinematic = this.isKinematic;
+    target.constraints = this.constraints;
+    target.collisionDetectionMode = this.collisionDetectionMode;
+  }
+
+  private _setLinearVelocity(): void {
+    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
+  }
+
+  private _setAngularVelocity(): void {
+    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+  }
+
+  private _setCenterOfMass(): void {
+    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+  }
+
+  private _setInertiaTensor(): void {
+    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 }
 

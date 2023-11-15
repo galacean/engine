@@ -1,4 +1,4 @@
-#ifdef OASIS_NO_DEPTH_TEXTURE
+#ifdef ENGINE_NO_DEPTH_TEXTURE
 /**
  * Decompose and save depth value.
 */
@@ -17,7 +17,7 @@ vec4 pack (float depth) {
 #endif
 
 void main() {
-#ifdef OASIS_NO_DEPTH_TEXTURE
+#ifdef ENGINE_NO_DEPTH_TEXTURE
     gl_FragColor = pack(gl_FragCoord.z);
 #else
     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);

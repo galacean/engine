@@ -1,30 +1,23 @@
-import { AssetPromise } from "./asset/AssetPromise";
 import { Engine } from "./Engine";
 import { Scene } from "./Scene";
+import { AssetPromise } from "./asset/AssetPromise";
+import { AssetType } from "./asset/AssetType";
+import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Scene manager.
  */
 export class SceneManager {
   /** @internal */
-  _allScenes: Scene[] = [];
+  _allCreatedScenes: Scene[] = [];
   /** @internal */
-  _activeScene: Scene;
+  _scenes: SafeLoopArray<Scene> = new SafeLoopArray<Scene>();
 
   /**
-   * Get the activated scene.
+   * Get the scene list.
    */
-  get activeScene(): Scene {
-    return this._activeScene;
-  }
-
-  set activeScene(scene: Scene) {
-    const oldScene = this._activeScene;
-    if (oldScene !== scene) {
-      oldScene && oldScene._processActive(false);
-      scene && scene._processActive(true);
-      this._activeScene = scene;
-    }
+  get scenes(): ReadonlyArray<Scene> {
+    return this._scenes.getArray();
   }
 
   /**
@@ -33,19 +26,80 @@ export class SceneManager {
   constructor(public readonly engine: Engine) {}
 
   /**
+   * Add scene.
+   * @param scene - The scene which want to be added
+   */
+  addScene(scene: Scene): void;
+
+  /**
+   * Add scene at specified index.
+   * @param index - specified index
+   * @param child - The scene which want to be added
+   */
+  addScene(index: number, scene: Scene): void;
+
+  addScene(indexOrScene: number | Scene, scene?: Scene): void {
+    const scenes = this._scenes;
+
+    let index: number;
+    if (typeof indexOrScene === "number") {
+      if (indexOrScene < 0 || indexOrScene > scenes.length) {
+        throw "The index is out of range.";
+      }
+      index = indexOrScene;
+    } else {
+      index = scenes.length;
+      scene = indexOrScene;
+    }
+
+    if (scene.engine !== this.engine) {
+      throw "The scene is not belong to this engine.";
+    }
+
+    if (scene._sceneManager) {
+      const currentIndex = scenes.indexOf(scene);
+      if (currentIndex !== index) {
+        scenes.removeByIndex(currentIndex);
+        scenes.add(index, scene);
+      }
+    } else {
+      scene._sceneManager = this;
+      scenes.add(index, scene);
+      scene.isActive && scene._processActive(true);
+    }
+  }
+
+  /**
+   * Remove scene.
+   * @param scene - The scene which want to be removed
+   */
+  removeScene(scene: Scene): void {
+    const scenes = this._scenes;
+    const index = scenes.indexOf(scene);
+    if (index !== -1) {
+      const removedScene = scenes.getArray()[index];
+      scenes.removeByIndex(index);
+      scene._sceneManager = null;
+      removedScene.isActive && removedScene._processActive(false);
+    }
+  }
+
+  /**
    * Load and activate scene.
    * @param url - the path of the scene
-   * @param destroyOldScene - whether to destroy old scene information
+   * @param destroyOldScene - whether to destroy old scene
    * @returns scene promise
    */
   loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
-    const scenePromise = this.engine.resourceManager.load<Scene>(url);
+    const scenePromise = this.engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
     scenePromise.then((scene: Scene) => {
-      const oldScene: Scene = this._activeScene;
-      this.activeScene = scene;
-      if (oldScene && destroyOldScene) {
-        oldScene.destroy();
+      if (destroyOldScene) {
+        const scenes = this._scenes.getArray();
+        for (let i = 0, n = scenes.length; i < n; i++) {
+          scenes[i].destroy();
+        }
       }
+      this.addScene(scene);
     });
     return scenePromise;
   }
@@ -67,10 +121,27 @@ export class SceneManager {
    * @internal
    */
   _destroyAllScene(): void {
-    const allScenes = this._allScenes;
-    for (let i = 0, n = allScenes.length; i < n; i++) {
-      allScenes[i]._destroy();
+    const allCreatedScenes = this._allCreatedScenes;
+    while (allCreatedScenes.length > 0) {
+      allCreatedScenes[0].destroy();
     }
-    allScenes.length = 0;
+  }
+
+  /**
+   * @deprecated
+   * Please use `scenes` instead.
+   *
+   * Get the first scene.
+   */
+  get activeScene(): Scene {
+    return this._scenes.getArray()[0];
+  }
+
+  set activeScene(scene: Scene) {
+    const firstScene = this.scenes[0];
+    if (firstScene) {
+      this.removeScene(firstScene);
+    }
+    scene && this.addScene(0, scene);
   }
 }

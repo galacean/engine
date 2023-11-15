@@ -1,8 +1,8 @@
-import { MathUtil, Matrix } from "@oasis-engine/math";
+import { MathUtil, Matrix } from "@galacean/engine-math";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Logger } from "../base/Logger";
 import { Mesh } from "../graphic/Mesh";
 import { Material } from "../material";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
@@ -14,10 +14,46 @@ export class Sky {
   private static _viewProjMatrix: Matrix = new Matrix();
   private static _projectionMatrix: Matrix = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, Sky._epsilon - 1, -1, 0, 0, 0, 0);
 
-  /** Material of the sky. */
-  material: Material;
-  /** Mesh of the sky. */
-  mesh: Mesh;
+  private _material: Material;
+  private _mesh: Mesh;
+
+  /**
+   *  Material of the sky.
+   */
+  get material() {
+    return this._material;
+  }
+
+  set material(value: Material) {
+    if (this._material !== value) {
+      value?._addReferCount(1);
+      this._material?._addReferCount(-1);
+      this._material = value;
+    }
+  }
+
+  /**
+   *  Mesh of the sky.
+   */
+  get mesh() {
+    return this._mesh;
+  }
+
+  set mesh(value: Mesh) {
+    if (this._mesh !== value) {
+      value?._addReferCount(1);
+      this._mesh?._addReferCount(-1);
+      this._mesh = value;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  destroy(): void {
+    this.mesh = null;
+    this.material = null;
+  }
 
   /**
    * @internal
@@ -28,12 +64,25 @@ export class Sky {
       Logger.warn("The material of sky is not defined.");
       return;
     }
+
+    if (material.destroyed) {
+      Logger.warn("The material of sky is destroyed.");
+      return;
+    }
+
     if (!mesh) {
       Logger.warn("The mesh of sky is not defined.");
       return;
     }
 
-    const { engine, aspectRatio, fieldOfView, viewMatrix, shaderData: cameraShaderData } = context.camera;
+    if (mesh.destroyed) {
+      Logger.warn("The mesh of sky is destroyed.");
+      return;
+    }
+
+    const { engine, scene, aspectRatio, fieldOfView, viewMatrix, shaderData: cameraShaderData } = context.camera;
+    const sceneData = scene.shaderData;
+
     const { _viewProjMatrix: viewProjMatrix, _projectionMatrix: projectionMatrix } = Sky;
     const rhi = engine._hardwareRenderer;
     const { shaderData: materialShaderData, shader, renderState } = material;
@@ -50,8 +99,8 @@ export class Sky {
 
     // view-proj matrix
     Matrix.multiply(projectionMatrix, viewProjMatrix, viewProjMatrix);
-    const originViewProjMatrix = cameraShaderData.getMatrix(RenderContext._vpMatrixProperty);
-    cameraShaderData.setMatrix(RenderContext._vpMatrixProperty, viewProjMatrix);
+    const originViewProjMatrix = cameraShaderData.getMatrix(RenderContext.vpMatrixProperty);
+    cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, viewProjMatrix);
 
     const compileMacros = Shader._compileMacros;
     ShaderMacroCollection.unionCollection(
@@ -59,15 +108,18 @@ export class Sky {
       materialShaderData._macroCollection,
       compileMacros
     );
-    const program = shader.passes[0]._getShaderProgram(engine, compileMacros);
+
+    const pass = shader.subShaders[0].passes[0];
+    const program = pass._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
+    program.uploadAll(program.sceneUniformBlock, sceneData);
     program.uploadAll(program.cameraUniformBlock, cameraShaderData);
     program.uploadAll(program.materialUniformBlock, materialShaderData);
     program.uploadUnGroupTextures();
 
-    renderState._apply(engine, false);
-    rhi.drawPrimitive(mesh, mesh.subMesh, program);
-    cameraShaderData.setMatrix(RenderContext._vpMatrixProperty, originViewProjMatrix);
+    renderState._apply(engine, false, pass._renderStateDataMap, materialShaderData);
+    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
+    cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, originViewProjMatrix);
   }
 }

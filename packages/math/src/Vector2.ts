@@ -374,6 +374,17 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
     out[outOffset] = this._x;
     out[outOffset + 1] = this._y;
   }
+
+  /**
+   * Serialize this vector to a JSON representation.
+   * @returns A JSON representation of this vector
+   */
+  toJSON(): Vector2Like {
+    return {
+      x: this._x,
+      y: this._y
+    };
+  }
 }
 
 interface Vector2Like {

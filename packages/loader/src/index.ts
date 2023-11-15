@@ -1,8 +1,8 @@
+import "./AnimationClipLoader";
 import "./AnimatorControllerLoader";
 import "./BufferLoader";
 import "./EnvLoader";
 import "./FontLoader";
-import "./gltf/extensions/index";
 import "./GLTFLoader";
 import "./HDRLoader";
 import "./JSONLoader";
@@ -15,11 +15,14 @@ import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./ProjectLoader";
+import "./ktx2/KTX2Loader";
 
-export { parseSingleKTX } from "./compressed-texture";
-export { GLTFResource } from "./gltf/GLTFResource";
 export type { GLTFParams } from "./GLTFLoader";
-export * from "./resource-deserialize";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
-
+export { parseSingleKTX } from "./compressed-texture";
+export * from "./gltf";
+export { KTX2Loader } from "./ktx2/KTX2Loader";
+export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
+export * from "./resource-deserialize";

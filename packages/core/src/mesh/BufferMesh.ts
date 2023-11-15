@@ -8,32 +8,32 @@ export class BufferMesh extends Mesh {
    * Instanced count, disable instanced drawing when set zero.
    */
   get instanceCount(): number {
-    return this._instanceCount;
+    return this._primitive.instanceCount;
   }
 
   set instanceCount(value: number) {
-    this._instanceCount = value;
+    this._primitive.instanceCount = value;
   }
 
   /**
    * Vertex buffer binding collection.
    */
   get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
-    return this._vertexBufferBindings;
+    return this._primitive.vertexBufferBindings;
   }
 
   /**
    * Index buffer binding.
    */
   get indexBufferBinding(): IndexBufferBinding {
-    return this._indexBufferBinding;
+    return this._primitive.indexBufferBinding;
   }
 
   /**
    * Vertex element collection.
    */
   get vertexElements(): Readonly<VertexElement[]> {
-    return this._vertexElements;
+    return this._primitive.vertexElements;
   }
 
   /**
@@ -46,10 +46,10 @@ export class BufferMesh extends Mesh {
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
+   * @param vertexBufferBinding - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, index?: number): void;
 
   /**
    * Set vertex buffer binding.
@@ -68,7 +68,7 @@ export class BufferMesh extends Mesh {
     const isBinding = binding.buffer !== undefined;
     isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
 
-    const bindings = this._vertexBufferBindings;
+    const bindings = this._primitive.vertexBufferBindings;
     bindings.length <= index && (bindings.length = index + 1);
     this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
   }
@@ -79,7 +79,7 @@ export class BufferMesh extends Mesh {
    * @param firstIndex - First vertex buffer index, the default value is 0
    */
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
-    const bindings = this._vertexBufferBindings;
+    const bindings = this._primitive.vertexBufferBindings;
     const count = vertexBufferBindings.length;
     const needLength = firstIndex + count;
     bindings.length < needLength && (bindings.length = needLength);

@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
@@ -13,16 +13,14 @@ export class SimpleSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const { _renderData: renderData } = renderer;
-    const vertexCount = (renderData.vertexCount = 4);
-    const { positions, uvs } = renderData;
-    if (positions.length < vertexCount) {
-      for (let i = positions.length; i < vertexCount; i++) {
-        positions.push(new Vector3());
-        uvs.push(new Vector2());
-      }
+    const { _verticesData: verticesData } = renderer;
+    const { positions, uvs } = verticesData;
+    verticesData.vertexCount = positions.length = uvs.length = 4;
+    for (let i = 0; i < 4; i++) {
+      positions[i] ||= new Vector3();
+      uvs[i] ||= new Vector2();
     }
-    renderData.triangles = SimpleSpriteAssembler._rectangleTriangles;
+    verticesData.triangles = SimpleSpriteAssembler._rectangleTriangles;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
@@ -49,7 +47,7 @@ export class SimpleSpriteAssembler {
     // ---------------
     // Update positions.
     const spritePositions = sprite._getPositions();
-    const { positions } = renderer._renderData;
+    const { positions } = renderer._verticesData;
     for (let i = 0; i < 4; i++) {
       const { x, y } = spritePositions[i];
       positions[i].set(wE[0] * x + wE[4] * y + wE[12], wE[1] * x + wE[5] * y + wE[13], wE[2] * x + wE[6] * y + wE[14]);
@@ -60,7 +58,7 @@ export class SimpleSpriteAssembler {
 
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {
     const spriteUVs = renderer.sprite._getUVs();
-    const renderUVs = renderer._renderData.uvs;
+    const renderUVs = renderer._verticesData.uvs;
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
     renderUVs[0].set(left, bottom);

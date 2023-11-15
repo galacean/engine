@@ -1,25 +1,35 @@
-import { IColliderShape } from "@oasis-engine/design";
+import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
+import { ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape {
+export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
+  @ignoreClone
   _collider: Collider;
   /** @internal */
+  @ignoreClone
   _nativeShape: IColliderShape;
 
+  @ignoreClone
   protected _id: number;
+  @ignoreClone
   protected _material: PhysicsMaterial;
+  @ignoreClone
   private _isTrigger: boolean = false;
-  private _contactOffset: number = 0;
+  @ignoreClone
   private _rotation: Vector3 = new Vector3();
+  @ignoreClone
   private _position: Vector3 = new Vector3();
+  @ignoreClone
+  private _contactOffset: number = 0.02;
 
   /**
    * @internal
@@ -45,13 +55,15 @@ export abstract class ColliderShape {
   /**
    * Contact offset for this shape.
    */
-  get contactOffset() {
+  get contactOffset(): number {
     return this._contactOffset;
   }
 
   set contactOffset(value: number) {
-    this._contactOffset = value;
-    this._nativeShape.setContactOffset(value);
+    if (this._contactOffset !== value) {
+      this._contactOffset = value;
+      this._nativeShape.setContactOffset(value);
+    }
   }
 
   /**
@@ -62,8 +74,10 @@ export abstract class ColliderShape {
   }
 
   set material(value: PhysicsMaterial) {
-    this._material = value;
-    this._nativeShape.setMaterial(value._nativeMaterial);
+    if (this._material !== value) {
+      this._material = value;
+      this._nativeShape.setMaterial(value._nativeMaterial);
+    }
   }
 
   /**
@@ -100,8 +114,10 @@ export abstract class ColliderShape {
   }
 
   set isTrigger(value: boolean) {
-    this._isTrigger = value;
-    this._nativeShape.setIsTrigger(value);
+    if (this._isTrigger !== value) {
+      this._isTrigger = value;
+      this._nativeShape.setIsTrigger(value);
+    }
   }
 
   protected constructor() {
@@ -114,6 +130,17 @@ export abstract class ColliderShape {
     this._rotation._onValueChanged = this._setRotation;
     //@ts-ignore
     this._position._onValueChanged = this._setPosition;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: ColliderShape) {
+    target.contactOffset = this.contactOffset;
+    target.rotation = this.rotation;
+    target.position = this.position;
+    target.isTrigger = this.isTrigger;
+    target.material = this.material;
   }
 
   /**

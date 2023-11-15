@@ -1,4 +1,4 @@
-import { AssetPromise } from "@oasis-engine/core";
+import { AssetPromise } from "@galacean/engine-core";
 import { expect } from "chai";
 
 describe("Asset Promise test", function () {
@@ -32,8 +32,16 @@ describe("Asset Promise test", function () {
     const assetPromise = new AssetPromise<number>((resolve) => {
       resolve(1);
     });
-    const value = await assetPromise.then((value) => value + 1);
-    expect(value).to.eq(2);
+    const value = await assetPromise
+      .then((value) => {
+        return value + 1;
+      })
+      .then((value) => {
+        expect(value).to.eq(2);
+        return value + 1;
+      });
+
+    expect(value).to.eq(3);
   });
 
   it("catch", async () => {
@@ -63,7 +71,7 @@ describe("Asset Promise test", function () {
       });
     });
     assetPromise.cancel();
-    assetPromise
+    await assetPromise
       .then((result) => {
         expect(result).to.eq(222);
       })
@@ -85,19 +93,35 @@ describe("Asset Promise test", function () {
       }, 20);
     });
 
-    let expectProgress = 0;
+    let currentProgress = 0;
     assetPromise.onProgress((progress) => {
-      expectProgress += 0.1;
-      console.log("set progress", expectProgress, progress);
-      expect(progress).to.approximately(expectProgress, 0.0001);
+      currentProgress = progress;
     });
 
-    assetPromise.then((e) => {
+    await assetPromise.then((e) => {
+      expect(currentProgress).to.eq(1);
       expect(e).to.eq(10);
     });
   });
 
-  it("promise all", async () => {
+  it("promise immediately", async () => {
+    let currentProgress = 0;
+    const assetPromise = new AssetPromise<number>((resolve, reject, setProgress) => {
+      setProgress(1);
+      resolve(1);
+    });
+
+    assetPromise.onProgress((progress) => {
+      currentProgress = progress;
+    });
+
+    await assetPromise.then((e) => {
+      expect(currentProgress).to.eq(1);
+      expect(e).to.eq(1);
+    });
+  });
+
+  it("promise all basic", async () => {
     const promises = [];
     for (let i = 0; i < 10; i++) {
       const promise = new Promise((resolve) => {
@@ -106,9 +130,37 @@ describe("Asset Promise test", function () {
       promises.push(promise);
     }
     let expectProgress = 0.1;
-    AssetPromise.all(promises).onProgress((p) => {
+    await AssetPromise.all(promises).onProgress((p) => {
       expect(p).to.approximately(expectProgress, 0.0001);
       expectProgress += 0.1;
+    });
+  });
+
+  it("promise all mixed", async () => {
+    const promises = [];
+    for (let i = 0; i < 2; i++) {
+      const promise = new Promise((resolve) => {
+        resolve(null);
+      });
+      promises.push(promise);
+    }
+    for (let i = 0; i < 2; i++) {
+      promises.push(i);
+    }
+
+    const expects = [null, null, 0, 1];
+    let expectProgress = 0.25;
+    await AssetPromise.all(promises)
+      .onProgress((p) => {
+        expect(p).to.approximately(expectProgress, 0.0001);
+        expectProgress += 0.25;
+      })
+      .then((value) => {
+        expect(value).to.eql(expects);
+      });
+
+    await AssetPromise.all([]).then((value) => {
+      expect(value.length).to.equal(0);
     });
   });
 });

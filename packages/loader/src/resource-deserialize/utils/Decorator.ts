@@ -1,4 +1,4 @@
-import { Engine } from "@oasis-engine/core";
+import { Engine } from "@galacean/engine-core";
 import type { BufferReader } from "./BufferReader";
 
 export const decoderMap: Record<

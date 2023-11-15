@@ -1,13 +1,21 @@
-import { DirectLight, Entity, PointLight, SpotLight } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
-import { registerExtension } from "../parser/Parser";
-import { ExtensionParser } from "./ExtensionParser";
-import { IKHRLightsPunctual_Light } from "./Schema";
+import { DirectLight, Entity, PointLight, SpotLight } from "@galacean/engine-core";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "./GLTFExtensionSchema";
 
-@registerExtension("KHR_lights_punctual")
-class KHR_lights_punctual extends ExtensionParser {
-  parseEngineResource(schema: IKHRLightsPunctual_Light, entity: Entity, context: GLTFResource): void {
-    const { color, intensity = 1, type, range, spot } = schema;
+@registerGLTFExtension("KHR_lights_punctual", GLTFExtensionMode.AdditiveParse)
+class KHR_lights_punctual extends GLTFExtensionParser {
+  override additiveParse(
+    context: GLTFParserContext,
+    entity: Entity,
+    extensionSchema: IKHRLightsPunctual_LightNode
+  ): void {
+    const lightsSchema = (<IKHRLightsPunctual>context.glTF.extensions.KHR_lights_punctual).lights;
+    const lightSchema = lightsSchema[extensionSchema.light];
+
+    const { color, intensity = 1, type, range, spot } = lightSchema;
+    const glTFResource = context.glTFResource;
     let light: DirectLight | PointLight | SpotLight;
 
     if (type === "directional") {
@@ -35,7 +43,7 @@ class KHR_lights_punctual extends ExtensionParser {
       light.penumbra = outerConeAngle - innerConeAngle;
     }
 
-    if (!context.lights) context.lights = [];
-    context.lights.push(light);
+    glTFResource.lights ||= [];
+    glTFResource.lights.push(light);
   }
 }

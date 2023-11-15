@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ColorSpace } from "../enums/ColorSpace";
 import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
@@ -17,7 +17,7 @@ export class ShaderUniform {
   cacheValue: number | Vector2 | Vector3 | Vector4;
   textureIndex: GLenum | GLenum[];
   textureDefault: Texture | Texture[];
-  textureUseComporeMode: boolean = false;
+  textureUseCompareMode: boolean = false;
 
   private _rhi: IHardwareRenderer;
   private _gl: WebGLRenderingContext;
@@ -280,7 +280,7 @@ export class ShaderUniform {
     rhi.activeTexture(shaderUniform.textureIndex as GLenum);
     rhi.bindTexture(value._platformTexture);
 
-    value._setUseDepthCompareMode(shaderUniform.textureUseComporeMode);
+    value._setUseDepthCompareMode(shaderUniform.textureUseCompareMode);
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
@@ -290,7 +290,7 @@ export class ShaderUniform {
       const texture = value[i];
       rhi.activeTexture(textureIndices[i]);
       rhi.bindTexture(texture._platformTexture);
-      texture._setUseDepthCompareMode(shaderUniform.textureUseComporeMode);
+      texture._setUseDepthCompareMode(shaderUniform.textureUseCompareMode);
     }
   }
 }

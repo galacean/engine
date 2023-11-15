@@ -1,6 +1,6 @@
-import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
+import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlagManager } from "./UpdateFlagManager";
@@ -39,6 +39,13 @@ export class Transform extends Component {
   private _localMatrix: Matrix = new Matrix();
   @deepClone
   private _worldMatrix: Matrix = new Matrix();
+  @ignoreClone
+  private _worldForward: Vector3 = null;
+  @ignoreClone
+  private _worldRight: Vector3 = null;
+  @ignoreClone
+  private _worldUp: Vector3 = null;
+
   @ignoreClone
   private _isParentDirty: boolean = true;
   @ignoreClone
@@ -99,9 +106,9 @@ export class Transform extends Component {
       //@ts-ignore
       rotation._onValueChanged = null;
       this._rotationQuaternion.toEuler(rotation);
+      rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       //@ts-ignore
       rotation._onValueChanged = this._onRotationChanged;
-      rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       this._setDirtyFlagFalse(TransformModifyFlags.LocalEuler);
     }
 
@@ -252,10 +259,18 @@ export class Transform extends Component {
       this._localMatrix.copyFrom(value);
     }
 
+    // @ts-ignore
+    this._position._onValueChanged = this._rotationQuaternion._onValueChanged = this._scale._onValueChanged = null;
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
+    // @ts-ignore
+    this._position._onValueChanged = this._onPositionChanged;
+    // @ts-ignore
+    this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    // @ts-ignore
+    this._scale._onValueChanged = this._onScaleChanged;
 
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
     this._updateAllWorldFlag();
   }
 
@@ -395,36 +410,33 @@ export class Transform extends Component {
   }
 
   /**
-   * Get the forward direction in world space.
-   * @param forward - Forward vector
-   * @returns Forward vector
+   * The forward direction in world space.
    */
-  getWorldForward(forward: Vector3): Vector3 {
+  get worldForward(): Vector3 {
+    const worldForward = (this._worldForward ||= new Vector3());
     const e = this.worldMatrix.elements;
-    forward.set(-e[8], -e[9], -e[10]);
-    return forward.normalize();
+    worldForward.set(-e[8], -e[9], -e[10]);
+    return worldForward.normalize();
   }
 
   /**
-   * Get the right direction in world space.
-   * @param right - Right vector
-   * @returns Right vector
+   * The right direction in world space.
    */
-  getWorldRight(right: Vector3): Vector3 {
+  get worldRight(): Vector3 {
+    const worldRight = (this._worldRight ||= new Vector3());
     const e = this.worldMatrix.elements;
-    right.set(e[0], e[1], e[2]);
-    return right.normalize();
+    worldRight.set(e[0], e[1], e[2]);
+    return worldRight.normalize();
   }
 
   /**
-   * Get the up direction in world space.
-   * @param up - Up vector
-   * @returns Up vector
+   * The up direction in world space.
    */
-  getWorldUp(up: Vector3): Vector3 {
+  get worldUp(): Vector3 {
+    const worldUp = (this._worldUp ||= new Vector3());
     const e = this.worldMatrix.elements;
-    up.set(e[4], e[5], e[6]);
-    return up.normalize();
+    worldUp.set(e[4], e[5], e[6]);
+    return worldUp.normalize();
   }
 
   /**
@@ -563,6 +575,24 @@ export class Transform extends Component {
     scale.y < 0 && (isInvert = !isInvert);
     scale.z < 0 && (isInvert = !isInvert);
     return isInvert;
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    //@ts-ignore
+    this._worldPosition._onValueChanged = null;
+    //@ts-ignore
+    this._rotation._onValueChanged = null;
+    //@ts-ignore
+    this._worldRotation._onValueChanged = null;
+    //@ts-ignore
+    this._rotationQuaternion._onValueChanged = null;
+    //@ts-ignore
+    this._worldRotationQuaternion._onValueChanged = null;
+    //@ts-ignore
+    this._position._onValueChanged = null;
+    //@ts-ignore
+    this._scale._onValueChanged = null;
   }
 
   /**

@@ -1,30 +1,44 @@
-import { Engine } from "@oasis-engine/core";
+import { Engine, EngineConfiguration, Scene } from "@galacean/engine-core";
+import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
-import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
-
-type OffscreenCanvas = any;
 
 /**
  * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
  */
 export class WebGLEngine extends Engine {
   /**
-   * Create an engine suitable for the WebGL platform.
-   * @param canvas - Native web canvas
-   * @param webGLRendererOptions - WebGL renderer options
+   * Create a WebGL engine.
+   * @param configuration - WebGL engine configuration
+   * @returns A promise that will resolve when the engine is created
    */
-  constructor(canvas: string | HTMLCanvasElement | OffscreenCanvas, webGLRendererOptions?: WebGLRendererOptions) {
-    const webCanvas = new WebCanvas(
-      <HTMLCanvasElement | OffscreenCanvas>(typeof canvas === "string" ? document.getElementById(canvas) : canvas)
-    );
-    const hardwareRenderer = new WebGLRenderer(webGLRendererOptions);
-    super(webCanvas, hardwareRenderer);
+  static create(configuration: WebGLEngineConfiguration): Promise<WebGLEngine> {
+    const canvas = configuration.canvas;
+    const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
+    const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
+    const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
+    // @ts-ignore
+    const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
+    return promise.then(() => {
+      engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
+      return engine;
+    });
   }
 
   /**
    * Web canvas.
    */
-  get canvas(): WebCanvas {
+  override get canvas(): WebCanvas {
+    // @ts-ignore
     return this._canvas as WebCanvas;
   }
+}
+
+/**
+ * WebGL engine configuration.
+ */
+export interface WebGLEngineConfiguration extends EngineConfiguration {
+  /** Canvas element or canvas id. */
+  canvas: HTMLCanvasElement | OffscreenCanvas | string;
+  /** Graphic device options. */
+  graphicDeviceOptions?: WebGLGraphicDeviceOptions;
 }

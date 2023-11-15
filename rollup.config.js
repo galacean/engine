@@ -3,14 +3,12 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import babel from "@rollup/plugin-babel";
 import glslify from "rollup-plugin-glslify";
-import { terser } from "rollup-plugin-terser";
 import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
-
-const camelCase = require("camelcase");
+import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
+import modify from "rollup-plugin-modify";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -27,10 +25,7 @@ const pkgs = fs
     };
   });
 
-// "oasisEngine" 、 "@oasisEngine/controls" ...
-function toGlobalName(pkgName) {
-  return camelCase(pkgName);
-}
+// toGlobalName
 
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
@@ -40,11 +35,18 @@ const commonPlugins = [
   glslify({
     include: [/\.glsl$/]
   }),
-  babel({
-    extensions,
-    babelHelpers: "bundled",
-    exclude: ["node_modules/**", "packages/**/node_modules/**"]
-  }),
+  swc(
+    defineRollupSwcOption({
+      include: /\.[mc]?[jt]sx?$/,
+      exclude: /node_modules/,
+      jsc: {
+        loose: true,
+        externalHelpers: true,
+        target: "es5"
+      },
+      sourceMaps: true
+    })
+  ),
   commonjs(),
   NODE_ENV === "development"
     ? serve({
@@ -58,7 +60,6 @@ function config({ location, pkgJson }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const external = Object.keys(dependencies);
-  const name = pkgJson.name;
   commonPlugins.push(
     replace({
       preventAssignment: true,
@@ -68,30 +69,33 @@ function config({ location, pkgJson }) {
 
   return {
     umd: (compress) => {
+      const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
-      const plugins = [...commonPlugins];
+
+      const plugins = [
+        modify({
+          find: "chevrotain",
+          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
+        }),
+        ...commonPlugins
+      ];
       if (compress) {
-        plugins.push(terser());
+        plugins.push(minify());
         file = path.join(location, "dist", "browser.min.js");
       }
 
-      const globalName = toGlobalName(pkgJson.name);
-
-      const globals = {};
-      external.forEach((pkgName) => {
-        globals[pkgName] = toGlobalName(pkgName);
-      });
+      const umdExternal = Object.keys(umdConfig.globals ?? {});
 
       return {
         input,
-        external: name === "oasis-engine" ? {} : external,
+        external: umdExternal,
         output: [
           {
             file,
-            name: globalName,
+            name: umdConfig.name,
             format: "umd",
             sourcemap: false,
-            globals
+            globals: umdConfig.globals
           }
         ],
         plugins
@@ -108,9 +112,7 @@ function config({ location, pkgJson }) {
             sourcemap: false
           }
         ],
-        external: Object.keys(pkgJson.dependencies || {})
-          .concat("@oasis-engine/miniprogram-adapter")
-          .map((name) => `${name}/dist/miniprogram`),
+        external: external.concat("@galacean/engine-miniprogram-adapter").map((name) => `${name}/dist/miniprogram`),
         plugins
       };
     },
@@ -161,7 +163,7 @@ switch (BUILD_TYPE) {
 }
 
 function getUMD() {
-  const configs = pkgs.filter((pkg) => pkg.pkgJson.browser);
+  const configs = pkgs.filter((pkg) => pkg.pkgJson.umd);
   return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
     .concat(

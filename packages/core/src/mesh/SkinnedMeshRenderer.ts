@@ -1,14 +1,14 @@
-import { BoundingBox, Matrix, Vector2 } from "@oasis-engine/math";
-import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { BoundingBox, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
-import { RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader } from "../shader";
+import { RendererUpdateFlags } from "../Renderer";
+import { Utils } from "../Utils";
+import { Logger } from "../base/Logger";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ShaderProperty } from "../shader";
+import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
-import { Texture2D } from "../texture/Texture2D";
-import { Utils } from "../Utils";
 import { MeshRenderer } from "./MeshRenderer";
 import { ModelMesh } from "./ModelMesh";
 import { Skin } from "./Skin";
@@ -17,16 +17,15 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _tempMatrix = new Matrix();
-  private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
-  private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
-  private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
+  private static _jointCountProperty = ShaderProperty.getByName("renderer_JointCount");
+  private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
+  private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
+
+  @deepClone
+  private _localBounds: BoundingBox = new BoundingBox();
 
   @ignoreClone
-  private _hasInitSkin: boolean = false;
-  @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
-  private _skin: Skin;
   @ignoreClone
   private _blendShapeWeights: Float32Array;
   @ignoreClone
@@ -34,13 +33,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _rootBone: Entity;
   @ignoreClone
-  private _localBounds: BoundingBox = new BoundingBox();
-  @ignoreClone
-  private _jointMatrixs: Float32Array;
+  private _jointMatrices: Float32Array;
   @ignoreClone
   private _jointTexture: Texture2D;
   @ignoreClone
-  private _jointEntitys: Entity[];
+  private _bones: ReadonlyArray<Entity>;
 
   /** @internal */
   @ignoreClone
@@ -68,20 +65,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Skin Object.
-   */
-  get skin(): Skin {
-    return this._skin;
-  }
-
-  set skin(value: Skin) {
-    if (this._skin !== value) {
-      this._skin = value;
-      this._hasInitSkin = false;
-    }
-  }
-
-  /**
    * Local bounds.
    */
   get localBounds(): BoundingBox {
@@ -102,8 +85,38 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   set rootBone(value: Entity) {
-    this._rootBone = value;
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    if (this._rootBone !== value) {
+      this._rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
+      value.transform._updateFlagManager.addListener(this._onTransformChanged);
+      this._rootBone = value;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    }
+  }
+
+  /**
+   * Bones of the SkinnedMeshRenderer.
+   */
+  get bones(): ReadonlyArray<Entity> {
+    return this._bones;
+  }
+
+  set bones(value: ReadonlyArray<Entity>) {
+    if (this._bones !== value) {
+      const lastBoneCount = this._bones?.length ?? 0;
+      const boneCount = value?.length ?? 0;
+      if (lastBoneCount !== boneCount) {
+        const shaderData = this.shaderData;
+        if (boneCount > 0) {
+          this._jointMatrices = new Float32Array(boneCount * 16);
+          shaderData.enableMacro("RENDERER_HAS_SKIN");
+          shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, boneCount);
+        } else {
+          this._jointMatrices = null;
+          shaderData.disableMacro("RENDERER_HAS_SKIN");
+        }
+      }
+      this._bones = value;
+    }
   }
 
   /**
@@ -115,11 +128,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const rhi = this.entity.engine._hardwareRenderer;
     let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    if (rhi.renderer === "Apple GPU") {
-      // When uniform is large than 256, the skeleton matrix array access in shader very slow in Safari or WKWebview.
-      // This may be a apple bug, Chrome and Firefox is OK!
-      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
-    }
+
+    // Limit size to 256 to avoid some problem:
+    // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
+    // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
+    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, rhi._options._maxAllowSkinUniformVectorCount);
+
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
@@ -134,35 +148,32 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(): void {
-    if (!this._hasInitSkin) {
-      this._initSkin();
-      this._hasInitSkin = true;
-    }
-    const skin = this._skin;
-    if (skin) {
-      const ibms = skin.inverseBindMatrices;
-      const worldToLocal = this._rootBone.getInvModelMatrix();
-      const { _jointEntitys: joints, _jointMatrixs: jointMatrixs } = this;
-
-      for (let i = joints.length - 1; i >= 0; i--) {
-        const joint = joints[i];
+  override update(): void {
+    const { _skin: skin, _bones: bones } = this;
+    if (skin && bones) {
+      // @todo: can optimize when share skin
+      const jointMatrices = this._jointMatrices;
+      const bindMatrices = skin.inverseBindMatrices;
+      const worldToLocal = (this._rootBone ?? this.entity).getInvModelMatrix();
+      for (let i = bones.length - 1; i >= 0; i--) {
+        const bone = bones[i];
         const offset = i * 16;
-        if (joint) {
-          Utils._floatMatrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, offset);
+        if (bone) {
+          Utils._floatMatrixMultiply(bone.transform.worldMatrix, bindMatrices[i].elements, 0, jointMatrices, offset);
         } else {
-          jointMatrixs.set(ibms[i].elements, offset);
+          jointMatrices.set(bindMatrices[i].elements, offset);
         }
-        Utils._floatMatrixMultiply(worldToLocal, jointMatrixs, offset, jointMatrixs, offset);
+        Utils._floatMatrixMultiply(worldToLocal, jointMatrices, offset, jointMatrices, offset);
       }
     }
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : this.entity.transform.worldMatrix;
+  protected override _updateShaderData(context: RenderContext): void {
+    const entity = this.entity;
+    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
@@ -171,10 +182,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const blendShapeManager = mesh._blendShapeManager;
     blendShapeManager._updateShaderData(shaderData, this);
 
-    const skin = this._skin;
-    if (skin) {
+    const bones = this._bones;
+    if (bones) {
       const bsUniformOccupiesCount = blendShapeManager._uniformOccupiesCount;
-      const jointCount = skin.joints.length;
+      const jointCount = bones.length;
       const jointDataCreateCache = this._jointDataCreateCache;
       const jointCountChange = jointCount !== jointDataCreateCache.x;
 
@@ -190,9 +201,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
               this._jointTexture?.destroy();
               this._jointTexture = new Texture2D(engine, 4, jointCount, TextureFormat.R32G32B32A32, false);
               this._jointTexture.filterMode = TextureFilterMode.Point;
+              this._jointTexture.isGCIgnored = true;
             }
-            shaderData.disableMacro("O3_JOINTS_NUM");
-            shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
+            shaderData.disableMacro("RENDERER_JOINTS_NUM");
+            shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
             shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
           } else {
             Logger.error(
@@ -202,38 +214,79 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           }
         } else {
           this._jointTexture?.destroy();
-          shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
-          shaderData.enableMacro("O3_JOINTS_NUM", remainUniformJointCount.toString());
-          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrixs);
+          shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
+          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrices);
         }
         jointDataCreateCache.set(jointCount, bsUniformOccupiesCount);
       }
 
       if (this._jointTexture) {
-        this._jointTexture.setPixelBuffer(this._jointMatrixs);
+        this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
+
+    const layer = entity.layer;
+    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
   /**
    * @internal
    */
-  _cloneTo(target: SkinnedMeshRenderer): void {
-    super._cloneTo(target);
+  override _onDestroy(): void {
+    super._onDestroy();
+    this._rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
+    this._rootBone = null;
+    this._jointDataCreateCache = null;
+    this._skin = null;
+    this._blendShapeWeights = null;
+    this._localBounds = null;
+    this._jointMatrices = null;
+    this._jointTexture?.destroy();
+    this._jointTexture = null;
+    this._bones = null;
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: SkinnedMeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+    const paths = new Array<number>();
+
+    // Clone rootBone
+    if (this.rootBone) {
+      const success = this._getEntityHierarchyPath(srcRoot, this.rootBone, paths);
+      target.rootBone = success ? this._getEntityByHierarchyPath(targetRoot, paths) : this.rootBone;
+    }
+
+    // Clone bones
+    const bones = this._bones;
+    if (bones) {
+      const boneCount = bones.length;
+      const destBones = new Array<Entity>(boneCount);
+      for (let i = 0; i < boneCount; i++) {
+        const bone = bones[i];
+        const success = this._getEntityHierarchyPath(srcRoot, bone, paths);
+        destBones[i] = success ? this._getEntityByHierarchyPath(targetRoot, paths) : bone;
+      }
+      target.bones = destBones;
+    }
+
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _registerEntityTransformListener(): void {
-    // Cancle register listener to entity transform.
+  protected override _registerEntityTransformListener(): void {
+    // Cancel register listener to entity transform.
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this._rootBone) {
       const localBounds = this._localBounds;
       const worldMatrix = this._rootBone.transform.worldMatrix;
@@ -241,64 +294,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       super._updateBounds(worldBounds);
     }
-  }
-
-  private _initSkin(): void {
-    const rhi = this.entity.engine._hardwareRenderer;
-    if (!rhi) return;
-
-    const { _skin: skin, shaderData } = this;
-    if (!skin) {
-      shaderData.disableMacro("O3_HAS_SKIN");
-      return;
-    }
-
-    const joints = skin.joints;
-    const jointCount = joints.length;
-    const jointEntitys = new Array<Entity>(jointCount);
-    for (let i = jointCount - 1; i >= 0; i--) {
-      jointEntitys[i] = this._findByEntityName(this.entity, joints[i]);
-    }
-    this._jointEntitys = jointEntitys;
-    this._jointMatrixs = new Float32Array(jointCount * 16);
-
-    const lastRootBone = this._rootBone;
-    const rootBone = this._findByEntityName(this.entity, skin.skeleton);
-
-    lastRootBone && lastRootBone.transform._updateFlagManager.removeListener(this._onTransformChanged);
-    rootBone.transform._updateFlagManager.addListener(this._onTransformChanged);
-
-    const rootIndex = joints.indexOf(skin.skeleton);
-    if (rootIndex !== -1) {
-      BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
-    } else {
-      // Root bone is not in joints list,we can only use default pose compute local bounds
-      // Default pose is slightly less accurate than bind pose
-      const inverseRootBone = SkinnedMeshRenderer._tempMatrix;
-      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBone);
-      BoundingBox.transform(this._mesh.bounds, inverseRootBone, this._localBounds);
-    }
-
-    this._rootBone = rootBone;
-    if (jointCount) {
-      shaderData.enableMacro("O3_HAS_SKIN");
-      shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-    } else {
-      shaderData.disableMacro("O3_HAS_SKIN");
-    }
-  }
-
-  private _findByEntityName(rootEnitity: Entity, name: string): Entity {
-    if (!rootEnitity) {
-      return null;
-    }
-
-    const result = rootEnitity.findByName(name);
-    if (result) {
-      return result;
-    }
-
-    return this._findByEntityName(rootEnitity.parent, name);
   }
 
   private _checkBlendShapeWeightLength(): void {
@@ -326,5 +321,49 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _onLocalBoundsChanged(): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+
+  private _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
+    inversePath.length = 0;
+    while (searchEntity !== rootEntity) {
+      const parent = searchEntity.parent;
+      if (!parent) {
+        return false;
+      }
+      inversePath.push(searchEntity.siblingIndex);
+      searchEntity = parent;
+    }
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  private _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
+    let entity = rootEntity;
+    for (let i = inversePath.length - 1; i >= 0; i--) {
+      entity = entity.children[inversePath[i]];
+    }
+    return entity;
+  }
+
+  private _skin: Skin;
+
+  /**
+   * @deprecated
+   * Skin Object.
+   *
+   * If you want get `skeleton`, use {@link SkinnedMeshRenderer.rootBone} instead.
+   * If you want get `bones`, use {@link SkinnedMeshRenderer.bones} instead.
+   * `inverseBindMatrices` will migrate to mesh in the future.
+   *
+   * @remarks `rootBone` and `bones` will not update when `skin` changed.
+   */
+  get skin(): Skin {
+    return this._skin;
+  }
+
+  set skin(value: Skin) {
+    this._skin = value;
   }
 }

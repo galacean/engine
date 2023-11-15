@@ -1,5 +1,6 @@
-import { Matrix, Vector3 } from "@oasis-engine/math";
-import { Shader, ShaderData } from "../shader";
+import { Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { ColorSpace } from "../enums/ColorSpace";
+import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -7,25 +8,18 @@ import { Light } from "./Light";
  * Directional light.
  */
 export class DirectLight extends Light {
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_directLightColor");
-  private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_directLightDirection");
-
-  private static _combinedData = {
-    color: new Float32Array(3 * Light._maxLight),
-    direction: new Float32Array(3 * Light._maxLight)
-  };
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightCullingMask");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightColor");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightDirection");
 
   /**
    * @internal
    */
-  static _updateShaderData(shaderData: ShaderData): void {
-    const data = DirectLight._combinedData;
-
+  static _updateShaderData(shaderData: ShaderData, data: IDirectLightShaderData): void {
+    shaderData.setIntArray(DirectLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(DirectLight._colorProperty, data.color);
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
-
-  private _forward: Vector3 = new Vector3();
 
   private _reverseDirection: Vector3 = new Vector3();
 
@@ -33,8 +27,7 @@ export class DirectLight extends Light {
    * Get direction.
    */
   get direction(): Vector3 {
-    this.entity.transform.getWorldForward(this._forward);
-    return this._forward;
+    return this.entity.transform.worldForward;
   }
 
   /**
@@ -47,46 +40,62 @@ export class DirectLight extends Light {
 
   /**
    * @internal
-   * @override
    */
-  get _shadowProjectionMatrix(): Matrix {
+  override get _shadowProjectionMatrix(): Matrix {
     throw "Unknown!";
   }
 
   /**
    * @internal
    */
-  _appendData(lightIndex: number): void {
+  _appendData(lightIndex: number, data: IDirectLightShaderData): void {
+    const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
-    const lightColor = this._getLightColor();
+    const lightColor = this._getLightIntensityColor();
     const direction = this.direction;
 
-    const data = DirectLight._combinedData;
+    const cullingMask = this.cullingMask;
+    data.cullingMask[cullingMaskStart] = cullingMask & 65535;
+    data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    data.color[colorStart] = lightColor.r;
-    data.color[colorStart + 1] = lightColor.g;
-    data.color[colorStart + 2] = lightColor.b;
+    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
+      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
+      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
+      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
+    } else {
+      data.color[colorStart] = lightColor.r;
+      data.color[colorStart + 1] = lightColor.g;
+      data.color[colorStart + 2] = lightColor.b;
+    }
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
   }
 
   /**
-   * Mount to the current Scene.
    * @internal
-   * @override
    */
-  _onEnable(): void {
-    this.engine._lightManager._attachDirectLight(this);
+  override _onEnableInScene(): void {
+    this.scene._lightManager._attachDirectLight(this);
   }
 
   /**
-   * Unmount from the current Scene.
    * @internal
-   * @override
    */
-  _onDisable(): void {
-    this.engine._lightManager._detachDirectLight(this);
+  override _onDisableInScene(): void {
+    this.scene._lightManager._detachDirectLight(this);
   }
+}
+
+/**
+ * Shader properties data of direct lights in the scene.
+ */
+export interface IDirectLightShaderData {
+  // Culling mask - which layers the light affect.
+  cullingMask: Int32Array;
+  // Light color.
+  color: Float32Array;
+  // Light direction.
+  direction: Float32Array;
 }

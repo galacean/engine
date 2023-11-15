@@ -1,19 +1,24 @@
 #include <common>
-uniform samplerCube u_cube;
+uniform samplerCube material_CubeTexture;
 
 varying vec3 v_cubeUV;
-uniform vec4 u_cubeDecodeParam;
+uniform float material_Exposure;
+uniform vec4 material_TintColor;
 
 void main() {
+    vec4 textureColor = textureCube( material_CubeTexture, v_cubeUV );
 
-    vec4 textureColor = textureCube( u_cube, v_cubeUV );
+    #ifdef MATERIAL_IS_DECODE_SKY_RGBM
+        textureColor = RGBMToLinear(textureColor, 5.0);
+    #elif !defined(ENGINE_IS_COLORSPACE_GAMMA)
+        textureColor = gammaToLinear(textureColor);
+    #endif
 
-    if (u_cubeDecodeParam.x > 0.0){
-       textureColor = RGBMToLinear(textureColor, u_cubeDecodeParam.y);
-       textureColor = linearToGamma(textureColor);
-    }
-      
-
+    textureColor.rgb *= material_Exposure * material_TintColor.rgb;
+    
     gl_FragColor = textureColor;
 
+    #if defined(MATERIAL_IS_DECODE_SKY_RGBM) || !defined(ENGINE_IS_COLORSPACE_GAMMA)
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
 }

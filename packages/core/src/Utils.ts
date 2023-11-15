@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix } from "@galacean/engine-math";
 
 export class Utils {
   /**
@@ -60,6 +60,73 @@ export class Utils {
     return index && index == length ? object : undefined;
   }
 
+  /**
+   * Fast remove an element from array.
+   * @param array - Array
+   * @param item - Element
+   */
+  static removeFromArray(array: any[], item: any): boolean {
+    const index = array.indexOf(item);
+    if (index < 0) {
+      return false;
+    }
+    const last = array.length - 1;
+    if (index !== last) {
+      const end = array[last];
+      array[index] = end;
+    }
+    array.length--;
+    return true;
+  }
+
+  /**
+   * Decodes a given Uint8Array into a string.
+   */
+  static decodeText(array: Uint8Array): string {
+    if (typeof TextDecoder !== "undefined") {
+      return new TextDecoder().decode(array);
+    }
+
+    // TextDecoder polyfill
+    let s = "";
+
+    for (let i = 0, il = array.length; i < il; i++) {
+      s += String.fromCharCode(array[i]);
+    }
+
+    return decodeURIComponent(encodeURIComponent(s));
+  }
+
+  /**
+   * Judge whether the url is absolute url.
+   * @param url - The url to be judged.
+   * @returns Whether the url is absolute url.
+   */
+  static isAbsoluteUrl(url: string): boolean {
+    return /^(?:http|blob|data:|\/)/.test(url);
+  }
+
+  /**
+   * Get the values of an object.
+   */
+  static objectValues(obj: any) {
+    return Object.keys(obj).map((key: any) => obj[key]);
+  }
+
+  /**
+   * Convert a relative URL to an absolute URL based on a given base URL.
+   * @param baseUrl - The base url.
+   * @param relativeUrl - The relative url.
+   * @returns The resolved url.
+   */
+  static resolveAbsoluteUrl(baseUrl: string, relativeUrl: string): string {
+    if (Utils.isAbsoluteUrl(relativeUrl)) {
+      return relativeUrl;
+    }
+
+    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + this._formatRelativePath(relativeUrl);
+  }
+
   private static _stringToPath(string): string[] {
     const result = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
@@ -75,6 +142,19 @@ export class Utils {
       result.push(key);
     });
     return result;
+  }
+
+  private static _formatRelativePath(path: string): string {
+    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
+    return path
+      .split("/")
+      .filter(Boolean)
+      .reduce((acc, cur) => {
+        if (cur === "..") acc.pop();
+        else if (cur !== ".") acc.push(cur);
+        return acc;
+      }, [])
+      .join("/");
   }
 }
 

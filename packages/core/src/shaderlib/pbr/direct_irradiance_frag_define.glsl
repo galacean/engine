@@ -3,7 +3,7 @@
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float attenuation = 1.0;
 
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoatDotNL = saturate( dot( geometry.clearCoatNormal, incidentDirection ) );
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
         
@@ -19,7 +19,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
 
 }
 
-#ifdef O3_DIRECT_LIGHT_COUNT
+#ifdef SCENE_DIRECT_LIGHT_COUNT
 
     void addDirectionalDirectLightRadiance(DirectLight directionalLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
         vec3 color = directionalLight.color;
@@ -31,7 +31,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
 
 #endif
 
-#ifdef O3_POINT_LIGHT_COUNT
+#ifdef SCENE_POINT_LIGHT_COUNT
 
 	void addPointDirectLightRadiance(PointLight pointLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
 
@@ -49,7 +49,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
 
 #endif
 
-#ifdef O3_SPOT_LIGHT_COUNT
+#ifdef SCENE_SPOT_LIGHT_COUNT
 
 	void addSpotDirectLightRadiance(SpotLight spotLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
 
@@ -73,60 +73,64 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
 #endif
 
 void addTotalDirectRadiance(Geometry geometry, Material material, inout ReflectedLight reflectedLight){
-	    float shadowAttenuation = 1.0;
+    float shadowAttenuation = 1.0;
 
-	    #ifdef O3_DIRECT_LIGHT_COUNT
-            shadowAttenuation = 1.0;
-#ifdef OASIS_CALCULATE_SHADOWS
-        shadowAttenuation *= sampleShadowMap();
-        int sunIndex = int(u_shadowInfo.z);
-#endif
+    #ifdef SCENE_DIRECT_LIGHT_COUNT
+        shadowAttenuation = 1.0;
+        #ifdef SCENE_IS_CALCULATE_SHADOWS
+            shadowAttenuation *= sampleShadowMap();
+            // int sunIndex = int(scene_ShadowInfo.z);
+        #endif
 
-            DirectLight directionalLight;
-            for ( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i ++ ) {
-                directionalLight.color = u_directLightColor[i];
-#ifdef OASIS_CALCULATE_SHADOWS
-                if (i == sunIndex) {
-                    directionalLight.color *= shadowAttenuation;
-                }
-#endif
-                directionalLight.direction = u_directLightDirection[i];
+        DirectLight directionalLight;
+        for ( int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i ++ ) {
+            // warning: use `continue` syntax may trigger flickering bug in safri 16.1.
+            if(!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])){
+                directionalLight.color = scene_DirectLightColor[i];
+                #ifdef SCENE_IS_CALCULATE_SHADOWS
+                    if (i == 0) { // Sun light index is always 0
+                        directionalLight.color *= shadowAttenuation;
+                    }
+                #endif
+                directionalLight.direction = scene_DirectLightDirection[i];
                 addDirectionalDirectLightRadiance( directionalLight, geometry, material, reflectedLight );
             }
+        }
 
-        #endif
+    #endif
 
-        #ifdef O3_POINT_LIGHT_COUNT
+    #ifdef SCENE_POINT_LIGHT_COUNT
 
-            PointLight pointLight;
+        PointLight pointLight;
 
-            for ( int i = 0; i < O3_POINT_LIGHT_COUNT; i ++ ) {
-
-                pointLight.color = u_pointLightColor[i];
-                pointLight.position = u_pointLightPosition[i];
-                pointLight.distance = u_pointLightDistance[i];
+        for ( int i = 0; i < SCENE_POINT_LIGHT_COUNT; i ++ ) {
+            if(!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])){
+                pointLight.color = scene_PointLightColor[i];
+                pointLight.position = scene_PointLightPosition[i];
+                pointLight.distance = scene_PointLightDistance[i];
 
                 addPointDirectLightRadiance( pointLight, geometry, material, reflectedLight );
-            }
+            } 
+        }
 
-        #endif
+    #endif
 
-        #ifdef O3_SPOT_LIGHT_COUNT
+    #ifdef SCENE_SPOT_LIGHT_COUNT
 
-            SpotLight spotLight;
+        SpotLight spotLight;
 
-            for ( int i = 0; i < O3_SPOT_LIGHT_COUNT; i ++ ) {
-
-                spotLight.color = u_spotLightColor[i];
-                spotLight.position = u_spotLightPosition[i];
-                spotLight.direction = u_spotLightDirection[i];
-                spotLight.distance = u_spotLightDistance[i];
-                spotLight.angleCos = u_spotLightAngleCos[i];
-                spotLight.penumbraCos = u_spotLightPenumbraCos[i];
+        for ( int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i ++ ) {
+            if(!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])){
+                spotLight.color = scene_SpotLightColor[i];
+                spotLight.position = scene_SpotLightPosition[i];
+                spotLight.direction = scene_SpotLightDirection[i];
+                spotLight.distance = scene_SpotLightDistance[i];
+                spotLight.angleCos = scene_SpotLightAngleCos[i];
+                spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
 
                 addSpotDirectLightRadiance( spotLight, geometry, material, reflectedLight );
-            }
+            } 
+        }
 
-        #endif
-
+    #endif
 }

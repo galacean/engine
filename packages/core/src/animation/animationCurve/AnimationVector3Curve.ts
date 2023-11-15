@@ -1,5 +1,6 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -11,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Vector3>>()
 export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -23,6 +24,13 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
     owner.fixedPoseValue = new Vector3();
     owner.baseEvaluateData.value = new Vector3();
     owner.crossEvaluateData.value = new Vector3();
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Vector3();
   }
 
   /**
@@ -69,7 +77,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
-  static _copyValue(source: Vector3, out: Vector3): Vector3 {
+  static _setValue(source: Vector3, out: Vector3): Vector3 {
     out.copyFrom(source);
     return out;
   }

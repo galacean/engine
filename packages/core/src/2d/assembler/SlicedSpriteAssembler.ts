@@ -1,29 +1,33 @@
-import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
+import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
  * @internal
  */
 @StaticInterfaceImplement<IAssembler>()
 export class SlicedSpriteAssembler {
+  static _rectangleTriangles: number[] = [
+    0, 1, 4, 1, 5, 4, 1, 2, 5, 2, 6, 5, 2, 3, 6, 3, 7, 6, 4, 5, 8, 5, 9, 8, 5, 6, 9, 6, 10, 9, 6, 7, 10, 7, 11, 10, 8,
+    9, 12, 9, 13, 12, 9, 10, 13, 10, 14, 13, 10, 11, 14, 11, 15, 14
+  ];
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer): void {
-    const { _renderData: renderData } = renderer;
-    const { positions, uvs } = renderData;
-    if (positions.length < 16) {
-      for (let i = positions.length; i < 16; i++) {
-        positions.push(new Vector3());
-        uvs.push(new Vector2());
-      }
+    const { _verticesData: verticesData } = renderer;
+    const { positions, uvs } = verticesData;
+    verticesData.vertexCount = positions.length = uvs.length = 16;
+    for (let i = 0; i < 16; i++) {
+      positions[i] ||= new Vector3();
+      uvs[i] ||= new Vector2();
     }
-    renderData.triangles = [];
+    verticesData.triangles = SlicedSpriteAssembler._rectangleTriangles;
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite } = renderer;
-    const { positions, uvs, triangles } = renderer._renderData;
+    const { positions, uvs } = renderer._verticesData;
     const { border } = sprite;
     const spriteUVs = sprite._getUVs();
     // Update local positions.
@@ -100,39 +104,20 @@ export class SlicedSpriteAssembler {
     //  0 - 4 - 8  - 12
     // ------------------------
     // Assemble position and uv.
-    let vertexCount = 0;
-    let realICount = 0;
     for (let i = 0; i < 4; i++) {
       const rowValue = row[i];
       const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++) {
         const columnValue = column[j];
-        positions[vertexCount].set(
+        const idx = i * 4 + j;
+        positions[idx].set(
           wE[0] * rowValue + wE[4] * columnValue + wE[12],
           wE[1] * rowValue + wE[5] * columnValue + wE[13],
           wE[2] * rowValue + wE[6] * columnValue + wE[14]
         );
-        uvs[vertexCount].set(rowU, spriteUVs[j].y);
-        ++vertexCount;
-      }
-      ++realICount;
-    }
-
-    const realJCount = vertexCount / realICount;
-    let indexOffset = 0;
-    for (let i = 0; i < realICount - 1; ++i) {
-      for (let j = 0; j < realJCount - 1; ++j) {
-        const start = i * realJCount + j;
-        triangles[indexOffset++] = start;
-        triangles[indexOffset++] = start + 1;
-        triangles[indexOffset++] = start + realJCount;
-        triangles[indexOffset++] = start + 1;
-        triangles[indexOffset++] = start + realJCount + 1;
-        triangles[indexOffset++] = start + realJCount;
+        uvs[idx].set(rowU, spriteUVs[j].y);
       }
     }
-    renderer._renderData.vertexCount = realICount * realJCount;
-    triangles.length = (realICount - 1) * (realJCount - 1) * 6;
 
     const { min, max } = renderer._bounds;
     min.set(row[0], column[0], 0);
