@@ -44,6 +44,9 @@ importers:
       '@types/node':
         specifier: ^18.7.16
         version: 18.17.0
+      '@types/webxr':
+        specifier: latest
+        version: 0.5.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6)
@@ -214,6 +217,18 @@ importers:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
+
+  packages/xr-webxr:
+    devDependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+      '@galacean/engine-xr':
+        specifier: workspace:*
+        version: link:../xr
 
   tests:
     dependencies:
@@ -1227,6 +1242,10 @@ packages:
 
   /@types/semver@7.5.0:
     resolution: {integrity: sha512-G8hZ6XJiHnuhQKR7ZmysCeJWE08o8T0AXtk5darsCaTVsYZhhgUrq53jizaR2FvsoeCwJhlmwTjkXBY5Pn/ZHw==}
+    dev: true
+
+  /@types/webxr@0.5.1:
+    resolution: {integrity: sha512-xlFXPfgJR5vIuDefhaHuUM9uUgvPaXB6GKdXy2gdEh8gBWQZ2ul24AJz3foUd8NNKlSTQuWYJpCb1/pL81m1KQ==}
     dev: true
 
   /@typescript-eslint/eslint-plugin@6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6):

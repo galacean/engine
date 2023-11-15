@@ -30,12 +30,6 @@ export abstract class XRTrackablePlatformFeature<
     return this._trackedObjects;
   }
 
-  addRequestTracking(): void {}
-
-  removeRequestTracking(): void {}
-
-  removeAllRequestTrackings(): void {}
-
   /**
    * Returns the changes tracked in this frame.
    * @returns The changes of tracked objects

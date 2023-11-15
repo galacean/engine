@@ -4,7 +4,6 @@ import { IXRPlaneTrackingDescriptor } from "./IXRPlaneTrackingDescriptor";
 import { XRPlatformPlaneTracking } from "./XRPlatformPlaneTracking";
 import { XRPlaneDetectionMode } from "./XRPlaneDetectionMode";
 import { XRTrackableManager } from "../XRTrackableManager";
-import { XRPlane } from "../../../component/trackable/XRPlane";
 
 @registerXRFeatureManager(XRFeatureType.PlaneTracking)
 /**
@@ -13,7 +12,6 @@ import { XRPlane } from "../../../component/trackable/XRPlane";
 export class XRPlaneTrackingManager extends XRTrackableManager<
   IXRPlaneTrackingDescriptor,
   IXRTrackedPlane,
-  XRPlane,
   XRPlatformPlaneTracking
 > {
   /**

@@ -95,7 +95,7 @@ export class XRHitTestManager extends XRFeatureManager {
     const { _tempVec30: normal, _tempVec31: hitPoint, _tempVec32: hitPointInPlane } = this;
     const planes = planeManager.trackedObjects;
     for (let i = 0, n = planes.length; i < n; i++) {
-      const trackedPlane = planes[i].platformData;
+      const trackedPlane = planes[i];
       normal.set(0, 1, 0).transformNormal(trackedPlane.pose.matrix);
       const plane = new Plane(normal, -Vector3.dot(normal, trackedPlane.pose.position));
       const distance = ray.intersectPlane(plane);

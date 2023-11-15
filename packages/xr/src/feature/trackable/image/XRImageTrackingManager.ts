@@ -4,7 +4,6 @@ import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
 import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRReferenceImage } from "./XRReferenceImage";
-import { XRImage } from "../../../component/trackable/XRImage";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
 /**
@@ -13,7 +12,6 @@ import { XRImage } from "../../../component/trackable/XRImage";
 export class XRImageTrackingManager extends XRTrackableManager<
   IXRImageTrackingDescriptor,
   IXRTrackedImage,
-  XRImage,
   XRPlatformImageTracking
 > {
   private _referenceImages: XRReferenceImage[] = [];
