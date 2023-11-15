@@ -22,23 +22,27 @@ import { XRPlatformImageTracking, XRRequestTrackingState, XRTrackedImage } from 
  * and this choice can change for future XRFrames.
  */
 export class WebXRImageTracking extends XRPlatformImageTracking {
-  private _time: Time;
   private _sessionManager: XRSessionManager;
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
 
   override _onUpdate(): void {
+    const session = <WebXRSession>this._sessionManager.session;
+    if (!session) {
+      return;
+    }
     switch (this._trackingScoreStatus) {
       case ImageTrackingScoreStatus.NotReceived:
-        this._requestTrackingScore();
+        this._requestTrackingScore(session);
         break;
       case ImageTrackingScoreStatus.Received:
-        this._handleTrackingResults();
+        this._handleTrackingResults(session);
       default:
         break;
     }
   }
 
   override _onSessionInit(): void {
+    super._onSessionInit();
     const { _requestTrackings: requestTrackings } = this;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       requestTrackings[i].state = XRRequestTrackingState.Submitted;
@@ -50,8 +54,12 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
     this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   }
 
-  private _requestTrackingScore(): void {
-    const session = <WebXRSession>this._sessionManager.session;
+  constructor(engine: Engine) {
+    super(engine);
+    this._sessionManager = engine.xrManager.sessionManager;
+  }
+
+  private _requestTrackingScore(session: WebXRSession): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
     session._platformSession
       // @ts-ignore
@@ -81,14 +89,13 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
       });
   }
 
-  private _handleTrackingResults(): void {
-    const session = <WebXRSession>this._sessionManager.session;
+  private _handleTrackingResults(session: WebXRSession): void {
     const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
     if (!platformFrame || !platformReferenceSpace) {
       return;
     }
 
-    const { frameCount } = this._time;
+    const { frameCount } = this._engine.time;
     const {
       _trackedObjects: trackedObjects,
       _requestTrackings: requestTrackings,
@@ -113,6 +120,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
             added.push(tracked);
             trackedObjects.push(tracked);
           }
+          tracked.frameCount = frameCount;
         } else {
           if (tracked.state === XRTrackingState.Tracking) {
             tracked.state = XRTrackingState.TrackingLost;
@@ -120,7 +128,6 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
             trackedObjects.splice(trackedObjects.indexOf(tracked), 1);
           }
         }
-        tracked.frameCount = frameCount;
       } else {
         Logger.warn("Images can not find " + trackingResult.index);
       }
@@ -143,12 +150,6 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     trackedImage.measuredWidthInMeters = trackingResult.measuredWidthInMeters;
-  }
-
-  constructor(engine: Engine) {
-    super(engine);
-    this._sessionManager = engine.xrManager.sessionManager;
-    this._time = engine.time;
   }
 }
 

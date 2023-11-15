@@ -6,19 +6,17 @@ import {
   XRFeatureType,
   XRTrackingState,
   Logger,
-  XRSessionManager,
-  Time
+  XRSessionManager
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
-import { XRPlaneMode, XRPlatformPlaneTracking, XRTrackedPlane } from "@galacean/engine-xr";
+import { XRPlaneMode, XRPlatformPlaneTracking, XRRequestTrackingState, XRTrackedPlane } from "@galacean/engine-xr";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
 export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
-  private _time: Time;
   private _sessionManager: XRSessionManager;
   private _lastDetectedPlanes: XRPlaneSet;
 
@@ -40,6 +38,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
       return;
     }
 
+    const { frameCount } = this._engine.time;
     // @ts-ignore
     const detectedPlanes: XRPlaneSet = platformFrame.detectedPlanes || platformFrame.worldInformation?.detectedPlanes;
     const trackedPlanes = <WebXRTrackedPlane[]>this._trackedObjects;
@@ -52,6 +51,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
         if (trackedPlane.lastChangedTime < xrPlane.lastChangedTime) {
           this._updatePlane(platformFrame, platformReferenceSpace, trackedPlane, xrPlane);
           updated.push(trackedPlane);
+          trackedPlane.frameCount = frameCount;
         }
       } else {
         trackedPlanes.splice(i, 1);
@@ -70,6 +70,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
           inverseMatrix: new Matrix()
         });
         plane.orientation = xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical;
+        plane.frameCount = frameCount;
         plane.xrPlane = xrPlane;
         plane.polygon = [];
         this._updatePlane(platformFrame, platformReferenceSpace, plane, xrPlane);
@@ -78,6 +79,14 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
       }
     });
     this._lastDetectedPlanes = detectedPlanes;
+  }
+
+  override _onSessionInit(): void {
+    super._onSessionInit();
+    const { _requestTrackings: requestTrackings } = this;
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      requestTrackings[i].state = XRRequestTrackingState.Resolved;
+    }
   }
 
   private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: WebXRTrackedPlane, xrPlane: XRPlane): void {
@@ -98,13 +107,11 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
     for (let i = 0, n = (polygon.length = oriPolygon.length); i < n; i++) {
       (polygon[i] ||= new Vector3()).copyFrom(oriPolygon[i]);
     }
-    trackedPlane.frameCount = this._time.frameCount;
   }
 
   constructor(engine: Engine) {
     super(engine);
     this._sessionManager = engine.xrManager.sessionManager;
-    this._time = engine.time;
   }
 }
 
