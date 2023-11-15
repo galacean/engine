@@ -6,7 +6,6 @@ import {
   Matrix,
   Quaternion,
   Vector3,
-  Time,
   XRSessionManager
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";

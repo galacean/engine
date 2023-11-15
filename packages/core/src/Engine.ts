@@ -271,8 +271,8 @@ export class Engine extends EventDispatcher {
 
     this.inputManager = new InputManager(this);
 
-    const { xr } = configuration;
-    xr && (this.xrManager = new XRManager(this, xr));
+    const { xrDevice } = configuration;
+    xrDevice && (this.xrManager = new XRManager(this, xrDevice));
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -753,7 +753,7 @@ export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
   /** XR. */
-  xr?: IXRDevice;
+  xrDevice?: IXRDevice;
   /** Color space. */
   colorSpace?: ColorSpace;
   /** Shader lab */

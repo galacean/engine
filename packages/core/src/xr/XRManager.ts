@@ -20,12 +20,13 @@ export class XRManager {
   // @internal
   static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
 
-  /** Hardware adaptation for XR. */
-  xrDevice: IXRDevice;
   /** Input manager for XR. */
   inputManager: XRInputManager;
   /** Session manager for XR. */
   sessionManager: XRSessionManager;
+
+  /** @internal */
+  _xrDevice: IXRDevice;
 
   private _engine: Engine;
   private _scene: Scene;
@@ -81,7 +82,7 @@ export class XRManager {
    * @returns A promise that resolves if the mode is supported, otherwise rejects
    */
   isSupported(mode: XRSessionType): Promise<void> {
-    return this.xrDevice.isSupported(mode);
+    return this._xrDevice.isSupported(mode);
   }
 
   /**
@@ -135,7 +136,7 @@ export class XRManager {
     } else {
       const { _featureManagerMap: featureManagerMap } = XRManager;
       const featureManagerConstructor = featureManagerMap[type];
-      const platformFeature = this.xrDevice.createPlatformFeature(this._engine, type);
+      const platformFeature = this._xrDevice.createPlatformFeature(this._engine, type);
       const feature = (features[type] = new featureManagerConstructor(this._engine));
       feature._platformFeature = platformFeature;
       return <T>feature;
@@ -154,7 +155,7 @@ export class XRManager {
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
-      this.xrDevice.isSupported(mode).then(() => {
+      this._xrDevice.isSupported(mode).then(() => {
         if (requestFeatures) {
           // 2. Reset all feature
           this.disableAllFeatures();
@@ -276,7 +277,7 @@ export class XRManager {
 
   constructor(engine: Engine, xrDevice: IXRDevice) {
     this._engine = engine;
-    this.xrDevice = xrDevice;
+    this._xrDevice = xrDevice;
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
   }

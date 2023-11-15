@@ -71,9 +71,9 @@ export class XRSessionManager {
    */
   initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<IXRSession> {
     const { _engine: engine } = this;
-    const device = engine.xrManager.xrDevice;
+    const { _xrDevice: xrDevice } = engine.xrManager;
     return new Promise((resolve, reject) => {
-      device.requestSession(engine, mode, requestFeatures).then((session: IXRSession) => {
+      xrDevice.requestSession(engine, mode, requestFeatures).then((session: IXRSession) => {
         this._session = session;
         this._state = XRSessionState.Initialized;
         resolve(session);

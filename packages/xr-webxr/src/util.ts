@@ -13,7 +13,7 @@ export function parseXRMode(mode: XRSessionType): XRSessionMode {
   }
 }
 
-export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessionInit): Promise<void> | null {
+export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessionInit): Promise<void> | void {
   const { requiredFeatures } = options;
   switch (descriptor.type) {
     case XRFeatureType.ImageTracking:
@@ -103,9 +103,5 @@ export function viewToCamera(type: XREye): XRInputType {
 }
 
 function createImageBitmapByURL(url: string): Promise<ImageBitmap> {
-  return new Promise((resolve, reject) => {
-    request<HTMLImageElement>(url, { type: "image" }).then((image) => {
-      createImageBitmap(image).then(resolve, reject);
-    }, reject);
-  });
+  return request<HTMLImageElement>(url, { type: "image" }).then((image) => createImageBitmap(image));
 }
