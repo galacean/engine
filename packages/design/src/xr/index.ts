@@ -7,15 +7,8 @@ export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
 
 export type { IXRReferenceImage } from "./feature/trackable/IXRReferenceImage";
-export type { IXRRequestTracking } from "./feature/trackable/request/IXRRequestTracking";
-export type { IXRRequestTrackingAnchor } from "./feature/trackable/request/IXRRequestTrackingAnchor";
-export type { IXRRequestTrackingImage } from "./feature/trackable/request/IXRRequestTrackingImage";
-export type { IXRRequestTrackingPlane } from "./feature/trackable/request/IXRRequestTrackingPlane";
-
-export type { IXRTracked } from "./feature/trackable/tracked/IXRTracked";
-export type { IXRTrackedAnchor } from "./feature/trackable/tracked/IXRTrackedAnchor";
-export type { IXRTrackedImage } from "./feature/trackable/tracked/IXRTrackedImage";
-export type { IXRTrackedPlane } from "./feature/trackable/tracked/IXRTrackedPlane";
+export type { IXRRequestTracking } from "./feature/trackable/IXRRequestTracking";
+export type { IXRTracked } from "./feature/trackable/IXRTracked";
 
 export type { IXRFrame } from "./IXRFrame";
 export type { IXRSession } from "./IXRSession";

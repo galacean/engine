@@ -1,4 +1,4 @@
-import { IXRPose } from "../../../input/IXRPose";
+import { IXRPose } from "../../input/IXRPose";
 
 /**
  * The base interface of XR trackable.

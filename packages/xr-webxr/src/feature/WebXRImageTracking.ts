@@ -10,9 +10,8 @@ import {
   XRSessionManager
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { IXRTrackedImage } from "@galacean/engine-design";
 import { WebXRSession } from "../WebXRSession";
-import { XRPlatformImageTracking, XRRequestTrackingState } from "@galacean/engine-xr";
+import { XRPlatformImageTracking, XRRequestTrackingState, XRTrackedImage } from "@galacean/engine-xr";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
@@ -67,13 +66,11 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
               this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
               requestTracking.state = XRRequestTrackingState.Resolved;
               requestTracking.tracked = [
-                {
-                  id: this._generateUUID(),
-                  pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-                  state: XRTrackingState.NotTracking,
-                  measuredWidthInMeters: 0,
-                  frameCount: 0
-                }
+                new XRTrackedImage(this._generateUUID(), {
+                  matrix: new Matrix(),
+                  rotation: new Quaternion(),
+                  position: new Vector3()
+                })
               ];
             } else {
               requestTracking.state = XRRequestTrackingState.Rejected;
@@ -106,7 +103,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
       const trackingResult = trackingResults[i];
       const requestTrackingImage = requestTrackings[trackingResult.index];
       if (requestTrackingImage) {
-        const tracked = <IXRTrackedImage>requestTrackings[i].tracked[0];
+        const tracked = requestTrackings[i].tracked[0];
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
           if (tracked.state === XRTrackingState.Tracking) {
@@ -130,7 +127,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
     }
 
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      const tracked = <IXRTrackedImage>requestTrackings[i].tracked[0];
+      const tracked = requestTrackings[i].tracked[0];
       if (tracked.frameCount < frameCount && tracked.state === XRTrackingState.Tracking) {
         tracked.state = XRTrackingState.TrackingLost;
         removed.push(tracked);
@@ -139,7 +136,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
     }
   }
 
-  private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: IXRTrackedImage, trackingResult: any) {
+  private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: XRTrackedImage, trackingResult: any) {
     const { pose } = trackedImage;
     const { transform } = frame.getPose(trackingResult.imageSpace, space);
     pose.matrix.copyFromArray(transform.matrix);

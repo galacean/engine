@@ -1,10 +1,7 @@
-import { Vector3 } from "@galacean/engine-math";
-import { IXRTracked } from "./IXRTracked";
+import { Vector3 } from "@galacean/engine";
+import { XRTracked } from "../XRTracked";
 
-/**
- * The interface of tracked plane in XR.
- */
-export interface IXRTrackedPlane extends IXRTracked {
+export class XRTrackedPlane extends XRTracked {
   /** Whether the detected plane is horizontal or vertical. */
   orientation: number;
   /** The points that make up this plane.

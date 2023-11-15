@@ -10,9 +10,8 @@ import {
   Time
 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { IXRTrackedPlane } from "@galacean/engine-design";
 import { WebXRSession } from "../WebXRSession";
-import { XRPlaneMode, XRPlatformPlaneTracking } from "@galacean/engine-xr";
+import { XRPlaneMode, XRPlatformPlaneTracking, XRTrackedPlane } from "@galacean/engine-xr";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
@@ -43,7 +42,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
 
     // @ts-ignore
     const detectedPlanes: XRPlaneSet = platformFrame.detectedPlanes || platformFrame.worldInformation?.detectedPlanes;
-    const trackedPlanes = <IWebXRTrackedPlane[]>this._trackedObjects;
+    const trackedPlanes = <WebXRTrackedPlane[]>this._trackedObjects;
     const { _lastDetectedPlanes: lastDetectedPlanes, _added: added, _updated: updated, _removed: removed } = this;
     added.length = updated.length = removed.length = 0;
     for (let i = trackedPlanes.length - 1; i >= 0; i--) {
@@ -64,20 +63,15 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
     }
     detectedPlanes.forEach((xrPlane) => {
       if (!lastDetectedPlanes?.has(xrPlane)) {
-        const plane: IWebXRTrackedPlane = {
-          id: this._generateUUID(),
-          pose: {
-            matrix: new Matrix(),
-            rotation: new Quaternion(),
-            position: new Vector3(),
-            inverseMatrix: new Matrix()
-          },
-          state: XRTrackingState.NotTracking,
-          orientation: xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical,
-          xrPlane: xrPlane,
-          polygon: [],
-          frameCount: 0
-        };
+        const plane = new WebXRTrackedPlane(this._generateUUID(), {
+          matrix: new Matrix(),
+          rotation: new Quaternion(),
+          position: new Vector3(),
+          inverseMatrix: new Matrix()
+        });
+        plane.orientation = xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical;
+        plane.xrPlane = xrPlane;
+        plane.polygon = [];
         this._updatePlane(platformFrame, platformReferenceSpace, plane, xrPlane);
         trackedPlanes.push(plane);
         added.push(plane);
@@ -86,7 +80,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
     this._lastDetectedPlanes = detectedPlanes;
   }
 
-  private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: IWebXRTrackedPlane, xrPlane: XRPlane): void {
+  private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: WebXRTrackedPlane, xrPlane: XRPlane): void {
     const { pose, polygon } = trackedPlane;
     const planePose = frame.getPose(xrPlane.planeSpace, space);
     if (!planePose) {
@@ -114,7 +108,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
   }
 }
 
-interface IWebXRTrackedPlane extends IXRTrackedPlane {
+class WebXRTrackedPlane extends XRTrackedPlane {
   xrPlane?: XRPlane;
   lastChangedTime?: number;
 }

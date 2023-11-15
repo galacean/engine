@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRHitResult } from "@galacean/engine-design";
 import {
   Logger,
   Plane,
@@ -14,6 +14,7 @@ import {
 import { XRHitTestType } from "./XRHitTestType";
 import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTrackingManager } from "../trackable/plane/XRPlaneTrackingManager";
+import { XRTrackedPlane } from "../trackable/plane/XRTrackedPlane";
 
 @registerXRFeatureManager(XRFeatureType.HitTest)
 /**
@@ -116,7 +117,7 @@ export class XRHitTestManager extends XRFeatureManager {
     }
   }
 
-  private _checkPointerWithinPlane(pointer: Vector3, plane: IXRTrackedPlane): boolean {
+  private _checkPointerWithinPlane(pointer: Vector3, plane: XRTrackedPlane): boolean {
     const { _tempVec33: preToCur, _tempVec34: preToPointer, _tempVec35: cross } = this;
     const { polygon } = plane;
     const length = polygon.length;

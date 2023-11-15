@@ -1,9 +1,9 @@
-import { IXRTrackedImage } from "@galacean/engine-design";
 import { Logger, XRFeatureType, XRSessionState, registerXRFeatureManager } from "@galacean/engine";
 import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
 import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRReferenceImage } from "./XRReferenceImage";
+import { XRTrackedImage } from "./XRTrackedImage";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
 /**
@@ -11,7 +11,7 @@ import { XRReferenceImage } from "./XRReferenceImage";
  */
 export class XRImageTrackingManager extends XRTrackableManager<
   IXRImageTrackingDescriptor,
-  IXRTrackedImage,
+  XRTrackedImage,
   XRPlatformImageTracking
 > {
   private _referenceImages: XRReferenceImage[] = [];

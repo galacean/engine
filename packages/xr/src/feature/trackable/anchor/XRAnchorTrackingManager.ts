@@ -1,8 +1,10 @@
-import { IXRPose, IXRRequestTrackingAnchor, IXRTrackedAnchor } from "@galacean/engine-design";
+import { IXRPose } from "@galacean/engine-design";
 import { XRFeatureType, registerXRFeatureManager } from "@galacean/engine";
 import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
 import { XRPlatformAnchorTracking } from "./XRPlatformAnchorTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
+import { XRRequestTrackingAnchor } from "./XRRequestTrackingAnchor";
+import { XRTracked } from "../XRTracked";
 
 @registerXRFeatureManager(XRFeatureType.AnchorTracking)
 /**
@@ -10,14 +12,14 @@ import { XRTrackableManager } from "../XRTrackableManager";
  */
 export class XRAnchorTrackingManager extends XRTrackableManager<
   IXRAnchorTrackingDescriptor,
-  IXRTrackedAnchor,
+  XRTracked,
   XRPlatformAnchorTracking
 > {
   /**
    * Add a tracking anchor.
    * @param pose - The pose of anchor to be added
    */
-  addAnchor(pose: IXRPose): IXRRequestTrackingAnchor {
+  addAnchor(pose: IXRPose): XRRequestTrackingAnchor {
     return this._platformFeature._addAnchor(pose);
   }
 
@@ -25,7 +27,7 @@ export class XRAnchorTrackingManager extends XRTrackableManager<
    * Remove a tracking anchor.
    * @param anchor - The anchor to be removed
    */
-  removeAnchor(anchor: IXRRequestTrackingAnchor): void {
-    // this._platformFeature._removeAnchor(anchor);
+  removeAnchor(anchor: XRRequestTrackingAnchor): void {
+    this._platformFeature._removeAnchor(anchor);
   }
 }

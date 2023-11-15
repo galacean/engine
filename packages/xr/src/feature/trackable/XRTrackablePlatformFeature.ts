@@ -30,6 +30,40 @@ export abstract class XRTrackablePlatformFeature<
     return this._trackedObjects;
   }
 
+  addRequestTracking(add: TXRRequestTracking): void {
+    const { _requestTrackings: requestTrackings } = this;
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      const requestTracking = requestTrackings[i];
+      if (requestTracking.equals(add)) {
+        return;
+      }
+    }
+    requestTrackings.push(add);
+    this._onRequestTrackingAdded(add);
+  }
+
+  removeRequestTracking(remove: TXRRequestTracking): void {
+    const { _requestTrackings: requestTrackings } = this;
+    const lastIndex = requestTrackings.length - 1;
+    for (let i = 0; i <= lastIndex; i++) {
+      const requestTracking = requestTrackings[i];
+      if (requestTracking.equals(remove)) {
+        i !== lastIndex && (requestTrackings[i] = requestTrackings[lastIndex]);
+        requestTrackings.length = lastIndex;
+        this._onRequestTrackingRemoved(remove);
+        return;
+      }
+    }
+  }
+
+  removeAllRequestTrackings(): void {
+    const { _requestTrackings: requestTrackings } = this;
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      this._onRequestTrackingRemoved(requestTrackings[i]);
+    }
+    this._requestTrackings.length = 0;
+  }
+
   /**
    * Returns the changes tracked in this frame.
    * @returns The changes of tracked objects
@@ -51,6 +85,10 @@ export abstract class XRTrackablePlatformFeature<
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
+
+  protected _onRequestTrackingAdded(requestTracking: TXRRequestTracking): void {}
+
+  protected _onRequestTrackingRemoved(requestTracking: TXRRequestTracking): void {}
 
   protected _generateUUID(): number {
     return XRTrackablePlatformFeature._trackId++;

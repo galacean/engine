@@ -1,4 +1,3 @@
-import { IXRRequestTrackingAnchor, IXRTrackedAnchor } from "@galacean/engine-design";
 import {
   Engine,
   Matrix,
@@ -8,7 +7,7 @@ import {
   XRSessionManager,
   XRTrackingState
 } from "@galacean/engine";
-import { XRPlatformAnchorTracking, XRRequestTrackingState } from "@galacean/engine-xr";
+import { XRPlatformAnchorTracking, XRRequestTrackingState, XRRequestTrackingAnchor } from "@galacean/engine-xr";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
 
@@ -27,13 +26,13 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
     const { _added: added, _updated: updated, _removed: removed, _trackedObjects: trackedObjects } = this;
     added.length = updated.length = removed.length = 0;
-    const requestTrackings = <IWebXRRequestTrackingAnchor[]>this._requestTrackings;
+    const requestTrackings = this._requestTrackings;
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      const requestTrackingAnchor = requestTrackings[i];
+      const requestTrackingAnchor = <WebXRRequestTrackingAnchor>requestTrackings[i];
       switch (requestTrackingAnchor.state) {
         case XRRequestTrackingState.Resolved:
-          const tracked = <IXRTrackedAnchor>requestTrackingAnchor.tracked[0];
+          const tracked = requestTrackingAnchor.tracked[0];
           if (trackedAnchors.has(requestTrackingAnchor.xrAnchor)) {
             const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTrackingAnchor);
             if (emulated) {
@@ -73,7 +72,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     this._sessionManager = engine.xrManager.sessionManager;
   }
 
-  private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, trackedAnchor: IWebXRRequestTrackingAnchor): boolean {
+  private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, trackedAnchor: WebXRRequestTrackingAnchor): boolean {
     const { xrAnchor, pose } = trackedAnchor;
     const xrPose = frame.getPose(xrAnchor.anchorSpace, space);
     const { transform } = xrPose;
@@ -83,7 +82,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     return xrPose.emulatedPosition;
   }
 
-  private _createAnchor(frame: XRFrame, space: XRSpace, anchor: IWebXRRequestTrackingAnchor, index: number) {
+  private _createAnchor(frame: XRFrame, space: XRSpace, anchor: WebXRRequestTrackingAnchor, index: number) {
     if ((anchor.state = XRRequestTrackingState.None)) {
       anchor.state = XRRequestTrackingState.Submitted;
       const { position, rotation } = anchor.pose;
@@ -124,7 +123,7 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     }
   }
 
-  override _disposeAnchor(anchor: IWebXRRequestTrackingAnchor) {
+  override _onRequestTrackingRemoved(anchor: WebXRRequestTrackingAnchor) {
     switch (anchor.state) {
       case XRRequestTrackingState.Submitted:
         anchor.state = XRRequestTrackingState.WaitingDestroy;
@@ -142,6 +141,6 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
   }
 }
 
-interface IWebXRRequestTrackingAnchor extends IXRRequestTrackingAnchor {
+class WebXRRequestTrackingAnchor extends XRRequestTrackingAnchor {
   xrAnchor: XRAnchor;
 }
