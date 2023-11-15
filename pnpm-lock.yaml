@@ -150,6 +150,9 @@ importers:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
       '@galacean/engine-draco':
         specifier: workspace:*
         version: link:../draco
