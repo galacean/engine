@@ -27,7 +27,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     const samplerInfo = sampler !== undefined && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
     if (uri) {
       const index = uri.lastIndexOf(".");
-      return engine.resourceManager
+      const promise = engine.resourceManager
         .load<Texture2D>({
           url: Utils.resolveAbsoluteUrl(url, uri),
           type: AssetType.KTX2
@@ -44,6 +44,9 @@ class KHR_texture_basisu extends GLTFExtensionParser {
           }
           return texture;
         });
+
+      context._addProgressEvent(undefined, promise);
+      return promise;
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
 

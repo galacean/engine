@@ -1,3 +1,5 @@
+import type { IProgress } from "@galacean/engine-design";
+
 /**
  * Asset Loading Promise.
  */
@@ -18,16 +20,19 @@ export class AssetPromise<T> implements PromiseLike<T> {
         return resolve(results);
       }
 
+      const progress: IProgress = {
+        task: {
+          loaded: 0,
+          total: count
+        }
+      };
+
       function onComplete(index: number, resultValue: T) {
         completed++;
         results[index] = resultValue;
-        setProgress(
-          new ProgressEvent("progress", {
-            lengthComputable: true,
-            loaded: completed,
-            total: count
-          })
-        );
+
+        progress.task.loaded = completed;
+        setProgress(progress);
         if (completed === count) {
           resolve(results);
         }
@@ -58,7 +63,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   private _promise: Promise<T>;
   private _state = PromiseState.Pending;
-  private _onProgressCallback: Array<(progress: ProgressEvent) => void> = [];
+  private _onProgressCallback: Array<(progress: IProgress) => void> = [];
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
 
@@ -91,7 +96,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
           this._onCancelHandler = callback;
         }
       };
-      const setProgress = (progress: ProgressEvent) => {
+      const setProgress = (progress: IProgress) => {
         if (this._state === PromiseState.Pending) {
           this._onProgressCallback.forEach((callback) => callback(progress));
         }
@@ -106,7 +111,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param callback
    * @returns AssetPromise
    */
-  onProgress(callback: (progress: ProgressEvent) => void): AssetPromise<T> {
+  onProgress(callback: (progress: IProgress) => void): AssetPromise<T> {
     this._onProgressCallback.push(callback);
     return this;
   }
@@ -160,7 +165,7 @@ interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
     reject?: (reason?: any) => void,
-    setProgress?: (progress: ProgressEvent) => void,
+    setProgress?: (progress: IProgress) => void,
     onCancel?: (callback: () => void) => void
   ): void;
 }

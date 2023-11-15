@@ -322,14 +322,7 @@ export class ResourceManager {
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
-      return new AssetPromise((resolve, _, setProgress) => {
-        setProgress(
-          new ProgressEvent("progress", {
-            lengthComputable: true,
-            loaded: 1,
-            total: 1
-          })
-        );
+      return new AssetPromise((resolve) => {
         resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }

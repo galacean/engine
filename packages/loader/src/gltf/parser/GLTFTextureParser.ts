@@ -49,6 +49,8 @@ export class GLTFTextureParser extends GLTFParser {
             useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
             return texture;
           });
+
+        context._addProgressEvent(undefined, texture);
       } else {
         const bufferView = glTF.bufferViews[bufferViewIndex];
 

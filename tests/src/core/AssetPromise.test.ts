@@ -1,4 +1,5 @@
 import { AssetPromise } from "@galacean/engine-core";
+import type { IProgress } from "@galacean/engine-design";
 import { expect } from "chai";
 
 describe("Asset Promise test", function () {
@@ -83,9 +84,16 @@ describe("Asset Promise test", function () {
   it("progress", async () => {
     const assetPromise = new AssetPromise<number>((resolve, reject, setProgress) => {
       let i = 0;
+      const progress = {
+        task: {
+          loaded: i,
+          total: 10
+        }
+      };
       let timeoutId = setInterval(() => {
         i++;
-        setProgress(i / 10);
+        progress.task.loaded = i;
+        setProgress(progress);
         if (i === 10) {
           clearInterval(timeoutId);
           resolve(i);
@@ -93,13 +101,18 @@ describe("Asset Promise test", function () {
       }, 20);
     });
 
-    let expectProgress = 0;
+    let expectProgress: IProgress;
     assetPromise.onProgress((progress) => {
-      expectProgress += 0.1;
-      expect(progress).to.approximately(expectProgress, 0.0001);
+      expectProgress = progress;
     });
 
     await assetPromise.then((e) => {
+      expect(expectProgress).to.eql({
+        task: {
+          loaded: 10,
+          total: 10
+        }
+      });
       expect(e).to.eq(10);
     });
   });
@@ -112,10 +125,15 @@ describe("Asset Promise test", function () {
       });
       promises.push(promise);
     }
-    let expectProgress = 0.1;
+    const progress = {
+      task: {
+        loaded: 1,
+        total: 10
+      }
+    };
     await AssetPromise.all(promises).onProgress((p) => {
-      expect(p).to.approximately(expectProgress, 0.0001);
-      expectProgress += 0.1;
+      expect(p).to.eql(progress);
+      progress.task.loaded++;
     });
   });
 
@@ -132,11 +150,17 @@ describe("Asset Promise test", function () {
     }
 
     const expects = [null, null, 0, 1];
-    let expectProgress = 0.25;
+    const progress = {
+      task: {
+        loaded: 1,
+        total: 4
+      }
+    };
+
     await AssetPromise.all(promises)
       .onProgress((p) => {
-        expect(p).to.approximately(expectProgress, 0.0001);
-        expectProgress += 0.25;
+        expect(p).to.eql(progress);
+        progress.task.loaded++;
       })
       .then((value) => {
         expect(value).to.eql(expects);

@@ -13,6 +13,7 @@ import {
   Texture2D,
   TypedArray
 } from "@galacean/engine-core";
+import type { IProgress } from "@galacean/engine-design";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFParams } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
@@ -35,10 +36,13 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
 
   private _resourceCache = new Map<string, any>();
-  private _progressEvents: Record<string, ProgressEvent> = {};
+  private _progress: IProgress = {
+    detail: {},
+    task: { loaded: 0, total: 0 }
+  };
 
   /** @internal */
-  _setProgress: (v: ProgressEvent) => void;
+  _setProgress: (v: IProgress) => void;
 
   constructor(
     public glTFResource: GLTFResource,
@@ -94,7 +98,7 @@ export class GLTFParserContext {
   }
 
   parse(): Promise<GLTFResource> {
-    return this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
+    const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
       return Promise.all([
@@ -111,32 +115,33 @@ export class GLTFParserContext {
           this._createAnimator(this, glTFResource.animations);
         }
         this.resourceManager.addContentRestorer(this.contentRestorer);
+
         return glTFResource;
       });
     });
+
+    this._addProgressEvent(undefined, promise);
+    return promise;
   }
 
   /**
    * @internal
    */
-  _addProgressEvent(event: ProgressEvent) {
-    if (event.lengthComputable) {
-      this._progressEvents[(event.target as XMLHttpRequest)?.responseURL ?? event.type] = event;
+  _addProgressEvent(progress?: IProgress, taskPromise?: Promise<any>): void {
+    if (taskPromise) {
+      this._progress.task.total += 1;
+      taskPromise.then(() => {
+        this._progress.task.loaded += 1;
+        this._setProgress(this._progress);
+      });
     }
-    let total = 0;
-    let loaded = 0;
-    for (let type in this._progressEvents) {
-      total += this._progressEvents[type].total;
-      loaded += this._progressEvents[type].loaded;
-    }
-    if (total) {
-      this._setProgress(
-        new ProgressEvent("progress", {
-          lengthComputable: true,
-          total,
-          loaded
-        })
-      );
+
+    if (progress) {
+      this._progress.detail = {
+        ...this._progress.detail,
+        ...progress.detail
+      };
+      this._setProgress(this._progress);
     }
   }
 

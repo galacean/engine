@@ -91,7 +91,20 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
       reject(new Error(`request timeout from: ${url}`));
     };
     xhr.onprogress = (e) => {
-      setProgress(e);
+      if (e.lengthComputable) {
+        setProgress({
+          detail: {
+            [url]: {
+              loaded: e.loaded,
+              total: e.total
+            }
+          },
+          task: {
+            loaded: e.loaded === e.total ? 1 : 0,
+            total: 1
+          }
+        });
+      }
     };
     xhr.open(config.method, url, true);
     xhr.withCredentials = config.credentials === "include";
