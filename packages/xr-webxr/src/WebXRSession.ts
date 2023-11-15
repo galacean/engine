@@ -4,6 +4,9 @@ import { getInputSource } from "./util";
 import { WebXRFrame } from "./WebXRFrame";
 
 export class WebXRSession implements IXRSession {
+  requestAnimationFrame: (callback: FrameRequestCallback) => number;
+  cancelAnimationFrame: (id: number) => void;
+
   // @internal
   _platformSession: XRSession;
   // @internal
@@ -16,8 +19,6 @@ export class WebXRSession implements IXRSession {
   private _frame: WebXRFrame;
   private _events: XRInputEvent[] = [];
   private _screenPointers: XRInputSource[] = [];
-  requestAnimationFrame: (callback: FrameRequestCallback) => number;
-  cancelAnimationFrame: (id: number) => void;
 
   get frame(): WebXRFrame {
     if (this._platformFrame) {
@@ -73,32 +74,41 @@ export class WebXRSession implements IXRSession {
     return events;
   }
 
-  resetEvents(): void {
-    this._events.length = 0;
-  }
-
-  /**
-   * Ends the xr session. Returns a promise which resolves when the
-   * session has been start.
-   */
   start(): Promise<void> {
     return Promise.resolve();
   }
 
-  /**
-   * Ends the xr session. Returns a promise which resolves when the
-   * session has been start.
-   */
   stop(): Promise<void> {
     return Promise.resolve();
   }
 
-  /**
-   * Ends the xr session. Returns a promise which resolves when the
-   * session has been shut down.
-   */
   end(): Promise<void> {
     return this._platformSession.end();
+  }
+
+  addEventListener(): void {
+    const { _onSessionEvent: onSessionEvent, _platformSession: session } = this;
+    session.addEventListener("select", onSessionEvent);
+    session.addEventListener("selectstart", onSessionEvent);
+    session.addEventListener("selectend", onSessionEvent);
+    session.addEventListener("squeeze", onSessionEvent);
+    session.addEventListener("squeezestart", onSessionEvent);
+    session.addEventListener("squeezeend", onSessionEvent);
+  }
+
+  removeEventListener(): void {
+    const { _onSessionEvent: onSessionEvent, _platformSession: session } = this;
+    session.removeEventListener("select", onSessionEvent);
+    session.removeEventListener("selectstart", onSessionEvent);
+    session.removeEventListener("selectend", onSessionEvent);
+    session.removeEventListener("squeeze", onSessionEvent);
+    session.removeEventListener("squeezestart", onSessionEvent);
+    session.removeEventListener("squeezeend", onSessionEvent);
+    this._events.length = 0;
+  }
+
+  resetEvents(): void {
+    this._events.length = 0;
   }
 
   constructor(session: XRSession, layer: XRWebGLLayer, referenceSpace: XRReferenceSpace) {
@@ -168,26 +178,5 @@ export class WebXRSession implements IXRSession {
       }
     }
     this._events.push(event);
-  }
-
-  addEventListener(): void {
-    const { _onSessionEvent: onSessionEvent, _platformSession: session } = this;
-    session.addEventListener("select", onSessionEvent);
-    session.addEventListener("selectstart", onSessionEvent);
-    session.addEventListener("selectend", onSessionEvent);
-    session.addEventListener("squeeze", onSessionEvent);
-    session.addEventListener("squeezestart", onSessionEvent);
-    session.addEventListener("squeezeend", onSessionEvent);
-  }
-
-  removeEventListener(): void {
-    const { _onSessionEvent: onSessionEvent, _platformSession: session } = this;
-    session.removeEventListener("select", onSessionEvent);
-    session.removeEventListener("selectstart", onSessionEvent);
-    session.removeEventListener("selectend", onSessionEvent);
-    session.removeEventListener("squeeze", onSessionEvent);
-    session.removeEventListener("squeezestart", onSessionEvent);
-    session.removeEventListener("squeezeend", onSessionEvent);
-    this._events.length = 0;
   }
 }

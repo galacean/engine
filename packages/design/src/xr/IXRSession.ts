@@ -1,18 +1,64 @@
 import { IXRFrame } from "./IXRFrame";
 import { IXRInputEvent } from "./IXRInputEvent";
 
+/**
+ * The base interface of XR session.
+ * Can be understood as an XR context.
+ */
 export interface IXRSession {
+  /**
+   * Fixed foveation for XR.
+   */
   fixedFoveation: number;
+
+  /**
+   * Returns the XR information of this frame.
+   */
   get frame(): IXRFrame;
+
+  /**
+   * Return the event received in this frame.
+   */
   get events(): IXRInputEvent[];
+
+  /**
+   * Returns the current frame rate.
+   */
   get frameRate(): number;
+
+  /**
+   * Returns the frame rate supported by the device.
+   */
   get supportedFrameRates(): Float32Array;
+
+  /**
+   * Returns the device's default main framebuffer.
+   */
   get framebuffer(): WebGLFramebuffer;
+
+  /**
+   * Returns the width of the device's default main framebuffer.
+   */
   get framebufferWidth(): number;
+
+  /**
+   * Returns the height of the device's default main framebuffer.
+   */
   get framebufferHeight(): number;
 
+  /**
+   * Add event listener for XR session.
+   */
   addEventListener(): void;
+
+  /**
+   * Remove event listener for XR session.
+   */
   removeEventListener(): void;
+
+  /**
+   * Reset event flow.
+   */
   resetEvents(): void;
 
   /**
