@@ -428,7 +428,6 @@ export class Animator extends Component {
   private _getAnimatorLayerData(layerIndex: number): AnimatorLayerData {
     let animatorLayerData = this._animatorLayersData[layerIndex];
     animatorLayerData || (this._animatorLayersData[layerIndex] = animatorLayerData = new AnimatorLayerData());
-
     return animatorLayerData;
   }
 
