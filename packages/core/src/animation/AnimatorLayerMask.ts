@@ -3,10 +3,17 @@ export class AnimatorLayerMask {
   private _recursivePathList: string[] = [];
   private _pathCount: number = 0;
 
+  /**
+   * Number of paths in the mask.
+   */
   get pathCount(): Readonly<number> {
     return this._pathCount;
   }
 
+  /**
+   * Checks if the given path is active.
+   * @param path - The path of the entity to check
+   */
   checkMaskActive(path: string) {
     path = path.startsWith("/") ? path.slice(1) : path;
     const { _recursivePathList: recursivePathList } = this;
@@ -23,6 +30,12 @@ export class AnimatorLayerMask {
     return false;
   }
 
+  /**
+   * Sets the active status of a specified entity path.
+   * @param path - The path of the entity
+   * @param active - The active status to set for this path
+   * @param recursive - If true, the active status is also applied recursively to all paths starting with this path
+   */
   setEntityPath(path: string, active: boolean, recursive: boolean = false) {
     path = path.startsWith("/") ? path.slice(1) : path;
     if (!this._pathMaskActiveMap.has(path)) {
@@ -41,6 +54,10 @@ export class AnimatorLayerMask {
     }
   }
 
+  /**
+   * Removes the specified entity path from the mask.
+   * @param path - The path of the entity to remove
+   */
   removeEntityPath(path: string) {
     path = path.startsWith("/") ? path.slice(1) : path;
     const deleted = this._pathMaskActiveMap.delete(path);
