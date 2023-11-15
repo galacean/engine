@@ -1,6 +1,6 @@
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
-import { XRPlaneDetectionMode } from "./XRPlaneDetectionMode";
+import { XRPlaneMode } from "./XRPlaneMode";
 
 export interface IXRPlaneTrackingDescriptor extends IXRFeatureDescriptor {
-  mode: XRPlaneDetectionMode;
+  mode: XRPlaneMode;
 }

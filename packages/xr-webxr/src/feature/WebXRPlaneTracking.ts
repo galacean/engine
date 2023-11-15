@@ -12,7 +12,7 @@ import {
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRTrackedPlane } from "@galacean/engine-design";
 import { WebXRSession } from "../WebXRSession";
-import { XRPlaneDetectionMode, XRPlatformPlaneTracking } from "@galacean/engine-xr";
+import { XRPlaneMode, XRPlatformPlaneTracking } from "@galacean/engine-xr";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
@@ -26,11 +26,11 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
   /**
    * Return the plane tracking mode for WebXR, which is both (Horizontal and vertical).
    */
-  override get trackingMode(): XRPlaneDetectionMode {
-    return XRPlaneDetectionMode.EveryThing;
+  override get trackingMode(): XRPlaneMode {
+    return XRPlaneMode.EveryThing;
   }
 
-  override set trackingMode(value: XRPlaneDetectionMode) {
+  override set trackingMode(value: XRPlaneMode) {
     Logger.warn("WebXR does not support modification plane detection mode.");
   }
 
@@ -73,7 +73,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
             inverseMatrix: new Matrix()
           },
           state: XRTrackingState.NotTracking,
-          orientation: xrPlane.orientation,
+          orientation: xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical,
           xrPlane: xrPlane,
           polygon: [],
           frameCount: 0
@@ -95,7 +95,7 @@ export class WebXRPlaneTracking extends XRPlatformPlaneTracking {
     const { transform, emulatedPosition } = planePose;
     trackedPlane.state = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
     trackedPlane.lastChangedTime = xrPlane.lastChangedTime;
-    trackedPlane.orientation = xrPlane.orientation;
+    trackedPlane.orientation = xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical;
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     pose.matrix.copyFromArray(transform.matrix);

@@ -1,6 +1,6 @@
 import { IXRRequestTrackingPlane, IXRTrackedPlane } from "@galacean/engine-design";
 import { XRTrackablePlatformFeature } from "../XRTrackablePlatformFeature";
-import { XRPlaneDetectionMode } from "./XRPlaneDetectionMode";
+import { XRPlaneMode } from "./XRPlaneMode";
 
 /**
  * The base class of XR plane tracking.
@@ -9,13 +9,13 @@ export abstract class XRPlatformPlaneTracking extends XRTrackablePlatformFeature
   IXRTrackedPlane,
   IXRRequestTrackingPlane
 > {
-  protected _trackingMode: XRPlaneDetectionMode = XRPlaneDetectionMode.EveryThing;
+  protected _trackingMode: XRPlaneMode = XRPlaneMode.EveryThing;
 
-  get trackingMode(): XRPlaneDetectionMode {
+  get trackingMode(): XRPlaneMode {
     return this._trackingMode;
   }
 
-  set trackingMode(value: XRPlaneDetectionMode) {
+  set trackingMode(value: XRPlaneMode) {
     value = value;
   }
 }

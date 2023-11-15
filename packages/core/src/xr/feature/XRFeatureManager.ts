@@ -9,8 +9,9 @@ export abstract class XRFeatureManager<
   TPlatformFeature extends IXRPlatformFeature = IXRPlatformFeature
 > implements IXRFeatureManager
 {
+  _platformFeature: TPlatformFeature;
+
   protected _descriptor: TDescriptor;
-  protected _platformFeature: TPlatformFeature;
   protected _enabled: boolean = false;
 
   /**

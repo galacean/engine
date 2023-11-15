@@ -2,57 +2,61 @@ import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
 import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
 export interface IXRFeatureManager {
+  _platformFeature: IXRPlatformFeature;
+
+  /** The descriptor of the feature. */
   descriptor: IXRFeatureDescriptor;
+  /** Whether this feature enabled. */
   enabled: boolean;
 
+  /**
+   * Returns whether the feature is supported.
+   * @param descriptor - The descriptor of the feature
+   */
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void>;
+
+  /**
+   * Initialize the feature.
+   */
   initialize(): Promise<void>;
 
   /**
    * Enable an instance of a feature.
-   * This method needs to be override.
-   * @returns
    */
   onEnable(): void;
 
   /**
    * Disable an instance of a feature.
-   * This method needs to be override.
-   * @returns
    */
   onDisable(): void;
 
   /**
    * Update an instance of a feature.
-   * This method needs to be override.
-   * @returns
    */
   onUpdate(): void;
 
   /**
    * Destroy an instance of a feature.
-   * This method needs to be override.
-   * @returns
    */
   onDestroy(): void;
 
   /**
-   * @internal
+   * Called when the session is initialized.
    */
   onSessionInit(): void;
 
   /**
-   * @internal
+   * Called when session starts.
    */
   onSessionStart(): void;
 
   /**
-   * @internal
+   * Called when the session is stopped.
    */
   onSessionStop(): void;
 
   /**
-   * @internal
+   * Called when the session is destroyed.
    */
   onSessionDestroy(): void;
 }

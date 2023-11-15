@@ -137,7 +137,6 @@ export class XRManager {
       const featureManagerConstructor = featureManagerMap[type];
       const platformFeature = this.xrDevice.createPlatformFeature(this._engine, type);
       const feature = (features[type] = new featureManagerConstructor(this._engine));
-      // @ts-ignore
       feature._platformFeature = platformFeature;
       return <T>feature;
     }
@@ -263,7 +262,7 @@ export class XRManager {
   }
 
   /**
-   * Reset the session.
+   * Destroy xr module.
    */
   destroy(): void {
     const { _features: features } = this;

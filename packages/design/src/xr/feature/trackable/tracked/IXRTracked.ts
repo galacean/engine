@@ -4,7 +4,7 @@ import { IXRPose } from "../../../input/IXRPose";
  * The base interface of XR trackable.
  */
 export interface IXRTracked {
-  /** Id of the trackable. */
+  /** The unique id of the trackable. */
   id: number;
   /** The pose of the trackable. */
   pose: IXRPose;

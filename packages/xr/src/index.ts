@@ -23,5 +23,5 @@ export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
 // plane Tracking
 export type { IXRPlaneTrackingDescriptor } from "./feature/trackable/plane/IXRPlaneTrackingDescriptor";
 export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackingManager";
-export { XRPlaneDetectionMode } from "./feature/trackable/plane/XRPlaneDetectionMode";
+export { XRPlaneMode } from "./feature/trackable/plane/XRPlaneMode";
 export { XRPlatformPlaneTracking } from "./feature/trackable/plane/XRPlatformPlaneTracking";
