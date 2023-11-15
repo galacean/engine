@@ -3,9 +3,12 @@ import { XRControllerPoseMode } from "./XRControllerPoseMode";
 import { DisorderedArray } from "../../DisorderedArray";
 import { IXRInput, IXRPose } from "@galacean/engine-design";
 import { XRInputButton } from "./XRInputButton";
-import { XRTrackingState } from "../feature/trackable/XRTrackingState";
 import { XRInputType } from "./XRInputType";
+import { XRTrackingState } from "./XRTrackingState";
 
+/**
+ * The XR controller.
+ */
 export class XRController implements IXRInput {
   /** The update frame count of xr input. */
   frameCount: number = 0;
@@ -23,13 +26,15 @@ export class XRController implements IXRInput {
   downList: DisorderedArray<XRInputButton>;
   /** the pose mode of the controller. (Default is Grip) */
   poseMode: XRControllerPoseMode;
+  /** The grip space pose of the controller. */
   gripPose: IXRPose;
+  /** The target ray space pose of the controller. */
   targetRayPose: IXRPose;
 
   protected _pose: IXRPose;
 
   /**
-   * Returns the pose of the input.
+   * Returns the pose of the controller.
    */
   get pose(): IXRPose {
     if (this.poseMode === XRControllerPoseMode.Grip) {

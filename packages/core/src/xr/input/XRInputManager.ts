@@ -1,14 +1,17 @@
-import { IXRFrame, IXRInput, IXRSession } from "@galacean/engine-design";
+import { IXRInput, IXRSession } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
 import { XRCamera } from "./XRCamera";
 import { XRInputType } from "./XRInputType";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { XRTrackedUpdateFlag } from "../feature/trackable/XRTrackedUpdateFlag";
-import { XRTrackingState } from "../feature/trackable/XRTrackingState";
 import { XRInputEvent } from "./XRInputEvent";
 import { XRInputButton } from "./XRInputButton";
+import { XRTrackingState } from "./XRTrackingState";
+import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
 
+/**
+ * The manager of XR input.
+ */
 export class XRInputManager {
   protected _engine: Engine;
   protected _session: IXRSession;
@@ -123,7 +126,7 @@ export class XRInputManager {
       _statusSnapshot: statusSnapshot
     } = this;
     const { _inputs: inputs, _session: session } = this;
-    const events = session.getEvents();
+    const { events } = session;
     for (let i = 0, n = events.length; i < n; i++) {
       this._handleEvent(events[i]);
     }

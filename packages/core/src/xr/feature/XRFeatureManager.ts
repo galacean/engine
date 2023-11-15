@@ -9,7 +9,6 @@ export abstract class XRFeatureManager<
   TPlatformFeature extends IXRPlatformFeature = IXRPlatformFeature
 > implements IXRFeatureManager
 {
-  protected _engine: Engine;
   protected _descriptor: TDescriptor;
   protected _platformFeature: TPlatformFeature;
   protected _enabled: boolean = false;
@@ -35,7 +34,7 @@ export abstract class XRFeatureManager<
   set enabled(value: boolean) {
     if (this.enabled !== value) {
       this._enabled = value;
-      value ? this._onEnable() : this._onDisable();
+      value ? this.onEnable() : this.onDisable();
     }
   }
 
@@ -60,59 +59,57 @@ export abstract class XRFeatureManager<
     }
   }
 
-  constructor(engine: Engine) {
-    this._engine = engine;
-  }
+  /**
+   * Called when be enabled.
+   */
+  onEnable(): void {}
 
   /**
-   * @internal
+   * Called when be disabled.
    */
-  _onEnable(): void {}
+  onDisable(): void {}
 
   /**
-   * @internal
+   * Called when xr frame is updated.
    */
-  _onDisable(): void {}
-
-  /**
-   * @internal
-   */
-  _onUpdate(): void {
+  onUpdate(): void {
     this._platformFeature?._onUpdate();
   }
 
   /**
-   * @internal
+   * Called when the session is initialized.
    */
-  _onSessionInit(): void {
+  onSessionInit(): void {
     this._platformFeature?._onSessionInit();
   }
 
   /**
-   * @internal
+   * Called when session starts.
    */
-  _onSessionStart(): void {
+  onSessionStart(): void {
     this._platformFeature?._onSessionStart();
   }
 
   /**
-   * @internal
+   * Called when the session is stopped.
    */
-  _onSessionStop(): void {
+  onSessionStop(): void {
     this._platformFeature?._onSessionStop();
   }
 
   /**
-   * @internal
+   * Called when the session is destroyed.
    */
-  _onSessionDestroy(): void {
+  onSessionDestroy(): void {
     this._platformFeature?._onSessionDestroy();
   }
 
   /**
-   * @internal
+   * Called when the xr module is destroyed.
    */
-  _onDestroy(): void {
+  onDestroy(): void {
     this._platformFeature?._onDestroy();
   }
+
+  constructor(protected _engine: Engine) {}
 }

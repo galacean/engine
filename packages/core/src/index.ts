@@ -36,6 +36,7 @@ export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { UpdateFlagManager } from "./UpdateFlagManager";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./shadow/index";

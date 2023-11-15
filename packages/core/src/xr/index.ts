@@ -5,53 +5,21 @@ export { XRManager, registerXRFeatureManager } from "./XRManager";
 export type { IXRDevice } from "./IXRDevice";
 
 // xr feature
-export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
-export { XRTrackedUpdateFlag } from "./feature/trackable/XRTrackedUpdateFlag";
 export { XRPlatformFeature } from "./feature/XRPlatformFeature";
 export { XRFeatureType } from "./feature/XRFeatureType";
-// camera
-export type { IXRCameraDescriptor } from "./feature/camera/IXRCameraDescriptor";
-export { XRCameraManager } from "./feature/camera/XRCameraManager";
-// hitTest
-export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
-// movement tracking
-export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
-export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovementTrackingManager";
-export { XRMovementTrackingMode } from "./feature/movementTracking/XRMovementTrackingMode";
-export { XRPlatformMovementTracking } from "./feature/movementTracking/XRPlatformMovementTracking";
-// anchor tracking
-export type { IXRAnchorTrackingDescriptor } from "./feature/trackable/anchor/IXRAnchorTrackingDescriptor";
-export { XRAnchorTrackingManager } from "./feature/trackable/anchor/XRAnchorTrackingManager";
-export { XRAnchorTrackingMode } from "./feature/trackable/anchor/XRAnchorTrackingMode";
-export { XRPlatformAnchorTracking } from "./feature/trackable/anchor/XRPlatformAnchorTracking";
-// image tracking
-export type { IXRImageTrackingDescriptor } from "./feature/trackable/image/IXRImageTrackingDescriptor";
-export { XRImageTrackingManager } from "./feature/trackable/image/XRImageTrackingManager";
-export { XRPlatformImageTracking } from "./feature/trackable/image/XRPlatformImageTracking";
-export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
-// plane Tracking
-export type { IXRPlaneTrackingDescriptor } from "./feature/trackable/plane/IXRPlaneTrackingDescriptor";
-export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackingManager";
-export { XRPlaneDetectionMode } from "./feature/trackable/plane/XRPlaneDetectionMode";
-export { XRPlatformPlaneTracking } from "./feature/trackable/plane/XRPlatformPlaneTracking";
+export { XRFeatureManager } from "./feature/XRFeatureManager";
 
 // xr input
-export { XRTrackingState } from "./feature/trackable/XRTrackingState";
+export { XRTrackingState } from "./input/XRTrackingState";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRInputButton } from "./input/XRInputButton";
 export { XRInputEvent } from "./input/XRInputEvent";
 export { XRController } from "./input/XRController";
 export { XRInputType } from "./input/XRInputType";
 export { XRCamera } from "./input/XRCamera";
+export { XRTrackedUpdateFlag } from "./input/XRTrackedUpdateFlag";
 
 // xr session
 export { XRSessionManager } from "./session/XRSessionManager";
 export { XRSessionType } from "./session/XRSessionType";
 export { XRSessionState } from "./session/XRSessionState";
-
-// xr component
-export { XRTrackingMode } from "./component/XRTrackingMode";
-export { XRPoseDriver } from "./component/XRPoseDriver";
-export { XRImage } from "./component/trackable/XRImage";
-export { XRAnchor } from "./component/trackable/XRAnchor";
-export { XRPlane } from "./component/trackable/XRPlane";

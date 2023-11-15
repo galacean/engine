@@ -1,9 +1,12 @@
 import { Matrix, Quaternion, Rect, Vector3 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { IXRInput, IXRPose } from "@galacean/engine-design";
-import { XRTrackingState } from "../feature/trackable/XRTrackingState";
 import { XRInputType } from "./XRInputType";
+import { XRTrackingState } from "./XRTrackingState";
 
+/**
+ * The XR camera.
+ */
 export class XRCamera implements IXRInput {
   /** The update frame count of xr input. */
   frameCount: number = 0;
@@ -15,8 +18,6 @@ export class XRCamera implements IXRInput {
   projectionMatrix: Matrix = new Matrix();
   /** The associated virtual camera. */
   camera: Camera;
-
-  events: Event[];
 
   /** The pose of the input. */
   protected _pose: IXRPose;

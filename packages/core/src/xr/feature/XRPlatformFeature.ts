@@ -1,6 +1,6 @@
 import { IXRPlatformFeature, IXRFeatureDescriptor } from "@galacean/engine-design";
-import { Logger } from "../../base";
 import { Engine } from "../../Engine";
+import { Logger } from "../../base";
 
 /**
  * The base class of XR platform feature.

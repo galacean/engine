@@ -13,46 +13,46 @@ export interface IXRFeatureManager {
    * This method needs to be override.
    * @returns
    */
-  _onEnable(): void;
+  onEnable(): void;
 
   /**
    * Disable an instance of a feature.
    * This method needs to be override.
    * @returns
    */
-  _onDisable(): void;
+  onDisable(): void;
 
   /**
    * Update an instance of a feature.
    * This method needs to be override.
    * @returns
    */
-  _onUpdate(): void;
+  onUpdate(): void;
 
   /**
    * Destroy an instance of a feature.
    * This method needs to be override.
    * @returns
    */
-  _onDestroy(): void;
+  onDestroy(): void;
 
   /**
    * @internal
    */
-  _onSessionInit(): void;
+  onSessionInit(): void;
 
   /**
    * @internal
    */
-  _onSessionStart(): void;
+  onSessionStart(): void;
 
   /**
    * @internal
    */
-  _onSessionStop(): void;
+  onSessionStop(): void;
 
   /**
    * @internal
    */
-  _onSessionDestroy(): void;
+  onSessionDestroy(): void;
 }

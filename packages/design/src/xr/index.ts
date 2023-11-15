@@ -7,13 +7,15 @@ export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
 
 export type { IXRReferenceImage } from "./feature/trackable/IXRReferenceImage";
-export type { IXRTrackable } from "./feature/trackable/IXRTrackable";
-export type { IXRTrackedAnchor } from "./feature/trackable/IXRTrackedAnchor";
-export type { IXRTrackedImage } from "./feature/trackable/IXRTrackedImage";
-export type { IXRTrackedPlane } from "./feature/trackable/IXRTrackedPlane";
+export type { IXRRequestTracking } from "./feature/trackable/request/IXRRequestTracking";
+export type { IXRRequestTrackingAnchor } from "./feature/trackable/request/IXRRequestTrackingAnchor";
+export type { IXRRequestTrackingImage } from "./feature/trackable/request/IXRRequestTrackingImage";
+export type { IXRRequestTrackingPlane } from "./feature/trackable/request/IXRRequestTrackingPlane";
 
-export type { IXRRequestTrackingAnchor } from "./feature/trackable/IXRRequestTrackingAnchor";
-export type { IXRRequestTrackingImage } from "./feature/trackable/IXRRequestTrackingImage";
+export type { IXRTracked } from "./feature/trackable/tracked/IXRTracked";
+export type { IXRTrackedAnchor } from "./feature/trackable/tracked/IXRTrackedAnchor";
+export type { IXRTrackedImage } from "./feature/trackable/tracked/IXRTrackedImage";
+export type { IXRTrackedPlane } from "./feature/trackable/tracked/IXRTrackedPlane";
 
 export type { IXRFrame } from "./IXRFrame";
 export type { IXRSession } from "./IXRSession";

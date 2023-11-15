@@ -1,19 +1,17 @@
 import { IXRFeatureDescriptor, IXRPlatformFeature } from "@galacean/engine-design";
-import { Engine } from "../Engine";
-import { IXRDevice } from "./IXRDevice";
 import { XRInputManager } from "./input/XRInputManager";
 import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionType } from "./session/XRSessionType";
 import { XRFeatureManager } from "./feature/XRFeatureManager";
+import { IXRDevice } from "./IXRDevice";
+import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
-import { Component } from "../Component";
 
 type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRPlatformFeature>;
 type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
-type TXRTrackedComponent = new (entity: Entity) => Component;
 
 /**
  * XRManager is the entry point of the XR system.
@@ -21,8 +19,6 @@ type TXRTrackedComponent = new (entity: Entity) => Component;
 export class XRManager {
   // @internal
   static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
-  // @internal
-  static _componentMap: TXRTrackedComponent[] = [];
 
   /** Hardware adaptation for XR. */
   xrDevice: IXRDevice;
@@ -35,7 +31,6 @@ export class XRManager {
   private _scene: Scene;
   private _origin: Entity;
   private _features: TXRFeatureManager[] = [];
-
   private _mode: XRSessionType;
   private _requestFeatures: IXRFeatureDescriptor[];
 
@@ -195,7 +190,7 @@ export class XRManager {
                 this.inputManager._onSessionInit(session);
                 for (let i = 0, n = features.length; i < n; i++) {
                   const feature = features[i];
-                  feature?.enabled && feature._onSessionInit();
+                  feature?.enabled && feature.onSessionInit();
                 }
                 resolve();
               }, reject);
@@ -220,7 +215,10 @@ export class XRManager {
         this.inputManager._onSessionDestroy();
         for (let i = 0, n = features.length; i < n; i++) {
           const feature = features[i];
-          feature?.enabled && feature._onSessionDestroy();
+          if (feature?.enabled) {
+            feature.enabled = false;
+            feature.onSessionDestroy();
+          }
         }
         resolve();
       }, reject);
@@ -239,7 +237,7 @@ export class XRManager {
         this.inputManager._onSessionStart();
         for (let i = 0, n = features.length; i < n; i++) {
           const feature = features[i];
-          feature?.enabled && feature._onSessionStart();
+          feature?.enabled && feature.onSessionStart();
         }
         resolve();
       }, reject);
@@ -257,7 +255,7 @@ export class XRManager {
         this.inputManager._onSessionStop();
         for (let i = 0, n = features.length; i < n; i++) {
           const feature = features[i];
-          feature?.enabled && feature._onSessionStop();
+          feature?.enabled && feature.onSessionStop();
         }
         resolve();
       }, reject);
@@ -270,7 +268,7 @@ export class XRManager {
   destroy(): void {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
-      features[i]?._onDestroy();
+      features[i]?.onDestroy();
     }
     features.length = 0;
     this.inputManager._onDestroy();
@@ -294,7 +292,7 @@ export class XRManager {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature._onUpdate();
+      feature?.enabled && feature.onUpdate();
     }
   }
 }
@@ -302,11 +300,5 @@ export class XRManager {
 export function registerXRFeatureManager(feature: XRFeatureType) {
   return (featureManagerConstructor: TXRFeatureManagerConstructor) => {
     XRManager._featureManagerMap[feature] = featureManagerConstructor;
-  };
-}
-
-export function registerXRComponent(feature: XRFeatureType) {
-  return (componentConstructor: TXRTrackedComponent) => {
-    XRManager._componentMap[feature] = componentConstructor;
   };
 }

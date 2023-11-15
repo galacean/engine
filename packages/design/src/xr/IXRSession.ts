@@ -4,6 +4,7 @@ import { IXRInputEvent } from "./IXRInputEvent";
 export interface IXRSession {
   fixedFoveation: number;
   get frame(): IXRFrame;
+  get events(): IXRInputEvent[];
   get frameRate(): number;
   get supportedFrameRates(): Float32Array;
   get framebuffer(): WebGLFramebuffer;
@@ -12,15 +13,7 @@ export interface IXRSession {
 
   addEventListener(): void;
   removeEventListener(): void;
-  getEvents(): IXRInputEvent[];
   resetEvents(): void;
-
-  /**
-   * Removes a callback from the animation frame painting callback from
-   * XRSession's set of animation frame rendering callbacks, given the
-   * identifying handle returned by a previous call to requestAnimationFrame().
-   */
-  cancelAnimationFrame(id: number): void;
 
   /**
    * Ends the xr session. Returns a promise which resolves when the
@@ -48,4 +41,11 @@ export interface IXRSession {
    * to the Window.requestAnimationFrame() method.
    */
   requestAnimationFrame(callback: FrameRequestCallback): number;
+
+  /**
+   * Removes a callback from the animation frame painting callback from
+   * XRSession's set of animation frame rendering callbacks, given the
+   * identifying handle returned by a previous call to requestAnimationFrame().
+   */
+  cancelAnimationFrame(id: number): void;
 }

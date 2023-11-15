@@ -13,10 +13,16 @@ export class XRSessionManager {
   private _rhi: IHardwareRenderer;
   private _listeners: TXRSessionStateChangeListener[] = [];
 
+  /**
+   * Return the current session state.
+   */
   get state(): XRSessionState {
     return this._state;
   }
 
+  /**
+   * Return the current session.
+   */
   get session(): IXRSession {
     return this._session;
   }
@@ -35,6 +41,9 @@ export class XRSessionManager {
     return this._session.frameRate;
   }
 
+  /**
+   * Returns requestAnimationFrame in XR.
+   */
   get requestAnimationFrame(): (callback: FrameRequestCallback) => number {
     if (this._state === XRSessionState.Running) {
       return this._session.requestAnimationFrame;
@@ -43,6 +52,9 @@ export class XRSessionManager {
     }
   }
 
+  /**
+   * Returns cancelAnimationFrame in XR.
+   */
   get cancelAnimationFrame(): (id: number) => void {
     if (this._state === XRSessionState.Running) {
       return this._session.cancelAnimationFrame;

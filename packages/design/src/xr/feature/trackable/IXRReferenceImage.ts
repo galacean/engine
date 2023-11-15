@@ -19,6 +19,4 @@ export interface IXRReferenceImage {
   physicalWidth: number;
   /** The height of the image in meters. */
   physicalHeight: number;
-  /** Whether the image is trackable. */
-  trackable: boolean;
 }
