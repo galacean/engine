@@ -227,6 +227,8 @@ export type IVariablePropertyAstContent = string;
 
 export type IFnReturnStatementAstContent = ObjectAstNode;
 
+export type IFnCallStatementAstContent = FnCallAstNode;
+
 export interface IFnArgAstContent {
   name: string;
   type: {

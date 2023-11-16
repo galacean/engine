@@ -58,6 +58,12 @@ interface IReferenceStructInfo {
 }
 
 export default class RuntimeContext {
+  private _shaderAst: AstNode<IShaderAstContent>;
+
+  get shaderAst() {
+    return this._shaderAst;
+  }
+
   functionAstStack: { fnAst: FnAstNode; localDeclaration: VariableDeclarationAstNode[] }[] = [];
   /** Diagnostic for linting service. */
   diagnostics: IDiagnostic[] = [];
@@ -123,6 +129,7 @@ export default class RuntimeContext {
   }
 
   parse(ast: AstNode<IShaderAstContent>): IShaderInfo {
+    this._shaderAst = ast;
     this._shaderReset();
 
     this._initShaderGlobalList(ast);
@@ -160,7 +167,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        this._initPassGlobalList(passAst);
+        // this._initPassGlobalList(passAst);
         ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(passAst, prop, this);
         break;
       case FRAG_FN_NAME:
@@ -172,7 +179,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        this._initPassGlobalList(passAst);
+        // this._initPassGlobalList(passAst);
         ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(passAst, prop, this);
         break;
       default:
@@ -192,11 +199,13 @@ export default class RuntimeContext {
   }
 
   parsePassInfo(ast: AstNode<IPassAstContent | IUsePassAstContent>): IShaderPassInfo | string {
-    this._passReset();
-
     if (typeof ast.content === "string") {
+      // UsePass
       return ast.content;
     }
+
+    this._passReset();
+    this._initPassGlobalList(<AstNode<IPassAstContent>>ast);
 
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
@@ -206,7 +215,7 @@ export default class RuntimeContext {
 
     this.payload = { parsingRenderState: true };
     const tmpRenderStates = ast.content.renderStates ?? [];
-    ast.content.properties.forEach((prop) =>
+    ast.content.properties?.forEach((prop) =>
       this._parsePassProperty(<AstNode<IPassAstContent>>ast, prop, ret, tmpRenderStates)
     );
     for (const rs of tmpRenderStates) {
