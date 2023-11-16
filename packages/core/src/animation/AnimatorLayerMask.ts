@@ -13,26 +13,36 @@ export class AnimatorLayerMask {
   static createByEntity(entity: Entity): AnimatorLayerMask {
     const mask = new AnimatorLayerMask();
     mask.addPathMask("");
-    mask._addPathMaskWithChildren(entity, "");
+    AnimatorLayerMask._addPathMaskWithChildren(mask, entity, "");
     return mask;
   }
 
-  /**
-   * Gets the list of path masks.
-   */
-  get pathMasks(): Readonly<LayerPathMask[]> {
-    return this._pathMasks;
+  private static _addPathMaskWithChildren(mask: AnimatorLayerMask, entity: Entity, parentPath: string) {
+    const children = entity.children;
+    for (let i = 0, n = children.length; i < n; ++i) {
+      const child = children[i];
+      const childPath = parentPath + "/" + child.name;
+      mask.addPathMask(childPath);
+      AnimatorLayerMask._addPathMaskWithChildren(mask, child, childPath);
+    }
   }
+
   private _pathMasks: LayerPathMask[] = [];
   private _pathMaskMap: Record<string, LayerPathMask> = {};
 
   /**
-   * Adds a path mask to the AnimatorLayerMask.
+   * The list of path masks.
+   */
+  get pathMasks(): Readonly<LayerPathMask[]> {
+    return this._pathMasks;
+  }
+
+  /**
+   * Adds a path mask to the AnimatorLayerMask, the root path is "".
    * @param path - The path to add a mask for
+   * @returns The created or existing LayerPathMask
    */
   addPathMask(path: string): LayerPathMask {
-    path = path[0] === "/" ? path.slice(1) : path;
-
     const existed = this._pathMaskMap[path];
     if (existed) {
       return existed;
@@ -52,7 +62,6 @@ export class AnimatorLayerMask {
    */
   removePathMask(path): void {
     const { _pathMasks: pathMasks } = this;
-    path = path[0] === "/" ? path.slice(1) : path;
     for (let i = 0, n = this._pathMasks.length; i < n; ++i) {
       if (pathMasks[i] === path) {
         pathMasks.splice(i, 1);
@@ -65,9 +74,9 @@ export class AnimatorLayerMask {
   /**
    * Get a path mask based on the given path.
    * @param path - The path of the mask to get
+   * @returns The LayerPathMask for the given path
    */
   getPathMask(path: string): LayerPathMask {
-    path = path[0] === "/" ? path.slice(1) : path;
     return this._pathMaskMap[path];
   }
 
@@ -76,31 +85,20 @@ export class AnimatorLayerMask {
    * If recursive is true, it also sets the active state of all child path masks.
    * @param path - The path of the mask to modify
    * @param active - The active state to set
-   * @param recursive - Whether to apply the active state recursively to child paths
+   * @param withChildren - Whether to apply the active state recursively to child paths
    */
-  setPathMaskActive(path: string, active: boolean, recursive: boolean = false): void {
-    path = path[0] === "/" ? path.slice(1) : path;
+  setPathMaskActive(path: string, active: boolean, withChildren: boolean = false): void {
     const pathMask = this._pathMaskMap[path];
     if (pathMask) {
       pathMask.active = active;
     }
 
-    if (recursive) {
+    if (withChildren) {
       for (let p in this._pathMaskMap) {
         if (p.startsWith(path)) {
           this._pathMaskMap[p].active = active;
         }
       }
-    }
-  }
-
-  private _addPathMaskWithChildren(entity: Entity, parentPath: string) {
-    const children = entity.children;
-    for (let i = 0, n = children.length; i < n; ++i) {
-      const child = children[i];
-      const childPath = parentPath + "/" + child.name;
-      this.addPathMask(childPath);
-      this._addPathMaskWithChildren(child, childPath);
     }
   }
 }
