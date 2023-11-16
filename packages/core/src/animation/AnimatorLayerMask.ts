@@ -21,7 +21,7 @@ export class AnimatorLayerMask {
     const children = entity.children;
     for (let i = 0, n = children.length; i < n; ++i) {
       const child = children[i];
-      const childPath = parentPath + "/" + child.name;
+      const childPath = parentPath ? `${parentPath}/${child.name}` : child.name;
       mask.addPathMask(childPath);
       AnimatorLayerMask._addPathMaskWithChildren(mask, child, childPath);
     }
