@@ -299,11 +299,21 @@ export class Animator extends Component {
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       if (targetEntity) {
         const propertyPath = `${curve.typeIndex}.` + curve.property;
+        const component =
+          curve.typeIndex > 0
+            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
+            : targetEntity.getComponent(curve.type);
+
+        if (!component) {
+          continue;
+        }
+
+        const { property } = curve;
         const { instanceId } = targetEntity;
 
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
-        const owner = (propertyOwners[propertyPath] ||= curve._createCurveOwner(targetEntity));
+        const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity, component));
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));

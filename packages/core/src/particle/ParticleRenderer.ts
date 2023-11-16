@@ -180,17 +180,7 @@ export class ParticleRenderer extends Renderer {
 
   protected override _render(context: RenderContext): void {
     const generator = this.generator;
-    const primitive = generator._primitive;
-
-    if (generator._firstActiveElement < generator._firstFreeElement) {
-      primitive.instanceCount = generator._firstFreeElement - generator._firstActiveElement;
-    } else {
-      let instanceCount = generator._currentParticleCount - generator._firstActiveElement;
-      if (generator._firstFreeElement > 0) {
-        instanceCount += generator._firstFreeElement;
-      }
-      primitive.instanceCount = instanceCount;
-    }
+    generator._primitive.instanceCount = generator._getAliveParticleCount();
 
     let material = this.getMaterial();
     if (!material) {
