@@ -12,7 +12,7 @@ import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnim
 export class AnimationCurveOwner<V extends KeyframeValueType> {
   /** @internal */
   static _components: Component[] = [];
-  
+
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   static registerAssembler(componentType: ComponentType, property: string, assemblerType: AssemblerType): void {
