@@ -10,3 +10,5 @@ export { AnimationVector3Curve } from "./AnimationVector3Curve";
 export { AnimationVector4Curve } from "./AnimationVector4Curve";
 export { AnimationRefCurve } from "./AnimationRefCurve";
 export { AnimationRectCurve } from "./AnimationRectCurve";
+export { AnimationStringCurve } from "./AnimationStringCurve";
+export { AnimationObjectCurve } from "./AnimationObjectCurve";

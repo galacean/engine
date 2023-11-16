@@ -14,7 +14,10 @@ import {
   Engine,
   Keyframe,
   KeyframeValueType,
-  ReferResource
+  ReferResource,
+  AnimationObjectCurve,
+  AnimationStringCurve,
+  AnimationBoolCurve
 } from "@galacean/engine-core";
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
@@ -62,7 +65,6 @@ export class AnimationClipDecoder {
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
         const curveType = bufferReader.nextStr();
-
         switch (curveType) {
           case "AnimationFloatCurve": {
             curve = new AnimationFloatCurve();
@@ -231,8 +233,48 @@ export class AnimationClipDecoder {
             for (let j = 0; j < keysLen; ++j) {
               const keyframe = new Keyframe<ReferResource>();
               keyframe.time = bufferReader.nextFloat32();
-              keyframe.value = JSON.parse(bufferReader.nextStr());
+              const str = bufferReader.nextStr();
+              if (str) {
+                keyframe.value = JSON.parse(str);
+              } else {
+                keyframe.value = null;
+              }
               (<AnimationRefCurve>curve).addKey(keyframe);
+            }
+            break;
+          }
+          case "AnimationBoolCurve": {
+            curve = new AnimationBoolCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<boolean>();
+              keyframe.time = bufferReader.nextFloat32();
+              keyframe.value = bufferReader.nextUint8() === 1;
+              (<AnimationBoolCurve>curve).addKey(keyframe);
+            }
+            break;
+          }
+          case "AnimationStringCurve": {
+            curve = new AnimationStringCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<string>();
+              keyframe.time = bufferReader.nextFloat32();
+              keyframe.value = bufferReader.nextStr();
+              (<AnimationStringCurve>curve).addKey(keyframe);
+            }
+            break;
+          }
+          case "AnimationObjectCurve": {
+            curve = new AnimationObjectCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Object>();
+              keyframe.time = bufferReader.nextFloat32();
+              const str = bufferReader.nextStr();
+              console.log("AnimationObjectCurve", str);
+              keyframe.value = JSON.parse(str);
+              (<AnimationObjectCurve>curve).addKey(keyframe);
             }
             break;
           }

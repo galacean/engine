@@ -44,5 +44,7 @@ export type KeyframeValueType =
   | Quaternion
   | Color
   | Rect
+  | string
   | boolean
-  | ReferResource;
+  | ReferResource
+  | Object;
