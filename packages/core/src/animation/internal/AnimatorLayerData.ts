@@ -1,4 +1,3 @@
-import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
 import { AnimatorStateTransition } from "../AnimatorTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
