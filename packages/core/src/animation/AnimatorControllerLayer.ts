@@ -12,7 +12,7 @@ export class AnimatorControllerLayer {
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
   /** The state machine for the layer. */
   stateMachine: AnimatorStateMachine;
-
+  /** The AnimatorLayerMask is used to mask out certain entities from being animated by an AnimatorLayer. */
   mask: AnimatorLayerMask;
 
   /**

@@ -1,10 +1,9 @@
-/**
- * AnimatorLayerMask is used to mask out certain entities from being animated by an AnimatorLayer.
- */
-
 import { Entity } from "../Entity";
 import { LayerPathMask } from "./LayerPathMask";
 
+/**
+ * AnimatorLayerMask is used to mask out certain entities from being animated by an AnimatorLayer.
+ */
 export class AnimatorLayerMask {
   /**
    * Creates an AnimatorLayerMask instance by specifying an entity.
