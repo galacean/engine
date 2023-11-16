@@ -1,3 +1,4 @@
+import { AssetType } from "../../asset/AssetType";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 
 /**
@@ -17,6 +18,8 @@ export interface AtlasConfig {
   atlasItems: {
     /** The url of the sub atlas. */
     img: string;
+    /** Image type. */
+    type: AssetType;
     /** Sprites contained in the sub atlas. */
     sprites: AtlasSprite[];
   }[];
