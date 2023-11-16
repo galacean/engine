@@ -1,69 +1,110 @@
-export class AnimatorLayerMask {
-  private _pathMaskActiveMap: Map<string, boolean> = new Map();
-  private _recursivePathList: string[] = [];
-  private _pathCount: number = 0;
+/**
+ * AnimatorLayerMask is used to mask out certain entities from being animated by an AnimatorLayer.
+ */
 
+import { Entity } from "../Entity";
+import { LayerPathMask } from "./LayerPathMask";
+
+export class AnimatorLayerMask {
   /**
-   * Number of paths in the mask.
+   * Creates an AnimatorLayerMask instance by specifying an entity.
+   * This will automatically add path masks for the entity and all its children.
+   * @param entity - The root entity to create path masks for
    */
-  get pathCount(): Readonly<number> {
-    return this._pathCount;
+  static createByEntity(entity: Entity): AnimatorLayerMask {
+    const mask = new AnimatorLayerMask();
+    mask.addPathMask("");
+    mask._addPathMaskWithChildren(entity, "");
+    return mask;
   }
 
   /**
-   * Checks if the given path is active.
-   * @param path - The path of the entity to check
+   * Gets the list of path masks.
    */
-  checkMaskActive(path: string) {
-    path = path.startsWith("/") ? path.slice(1) : path;
-    const { _recursivePathList: recursivePathList } = this;
-    if (this._pathMaskActiveMap.has(path)) {
-      return this._pathMaskActiveMap.get(path);
+
+  get pathMasks(): Readonly<LayerPathMask[]> {
+    return this._pathMasks;
+  }
+  private _pathMasks: LayerPathMask[] = [];
+  private _pathMaskMap: Record<string, LayerPathMask> = {};
+
+  /**
+   * Adds a path mask to the AnimatorLayerMask.
+   * @param path - The path to add a mask for
+   */
+
+  addPathMask(path: string): LayerPathMask {
+    path = path[0] === "/" ? path.slice(1) : path;
+
+    const existed = this._pathMaskMap[path];
+    if (existed) {
+      return existed;
     }
 
-    for (let i = 0, n = recursivePathList.length; i < n; ++i) {
-      const recursivePath = recursivePathList[i];
-      if (path.startsWith(recursivePath)) {
-        return this._pathMaskActiveMap.get(recursivePath);
+    const pathMask = new LayerPathMask();
+    pathMask.path = path;
+    pathMask.active = true;
+    this._pathMasks.push(pathMask);
+    this._pathMaskMap[path] = pathMask;
+    return pathMask;
+  }
+
+  /**
+   * Removes a path mask from the AnimatorLayerMask.
+   * @param path - The path of the mask to remove
+   */
+  removePathMask(path): void {
+    const { _pathMasks: pathMasks } = this;
+    path = path[0] === "/" ? path.slice(1) : path;
+    for (let i = 0, n = this._pathMasks.length; i < n; ++i) {
+      if (pathMasks[i] === path) {
+        pathMasks.splice(i, 1);
+        delete this._pathMaskMap[path];
+        break;
       }
     }
-    return true;
   }
 
   /**
-   * Sets the active status of a specified entity path.
-   * @param path - The path of the entity
-   * @param active - The active status to set for this path
-   * @param recursive - If true, the active status is also applied recursively to all paths starting with this path
+   * Get a path mask based on the given path.
+   * @param path - The path of the mask to get
    */
-  setEntityPath(path: string, active: boolean, recursive: boolean = false) {
-    path = path.startsWith("/") ? path.slice(1) : path;
-    if (!this._pathMaskActiveMap.has(path)) {
-      this._pathCount++;
-      recursive && this._recursivePathList.push(path);
-    }
+  getPathMask(path: string): LayerPathMask {
+    path = path[0] === "/" ? path.slice(1) : path;
+    return this._pathMaskMap[path];
+  }
 
-    this._pathMaskActiveMap.set(path, active);
+  /**
+   * Sets the active state of a path mask.
+   * If recursive is true, it also sets the active state of all child path masks.
+   * @param path - The path of the mask to modify
+   * @param active - The active state to set
+   * @param recursive - Whether to apply the active state recursively to child paths
+   */
+
+  setPathMaskActive(path: string, active: boolean, recursive: boolean = false): void {
+    path = path[0] === "/" ? path.slice(1) : path;
+    const pathMask = this._pathMaskMap[path];
+    if (pathMask) {
+      pathMask.active = active;
+    }
 
     if (recursive) {
-      this._pathMaskActiveMap.forEach((v: boolean, p: string) => {
+      for (let p in this._pathMaskMap) {
         if (p.startsWith(path)) {
-          this._pathMaskActiveMap.set(p, active);
+          this._pathMaskMap[p].active = active;
         }
-      });
+      }
     }
   }
 
-  /**
-   * Removes the specified entity path from the mask.
-   * @param path - The path of the entity to remove
-   */
-  removeEntityPath(path: string) {
-    path = path.startsWith("/") ? path.slice(1) : path;
-    const deleted = this._pathMaskActiveMap.delete(path);
-    if (deleted) {
-      this._pathCount--;
-      this._recursivePathList = this._recursivePathList.filter((p) => p !== path);
+  private _addPathMaskWithChildren(entity: Entity, parentPath: string) {
+    const children = entity.children;
+    for (let i = 0, n = children.length; i < n; ++i) {
+      const child = children[i];
+      const childPath = parentPath + "/" + child.name;
+      this.addPathMask(childPath);
+      this._addPathMaskWithChildren(child, childPath);
     }
   }
 }

@@ -288,8 +288,8 @@ export class Animator extends Component {
     animatorLayerData: AnimatorLayerData,
     layerIndex: number
   ): void {
-    const { entity, _curveOwnerPool: curveOwnerPool, _animatorController: animatorController } = this;
-    let { mask } = animatorController.layers[layerIndex];
+    const { entity, _curveOwnerPool: curveOwnerPool } = this;
+    let { mask } = this._animatorController.layers[layerIndex];
     const { curveLayerOwner } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
 
@@ -321,8 +321,8 @@ export class Animator extends Component {
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
         const layerOwner = (layerPropertyOwners[propertyPath] ||= curve._createCurveLayerOwner(owner));
 
-        if (mask?.pathCount > 0) {
-          layerOwner.isActive = mask.checkMaskActive(relativePath);
+        if (mask && mask.pathMasks.length) {
+          layerOwner.isActive = mask.getPathMask(relativePath).active;
         }
 
         curveLayerOwner[i] = layerOwner;
