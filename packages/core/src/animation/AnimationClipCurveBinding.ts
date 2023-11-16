@@ -1,10 +1,10 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { KeyframeValueType } from "./Keyframe";
 import { AnimationCurve } from "./animationCurve";
 import { IAnimationCurveCalculator } from "./animationCurve/interfaces/IAnimationCurveCalculator";
-import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
-import { KeyframeValueType } from "./Keyframe";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
 /**
  * Associate AnimationCurve and the Entity
@@ -17,6 +17,8 @@ export class AnimationClipCurveBinding {
   relativePath: string;
   /** The class type of the component that is animated. */
   type: new (entity: Entity) => Component;
+  /** The index of the component that is animated. */
+  typeIndex: number = 0;
   /** The name or path to the property being animated. */
   property: string;
   /** The animation curve. */

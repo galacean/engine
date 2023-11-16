@@ -1,3 +1,5 @@
+import { Utils } from "./Utils";
+
 /**
  * High-performance unordered array, delete uses exchange method to improve performance, internal capacity only increases.
  */
@@ -69,7 +71,7 @@ export class DisorderedArray<T> {
   forEach(callbackFn: (element: T) => void, swapFn: (element: T, index: number) => void): void {
     this._startLoop();
     const elements = this._elements;
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
@@ -79,11 +81,15 @@ export class DisorderedArray<T> {
   forEachAndClean(callbackFn: (e: T) => void): void {
     this._startLoop();
     const elements = this._elements;
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
     this._endLoopAndClear();
+  }
+
+  sort(compareFn: (a: T, b: T) => number): void {
+    Utils._quickSort(this._elements, 0, this.length, compareFn);
   }
 
   garbageCollection(): void {

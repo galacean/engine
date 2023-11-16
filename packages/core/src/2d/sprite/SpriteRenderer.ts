@@ -132,12 +132,12 @@ export class SpriteRenderer extends Renderer {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
       if (lastSprite) {
-        lastSprite._addReferCount(-1);
+        this._addResourceReferCount(lastSprite, -1);
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
       this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       if (value) {
-        value._addReferCount(1);
+        this._addResourceReferCount(value, 1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
@@ -332,12 +332,14 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const sprite = this._sprite;
     if (sprite) {
-      sprite._addReferCount(-1);
+      this._addResourceReferCount(sprite, -1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
+
+    super._onDestroy();
+
     this._entity = null;
     this._color = null;
     this._sprite = null;
