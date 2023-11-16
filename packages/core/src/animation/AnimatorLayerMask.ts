@@ -21,7 +21,6 @@ export class AnimatorLayerMask {
   /**
    * Gets the list of path masks.
    */
-
   get pathMasks(): Readonly<LayerPathMask[]> {
     return this._pathMasks;
   }
@@ -32,7 +31,6 @@ export class AnimatorLayerMask {
    * Adds a path mask to the AnimatorLayerMask.
    * @param path - The path to add a mask for
    */
-
   addPathMask(path: string): LayerPathMask {
     path = path[0] === "/" ? path.slice(1) : path;
 
@@ -81,7 +79,6 @@ export class AnimatorLayerMask {
    * @param active - The active state to set
    * @param recursive - Whether to apply the active state recursively to child paths
    */
-
   setPathMaskActive(path: string, active: boolean, recursive: boolean = false): void {
     path = path[0] === "/" ? path.slice(1) : path;
     const pathMask = this._pathMaskMap[path];
