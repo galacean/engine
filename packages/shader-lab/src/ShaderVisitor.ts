@@ -476,20 +476,16 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleConditionExpr(children: _ruleConditionExprCstChildren, param?: any) {
-    const leftExpr = this.visit(children._ruleFnRelationExpr[0]);
-    let position: IPositionRange;
-    if (children._ruleRelationOperator) {
-      const rightExpr = this.visit(children._ruleFnRelationExpr[1]);
-      const operator = this.visit(children._ruleRelationOperator);
+    const expressionList = children._ruleFnRelationExpr.map((item) => this.visit(item)).sort(AstNodeUtils.astSortAsc);
+    const operatorList = children._ruleRelationOperator?.map((item) => this.visit(item)).sort(AstNodeUtils.astSortAsc);
 
-      position = {
-        start: leftExpr.position.start,
-        end: rightExpr.position.end
-      };
-      return new ConditionExprAstNode(position, { leftExpr, rightExpr, operator });
+    const leftExpr = this.visit(children._ruleFnRelationExpr[0]);
+    const position: IPositionRange = expressionList[0].position;
+    if (operatorList?.length) {
+      position.end = expressionList[expressionList.length - 1].position.end;
     }
-    position = leftExpr.position;
-    return new ConditionExprAstNode(position, { leftExpr });
+
+    return new ConditionExprAstNode(position, { expressionList, operatorList });
   }
 
   _ruleFnRelationExpr(ctx: _ruleFnRelationExprCstChildren) {

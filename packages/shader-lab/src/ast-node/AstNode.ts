@@ -374,10 +374,13 @@ export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent
 
 export class ConditionExprAstNode extends AstNode<IConditionExprAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
-    let ret = this.content.leftExpr.serialize(context);
-    if (this.content.operator) {
-      ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightExpr.serialize(context)}`;
+    const expressionList = this.content.expressionList.map((item) => item.serialize(context));
+    const operatorList = this.content.operatorList?.map((item) => item.serialize(context));
+    let ret = expressionList[0];
+    for (let i = 1; i < expressionList.length; i++) {
+      ret += ` ${operatorList[i - 1]} ${expressionList[i]}`;
     }
+
     return `${ret}`;
   }
 }

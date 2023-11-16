@@ -526,6 +526,7 @@ export type _ruleFnStatementCstChildren = {
   _ruleContinueStatement?: _ruleContinueStatementCstNode[];
   _ruleForLoopStatement?: _ruleForLoopStatementCstNode[];
   _ruleFn?: _ruleFnCstNode[];
+  _ruleFnBlockStatement?: _ruleFnBlockStatementCstNode[];
 };
 
 export interface _ruleFnAssignStatementCstNode extends CstNode {

@@ -162,9 +162,8 @@ export interface IFnConditionStatementAstContent {
 }
 
 export interface IConditionExprAstContent {
-  leftExpr: RelationExprAstNode;
-  rightExpr?: RelationExprAstNode;
-  operator?: RelationOperatorAstNode;
+  expressionList: RelationExprAstNode[];
+  operatorList?: RelationOperatorAstNode[];
 }
 
 export interface IFnRelationExprAstContent {

@@ -440,7 +440,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleConditionExpr = this.RULE("_ruleConditionExpr", () => {
     this.SUBRULE(this._ruleFnRelationExpr);
-    this.OPTION(() => {
+    this.MANY(() => {
       this.SUBRULE(this._ruleRelationOperator);
       this.SUBRULE1(this._ruleFnRelationExpr);
     });
