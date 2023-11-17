@@ -188,7 +188,7 @@ enum PromiseState {
  */
 export interface IProgress {
   /**
-   * Progress detail.
+   * Progress detail of bytes loaded and total bytes.
    * @remarks
    * The key is the asset url, the value is the progress of the asset url.
    * Some assets may have multiple urls, such as glTF, which has a glTF file and multiple texture files.
@@ -201,8 +201,7 @@ export interface IProgress {
   };
 
   /**
-   * Progress task.
-   * @remarks The loaded and total of the task are the sum of the loaded and total of all assets.
+   * The progress of the number of tasks completed.
    */
   task: {
     loaded: number;
