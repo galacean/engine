@@ -1,8 +1,8 @@
-import { Logger, XRFeatureType, XRMovementTrackingMode } from "@galacean/engine";
-import { registerXRPlatformFeature } from "../WebXRDevice";
 import { IXRFeatureDescriptor, IXRMovementTracking } from "@galacean/engine-design";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 
-@registerXRPlatformFeature(XRFeatureType.MovementTracking)
+// XRFeatureType.MovementTracking
+@registerXRPlatformFeature(0)
 /**
  * WebXR implementation of XRPlatformMovementTracking.
  */
@@ -11,11 +11,12 @@ export class WebXRMovementTracking implements IXRMovementTracking {
     return Promise.resolve();
   }
 
-  get trackingMode(): XRMovementTrackingMode {
-    return XRMovementTrackingMode.Dof6;
+  get trackingMode(): number {
+    // XRMovementTrackingMode.Dof6
+    return 2;
   }
 
-  set trackingMode(value: XRMovementTrackingMode) {
-    Logger.warn("WebXR does not support modifying motion tracking mode.");
+  set trackingMode(value: number) {
+    console.warn("WebXR does not support modifying motion tracking mode.");
   }
 }

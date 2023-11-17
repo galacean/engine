@@ -1,19 +1,12 @@
-import {
-  Matrix,
-  Quaternion,
-  Vector3,
-  XRFeatureType,
-  XRRequestTrackingAnchor,
-  XRRequestTrackingState,
-  XRTrackingState
-} from "@galacean/engine";
+import { Matrix, Quaternion, Vector3, XRRequestTrackingAnchor } from "@galacean/engine";
 import { IXRAnchorTracking, IXRFeatureDescriptor, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRFrame } from "../WebXRFrame";
 import { generateUUID } from "../util";
 
-@registerXRPlatformFeature(XRFeatureType.AnchorTracking)
+// XRFeatureType.AnchorTracking
+@registerXRPlatformFeature(2)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
@@ -26,40 +19,44 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
     return Promise.resolve();
   }
 
-  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: XRRequestTrackingAnchor[]): boolean {
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchorTracking[]): boolean {
     if (!session._platformSession || !session._platformReferenceSpace || !frame._platformFrame) {
       return false;
     }
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
-      if (requestTracking.state === XRRequestTrackingState.None) this._addAnchor(session, frame, requestTracking);
+      // XRRequestTrackingState.None
+      if (requestTracking.state === 0) this._addAnchor(session, frame, requestTracking);
     }
     return true;
   }
 
-  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: XRRequestTrackingAnchor[]): void {
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchorTracking[]): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = <WebXRRequestTrackingAnchor>requestTrackings[i];
-      if (requestTracking.state !== XRRequestTrackingState.Resolved) {
+      // XRRequestTrackingState.Resolved
+      if (requestTracking.state !== 2) {
         continue;
       }
       const tracked = requestTracking.tracked[0];
       if (trackedAnchors.has(requestTracking.xrAnchor)) {
         const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTracking);
         if (emulated) {
-          if (tracked.state === XRTrackingState.Tracking) {
-            tracked.state = XRTrackingState.TrackingLost;
+          // XRTrackingState.Tracking
+          if (tracked.state === 1) {
+            // XRTrackingState.TrackingLost
+            tracked.state = 2;
           }
         } else {
-          if (tracked.state === XRTrackingState.Tracking) {
-            tracked.state = XRTrackingState.Tracking;
-          }
+          // XRTrackingState.Tracking
+          tracked.state = 1;
         }
       } else {
-        tracked.state = XRTrackingState.NotTracking;
+        // XRTrackingState.NotTracking
+        tracked.state = 0;
       }
     }
   }
@@ -68,11 +65,12 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
     this._deleteAnchor(requestTracking);
   }
 
-  private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: XRRequestTrackingAnchor): void {
+  private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: IXRRequestAnchorTracking): void {
     if (!session || !frame) {
       return;
     }
-    anchor.state = XRRequestTrackingState.Submitted;
+    // XRRequestTrackingState.Submitted
+    anchor.state = 1;
     const { position, rotation } = anchor.pose;
     const { _platformFrame: platformFrame } = frame;
     const { _platformReferenceSpace: platformReferenceSpace } = session;
@@ -86,28 +84,35 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
       )
       .then(
         (xrAnchor) => {
-          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
+          // XRRequestTrackingState.WaitingDestroy
+          if (anchor.state === 5) {
             xrAnchor.delete();
-            anchor.state = XRRequestTrackingState.Destroyed;
+            // XRRequestTrackingState.Destroyed
+            anchor.state = 4;
           } else {
             // @ts-ignore
             anchor.xrAnchor = xrAnchor;
-            anchor.state = XRRequestTrackingState.Resolved;
+            // XRRequestTrackingState.Resolved
+            anchor.state = 2;
             anchor.tracked = [
               {
                 id: generateUUID(),
                 pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-                state: XRTrackingState.NotTracking,
+                // XRTrackingState.NotTracking
+                state: 0,
                 frameCount: 0
               }
             ];
           }
         },
         () => {
-          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
-            anchor.state = XRRequestTrackingState.Destroyed;
+          // XRRequestTrackingState.WaitingDestroy
+          if (anchor.state === 5) {
+            // XRRequestTrackingState.Destroyed
+            anchor.state = 4;
           } else {
-            anchor.state = XRRequestTrackingState.Rejected;
+            // XRRequestTrackingState.Rejected
+            anchor.state = 3;
           }
         }
       );
@@ -115,17 +120,22 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
 
   private _deleteAnchor(anchor: WebXRRequestTrackingAnchor): void {
     switch (anchor.state) {
-      case XRRequestTrackingState.Submitted:
-        anchor.state = XRRequestTrackingState.WaitingDestroy;
+      // XRRequestTrackingState.Submitted
+      case 1:
+        // XRRequestTrackingState.WaitingDestroy
+        anchor.state = 5;
         break;
-      case XRRequestTrackingState.Resolved:
+      // XRRequestTrackingState.Resolved
+      case 2:
         anchor.xrAnchor.delete();
         anchor.xrAnchor = null;
-        anchor.state = XRRequestTrackingState.Destroyed;
+        // XRRequestTrackingState.Destroyed
+        anchor.state = 4;
         anchor.tracked.length = 0;
         break;
       default:
-        anchor.state = XRRequestTrackingState.Destroyed;
+        // XRRequestTrackingState.Destroyed
+        anchor.state = 4;
         break;
     }
   }

@@ -1,5 +1,5 @@
 import { IXRSession, IXRInputEvent } from "@galacean/engine-design";
-import { XRInputEvent, XRInputEventType, XRInputType, XRTargetRayMode } from "@galacean/engine";
+import { XRInputEvent } from "@galacean/engine";
 import { getInputSource } from "./util";
 import { WebXRFrame } from "./WebXRFrame";
 
@@ -72,11 +72,14 @@ export class WebXRSession implements IXRSession {
       const inputSource = screenPointers[i];
       if (!inputSource) continue;
       const event = new XRInputEvent();
-      event.type = XRInputEventType.Select;
+      // XRInputEventType.Select
+      event.type = 1;
+      // XRTargetRayMode.Screen
+      event.targetRayMode = 2;
+      // XRInputType.Controller
+      event.input = 0;
       event.id = i;
       [event.x, event.y] = inputSource.gamepad.axes;
-      event.targetRayMode = XRTargetRayMode.Screen;
-      event.input = XRInputType.Controller;
       events.unshift(event);
     }
     return events;
@@ -145,19 +148,23 @@ export class WebXRSession implements IXRSession {
     event.type = this._inputEventTypeMap[inputSourceEvent.type];
     switch (inputSource.targetRayMode) {
       case "gaze":
-        event.targetRayMode = XRTargetRayMode.Gaze;
+        // XRTargetRayMode.Gaze
+        event.targetRayMode = 0;
         break;
       case "tracked-pointer":
-        event.targetRayMode = XRTargetRayMode.TrackedPointer;
+        // XRTargetRayMode.TrackedPointer
+        event.targetRayMode = 1;
         break;
       case "screen":
-        event.targetRayMode = XRTargetRayMode.Screen;
+        // XRTargetRayMode.Screen
+        event.targetRayMode = 2;
         const { _screenPointers: screenPointers } = this;
         const { axes } = inputSource.gamepad;
         event.x = axes[0];
         event.y = axes[1];
         switch (event.type) {
-          case XRInputEventType.SelectStart:
+          // XRInputEventType.SelectStart
+          case 0:
             let idx = -1;
             let emptyIdx = -1;
             for (let i = screenPointers.length - 1; i >= 0; i--) {
@@ -180,7 +187,8 @@ export class WebXRSession implements IXRSession {
             }
             event.id = idx;
             break;
-          case XRInputEventType.SelectEnd:
+          // XRInputEventType.SelectEnd
+          case 2:
             for (let i = screenPointers.length - 1; i >= 0; i--) {
               if (screenPointers[i] === inputSource) {
                 screenPointers[i] = null;

@@ -1,4 +1,4 @@
-import { XRSessionType, XRFeatureType, XRInputType, request, IXRImageTrackingDescriptor } from "@galacean/engine";
+import { request, IXRImageTrackingDescriptor } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
 import { WebXRDevice } from "./WebXRDevice";
 
@@ -6,11 +6,13 @@ export function generateUUID(): number {
   return ++WebXRDevice._uuid;
 }
 
-export function parseXRMode(mode: XRSessionType): XRSessionMode {
+export function parseXRMode(mode: number): XRSessionMode {
   switch (mode) {
-    case XRSessionType.AR:
+    // XRSessionType.AR
+    case 0:
       return "immersive-ar";
-    case XRSessionType.VR:
+    // XRSessionType.VR
+    case 1:
       return "immersive-vr";
     default:
       return null;
@@ -20,7 +22,12 @@ export function parseXRMode(mode: XRSessionType): XRSessionMode {
 export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessionInit): Promise<void> | void {
   const { requiredFeatures } = options;
   switch (descriptor.type) {
-    case XRFeatureType.ImageTracking:
+    // XRFeatureType.AnchorTracking
+    case 2:
+      requiredFeatures.push("anchors");
+      break;
+    // XRFeatureType.ImageTracking
+    case 3:
       requiredFeatures.push("image-tracking");
       const { images } = <IXRImageTrackingDescriptor>descriptor;
       const promiseArr: Promise<ImageBitmap>[] = [];
@@ -55,37 +62,41 @@ export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessio
       } else {
         return Promise.reject(new Error("Images.length is 0"));
       }
-    case XRFeatureType.HitTest:
-    case XRFeatureType.PlaneTracking:
+    // XRFeatureType.PlaneTracking
+    case 4:
+    // XRFeatureType.HitTest
+    case 5:
       requiredFeatures.push("plane-detection");
-      break;
-    case XRFeatureType.AnchorTracking:
-      requiredFeatures.push("anchors");
       break;
   }
 }
 
-export function getInputSource(inputSource: XRInputSource): XRInputType {
-  let type: XRInputType;
+export function getInputSource(inputSource: XRInputSource): number {
+  let type: number;
   switch (inputSource.targetRayMode) {
     case "gaze":
       break;
     case "screen":
-      return XRInputType.Controller;
+      // XRInputType.Controller
+      return 0;
     case "tracked-pointer":
       if (inputSource.hand) {
         switch (inputSource.handedness) {
           case "left":
-            return XRInputType.LeftHand;
+            // XRInputType.LeftHand
+            return 6;
           case "right":
-            return XRInputType.RightHand;
+            // XRInputType.RightHand
+            return 7;
         }
       } else {
         switch (inputSource.handedness) {
           case "left":
-            return XRInputType.LeftController;
+            // XRInputType.LeftController
+            return 1;
           case "right":
-            return XRInputType.RightController;
+            // XRInputType.RightController
+            return 2;
         }
       }
       break;
@@ -95,14 +106,17 @@ export function getInputSource(inputSource: XRInputSource): XRInputType {
   return type;
 }
 
-export function viewToCamera(type: XREye): XRInputType {
+export function viewToCamera(type: XREye): number {
   switch (type) {
     case "left":
-      return XRInputType.LeftCamera;
+      // XRInputType.LeftCamera
+      return 4;
     case "right":
-      return XRInputType.RightCamera;
+      // XRInputType.RightCamera
+      return 5;
     default:
-      return XRInputType.Camera;
+      // XRInputType.Camera
+      return 3;
   }
 }
 
