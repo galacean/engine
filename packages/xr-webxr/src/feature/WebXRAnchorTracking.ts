@@ -1,5 +1,4 @@
 import {
-  Logger,
   Matrix,
   Quaternion,
   Vector3,
@@ -8,7 +7,7 @@ import {
   XRRequestTrackingState,
   XRTrackingState
 } from "@galacean/engine";
-import { IXRAnchorTracking, IXRFeatureDescriptor, IXRTracked, IXRRequestAnchorTracking } from "@galacean/engine-design";
+import { IXRAnchorTracking, IXRFeatureDescriptor, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRFrame } from "../WebXRFrame";
@@ -65,6 +64,10 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
     }
   }
 
+  delRequestTracking(requestTracking: WebXRRequestTrackingAnchor): void {
+    this._deleteAnchor(requestTracking);
+  }
+
   private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: XRRequestTrackingAnchor): void {
     if (!session || !frame) {
       return;
@@ -101,7 +104,6 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
           }
         },
         () => {
-          Logger.warn("Failed to create anchor.");
           if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
             anchor.state = XRRequestTrackingState.Destroyed;
           } else {

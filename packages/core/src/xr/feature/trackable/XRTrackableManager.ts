@@ -52,7 +52,7 @@ export abstract class XRTrackableManager<
       }
     }
     requestTrackings.push(add);
-    // this._onRequestTrackingAdded(add);
+    this._feature.addRequestTracking && this._feature.addRequestTracking(add);
   }
 
   removeRequestTracking(remove: TXRRequestTracking): void {
@@ -63,16 +63,18 @@ export abstract class XRTrackableManager<
       if (requestTracking.equals(remove)) {
         i !== lastIndex && (requestTrackings[i] = requestTrackings[lastIndex]);
         requestTrackings.length = lastIndex;
-        // this._onRequestTrackingRemoved(remove);
+        this._feature.delRequestTracking && this._feature.delRequestTracking(remove);
         return;
       }
     }
   }
 
   removeAllRequestTrackings(): void {
-    const { _requestTrackings: requestTrackings } = this;
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      // this._onRequestTrackingRemoved(requestTrackings[i]);
+    const { _requestTrackings: requestTrackings, _feature: feature } = this;
+    if (feature.delRequestTracking) {
+      for (let i = 0, n = requestTrackings.length; i < n; i++) {
+        feature.delRequestTracking(requestTrackings[i]);
+      }
     }
     this._requestTrackings.length = 0;
   }

@@ -18,7 +18,7 @@ export interface IXRTrackableFeature<
 
   checkAvailable(session: IXRSession, frame: IXRFrame, requestTrackings: TXRRequestTracking[]): boolean;
 
-  addRequestTracking?(add: TXRRequestTracking): void;
+  addRequestTracking?(requestTracking: TXRRequestTracking): void;
 
-  removeRequestTracking?(remove: TXRRequestTracking): void;
+  delRequestTracking?(requestTracking: TXRRequestTracking): void;
 }
