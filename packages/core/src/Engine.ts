@@ -319,11 +319,12 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    const { xrManager } = this;
-    if (xrManager) {
-      this._requestId = xrManager.sessionManager.requestAnimationFrame(this._animate);
+    if (this._vSyncCount) {
+      this._requestId =
+        this.xrManager?.sessionManager.requestAnimationFrame(this._animate) ||
+        window.requestAnimationFrame(this._animate);
     } else {
-      this._requestId = requestAnimationFrame(this._animate);
+      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
     }
   }
 
