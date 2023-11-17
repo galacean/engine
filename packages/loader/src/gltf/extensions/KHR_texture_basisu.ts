@@ -33,7 +33,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
           type: AssetType.KTX2
         })
         .onProgress((e) => {
-          context._addProgressEvent(e);
+          context._dispatchProgressEvent(e);
         })
         .then<Texture2D>((texture) => {
           if (!texture.name) {
@@ -45,7 +45,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
           return texture;
         });
 
-      context._addProgressEvent(undefined, promise);
+      context._dispatchProgressEvent(undefined, promise);
       return promise;
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];

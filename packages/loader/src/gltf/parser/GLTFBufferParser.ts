@@ -22,10 +22,10 @@ export class GLTFBufferParser extends GLTFParser {
 
     restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
     const promise = request<ArrayBuffer>(absoluteUrl, requestConfig).onProgress((e) => {
-      context._addProgressEvent(e);
+      context._dispatchProgressEvent(e);
     });
 
-    context._addProgressEvent(undefined, promise);
+    context._dispatchProgressEvent(undefined, promise);
     return promise;
   }
 }

@@ -10,7 +10,7 @@ class GALACEAN_materials_remap extends GLTFExtensionParser {
     const { engine } = context.glTFResource;
     // @ts-ignore
     const promise = engine.resourceManager.getResourceByRef<Material>(schema);
-    context._addProgressEvent(undefined, promise);
+    context._dispatchProgressEvent(undefined, promise);
 
     return promise;
   }

@@ -42,7 +42,7 @@ export class GLTFTextureParser extends GLTFParser {
             }
           })
           .onProgress((e) => {
-            context._addProgressEvent(e);
+            context._dispatchProgressEvent(e);
           })
           .then<Texture2D>((texture) => {
             texture.name = textureName || imageName || texture.name || `texture_${index}`;
@@ -50,7 +50,7 @@ export class GLTFTextureParser extends GLTFParser {
             return texture;
           });
 
-        context._addProgressEvent(undefined, texture);
+        context._dispatchProgressEvent(undefined, texture);
       } else {
         const bufferView = glTF.bufferViews[bufferViewIndex];
 

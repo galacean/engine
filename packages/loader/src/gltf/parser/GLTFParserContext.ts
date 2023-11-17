@@ -120,14 +120,14 @@ export class GLTFParserContext {
       });
     });
 
-    this._addProgressEvent(undefined, promise);
+    this._dispatchProgressEvent(undefined, promise);
     return promise;
   }
 
   /**
    * @internal
    */
-  _addProgressEvent(progress?: IProgress, taskPromise?: Promise<any>): void {
+  _dispatchProgressEvent(progress?: IProgress, taskPromise?: Promise<any>): void {
     if (taskPromise) {
       this._progress.task.total += 1;
       taskPromise.then(() => {
@@ -137,10 +137,7 @@ export class GLTFParserContext {
     }
 
     if (progress) {
-      this._progress.detail = {
-        ...this._progress.detail,
-        ...progress.detail
-      };
+      Object.assign(this._progress.detail, progress.detail);
       this._setProgress(this._progress);
     }
   }
