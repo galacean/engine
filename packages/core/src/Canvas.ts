@@ -21,7 +21,7 @@ export abstract class Canvas {
     if (this._width !== value) {
       this._width = value;
       this._sizeUpdateFlagManager.dispatch();
-      this._onSizeChanged(value, this._height);
+      this._onSizeChanged(value, this._width);
     }
   }
 
