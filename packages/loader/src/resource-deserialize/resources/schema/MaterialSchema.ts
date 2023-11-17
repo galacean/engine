@@ -90,7 +90,7 @@ export interface IMaterialSchema {
   shader: string;
   shaderData: {
     [key: string]: {
-      type: "Vector2" | "Vector3" | "Vector4" | "Color" | "Float" | "Texture";
+      type: "Vector2" | "Vector3" | "Vector4" | "Color" | "Float" | "Texture" | "Boolean" | "Integer";
       value: IVector3 | IVector2 | IColor | number | IAssetRef;
     };
   };

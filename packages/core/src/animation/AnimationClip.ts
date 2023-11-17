@@ -4,6 +4,7 @@ import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./animationCurve/AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { KeyframeValueType } from "./Keyframe";
 
 /**
@@ -161,12 +162,21 @@ export class AnimationClip extends EngineObject {
   _sampleAnimation(entity: Entity, time: number): void {
     const { _curveBindings: curveBindings } = this;
     for (let i = curveBindings.length - 1; i >= 0; i--) {
-      const curveData = curveBindings[i];
-      const targetEntity = entity.findByPath(curveData.relativePath);
+      const curve = curveBindings[i];
+      const targetEntity = entity.findByPath(curve.relativePath);
       if (targetEntity) {
-        const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        const value = curveOwner.evaluateValue(curveData.curve, time, false);
-        curveOwner.applyValue(value, 1, false);
+        const component =
+          curve.typeIndex > 0
+            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
+            : targetEntity.getComponent(curve.type);
+        if (!component) {
+          continue;
+        }
+        const curveOwner = curve._getTempCurveOwner(targetEntity, component);
+        if (curveOwner && curve.curve.keys.length) {
+          const value = curveOwner.evaluateValue(curve.curve, time, false);
+          curveOwner.applyValue(value, 1, false);
+        }
       }
     }
   }

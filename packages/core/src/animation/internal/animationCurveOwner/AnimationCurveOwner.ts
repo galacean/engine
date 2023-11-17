@@ -10,7 +10,9 @@ import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnim
  * @internal
  */
 export class AnimationCurveOwner<V extends KeyframeValueType> {
-  private static _components: Component[] = [];
+  /** @internal */
+  static _components: Component[] = [];
+
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   static registerAssembler(componentType: ComponentType, property: string, assemblerType: AssemblerType): void {
@@ -45,17 +47,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   constructor(
     target: Entity,
     type: new (entity: Entity) => Component,
-    typeIndex: number,
+    component: Component,
     property: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
-    this.component =
-      typeIndex > 0
-        ? target.getComponents(type, AnimationCurveOwner._components)[typeIndex]
-        : target.getComponent(type);
     this.property = property;
-
+    this.component = component;
     this.cureType = cureType;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);

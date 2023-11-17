@@ -1,7 +1,7 @@
 export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { Canvas } from "./Canvas";
+export { Canvas } from "./Canvas";
 
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";

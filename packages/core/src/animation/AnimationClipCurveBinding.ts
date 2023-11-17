@@ -1,10 +1,10 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { KeyframeValueType } from "./Keyframe";
 import { AnimationCurve } from "./animationCurve";
 import { IAnimationCurveCalculator } from "./animationCurve/interfaces/IAnimationCurveCalculator";
-import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
-import { KeyframeValueType } from "./Keyframe";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
 /**
  * Associate AnimationCurve and the Entity
@@ -29,9 +29,9 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
+  _createCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
     const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
-    const owner = new AnimationCurveOwner(entity, this.type, this.typeIndex, this.property, curveType);
+    const owner = new AnimationCurveOwner(entity, this.type, component, this.property, curveType);
     curveType._initializeOwner(owner);
     owner.saveDefaultValue();
     return owner;
@@ -53,10 +53,10 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _getTempCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
+  _getTempCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
     const { instanceId } = entity;
     if (!this._tempCurveOwner[instanceId]) {
-      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity);
+      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity, component);
     }
     return this._tempCurveOwner[instanceId];
   }
