@@ -1,16 +1,15 @@
-import { Engine, XRSessionType, IXRDevice, XRFeatureType } from "@galacean/engine";
-import { IXRFeatureDescriptor, IXRFeature } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRFeature, IHardwareRenderer, IXRDevice } from "@galacean/engine-design";
 import { parseFeature, parseXRMode } from "./util";
 import { WebXRSession } from "./WebXRSession";
 
-type PlatformFeatureConstructor = new (engine: Engine) => IXRFeature;
+type PlatformFeatureConstructor = new () => IXRFeature;
 export class WebXRDevice implements IXRDevice {
   // @internal
   static _platformFeatureMap: PlatformFeatureConstructor[] = [];
   // @internal
   static _uuid: number = 0;
 
-  isSupported(mode: XRSessionType): Promise<void> {
+  isSupported(mode: number): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (window.isSecureContext === false) {
         reject(new Error("WebXR is available only in secure contexts (HTTPS)."));
@@ -31,12 +30,12 @@ export class WebXRDevice implements IXRDevice {
     });
   }
 
-  createFeature(engine: Engine, type: XRFeatureType): IXRFeature {
+  createFeature(type: number): IXRFeature {
     const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
-    return platformFeatureConstructor ? new platformFeatureConstructor(engine) : null;
+    return platformFeatureConstructor ? new platformFeatureConstructor() : null;
   }
 
-  requestSession(engine: Engine, mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<WebXRSession> {
+  requestSession(rhi: IHardwareRenderer, mode: number, requestFeatures: IXRFeatureDescriptor[]): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
       const options: XRSessionInit = { requiredFeatures: ["local"] };
@@ -47,8 +46,6 @@ export class WebXRDevice implements IXRDevice {
       }
       Promise.all(promiseArr).then(() => {
         navigator.xr.requestSession(sessionMode, options).then((session) => {
-          // @ts-ignore
-          const rhi = <WebGLGraphicDevice>engine._hardwareRenderer;
           const { gl } = rhi;
           const attributes = gl.getContextAttributes();
           if (!attributes) {
@@ -85,7 +82,7 @@ export class WebXRDevice implements IXRDevice {
   }
 }
 
-export function registerXRPlatformFeature(type: XRFeatureType) {
+export function registerXRPlatformFeature(type: number) {
   return (platformFeatureConstructor: PlatformFeatureConstructor) => {
     WebXRDevice._platformFeatureMap[type] = platformFeatureConstructor;
   };

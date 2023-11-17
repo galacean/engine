@@ -6,7 +6,6 @@ import {
   ColorWriteMask,
   Engine,
   GLCapabilityType,
-  IHardwareRenderer,
   IPlatformBuffer,
   IPlatformRenderTarget,
   IPlatformTexture2D,
@@ -21,7 +20,7 @@ import {
   Texture2DArray,
   TextureCube
 } from "@galacean/engine-core";
-import { IPlatformPrimitive } from "@galacean/engine-design";
+import { IPlatformPrimitive, IHardwareRenderer } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";

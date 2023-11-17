@@ -5,7 +5,7 @@ import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionType } from "./session/XRSessionType";
 import { XRFeatureManager } from "./feature/XRFeatureManager";
-import { IXRDevice } from "./IXRDevice";
+import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
@@ -136,7 +136,7 @@ export class XRManager {
     } else {
       const { _featureManagerMap: featureManagerMap } = XRManager;
       const featureManagerConstructor = featureManagerMap[type];
-      const platformFeature = this._xrDevice.createFeature(this._engine, type);
+      const platformFeature = this._xrDevice.createFeature(type);
       const feature = (features[type] = new featureManagerConstructor(this._engine));
       feature._feature = platformFeature;
       return <T>feature;

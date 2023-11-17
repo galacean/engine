@@ -17,13 +17,19 @@ export class WebXRSession implements IXRSession {
   private _frame: WebXRFrame;
   private _events: XRInputEvent[] = [];
   private _screenPointers: XRInputSource[] = [];
-  private _inputEventTypeMap: Record<string, XRInputEventType> = {
-    selectstart: XRInputEventType.SelectStart,
-    select: XRInputEventType.Select,
-    selectend: XRInputEventType.SelectEnd,
-    squeezestart: XRInputEventType.SqueezeStart,
-    squeeze: XRInputEventType.Squeeze,
-    squeezeend: XRInputEventType.SqueezeEnd
+  private _inputEventTypeMap: Record<string, number> = {
+    // XRInputEventType.SelectStart
+    selectstart: 0,
+    // XRInputEventType.Select
+    select: 1,
+    // XRInputEventType.SelectEnd
+    selectend: 2,
+    // XRInputEventType.SqueezeStart
+    squeezestart: 3,
+    // XRInputEventType.Squeeze
+    squeeze: 4,
+    // XRInputEventType.SqueezeEnd
+    squeezeend: 5
   };
 
   get frame(): WebXRFrame {

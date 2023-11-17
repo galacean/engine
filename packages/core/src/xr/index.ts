@@ -2,7 +2,7 @@
 export { XRManager, registerXRFeatureManager } from "./XRManager";
 
 // xr device
-export type { IXRDevice } from "./IXRDevice";
+export type { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 
 // xr feature
 export { XRFeatureType } from "./feature/XRFeatureType";

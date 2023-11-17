@@ -1,8 +1,7 @@
-import { IXRFrame, IXRSession, IXRFeatureDescriptor } from "@galacean/engine-design";
+import { IXRFrame, IXRSession, IXRFeatureDescriptor, IHardwareRenderer } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRSessionType } from "./XRSessionType";
 import { XRSessionState } from "./XRSessionState";
-import { IHardwareRenderer } from "../../renderingHardwareInterface";
 import { Utils } from "../../Utils";
 
 type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
@@ -70,10 +69,9 @@ export class XRSessionManager {
    * @returns The promise of the session
    */
   initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<IXRSession> {
-    const { _engine: engine } = this;
-    const { _xrDevice: xrDevice } = engine.xrManager;
+    const { _xrDevice: xrDevice } = this._engine.xrManager;
     return new Promise((resolve, reject) => {
-      xrDevice.requestSession(engine, mode, requestFeatures).then((session: IXRSession) => {
+      xrDevice.requestSession(this._rhi, mode, requestFeatures).then((session: IXRSession) => {
         this._session = session;
         this._state = XRSessionState.Initialized;
         resolve(session);

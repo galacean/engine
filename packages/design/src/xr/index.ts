@@ -5,6 +5,7 @@ export type { IXRMovementTracking } from "./feature/IXRMovementTracking";
 export type { IXRHitResult } from "./feature/IXRHitResult";
 export type { IXRTrackableFeature } from "./feature/trackable/IXRTrackableFeature";
 
+export type { IXRDevice } from "./IXRDevice";
 export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
 
