@@ -9,7 +9,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @returns AssetPromise
    */
   static all<T = any>(promises: (PromiseLike<T> | T)[]) {
-    return new AssetPromise<T[]>((resolve, reject, setProgress) => {
+    return new AssetPromise<T[]>((resolve, reject, setItemsProgress) => {
       const count = promises.length;
       const results: T[] = new Array(count);
       let completed = 0;
@@ -18,19 +18,11 @@ export class AssetPromise<T> implements PromiseLike<T> {
         return resolve(results);
       }
 
-      const progress: IProgress = {
-        task: {
-          loaded: 0,
-          total: count
-        }
-      };
-
       function onComplete(index: number, resultValue: T) {
         completed++;
         results[index] = resultValue;
 
-        progress.task.loaded = completed;
-        setProgress(progress);
+        setItemsProgress(completed, count);
         if (completed === count) {
           resolve(results);
         }
@@ -61,8 +53,10 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   private _promise: Promise<T>;
   private _state = PromiseState.Pending;
-  private _progress: IProgress;
-  private _onProgressCallback: Array<(progress: IProgress) => void> = [];
+  private _progressItems: ProgressItems;
+  private _progressDetails: Record<string, ProgressItems>;
+  private _onProgressItemsCallback: ProgressItemsCallback[] = [];
+  private _onProgressDetailsCallback: ProgressDetailsCallback[] = [];
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
 
@@ -80,14 +74,16 @@ export class AssetPromise<T> implements PromiseLike<T> {
         if (this._state === PromiseState.Pending) {
           resolve(value);
           this._state = PromiseState.Fulfilled;
-          this._onProgressCallback = undefined;
+          this._onProgressItemsCallback = undefined;
+          this._onProgressDetailsCallback = undefined;
         }
       };
       const onReject = (reason) => {
         if (this._state === PromiseState.Pending) {
           reject(reason);
           this._state = PromiseState.Rejected;
-          this._onProgressCallback = undefined;
+          this._onProgressItemsCallback = undefined;
+          this._onProgressDetailsCallback = undefined;
         }
       };
       const onCancel = (callback) => {
@@ -95,14 +91,27 @@ export class AssetPromise<T> implements PromiseLike<T> {
           this._onCancelHandler = callback;
         }
       };
-      const setProgress = (progress: IProgress) => {
+      const setItemsProgress = (loaded: number, total: number) => {
         if (this._state === PromiseState.Pending) {
-          this._progress = progress;
-          this._onProgressCallback.forEach((callback) => callback(progress));
+          const progress = (this._progressItems ||= { loaded, total });
+
+          progress.loaded = loaded;
+          progress.total = total;
+
+          this._onProgressItemsCallback.forEach((callback) => callback(loaded, total));
+        }
+      };
+      const setDetailsProgress = (url: string, loaded: number, total: number) => {
+        if (this._state === PromiseState.Pending) {
+          this._progressDetails ||= {};
+          const progress = (this._progressDetails[url] ||= { loaded, total });
+          progress.loaded = loaded;
+          progress.total = total;
+          this._onProgressDetailsCallback.forEach((callback) => callback(url, loaded, total));
         }
       };
 
-      executor(onResolve, onReject, setProgress, onCancel);
+      executor(onResolve, onReject, setItemsProgress, setDetailsProgress, onCancel);
     });
   }
 
@@ -111,12 +120,26 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param callback
    * @returns AssetPromise
    */
-  onProgress(callback: (progress: IProgress) => void): AssetPromise<T> {
-    if (this._progress) {
-      callback(this._progress);
+  onProgress(
+    itemsCallback?: (loaded: number, total: number) => void,
+    detailsCallback?: (url: string, loaded: number, total: number) => void
+  ): AssetPromise<T> {
+    const progressItems = this._progressItems;
+    const progressDetails = this._progressDetails;
+    if (progressItems) {
+      itemsCallback(progressItems.loaded, progressItems.total);
     }
+
+    if (progressDetails) {
+      for (let url in progressDetails) {
+        const { loaded, total } = progressDetails[url];
+        detailsCallback(url, loaded, total);
+      }
+    }
+
     if (this._state === PromiseState.Pending) {
-      this._onProgressCallback.push(callback);
+      itemsCallback && this._onProgressItemsCallback.push(itemsCallback);
+      detailsCallback && this._onProgressDetailsCallback.push(detailsCallback);
     }
     return this;
   }
@@ -170,7 +193,8 @@ interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
     reject?: (reason?: any) => void,
-    setProgress?: (progress: IProgress) => void,
+    setItemsProgress?: ProgressItemsCallback,
+    setDetailsProgress?: ProgressDetailsCallback,
     onCancel?: (callback: () => void) => void
   ): void;
 }
@@ -183,28 +207,9 @@ enum PromiseState {
   Canceled = "canceled"
 }
 
-/**
- * Progress interface.
- */
-export interface IProgress {
-  /**
-   * Progress detail of bytes loaded and total bytes.
-   * @remarks
-   * The key is the asset url, the value is the progress of the asset url.
-   * Some assets may have multiple urls, such as glTF, which has a glTF file and multiple texture files.
-   */
-  detail?: {
-    [key: string]: {
-      loaded: number;
-      total: number;
-    };
-  };
-
-  /**
-   * The progress of the number of tasks completed.
-   */
-  task: {
-    loaded: number;
-    total: number;
-  };
-}
+type ProgressItems = {
+  loaded: number;
+  total: number;
+};
+type ProgressItemsCallback = (loaded: number, total: number) => void;
+type ProgressDetailsCallback = (url: string, loaded: number, total: number) => void;

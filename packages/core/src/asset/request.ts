@@ -29,13 +29,13 @@ export type RequestConfig = {
  * @param config - Load configuration
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setProgress) => {
+  return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
     const retryCount = config.retryCount ?? defaultRetryCount;
     const retryInterval = config.retryInterval ?? defaultInterval;
     config.timeout = config.timeout ?? defaultTimeout;
     config.type = config.type ?? getMimeTypeFromUrl(url);
     const executor = new MultiExecutor(
-      () => requestRes<T>(url, config).onProgress(setProgress),
+      () => requestRes<T>(url, config).onProgress(setItemsProgress, setDetailsProgress),
       retryCount,
       retryInterval
     );
@@ -44,7 +44,7 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
 }
 
 function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setProgress) => {
+  return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
     const xhr = new XMLHttpRequest();
     const isImg = config.type === "image";
 
@@ -64,8 +64,10 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         img.onload = () => {
           // Call requestAnimationFrame to avoid iOS's bug.
           requestAnimationFrame(() => {
+            setItemsProgress(1, 1);
             //@ts-ignore
             resolve(img);
+
             img.onload = null;
             img.onerror = null;
             img.onabort = null;
@@ -81,6 +83,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         img.crossOrigin = "anonymous";
         img.src = URL.createObjectURL(blob);
       } else {
+        setItemsProgress(1, 1);
         resolve(result);
       }
     };
@@ -92,18 +95,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
     };
     xhr.onprogress = (e) => {
       if (e.lengthComputable) {
-        setProgress({
-          detail: {
-            [url]: {
-              loaded: e.loaded,
-              total: e.total
-            }
-          },
-          task: {
-            loaded: e.loaded === e.total ? 1 : 0,
-            total: 1
-          }
-        });
+        setDetailsProgress(url, e.loaded, e.total);
       }
     };
     xhr.open(config.method, url, true);

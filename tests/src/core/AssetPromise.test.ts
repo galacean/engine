@@ -1,4 +1,4 @@
-import { AssetPromise, IProgress } from "@galacean/engine-core";
+import { AssetPromise } from "@galacean/engine-core";
 import { expect } from "chai";
 
 describe("Asset Promise test", function () {
@@ -81,18 +81,11 @@ describe("Asset Promise test", function () {
   });
 
   it("progress", async () => {
-    const assetPromise = new AssetPromise<number>((resolve, reject, setProgress) => {
+    const assetPromise = new AssetPromise<number>((resolve, reject, setItemsProgress) => {
       let i = 0;
-      const progress = {
-        task: {
-          loaded: i,
-          total: 10
-        }
-      };
       let timeoutId = setInterval(() => {
         i++;
-        progress.task.loaded = i;
-        setProgress(progress);
+        setItemsProgress(i, 10);
         if (i === 10) {
           clearInterval(timeoutId);
           resolve(i);
@@ -100,45 +93,36 @@ describe("Asset Promise test", function () {
       }, 20);
     });
 
-    let currentProgress: IProgress;
-    assetPromise.onProgress((progress) => {
-      currentProgress = progress;
+    let currentItemsLoaded;
+    let currentItemsTotal;
+    assetPromise.onProgress((loaded, total) => {
+      currentItemsLoaded = loaded;
+      currentItemsTotal = total;
     });
 
     await assetPromise.then((e) => {
-      expect(currentProgress).to.eql({
-        task: {
-          loaded: 10,
-          total: 10
-        }
-      });
+      expect(currentItemsLoaded).to.eq(10);
+      expect(currentItemsTotal).to.eq(10);
       expect(e).to.eq(10);
     });
   });
 
   it("promise immediately", async () => {
-    let currentProgress: IProgress;
-    const assetPromise = new AssetPromise<number>((resolve, reject, setProgress) => {
-      setProgress({
-        task: {
-          loaded: 10,
-          total: 10
-        }
-      });
+    let currentItemsLoaded;
+    let currentItemsTotal;
+    const assetPromise = new AssetPromise<number>((resolve, reject, setItemsProgress) => {
+      setItemsProgress(10, 10);
       resolve(1);
     });
 
-    assetPromise.onProgress((progress) => {
-      currentProgress = progress;
+    assetPromise.onProgress((loaded, total) => {
+      currentItemsLoaded = loaded;
+      currentItemsTotal = total;
     });
 
     await assetPromise.then((e) => {
-      expect(currentProgress).to.eql({
-        task: {
-          loaded: 10,
-          total: 10
-        }
-      });
+      expect(currentItemsLoaded).to.eq(10);
+      expect(currentItemsTotal).to.eq(10);
       expect(e).to.eq(1);
     });
   });
@@ -151,15 +135,12 @@ describe("Asset Promise test", function () {
       });
       promises.push(promise);
     }
-    const progress = {
-      task: {
-        loaded: 1,
-        total: 10
-      }
-    };
-    await AssetPromise.all(promises).onProgress((p) => {
-      expect(p).to.eql(progress);
-      progress.task.loaded++;
+
+    let currentLoaded = 0;
+    await AssetPromise.all(promises).onProgress((loaded, total) => {
+      currentLoaded++;
+      expect(loaded).to.eq(currentLoaded);
+      expect(total).to.eq(10);
     });
   });
 
@@ -176,17 +157,13 @@ describe("Asset Promise test", function () {
     }
 
     const expects = [null, null, 0, 1];
-    const progress = {
-      task: {
-        loaded: 1,
-        total: 4
-      }
-    };
+    let currentLoaded = 0;
 
     await AssetPromise.all(promises)
-      .onProgress((p) => {
-        expect(p).to.eql(progress);
-        progress.task.loaded++;
+      .onProgress((loaded, total) => {
+        currentLoaded++;
+        expect(loaded).to.eq(currentLoaded);
+        expect(total).to.eq(4);
       })
       .then((value) => {
         expect(value).to.eql(expects);

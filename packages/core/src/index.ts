@@ -22,7 +22,6 @@ export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
-export type { IProgress } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";

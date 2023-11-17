@@ -13,8 +13,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
       ...params
     });
 
-    return new AssetPromise((resolve, reject, setProgress) => {
-      context._setProgress = setProgress;
+    return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
+      context._setItemsProgress = setItemsProgress;
+      context._setDetailsProgress = setDetailsProgress;
       context.parse().then(resolve).catch(reject);
     });
   }

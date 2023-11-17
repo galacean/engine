@@ -6,7 +6,6 @@ import {
   AnimatorStateMachine,
   Buffer,
   Entity,
-  IProgress,
   Material,
   ModelMesh,
   ResourceManager,
@@ -36,13 +35,15 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
 
   private _resourceCache = new Map<string, any>();
-  private _progress: IProgress = {
+  private _progress = {
     detail: {},
     task: { loaded: 0, total: 0 }
   };
 
   /** @internal */
-  _setProgress: (v: IProgress) => void;
+  _setItemsProgress: (loaded: number, total: number) => void;
+  /** @internal */
+  _setDetailsProgress: (url: string, loaded: number, total: number) => void;
 
   constructor(
     public glTFResource: GLTFResource,
@@ -115,31 +116,35 @@ export class GLTFParserContext {
           this._createAnimator(this, glTFResource.animations);
         }
         this.resourceManager.addContentRestorer(this.contentRestorer);
-
         return glTFResource;
       });
     });
 
-    this._dispatchProgressEvent(undefined, promise);
+    this._addItemsProgress(promise);
     return promise;
   }
 
   /**
    * @internal
    */
-  _dispatchProgressEvent(progress?: IProgress, taskPromise?: Promise<any>): void {
-    if (taskPromise) {
-      this._progress.task.total += 1;
-      taskPromise.then(() => {
-        this._progress.task.loaded += 1;
-        this._setProgress(this._progress);
-      });
-    }
+  _addDetailsProgress = (url: string, loaded: number, total: number) => {
+    const detail = (this._progress.detail[url] ||= {});
+    detail.loaded = loaded;
+    detail.total = total;
 
-    if (progress) {
-      Object.assign(this._progress.detail, progress.detail);
-      this._setProgress(this._progress);
-    }
+    this._setDetailsProgress(url, loaded, total);
+  };
+
+  /**
+   * @internal
+   */
+  _addItemsProgress(taskPromise: Promise<any>): void {
+    const task = this._progress.task;
+    task.total += 1;
+    taskPromise.then(() => {
+      task.loaded += 1;
+      this._setItemsProgress(task.loaded, task.total);
+    });
   }
 
   private _createAnimator(context: GLTFParserContext, animations: AnimationClip[]): void {

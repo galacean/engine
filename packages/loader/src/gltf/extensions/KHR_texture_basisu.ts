@@ -32,9 +32,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
           url: Utils.resolveAbsoluteUrl(url, uri),
           type: AssetType.KTX2
         })
-        .onProgress((e) => {
-          context._dispatchProgressEvent(e);
-        })
+        .onProgress(undefined, context._addDetailsProgress)
         .then<Texture2D>((texture) => {
           if (!texture.name) {
             texture.name = textureName || imageName || `texture_${index}`;
@@ -45,7 +43,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
           return texture;
         });
 
-      context._dispatchProgressEvent(undefined, promise);
+      context._addItemsProgress(promise);
       return promise;
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
