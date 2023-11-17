@@ -144,28 +144,17 @@ export class Engine extends EventDispatcher {
   private _waitingGC: boolean = false;
 
   private _animate = () => {
-    const { xrManager } = this;
-    if (xrManager) {
-      this._requestId = xrManager.sessionManager.requestAnimationFrame(this._animate);
-      if (this._vSyncCount) {
-        if (this._vSyncCounter++ % this._vSyncCount === 0) {
-          this.update();
-          this._vSyncCounter = 1;
-        }
-      } else {
+    if (this._vSyncCount) {
+      this._requestId =
+        this.xrManager?.sessionManager.requestAnimationFrame(this._animate) ||
+        window.requestAnimationFrame(this._animate);
+      if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
+        this._vSyncCounter = 1;
       }
     } else {
-      this._requestId = window.requestAnimationFrame(this._animate);
-      if (this._vSyncCount) {
-        if (this._vSyncCounter++ % this._vSyncCount === 0) {
-          this.update();
-          this._vSyncCounter = 1;
-        }
-      } else {
-        this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
-        this.update();
-      }
+      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this.update();
     }
   };
 

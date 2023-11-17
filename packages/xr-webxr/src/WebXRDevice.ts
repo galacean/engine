@@ -11,7 +11,7 @@ export class WebXRDevice implements IXRDevice {
 
   isSupported(mode: number): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
-      if (window.isSecureContext === false) {
+      if (!window.isSecureContext) {
         reject(new Error("WebXR is available only in secure contexts (HTTPS)."));
         return;
       }
