@@ -1,5 +1,4 @@
-import { AssetPromise } from "@galacean/engine-core";
-import type { IProgress } from "@galacean/engine-design";
+import { AssetPromise, IProgress } from "@galacean/engine-core";
 import { expect } from "chai";
 
 describe("Asset Promise test", function () {

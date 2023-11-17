@@ -21,7 +21,6 @@
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-draco": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-rhi-webgl": "workspace:*",
-    "@galacean/engine-design": "workspace:*"
+    "@galacean/engine-rhi-webgl": "workspace:*"
   }
 }

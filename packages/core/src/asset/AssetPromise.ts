@@ -1,5 +1,3 @@
-import type { IProgress } from "@galacean/engine-design";
-
 /**
  * Asset Loading Promise.
  */
@@ -183,4 +181,31 @@ enum PromiseState {
   Fulfilled = "fulfilled",
   Rejected = "rejected",
   Canceled = "canceled"
+}
+
+/**
+ * Progress interface.
+ */
+export interface IProgress {
+  /**
+   * Progress detail.
+   * @remarks
+   * The key is the asset url, the value is the progress of the asset url.
+   * Some assets may have multiple urls, such as glTF, which has a glTF file and multiple texture files.
+   */
+  detail?: {
+    [key: string]: {
+      loaded: number;
+      total: number;
+    };
+  };
+
+  /**
+   * Progress task.
+   * @remarks The loaded and total of the task are the sum of the loaded and total of all assets.
+   */
+  task: {
+    loaded: number;
+    total: number;
+  };
 }

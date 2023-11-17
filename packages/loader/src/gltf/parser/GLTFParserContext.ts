@@ -6,6 +6,7 @@ import {
   AnimatorStateMachine,
   Buffer,
   Entity,
+  IProgress,
   Material,
   ModelMesh,
   ResourceManager,
@@ -13,7 +14,6 @@ import {
   Texture2D,
   TypedArray
 } from "@galacean/engine-core";
-import type { IProgress } from "@galacean/engine-design";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFParams } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
