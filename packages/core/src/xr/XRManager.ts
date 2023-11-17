@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRFeature } from "@galacean/engine-design";
 import { XRInputManager } from "./input/XRInputManager";
 import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
@@ -10,7 +10,7 @@ import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
 
-type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRPlatformFeature>;
+type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRFeature>;
 type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
 
 /**
@@ -136,9 +136,9 @@ export class XRManager {
     } else {
       const { _featureManagerMap: featureManagerMap } = XRManager;
       const featureManagerConstructor = featureManagerMap[type];
-      const platformFeature = this._xrDevice.createPlatformFeature(this._engine, type);
+      const platformFeature = this._xrDevice.createFeature(this._engine, type);
       const feature = (features[type] = new featureManagerConstructor(this._engine));
-      feature._platformFeature = platformFeature;
+      feature._feature = platformFeature;
       return <T>feature;
     }
   }
@@ -286,13 +286,16 @@ export class XRManager {
    * @internal
    */
   _update(): void {
-    if (this.sessionManager.state !== XRSessionState.Running) return;
-    this.sessionManager._onUpdate();
+    const { sessionManager } = this;
+    if (sessionManager.state !== XRSessionState.Running) return;
+    sessionManager._onUpdate();
     this.inputManager._onUpdate();
+    const { session } = sessionManager;
+    const { frame } = session;
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature.onUpdate();
+      feature?.enabled && feature.onUpdate(session, frame);
     }
   }
 }

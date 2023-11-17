@@ -3,9 +3,9 @@
  */
 export interface IXRInputEvent {
   /** Interaction type. */
-  targetRayMode: "gaze" | "tracked-pointer" | "screen";
+  targetRayMode: number;
   /** Specific interactions. */
-  type: "select" | "selectend" | "selectstart" | "squeeze" | "squeezeend" | "squeezestart";
+  type: number;
   /** Type of interactive input. */
   input: number;
   /** Touch id. (Meaningful when and only when targetRayMode is screen) */

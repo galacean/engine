@@ -1,8 +1,10 @@
 import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
-import { IXRPlatformFeature } from "./IXRPlatformFeature";
+import { IXRFeature } from "./IXRFeature";
+import { IXRSession } from "../IXRSession";
+import { IXRFrame } from "../IXRFrame";
 
 export interface IXRFeatureManager {
-  _platformFeature: IXRPlatformFeature;
+  _feature: IXRFeature;
 
   /** The descriptor of the feature. */
   descriptor: IXRFeatureDescriptor;
@@ -33,7 +35,7 @@ export interface IXRFeatureManager {
   /**
    * Update an instance of a feature.
    */
-  onUpdate(): void;
+  onUpdate(session: IXRSession, frame: IXRFrame): void;
 
   /**
    * Destroy an instance of a feature.

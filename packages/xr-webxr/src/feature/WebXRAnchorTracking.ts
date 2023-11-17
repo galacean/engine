@@ -1,96 +1,117 @@
 import {
-  Engine,
   Logger,
   Matrix,
   Quaternion,
   Vector3,
   XRFeatureType,
-  XRPlatformAnchorTracking,
   XRRequestTrackingAnchor,
   XRRequestTrackingState,
-  XRSessionManager,
   XRTrackingState
 } from "@galacean/engine";
+import { IXRAnchorTracking, IXRFeatureDescriptor, IXRTracked, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
+import { WebXRFrame } from "../WebXRFrame";
+import { generateUUID } from "../util";
 
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
-export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
-  private _sessionManager: XRSessionManager;
+export class WebXRAnchorTracking implements IXRAnchorTracking {
+  isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
+    return Promise.resolve();
+  }
 
-  override _onUpdate(): void {
-    const session = <WebXRSession>this._sessionManager.session;
-    if (!session) {
-      return;
+  initialize(requestTrackings: IXRRequestAnchorTracking[]): Promise<void> {
+    return Promise.resolve();
+  }
+
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: XRRequestTrackingAnchor[]): boolean {
+    if (!session._platformSession || !session._platformReferenceSpace || !frame._platformFrame) {
+      return false;
     }
-    const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
-    const {
-      _added: added,
-      _updated: updated,
-      _removed: removed,
-      _trackedObjects: trackedObjects,
-      _requestTrackings: requestTrackings
-    } = this;
-    added.length = updated.length = removed.length = 0;
-    const { frameCount } = this._engine.time;
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      const requestTracking = requestTrackings[i];
+      if (requestTracking.state === XRRequestTrackingState.None) this._addAnchor(session, frame, requestTracking);
+    }
+    return true;
+  }
+
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: XRRequestTrackingAnchor[]): void {
+    const { _platformReferenceSpace: platformReferenceSpace } = session;
+    const { _platformFrame: platformFrame } = frame;
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = <WebXRRequestTrackingAnchor>requestTrackings[i];
-      switch (requestTracking.state) {
-        case XRRequestTrackingState.Resolved:
-          const tracked = requestTracking.tracked[0];
-          if (trackedAnchors.has(requestTracking.xrAnchor)) {
-            const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTracking);
-            if (emulated) {
-              if (tracked.state === XRTrackingState.Tracking) {
-                tracked.state = XRTrackingState.TrackingLost;
-                removed.push(tracked);
-                trackedObjects.splice(trackedObjects.indexOf(tracked), 1);
-              }
-            } else {
-              tracked.frameCount = frameCount;
-              if (tracked.state === XRTrackingState.Tracking) {
-                updated.push(tracked);
-              } else {
-                tracked.state = XRTrackingState.Tracking;
-                added.push(tracked);
-                trackedObjects.push(tracked);
-              }
-            }
-          } else {
-            if (tracked.state === XRTrackingState.Tracking) {
-              tracked.state = XRTrackingState.TrackingLost;
-              removed.push(tracked);
-              trackedObjects.splice(trackedObjects.indexOf(tracked), 1);
-            }
+      if (requestTracking.state !== XRRequestTrackingState.Resolved) {
+        continue;
+      }
+      const tracked = requestTracking.tracked[0];
+      if (trackedAnchors.has(requestTracking.xrAnchor)) {
+        const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTracking);
+        if (emulated) {
+          if (tracked.state === XRTrackingState.Tracking) {
+            tracked.state = XRTrackingState.TrackingLost;
           }
-          break;
-        case XRRequestTrackingState.None:
-          this._createAnchor(platformFrame, platformReferenceSpace, requestTracking);
-          break;
-        default:
-          break;
+        } else {
+          if (tracked.state === XRTrackingState.Tracking) {
+            tracked.state = XRTrackingState.Tracking;
+          }
+        }
+      } else {
+        tracked.state = XRTrackingState.NotTracking;
       }
     }
   }
 
-  override _onSessionInit(): void {
-    super._onSessionInit();
-    const { _requestTrackings: requestTrackings } = this;
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      requestTrackings[n].state = XRRequestTrackingState.Submitted;
+  private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: XRRequestTrackingAnchor): void {
+    if (!session || !frame) {
+      return;
     }
+    anchor.state = XRRequestTrackingState.Submitted;
+    const { position, rotation } = anchor.pose;
+    const { _platformFrame: platformFrame } = frame;
+    const { _platformReferenceSpace: platformReferenceSpace } = session;
+    platformFrame
+      .createAnchor(
+        new XRRigidTransform(
+          { x: position.x, y: position.y, z: position.z },
+          { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w }
+        ),
+        platformReferenceSpace
+      )
+      .then(
+        (xrAnchor) => {
+          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
+            xrAnchor.delete();
+            anchor.state = XRRequestTrackingState.Destroyed;
+          } else {
+            // @ts-ignore
+            anchor.xrAnchor = xrAnchor;
+            anchor.state = XRRequestTrackingState.Resolved;
+            anchor.tracked = [
+              {
+                id: generateUUID(),
+                pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
+                state: XRTrackingState.NotTracking,
+                frameCount: 0
+              }
+            ];
+          }
+        },
+        () => {
+          Logger.warn("Failed to create anchor.");
+          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
+            anchor.state = XRRequestTrackingState.Destroyed;
+          } else {
+            anchor.state = XRRequestTrackingState.Rejected;
+          }
+        }
+      );
   }
 
-  constructor(engine: Engine) {
-    super(engine);
-    this._sessionManager = engine.xrManager.sessionManager;
-  }
-
-  protected override _onRequestTrackingRemoved(anchor: WebXRRequestTrackingAnchor) {
+  private _deleteAnchor(anchor: WebXRRequestTrackingAnchor): void {
     switch (anchor.state) {
       case XRRequestTrackingState.Submitted:
         anchor.state = XRRequestTrackingState.WaitingDestroy;
@@ -115,46 +136,6 @@ export class WebXRAnchorTracking extends XRPlatformAnchorTracking {
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     return xrPose.emulatedPosition;
-  }
-
-  private _createAnchor(frame: XRFrame, space: XRSpace, anchor: WebXRRequestTrackingAnchor) {
-    anchor.state = XRRequestTrackingState.Submitted;
-    const { position, rotation } = anchor.pose;
-    frame
-      .createAnchor(
-        new XRRigidTransform(
-          { x: position.x, y: position.y, z: position.z },
-          { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w }
-        ),
-        space
-      )
-      .then(
-        (xrAnchor) => {
-          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
-            xrAnchor.delete();
-            anchor.state = XRRequestTrackingState.Destroyed;
-          } else {
-            anchor.xrAnchor = xrAnchor;
-            anchor.state = XRRequestTrackingState.Resolved;
-            anchor.tracked = [
-              {
-                id: this._generateUUID(),
-                pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-                state: XRTrackingState.NotTracking,
-                frameCount: 0
-              }
-            ];
-          }
-        },
-        () => {
-          Logger.warn("Failed to create anchor.");
-          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
-            anchor.state = XRRequestTrackingState.Destroyed;
-          } else {
-            anchor.state = XRRequestTrackingState.Rejected;
-          }
-        }
-      );
   }
 }
 

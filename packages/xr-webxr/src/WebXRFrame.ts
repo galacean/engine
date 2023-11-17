@@ -4,20 +4,18 @@ import { getInputSource, viewToCamera } from "./util";
 import { WebXRSession } from "./WebXRSession";
 
 export class WebXRFrame implements IXRFrame {
+  // @internal
   _platformFrame: XRFrame;
-
   private _session: WebXRSession;
 
   updateInputs(inputs: IXRInput[]): void {
-    const { _platformFrame: platformFrame } = this;
-    const {
-      _platformSession: session,
-      _platformReferenceSpace: referenceSpace,
-      _platformLayer: layer,
-      framebufferWidth,
-      framebufferHeight
-    } = this._session;
-    // Update controller
+    this._updateController(inputs);
+    this._updateCamera(inputs);
+  }
+
+  private _updateController(inputs: IXRInput[]) {
+    const { _platformFrame: frame } = this;
+    const { _platformSession: session, _platformReferenceSpace: referenceSpace } = this._session;
     const { inputSources } = session;
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
@@ -28,7 +26,7 @@ export class WebXRFrame implements IXRFrame {
         case "tracked-pointer":
           const { gripSpace, targetRaySpace } = inputSource;
           if (gripSpace) {
-            const { transform, emulatedPosition } = platformFrame.getPose(gripSpace, referenceSpace);
+            const { transform, emulatedPosition } = frame.getPose(gripSpace, referenceSpace);
             if (transform) {
               const { gripPose } = input;
               gripPose.matrix.copyFromArray(transform.matrix);
@@ -38,7 +36,7 @@ export class WebXRFrame implements IXRFrame {
             input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
           }
           if (targetRaySpace) {
-            const { transform, emulatedPosition } = platformFrame.getPose(targetRaySpace, referenceSpace);
+            const { transform, emulatedPosition } = frame.getPose(targetRaySpace, referenceSpace);
             if (transform) {
               const { targetRayPose } = input;
               targetRayPose.matrix.copyFromArray(transform.matrix);
@@ -54,9 +52,17 @@ export class WebXRFrame implements IXRFrame {
           break;
       }
     }
+  }
 
-    // update camera
-    const viewerPose = platformFrame.getViewerPose(referenceSpace);
+  private _updateCamera(inputs: IXRInput[]) {
+    const { _platformFrame: frame } = this;
+    const {
+      _platformReferenceSpace: referenceSpace,
+      _platformLayer: layer,
+      framebufferWidth,
+      framebufferHeight
+    } = this._session;
+    const viewerPose = frame.getViewerPose(referenceSpace);
     if (viewerPose) {
       let hadUpdateCenterViewer = false;
       const { views, emulatedPosition } = viewerPose;

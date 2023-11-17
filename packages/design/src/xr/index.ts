@@ -1,13 +1,26 @@
-export type { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
+export type { IXRFeature } from "./feature/IXRFeature";
 export type { IXRFeatureManager } from "./feature/IXRFeatureManager";
 export type { IXRFeatureDescriptor } from "./feature/IXRFeatureDescriptor";
+export type { IXRMovementTracking } from "./feature/IXRMovementTracking";
 export type { IXRHitResult } from "./feature/IXRHitResult";
+export type { IXRTrackableFeature } from "./feature/trackable/IXRTrackableFeature";
 
 export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
 
 export type { IXRRequestTracking } from "./feature/trackable/IXRRequestTracking";
 export type { IXRTracked } from "./feature/trackable/IXRTracked";
+
+export type { IXRTrackedImage } from "./feature/trackable/image/IXRTrackedImage";
+export type { IXRImageTracking } from "./feature/trackable/image/IXRImageTracking";
+export type { IXRRequestImageTracking } from "./feature/trackable/image/IXRRequestImageTracking";
+
+export type { IXRTrackedPlane } from "./feature/trackable/plane/IXRTrackedPlane";
+export type { IXRPlaneTracking } from "./feature/trackable/plane/IXRPlaneTracking";
+export type { IXRRequestPlaneTracking } from "./feature/trackable/plane/IXRRequestPlaneTracking";
+
+export type { IXRAnchorTracking } from "./feature/trackable/anchor/IXRAnchorTracking";
+export type { IXRRequestAnchorTracking } from "./feature/trackable/anchor/IXRRequestAnchorTracking";
 
 export type { IXRFrame } from "./IXRFrame";
 export type { IXRSession } from "./IXRSession";

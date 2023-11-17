@@ -1,4 +1,4 @@
-import { IXRSession, IXRFeatureDescriptor, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRSession, IXRFeatureDescriptor, IXRFeature } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { XRSessionType } from "./session/XRSessionType";
 
@@ -17,7 +17,7 @@ export interface IXRDevice {
    * @param engine - The engine.
    * @param type - The type of the feature.
    */
-  createPlatformFeature(engine: Engine, type: number): IXRPlatformFeature;
+  createFeature(engine: Engine, type: number): IXRFeature;
 
   /**
    * Request a session.

@@ -1,18 +1,18 @@
 import {
-  Engine,
   XRFeatureType,
   XRTrackingState,
-  Logger,
   Matrix,
   Quaternion,
   Vector3,
-  XRSessionManager,
-  XRPlatformImageTracking,
   XRRequestTrackingState,
-  XRTrackedImage
+  XRTrackedImage,
+  Logger
 } from "@galacean/engine";
+import { IXRFeatureDescriptor, IXRImageTracking, IXRRequestImageTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
+import { WebXRFrame } from "../WebXRFrame";
+import { generateUUID } from "../util";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
@@ -22,52 +22,74 @@ import { WebXRSession } from "../WebXRSession";
  * the device can choose an arbitrary instance to report a pose,
  * and this choice can change for future XRFrames.
  */
-export class WebXRImageTracking extends XRPlatformImageTracking {
-  private _sessionManager: XRSessionManager;
+export class WebXRImageTracking implements IXRImageTracking {
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
+  private _tempIdx: number = 0;
+  private _tempArr: number[] = [];
 
-  override _onUpdate(): void {
-    const session = <WebXRSession>this._sessionManager.session;
-    if (!session) {
-      return;
-    }
-    switch (this._trackingScoreStatus) {
-      case ImageTrackingScoreStatus.NotReceived:
-        this._requestTrackingScore(session);
-        break;
-      case ImageTrackingScoreStatus.Received:
-        this._handleTrackingResults(session);
-      default:
-        break;
-    }
+  isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
+    return Promise.resolve();
   }
 
-  override _onSessionInit(): void {
-    super._onSessionInit();
-    const { _requestTrackings: requestTrackings } = this;
+  initialize(requestTrackings: IXRRequestImageTracking[]): Promise<void> {
+    this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       requestTrackings[i].state = XRRequestTrackingState.Submitted;
     }
+    return Promise.resolve();
   }
 
-  override _onSessionDestroy(): void {
-    super._onSessionDestroy();
-    this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImageTracking[]): boolean {
+    if (!session._platformSession || !session._platformReferenceSpace || !frame._platformFrame) {
+      return false;
+    }
+    switch (this._trackingScoreStatus) {
+      case ImageTrackingScoreStatus.NotReceived:
+        this._requestTrackingScore(session, requestTrackings);
+        return false;
+      case ImageTrackingScoreStatus.Waiting:
+        return false;
+    }
+    return true;
   }
 
-  constructor(engine: Engine) {
-    super(engine);
-    this._sessionManager = engine.xrManager.sessionManager;
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImageTracking[]): void {
+    const { _platformReferenceSpace: platformReferenceSpace } = session;
+    const { _platformFrame: platformFrame } = frame;
+    const { _tempArr: tempArr } = this;
+    const idx = ++this._tempIdx;
+    // @ts-ignore
+    const trackingResults = <XRImageTrackingResult[]>platformFrame.getImageTrackingResults();
+    for (let i = 0, n = trackingResults.length; i < n; i++) {
+      const trackingResult = trackingResults[i];
+      const { index } = trackingResult.index;
+      const requestTrackingImage = requestTrackings[index];
+      if (requestTrackingImage) {
+        const tracked = requestTrackingImage.tracked[0];
+        if (trackingResult.trackingState === "tracked") {
+          this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
+          tracked.state = XRTrackingState.Tracking;
+        } else {
+          tracked.state = XRTrackingState.TrackingLost;
+        }
+        tempArr[index] = idx;
+      } else {
+        Logger.warn("Images can not find " + index);
+      }
+    }
+
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      if (tempArr[i] !== idx) requestTrackings[i].tracked[0].state = XRTrackingState.NotTracking;
+    }
   }
 
-  private _requestTrackingScore(session: WebXRSession): void {
+  private _requestTrackingScore(session: WebXRSession, requestTrackings: IXRRequestImageTracking[]): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
     session._platformSession
       // @ts-ignore
       .getTrackedImageScores()
       .then((trackingScores: ("untrackable" | "trackable")[]) => {
         if (trackingScores) {
-          const { _requestTrackings: requestTrackings } = this;
           for (let i = 0, n = trackingScores.length; i < n; i++) {
             const trackingScore = trackingScores[i];
             const requestTracking = requestTrackings[i];
@@ -75,7 +97,7 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
               this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
               requestTracking.state = XRRequestTrackingState.Resolved;
               requestTracking.tracked = [
-                new XRTrackedImage(this._generateUUID(), {
+                new XRTrackedImage(generateUUID(), {
                   matrix: new Matrix(),
                   rotation: new Quaternion(),
                   position: new Vector3()
@@ -88,60 +110,6 @@ export class WebXRImageTracking extends XRPlatformImageTracking {
           }
         }
       });
-  }
-
-  private _handleTrackingResults(session: WebXRSession): void {
-    const { _platformFrame: platformFrame, _platformReferenceSpace: platformReferenceSpace } = session;
-    if (!platformFrame || !platformReferenceSpace) {
-      return;
-    }
-
-    const { frameCount } = this._engine.time;
-    const {
-      _trackedObjects: trackedObjects,
-      _requestTrackings: requestTrackings,
-      _added: added,
-      _updated: updated,
-      _removed: removed
-    } = this;
-    added.length = updated.length = removed.length = 0;
-    // @ts-ignore
-    const trackingResults = <XRImageTrackingResult[]>platformFrame.getImageTrackingResults();
-    for (let i = 0, n = trackingResults.length; i < n; i++) {
-      const trackingResult = trackingResults[i];
-      const requestTrackingImage = requestTrackings[trackingResult.index];
-      if (requestTrackingImage) {
-        const tracked = requestTrackings[i].tracked[0];
-        if (trackingResult.trackingState === "tracked") {
-          this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
-          if (tracked.state === XRTrackingState.Tracking) {
-            updated.push(tracked);
-          } else {
-            tracked.state = XRTrackingState.Tracking;
-            added.push(tracked);
-            trackedObjects.push(tracked);
-          }
-          tracked.frameCount = frameCount;
-        } else {
-          if (tracked.state === XRTrackingState.Tracking) {
-            tracked.state = XRTrackingState.TrackingLost;
-            removed.push(tracked);
-            trackedObjects.splice(trackedObjects.indexOf(tracked), 1);
-          }
-        }
-      } else {
-        Logger.warn("Images can not find " + trackingResult.index);
-      }
-    }
-
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      const tracked = requestTrackings[i].tracked[0];
-      if (tracked.frameCount < frameCount && tracked.state === XRTrackingState.Tracking) {
-        tracked.state = XRTrackingState.TrackingLost;
-        removed.push(tracked);
-        trackedObjects.splice(trackedObjects.indexOf(tracked), 1);
-      }
-    }
   }
 
   private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: XRTrackedImage, trackingResult: any) {

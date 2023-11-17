@@ -1,12 +1,14 @@
 import { Engine, XRSessionType, IXRDevice, XRFeatureType } from "@galacean/engine";
-import { IXRFeatureDescriptor, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRFeature } from "@galacean/engine-design";
 import { parseFeature, parseXRMode } from "./util";
 import { WebXRSession } from "./WebXRSession";
 
-type PlatformFeatureConstructor = new (engine: Engine) => IXRPlatformFeature;
+type PlatformFeatureConstructor = new (engine: Engine) => IXRFeature;
 export class WebXRDevice implements IXRDevice {
   // @internal
   static _platformFeatureMap: PlatformFeatureConstructor[] = [];
+  // @internal
+  static _uuid: number = 0;
 
   isSupported(mode: XRSessionType): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
@@ -29,7 +31,7 @@ export class WebXRDevice implements IXRDevice {
     });
   }
 
-  createPlatformFeature(engine: Engine, type: XRFeatureType): IXRPlatformFeature {
+  createFeature(engine: Engine, type: XRFeatureType): IXRFeature {
     const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
     return platformFeatureConstructor ? new platformFeatureConstructor(engine) : null;
   }

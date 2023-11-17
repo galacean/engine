@@ -8,6 +8,8 @@ import { XRInputEvent } from "./XRInputEvent";
 import { XRInputButton } from "./XRInputButton";
 import { XRTrackingState } from "./XRTrackingState";
 import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
+import { XRTargetRayMode } from "./XRTargetRayMode";
+import { XRInputEventType } from "./XRInputEventType";
 
 /**
  * The manager of XR input.
@@ -158,24 +160,24 @@ export class XRInputManager {
     const { frameCount } = this._engine.time;
     const input = <XRController>this._inputs[event.input];
     switch (event.targetRayMode) {
-      case "tracked-pointer":
+      case XRTargetRayMode.TrackedPointer:
         switch (event.type) {
-          case "selectstart":
+          case XRInputEventType.SelectStart:
             input.downList.add(XRInputButton.Select);
             input.downMap[XRInputButton.Select] = frameCount;
             input.pressedButtons |= XRInputButton.Select;
             break;
-          case "selectend":
+          case XRInputEventType.SelectEnd:
             input.upList.add(XRInputButton.Select);
             input.upMap[XRInputButton.Select] = frameCount;
             input.pressedButtons &= ~XRInputButton.Select;
             break;
-          case "squeezestart":
+          case XRInputEventType.SqueezeStart:
             input.downList.add(XRInputButton.Squeeze);
             input.downMap[XRInputButton.Squeeze] = frameCount;
             input.pressedButtons |= XRInputButton.Squeeze;
             break;
-          case "squeezeend":
+          case XRInputEventType.SqueezeEnd:
             input.upList.add(XRInputButton.Squeeze);
             input.upMap[XRInputButton.Squeeze] = frameCount;
             input.pressedButtons &= ~XRInputButton.Squeeze;
@@ -184,20 +186,20 @@ export class XRInputManager {
             break;
         }
         break;
-      case "screen":
+      case XRTargetRayMode.Screen:
         // @ts-ignore
         const canvas = <HTMLCanvasElement>this._engine.canvas._webCanvas;
         const { clientWidth, clientHeight } = canvas;
         const clientX = clientWidth * (event.x + 1) * 0.5;
         const clientY = clientHeight * (event.y + 1) * 0.5;
         switch (event.type) {
-          case "selectstart":
+          case XRInputEventType.SelectStart:
             canvas.dispatchEvent(this._makeUpPointerEvent("pointerdown", event.id, clientX, clientY));
             break;
-          case "select":
+          case XRInputEventType.Select:
             canvas.dispatchEvent(this._makeUpPointerEvent("pointermove", event.id, clientX, clientY));
             break;
-          case "selectend":
+          case XRInputEventType.SelectEnd:
             canvas.dispatchEvent(this._makeUpPointerEvent("pointerup", event.id, clientX, clientY));
             canvas.dispatchEvent(this._makeUpPointerEvent("pointerleave", event.id, clientX, clientY));
             break;
@@ -228,7 +230,7 @@ export class XRInputManager {
    * @internal
    */
   _onSessionStop(): void {
-    this._session?.addEventListener();
+    this._session?.removeEventListener();
   }
 
   /**

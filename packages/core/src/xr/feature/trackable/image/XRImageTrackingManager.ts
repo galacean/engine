@@ -1,5 +1,5 @@
+import { IXRImageTracking } from "@galacean/engine-design";
 import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
-import { XRPlatformImageTracking } from "./XRPlatformImageTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRReferenceImage } from "./XRReferenceImage";
 import { XRTrackedImage } from "./XRTrackedImage";
@@ -7,6 +7,7 @@ import { registerXRFeatureManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRSessionState } from "../../../session/XRSessionState";
 import { Logger } from "../../../../base";
+import { XRRequestTrackingImage } from "./XRRequestTrackingImage";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
 /**
@@ -15,7 +16,8 @@ import { Logger } from "../../../../base";
 export class XRImageTrackingManager extends XRTrackableManager<
   IXRImageTrackingDescriptor,
   XRTrackedImage,
-  XRPlatformImageTracking
+  XRRequestTrackingImage,
+  IXRImageTracking
 > {
   /**
    * Add a tracking image
@@ -35,12 +37,11 @@ export class XRImageTrackingManager extends XRTrackableManager<
       return;
     }
     if (imageOrArr instanceof Array) {
-      const { _platformFeature: platformFeature } = this;
       for (let i = 0, n = imageOrArr.length; i < n; i++) {
-        platformFeature._addImage(imageOrArr[i]);
+        this.addRequestTracking(new XRRequestTrackingImage(imageOrArr[i]));
       }
     } else {
-      this._platformFeature._addImage(imageOrArr);
+      this.addRequestTracking(new XRRequestTrackingImage(imageOrArr));
     }
   }
 
@@ -62,11 +63,10 @@ export class XRImageTrackingManager extends XRTrackableManager<
       return;
     }
     if (imageOrArr instanceof XRReferenceImage) {
-      this._platformFeature._removeImage(imageOrArr);
+      this.removeRequestTracking(new XRRequestTrackingImage(imageOrArr));
     } else {
-      const { _platformFeature: platformFeature } = this;
       for (let i = 0, n = imageOrArr.length; i < n; i++) {
-        platformFeature._removeImage(imageOrArr[i]);
+        this.removeRequestTracking(new XRRequestTrackingImage(imageOrArr[i]));
       }
     }
   }
@@ -79,6 +79,16 @@ export class XRImageTrackingManager extends XRTrackableManager<
       Logger.warn("Tracking images can only be removed when the session is not initialized.");
       return;
     }
-    this._platformFeature._removeAllImages();
+    this.removeAllRequestTrackings();
+  }
+
+  override initialize(): Promise<void> {
+    const { images } = this._descriptor;
+    if (images) {
+      for (let i = 0, n = images.length; i < n; i++) {
+        this.addRequestTracking(new XRRequestTrackingImage(images[i]));
+      }
+    }
+    return Promise.resolve();
   }
 }

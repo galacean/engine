@@ -1,6 +1,5 @@
-import { IXRPose } from "@galacean/engine-design";
+import { IXRAnchorTracking, IXRPose } from "@galacean/engine-design";
 import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
-import { XRPlatformAnchorTracking } from "./XRPlatformAnchorTracking";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRRequestTrackingAnchor } from "./XRRequestTrackingAnchor";
 import { XRTracked } from "../XRTracked";
@@ -14,21 +13,41 @@ import { registerXRFeatureManager } from "../../../XRManager";
 export class XRAnchorTrackingManager extends XRTrackableManager<
   IXRAnchorTrackingDescriptor,
   XRTracked,
-  XRPlatformAnchorTracking
+  XRRequestTrackingAnchor,
+  IXRAnchorTracking
 > {
   /**
    * Add a tracking anchor.
    * @param pose - The pose of anchor to be added
    */
   addAnchor(pose: IXRPose): XRRequestTrackingAnchor {
-    return this._platformFeature._addAnchor(pose);
+    const requestTracking = new XRRequestTrackingAnchor(pose);
+    this.addRequestTracking(requestTracking);
+    return requestTracking;
   }
 
   /**
    * Remove a tracking anchor.
    * @param anchor - The anchor to be removed
    */
-  removeAnchor(anchor: XRRequestTrackingAnchor): void {
-    this._platformFeature._removeAnchor(anchor);
+  removeAnchor(pose: IXRPose): void {
+    this.removeRequestTracking(new XRRequestTrackingAnchor(pose));
+  }
+
+  /**
+   * Remove all tracking anchors.
+   */
+  removeAllAnchors(): void {
+    this.removeAllRequestTrackings();
+  }
+
+  override initialize(): Promise<void> {
+    const { anchors } = this._descriptor;
+    if (anchors) {
+      for (let i = 0, n = anchors.length; i < n; i++) {
+        this.addRequestTracking(new XRRequestTrackingAnchor(anchors[i]));
+      }
+    }
+    return Promise.resolve();
   }
 }

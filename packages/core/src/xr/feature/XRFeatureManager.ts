@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRFeatureManager, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRFeatureManager, IXRFeature, IXRSession, IXRFrame } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 
 /**
@@ -6,10 +6,10 @@ import { Engine } from "../../Engine";
  */
 export abstract class XRFeatureManager<
   TDescriptor extends IXRFeatureDescriptor = IXRFeatureDescriptor,
-  TPlatformFeature extends IXRPlatformFeature = IXRPlatformFeature
+  TFeature extends IXRFeature = IXRFeature
 > implements IXRFeatureManager
 {
-  _platformFeature: TPlatformFeature;
+  _feature: TFeature;
 
   protected _descriptor: TDescriptor;
   protected _enabled: boolean = false;
@@ -45,7 +45,7 @@ export abstract class XRFeatureManager<
    * @returns The promise of the feature
    */
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void> {
-    return this._platformFeature._isSupported(descriptor || this._descriptor);
+    return this._feature.isSupported(descriptor || this._descriptor);
   }
 
   /**
@@ -53,11 +53,7 @@ export abstract class XRFeatureManager<
    * @returns The promise of the feature
    */
   initialize(): Promise<void> {
-    if (this._platformFeature) {
-      return this._platformFeature._initialize(this._descriptor);
-    } else {
-      return Promise.resolve();
-    }
+    return Promise.resolve();
   }
 
   /**
@@ -73,44 +69,32 @@ export abstract class XRFeatureManager<
   /**
    * Called when xr frame is updated.
    */
-  onUpdate(): void {
-    this._platformFeature?._onUpdate();
-  }
+  onUpdate(session: IXRSession, frame: IXRFrame): void {}
 
   /**
    * Called when the session is initialized.
    */
-  onSessionInit(): void {
-    this._platformFeature?._onSessionInit();
-  }
+  onSessionInit(): void {}
 
   /**
    * Called when session starts.
    */
-  onSessionStart(): void {
-    this._platformFeature?._onSessionStart();
-  }
+  onSessionStart(): void {}
 
   /**
    * Called when the session is stopped.
    */
-  onSessionStop(): void {
-    this._platformFeature?._onSessionStop();
-  }
+  onSessionStop(): void {}
 
   /**
    * Called when the session is destroyed.
    */
-  onSessionDestroy(): void {
-    this._platformFeature?._onSessionDestroy();
-  }
+  onSessionDestroy(): void {}
 
   /**
    * Called when the xr module is destroyed.
    */
-  onDestroy(): void {
-    this._platformFeature?._onDestroy();
-  }
+  onDestroy(): void {}
 
   constructor(protected _engine: Engine) {}
 }

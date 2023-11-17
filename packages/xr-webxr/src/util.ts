@@ -1,5 +1,10 @@
 import { XRSessionType, XRFeatureType, XRInputType, request, IXRImageTrackingDescriptor } from "@galacean/engine";
 import { IXRFeatureDescriptor } from "@galacean/engine-design";
+import { WebXRDevice } from "./WebXRDevice";
+
+export function generateUUID(): number {
+  return ++WebXRDevice._uuid;
+}
 
 export function parseXRMode(mode: XRSessionType): XRSessionMode {
   switch (mode) {

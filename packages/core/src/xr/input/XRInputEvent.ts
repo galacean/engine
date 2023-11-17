@@ -1,16 +1,19 @@
+import { IXRInputEvent } from "@galacean/engine-design";
+import { XRInputEventType } from "./XRInputEventType";
+import { XRTargetRayMode } from "./XRTargetRayMode";
 import { XRInputType } from "./XRInputType";
 
 /**
  * XR interaction events.
  */
-export class XRInputEvent {
+export class XRInputEvent implements IXRInputEvent {
   /**
    *  TargetRayMode indicates the method by which the target ray for
    *  the input source should be generated and how it should be presented to the user.
    */
-  targetRayMode: "gaze" | "tracked-pointer" | "screen";
+  targetRayMode: XRTargetRayMode;
   /** The type of input event. */
-  type: "select" | "selectend" | "selectstart" | "squeeze" | "squeezeend" | "squeezestart";
+  type: XRInputEventType;
   /** The type of input. */
   input: XRInputType;
   /** The unique ID of the touch point. (Appears only when targetRayMode is screen.)*/
