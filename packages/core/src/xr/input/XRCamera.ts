@@ -8,8 +8,6 @@ import { XRTrackingState } from "./XRTrackingState";
  * The XR camera.
  */
 export class XRCamera implements IXRInput {
-  /** The update frame count of xr input. */
-  frameCount: number = 0;
   /** The tracking state of xr input. */
   trackingState: XRTrackingState = XRTrackingState.NotTracking;
   /** The viewport of the camera. */

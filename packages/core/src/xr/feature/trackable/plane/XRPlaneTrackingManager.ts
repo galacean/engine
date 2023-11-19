@@ -1,11 +1,14 @@
-import { IXRPlaneTrackingDescriptor } from "./IXRPlaneTrackingDescriptor";
+import {
+  IXRPlaneTracking,
+  IXRPlaneTrackingDescriptor,
+  IXRRequestPlaneTracking,
+  IXRTrackedPlane
+} from "@galacean/engine-design";
 import { XRPlaneMode } from "./XRPlaneMode";
 import { XRTrackableManager } from "../XRTrackableManager";
-import { XRTrackedPlane } from "./XRTrackedPlane";
 import { registerXRFeatureManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
-import { XRRequestTrackingPlane } from "./XRRequestTrackingPlane";
-import { IXRPlaneTracking } from "@galacean/engine-design";
+import { XRRequestTrackingState } from "../XRRequestTrackingState";
 
 @registerXRFeatureManager(XRFeatureType.PlaneTracking)
 /**
@@ -13,23 +16,27 @@ import { IXRPlaneTracking } from "@galacean/engine-design";
  */
 export class XRPlaneTrackingManager extends XRTrackableManager<
   IXRPlaneTrackingDescriptor,
-  XRTrackedPlane,
-  XRRequestTrackingPlane,
+  IXRTrackedPlane,
+  IXRRequestPlaneTracking,
   IXRPlaneTracking
 > {
   /**
    * Return the plane detection mode for XR.
    */
   get detectionMode(): XRPlaneMode {
-    return this._feature.detectionMode;
+    return this._platformFeature.detectionMode;
   }
 
   set detectionMode(value: XRPlaneMode) {
-    this._feature.detectionMode = value;
+    this._platformFeature.detectionMode = value;
   }
 
   override initialize(): Promise<void> {
-    this.addRequestTracking(new XRRequestTrackingPlane(this._descriptor.mode));
+    this.addRequestTracking({
+      detectionMode: this._descriptor.mode,
+      state: XRRequestTrackingState.None,
+      tracked: []
+    });
     return Promise.resolve();
   }
 }

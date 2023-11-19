@@ -138,7 +138,7 @@ export class XRManager {
       const featureManagerConstructor = featureManagerMap[type];
       const platformFeature = this._xrDevice.createFeature(type);
       const feature = (features[type] = new featureManagerConstructor(this._engine));
-      feature._feature = platformFeature;
+      feature._platformFeature = platformFeature;
       return <T>feature;
     }
   }

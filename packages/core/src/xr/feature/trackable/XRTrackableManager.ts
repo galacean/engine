@@ -43,34 +43,28 @@ export abstract class XRTrackableManager<
     return this._trackedObjects;
   }
 
-  addRequestTracking(add: TXRRequestTracking): void {
+  addRequestTracking(requestTracking: TXRRequestTracking): void {
     const { _requestTrackings: requestTrackings } = this;
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      const requestTracking = requestTrackings[i];
-      if (requestTracking.equals(add)) {
-        return;
-      }
+    if (requestTrackings.indexOf(requestTracking) < 0) {
+      requestTrackings.push(requestTracking);
+      const { _platformFeature: feature } = this;
+      feature.addRequestTracking && feature.addRequestTracking(requestTracking);
     }
-    requestTrackings.push(add);
-    this._feature.addRequestTracking && this._feature.addRequestTracking(add);
   }
 
   removeRequestTracking(remove: TXRRequestTracking): void {
     const { _requestTrackings: requestTrackings } = this;
     const lastIndex = requestTrackings.length - 1;
-    for (let i = 0; i <= lastIndex; i++) {
-      const requestTracking = requestTrackings[i];
-      if (requestTracking.equals(remove)) {
-        i !== lastIndex && (requestTrackings[i] = requestTrackings[lastIndex]);
-        requestTrackings.length = lastIndex;
-        this._feature.delRequestTracking && this._feature.delRequestTracking(remove);
-        return;
-      }
+    const index = requestTrackings.indexOf(remove);
+    if (index >= 0) {
+      index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
+      requestTrackings.length = lastIndex;
+      this._platformFeature.delRequestTracking && this._platformFeature.delRequestTracking(remove);
     }
   }
 
   removeAllRequestTrackings(): void {
-    const { _requestTrackings: requestTrackings, _feature: feature } = this;
+    const { _requestTrackings: requestTrackings, _platformFeature: feature } = this;
     if (feature.delRequestTracking) {
       for (let i = 0, n = requestTrackings.length; i < n; i++) {
         feature.delRequestTracking(requestTrackings[i]);
@@ -97,7 +91,7 @@ export abstract class XRTrackableManager<
 
   override onUpdate(session: IXRSession, frame: IXRFrame): void {
     const {
-      _feature: feature,
+      _platformFeature: feature,
       _trackedUpdateFlag: trackedUpdateFlag,
       _requestTrackings: requestTrackings,
       _statusSnapshot: statusSnapshot,
@@ -112,8 +106,7 @@ export abstract class XRTrackableManager<
       return;
     }
     added.length = updated.length = removed.length = 0;
-    // @ts-ignore
-    feature.getTrackedResult();
+    feature.getTrackedResult(session, frame, requestTrackings);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state !== XRRequestTrackingState.Resolved) {

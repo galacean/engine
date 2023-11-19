@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Vector3, XRRequestTrackingAnchor } from "@galacean/engine";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
 import { IXRAnchorTracking, IXRFeatureDescriptor, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
@@ -99,8 +99,7 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
                 id: generateUUID(),
                 pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
                 // XRTrackingState.NotTracking
-                state: 0,
-                frameCount: 0
+                state: 0
               }
             ];
           }
@@ -151,6 +150,6 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
   }
 }
 
-class WebXRRequestTrackingAnchor extends XRRequestTrackingAnchor {
+interface WebXRRequestTrackingAnchor extends IXRRequestAnchorTracking {
   xrAnchor: XRAnchor;
 }

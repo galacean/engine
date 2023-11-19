@@ -9,7 +9,7 @@ export abstract class XRFeatureManager<
   TFeature extends IXRFeature = IXRFeature
 > implements IXRFeatureManager
 {
-  _feature: TFeature;
+  _platformFeature: TFeature;
 
   protected _descriptor: TDescriptor;
   protected _enabled: boolean = false;
@@ -45,7 +45,7 @@ export abstract class XRFeatureManager<
    * @returns The promise of the feature
    */
   isSupported(descriptor?: IXRFeatureDescriptor): Promise<void> {
-    return this._feature.isSupported(descriptor || this._descriptor);
+    return this._platformFeature.isSupported(descriptor || this._descriptor);
   }
 
   /**

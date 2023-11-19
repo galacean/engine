@@ -8,6 +8,4 @@ export interface IXRRequestTracking<T extends IXRTracked> {
   state: number;
   /** Tracked instances, make up from the tracking data returned by Session. */
   tracked: T[];
-  /** Determines whether the specified request tracking are equals. */
-  equals(other: IXRRequestTracking<T>): boolean;
 }

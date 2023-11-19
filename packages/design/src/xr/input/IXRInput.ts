@@ -6,6 +6,4 @@ export interface IXRInput {
   pose: IXRPose;
   /** The tracking state of xr input. */
   trackingState: number;
-  /** The update frame count of xr input. */
-  frameCount: number;
 }

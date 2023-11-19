@@ -1,13 +1,16 @@
-import { IXRImageTracking } from "@galacean/engine-design";
-import { IXRImageTrackingDescriptor } from "./IXRImageTrackingDescriptor";
+import {
+  IXRImageTracking,
+  IXRRequestImageTracking,
+  IXRTrackedImage,
+  IXRImageTrackingDescriptor
+} from "@galacean/engine-design";
 import { XRTrackableManager } from "../XRTrackableManager";
 import { XRReferenceImage } from "./XRReferenceImage";
-import { XRTrackedImage } from "./XRTrackedImage";
 import { registerXRFeatureManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRSessionState } from "../../../session/XRSessionState";
+import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { Logger } from "../../../../base";
-import { XRRequestTrackingImage } from "./XRRequestTrackingImage";
 
 @registerXRFeatureManager(XRFeatureType.ImageTracking)
 /**
@@ -15,8 +18,8 @@ import { XRRequestTrackingImage } from "./XRRequestTrackingImage";
  */
 export class XRImageTrackingManager extends XRTrackableManager<
   IXRImageTrackingDescriptor,
-  XRTrackedImage,
-  XRRequestTrackingImage,
+  IXRTrackedImage,
+  IXRRequestImageTracking,
   IXRImageTracking
 > {
   /**
@@ -38,10 +41,10 @@ export class XRImageTrackingManager extends XRTrackableManager<
     }
     if (imageOrArr instanceof Array) {
       for (let i = 0, n = imageOrArr.length; i < n; i++) {
-        this.addRequestTracking(new XRRequestTrackingImage(imageOrArr[i]));
+        this.addRequestTracking(this._createRequestTracking(imageOrArr[i]));
       }
     } else {
-      this.addRequestTracking(new XRRequestTrackingImage(imageOrArr));
+      this.addRequestTracking(this._createRequestTracking(imageOrArr));
     }
   }
 
@@ -63,10 +66,10 @@ export class XRImageTrackingManager extends XRTrackableManager<
       return;
     }
     if (imageOrArr instanceof XRReferenceImage) {
-      this.removeRequestTracking(new XRRequestTrackingImage(imageOrArr));
+      this.removeRequestTracking(this._createRequestTracking(imageOrArr));
     } else {
       for (let i = 0, n = imageOrArr.length; i < n; i++) {
-        this.removeRequestTracking(new XRRequestTrackingImage(imageOrArr[i]));
+        this.removeRequestTracking(this._createRequestTracking(imageOrArr[i]));
       }
     }
   }
@@ -86,9 +89,17 @@ export class XRImageTrackingManager extends XRTrackableManager<
     const { images } = this._descriptor;
     if (images) {
       for (let i = 0, n = images.length; i < n; i++) {
-        this.addRequestTracking(new XRRequestTrackingImage(images[i]));
+        this.addRequestTracking(this._createRequestTracking(images[i]));
       }
     }
     return Promise.resolve();
+  }
+
+  private _createRequestTracking(image: XRReferenceImage): IXRRequestImageTracking {
+    return {
+      image,
+      state: XRRequestTrackingState.None,
+      tracked: []
+    };
   }
 }

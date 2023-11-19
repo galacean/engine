@@ -1,5 +1,10 @@
-import { Matrix, Quaternion, Vector3, XRTrackedImage } from "@galacean/engine";
-import { IXRFeatureDescriptor, IXRImageTracking, IXRRequestImageTracking } from "@galacean/engine-design";
+import {
+  IXRFeatureDescriptor,
+  IXRImageTracking,
+  IXRRequestImageTracking,
+  IXRTrackedImage
+} from "@galacean/engine-design";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRFrame } from "../WebXRFrame";
@@ -52,7 +57,7 @@ export class WebXRImageTracking implements IXRImageTracking {
     const { _tempArr: tempArr } = this;
     const idx = ++this._tempIdx;
     // @ts-ignore
-    const trackingResults = <XRImageTrackingResult[]>platformFrame.getImageTrackingResults();
+    const trackingResults = platformFrame.getImageTrackingResults();
     for (let i = 0, n = trackingResults.length; i < n; i++) {
       const trackingResult = trackingResults[i];
       const { index } = trackingResult.index;
@@ -94,11 +99,16 @@ export class WebXRImageTracking implements IXRImageTracking {
               // XRRequestTrackingState.Resolved
               requestTracking.state = 2;
               requestTracking.tracked = [
-                new XRTrackedImage(generateUUID(), {
-                  matrix: new Matrix(),
-                  rotation: new Quaternion(),
-                  position: new Vector3()
-                })
+                {
+                  id: generateUUID(),
+                  measuredWidthInMeters: 1,
+                  pose: {
+                    matrix: new Matrix(),
+                    rotation: new Quaternion(),
+                    position: new Vector3()
+                  },
+                  state: 0
+                }
               ];
             } else {
               // XRRequestTrackingState.Rejected
@@ -110,7 +120,7 @@ export class WebXRImageTracking implements IXRImageTracking {
       });
   }
 
-  private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: XRTrackedImage, trackingResult: any) {
+  private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: IXRTrackedImage, trackingResult: any) {
     const { pose } = trackedImage;
     const { transform } = frame.getPose(trackingResult.imageSpace, space);
     pose.matrix.copyFromArray(transform.matrix);

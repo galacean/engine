@@ -4,7 +4,7 @@ import { IXRSession } from "../IXRSession";
 import { IXRFrame } from "../IXRFrame";
 
 export interface IXRFeatureManager {
-  _feature: IXRFeature;
+  _platformFeature: IXRFeature;
 
   /** The descriptor of the feature. */
   descriptor: IXRFeatureDescriptor;

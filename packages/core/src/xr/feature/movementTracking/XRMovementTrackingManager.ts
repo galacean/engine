@@ -11,10 +11,10 @@ import { IXRMovementTracking } from "@galacean/engine-design";
  */
 export class XRMovementTrackingManager extends XRFeatureManager<IXRMovementTrackingDescriptor, IXRMovementTracking> {
   get trackingMode(): XRMovementTrackingMode {
-    return this._feature.trackingMode;
+    return this._platformFeature.trackingMode;
   }
 
   set trackingMode(value: XRMovementTrackingMode) {
-    this._feature.trackingMode = value;
+    this._platformFeature.trackingMode = value;
   }
 }

@@ -1,4 +1,5 @@
-import { IXRFeatureDescriptor, IXRPose } from "@galacean/engine-design";
+import { IXRFeatureDescriptor } from "../../IXRFeatureDescriptor";
+import { IXRPose } from "../../../input/IXRPose";
 
 /**
  * The descriptor of XR anchor tracking.

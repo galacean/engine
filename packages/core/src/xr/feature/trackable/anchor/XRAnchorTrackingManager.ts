@@ -1,10 +1,14 @@
-import { IXRAnchorTracking, IXRPose } from "@galacean/engine-design";
-import { IXRAnchorTrackingDescriptor } from "./IXRAnchorTrackingDescriptor";
+import {
+  IXRPose,
+  IXRTracked,
+  IXRAnchorTracking,
+  IXRRequestAnchorTracking,
+  IXRAnchorTrackingDescriptor
+} from "@galacean/engine-design";
 import { XRTrackableManager } from "../XRTrackableManager";
-import { XRRequestTrackingAnchor } from "./XRRequestTrackingAnchor";
-import { XRTracked } from "../XRTracked";
 import { XRFeatureType } from "../../XRFeatureType";
 import { registerXRFeatureManager } from "../../../XRManager";
+import { XRRequestTrackingState } from "../XRRequestTrackingState";
 
 @registerXRFeatureManager(XRFeatureType.AnchorTracking)
 /**
@@ -12,16 +16,16 @@ import { registerXRFeatureManager } from "../../../XRManager";
  */
 export class XRAnchorTrackingManager extends XRTrackableManager<
   IXRAnchorTrackingDescriptor,
-  XRTracked,
-  XRRequestTrackingAnchor,
+  IXRTracked,
+  IXRRequestAnchorTracking,
   IXRAnchorTracking
 > {
   /**
    * Add a tracking anchor.
    * @param pose - The pose of anchor to be added
    */
-  addAnchor(pose: IXRPose): XRRequestTrackingAnchor {
-    const requestTracking = new XRRequestTrackingAnchor(pose);
+  addAnchor(pose: IXRPose): IXRRequestAnchorTracking {
+    const requestTracking = this._createRequestTracking(pose);
     this.addRequestTracking(requestTracking);
     return requestTracking;
   }
@@ -30,8 +34,8 @@ export class XRAnchorTrackingManager extends XRTrackableManager<
    * Remove a tracking anchor.
    * @param anchor - The anchor to be removed
    */
-  removeAnchor(pose: IXRPose): void {
-    this.removeRequestTracking(new XRRequestTrackingAnchor(pose));
+  removeAnchor(anchor: IXRRequestAnchorTracking): void {
+    this.removeRequestTracking(anchor);
   }
 
   /**
@@ -45,9 +49,17 @@ export class XRAnchorTrackingManager extends XRTrackableManager<
     const { anchors } = this._descriptor;
     if (anchors) {
       for (let i = 0, n = anchors.length; i < n; i++) {
-        this.addRequestTracking(new XRRequestTrackingAnchor(anchors[i]));
+        this.addRequestTracking(this._createRequestTracking(anchors[i]));
       }
     }
     return Promise.resolve();
+  }
+
+  private _createRequestTracking(pose: IXRPose): IXRRequestAnchorTracking {
+    return {
+      pose,
+      state: XRRequestTrackingState.None,
+      tracked: []
+    };
   }
 }

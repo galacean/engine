@@ -10,8 +10,6 @@ import { XRTrackingState } from "./XRTrackingState";
  * The XR controller.
  */
 export class XRController implements IXRInput {
-  /** The update frame count of xr input. */
-  frameCount: number = 0;
   /** The tracking state of xr input. */
   trackingState: XRTrackingState = XRTrackingState.NotTracking;
   /** The currently pressed buttons of this controller. */

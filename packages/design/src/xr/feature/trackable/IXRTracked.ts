@@ -10,6 +10,4 @@ export interface IXRTracked {
   pose: IXRPose;
   /** The tracking state of the trackable. */
   state: number;
-  /** The modified frame count of the trackable. */
-  frameCount: number;
 }
