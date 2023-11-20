@@ -4,7 +4,7 @@ import { WebXRSession } from "./WebXRSession";
 import { getInputSource, viewToCamera } from "./util";
 
 export class WebXRFrame implements IXRFrame {
-  // @internal
+  /** @internal */
   _platformFrame: XRFrame;
   private _session: WebXRSession;
 
@@ -114,19 +114,6 @@ export class WebXRFrame implements IXRFrame {
           leftCameraDevice.viewport.width && leftCameraDevice.viewport.height
             ? leftCameraDevice.viewport
             : rightCameraDevice.viewport;
-        // const { camera } = cameraDevice;
-        // if (camera) {
-        //   // sync viewport
-        //   const vec4 = camera.viewport;
-        //   const { x, y, width, height } = cameraDevice.viewport;
-        //   if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
-        //     camera.viewport = vec4.set(x, y, width, height);
-        //   }
-        //   // sync project matrix
-        //   if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
-        //     camera.projectionMatrix = cameraDevice.projectionMatrix;
-        //   }
-        // }
       }
     }
   }

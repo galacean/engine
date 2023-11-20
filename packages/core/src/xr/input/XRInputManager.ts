@@ -14,9 +14,9 @@ import { XRInputEventType } from "./XRInputEventType";
  * The manager of XR input.
  */
 export class XRInputManager {
-  // @internal
+  /** @internal */
   _cameras: XRCamera[] = [];
-  // @internal
+  /** @internal */
   _controllers: XRController[] = [];
 
   protected _engine: Engine;

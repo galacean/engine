@@ -62,7 +62,7 @@ export class XRHitTestManager extends XRFeatureManager {
     }
 
     const camera = xrManager
-      .getFeature<XRCameraManager>(XRFeatureType.CameraDevice)
+      .getFeatureManager<XRCameraManager>(XRFeatureType.CameraDevice)
       .getCameraByType(XRInputType.Camera);
     if (!camera) {
       Logger.warn("No camera available.");
@@ -81,7 +81,7 @@ export class XRHitTestManager extends XRFeatureManager {
   }
 
   private _hitTestPlane(ray: Ray, result: IXRHitResult[]): void {
-    const planeManager = this._engine.xrManager.getFeature<XRPlaneTrackingManager>(XRFeatureType.PlaneTracking);
+    const planeManager = this._engine.xrManager.getFeatureManager<XRPlaneTrackingManager>(XRFeatureType.PlaneTracking);
     if (!planeManager || !planeManager.enabled) {
       Logger.warn("The plane estimation function needs to be turned on for plane hit test.");
       return;

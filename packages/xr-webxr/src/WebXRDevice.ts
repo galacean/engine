@@ -4,9 +4,9 @@ import { WebXRSession } from "./WebXRSession";
 
 type PlatformFeatureConstructor = new () => IXRFeature;
 export class WebXRDevice implements IXRDevice {
-  // @internal
+  /** @internal */
   static _platformFeatureMap: PlatformFeatureConstructor[] = [];
-  // @internal
+  /** @internal */
   static _uuid: number = 0;
 
   isSupported(mode: number): Promise<void> {

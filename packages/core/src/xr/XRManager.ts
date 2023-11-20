@@ -17,7 +17,7 @@ type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
  * XRManager is the entry point of the XR system.
  */
 export class XRManager {
-  // @internal
+  /** @internal */
   static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
 
   /** Input manager for XR. */
@@ -102,7 +102,7 @@ export class XRManager {
         }, reject);
       });
     } else {
-      const feature = this.getFeature(descriptors.type);
+      const feature = this.getFeatureManager(descriptors.type);
       if (feature) {
         return feature.isSupported(descriptors);
       } else {
@@ -124,11 +124,11 @@ export class XRManager {
   }
 
   /**
-   * Get the feature instance.
-   * @param type - The type of feature
-   * @returns The feature instance
+   * Get the feature manager.
+   * @param type - The type of feature manager
+   * @returns The feature manager
    */
-  getFeature<T extends XRFeatureManager>(type: XRFeatureType): T {
+  getFeatureManager<T extends XRFeatureManager>(type: XRFeatureType): T {
     const { _features: features } = this;
     const feature = features[type];
     if (feature) {
@@ -163,7 +163,7 @@ export class XRManager {
           const supportedArr = [];
           for (let i = 0, n = requestFeatures.length; i < n; i++) {
             const descriptor = requestFeatures[i];
-            const feature = this.getFeature(descriptor.type);
+            const feature = this.getFeatureManager(descriptor.type);
             if (feature) {
               feature.enabled = true;
               feature.descriptor = descriptor;

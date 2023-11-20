@@ -7,11 +7,11 @@ export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame: (id: number) => void;
 
-  // @internal
+  /** @internal */
   _platformSession: XRSession;
-  // @internal
+  /** @internal */
   _platformLayer: XRWebGLLayer;
-  // @internal
+  /** @internal */
   _platformReferenceSpace: XRReferenceSpace;
 
   private _frame: WebXRFrame;
