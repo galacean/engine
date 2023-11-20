@@ -138,7 +138,9 @@ export class XRSessionManager {
     this._rhi = _engine._hardwareRenderer;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _onUpdate() {
     const { _rhi: rhi, session } = this;
     rhi._mainFrameBuffer = session.framebuffer;

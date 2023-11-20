@@ -31,14 +31,14 @@ export class XRManager {
   private _engine: Engine;
   private _scene: Scene;
   private _origin: Entity;
-  private _features: TXRFeatureManager[] = [];
   private _mode: XRSessionMode;
+  private _features: TXRFeatureManager[] = [];
 
   /**
    * The current xr scene.
    */
   get scene(): Scene {
-    return (this._scene ||= this._engine.sceneManager.activeScene);
+    return (this._scene ||= this._engine.sceneManager.scenes[0]);
   }
 
   set scene(value: Scene) {

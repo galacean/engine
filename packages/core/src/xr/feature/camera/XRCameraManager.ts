@@ -28,7 +28,8 @@ export class XRCameraManager extends XRFeatureManager {
   }
 
   /**
-   * Attach the camera to the specified input type.
+   * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
+   * Once the attached is set up, the camera entity will be automatically moved to the XROrigin entity.
    * @param type - The input type
    * @param camera - The camera to be attached
    */
