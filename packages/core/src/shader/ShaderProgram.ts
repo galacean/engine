@@ -380,10 +380,11 @@ export class ShaderProgram {
         case gl.BOOL_VEC3:
         case gl.INT_VEC3:
           if (isArray) {
+            shaderUniform.applyFunc = shaderUniform.upload3iv;
           } else {
+            shaderUniform.applyFunc = shaderUniform.upload3i;
+            shaderUniform.cacheValue = new Vector3(0, 0, 0);
           }
-          shaderUniform.applyFunc = isArray ? shaderUniform.upload3iv : shaderUniform.upload3i;
-          shaderUniform.cacheValue = new Vector3(0, 0, 0);
           break;
         case gl.BOOL_VEC4:
         case gl.INT_VEC4:

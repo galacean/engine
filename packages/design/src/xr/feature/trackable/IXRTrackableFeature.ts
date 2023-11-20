@@ -14,11 +14,31 @@ export interface IXRTrackableFeature<
    */
   initialize(requestTrackings: TXRRequestTracking[]): Promise<void>;
 
+  /**
+   * Get the tracked result.
+   * @param session - The XR session
+   * @param frame - The XR frame
+   * @param requestTrackings - The request trackings
+   */
   getTrackedResult(session: IXRSession, frame: IXRFrame, requestTrackings: TXRRequestTracking[]): void;
 
+  /**
+   * Check if the feature is available.
+   * @param session - The XR session
+   * @param frame - The XR frame
+   * @param requestTrackings - The request trackings
+   */
   checkAvailable(session: IXRSession, frame: IXRFrame, requestTrackings: TXRRequestTracking[]): boolean;
 
+  /**
+   * Add a request tracking.
+   * @param requestTracking - The request tracking
+   */
   addRequestTracking?(requestTracking: TXRRequestTracking): void;
 
+  /**
+   * Delete a request tracking.
+   * @param requestTracking - The request tracking
+   */
   delRequestTracking?(requestTracking: TXRRequestTracking): void;
 }

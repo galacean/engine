@@ -322,7 +322,8 @@ export class ResourceManager {
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
-      return new AssetPromise((resolve) => {
+      return new AssetPromise((resolve, _, setProgress) => {
+        setProgress(1);
         resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
@@ -342,8 +343,11 @@ export class ResourceManager {
     const loadingPromises = this._loadingPromises;
     const loadingPromise = loadingPromises[assetURL];
     if (loadingPromise) {
-      return new AssetPromise((resolve, reject) => {
+      return new AssetPromise((resolve, reject, setProgress) => {
         loadingPromise
+          .onProgress((v) => {
+            setProgress(v);
+          })
           .then((resource: EngineObject) => {
             resolve(resource as T);
           })
