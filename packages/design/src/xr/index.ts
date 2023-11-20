@@ -29,6 +29,8 @@ export type { IXRAnchorTrackingDescriptor } from "./feature/trackable/anchor/IXR
 export type { IXRAnchorTracking } from "./feature/trackable/anchor/IXRAnchorTracking";
 export type { IXRRequestAnchorTracking } from "./feature/trackable/anchor/IXRRequestAnchorTracking";
 
+export type { IXRMovementTrackingDescriptor } from "./feature/IXRMovementTrackingDescriptor";
+
 export type { IXRDevice } from "./IXRDevice";
 export type { IXRFrame } from "./IXRFrame";
 export type { IXRSession } from "./IXRSession";

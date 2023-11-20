@@ -8,7 +8,6 @@ export type { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRFeatureManager } from "./feature/XRFeatureManager";
 // camera
-export type { IXRCameraDescriptor } from "./feature/camera/IXRCameraDescriptor";
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
 export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
@@ -16,7 +15,6 @@ export { XRHitTestType } from "./feature/hitTest/XRHitTestType";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // movement tracking
-export type { IXRMovementTrackingDescriptor } from "./feature/movementTracking/IXRMovementTrackingDescriptor";
 export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovementTrackingManager";
 export { XRMovementTrackingMode } from "./feature/movementTracking/XRMovementTrackingMode";
 // anchor tracking

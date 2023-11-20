@@ -1,4 +1,5 @@
 import { IXRSession, IXRFrame } from "@galacean/engine-design";
+import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
 import { Logger } from "../../../base";
@@ -9,14 +10,12 @@ import { XRInputType } from "../../input/XRInputType";
 import { XRSessionManager } from "../../session/XRSessionManager";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { XRFeatureType } from "../XRFeatureType";
-import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
-import { Matrix } from "@galacean/engine-math";
 
 @registerXRFeatureManager(XRFeatureType.CameraDevice)
 /**
  * The manager of XR camera.
  */
-export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
+export class XRCameraManager extends XRFeatureManager {
   private _inputManager: XRInputManager;
   private _sessionManager: XRSessionManager;
 
@@ -66,7 +65,7 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
   /**
    * Return fixed foveation of the camera.
    */
-  get fixedFoveation() {
+  get fixedFoveation(): number {
     const { session } = this._sessionManager;
     if (session) {
       return session.fixedFoveation;
