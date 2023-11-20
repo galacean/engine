@@ -221,7 +221,11 @@ export default class RuntimeContext {
 
     this.payload = { parsingRenderState: true };
     const tmpRenderStates = ast.content.renderStates ?? [];
+<<<<<<< HEAD
     ast.content.properties?.forEach((prop) =>
+=======
+    ast.content.properties.forEach((prop) =>
+>>>>>>> 95f76bfc4a23407ade031647f20953a3076fcfd6
       this._parsePassProperty(<AstNode<IPassAstContent>>ast, prop, ret, tmpRenderStates)
     );
     for (const rs of tmpRenderStates) {

@@ -50,7 +50,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 resourceManager
                   .load<Texture2D>({
                     url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
-                    type: AssetType.Texture2D,
+                    type: atlasItem.type ?? AssetType.Texture2D,
                     params: { format, mipmap }
                   })
                   .then((texture: Texture2D) => {
