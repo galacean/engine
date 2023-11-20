@@ -11,7 +11,7 @@ export interface IXRDevice {
    * Whether the device is supported.
    * @param mode - The mode of the session.
    */
-  isSupported(mode: number): Promise<void>;
+  isSupportedSessionMode(mode: number): Promise<void>;
 
   /**
    * Get the platform feature instance of this device

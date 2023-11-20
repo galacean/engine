@@ -6,7 +6,7 @@ import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { registerXRFeatureManager } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
-import { XRSessionType } from "../../session/XRSessionType";
+import { XRSessionMode } from "../../session/XRSessionMode";
 import { Logger } from "../../../base";
 import { XRInputType } from "../../input/XRInputType";
 
@@ -40,7 +40,7 @@ export class XRHitTestManager extends XRFeatureManager {
    * @returns The hit result
    */
   hitTest(ray: Ray, type: XRHitTestType): IXRHitResult[] {
-    if (this._engine.xrManager.mode !== XRSessionType.AR) {
+    if (this._engine.xrManager.mode !== XRSessionMode.AR) {
       Logger.warn("Only AR mode supports using screen ray detection.");
       return null;
     }
@@ -56,7 +56,7 @@ export class XRHitTestManager extends XRFeatureManager {
    */
   screenHitTest(x: number, y: number, type: XRHitTestType): IXRHitResult[] {
     const { xrManager } = this._engine;
-    if (xrManager.mode !== XRSessionType.AR) {
+    if (xrManager.mode !== XRSessionMode.AR) {
       Logger.warn("Only AR mode supports using screen ray detection.");
       return null;
     }

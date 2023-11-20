@@ -3,7 +3,7 @@ import { XRInputManager } from "./input/XRInputManager";
 import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
-import { XRSessionType } from "./session/XRSessionType";
+import { XRSessionMode } from "./session/XRSessionMode";
 import { XRFeatureManager } from "./feature/XRFeatureManager";
 import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
@@ -32,8 +32,7 @@ export class XRManager {
   private _scene: Scene;
   private _origin: Entity;
   private _features: TXRFeatureManager[] = [];
-  private _mode: XRSessionType;
-  private _requestFeatures: IXRFeatureDescriptor[];
+  private _mode: XRSessionMode;
 
   /**
    * The current xr scene.
@@ -65,15 +64,8 @@ export class XRManager {
   /**
    * The current session mode( AR or VR ).
    */
-  get mode(): XRSessionType {
+  get mode(): XRSessionMode {
     return this._mode;
-  }
-
-  /**
-   * The requested features.
-   */
-  get requestFeatures(): IXRFeatureDescriptor[] {
-    return this._requestFeatures;
   }
 
   /**
@@ -81,8 +73,8 @@ export class XRManager {
    * @param mode - The mode to check
    * @returns A promise that resolves if the mode is supported, otherwise rejects
    */
-  isSupported(mode: XRSessionType): Promise<void> {
-    return this._xrDevice.isSupported(mode);
+  isSupportedSessionMode(mode: XRSessionMode): Promise<void> {
+    return this._xrDevice.isSupportedSessionMode(mode);
   }
 
   /**
@@ -149,13 +141,13 @@ export class XRManager {
    * @param requestFeatures - The requested features
    * @returns A promise that resolves if the session is initialized, otherwise rejects
    */
-  initSession(mode: XRSessionType, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
+  initSession(mode: XRSessionMode, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
     if (this.sessionManager.state !== XRSessionState.None) {
       return Promise.reject(new Error("Please destroy the old session first"));
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
-      this._xrDevice.isSupported(mode).then(() => {
+      this._xrDevice.isSupportedSessionMode(mode).then(() => {
         if (requestFeatures) {
           // 2. Reset all feature
           this.disableAllFeatures();
@@ -186,7 +178,6 @@ export class XRManager {
               }
               Promise.all(initializeArr).then(() => {
                 this._mode = mode;
-                this._requestFeatures = requestFeatures;
                 this.inputManager._onSessionInit(session);
                 for (let i = 0, n = features.length; i < n; i++) {
                   const feature = features[i];

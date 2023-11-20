@@ -6,12 +6,12 @@ export function generateUUID(): number {
   return ++WebXRDevice._uuid;
 }
 
-export function parseXRMode(mode: number): XRSessionMode {
+export function parseXRMode(mode: number): XRSessionMode | null {
   switch (mode) {
-    // XRSessionType.AR
+    // XRSessionMode.AR
     case 0:
       return "immersive-ar";
-    // XRSessionType.VR
+    // XRSessionMode.VR
     case 1:
       return "immersive-vr";
     default:

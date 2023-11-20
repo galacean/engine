@@ -39,5 +39,5 @@ export { XRTrackedUpdateFlag } from "./input/XRTrackedUpdateFlag";
 
 // xr session
 export { XRSessionManager } from "./session/XRSessionManager";
-export { XRSessionType } from "./session/XRSessionType";
+export { XRSessionMode } from "./session/XRSessionMode";
 export { XRSessionState } from "./session/XRSessionState";

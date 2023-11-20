@@ -9,7 +9,7 @@ export class WebXRDevice implements IXRDevice {
   /** @internal */
   static _uuid: number = 0;
 
-  isSupported(mode: number): Promise<void> {
+  isSupportedSessionMode(mode: number): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (!window.isSecureContext) {
         reject(new Error("WebXR is available only in secure contexts (HTTPS)."));

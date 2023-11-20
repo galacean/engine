@@ -1,7 +1,7 @@
 /**
  * The type of XR session.
  */
-export enum XRSessionType {
+export enum XRSessionMode {
   AR,
   VR
 }

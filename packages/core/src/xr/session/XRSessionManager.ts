@@ -1,16 +1,13 @@
 import { IXRFrame, IXRSession, IXRFeatureDescriptor, IHardwareRenderer } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { XRSessionType } from "./XRSessionType";
+import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
-import { Utils } from "../../Utils";
 
-type TXRSessionStateChangeListener = (from: XRSessionState, to: XRSessionState) => void;
 export class XRSessionManager {
   protected _session: IXRSession;
   protected _frame: IXRFrame;
   protected _state: XRSessionState = XRSessionState.None;
   private _rhi: IHardwareRenderer;
-  private _listeners: TXRSessionStateChangeListener[] = [];
 
   /**
    * Return the current session state.
@@ -68,7 +65,7 @@ export class XRSessionManager {
    * @param requestFeatures - The requested features
    * @returns The promise of the session
    */
-  initialize(mode: XRSessionType, requestFeatures: IXRFeatureDescriptor[]): Promise<IXRSession> {
+  initialize(mode: XRSessionMode, requestFeatures: IXRFeatureDescriptor[]): Promise<IXRSession> {
     const { _xrDevice: xrDevice } = this._engine.xrManager;
     return new Promise((resolve, reject) => {
       xrDevice.requestSession(this._rhi, mode, requestFeatures).then((session: IXRSession) => {
@@ -137,29 +134,6 @@ export class XRSessionManager {
     });
   }
 
-  /**
-   * Add a session state change listener.
-   * @param listener - The listener to add
-   */
-  addSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
-    this._listeners.push(listener);
-  }
-
-  /**
-   * Remove a session state change listener.
-   * @param listener - The listener to remove
-   */
-  removeSessionStateChangeListener(listener: TXRSessionStateChangeListener): void {
-    Utils.removeFromArray(this._listeners, listener);
-  }
-
-  /**
-   * Remove all session state change listeners.
-   */
-  removeAllSessionStateChangeListener(): void {
-    this._listeners.length = 0;
-  }
-
   constructor(protected _engine: Engine) {
     this._rhi = _engine._hardwareRenderer;
   }
@@ -170,12 +144,5 @@ export class XRSessionManager {
     rhi._mainFrameBuffer = session.framebuffer;
     rhi._mainFrameWidth = session.framebufferWidth;
     rhi._mainFrameHeight = session.framebufferHeight;
-  }
-
-  private _dispatchSessionStateChange(from: XRSessionState, to: XRSessionState): void {
-    const listeners = this._listeners;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i](from, to);
-    }
   }
 }
