@@ -205,4 +205,9 @@ describe("ShaderLab", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/noFragArgs.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });
+
+  it("water full shader(complex)", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/waterfull.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
 });
