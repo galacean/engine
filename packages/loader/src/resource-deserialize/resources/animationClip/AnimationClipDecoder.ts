@@ -17,7 +17,8 @@ import {
   ReferResource,
   AnimationObjectCurve,
   AnimationStringCurve,
-  AnimationBoolCurve
+  AnimationBoolCurve,
+  AnimationMethodCurve
 } from "@galacean/engine-core";
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
@@ -272,9 +273,20 @@ export class AnimationClipDecoder {
               const keyframe = new Keyframe<Object>();
               keyframe.time = bufferReader.nextFloat32();
               const str = bufferReader.nextStr();
-              console.log("AnimationObjectCurve", str);
               keyframe.value = JSON.parse(str);
               (<AnimationObjectCurve>curve).addKey(keyframe);
+            }
+            break;
+          }
+          case "AnimationMethodCurve": {
+            curve = new AnimationMethodCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Object>();
+              keyframe.time = bufferReader.nextFloat32();
+              const str = bufferReader.nextStr();
+              keyframe.value = JSON.parse(str);
+              (<AnimationMethodCurve>curve).addKey(keyframe);
             }
             break;
           }

@@ -12,3 +12,4 @@ export { AnimationRefCurve } from "./AnimationRefCurve";
 export { AnimationRectCurve } from "./AnimationRectCurve";
 export { AnimationStringCurve } from "./AnimationStringCurve";
 export { AnimationObjectCurve } from "./AnimationObjectCurve";
+export { AnimationMethodCurve } from "./AnimationMethodCurve";
