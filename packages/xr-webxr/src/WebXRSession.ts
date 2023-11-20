@@ -1,7 +1,7 @@
 import { IXRSession, IXRInputEvent } from "@galacean/engine-design";
-import { XRInputEvent } from "@galacean/engine";
-import { getInputSource } from "./util";
+import { XRTargetRayMode } from "@galacean/engine";
 import { WebXRFrame } from "./WebXRFrame";
+import { getInputSource } from "./util";
 
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
@@ -15,7 +15,7 @@ export class WebXRSession implements IXRSession {
   _platformReferenceSpace: XRReferenceSpace;
 
   private _frame: WebXRFrame;
-  private _events: XRInputEvent[] = [];
+  private _events: IXRInputEvent[] = [];
   private _screenPointers: XRInputSource[] = [];
   private _inputEventTypeMap: Record<string, number> = {
     // XRInputEventType.SelectStart
@@ -30,6 +30,11 @@ export class WebXRSession implements IXRSession {
     squeeze: 4,
     // XRInputEventType.SqueezeEnd
     squeezeend: 5
+  };
+  private _targetRayModeMap: Record<string, number> = {
+    gaze: XRTargetRayMode.Gaze,
+    "tracked-pointer": XRTargetRayMode.TrackedPointer,
+    screen: XRTargetRayMode.Screen
   };
 
   get frame(): WebXRFrame {
@@ -71,15 +76,18 @@ export class WebXRSession implements IXRSession {
     for (let i = 0; i < screenPointers.length; i++) {
       const inputSource = screenPointers[i];
       if (!inputSource) continue;
-      const event = new XRInputEvent();
-      // XRInputEventType.Select
-      event.type = 1;
-      // XRTargetRayMode.Screen
-      event.targetRayMode = 2;
-      // XRInputType.Controller
-      event.input = 0;
-      event.id = i;
-      [event.x, event.y] = inputSource.gamepad.axes;
+      const { axes } = inputSource.gamepad;
+      const event = {
+        // XRInputEventType.Select
+        type: 1,
+        // XRTargetRayMode.Screen
+        targetRayMode: 2,
+        // XRInputType.Controller
+        input: 0,
+        id: i,
+        x: axes[0],
+        y: axes[1]
+      };
       events.unshift(event);
     }
     return events;
@@ -143,65 +151,55 @@ export class WebXRSession implements IXRSession {
 
   private _onSessionEvent(inputSourceEvent: XRInputSourceEvent) {
     const { inputSource } = inputSourceEvent;
-    const event = new XRInputEvent();
-    event.input = getInputSource(inputSourceEvent.inputSource);
-    event.type = this._inputEventTypeMap[inputSourceEvent.type];
-    switch (inputSource.targetRayMode) {
-      case "gaze":
-        // XRTargetRayMode.Gaze
-        event.targetRayMode = 0;
-        break;
-      case "tracked-pointer":
-        // XRTargetRayMode.TrackedPointer
-        event.targetRayMode = 1;
-        break;
-      case "screen":
-        // XRTargetRayMode.Screen
-        event.targetRayMode = 2;
-        const { _screenPointers: screenPointers } = this;
-        const { axes } = inputSource.gamepad;
-        event.x = axes[0];
-        event.y = axes[1];
-        switch (event.type) {
-          // XRInputEventType.SelectStart
-          case 0:
-            let idx = -1;
-            let emptyIdx = -1;
-            for (let i = screenPointers.length - 1; i >= 0; i--) {
-              const pointer = screenPointers[i];
-              if (pointer === inputSource) {
-                idx = i;
-                break;
-              }
-              if (!pointer) {
-                emptyIdx = i;
-              }
+    const event: IXRInputEvent = {
+      type: this._inputEventTypeMap[inputSourceEvent.type],
+      input: getInputSource(inputSource),
+      targetRayMode: this._targetRayModeMap[inputSource.targetRayMode]
+    };
+    if (event.targetRayMode === XRTargetRayMode.Screen) {
+      // XRTargetRayMode.Screen
+      event.targetRayMode = 2;
+      const { _screenPointers: screenPointers } = this;
+      const { axes } = inputSource.gamepad;
+      event.x = axes[0];
+      event.y = axes[1];
+      switch (event.type) {
+        // XRInputEventType.SelectStart
+        case 0:
+          let idx = -1;
+          let emptyIdx = -1;
+          for (let i = screenPointers.length - 1; i >= 0; i--) {
+            const pointer = screenPointers[i];
+            if (pointer === inputSource) {
+              idx = i;
+              break;
             }
-            if (idx === -1) {
-              if (emptyIdx === -1) {
-                idx = screenPointers.push(inputSource) - 1;
-              } else {
-                idx = emptyIdx;
-                screenPointers[emptyIdx] = inputSource;
-              }
+            if (!pointer) {
+              emptyIdx = i;
             }
-            event.id = idx;
-            break;
-          // XRInputEventType.SelectEnd
-          case 2:
-            for (let i = screenPointers.length - 1; i >= 0; i--) {
-              if (screenPointers[i] === inputSource) {
-                screenPointers[i] = null;
-                event.id = i;
-              }
+          }
+          if (idx === -1) {
+            if (emptyIdx === -1) {
+              idx = screenPointers.push(inputSource) - 1;
+            } else {
+              idx = emptyIdx;
+              screenPointers[emptyIdx] = inputSource;
             }
-            break;
-          default:
-            break;
-        }
-        break;
-      default:
-        break;
+          }
+          event.id = idx;
+          break;
+        // XRInputEventType.SelectEnd
+        case 2:
+          for (let i = screenPointers.length - 1; i >= 0; i--) {
+            if (screenPointers[i] === inputSource) {
+              screenPointers[i] = null;
+              event.id = i;
+            }
+          }
+          break;
+        default:
+          break;
+      }
     }
     this._events.push(event);
   }

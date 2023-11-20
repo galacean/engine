@@ -32,7 +32,6 @@ export { XRPlaneMode } from "./feature/trackable/plane/XRPlaneMode";
 export { XRTrackingState } from "./input/XRTrackingState";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRInputButton } from "./input/XRInputButton";
-export { XRInputEvent } from "./input/XRInputEvent";
 export { XRController } from "./input/XRController";
 export { XRInputType } from "./input/XRInputType";
 export { XRCamera } from "./input/XRCamera";

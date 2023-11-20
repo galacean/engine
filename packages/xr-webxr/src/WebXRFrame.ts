@@ -1,7 +1,7 @@
-import { Matrix, Vector3, XRCamera, XRController } from "@galacean/engine";
-import { IXRFrame, IXRInput } from "@galacean/engine-design";
-import { getInputSource, viewToCamera } from "./util";
+import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine";
 import { WebXRSession } from "./WebXRSession";
+import { getInputSource, viewToCamera } from "./util";
 
 export class WebXRFrame implements IXRFrame {
   // @internal
@@ -20,7 +20,7 @@ export class WebXRFrame implements IXRFrame {
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
       const type = getInputSource(inputSource);
-      const input = <XRController>inputs[type];
+      const input = <IXRController>inputs[type];
       switch (inputSource.targetRayMode) {
         case "screen":
         case "tracked-pointer":
@@ -74,7 +74,7 @@ export class WebXRFrame implements IXRFrame {
         if (type === 3) {
           hadUpdateCenterViewer ||= true;
         }
-        const xrCamera = <XRCamera>inputs[type];
+        const xrCamera = <IXRCamera>inputs[type];
         const { pose } = xrCamera;
         pose.matrix.copyFromArray(transform.matrix);
         pose.position.copyFrom(transform.position);
@@ -87,25 +87,15 @@ export class WebXRFrame implements IXRFrame {
         const x = xrViewport.x / framebufferWidth;
         const y = 1 - xrViewport.y / framebufferHeight - height;
         xrCamera.viewport.set(x, y, width, height);
-        const { camera } = xrCamera;
-        if (camera) {
-          const vec4 = camera.viewport;
-          if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
-            camera.viewport = vec4.set(x, y, width, height);
-          }
-          if (!Matrix.equals(camera.projectionMatrix, xrCamera.projectionMatrix)) {
-            camera.projectionMatrix = xrCamera.projectionMatrix;
-          }
-        }
       }
 
       if (!hadUpdateCenterViewer) {
         // XRInputType.LeftCamera
-        const leftCameraDevice = <XRCamera>inputs[4];
+        const leftCameraDevice = <IXRCamera>inputs[4];
         // XRInputType.RightCamera
-        const rightCameraDevice = <XRCamera>inputs[5];
+        const rightCameraDevice = <IXRCamera>inputs[5];
         // XRInputType.Camera
-        const cameraDevice = <XRCamera>inputs[3];
+        const cameraDevice = <IXRCamera>inputs[3];
         const { pose: leftCameraPose } = leftCameraDevice;
         const { pose: rightCameraPose } = rightCameraDevice;
         const { pose: cameraPose } = cameraDevice;
@@ -124,19 +114,19 @@ export class WebXRFrame implements IXRFrame {
           leftCameraDevice.viewport.width && leftCameraDevice.viewport.height
             ? leftCameraDevice.viewport
             : rightCameraDevice.viewport;
-        const { camera } = cameraDevice;
-        if (camera) {
-          // sync viewport
-          const vec4 = camera.viewport;
-          const { x, y, width, height } = cameraDevice.viewport;
-          if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
-            camera.viewport = vec4.set(x, y, width, height);
-          }
-          // sync project matrix
-          if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
-            camera.projectionMatrix = cameraDevice.projectionMatrix;
-          }
-        }
+        // const { camera } = cameraDevice;
+        // if (camera) {
+        //   // sync viewport
+        //   const vec4 = camera.viewport;
+        //   const { x, y, width, height } = cameraDevice.viewport;
+        //   if (!(x === vec4.x && y === vec4.y && width === vec4.z && height === vec4.w)) {
+        //     camera.viewport = vec4.set(x, y, width, height);
+        //   }
+        //   // sync project matrix
+        //   if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
+        //     camera.projectionMatrix = cameraDevice.projectionMatrix;
+        //   }
+        // }
       }
     }
   }

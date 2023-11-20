@@ -5,9 +5,11 @@ export type { IXRMovementTracking } from "./feature/IXRMovementTracking";
 export type { IXRHitResult } from "./feature/IXRHitResult";
 export type { IXRTrackableFeature } from "./feature/trackable/IXRTrackableFeature";
 
-export type { IXRDevice } from "./IXRDevice";
+export type { IXRInputEvent } from "./IXRInputEvent";
 export type { IXRInput } from "./input/IXRInput";
 export type { IXRPose } from "./input/IXRPose";
+export type { IXRController } from "./input/IXRController";
+export type { IXRCamera } from "./input/IXRCamera";
 
 export type { IXRRequestTracking } from "./feature/trackable/IXRRequestTracking";
 export type { IXRTracked } from "./feature/trackable/IXRTracked";
@@ -27,6 +29,6 @@ export type { IXRAnchorTrackingDescriptor } from "./feature/trackable/anchor/IXR
 export type { IXRAnchorTracking } from "./feature/trackable/anchor/IXRAnchorTracking";
 export type { IXRRequestAnchorTracking } from "./feature/trackable/anchor/IXRRequestAnchorTracking";
 
+export type { IXRDevice } from "./IXRDevice";
 export type { IXRFrame } from "./IXRFrame";
 export type { IXRSession } from "./IXRSession";
-export type { IXRInputEvent } from "./IXRInputEvent";

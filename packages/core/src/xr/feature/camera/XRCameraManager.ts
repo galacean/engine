@@ -1,3 +1,4 @@
+import { IXRSession, IXRFrame } from "@galacean/engine-design";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
 import { Logger } from "../../../base";
@@ -9,6 +10,7 @@ import { XRSessionManager } from "../../session/XRSessionManager";
 import { XRFeatureManager } from "../XRFeatureManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { IXRCameraDescriptor } from "./IXRCameraDescriptor";
+import { Matrix } from "@galacean/engine-math";
 
 @registerXRFeatureManager(XRFeatureType.CameraDevice)
 /**
@@ -77,6 +79,27 @@ export class XRCameraManager extends XRFeatureManager<IXRCameraDescriptor> {
     const { session } = this._sessionManager;
     if (session) {
       session.fixedFoveation = value;
+    }
+  }
+
+  override onUpdate(session: IXRSession, frame: IXRFrame): void {
+    const { _cameras: cameras } = this._inputManager;
+    for (let i = 0, n = cameras.length; i < n; i++) {
+      const cameraDevice = cameras[i];
+      const { camera } = cameraDevice;
+      if (!camera) continue;
+      camera.entity.transform.position = cameraDevice.pose.position;
+      camera.entity.transform.rotationQuaternion = cameraDevice.pose.rotation;
+      // sync viewport
+      const { viewport } = camera;
+      const { x, y, width, height } = cameraDevice.viewport;
+      if (!(x === viewport.x && y === viewport.y && width === viewport.z && height === viewport.w)) {
+        camera.viewport = viewport.set(x, y, width, height);
+      }
+      // sync project matrix
+      if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
+        camera.projectionMatrix = cameraDevice.projectionMatrix;
+      }
     }
   }
 

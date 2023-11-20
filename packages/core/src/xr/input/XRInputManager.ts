@@ -1,10 +1,9 @@
-import { IXRInput, IXRSession } from "@galacean/engine-design";
+import { IXRInput, IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
 import { XRCamera } from "./XRCamera";
 import { XRInputType } from "./XRInputType";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { XRInputEvent } from "./XRInputEvent";
 import { XRInputButton } from "./XRInputButton";
 import { XRTrackingState } from "./XRTrackingState";
 import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
@@ -15,10 +14,14 @@ import { XRInputEventType } from "./XRInputEventType";
  * The manager of XR input.
  */
 export class XRInputManager {
+  // @internal
+  _cameras: XRCamera[] = [];
+  // @internal
+  _controllers: XRController[] = [];
+
   protected _engine: Engine;
   protected _session: IXRSession;
   protected _inputs: IXRInput[] = [];
-  protected _controllers: XRController[] = [];
   protected _added: IXRInput[] = [];
   protected _updated: IXRInput[] = [];
   protected _removed: IXRInput[] = [];
@@ -96,13 +99,13 @@ export class XRInputManager {
 
   constructor(engine: Engine) {
     this._engine = engine;
-    const { _inputs: inputs, _controllers: controllers } = this;
+    const { _inputs: inputs, _controllers: controllers, _cameras: cameras } = this;
     for (let i = XRInputType.Length - 1; i >= 0; i--) {
       switch (i) {
         case XRInputType.Camera:
         case XRInputType.LeftCamera:
         case XRInputType.RightCamera:
-          inputs[i] = new XRCamera(i);
+          cameras.push((inputs[i] = new XRCamera(i)));
           break;
         case XRInputType.Controller:
         case XRInputType.LeftController:
@@ -156,7 +159,40 @@ export class XRInputManager {
     if (removed.length > 0) trackingUpdate.dispatch(XRTrackedUpdateFlag.Removed, removed);
   }
 
-  private _handleEvent(event: XRInputEvent): void {
+  /**
+   * @internal
+   */
+  _onSessionInit(session: IXRSession): void {
+    this._session = session;
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionStart(): void {
+    this._session?.addEventListener();
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionStop(): void {
+    this._session?.removeEventListener();
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void {
+    this._session = null;
+  }
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {}
+
+  private _handleEvent(event: IXRInputEvent): void {
     const { frameCount } = this._engine.time;
     const input = <XRController>this._inputs[event.input];
     switch (event.targetRayMode) {
@@ -211,39 +247,6 @@ export class XRInputManager {
         break;
     }
   }
-
-  /**
-   * @internal
-   */
-  _onSessionInit(session: IXRSession): void {
-    this._session = session;
-  }
-
-  /**
-   * @internal
-   */
-  _onSessionStart(): void {
-    this._session?.addEventListener();
-  }
-
-  /**
-   * @internal
-   */
-  _onSessionStop(): void {
-    this._session?.removeEventListener();
-  }
-
-  /**
-   * @internal
-   */
-  _onSessionDestroy(): void {
-    this._session = null;
-  }
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {}
 
   private _makeUpPointerEvent(type: string, pointerId: number, clientX: number, clientY: number): PointerEvent {
     const eventInitDict: PointerEventInit = {
