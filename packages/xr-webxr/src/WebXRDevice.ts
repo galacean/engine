@@ -19,12 +19,7 @@ export class WebXRDevice implements IXRDevice {
         reject(new Error("WebXR isn't available"));
         return;
       }
-      const sessionMode = parseXRMode(mode);
-      if (!sessionMode) {
-        reject(new Error("mode must be a value from the XRMode."));
-        return;
-      }
-      navigator.xr.isSessionSupported(sessionMode).then((isSupported: boolean) => {
+      navigator.xr.isSessionSupported(parseXRMode(mode)).then((isSupported: boolean) => {
         isSupported ? resolve() : reject(new Error("The current context doesn't support WebXR."));
       });
     });
