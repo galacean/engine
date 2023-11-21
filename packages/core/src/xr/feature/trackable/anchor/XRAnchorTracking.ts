@@ -2,8 +2,8 @@ import {
   IXRPose,
   IXRTracked,
   IXRAnchorTracking,
-  IXRRequestAnchorTracking,
-  IXRAnchorTrackingDescriptor
+  IXRAnchorTrackingConfig,
+  IXRRequestAnchorTracking
 } from "@galacean/engine-design";
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRFeatureType } from "../../XRFeatureType";
@@ -15,7 +15,7 @@ import { XRRequestTrackingState } from "../XRRequestTrackingState";
  * The manager of XR anchor tracking.
  */
 export class XRAnchorTracking extends XRTrackableFeature<
-  IXRAnchorTrackingDescriptor,
+  IXRAnchorTrackingConfig,
   IXRTracked,
   IXRRequestAnchorTracking,
   IXRAnchorTracking
@@ -46,7 +46,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
   }
 
   override initialize(): Promise<void> {
-    const { anchors } = this._descriptor;
+    const { anchors } = this._config;
     if (anchors) {
       for (let i = 0, n = anchors.length; i < n; i++) {
         this.addRequestTracking(this._createRequestTracking(anchors[i]));

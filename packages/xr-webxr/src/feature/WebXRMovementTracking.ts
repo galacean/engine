@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRMovementTracking } from "@galacean/engine-design";
+import { IXRMovementTrackingConfig, IXRMovementTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 
 // XRFeatureType.MovementTracking
@@ -7,7 +7,7 @@ import { registerXRPlatformFeature } from "../WebXRDevice";
  * WebXR implementation of XRPlatformMovementTracking.
  */
 export class WebXRMovementTracking implements IXRMovementTracking {
-  isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
+  isSupported(config: IXRMovementTrackingConfig): Promise<void> {
     return Promise.resolve();
   }
 

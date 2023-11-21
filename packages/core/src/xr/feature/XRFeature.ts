@@ -1,23 +1,23 @@
-import { IXRFeatureDescriptor, IXRFeature, IXRPlatformFeature, IXRSession, IXRFrame } from "@galacean/engine-design";
+import { IXRFeatureConfig, IXRFeature, IXRPlatformFeature, IXRSession, IXRFrame } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 
 /**
  * The base class of XR feature manager.
  */
 export abstract class XRFeature<
-  TDescriptor extends IXRFeatureDescriptor = IXRFeatureDescriptor,
+  TConfig extends IXRFeatureConfig = IXRFeatureConfig,
   TFeature extends IXRPlatformFeature = IXRPlatformFeature
 > implements IXRFeature
 {
   _platformFeature: TFeature;
-  protected _descriptor: TDescriptor;
+  protected _config: TConfig;
   protected _enabled: boolean = false;
 
   /**
    * Return the descriptor of the feature.
    */
-  get descriptor(): TDescriptor {
-    return this._descriptor;
+  get config(): TConfig {
+    return this._config;
   }
 
   /**
@@ -39,7 +39,7 @@ export abstract class XRFeature<
    * @returns The promise of the feature
    */
   isSupported(): Promise<void> {
-    return this._platformFeature.isSupported(this.descriptor);
+    return this._platformFeature.isSupported(this._config);
   }
 
   /**

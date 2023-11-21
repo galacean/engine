@@ -1,6 +1,6 @@
 import {
-  IXRFeatureDescriptor,
   IXRImageTracking,
+  IXRImageTrackingConfig,
   IXRRequestImageTracking,
   IXRTrackedImage
 } from "@galacean/engine-design";
@@ -24,7 +24,7 @@ export class WebXRImageTracking implements IXRImageTracking {
   private _tempIdx: number = 0;
   private _tempArr: number[] = [];
 
-  isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
+  isSupported(config: IXRImageTrackingConfig): Promise<void> {
     return Promise.resolve();
   }
 

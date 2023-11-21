@@ -1,4 +1,4 @@
-import { IXRAnchorTracking, IXRFeatureDescriptor, IXRRequestAnchorTracking } from "@galacean/engine-design";
+import { IXRAnchorTracking, IXRAnchorTrackingConfig, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
@@ -15,7 +15,7 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
     out.requiredFeatures.push("anchors");
   }
 
-  isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
+  isSupported(config: IXRAnchorTrackingConfig): Promise<void> {
     return Promise.resolve();
   }
 

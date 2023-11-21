@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRImageTrackingDescriptor } from "@galacean/engine-design";
+import { IXRFeatureConfig, IXRImageTrackingConfig } from "@galacean/engine-design";
 import { request } from "@galacean/engine";
 import { WebXRDevice } from "./WebXRDevice";
 
@@ -19,9 +19,9 @@ export function parseXRMode(mode: number): XRSessionMode | null {
   }
 }
 
-export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessionInit): Promise<void> | void {
+export function parseFeature(config: IXRFeatureConfig, options: XRSessionInit): Promise<void> | void {
   const { requiredFeatures } = options;
-  switch (descriptor.type) {
+  switch (config.type) {
     // XRFeatureType.AnchorTracking
     case 2:
       requiredFeatures.push("anchors");
@@ -29,7 +29,7 @@ export function parseFeature(descriptor: IXRFeatureDescriptor, options: XRSessio
     // XRFeatureType.ImageTracking
     case 3:
       requiredFeatures.push("image-tracking");
-      const { images } = <IXRImageTrackingDescriptor>descriptor;
+      const { images } = <IXRImageTrackingConfig>config;
       const promiseArr: Promise<ImageBitmap>[] = [];
       if (images) {
         for (let i = 0, n = images.length; i < n; i++) {

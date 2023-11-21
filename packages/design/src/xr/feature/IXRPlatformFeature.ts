@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
+import { IXRFeatureConfig } from "./IXRFeatureConfig";
 
 /**
  * The base interface of the platform feature.
@@ -9,5 +9,5 @@ export interface IXRPlatformFeature {
    * Returns whether the feature is supported.
    * @param descriptor - The descriptor of the feature
    */
-  isSupported(descriptor: IXRFeatureDescriptor): Promise<void>;
+  isSupported(descriptor: IXRFeatureConfig): Promise<void>;
 }

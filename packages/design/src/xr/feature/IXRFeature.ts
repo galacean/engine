@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor } from "./IXRFeatureDescriptor";
+import { IXRFeatureConfig } from "./IXRFeatureConfig";
 import { IXRPlatformFeature } from "./IXRPlatformFeature";
 import { IXRSession } from "../IXRSession";
 import { IXRFrame } from "../IXRFrame";
@@ -8,12 +8,13 @@ export interface IXRFeature {
   /** Whether this feature enabled. */
   enabled: boolean;
 
-  /** The descriptor of the feature. */
-  get descriptor(): IXRFeatureDescriptor;
+  /**
+   * Return the config of the feature.
+   */
+  get config(): IXRFeatureConfig;
 
   /**
    * Returns whether the feature is supported.
-   * @param descriptor - The descriptor of the feature
    */
   isSupported(): Promise<void>;
 

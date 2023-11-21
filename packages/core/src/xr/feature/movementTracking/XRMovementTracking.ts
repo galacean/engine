@@ -1,4 +1,4 @@
-import { IXRMovementTracking, IXRMovementTrackingDescriptor } from "@galacean/engine-design";
+import { IXRMovementTracking, IXRMovementTrackingConfig } from "@galacean/engine-design";
 import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
 import { registerXRFeature } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
@@ -8,7 +8,7 @@ import { XRFeature } from "../XRFeature";
 /**
  * The manager of XR movement tracking.
  */
-export class XRMovementTracking extends XRFeature<IXRMovementTrackingDescriptor, IXRMovementTracking> {
+export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXRMovementTracking> {
   /**
    * Get the tracking mode.
    */

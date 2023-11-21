@@ -36,7 +36,7 @@ export class WebXRDevice implements IXRDevice {
       const options: XRSessionInit = { requiredFeatures: ["local"] };
       const promiseArr = [];
       for (let i = 0, n = requestFeatures.length; i < n; i++) {
-        const promise = parseFeature(requestFeatures[i].descriptor, options);
+        const promise = parseFeature(requestFeatures[i].config, options);
         promise && promiseArr.push(promise);
       }
       Promise.all(promiseArr).then(() => {

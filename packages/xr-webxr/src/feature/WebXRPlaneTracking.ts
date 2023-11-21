@@ -1,4 +1,9 @@
-import { IXRPlaneTracking, IXRRequestPlaneTracking, IXRTrackedPlane } from "@galacean/engine-design";
+import {
+  IXRPlaneTracking,
+  IXRPlaneTrackingConfig,
+  IXRRequestPlaneTracking,
+  IXRTrackedPlane
+} from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
@@ -22,7 +27,7 @@ export class WebXRPlaneTracking implements IXRPlaneTracking {
     console.warn("WebXR does not support modifying plane tracking mode.");
   }
 
-  isSupported(): Promise<void> {
+  isSupported(config: IXRPlaneTrackingConfig): Promise<void> {
     return Promise.resolve();
   }
 

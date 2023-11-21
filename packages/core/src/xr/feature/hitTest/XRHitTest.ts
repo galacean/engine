@@ -1,4 +1,4 @@
-import { IXRFeatureDescriptor, IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
 import { XRHitTestType } from "./XRHitTestType";
 import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
@@ -31,7 +31,7 @@ export class XRHitTest extends XRFeature {
    * @param descriptor - The descriptor of the feature
    * @returns The promise of the feature
    */
-  override isSupported(descriptor?: IXRFeatureDescriptor): Promise<void> {
+  override isSupported(): Promise<void> {
     return Promise.resolve();
   }
 

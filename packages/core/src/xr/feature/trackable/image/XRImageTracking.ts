@@ -1,8 +1,8 @@
 import {
-  IXRImageTracking,
-  IXRRequestImageTracking,
   IXRTrackedImage,
-  IXRImageTrackingDescriptor
+  IXRImageTracking,
+  IXRImageTrackingConfig,
+  IXRRequestImageTracking
 } from "@galacean/engine-design";
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRReferenceImage } from "./XRReferenceImage";
@@ -17,7 +17,7 @@ import { Logger } from "../../../../base";
  * The manager of XR image tracking.
  */
 export class XRImageTracking extends XRTrackableFeature<
-  IXRImageTrackingDescriptor,
+  IXRImageTrackingConfig,
   IXRTrackedImage,
   IXRRequestImageTracking,
   IXRImageTracking
@@ -86,7 +86,7 @@ export class XRImageTracking extends XRTrackableFeature<
   }
 
   override initialize(): Promise<void> {
-    const { images } = this._descriptor;
+    const { images } = this._config;
     if (images) {
       for (let i = 0, n = images.length; i < n; i++) {
         this.addRequestTracking(this._createRequestTracking(images[i]));

@@ -1,8 +1,8 @@
 import {
+  IXRTrackedPlane,
   IXRPlaneTracking,
-  IXRPlaneTrackingDescriptor,
-  IXRRequestPlaneTracking,
-  IXRTrackedPlane
+  IXRPlaneTrackingConfig,
+  IXRRequestPlaneTracking
 } from "@galacean/engine-design";
 import { XRPlaneMode } from "./XRPlaneMode";
 import { XRTrackableFeature } from "../XRTrackableFeature";
@@ -15,7 +15,7 @@ import { XRRequestTrackingState } from "../XRRequestTrackingState";
  * The manager of plane tracking feature.
  */
 export class XRPlaneTracking extends XRTrackableFeature<
-  IXRPlaneTrackingDescriptor,
+  IXRPlaneTrackingConfig,
   IXRTrackedPlane,
   IXRRequestPlaneTracking,
   IXRPlaneTracking
@@ -33,7 +33,7 @@ export class XRPlaneTracking extends XRTrackableFeature<
 
   override initialize(): Promise<void> {
     this.addRequestTracking({
-      detectionMode: this._descriptor.mode,
+      detectionMode: this._config.mode,
       state: XRRequestTrackingState.None,
       tracked: []
     });
