@@ -186,7 +186,8 @@ export class XRManager {
               for (let i = 0, n = enabledFeatures.length; i < n; i++) {
                 enabledFeatures[i].onSessionInit();
               }
-              resolve();
+              // 6. Auto run the session
+              this.run().then(resolve, reject);
             }, reject);
           }, reject);
         }, reject);

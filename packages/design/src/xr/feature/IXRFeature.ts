@@ -5,17 +5,17 @@ import { IXRFrame } from "../IXRFrame";
 
 export interface IXRFeature {
   _platformFeature: IXRPlatformFeature;
-
-  /** The descriptor of the feature. */
-  descriptor: IXRFeatureDescriptor;
   /** Whether this feature enabled. */
   enabled: boolean;
+
+  /** The descriptor of the feature. */
+  get descriptor(): IXRFeatureDescriptor;
 
   /**
    * Returns whether the feature is supported.
    * @param descriptor - The descriptor of the feature
    */
-  isSupported(descriptor?: IXRFeatureDescriptor): Promise<void>;
+  isSupported(): Promise<void>;
 
   /**
    * Initialize the feature.

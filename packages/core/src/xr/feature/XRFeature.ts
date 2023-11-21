@@ -10,7 +10,6 @@ export abstract class XRFeature<
 > implements IXRFeature
 {
   _platformFeature: TFeature;
-
   protected _descriptor: TDescriptor;
   protected _enabled: boolean = false;
 
@@ -19,10 +18,6 @@ export abstract class XRFeature<
    */
   get descriptor(): TDescriptor {
     return this._descriptor;
-  }
-
-  set descriptor(value: TDescriptor) {
-    this._descriptor = value;
   }
 
   /**
@@ -41,11 +36,10 @@ export abstract class XRFeature<
 
   /**
    * Returns whether the feature is supported.
-   * @param descriptor - The descriptor of the feature
    * @returns The promise of the feature
    */
-  isSupported(descriptor?: IXRFeatureDescriptor): Promise<void> {
-    return this._platformFeature.isSupported(descriptor || this._descriptor);
+  isSupported(): Promise<void> {
+    return this._platformFeature.isSupported(this.descriptor);
   }
 
   /**
