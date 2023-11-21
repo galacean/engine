@@ -9,7 +9,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @returns AssetPromise
    */
   static all<T = any>(promises: (PromiseLike<T> | T)[]) {
-    return new AssetPromise<T[]>((resolve, reject, setItemsProgress) => {
+    return new AssetPromise<T[]>((resolve, reject, setTaskCompleteProgress) => {
       const count = promises.length;
       const results: T[] = new Array(count);
       let completed = 0;
@@ -22,7 +22,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
         completed++;
         results[index] = resultValue;
 
-        setItemsProgress(completed, count);
+        setTaskCompleteProgress(completed, count);
         if (completed === count) {
           resolve(results);
         }
@@ -53,10 +53,10 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   private _promise: Promise<T>;
   private _state = PromiseState.Pending;
-  private _progressItems: ProgressItems;
-  private _progressDetails: Record<string, ProgressItems>;
-  private _onProgressItemsCallback: ProgressItemsCallback[] = [];
-  private _onProgressDetailsCallback: ProgressDetailsCallback[] = [];
+  private _taskCompleteProgress: TaskCompleteProgress;
+  private _taskDetailProgress: Record<string, TaskCompleteProgress>;
+  private _onTaskCompleteCallbacks: TaskCompleteCallback[] = [];
+  private _onTaskDetailCallbacks: TaskDetailCallback[] = [];
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
 
@@ -74,16 +74,16 @@ export class AssetPromise<T> implements PromiseLike<T> {
         if (this._state === PromiseState.Pending) {
           resolve(value);
           this._state = PromiseState.Fulfilled;
-          this._onProgressItemsCallback = undefined;
-          this._onProgressDetailsCallback = undefined;
+          this._onTaskCompleteCallbacks = undefined;
+          this._onTaskDetailCallbacks = undefined;
         }
       };
       const onReject = (reason) => {
         if (this._state === PromiseState.Pending) {
           reject(reason);
           this._state = PromiseState.Rejected;
-          this._onProgressItemsCallback = undefined;
-          this._onProgressDetailsCallback = undefined;
+          this._onTaskCompleteCallbacks = undefined;
+          this._onTaskDetailCallbacks = undefined;
         }
       };
       const onCancel = (callback) => {
@@ -91,55 +91,56 @@ export class AssetPromise<T> implements PromiseLike<T> {
           this._onCancelHandler = callback;
         }
       };
-      const setItemsProgress = (loaded: number, total: number) => {
+      const setTaskCompleteProgress = (loaded: number, total: number) => {
         if (this._state === PromiseState.Pending) {
-          const progress = (this._progressItems ||= { loaded, total });
+          const progress = (this._taskCompleteProgress ||= { loaded, total });
 
           progress.loaded = loaded;
           progress.total = total;
 
-          this._onProgressItemsCallback.forEach((callback) => callback(loaded, total));
+          this._onTaskCompleteCallbacks.forEach((callback) => callback(loaded, total));
         }
       };
-      const setDetailsProgress = (url: string, loaded: number, total: number) => {
+      const setTaskDetailProgress = (url: string, loaded: number, total: number) => {
         if (this._state === PromiseState.Pending) {
-          this._progressDetails ||= {};
-          const progress = (this._progressDetails[url] ||= { loaded, total });
+          this._taskDetailProgress ||= {};
+          const progress = (this._taskDetailProgress[url] ||= { loaded, total });
           progress.loaded = loaded;
           progress.total = total;
-          this._onProgressDetailsCallback.forEach((callback) => callback(url, loaded, total));
+          this._onTaskDetailCallbacks.forEach((callback) => callback(url, loaded, total));
         }
       };
 
-      executor(onResolve, onReject, setItemsProgress, setDetailsProgress, onCancel);
+      executor(onResolve, onReject, setTaskCompleteProgress, setTaskDetailProgress, onCancel);
     });
   }
 
   /**
    * Progress callback.
-   * @param callback
+   * @param onTaskComplete - This callback function provides information about the overall progress of the task. For example, in batch processing tasks, you can use the loaded and total parameters to calculate the percentage of task completion or display a progress bar.
+   * @param onTaskDetail - This callback function provides detailed progress information about the task. For instance, in file downloading scenarios, you can use the loaded and total parameters to calculate the download progress percentage and utilize the url parameter to provide additional details such as download speed and estimated remaining time.
    * @returns AssetPromise
    */
   onProgress(
-    itemsCallback?: (loaded: number, total: number) => void,
-    detailsCallback?: (url: string, loaded: number, total: number) => void
+    onTaskComplete?: (loaded: number, total: number) => void,
+    onTaskDetail?: (url: string, loaded: number, total: number) => void
   ): AssetPromise<T> {
-    const progressItems = this._progressItems;
-    const progressDetails = this._progressDetails;
-    if (progressItems) {
-      itemsCallback(progressItems.loaded, progressItems.total);
+    const completeProgress = this._taskCompleteProgress;
+    const detailProgress = this._taskDetailProgress;
+    if (completeProgress) {
+      onTaskComplete(completeProgress.loaded, completeProgress.total);
     }
 
-    if (progressDetails) {
-      for (let url in progressDetails) {
-        const { loaded, total } = progressDetails[url];
-        detailsCallback(url, loaded, total);
+    if (detailProgress) {
+      for (let url in detailProgress) {
+        const { loaded, total } = detailProgress[url];
+        onTaskDetail(url, loaded, total);
       }
     }
 
     if (this._state === PromiseState.Pending) {
-      itemsCallback && this._onProgressItemsCallback.push(itemsCallback);
-      detailsCallback && this._onProgressDetailsCallback.push(detailsCallback);
+      onTaskComplete && this._onTaskCompleteCallbacks.push(onTaskComplete);
+      onTaskDetail && this._onTaskDetailCallbacks.push(onTaskDetail);
     }
     return this;
   }
@@ -193,8 +194,8 @@ interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
     reject?: (reason?: any) => void,
-    setItemsProgress?: ProgressItemsCallback,
-    setDetailsProgress?: ProgressDetailsCallback,
+    setTaskCompleteProgress?: TaskCompleteCallback,
+    setTaskDetailProgress?: TaskDetailCallback,
     onCancel?: (callback: () => void) => void
   ): void;
 }
@@ -207,9 +208,9 @@ enum PromiseState {
   Canceled = "canceled"
 }
 
-type ProgressItems = {
+type TaskCompleteProgress = {
   loaded: number;
   total: number;
 };
-type ProgressItemsCallback = (loaded: number, total: number) => void;
-type ProgressDetailsCallback = (url: string, loaded: number, total: number) => void;
+type TaskCompleteCallback = (loaded: number, total: number) => void;
+type TaskDetailCallback = (url: string, loaded: number, total: number) => void;

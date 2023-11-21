@@ -29,13 +29,13 @@ export type RequestConfig = {
  * @param config - Load configuration
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const retryCount = config.retryCount ?? defaultRetryCount;
     const retryInterval = config.retryInterval ?? defaultInterval;
     config.timeout = config.timeout ?? defaultTimeout;
     config.type = config.type ?? getMimeTypeFromUrl(url);
     const executor = new MultiExecutor(
-      () => requestRes<T>(url, config).onProgress(setItemsProgress, setDetailsProgress),
+      () => requestRes<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress),
       retryCount,
       retryInterval
     );
@@ -44,7 +44,7 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
 }
 
 function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const xhr = new XMLHttpRequest();
     const isImg = config.type === "image";
 
@@ -64,7 +64,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         img.onload = () => {
           // Call requestAnimationFrame to avoid iOS's bug.
           requestAnimationFrame(() => {
-            setItemsProgress(1, 1);
+            setTaskCompleteProgress(1, 1);
             //@ts-ignore
             resolve(img);
 
@@ -83,7 +83,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         img.crossOrigin = "anonymous";
         img.src = URL.createObjectURL(blob);
       } else {
-        setItemsProgress(1, 1);
+        setTaskCompleteProgress(1, 1);
         resolve(result);
       }
     };
@@ -95,7 +95,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
     };
     xhr.onprogress = (e) => {
       if (e.lengthComputable) {
-        setDetailsProgress(url, e.loaded, e.total);
+        setTaskDetailProgress(url, e.loaded, e.total);
       }
     };
     xhr.open(config.method, url, true);

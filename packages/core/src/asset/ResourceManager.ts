@@ -342,9 +342,9 @@ export class ResourceManager {
     const loadingPromises = this._loadingPromises;
     const loadingPromise = loadingPromises[assetURL];
     if (loadingPromise) {
-      return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
+      return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
-          .onProgress(setItemsProgress, setDetailsProgress)
+          .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
           .then((resource: EngineObject) => {
             resolve(resource as T);
           })

@@ -81,11 +81,11 @@ describe("Asset Promise test", function () {
   });
 
   it("progress", async () => {
-    const assetPromise = new AssetPromise<number>((resolve, reject, setItemsProgress) => {
+    const assetPromise = new AssetPromise<number>((resolve, reject, setTaskCompleteProgress) => {
       let i = 0;
       let timeoutId = setInterval(() => {
         i++;
-        setItemsProgress(i, 10);
+        setTaskCompleteProgress(i, 10);
         if (i === 10) {
           clearInterval(timeoutId);
           resolve(i);
@@ -110,8 +110,8 @@ describe("Asset Promise test", function () {
   it("promise immediately", async () => {
     let currentItemsLoaded;
     let currentItemsTotal;
-    const assetPromise = new AssetPromise<number>((resolve, reject, setItemsProgress) => {
-      setItemsProgress(10, 10);
+    const assetPromise = new AssetPromise<number>((resolve, reject, setTaskCompleteProgress) => {
+      setTaskCompleteProgress(10, 10);
       resolve(1);
     });
 

@@ -41,14 +41,14 @@ export class GLTFTextureParser extends GLTFParser {
               mipmap: samplerInfo?.mipmap
             }
           })
-          .onProgress(undefined, context._addDetailsProgress)
+          .onProgress(undefined, context._onTaskDetail)
           .then<Texture2D>((texture) => {
             texture.name = textureName || imageName || texture.name || `texture_${index}`;
             useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
             return texture;
           });
 
-        context._addItemsProgress(texture);
+        context._addTaskCompletePromise(texture);
       } else {
         const bufferView = glTF.bufferViews[bufferViewIndex];
 

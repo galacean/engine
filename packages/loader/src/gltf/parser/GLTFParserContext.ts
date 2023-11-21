@@ -36,14 +36,14 @@ export class GLTFParserContext {
 
   private _resourceCache = new Map<string, any>();
   private _progress = {
-    detail: {},
-    task: { loaded: 0, total: 0 }
+    taskDetail: {},
+    taskComplete: { loaded: 0, total: 0 }
   };
 
   /** @internal */
-  _setItemsProgress: (loaded: number, total: number) => void;
+  _setTaskCompleteProgress: (loaded: number, total: number) => void;
   /** @internal */
-  _setDetailsProgress: (url: string, loaded: number, total: number) => void;
+  _setTaskDetailProgress: (url: string, loaded: number, total: number) => void;
 
   constructor(
     public glTFResource: GLTFResource,
@@ -120,30 +120,29 @@ export class GLTFParserContext {
       });
     });
 
-    this._addItemsProgress(promise);
+    this._addTaskCompletePromise(promise);
     return promise;
   }
 
   /**
    * @internal
    */
-  _addDetailsProgress = (url: string, loaded: number, total: number) => {
-    const detail = (this._progress.detail[url] ||= {});
+  _onTaskDetail = (url: string, loaded: number, total: number) => {
+    const detail = (this._progress.taskDetail[url] ||= {});
     detail.loaded = loaded;
     detail.total = total;
 
-    this._setDetailsProgress(url, loaded, total);
+    this._setTaskDetailProgress(url, loaded, total);
   };
 
   /**
    * @internal
    */
-  _addItemsProgress(taskPromise: Promise<any>): void {
-    const task = this._progress.task;
+  _addTaskCompletePromise(taskPromise: Promise<any>): void {
+    const task = this._progress.taskComplete;
     task.total += 1;
     taskPromise.then(() => {
-      task.loaded += 1;
-      this._setItemsProgress(task.loaded, task.total);
+      this._setTaskCompleteProgress(++task.loaded, task.total);
     });
   }
 

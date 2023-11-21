@@ -14,14 +14,14 @@ import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject, setItemsProgress, setDetailsProgress) => {
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const url = item.url;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "image"
       };
       this.request<HTMLImageElement>(url, requestConfig)
-        .onProgress(setItemsProgress, setDetailsProgress)
+        .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
           const params = item.params as Texture2DParams;
           const texture = new Texture2D(
