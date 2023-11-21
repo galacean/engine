@@ -18,6 +18,10 @@ import { generateUUID } from "../util";
 export class WebXRPlaneTracking implements IXRPlaneTracking {
   private _lastDetectedPlanes: XRPlaneSet;
 
+  get canModifyRequestTrackingAfterInit(): boolean {
+    return false;
+  }
+
   get detectionMode(): number {
     // XRPlaneMode.EveryThing
     return 3;

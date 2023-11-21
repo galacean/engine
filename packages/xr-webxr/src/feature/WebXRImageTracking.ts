@@ -24,6 +24,10 @@ export class WebXRImageTracking implements IXRImageTracking {
   private _tempIdx: number = 0;
   private _tempArr: number[] = [];
 
+  get canModifyRequestTrackingAfterInit(): boolean {
+    return false;
+  }
+
   isSupported(config: IXRImageTrackingConfig): Promise<void> {
     return Promise.resolve();
   }

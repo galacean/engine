@@ -9,6 +9,11 @@ export interface IXRTrackableFeature<
   TXRRequestTracking extends IXRRequestTracking<TXRTracked>
 > extends IXRPlatformFeature {
   /**
+   * Returns whether request tracking can be modified after initialization.
+   */
+  get canModifyRequestTrackingAfterInit(): boolean;
+
+  /**
    * Initialize the feature.
    * @param descriptor - The descriptor of the feature
    */
@@ -31,14 +36,14 @@ export interface IXRTrackableFeature<
   checkAvailable(session: IXRSession, frame: IXRFrame, requestTrackings: TXRRequestTracking[]): boolean;
 
   /**
-   * Add a request tracking.
+   * Called when request tracking is added.
    * @param requestTracking - The request tracking
    */
-  addRequestTracking?(requestTracking: TXRRequestTracking): void;
+  onAddRequestTracking?(requestTracking: TXRRequestTracking): void;
 
   /**
-   * Delete a request tracking.
+   * Called when request tracking is removed.
    * @param requestTracking - The request tracking
    */
-  delRequestTracking?(requestTracking: TXRRequestTracking): void;
+  onDeleteRequestTracking?(requestTracking: TXRRequestTracking): void;
 }

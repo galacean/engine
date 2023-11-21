@@ -11,8 +11,8 @@ import { generateUUID } from "../util";
  * WebXR implementation of XRPlatformAnchorTracking.
  */
 export class WebXRAnchorTracking implements IXRAnchorTracking {
-  parser(out: XRSessionInit) {
-    out.requiredFeatures.push("anchors");
+  get canModifyRequestTrackingAfterInit(): boolean {
+    return true;
   }
 
   isSupported(config: IXRAnchorTrackingConfig): Promise<void> {
@@ -65,8 +65,26 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
     }
   }
 
-  delRequestTracking(requestTracking: WebXRRequestTrackingAnchor): void {
-    this._deleteAnchor(requestTracking);
+  onDeleteRequestTracking(requestTracking: WebXRRequestTrackingAnchor): void {
+    switch (requestTracking.state) {
+      // XRRequestTrackingState.Submitted
+      case 1:
+        // XRRequestTrackingState.WaitingDestroy
+        requestTracking.state = 5;
+        break;
+      // XRRequestTrackingState.Resolved
+      case 2:
+        requestTracking.xrAnchor.delete();
+        requestTracking.xrAnchor = null;
+        // XRRequestTrackingState.Destroyed
+        requestTracking.state = 4;
+        requestTracking.tracked.length = 0;
+        break;
+      default:
+        // XRRequestTrackingState.Destroyed
+        requestTracking.state = 4;
+        break;
+    }
   }
 
   private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: IXRRequestAnchorTracking): void {
@@ -119,28 +137,6 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
           }
         }
       );
-  }
-
-  private _deleteAnchor(anchor: WebXRRequestTrackingAnchor): void {
-    switch (anchor.state) {
-      // XRRequestTrackingState.Submitted
-      case 1:
-        // XRRequestTrackingState.WaitingDestroy
-        anchor.state = 5;
-        break;
-      // XRRequestTrackingState.Resolved
-      case 2:
-        anchor.xrAnchor.delete();
-        anchor.xrAnchor = null;
-        // XRRequestTrackingState.Destroyed
-        anchor.state = 4;
-        anchor.tracked.length = 0;
-        break;
-      default:
-        // XRRequestTrackingState.Destroyed
-        anchor.state = 4;
-        break;
-    }
   }
 
   private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, trackedAnchor: WebXRRequestTrackingAnchor): boolean {
