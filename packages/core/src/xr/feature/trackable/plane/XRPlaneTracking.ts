@@ -47,5 +47,6 @@ export class XRPlaneTracking extends XRTrackableFeature<
       type: XRFeatureType.PlaneTracking,
       mode: XRPlaneMode.EveryThing
     };
+    this._platformFeature = <IXRPlaneTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.PlaneTracking);
   }
 }

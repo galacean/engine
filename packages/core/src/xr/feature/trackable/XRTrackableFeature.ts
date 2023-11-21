@@ -43,31 +43,42 @@ export abstract class XRTrackableFeature<
     return this._trackedObjects;
   }
 
+  /**
+   * Add a tracking request for tracking feature.
+   * @param requestTracking - The request tracking
+   */
   addRequestTracking(requestTracking: TXRRequestTracking): void {
     const { _requestTrackings: requestTrackings } = this;
     if (requestTrackings.indexOf(requestTracking) < 0) {
       requestTrackings.push(requestTracking);
-      const { _platformFeature: feature } = this;
-      feature.addRequestTracking && feature.addRequestTracking(requestTracking);
+      const { _platformFeature: platformFeature } = this;
+      platformFeature.addRequestTracking && platformFeature.addRequestTracking(requestTracking);
     }
   }
 
-  removeRequestTracking(remove: TXRRequestTracking): void {
+  /**
+   * Remove a tracking request from tracking feature.
+   * @param requestTracking - The request tracking
+   */
+  removeRequestTracking(requestTracking: TXRRequestTracking): void {
     const { _requestTrackings: requestTrackings } = this;
     const lastIndex = requestTrackings.length - 1;
-    const index = requestTrackings.indexOf(remove);
+    const index = requestTrackings.indexOf(requestTracking);
     if (index >= 0) {
       index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
       requestTrackings.length = lastIndex;
-      this._platformFeature.delRequestTracking && this._platformFeature.delRequestTracking(remove);
+      this._platformFeature.delRequestTracking && this._platformFeature.delRequestTracking(requestTracking);
     }
   }
 
+  /**
+   * Remove all tracking requests from tracking feature.
+   */
   removeAllRequestTrackings(): void {
-    const { _requestTrackings: requestTrackings, _platformFeature: feature } = this;
-    if (feature.delRequestTracking) {
+    const { _requestTrackings: requestTrackings, _platformFeature: platformFeature } = this;
+    if (platformFeature.delRequestTracking) {
       for (let i = 0, n = requestTrackings.length; i < n; i++) {
-        feature.delRequestTracking(requestTrackings[i]);
+        platformFeature.delRequestTracking(requestTrackings[i]);
       }
     }
     this._requestTrackings.length = 0;
@@ -91,7 +102,7 @@ export abstract class XRTrackableFeature<
 
   override onUpdate(session: IXRSession, frame: IXRFrame): void {
     const {
-      _platformFeature: feature,
+      _platformFeature: platformFeature,
       _trackedUpdateFlag: trackedUpdateFlag,
       _requestTrackings: requestTrackings,
       _statusSnapshot: statusSnapshot,
@@ -102,11 +113,11 @@ export abstract class XRTrackableFeature<
     if (!session || !frame || !requestTrackings.length) {
       return;
     }
-    if (!feature.checkAvailable(session, frame, requestTrackings)) {
+    if (!platformFeature.checkAvailable(session, frame, requestTrackings)) {
       return;
     }
     added.length = updated.length = removed.length = 0;
-    feature.getTrackedResult(session, frame, requestTrackings);
+    platformFeature.getTrackedResult(session, frame, requestTrackings);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state !== XRRequestTrackingState.Resolved) {

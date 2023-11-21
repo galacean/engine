@@ -28,5 +28,8 @@ export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXR
       type: XRFeatureType.MovementTracking,
       mode: XRMovementTrackingMode.Dof6
     };
+    this._platformFeature = <IXRMovementTracking>(
+      engine.xrManager._xrDevice.createFeature(XRFeatureType.MovementTracking)
+    );
   }
 }

@@ -39,7 +39,11 @@ export abstract class XRFeature<
    * @returns The promise of the feature
    */
   isSupported(): Promise<void> {
-    return this._platformFeature.isSupported(this._config);
+    if (this._platformFeature) {
+      return this._platformFeature.isSupported(this._config);
+    } else {
+      return Promise.resolve();
+    }
   }
 
   /**

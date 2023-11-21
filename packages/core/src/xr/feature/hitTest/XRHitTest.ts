@@ -1,5 +1,5 @@
 import { IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
-import { XRHitTestType } from "./XRHitTestType";
+import { TrackableType } from "./TrackableType";
 import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
@@ -7,7 +7,6 @@ import { XRFeature } from "../XRFeature";
 import { registerXRFeature } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRSessionMode } from "../../session/XRSessionMode";
-import { Logger } from "../../../base";
 import { XRInputType } from "../../input/XRInputType";
 import { Engine } from "../../../Engine";
 
@@ -27,24 +26,14 @@ export class XRHitTest extends XRFeature {
   private _tempVec35: Vector3 = new Vector3();
 
   /**
-   * Returns whether the feature is supported.
-   * @param descriptor - The descriptor of the feature
-   * @returns The promise of the feature
-   */
-  override isSupported(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  /**
    * Hit test.
    * @param ray - The ray to test
    * @param type - The type of hit test
    * @returns The hit result
    */
-  hitTest(ray: Ray, type: XRHitTestType): IXRHitResult[] {
+  hitTest(ray: Ray, type: TrackableType): IXRHitResult[] {
     if (this._engine.xrManager.mode !== XRSessionMode.AR) {
-      Logger.warn("Only AR mode supports using screen ray detection.");
-      return null;
+      throw new Error("Only AR mode supports using screen ray detection.");
     }
     return this._hitTest(ray, type);
   }
@@ -56,24 +45,22 @@ export class XRHitTest extends XRFeature {
    * @param type - The type of hit test
    * @returns The hit result
    */
-  screenHitTest(x: number, y: number, type: XRHitTestType): IXRHitResult[] {
+  screenHitTest(x: number, y: number, type: TrackableType): IXRHitResult[] {
     const { xrManager } = this._engine;
     if (xrManager.mode !== XRSessionMode.AR) {
-      Logger.warn("Only AR mode supports using screen ray detection.");
-      return null;
+      throw new Error("Only AR mode supports using screen ray detection.");
     }
     const camera = this._xrCameraManager.getCameraByType(XRInputType.Camera);
     if (!camera) {
-      Logger.warn("No camera available.");
-      return null;
+      throw new Error("No camera available.");
     }
     const ray = camera.screenPointToRay(this._tempVec2.set(x, y), this._tempRay);
     return this._hitTest(ray, type);
   }
 
-  private _hitTest(ray: Ray, type: XRHitTestType): IXRHitResult[] {
+  private _hitTest(ray: Ray, type: TrackableType): IXRHitResult[] {
     const result = [];
-    if (type & XRHitTestType.Plane) {
+    if (type & TrackableType.Plane) {
       this._hitTestPlane(ray, result);
     }
     return result;
@@ -81,14 +68,16 @@ export class XRHitTest extends XRFeature {
 
   constructor(engine: Engine) {
     super(engine);
-    this._xrCameraManager = engine.xrManager.cameraManager;
+    const { xrManager } = engine;
+    this._xrCameraManager = xrManager.cameraManager;
+    this._config = { type: XRFeatureType.HitTest };
+    this._platformFeature = xrManager._xrDevice.createFeature(XRFeatureType.HitTest);
   }
 
   private _hitTestPlane(ray: Ray, result: IXRHitResult[]): void {
     const planeManager = this._engine.xrManager.getFeature(XRPlaneTracking);
     if (!planeManager || !planeManager.enabled) {
-      Logger.warn("The plane estimation function needs to be turned on for plane hit test.");
-      return;
+      throw new Error("The plane estimation function needs to be turned on for plane hit test.");
     }
     const { _tempVec30: normal, _tempVec31: hitPoint, _tempVec32: hitPointInPlane } = this;
     const planes = planeManager.trackedObjects;
@@ -105,8 +94,8 @@ export class XRHitTest extends XRFeature {
           result.push({
             point: hitPoint.clone(),
             normal: normal.clone(),
-            hitId: trackedPlane.id,
-            hitType: XRHitTestType.Plane,
+            trackableId: trackedPlane.id,
+            trackableType: TrackableType.Plane,
             distance
           });
         }

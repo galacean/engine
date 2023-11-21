@@ -26,6 +26,9 @@ export class XRAnchorTracking extends XRTrackableFeature<
    * @param pose - The pose of anchor to be added
    */
   addAnchor(pose: IXRPose): IXRRequestAnchorTracking {
+    if (!this._enabled) {
+      throw new Error("Cannot create an anchor from a disabled anchor manager.");
+    }
     const { anchors } = this._config;
     anchors.push(pose);
     const requestTracking = this._createRequestTracking(pose);
@@ -38,6 +41,9 @@ export class XRAnchorTracking extends XRTrackableFeature<
    * @param anchor - The anchor to be removed
    */
   removeAnchor(anchor: IXRRequestAnchorTracking): void {
+    if (!this._enabled) {
+      throw new Error("Cannot remove an anchor from a disabled anchor manager.");
+    }
     this.removeRequestTracking(anchor);
   }
 
@@ -45,6 +51,9 @@ export class XRAnchorTracking extends XRTrackableFeature<
    * Remove all tracking anchors.
    */
   removeAllAnchors(): void {
+    if (!this._enabled) {
+      throw new Error("Cannot remove anchors from a disabled anchor manager.");
+    }
     this.removeAllRequestTrackings();
   }
 
@@ -64,6 +73,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
       type: XRFeatureType.AnchorTracking,
       anchors: []
     };
+    this._platformFeature = <IXRAnchorTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.AnchorTracking);
   }
 
   private _createRequestTracking(pose: IXRPose): IXRRequestAnchorTracking {

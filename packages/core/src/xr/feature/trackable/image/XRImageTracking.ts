@@ -102,6 +102,7 @@ export class XRImageTracking extends XRTrackableFeature<
       type: XRFeatureType.ImageTracking,
       images: []
     };
+    this._platformFeature = <IXRImageTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.ImageTracking);
   }
 
   private _createRequestTracking(image: XRReferenceImage): IXRRequestImageTracking {

@@ -7,7 +7,7 @@ export { XRFeature } from "./feature/XRFeature";
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
 export { XRHitTest } from "./feature/hitTest/XRHitTest";
-export { XRHitTestType } from "./feature/hitTest/XRHitTestType";
+export { TrackableType } from "./feature/hitTest/TrackableType";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // movement tracking
