@@ -1,6 +1,6 @@
-import { IXRFeature } from "./IXRFeature";
+import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
-export interface IXRMovementTracking extends IXRFeature {
+export interface IXRMovementTracking extends IXRPlatformFeature {
   get trackingMode(): number;
   set trackingMode(value: number);
 }

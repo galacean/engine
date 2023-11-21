@@ -1,7 +1,7 @@
 import { IHardwareRenderer } from "../renderingHardwareInterface";
 import { IXRSession } from "./IXRSession";
 import { IXRFeature } from "./feature/IXRFeature";
-import { IXRFeatureDescriptor } from "./feature/IXRFeatureDescriptor";
+import { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
 
 /**
  * The interface of XR device.
@@ -18,7 +18,7 @@ export interface IXRDevice {
    * @param engine - The engine.
    * @param type - The type of the feature.
    */
-  createFeature(type: number): IXRFeature;
+  createFeature(type: number): IXRPlatformFeature;
 
   /**
    * Request a session.
@@ -26,5 +26,5 @@ export interface IXRDevice {
    * @param mode - The mode of the session
    * @param requestFeatures - The requested features
    */
-  requestSession(rhi: IHardwareRenderer, mode: number, requestFeatures: IXRFeatureDescriptor[]): Promise<IXRSession>;
+  requestSession(rhi: IHardwareRenderer, mode: number, requestFeatures: IXRFeature[]): Promise<IXRSession>;
 }

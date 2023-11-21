@@ -1,4 +1,4 @@
-import { IXRFrame, IXRSession, IXRFeatureDescriptor, IHardwareRenderer } from "@galacean/engine-design";
+import { IXRFrame, IXRSession, IHardwareRenderer, IXRFeature } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
@@ -62,13 +62,13 @@ export class XRSessionManager {
   /**
    * Initialize the session.
    * @param mode - The mode of the session
-   * @param requestFeatures - The requested features
+   * @param features - The requested features
    * @returns The promise of the session
    */
-  initialize(mode: XRSessionMode, requestFeatures: IXRFeatureDescriptor[]): Promise<IXRSession> {
+  initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
     const { _xrDevice: xrDevice } = this._engine.xrManager;
     return new Promise((resolve, reject) => {
-      xrDevice.requestSession(this._rhi, mode, requestFeatures).then((session: IXRSession) => {
+      xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
         this._session = session;
         this._state = XRSessionState.Initialized;
         resolve(session);
@@ -147,4 +147,9 @@ export class XRSessionManager {
     rhi._mainFrameWidth = session.framebufferWidth;
     rhi._mainFrameHeight = session.framebufferHeight;
   }
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {}
 }

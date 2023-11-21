@@ -5,16 +5,16 @@ import {
   IXRTrackedPlane
 } from "@galacean/engine-design";
 import { XRPlaneMode } from "./XRPlaneMode";
-import { XRTrackableManager } from "../XRTrackableManager";
-import { registerXRFeatureManager } from "../../../XRManager";
+import { XRTrackableFeature } from "../XRTrackableFeature";
+import { registerXRFeature } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 
-@registerXRFeatureManager(XRFeatureType.PlaneTracking)
+@registerXRFeature(XRFeatureType.PlaneTracking)
 /**
  * The manager of plane tracking feature.
  */
-export class XRPlaneTrackingManager extends XRTrackableManager<
+export class XRPlaneTracking extends XRTrackableFeature<
   IXRPlaneTrackingDescriptor,
   IXRTrackedPlane,
   IXRRequestPlaneTracking,

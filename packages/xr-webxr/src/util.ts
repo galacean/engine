@@ -1,5 +1,5 @@
-import { request } from "@galacean/engine";
 import { IXRFeatureDescriptor, IXRImageTrackingDescriptor } from "@galacean/engine-design";
+import { request } from "@galacean/engine";
 import { WebXRDevice } from "./WebXRDevice";
 
 export function generateUUID(): number {

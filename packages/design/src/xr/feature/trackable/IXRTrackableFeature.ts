@@ -1,4 +1,4 @@
-import { IXRFeature } from "../IXRFeature";
+import { IXRPlatformFeature } from "../IXRPlatformFeature";
 import { IXRTracked } from "./IXRTracked";
 import { IXRSession } from "../../IXRSession";
 import { IXRFrame } from "../../IXRFrame";
@@ -7,7 +7,7 @@ import { IXRRequestTracking } from "./IXRRequestTracking";
 export interface IXRTrackableFeature<
   TXRTracked extends IXRTracked,
   TXRRequestTracking extends IXRRequestTracking<TXRTracked>
-> extends IXRFeature {
+> extends IXRPlatformFeature {
   /**
    * Initialize the feature.
    * @param descriptor - The descriptor of the feature

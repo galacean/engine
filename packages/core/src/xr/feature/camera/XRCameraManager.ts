@@ -1,31 +1,18 @@
-import { IXRSession, IXRFrame } from "@galacean/engine-design";
 import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
 import { Logger } from "../../../base";
-import { registerXRFeatureManager } from "../../XRManager";
 import { XRCamera } from "../../input/XRCamera";
 import { XRInputManager } from "../../input/XRInputManager";
 import { XRInputType } from "../../input/XRInputType";
 import { XRSessionManager } from "../../session/XRSessionManager";
-import { XRFeatureManager } from "../XRFeatureManager";
-import { XRFeatureType } from "../XRFeatureType";
 
-@registerXRFeatureManager(XRFeatureType.CameraDevice)
 /**
  * The manager of XR camera.
  */
-export class XRCameraManager extends XRFeatureManager {
+export class XRCameraManager {
   private _inputManager: XRInputManager;
   private _sessionManager: XRSessionManager;
-
-  override get enabled() {
-    return true;
-  }
-
-  override set enabled(value: boolean) {
-    Logger.warn("XRCameraManager.enabled is always true and cannot be changed.");
-  }
 
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
@@ -82,7 +69,10 @@ export class XRCameraManager extends XRFeatureManager {
     }
   }
 
-  override onUpdate(session: IXRSession, frame: IXRFrame): void {
+  /**
+   * @internal
+   */
+  _onUpdate(): void {
     const { _cameras: cameras } = this._inputManager;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const cameraDevice = cameras[i];
@@ -103,11 +93,14 @@ export class XRCameraManager extends XRFeatureManager {
     }
   }
 
+  /**
+   * @internal
+   */
+  _onDestroy(): void {}
+
   constructor(engine: Engine) {
-    super(engine);
     const { xrManager } = engine;
     this._inputManager = xrManager.inputManager;
     this._sessionManager = xrManager.sessionManager;
-    this._enabled = true;
   }
 }

@@ -1,29 +1,31 @@
-import { IXRFeatureDescriptor, IXRFeature } from "@galacean/engine-design";
 import { XRInputManager } from "./input/XRInputManager";
 import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionMode } from "./session/XRSessionMode";
-import { XRFeatureManager } from "./feature/XRFeatureManager";
+import { XRFeature } from "./feature/XRFeature";
 import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
+import { XRCameraManager } from "./feature/camera/XRCameraManager";
 
-type TXRFeatureManager = XRFeatureManager<IXRFeatureDescriptor, IXRFeature>;
-type TXRFeatureManagerConstructor = new (engine: Engine) => TXRFeatureManager;
+type TXRFeatureManagerConstructor = new (engine: Engine) => XRFeature;
 
 /**
  * XRManager is the entry point of the XR system.
  */
 export class XRManager {
   /** @internal */
-  static _featureManagerMap: TXRFeatureManagerConstructor[] = [];
+  static _featureToTypeMap: Map<TXRFeatureManagerConstructor, XRFeatureType> = new Map();
+  static _typeToFeatureMap: Map<XRFeatureType, TXRFeatureManagerConstructor> = new Map();
 
   /** Input manager for XR. */
   inputManager: XRInputManager;
   /** Session manager for XR. */
   sessionManager: XRSessionManager;
+  /** Camera manager for XR. */
+  cameraManager: XRCameraManager;
 
   /** @internal */
   _xrDevice: IXRDevice;
@@ -31,8 +33,8 @@ export class XRManager {
   private _engine: Engine;
   private _scene: Scene;
   private _origin: Entity;
-  private _mode: XRSessionMode;
-  private _features: TXRFeatureManager[] = [];
+  private _mode: XRSessionMode = XRSessionMode.AR;
+  private _features: XRFeature[] = [];
 
   /**
    * The current xr scene.
@@ -52,7 +54,12 @@ export class XRManager {
    * The current xr origin.
    */
   get origin(): Entity {
-    return (this._origin ||= this.scene?.createRootEntity());
+    if (this._origin) {
+      return this._origin;
+    } else {
+      const { scene } = this;
+      return scene.findEntityByName("XROrigin") || scene.createRootEntity("XROrigin");
+    }
   }
 
   set origin(value: Entity) {
@@ -66,6 +73,10 @@ export class XRManager {
    */
   get mode(): XRSessionMode {
     return this._mode;
+  }
+
+  set mode(value: XRSessionMode) {
+    this._mode = value;
   }
 
   /**
@@ -82,27 +93,49 @@ export class XRManager {
    * @param descriptors - The feature descriptor to check
    * @returns A promise that resolves if the feature is supported, otherwise rejects
    */
-  isSupportedFeature(descriptors: IXRFeatureDescriptor | IXRFeatureDescriptor[]): Promise<void> {
-    if (descriptors instanceof Array) {
-      const promiseArr = [];
-      for (let i = 0, n = descriptors.length; i < n; i++) {
-        promiseArr.push(this.isSupportedFeature(descriptors[i]));
-      }
-      return new Promise((resolve, reject) => {
-        Promise.all(promiseArr).then(() => {
-          resolve();
-        }, reject);
-      });
+  isSupportedFeature<T extends XRFeature>(type: new (engine: Engine) => T): Promise<void> {
+    const feature = this.getFeature(type);
+    if (feature) {
+      return feature.isSupported();
     } else {
-      const feature = this.getFeatureManager(descriptors.type);
-      if (feature) {
-        return feature.isSupported(descriptors);
-      } else {
-        return Promise.reject(
-          "The platform interface layer of the " + XRFeatureType[descriptors.type] + " is not implemented."
-        );
+      return Promise.reject("The platform interface layer  is not implemented.");
+    }
+  }
+
+  /**
+   * Add feature based on the xr feature type.
+   * @param type - The type of the feature
+   * @returns The feature which has been added
+   */
+  addFeature<T extends XRFeature>(type: new (engine: Engine) => T): T {
+    const { _features: features } = this;
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      if (feature instanceof type) {
+        feature.enabled = true;
+        return feature;
       }
     }
+    const feature = new type(this._engine);
+    feature.enabled = true;
+    this._features.push(feature);
+    return feature;
+  }
+
+  /**
+   * Get feature which match the type.
+   * @param type - The type of the feature
+   * @returns	The feature which match type
+   */
+  getFeature<T extends XRFeature>(type: new (engine: Engine) => T): T | null {
+    const { _features: features } = this;
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      if (feature instanceof type) {
+        return feature;
+      }
+    }
+    return null;
   }
 
   /**
@@ -116,89 +149,56 @@ export class XRManager {
   }
 
   /**
-   * Get the feature manager.
-   * @param type - The type of feature manager
-   * @returns The feature manager
+   * Enter the session.
+   * @returns A promise that resolves if the session is entered, otherwise rejects
    */
-  getFeatureManager<T extends XRFeatureManager>(type: XRFeatureType): T {
-    const { _features: features } = this;
-    const feature = features[type];
-    if (feature) {
-      return <T>feature;
-    } else {
-      const { _featureManagerMap: featureManagerMap } = XRManager;
-      const featureManagerConstructor = featureManagerMap[type];
-      const platformFeature = this._xrDevice.createFeature(type);
-      const feature = (features[type] = new featureManagerConstructor(this._engine));
-      feature._platformFeature = platformFeature;
-      return <T>feature;
-    }
-  }
-
-  /**
-   * Initialize the session.
-   * @param mode - The mode of the session
-   * @param requestFeatures - The requested features
-   * @returns A promise that resolves if the session is initialized, otherwise rejects
-   */
-  initSession(mode: XRSessionMode, requestFeatures?: IXRFeatureDescriptor[]): Promise<void> {
+  enterXR(): Promise<void> {
     if (this.sessionManager.state !== XRSessionState.None) {
       return Promise.reject(new Error("Please destroy the old session first"));
     }
     return new Promise((resolve, reject) => {
+      const { _mode: mode } = this;
       // 1. Check if this xr mode is supported
       this._xrDevice.isSupportedSessionMode(mode).then(() => {
-        if (requestFeatures) {
-          // 2. Reset all feature
-          this.disableAllFeatures();
-          // 3. Check is this class is implemented
-          const supportedArr = [];
-          for (let i = 0, n = requestFeatures.length; i < n; i++) {
-            const descriptor = requestFeatures[i];
-            const feature = this.getFeatureManager(descriptor.type);
-            if (feature) {
-              feature.enabled = true;
-              feature.descriptor = descriptor;
-              supportedArr.push(feature.isSupported());
-            } else {
-              reject(new Error(XRFeatureType[descriptor.type] + " class is not implemented."));
-              return;
-            }
+        // 2. Collect all features
+        const { _features: features } = this;
+        const enabledFeatures = [];
+        const supportedPromises = [];
+        for (let i = 0, n = features.length; i < n; i++) {
+          const feature = features[i];
+          if (feature.enabled) {
+            enabledFeatures.push(feature);
+            supportedPromises.push(feature.isSupported());
           }
-          // 4. Check if this feature is supported
-          Promise.all(supportedArr).then(() => {
-            // 5. Initialize session
-            this.sessionManager.initialize(mode, requestFeatures).then((session) => {
-              // 6. Initialize all features
-              const initializeArr = [];
-              const { _features: features } = this;
-              for (let i = 0, n = features.length; i < n; i++) {
-                const feature = features[i];
-                feature?.enabled && initializeArr.push(feature.initialize());
+        }
+
+        // 3. Check if this feature is supported
+        Promise.all(supportedPromises).then(() => {
+          // 4. Initialize session
+          this.sessionManager.initialize(mode, enabledFeatures).then((session) => {
+            // 5. Initialize all features
+            const initializePromises = [];
+            for (let i = 0, n = enabledFeatures.length; i < n; i++) {
+              initializePromises.push(enabledFeatures[i].initialize());
+            }
+            Promise.all(initializePromises).then(() => {
+              this.inputManager._onSessionInit(session);
+              for (let i = 0, n = enabledFeatures.length; i < n; i++) {
+                enabledFeatures[i].onSessionInit();
               }
-              Promise.all(initializeArr).then(() => {
-                this._mode = mode;
-                this.inputManager._onSessionInit(session);
-                for (let i = 0, n = features.length; i < n; i++) {
-                  const feature = features[i];
-                  feature?.enabled && feature.onSessionInit();
-                }
-                resolve();
-              }, reject);
+              resolve();
             }, reject);
           }, reject);
-        } else {
-          reject(new Error("Without any feature"));
-        }
+        }, reject);
       }, reject);
     });
   }
 
   /**
-   * Destroy the session.
+   * Exit the session.
    * @returns A promise that resolves if the session is destroyed, otherwise rejects
    */
-  destroySession(): Promise<void> {
+  exitXR(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { sessionManager } = this;
       sessionManager.destroy().then(() => {
@@ -220,7 +220,7 @@ export class XRManager {
    * Start the session.
    * @returns A promise that resolves if the session is started, otherwise rejects
    */
-  startSession(): Promise<void> {
+  run(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { sessionManager } = this;
       sessionManager.start().then(() => {
@@ -239,7 +239,7 @@ export class XRManager {
    * Stop the session.
    * @returns A promise that resolves if the session is stopped, otherwise rejects
    */
-  stopSession(): Promise<void> {
+  stop(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager.stop().then(() => {
         const { _features: features } = this;
@@ -262,8 +262,9 @@ export class XRManager {
       features[i]?.onDestroy();
     }
     features.length = 0;
+    this.sessionManager._onDestroy();
     this.inputManager._onDestroy();
-    this.sessionManager.destroy();
+    this.cameraManager._onDestroy();
   }
 
   constructor(engine: Engine, xrDevice: IXRDevice) {
@@ -271,6 +272,7 @@ export class XRManager {
     this._xrDevice = xrDevice;
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
+    this.cameraManager = new XRCameraManager(engine);
   }
 
   /**
@@ -281,6 +283,7 @@ export class XRManager {
     if (sessionManager.state !== XRSessionState.Running) return;
     sessionManager._onUpdate();
     this.inputManager._onUpdate();
+    this.cameraManager._onUpdate();
     const { session } = sessionManager;
     const { frame } = session;
     const { _features: features } = this;
@@ -291,8 +294,9 @@ export class XRManager {
   }
 }
 
-export function registerXRFeatureManager(feature: XRFeatureType) {
+export function registerXRFeature(feature: XRFeatureType) {
   return (featureManagerConstructor: TXRFeatureManagerConstructor) => {
-    XRManager._featureManagerMap[feature] = featureManagerConstructor;
+    XRManager._featureToTypeMap.set(featureManagerConstructor, feature);
+    XRManager._typeToFeatureMap.set(feature, featureManagerConstructor);
   };
 }

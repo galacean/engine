@@ -1,29 +1,25 @@
 // xr manager
-export { XRManager, registerXRFeatureManager } from "./XRManager";
-
-// xr device
-export type { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
-
+export { XRManager } from "./XRManager";
 // xr feature
 export { XRFeatureType } from "./feature/XRFeatureType";
-export { XRFeatureManager } from "./feature/XRFeatureManager";
+export { XRFeature } from "./feature/XRFeature";
 // camera
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
-export { XRHitTestManager } from "./feature/hitTest/XRHitTestManager";
+export { XRHitTest } from "./feature/hitTest/XRHitTest";
 export { XRHitTestType } from "./feature/hitTest/XRHitTestType";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // movement tracking
-export { XRMovementTrackingManager } from "./feature/movementTracking/XRMovementTrackingManager";
+export { XRMovementTracking } from "./feature/movementTracking/XRMovementTracking";
 export { XRMovementTrackingMode } from "./feature/movementTracking/XRMovementTrackingMode";
 // anchor tracking
-export { XRAnchorTrackingManager } from "./feature/trackable/anchor/XRAnchorTrackingManager";
+export { XRAnchorTracking } from "./feature/trackable/anchor/XRAnchorTracking";
 // image tracking
-export { XRImageTrackingManager } from "./feature/trackable/image/XRImageTrackingManager";
+export { XRImageTracking } from "./feature/trackable/image/XRImageTracking";
 export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
 // plane Tracking
-export { XRPlaneTrackingManager } from "./feature/trackable/plane/XRPlaneTrackingManager";
+export { XRPlaneTracking } from "./feature/trackable/plane/XRPlaneTracking";
 export { XRPlaneMode } from "./feature/trackable/plane/XRPlaneMode";
 
 // xr input

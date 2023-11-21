@@ -6,7 +6,7 @@ import { WebXRFrame } from "../WebXRFrame";
 import { generateUUID } from "../util";
 
 // XRFeatureType.PlaneTracking
-@registerXRPlatformFeature(4)
+@registerXRPlatformFeature(3)
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */

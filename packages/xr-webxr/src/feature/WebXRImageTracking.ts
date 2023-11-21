@@ -11,7 +11,7 @@ import { WebXRFrame } from "../WebXRFrame";
 import { generateUUID } from "../util";
 
 // XRFeatureType.ImageTracking
-@registerXRPlatformFeature(3)
+@registerXRPlatformFeature(2)
 /**
  * WebXR implementation of XRPlatformImageTracking.
  * Note: each tracked image can appear at most once in the tracking results.

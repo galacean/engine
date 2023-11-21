@@ -1,13 +1,13 @@
-import { IXRFeatureDescriptor, IXRFeatureManager, IXRFeature, IXRSession, IXRFrame } from "@galacean/engine-design";
+import { IXRFeatureDescriptor, IXRFeature, IXRPlatformFeature, IXRSession, IXRFrame } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 
 /**
  * The base class of XR feature manager.
  */
-export abstract class XRFeatureManager<
+export abstract class XRFeature<
   TDescriptor extends IXRFeatureDescriptor = IXRFeatureDescriptor,
-  TFeature extends IXRFeature = IXRFeature
-> implements IXRFeatureManager
+  TFeature extends IXRPlatformFeature = IXRPlatformFeature
+> implements IXRFeature
 {
   _platformFeature: TFeature;
 

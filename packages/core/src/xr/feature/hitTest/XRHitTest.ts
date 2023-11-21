@@ -1,20 +1,22 @@
 import { IXRFeatureDescriptor, IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
 import { XRHitTestType } from "./XRHitTestType";
 import { XRCameraManager } from "../camera/XRCameraManager";
-import { XRPlaneTrackingManager } from "../trackable/plane/XRPlaneTrackingManager";
+import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
-import { XRFeatureManager } from "../XRFeatureManager";
-import { registerXRFeatureManager } from "../../XRManager";
+import { XRFeature } from "../XRFeature";
+import { registerXRFeature } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRSessionMode } from "../../session/XRSessionMode";
 import { Logger } from "../../../base";
 import { XRInputType } from "../../input/XRInputType";
+import { Engine } from "../../../Engine";
 
-@registerXRFeatureManager(XRFeatureType.HitTest)
+@registerXRFeature(XRFeatureType.HitTest)
 /**
  * The manager of XR hit test.
  */
-export class XRHitTestManager extends XRFeatureManager {
+export class XRHitTest extends XRFeature {
+  private _xrCameraManager: XRCameraManager;
   private _tempRay: Ray = new Ray();
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec30: Vector3 = new Vector3();
@@ -60,10 +62,7 @@ export class XRHitTestManager extends XRFeatureManager {
       Logger.warn("Only AR mode supports using screen ray detection.");
       return null;
     }
-
-    const camera = xrManager
-      .getFeatureManager<XRCameraManager>(XRFeatureType.CameraDevice)
-      .getCameraByType(XRInputType.Camera);
+    const camera = this._xrCameraManager.getCameraByType(XRInputType.Camera);
     if (!camera) {
       Logger.warn("No camera available.");
       return null;
@@ -80,8 +79,13 @@ export class XRHitTestManager extends XRFeatureManager {
     return result;
   }
 
+  constructor(engine: Engine) {
+    super(engine);
+    this._xrCameraManager = engine.xrManager.cameraManager;
+  }
+
   private _hitTestPlane(ray: Ray, result: IXRHitResult[]): void {
-    const planeManager = this._engine.xrManager.getFeatureManager<XRPlaneTrackingManager>(XRFeatureType.PlaneTracking);
+    const planeManager = this._engine.xrManager.getFeature(XRPlaneTracking);
     if (!planeManager || !planeManager.enabled) {
       Logger.warn("The plane estimation function needs to be turned on for plane hit test.");
       return;

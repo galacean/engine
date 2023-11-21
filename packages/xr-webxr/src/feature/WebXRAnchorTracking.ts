@@ -6,11 +6,15 @@ import { WebXRFrame } from "../WebXRFrame";
 import { generateUUID } from "../util";
 
 // XRFeatureType.AnchorTracking
-@registerXRPlatformFeature(2)
+@registerXRPlatformFeature(1)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
 export class WebXRAnchorTracking implements IXRAnchorTracking {
+  parser(out: XRSessionInit) {
+    out.requiredFeatures.push("anchors");
+  }
+
   isSupported(descriptor: IXRFeatureDescriptor): Promise<void> {
     return Promise.resolve();
   }

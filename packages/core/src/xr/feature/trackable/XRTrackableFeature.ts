@@ -8,19 +8,19 @@ import {
 } from "@galacean/engine-design";
 import { XRTrackedUpdateFlag } from "../../input/XRTrackedUpdateFlag";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { XRFeatureManager } from "../XRFeatureManager";
+import { XRFeature } from "../XRFeature";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRRequestTrackingState } from "./XRRequestTrackingState";
 
 /**
  * The base class of XR trackable manager.
  */
-export abstract class XRTrackableManager<
+export abstract class XRTrackableFeature<
   TDescriptor extends IXRFeatureDescriptor,
   TXRTracked extends IXRTracked,
   TXRRequestTracking extends IXRRequestTracking<TXRTracked>,
   TTrackableFeature extends IXRTrackableFeature<TXRTracked, TXRRequestTracking>
-> extends XRFeatureManager<TDescriptor, TTrackableFeature> {
+> extends XRFeature<TDescriptor, TTrackableFeature> {
   protected _requestTrackings: TXRRequestTracking[] = [];
   protected _trackedObjects: TXRTracked[] = [];
   protected _added: TXRTracked[] = [];

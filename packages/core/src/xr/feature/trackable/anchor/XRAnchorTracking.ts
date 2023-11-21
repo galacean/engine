@@ -5,16 +5,16 @@ import {
   IXRRequestAnchorTracking,
   IXRAnchorTrackingDescriptor
 } from "@galacean/engine-design";
-import { XRTrackableManager } from "../XRTrackableManager";
+import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRFeatureType } from "../../XRFeatureType";
-import { registerXRFeatureManager } from "../../../XRManager";
+import { registerXRFeature } from "../../../XRManager";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 
-@registerXRFeatureManager(XRFeatureType.AnchorTracking)
+@registerXRFeature(XRFeatureType.AnchorTracking)
 /**
  * The manager of XR anchor tracking.
  */
-export class XRAnchorTrackingManager extends XRTrackableManager<
+export class XRAnchorTracking extends XRTrackableFeature<
   IXRAnchorTrackingDescriptor,
   IXRTracked,
   IXRRequestAnchorTracking,
