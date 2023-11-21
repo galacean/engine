@@ -112,8 +112,8 @@ export class SceneManager {
    */
   mergeScenes(sourceScene: Scene, destScene: Scene): void {
     const oldRootEntities = sourceScene.rootEntities;
-    for (let i: number = 0, n: number = oldRootEntities.length; i < n; i++) {
-      destScene.addRootEntity(oldRootEntities[i]);
+    while (oldRootEntities.length > 0) {
+      destScene.addRootEntity(oldRootEntities[0]);
     }
   }
 
