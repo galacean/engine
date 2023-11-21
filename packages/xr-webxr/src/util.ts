@@ -66,7 +66,9 @@ export function parseFeature(config: IXRFeatureConfig, options: XRSessionInit): 
     case 4:
     // XRFeatureType.HitTest
     case 5:
-      requiredFeatures.push("plane-detection");
+      if (requiredFeatures.indexOf("plane-detection") < 0) {
+        requiredFeatures.push("plane-detection");
+      }
       break;
   }
 }
