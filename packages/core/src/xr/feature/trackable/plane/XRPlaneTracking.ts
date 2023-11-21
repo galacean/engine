@@ -9,6 +9,7 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
 import { registerXRFeature } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
+import { Engine } from "../../../../Engine";
 
 @registerXRFeature(XRFeatureType.PlaneTracking)
 /**
@@ -38,5 +39,13 @@ export class XRPlaneTracking extends XRTrackableFeature<
       tracked: []
     });
     return Promise.resolve();
+  }
+
+  constructor(engine: Engine) {
+    super(engine);
+    this._config = {
+      type: XRFeatureType.PlaneTracking,
+      mode: XRPlaneMode.EveryThing
+    };
   }
 }

@@ -6,5 +6,5 @@ import { IXRPose } from "../../../input/IXRPose";
  */
 export interface IXRAnchorTrackingConfig extends IXRFeatureConfig {
   /** Request tracking anchor. */
-  anchors?: IXRPose[];
+  anchors: IXRPose[];
 }

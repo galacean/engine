@@ -3,6 +3,7 @@ import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
 import { registerXRFeature } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRFeature } from "../XRFeature";
+import { Engine } from "../../../Engine";
 
 @registerXRFeature(XRFeatureType.MovementTracking)
 /**
@@ -17,6 +18,15 @@ export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXR
   }
 
   set trackingMode(value: XRMovementTrackingMode) {
+    this._config.mode = value;
     this._platformFeature.trackingMode = value;
+  }
+
+  constructor(engine: Engine) {
+    super(engine);
+    this._config = {
+      type: XRFeatureType.MovementTracking,
+      mode: XRMovementTrackingMode.Dof6
+    };
   }
 }

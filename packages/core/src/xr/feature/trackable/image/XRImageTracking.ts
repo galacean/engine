@@ -11,6 +11,7 @@ import { XRFeatureType } from "../../XRFeatureType";
 import { XRSessionState } from "../../../session/XRSessionState";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { Logger } from "../../../../base";
+import { Engine } from "../../../../Engine";
 
 @registerXRFeature(XRFeatureType.ImageTracking)
 /**
@@ -93,6 +94,14 @@ export class XRImageTracking extends XRTrackableFeature<
       }
     }
     return Promise.resolve();
+  }
+
+  constructor(engine: Engine) {
+    super(engine);
+    this._config = {
+      type: XRFeatureType.ImageTracking,
+      images: []
+    };
   }
 
   private _createRequestTracking(image: XRReferenceImage): IXRRequestImageTracking {

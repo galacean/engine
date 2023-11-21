@@ -9,6 +9,7 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRFeatureType } from "../../XRFeatureType";
 import { registerXRFeature } from "../../../XRManager";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
+import { Engine } from "../../../../Engine";
 
 @registerXRFeature(XRFeatureType.AnchorTracking)
 /**
@@ -25,6 +26,8 @@ export class XRAnchorTracking extends XRTrackableFeature<
    * @param pose - The pose of anchor to be added
    */
   addAnchor(pose: IXRPose): IXRRequestAnchorTracking {
+    const { anchors } = this._config;
+    anchors.push(pose);
     const requestTracking = this._createRequestTracking(pose);
     this.addRequestTracking(requestTracking);
     return requestTracking;
@@ -53,6 +56,14 @@ export class XRAnchorTracking extends XRTrackableFeature<
       }
     }
     return Promise.resolve();
+  }
+
+  constructor(engine: Engine) {
+    super(engine);
+    this._config = {
+      type: XRFeatureType.AnchorTracking,
+      anchors: []
+    };
   }
 
   private _createRequestTracking(pose: IXRPose): IXRRequestAnchorTracking {
