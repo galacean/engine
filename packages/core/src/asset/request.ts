@@ -58,8 +58,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
       }
       const result = xhr.response ?? xhr.responseText;
       if (isImg) {
-        var blob = xhr.response;
-        var img = new Image();
+        const img = new Image();
 
         img.onload = () => {
           // Call requestAnimationFrame to avoid iOS's bug.
@@ -81,7 +80,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         };
 
         img.crossOrigin = "anonymous";
-        img.src = URL.createObjectURL(blob);
+        img.src = URL.createObjectURL(result);
       } else {
         setTaskCompleteProgress(1, 1);
         resolve(result);
