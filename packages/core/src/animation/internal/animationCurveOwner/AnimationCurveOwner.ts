@@ -47,13 +47,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   constructor(
     target: Entity,
     type: new (entity: Entity) => Component,
+    component: Component,
     property: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
-    this.type = type;
     this.property = property;
-    this.component = target.getComponent(type);
+    this.component = component;
     this.cureType = cureType;
 
     this._isBlendShape = this.component instanceof SkinnedMeshRenderer;

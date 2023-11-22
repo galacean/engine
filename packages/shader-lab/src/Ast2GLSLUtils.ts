@@ -24,20 +24,14 @@ export class Ast2GLSLUtils {
 
     // parse varying variables
     const varyingStructAstNode = context.findGlobal(vertFnAst.content.returnType.content.text)?.ast as StructAstNode;
-    if (!varyingStructAstNode) {
-      context.diagnostics.push({
-        severity: DiagnosticSeverity.Error,
-        message: "no varying struct definition",
-        token: vertFnAst.content.returnType.position
-      });
-      return "";
+    if (varyingStructAstNode) {
+      context.varyingStructInfo.structAstNode = varyingStructAstNode;
+      context.varyingStructInfo.reference = varyingStructAstNode.content.variables.map((v) => ({
+        referenced: false,
+        property: v,
+        text: `varying ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
+      }));
     }
-    context.varyingStructInfo.structAstNode = varyingStructAstNode;
-    context.varyingStructInfo.reference = varyingStructAstNode.content.variables.map((v) => ({
-      referenced: false,
-      property: v,
-      text: `varying ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
-    }));
 
     // parsing attribute variables
     vertFnAst.content.args.forEach((arg) => {
@@ -101,7 +95,7 @@ export class Ast2GLSLUtils {
     }
     context.setMainFnAst(fragFnAst);
 
-    context.varyingStructInfo.objectName = fragFnAst.content.args[0].content.name;
+    context.varyingStructInfo.objectName = fragFnAst.content.args?.[0].content.name;
     const fragmentFnStr = fragFnAst.serialize(context);
 
     // There may be global variable references in conditional macro statement, so it needs to be serialized first.

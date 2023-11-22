@@ -1,4 +1,4 @@
-import { Sprite, Texture2D } from "@galacean/engine-core";
+import { Sprite, SpriteRenderer, Texture2D, SpriteMask } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { expect } from "chai";
@@ -180,9 +180,24 @@ describe("Sprite", async () => {
   });
 
   it("destroy", () => {
+    const spriteRenderer = scene.rootEntities[0].addComponent(SpriteRenderer);
+    const spriteMask = scene.rootEntities[0].addComponent(SpriteMask);
     const sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+
+    spriteRenderer.sprite = spriteMask.sprite = sprite;
     sprite.destroy();
-    sprite.texture = null;
+    expect(sprite.destroyed).to.eq(false);
+
+    spriteRenderer.sprite = spriteMask.sprite = null;
+    sprite.destroy();
+    expect(sprite.destroyed).to.eq(true);
+
+    const anoSprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+    spriteRenderer.sprite = spriteMask.sprite = anoSprite;
+    anoSprite.destroy(true);
+    expect(anoSprite.destroyed).to.eq(true);
+    expect(spriteRenderer.sprite).to.null;
+    expect(spriteMask.sprite).to.null;
   });
 
   it("clone", () => {

@@ -9,9 +9,12 @@ import {
   ShaderPass,
   ShaderProperty,
   ShaderTagKey,
-  SubShader
+  SubShader,
+  RenderQueueType,
+  Material
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { ShaderLab } from "@galacean/engine-shader-lab";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 
@@ -24,6 +27,26 @@ describe("Shader", () => {
       let customShader = Shader.create("customByStringCreate", customVS, customFS);
       customShader = Shader.create("customByPassCreate", [new ShaderPass(customVS, customFS)]);
       customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+
+      // Create same name shader
+      expect(() => {
+        Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      }).throw();
+
+      // Create shader by empty SubShader array
+      expect(() => {
+        Shader.create("customByEmptySubShader", []);
+      }).to.throw();
+
+      // Create shader by empty string
+      expect(() => {
+        Shader.create("customByEmptyString", "", "");
+      }).to.throw();
+
+      // Create shader by empty pass
+      expect(() => {
+        Shader.create("customByEmptyPass", [new SubShader("Default", [])]);
+      }).to.throw();
 
       // Base struct created by Shader.create
       expect(customShader.subShaders).length(1);
@@ -125,6 +148,55 @@ describe("Shader", () => {
       // Call update will compile shader internally
       engine.update();
     });
+
+    it("ShaderLab", async function () {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), shaderLab: new ShaderLab() });
+
+      // Test that shader created successfully, if use shaderLab.
+      let shader = Shader.create(testShaderLabCode);
+      expect(shader).to.be.an.instanceOf(Shader);
+      expect(shader.subShaders.length).to.equal(1);
+      expect(shader.subShaders[0].passes.length).to.equal(3);
+      expect(shader.subShaders[0].getTagValue("RenderType")).to.equal("transparent");
+      expect(shader.subShaders[0].passes[1].getTagValue("MyCustomTag")).to.equal("MyCustomValue");
+      expect(shader.subShaders[0].passes[2].getTagValue("MyCustomTag2")).to.equal("MyCustomValue2");
+
+      // Test that throw error, if shader was created with same name in shaderLab.
+      // expect(() => {
+      //   Shader.create(testShaderLabCode);
+      // }).throw();
+
+      const scene = engine.sceneManager.activeScene;
+      const cameraEntity = scene.createRootEntity("camera");
+      const camera = cameraEntity.addComponent(Camera);
+      cameraEntity.transform.setPosition(0, 0, 10);
+
+      const lightEntity = scene.createRootEntity("light");
+      const directLight = lightEntity.addComponent(DirectLight);
+      lightEntity.transform.setRotation(-45, -45, 0);
+
+      const meshEntity = scene.createRootEntity("mesh");
+      const mr = meshEntity.addComponent(MeshRenderer);
+      mr.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+      mr.setMaterial(new Material(engine, shader));
+
+      // Test that shader compile variant successfully, if use shaderLab.
+      expect(shader.compileVariant(engine, ["SET_TEXTURE_GRAY"])).to.be.equal(true);
+      const macro = ShaderMacro.getByName("SET_TEXTURE_GRAY");
+
+      mr.shaderData.enableMacro("SET_TEXTURE_GRAY");
+      expect(mr.shaderData["_macroCollection"].isEnable(macro)).to.be.equal(true);
+
+      engine.update();
+
+      mr.shaderData.disableMacro("SET_TEXTURE_GRAY");
+      expect(mr.shaderData["_macroCollection"].isEnable(macro)).to.be.equal(false);
+
+      engine.update();
+
+      // Test get macro is same as ShaderMacro.getByName
+      expect(Shader.getMacroByName("SET_TEXTURE_GRAY")).to.be.equal(macro);
+    });
   });
 });
 
@@ -188,4 +260,122 @@ void main() {
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
 }
+`;
+
+const testShaderLabCode = `
+  Shader "Test-Default" {
+    SubShader "Default" {
+      Tags { RenderType = "transparent" }
+
+      UsePass "pbr-specular/Default/Forward"
+
+      Pass "test" {
+        Tags { MyCustomTag = "MyCustomValue" }
+
+        RenderQueueType = RenderQueueType.Opaque;
+
+        mat4 renderer_MVPMat;
+
+        struct a2v {
+          vec4 POSITION;
+        }
+
+        struct v2f {
+          vec2 uv;
+        }
+
+        VertexShader = vert;
+        FragmentShader = frag;
+
+        v2f vert(a2v v) {
+          gl_Position = renderer_MVPMat * v.POSITION;
+          v2f o;
+          o.uv = v.POSITION.xy * 0.5 + 0.7;
+          return o;
+        }
+
+        void frag(v2f i) {
+          gl_FragColor = mix(gl_FragColor, vec4(i.uv, 0, 1), 0.5);
+        }
+      }
+      Pass "1" {
+        Tags { MyCustomTag2 = "MyCustomValue2" }
+
+        DepthState depthState {
+          Enabled = true;
+          WriteEnabled = true;
+          CompareFunction = CompareFunction.LessEqual;
+        }
+
+        BlendState blendState {
+          Enabled = true;
+          ColorBlendOperation = BlendOperation.Add;
+          AlphaBlendOperation = BlendOperation.Subtract;
+          SourceColorBlendFactor = BlendFactor.SourceColor;
+          SourceAlphaBlendFactor = BlendFactor.One;
+          DestinationColorBlendFactor = BlendFactor.BlendColor;
+          DestinationAlphaBlendFactor = BlendFactor.OneMinusBlendColor;
+          ColorWriteMask = 16777130;
+          BlendColor = vec4(1, 1, 1, 0);
+          AlphaToCoverage = true;
+        }
+
+        BlendState = blendState;
+
+        StencilState stencilState {
+          Enabled = true;
+          Mask = 255;
+          WriteMask = 255;
+          ReferenceValue = 0;
+          CompareFunctionFront = CompareFunction.Always;
+          CompareFunctionBack = CompareFunction.Less;
+          PassOperationFront = StencilOperation.Keep;
+          PassOperationBack = StencilOperation.Keep;
+          FailOperationFront = StencilOperation.Keep;
+          FailOperationBack = StencilOperation.Keep;
+          ZFailOperationFront = StencilOperation.Invert;
+          ZFailOperationBack = StencilOperation.Invert;
+        }
+
+        RasterState rasterState {
+          CullMode = CullMode.Back;
+          DepthBias = 0.8;
+          SlopeScaledDepthBias = 0.3;
+        }
+
+        mat4 renderer_MVPMat;
+
+        sampler2D tex2d;
+
+        struct a2v {
+          vec4 POSITION;
+          vec2 TEXCOORD_0;
+        }
+
+        struct v2f {
+          vec2 uv;
+        }
+
+        VertexShader = vert;
+        FragmentShader = frag;
+
+        v2f vert(a2v v) {
+          gl_Position = renderer_MVPMat * (v.POSITION + vec4(0, 2, 0, 0));
+          v2f o;
+          o.uv = v.POSITION.xy * 0.5 + 0.7;
+          return o;
+        }
+
+        void frag(v2f i) {
+          #ifdef SET_TEXTURE_GRAY
+            vec4 texColor = texture2D(tex2d, i.uv);
+            float gray = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+            gl_FragColor = vec4(gray, gray, gray, texColor.a);
+          #else
+            gl_FragColor = texture2D(tex2d, i.uv);
+          #endif
+        }
+      }
+    }
+  }
 `;
