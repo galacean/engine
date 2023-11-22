@@ -8,9 +8,7 @@ import {
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRReferenceImage } from "./XRReferenceImage";
 import { XRFeatureType } from "../../XRFeatureType";
-import { XRSessionState } from "../../../session/XRSessionState";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
-import { Logger } from "../../../../base";
 import { Engine } from "../../../../Engine";
 
 /**
@@ -73,6 +71,11 @@ export class XRImageTracking extends XRTrackableFeature<
     this._removeAllRequestTrackings();
   }
 
+  /**
+   * @internal
+   * @param engine - The engine
+   * @param images - The images to be tracked
+   */
   constructor(engine: Engine, images: IXRReferenceImage[]) {
     super(engine);
     this._config = { type: XRFeatureType.ImageTracking, images };
