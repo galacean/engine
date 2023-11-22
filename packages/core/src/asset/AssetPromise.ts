@@ -117,8 +117,8 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   /**
    * Progress callback.
-   * @param onTaskComplete - This callback function provides information about the overall progress of the task. For example, in batch processing tasks, you can use the loaded and total parameters to calculate the percentage of task completion or display a progress bar.
-   * @param onTaskDetail - This callback function provides detailed progress information about the task. For instance, in file downloading scenarios, you can use the loaded and total parameters to calculate the download progress percentage and utilize the url parameter to provide additional details such as download speed and estimated remaining time.
+   * @param onTaskComplete - This callback function provides information about the overall progress of the task. For example, in batch processing tasks, you can use the loaded and total parameters to calculate the percentage of task completion or display a progress bar
+   * @param onTaskDetail - This callback function provides detailed progress information about the task. For instance, in file downloading scenarios, you can use the loaded and total parameters to calculate the download progress percentage and utilize the url parameter to provide additional details such as download speed and estimated remaining time
    * @returns AssetPromise
    */
   onProgress(
