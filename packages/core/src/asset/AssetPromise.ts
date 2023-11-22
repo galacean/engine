@@ -122,8 +122,8 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @returns AssetPromise
    */
   onProgress(
-    onTaskComplete?: (loaded: number, total: number) => void,
-    onTaskDetail?: (url: string, loaded: number, total: number) => void
+    onTaskComplete: (loaded: number, total: number) => void,
+    onTaskDetail?: (identifier: string, loaded: number, total: number) => void
   ): AssetPromise<T> {
     const completeProgress = this._taskCompleteProgress;
     const detailProgress = this._taskDetailProgress;
@@ -142,6 +142,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
       onTaskComplete && this._onTaskCompleteCallbacks.push(onTaskComplete);
       onTaskDetail && this._onTaskDetailCallbacks.push(onTaskDetail);
     }
+
     return this;
   }
 
