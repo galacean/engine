@@ -4,13 +4,11 @@ import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { XRFeature } from "../XRFeature";
-import { registerXRFeature } from "../../XRManager";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRSessionMode } from "../../session/XRSessionMode";
 import { XRInputType } from "../../input/XRInputType";
 import { Engine } from "../../../Engine";
 
-@registerXRFeature(XRFeatureType.HitTest)
 /**
  * The manager of XR hit test.
  */

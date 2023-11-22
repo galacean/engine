@@ -6,12 +6,10 @@ import {
 } from "@galacean/engine-design";
 import { XRPlaneMode } from "./XRPlaneMode";
 import { XRTrackableFeature } from "../XRTrackableFeature";
-import { registerXRFeature } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { Engine } from "../../../../Engine";
 
-@registerXRFeature(XRFeatureType.PlaneTracking)
 /**
  * The manager of plane tracking feature.
  */
@@ -32,21 +30,14 @@ export class XRPlaneTracking extends XRTrackableFeature<
     this._platformFeature.detectionMode = value;
   }
 
-  override initialize(): Promise<void> {
-    this.addRequestTracking({
-      detectionMode: this._config.mode,
+  constructor(engine: Engine, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
+    super(engine);
+    this._config = { type: XRFeatureType.PlaneTracking, mode: detectionMode };
+    this._platformFeature = <IXRPlaneTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.PlaneTracking);
+    this._addRequestTracking({
       state: XRRequestTrackingState.None,
+      detectionMode,
       tracked: []
     });
-    return Promise.resolve();
-  }
-
-  constructor(engine: Engine) {
-    super(engine);
-    this._config = {
-      type: XRFeatureType.PlaneTracking,
-      mode: XRPlaneMode.EveryThing
-    };
-    this._platformFeature = <IXRPlaneTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.PlaneTracking);
   }
 }

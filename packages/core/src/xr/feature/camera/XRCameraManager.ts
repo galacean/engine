@@ -1,7 +1,6 @@
 import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
-import { Logger } from "../../../base";
 import { XRCamera } from "../../input/XRCamera";
 import { XRInputManager } from "../../input/XRInputManager";
 import { XRInputType } from "../../input/XRInputType";
@@ -16,17 +15,12 @@ export class XRCameraManager {
 
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
-   * Once the attached is set up, the camera entity will be automatically moved to the XROrigin entity.
+   * The camera entity need to be moved to the XROrigin entity.
    * @param type - The input type
    * @param camera - The camera to be attached
    */
-  attachCamera(type: XRInputType, camera: Camera): void {
-    const xrViewer = this._inputManager.getInput<XRCamera>(type);
-    if (xrViewer) {
-      xrViewer.camera = camera;
-    } else {
-      Logger.warn(XRInputType[type], "not a legal input type.");
-    }
+  attachCamera(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera, camera: Camera): void {
+    this._inputManager.getInput<XRCamera>(type).camera = camera;
   }
 
   /**
@@ -34,10 +28,10 @@ export class XRCameraManager {
    * @param type - The input type
    * @returns The camera that was detached
    */
-  detachCamera(type: XRInputType): Camera {
-    const xrViewer = this._inputManager.getInput<XRCamera>(type);
-    const preCamera = xrViewer.camera;
-    xrViewer.camera = null;
+  detachCamera(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera): Camera {
+    const xrCamera = this._inputManager.getInput<XRCamera>(type);
+    const preCamera = xrCamera.camera;
+    xrCamera.camera = null;
     return preCamera;
   }
 
@@ -46,7 +40,7 @@ export class XRCameraManager {
    * @param type - The input type
    * @returns The camera
    */
-  getCameraByType(type: XRInputType): Camera {
+  getCameraByType(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera): Camera {
     return this._inputManager.getInput<XRCamera>(type).camera;
   }
 

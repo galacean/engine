@@ -46,52 +46,6 @@ export abstract class XRTrackableFeature<
   }
 
   /**
-   * Add a tracking request for tracking feature.
-   * @param requestTracking - The request tracking
-   */
-  addRequestTracking(requestTracking: TXRRequestTracking): void {
-    if (!this._canModifyRequestTracking()) {
-      throw new Error("Request tracking cannot be modified after XR session initialization.");
-    }
-    this._requestTrackings.push(requestTracking);
-    this._platformFeature.onAddRequestTracking && this._platformFeature.onAddRequestTracking(requestTracking);
-  }
-
-  /**
-   * Remove a tracking request from tracking feature.
-   * @param requestTracking - The request tracking
-   */
-  removeRequestTracking(requestTracking: TXRRequestTracking): void {
-    if (!this._canModifyRequestTracking()) {
-      throw new Error("Request tracking cannot be modified after XR session initialization.");
-    }
-    const { _requestTrackings: requestTrackings } = this;
-    const lastIndex = requestTrackings.length - 1;
-    const index = requestTrackings.indexOf(requestTracking);
-    if (index >= 0) {
-      index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
-      requestTrackings.length = lastIndex;
-      this._platformFeature.onDeleteRequestTracking && this._platformFeature.onDeleteRequestTracking(requestTracking);
-    }
-  }
-
-  /**
-   * Remove all tracking requests from tracking feature.
-   */
-  removeAllRequestTrackings(): void {
-    if (!this._canModifyRequestTracking()) {
-      throw new Error("Request tracking cannot be modified after XR session initialization.");
-    }
-    const { _requestTrackings: requestTrackings, _platformFeature: platformFeature } = this;
-    if (platformFeature.onDeleteRequestTracking) {
-      for (let i = 0, n = requestTrackings.length; i < n; i++) {
-        platformFeature.onDeleteRequestTracking(requestTrackings[i]);
-      }
-    }
-    requestTrackings.length = 0;
-  }
-
-  /**
    * Add a listening function to track changes.
    * @param listener - The listening function
    */
@@ -166,6 +120,41 @@ export abstract class XRTrackableFeature<
   override onDestroy(): void {
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
+  }
+
+  protected _addRequestTracking(requestTracking: TXRRequestTracking): void {
+    if (!this._canModifyRequestTracking()) {
+      throw new Error("Request tracking cannot be modified after XR session initialization.");
+    }
+    this._requestTrackings.push(requestTracking);
+    this._platformFeature.onAddRequestTracking && this._platformFeature.onAddRequestTracking(requestTracking);
+  }
+
+  protected _removeRequestTracking(requestTracking: TXRRequestTracking): void {
+    if (!this._canModifyRequestTracking()) {
+      throw new Error("Request tracking cannot be modified after XR session initialization.");
+    }
+    const { _requestTrackings: requestTrackings } = this;
+    const lastIndex = requestTrackings.length - 1;
+    const index = requestTrackings.indexOf(requestTracking);
+    if (index >= 0) {
+      index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
+      requestTrackings.length = lastIndex;
+      this._platformFeature.onDeleteRequestTracking && this._platformFeature.onDeleteRequestTracking(requestTracking);
+    }
+  }
+
+  protected _removeAllRequestTrackings(): void {
+    if (!this._canModifyRequestTracking()) {
+      throw new Error("Request tracking cannot be modified after XR session initialization.");
+    }
+    const { _requestTrackings: requestTrackings, _platformFeature: platformFeature } = this;
+    if (platformFeature.onDeleteRequestTracking) {
+      for (let i = 0, n = requestTrackings.length; i < n; i++) {
+        platformFeature.onDeleteRequestTracking(requestTrackings[i]);
+      }
+    }
+    requestTrackings.length = 0;
   }
 
   private _canModifyRequestTracking(): boolean {

@@ -7,11 +7,9 @@ import {
 } from "@galacean/engine-design";
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRFeatureType } from "../../XRFeatureType";
-import { registerXRFeature } from "../../../XRManager";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { Engine } from "../../../../Engine";
 
-@registerXRFeature(XRFeatureType.AnchorTracking)
 /**
  * The manager of XR anchor tracking.
  */
@@ -27,12 +25,10 @@ export class XRAnchorTracking extends XRTrackableFeature<
    */
   addAnchor(pose: IXRPose): IXRRequestAnchorTracking {
     if (!this._enabled) {
-      throw new Error("Cannot create an anchor from a disabled anchor manager.");
+      throw new Error("Cannot add an anchor from a disabled anchor manager.");
     }
-    const { anchors } = this._config;
-    anchors.push(pose);
     const requestTracking = this._createRequestTracking(pose);
-    this.addRequestTracking(requestTracking);
+    this._addRequestTracking(requestTracking);
     return requestTracking;
   }
 
@@ -44,7 +40,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
     if (!this._enabled) {
       throw new Error("Cannot remove an anchor from a disabled anchor manager.");
     }
-    this.removeRequestTracking(anchor);
+    this._removeRequestTracking(anchor);
   }
 
   /**
@@ -54,26 +50,18 @@ export class XRAnchorTracking extends XRTrackableFeature<
     if (!this._enabled) {
       throw new Error("Cannot remove anchors from a disabled anchor manager.");
     }
-    this.removeAllRequestTrackings();
+    this._removeAllRequestTrackings();
   }
 
-  override initialize(): Promise<void> {
-    const { anchors } = this._config;
+  constructor(engine: Engine, anchors: IXRPose[] = []) {
+    super(engine);
+    this._config = { type: XRFeatureType.AnchorTracking, anchors };
+    this._platformFeature = <IXRAnchorTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.AnchorTracking);
     if (anchors) {
       for (let i = 0, n = anchors.length; i < n; i++) {
-        this.addRequestTracking(this._createRequestTracking(anchors[i]));
+        this._addRequestTracking(this._createRequestTracking(anchors[i]));
       }
     }
-    return Promise.resolve();
-  }
-
-  constructor(engine: Engine) {
-    super(engine);
-    this._config = {
-      type: XRFeatureType.AnchorTracking,
-      anchors: []
-    };
-    this._platformFeature = <IXRAnchorTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.AnchorTracking);
   }
 
   private _createRequestTracking(pose: IXRPose): IXRRequestAnchorTracking {

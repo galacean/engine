@@ -1,5 +1,4 @@
 import { XRInputManager } from "./input/XRInputManager";
-import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionMode } from "./session/XRSessionMode";
@@ -10,16 +9,17 @@ import { Scene } from "../Scene";
 import { Entity } from "../Entity";
 import { XRCameraManager } from "./feature/camera/XRCameraManager";
 
-type TXRFeatureManagerConstructor = new (engine: Engine) => XRFeature;
+type InstanceType<T extends new (engine: Engine, ...args: any[]) => XRFeature> = T extends new (
+  engine: Engine,
+  ...args: infer P
+) => XRFeature
+  ? P
+  : never;
 
 /**
  * XRManager is the entry point of the XR system.
  */
 export class XRManager {
-  /** @internal */
-  static _featureToTypeMap: Map<TXRFeatureManagerConstructor, XRFeatureType> = new Map();
-  static _typeToFeatureMap: Map<XRFeatureType, TXRFeatureManagerConstructor> = new Map();
-
   /** Input manager for XR. */
   inputManager: XRInputManager;
   /** Session manager for XR. */
@@ -98,7 +98,7 @@ export class XRManager {
     if (feature) {
       return feature.isSupported();
     } else {
-      return Promise.reject("The platform interface layer  is not implemented.");
+      return Promise.reject("The platform interface layer is not implemented.");
     }
   }
 
@@ -107,7 +107,10 @@ export class XRManager {
    * @param type - The type of the feature
    * @returns The feature which has been added
    */
-  addFeature<T extends XRFeature>(type: new (engine: Engine) => T): T {
+  addFeature<T extends new (engine: Engine, ...args: any[]) => XRFeature>(
+    type: T,
+    constructor: InstanceType<T>
+  ): XRFeature | null {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
@@ -116,7 +119,7 @@ export class XRManager {
         return feature;
       }
     }
-    const feature = new type(this._engine);
+    const feature = new type(this._engine, constructor);
     feature.enabled = true;
     this._features.push(feature);
     return feature;
@@ -127,7 +130,7 @@ export class XRManager {
    * @param type - The type of the feature
    * @returns	The feature which match type
    */
-  getFeature<T extends XRFeature>(type: new (engine: Engine) => T): T | null {
+  getFeature<TFeature extends XRFeature>(type: new (engine: Engine, ...args: any[]) => TFeature): TFeature | null {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
@@ -293,11 +296,4 @@ export class XRManager {
       feature?.enabled && feature.onUpdate(session, frame);
     }
   }
-}
-
-export function registerXRFeature(feature: XRFeatureType) {
-  return (featureManagerConstructor: TXRFeatureManagerConstructor) => {
-    XRManager._featureToTypeMap.set(featureManagerConstructor, feature);
-    XRManager._typeToFeatureMap.set(feature, featureManagerConstructor);
-  };
 }
