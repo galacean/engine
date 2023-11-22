@@ -205,12 +205,18 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
-    return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) =>
-      KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
-        ({ engine, result, targetFormat, params }) =>
-          KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
-      )
-    );
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
+      this.request<ArrayBuffer>(item.url, { type: "arraybuffer" })
+        .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
+        .then((buffer) =>
+          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
+            ({ engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+          )
+        )
+        .then(resolve)
+        .catch(reject);
+    });
   }
 
   private _isKhronosSupported(priorityFormats: KTX2TargetFormat[], engine: any): boolean {
