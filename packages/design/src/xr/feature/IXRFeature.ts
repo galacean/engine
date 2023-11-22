@@ -9,11 +9,6 @@ export interface IXRFeature {
   enabled: boolean;
 
   /**
-   * Return the config of the feature.
-   */
-  get config(): IXRFeatureConfig;
-
-  /**
    * Returns whether the feature is supported.
    */
   isSupported(): Promise<void>;
@@ -22,6 +17,11 @@ export interface IXRFeature {
    * Initialize the feature.
    */
   initialize(): Promise<void>;
+
+  /**
+   * Return the config of the feature.
+   */
+  generateConfig(): IXRFeatureConfig;
 
   /**
    * Enable an instance of a feature.

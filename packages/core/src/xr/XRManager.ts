@@ -1,5 +1,6 @@
 import { XRInputManager } from "./input/XRInputManager";
 import { XRSessionManager } from "./session/XRSessionManager";
+import { XRCameraManager } from "./feature/camera/XRCameraManager";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRSessionMode } from "./session/XRSessionMode";
 import { XRFeature } from "./feature/XRFeature";
@@ -7,9 +8,8 @@ import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
-import { XRCameraManager } from "./feature/camera/XRCameraManager";
 
-type InstanceType<T extends new (engine: Engine, ...args: any[]) => XRFeature> = T extends new (
+type TConstructor<T extends new (engine: Engine, ...args: any[]) => XRFeature> = T extends new (
   engine: Engine,
   ...args: infer P
 ) => XRFeature
@@ -109,7 +109,7 @@ export class XRManager {
    */
   addFeature<T extends new (engine: Engine, ...args: any[]) => XRFeature>(
     type: T,
-    constructor: InstanceType<T>
+    ...constructor: TConstructor<T>
   ): XRFeature | null {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
@@ -119,7 +119,7 @@ export class XRManager {
         return feature;
       }
     }
-    const feature = new type(this._engine, constructor);
+    const feature = new type(this._engine, ...constructor);
     feature.enabled = true;
     this._features.push(feature);
     return feature;
@@ -130,7 +130,7 @@ export class XRManager {
    * @param type - The type of the feature
    * @returns	The feature which match type
    */
-  getFeature<TFeature extends XRFeature>(type: new (engine: Engine, ...args: any[]) => TFeature): TFeature | null {
+  getFeature<T extends XRFeature>(type: new (engine: Engine, ...args: any[]) => T): T | null {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];

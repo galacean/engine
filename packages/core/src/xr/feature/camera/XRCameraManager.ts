@@ -5,13 +5,13 @@ import { XRCamera } from "../../input/XRCamera";
 import { XRInputManager } from "../../input/XRInputManager";
 import { XRInputType } from "../../input/XRInputType";
 import { XRSessionManager } from "../../session/XRSessionManager";
+import { XRManager } from "../../XRManager";
 
 /**
  * The manager of XR camera.
  */
 export class XRCameraManager {
-  private _inputManager: XRInputManager;
-  private _sessionManager: XRSessionManager;
+  // private _engine: Engine;
 
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
@@ -20,7 +20,7 @@ export class XRCameraManager {
    * @param camera - The camera to be attached
    */
   attachCamera(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera, camera: Camera): void {
-    this._inputManager.getInput<XRCamera>(type).camera = camera;
+    this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera = camera;
   }
 
   /**
@@ -29,7 +29,7 @@ export class XRCameraManager {
    * @returns The camera that was detached
    */
   detachCamera(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera): Camera {
-    const xrCamera = this._inputManager.getInput<XRCamera>(type);
+    const xrCamera = this._engine.xrManager.inputManager.getInput<XRCamera>(type);
     const preCamera = xrCamera.camera;
     xrCamera.camera = null;
     return preCamera;
@@ -41,14 +41,14 @@ export class XRCameraManager {
    * @returns The camera
    */
   getCameraByType(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera): Camera {
-    return this._inputManager.getInput<XRCamera>(type).camera;
+    return this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera;
   }
 
   /**
    * Return fixed foveation of the camera.
    */
   get fixedFoveation(): number {
-    const { session } = this._sessionManager;
+    const { session } = this._engine.xrManager.sessionManager;
     if (session) {
       return session.fixedFoveation;
     } else {
@@ -57,7 +57,7 @@ export class XRCameraManager {
   }
 
   set fixedFoveation(value: number) {
-    const { session } = this._sessionManager;
+    const { session } = this._engine.xrManager.sessionManager;
     if (session) {
       session.fixedFoveation = value;
     }
@@ -67,7 +67,7 @@ export class XRCameraManager {
    * @internal
    */
   _onUpdate(): void {
-    const { _cameras: cameras } = this._inputManager;
+    const { _cameras: cameras } = this._engine.xrManager.inputManager;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const cameraDevice = cameras[i];
       const { camera } = cameraDevice;
@@ -92,9 +92,9 @@ export class XRCameraManager {
    */
   _onDestroy(): void {}
 
-  constructor(engine: Engine) {
-    const { xrManager } = engine;
-    this._inputManager = xrManager.inputManager;
-    this._sessionManager = xrManager.sessionManager;
+  constructor(private _engine: Engine) {
+    // const { xrManager } = engine;
+    // this._inputManager = xrManager.inputManager;
+    // this._sessionManager = xrManager.sessionManager;
   }
 }

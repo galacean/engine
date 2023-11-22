@@ -30,7 +30,7 @@ export class XRPlaneTracking extends XRTrackableFeature<
     this._platformFeature.detectionMode = value;
   }
 
-  constructor(engine: Engine, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
+  constructor(engine: Engine, detectionMode: XRPlaneMode.EveryThing) {
     super(engine);
     this._config = { type: XRFeatureType.PlaneTracking, mode: detectionMode };
     this._platformFeature = <IXRPlaneTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.PlaneTracking);

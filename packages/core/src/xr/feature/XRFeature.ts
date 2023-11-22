@@ -14,13 +14,6 @@ export abstract class XRFeature<
   protected _enabled: boolean = false;
 
   /**
-   * Return the descriptor of the feature.
-   */
-  get config(): TConfig {
-    return this._config;
-  }
-
-  /**
    * Returns whether the feature is enabled.
    */
   get enabled(): boolean {
@@ -44,6 +37,13 @@ export abstract class XRFeature<
     } else {
       return Promise.resolve();
     }
+  }
+
+  /**
+   * Return the config of the feature.
+   */
+  generateConfig(): TConfig {
+    return this._config;
   }
 
   /**
