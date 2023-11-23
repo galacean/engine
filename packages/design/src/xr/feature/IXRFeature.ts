@@ -4,6 +4,7 @@ import { IXRSession } from "../IXRSession";
 import { IXRFrame } from "../IXRFrame";
 
 export interface IXRFeature {
+  /** @internal */
   _platformFeature: IXRPlatformFeature;
   /** Whether this feature enabled. */
   enabled: boolean;
@@ -17,11 +18,6 @@ export interface IXRFeature {
    * Initialize the feature.
    */
   initialize(): Promise<void>;
-
-  /**
-   * Return the config of the feature.
-   */
-  generateConfig(): IXRFeatureConfig;
 
   /**
    * Enable an instance of a feature.
@@ -62,4 +58,9 @@ export interface IXRFeature {
    * Called when the session is destroyed.
    */
   onSessionDestroy(): void;
+
+  /**
+   * Generate the config of the feature.
+   */
+  _generateConfig(): IXRFeatureConfig;
 }

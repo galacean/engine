@@ -87,6 +87,16 @@ export class XRImageTracking extends XRTrackableFeature<
     }
   }
 
+  override _generateConfig(): IXRImageTrackingConfig {
+    const { _config: config, _requestTrackings: requestTrackings } = this;
+    const { images } = config;
+    images.length = 0;
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      images.push(requestTrackings[i].image);
+    }
+    return config;
+  }
+
   private _createRequestTracking(image: XRReferenceImage): IXRRequestImageTracking {
     return {
       image,

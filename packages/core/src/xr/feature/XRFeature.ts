@@ -10,8 +10,8 @@ export abstract class XRFeature<
 > implements IXRFeature
 {
   _platformFeature: TFeature;
-  protected _config: TConfig;
   protected _enabled: boolean = false;
+  protected _config: TConfig;
 
   /**
    * Returns whether the feature is enabled.
@@ -33,17 +33,10 @@ export abstract class XRFeature<
    */
   isSupported(): Promise<void> {
     if (this._platformFeature) {
-      return this._platformFeature.isSupported(this._config);
+      return this._platformFeature.isSupported(this._generateConfig());
     } else {
       return Promise.resolve();
     }
-  }
-
-  /**
-   * Return the config of the feature.
-   */
-  generateConfig(): TConfig {
-    return this._config;
   }
 
   /**
@@ -66,6 +59,8 @@ export abstract class XRFeature<
 
   /**
    * Called when xr frame is updated.
+   * @param session - The xr session
+   * @param frame - The xr frame
    */
   onUpdate(session: IXRSession, frame: IXRFrame): void {}
 
@@ -94,5 +89,17 @@ export abstract class XRFeature<
    */
   onDestroy(): void {}
 
+  /**
+   * @internal
+   * @param _engine - The engine
+   */
   constructor(protected _engine: Engine) {}
+
+  /**
+   * @internal
+   * @returns The config of the feature
+   */
+  _generateConfig(): TConfig {
+    return this._config;
+  }
 }
