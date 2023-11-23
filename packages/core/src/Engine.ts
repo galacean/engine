@@ -740,7 +740,7 @@ export class Engine extends EventDispatcher {
 export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
-  /** XR. */
+  /** XR Device. */
   xrDevice?: IXRDevice;
   /** Color space. */
   colorSpace?: ColorSpace;

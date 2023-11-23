@@ -9,13 +9,6 @@ import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { Entity } from "../Entity";
 
-type TConstructor<T extends new (engine: Engine, ...args: any[]) => XRFeature> = T extends new (
-  engine: Engine,
-  ...args: infer P
-) => XRFeature
-  ? P
-  : never;
-
 /**
  * XRManager is the entry point of the XR system.
  */
@@ -294,3 +287,10 @@ export class XRManager {
     }
   }
 }
+
+type TConstructor<T extends new (engine: Engine, ...args: any[]) => XRFeature> = T extends new (
+  engine: Engine,
+  ...args: infer P
+) => XRFeature
+  ? P
+  : never;
