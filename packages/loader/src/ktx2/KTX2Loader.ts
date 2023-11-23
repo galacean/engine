@@ -26,13 +26,22 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
   private static _khronosTranscoder: KhronosTranscoder;
-  private static _priorityFormats: KTX2TargetFormat[] = [
-    KTX2TargetFormat.BC7,
-    KTX2TargetFormat.ASTC,
-    KTX2TargetFormat.BC1_BC3,
-    KTX2TargetFormat.ETC,
-    KTX2TargetFormat.PVRTC
-  ];
+  private static _priorityFormats = {
+    etc1s: [
+      KTX2TargetFormat.ETC,
+      KTX2TargetFormat.BC7,
+      KTX2TargetFormat.ASTC,
+      KTX2TargetFormat.BC1_BC3,
+      KTX2TargetFormat.PVRTC
+    ],
+    uastc: [
+      KTX2TargetFormat.ASTC,
+      KTX2TargetFormat.BC7,
+      KTX2TargetFormat.ETC,
+      KTX2TargetFormat.BC1_BC3,
+      KTX2TargetFormat.PVRTC
+    ]
+  };
   private static _supportedMap = {
     [KTX2TargetFormat.ASTC]: [GLCapabilityType.astc],
     [KTX2TargetFormat.ETC]: [GLCapabilityType.etc],
@@ -55,7 +64,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   /** @internal */
   static _parseBuffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
     const ktx2Container = new KTX2Container(buffer);
-    const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats;
+    const formatPriorities =
+      params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.isUASTC ? "uastc" : "etc1s"];
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
     let transcodeResultPromise: Promise<TranscodeResult>;
     if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
@@ -186,11 +196,15 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     }
   }
 
-  override initialize(engine: Engine, configuration: EngineConfiguration): Promise<void> {
+  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
-      if (options.priorityFormats) KTX2Loader._priorityFormats = options.priorityFormats;
-      if (this._isKhronosSupported(options.priorityFormats, engine) && options.workerCount !== 0) {
+      if (options.priorityFormats) {
+        KTX2Loader._priorityFormats["etc1s"] = options.priorityFormats;
+        KTX2Loader._priorityFormats["uastc"] = options.priorityFormats;
+      }
+
+      if (options.transcoder === KTX2Transcoder.Khronos) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
         return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
@@ -212,12 +226,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       )
     );
   }
-
-  private _isKhronosSupported(priorityFormats: KTX2TargetFormat[], engine: any): boolean {
-    return !!KhronosTranscoder.transcoderMap[
-      KTX2Loader._detectSupportedFormat(engine._hardwareRenderer, priorityFormats)
-    ];
-  }
 }
 
 /**
@@ -225,7 +233,16 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
  */
 export interface KTX2Params {
   /** Priority transcoding format queue which is preferred options, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
+  /** @deprecated */
   priorityFormats: KTX2TargetFormat[];
+}
+
+/** Used for initialize KTX2 transcoder. */
+export enum KTX2Transcoder {
+  /** BinomialLLC transcoder. */
+  BinomialLLC,
+  /** Khronos transcoder. */
+  Khronos
 }
 
 declare module "@galacean/engine-core" {
@@ -235,7 +252,10 @@ declare module "@galacean/engine-core" {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
       /** Global transcoding format queue which will be used if not specified in per-instance param, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
+      /** @deprecated */
       priorityFormats?: KTX2TargetFormat[];
+      /** Used for initialize KTX2 transcoder, default is BinomialLLC. */
+      transcoder?: KTX2Transcoder;
     };
   }
 }
