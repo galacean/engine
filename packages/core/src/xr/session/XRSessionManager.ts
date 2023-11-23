@@ -1,11 +1,10 @@
-import { IXRFrame, IXRSession, IHardwareRenderer, IXRFeature } from "@galacean/engine-design";
+import { IXRSession, IHardwareRenderer, IXRFeature } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
 
 export class XRSessionManager {
   protected _session: IXRSession;
-  protected _frame: IXRFrame;
   protected _state: XRSessionState = XRSessionState.None;
   private _rhi: IHardwareRenderer;
 

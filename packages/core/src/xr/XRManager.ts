@@ -33,7 +33,7 @@ export class XRManager {
   private _engine: Engine;
   private _scene: Scene;
   private _origin: Entity;
-  private _mode: XRSessionMode = XRSessionMode.AR;
+  private _mode: XRSessionMode = XRSessionMode.None;
   private _features: XRFeature[] = [];
 
   /**
@@ -75,10 +75,6 @@ export class XRManager {
     return this._mode;
   }
 
-  set mode(value: XRSessionMode) {
-    this._mode = value;
-  }
-
   /**
    * Check if the specified mode is supported.
    * @param mode - The mode to check
@@ -114,10 +110,7 @@ export class XRManager {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      if (feature instanceof type) {
-        feature.enabled = true;
-        return feature;
-      }
+      if (feature instanceof type) throw new Error("The feature has been added");
     }
     const feature = new type(this._engine, ...constructor);
     feature.enabled = true;
@@ -138,7 +131,6 @@ export class XRManager {
         return feature;
       }
     }
-    return null;
   }
 
   /**
@@ -155,12 +147,11 @@ export class XRManager {
    * Enter the session.
    * @returns A promise that resolves if the session is entered, otherwise rejects
    */
-  enterXR(): Promise<void> {
-    if (this.sessionManager.state !== XRSessionState.None) {
-      return Promise.reject(new Error("Please destroy the old session first"));
+  enterXR(mode: XRSessionMode): Promise<void> {
+    if (this.sessionManager.session) {
+      return Promise.reject(new Error("Please destroy the old session first."));
     }
     return new Promise((resolve, reject) => {
-      const { _mode: mode } = this;
       // 1. Check if this xr mode is supported
       this._xrDevice.isSupportedSessionMode(mode).then(() => {
         // 2. Collect all features
@@ -179,6 +170,7 @@ export class XRManager {
         Promise.all(supportedPromises).then(() => {
           // 4. Initialize session
           this.sessionManager.initialize(mode, enabledFeatures).then((session) => {
+            this._mode = mode;
             // 5. Initialize all features
             const initializePromises = [];
             for (let i = 0, n = enabledFeatures.length; i < n; i++) {
@@ -214,7 +206,9 @@ export class XRManager {
             feature.enabled = false;
             feature.onSessionDestroy();
           }
+          feature.onDestroy();
         }
+        features.length = 0;
         resolve();
       }, reject);
     });
@@ -261,14 +255,17 @@ export class XRManager {
    * Destroy xr module.
    */
   destroy(): void {
-    const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      features[i]?.onDestroy();
+    if (this.sessionManager.session) {
+      this.exitXR().then(() => {
+        this.sessionManager._onDestroy();
+        this.inputManager._onDestroy();
+        this.cameraManager._onDestroy();
+      });
+    } else {
+      this.sessionManager._onDestroy();
+      this.inputManager._onDestroy();
+      this.cameraManager._onDestroy();
     }
-    features.length = 0;
-    this.sessionManager._onDestroy();
-    this.inputManager._onDestroy();
-    this.cameraManager._onDestroy();
   }
 
   constructor(engine: Engine, xrDevice: IXRDevice) {

@@ -2,17 +2,12 @@ import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
 import { XRCamera } from "../../input/XRCamera";
-import { XRInputManager } from "../../input/XRInputManager";
 import { XRInputType } from "../../input/XRInputType";
-import { XRSessionManager } from "../../session/XRSessionManager";
-import { XRManager } from "../../XRManager";
 
 /**
  * The manager of XR camera.
  */
 export class XRCameraManager {
-  // private _engine: Engine;
-
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
    * The camera entity need to be moved to the XROrigin entity.
@@ -52,7 +47,7 @@ export class XRCameraManager {
     if (session) {
       return session.fixedFoveation;
     } else {
-      return 1;
+      throw new Error("XR session is not available.");
     }
   }
 
@@ -60,8 +55,12 @@ export class XRCameraManager {
     const { session } = this._engine.xrManager.sessionManager;
     if (session) {
       session.fixedFoveation = value;
+    } else {
+      throw new Error("XR session is not available.");
     }
   }
+
+  constructor(private _engine: Engine) {}
 
   /**
    * @internal
@@ -91,10 +90,4 @@ export class XRCameraManager {
    * @internal
    */
   _onDestroy(): void {}
-
-  constructor(private _engine: Engine) {
-    // const { xrManager } = engine;
-    // this._inputManager = xrManager.inputManager;
-    // this._sessionManager = xrManager.sessionManager;
-  }
 }
