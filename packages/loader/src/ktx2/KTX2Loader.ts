@@ -254,7 +254,7 @@ declare module "@galacean/engine-core" {
       /** Global transcoding format queue which will be used if not specified in per-instance param, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
       /** @deprecated */
       priorityFormats?: KTX2TargetFormat[];
-      /** Used for initialize KTX2 transcoder. */
+      /** Used for initialize KTX2 transcoder, default is BinomialLLC. */
       transcoder?: KTX2Transcoder;
     };
   }
