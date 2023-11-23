@@ -64,6 +64,9 @@ export class XRHitTest extends XRFeature {
     return result;
   }
 
+  /**
+   * @param engine - The engine
+   */
   constructor(engine: Engine) {
     super(engine);
     const { xrManager } = engine;

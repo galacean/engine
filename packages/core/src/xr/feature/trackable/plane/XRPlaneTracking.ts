@@ -31,7 +31,6 @@ export class XRPlaneTracking extends XRTrackableFeature<
   }
 
   /**
-   * @internal
    * @param engine - The engine
    * @param detectionMode - The plane detection mode
    */

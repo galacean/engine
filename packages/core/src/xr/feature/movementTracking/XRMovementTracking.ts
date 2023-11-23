@@ -15,6 +15,10 @@ export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXR
     return this._config.mode;
   }
 
+  /**
+   * @param engine - The engine
+   * @param trackingMode - The tracking mode
+   */
   constructor(engine: Engine, trackingMode: XRMovementTrackingMode = XRMovementTrackingMode.Dof6) {
     super(engine);
     this._config = { type: XRFeatureType.MovementTracking, mode: trackingMode };

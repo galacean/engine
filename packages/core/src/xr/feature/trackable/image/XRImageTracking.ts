@@ -72,7 +72,6 @@ export class XRImageTracking extends XRTrackableFeature<
   }
 
   /**
-   * @internal
    * @param engine - The engine
    * @param images - The images to be tracked
    */

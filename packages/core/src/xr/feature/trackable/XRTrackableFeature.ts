@@ -12,6 +12,7 @@ import { XRFeature } from "../XRFeature";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRRequestTrackingState } from "./XRRequestTrackingState";
 import { XRSessionManager } from "../../session/XRSessionManager";
+import { Engine } from "../../../Engine";
 
 /**
  * The base class of XR trackable manager.
@@ -120,6 +121,15 @@ export abstract class XRTrackableFeature<
   override onDestroy(): void {
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
+  }
+
+  /**
+   * @internal
+   * @param engine - The engine
+   */
+  constructor(engine: Engine) {
+    super(engine);
+    this._sessionManager = engine.xrManager.sessionManager;
   }
 
   protected _addRequestTracking(requestTracking: TXRRequestTracking): void {

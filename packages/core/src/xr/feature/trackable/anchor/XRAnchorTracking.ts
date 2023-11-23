@@ -53,6 +53,10 @@ export class XRAnchorTracking extends XRTrackableFeature<
     this._removeAllRequestTrackings();
   }
 
+  /**
+   * @param engine - The engine
+   * @param anchors - The anchors to be tracked
+   */
   constructor(engine: Engine, anchors: IXRPose[] = []) {
     super(engine);
     this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };

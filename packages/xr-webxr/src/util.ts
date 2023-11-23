@@ -1,5 +1,5 @@
 import { IXRFeatureConfig, IXRImageTrackingConfig } from "@galacean/engine-design";
-import { request } from "@galacean/engine";
+import { XRFeatureType, XRInputType, request } from "@galacean/engine";
 import { WebXRDevice } from "./WebXRDevice";
 
 export function generateUUID(): number {
@@ -8,11 +8,9 @@ export function generateUUID(): number {
 
 export function parseXRMode(mode: number): XRSessionMode | null {
   switch (mode) {
-    // XRSessionMode.AR
-    case 0:
-      return "immersive-ar";
-    // XRSessionMode.VR
     case 1:
+      return "immersive-ar";
+    case 2:
       return "immersive-vr";
     default:
       return null;
@@ -22,12 +20,10 @@ export function parseXRMode(mode: number): XRSessionMode | null {
 export function parseFeature(config: IXRFeatureConfig, options: XRSessionInit): Promise<void> | void {
   const { requiredFeatures } = options;
   switch (config.type) {
-    // XRFeatureType.AnchorTracking
-    case 2:
+    case XRFeatureType.AnchorTracking:
       requiredFeatures.push("anchors");
       break;
-    // XRFeatureType.ImageTracking
-    case 3:
+    case XRFeatureType.ImageTracking:
       requiredFeatures.push("image-tracking");
       const { images } = <IXRImageTrackingConfig>config;
       const promiseArr: Promise<ImageBitmap>[] = [];
@@ -62,10 +58,8 @@ export function parseFeature(config: IXRFeatureConfig, options: XRSessionInit): 
       } else {
         return Promise.reject(new Error("Images.length is 0"));
       }
-    // XRFeatureType.PlaneTracking
-    case 4:
-    // XRFeatureType.HitTest
-    case 5:
+    case XRFeatureType.PlaneTracking:
+    case XRFeatureType.HitTest:
       if (requiredFeatures.indexOf("plane-detection") < 0) {
         requiredFeatures.push("plane-detection");
       }
@@ -79,26 +73,21 @@ export function getInputSource(inputSource: XRInputSource): number {
     case "gaze":
       break;
     case "screen":
-      // XRInputType.Controller
-      return 0;
+      return XRInputType.Controller;
     case "tracked-pointer":
       if (inputSource.hand) {
         switch (inputSource.handedness) {
           case "left":
-            // XRInputType.LeftHand
-            return 6;
+            return XRInputType.LeftHand;
           case "right":
-            // XRInputType.RightHand
-            return 7;
+            return XRInputType.RightHand;
         }
       } else {
         switch (inputSource.handedness) {
           case "left":
-            // XRInputType.LeftController
-            return 1;
+            return XRInputType.LeftController;
           case "right":
-            // XRInputType.RightController
-            return 2;
+            return XRInputType.RightController;
         }
       }
       break;
@@ -111,14 +100,11 @@ export function getInputSource(inputSource: XRInputSource): number {
 export function viewToCamera(type: XREye): number {
   switch (type) {
     case "left":
-      // XRInputType.LeftCamera
-      return 4;
+      return XRInputType.LeftCamera;
     case "right":
-      // XRInputType.RightCamera
-      return 5;
+      return XRInputType.RightCamera;
     default:
-      // XRInputType.Camera
-      return 3;
+      return XRInputType.Camera;
   }
 }
 
