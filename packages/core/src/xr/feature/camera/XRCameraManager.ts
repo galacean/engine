@@ -9,6 +9,27 @@ import { XRInputType } from "../../input/XRInputType";
  */
 export class XRCameraManager {
   /**
+   * Return fixed foveation of the camera.
+   */
+  get fixedFoveation(): number {
+    const { session } = this._engine.xrManager.sessionManager;
+    if (session) {
+      return session.fixedFoveation;
+    } else {
+      throw new Error("XR session is not available.");
+    }
+  }
+
+  set fixedFoveation(value: number) {
+    const { session } = this._engine.xrManager.sessionManager;
+    if (session) {
+      session.fixedFoveation = value;
+    } else {
+      throw new Error("XR session is not available.");
+    }
+  }
+
+  /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
    * The camera entity need to be moved to the XROrigin entity.
    * @param type - The input type
@@ -37,27 +58,6 @@ export class XRCameraManager {
    */
   getCameraByType(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera): Camera {
     return this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera;
-  }
-
-  /**
-   * Return fixed foveation of the camera.
-   */
-  get fixedFoveation(): number {
-    const { session } = this._engine.xrManager.sessionManager;
-    if (session) {
-      return session.fixedFoveation;
-    } else {
-      throw new Error("XR session is not available.");
-    }
-  }
-
-  set fixedFoveation(value: number) {
-    const { session } = this._engine.xrManager.sessionManager;
-    if (session) {
-      session.fixedFoveation = value;
-    } else {
-      throw new Error("XR session is not available.");
-    }
   }
 
   constructor(private _engine: Engine) {}
