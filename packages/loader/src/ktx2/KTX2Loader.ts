@@ -203,7 +203,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         KTX2Loader._priorityFormats["etc1s"] = options.priorityFormats;
         KTX2Loader._priorityFormats["uastc"] = options.priorityFormats;
       }
-      
+
       if (options.transcoder === KTX2Transcoder.Khronos) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
