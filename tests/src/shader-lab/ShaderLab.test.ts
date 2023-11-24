@@ -210,4 +210,9 @@ describe("ShaderLab", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/waterfull.shader")).toString();
     glslValidate(demoShader, shaderLab);
   });
+
+  it("glass shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
 });
