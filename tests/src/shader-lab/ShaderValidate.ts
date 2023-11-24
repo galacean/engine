@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader } from "@galacean/engine-core";
+import { Shader, ShaderFactory } from "@galacean/engine-core";
 import { ISubShaderInfo } from "@galacean/engine-design";
 
 function addLineNum(str: string) {
@@ -35,16 +35,16 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
     const vs = gl.createShader(gl.VERTEX_SHADER);
     const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-    const fsPrefix = `precision mediump float;
+    const fsPrefix = `#version 300 es\nprecision mediump float;
   precision mediump int;
 `;
     const fsSource = fsPrefix + pass.fragmentSource;
-    const vsSource = "precision mediump float;\n" + pass.vertexSource;
+    const vsSource = "#version 300 es\nprecision mediump float;\n" + pass.vertexSource;
 
-    gl.shaderSource(vs, vsSource);
+    gl.shaderSource(vs, ShaderFactory.convertTo300(vsSource));
     gl.compileShader(vs);
 
-    gl.shaderSource(fs, fsSource);
+    gl.shaderSource(fs, ShaderFactory.convertTo300(fsSource, true));
     gl.compileShader(fs);
 
     expect(
