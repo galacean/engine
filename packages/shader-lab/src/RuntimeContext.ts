@@ -151,7 +151,7 @@ export default class RuntimeContext {
     return ret;
   }
 
-  private resetPassScopeGlobalReference() {
+  private _resetPassScopeGlobalReference() {
     for (const [_, g] of this._passGlobalMap) {
       g.referenced = false;
     }
@@ -173,7 +173,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        this.resetPassScopeGlobalReference();
+        this._resetPassScopeGlobalReference();
         ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(passAst, prop, this);
         break;
       case FRAG_FN_NAME:
@@ -185,7 +185,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        this.resetPassScopeGlobalReference();
+        this._resetPassScopeGlobalReference();
         ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(passAst, prop, this);
         break;
       default:
