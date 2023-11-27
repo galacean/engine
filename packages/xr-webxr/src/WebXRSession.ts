@@ -1,5 +1,5 @@
 import { IXRSession, IXRInputEvent } from "@galacean/engine-design";
-import { XRTargetRayMode } from "@galacean/engine";
+import { XRInputEventType, XRInputType, XRTargetRayMode } from "@galacean/engine";
 import { WebXRFrame } from "./WebXRFrame";
 import { getInputSource } from "./util";
 
@@ -18,18 +18,12 @@ export class WebXRSession implements IXRSession {
   private _events: IXRInputEvent[] = [];
   private _screenPointers: XRInputSource[] = [];
   private _inputEventTypeMap: Record<string, number> = {
-    // XRInputEventType.SelectStart
-    selectstart: 0,
-    // XRInputEventType.Select
-    select: 1,
-    // XRInputEventType.SelectEnd
-    selectend: 2,
-    // XRInputEventType.SqueezeStart
-    squeezestart: 3,
-    // XRInputEventType.Squeeze
-    squeeze: 4,
-    // XRInputEventType.SqueezeEnd
-    squeezeend: 5
+    selectstart: XRInputEventType.SelectStart,
+    select: XRInputEventType.Select,
+    selectend: XRInputEventType.SelectEnd,
+    squeezestart: XRInputEventType.SqueezeStart,
+    squeeze: XRInputEventType.Squeeze,
+    squeezeend: XRInputEventType.SqueezeEnd
   };
   private _targetRayModeMap: Record<string, number> = {
     gaze: XRTargetRayMode.Gaze,
@@ -78,17 +72,14 @@ export class WebXRSession implements IXRSession {
       if (!inputSource) continue;
       const { axes } = inputSource.gamepad;
       const event = {
-        // XRInputEventType.Select
-        type: 1,
-        // XRTargetRayMode.Screen
-        targetRayMode: 2,
-        // XRInputType.Controller
-        input: 0,
+        type: XRInputEventType.Select,
+        targetRayMode: XRTargetRayMode.Screen,
+        input: XRInputType.Controller,
         id: i,
         x: axes[0],
         y: axes[1]
       };
-      events.unshift(event);
+      events.push(event);
     }
     return events;
   }
@@ -159,15 +150,13 @@ export class WebXRSession implements IXRSession {
       targetRayMode: this._targetRayModeMap[inputSource.targetRayMode]
     };
     if (event.targetRayMode === XRTargetRayMode.Screen) {
-      // XRTargetRayMode.Screen
-      event.targetRayMode = 2;
+      event.targetRayMode = XRTargetRayMode.Screen;
       const { _screenPointers: screenPointers } = this;
       const { axes } = inputSource.gamepad;
       event.x = axes[0];
       event.y = axes[1];
       switch (event.type) {
-        // XRInputEventType.SelectStart
-        case 0:
+        case XRInputEventType.SelectStart:
           let idx = -1;
           let emptyIdx = -1;
           for (let i = screenPointers.length - 1; i >= 0; i--) {
@@ -190,8 +179,7 @@ export class WebXRSession implements IXRSession {
           }
           event.id = idx;
           break;
-        // XRInputEventType.SelectEnd
-        case 2:
+        case XRInputEventType.SelectEnd:
           for (let i = screenPointers.length - 1; i >= 0; i--) {
             if (screenPointers[i] === inputSource) {
               screenPointers[i] = null;

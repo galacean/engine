@@ -259,12 +259,16 @@ export class XRInputManager {
         eventInitDict.button = 0;
         eventInitDict.buttons = 1;
         break;
+      case "pointermove":
+        eventInitDict.button = -1;
+        eventInitDict.buttons = 1;
+        break;
       case "pointerup":
         eventInitDict.button = 0;
         eventInitDict.buttons = 0;
         break;
       case "pointerleave":
-        eventInitDict.button = -1;
+        eventInitDict.button = 0;
         eventInitDict.buttons = 0;
         break;
       default:
