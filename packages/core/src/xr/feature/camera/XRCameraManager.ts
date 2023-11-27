@@ -3,6 +3,7 @@ import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
 import { XRCamera } from "../../input/XRCamera";
 import { XRInputType } from "../../input/XRInputType";
+import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 
 /**
  * The manager of XR camera.
@@ -65,6 +66,17 @@ export class XRCameraManager {
   /**
    * @internal
    */
+  _onSessionInit(): void {
+    const { _cameras: cameras } = this._engine.xrManager.inputManager;
+    for (let i = 0, n = cameras.length; i < n; i++) {
+      const { camera } = cameras[i];
+      camera && (camera.clearFlags &= ~CameraClearFlags.Color);
+    }
+  }
+
+  /**
+   * @internal
+   */
   _onUpdate(): void {
     const { _cameras: cameras } = this._engine.xrManager.inputManager;
     for (let i = 0, n = cameras.length; i < n; i++) {
@@ -83,6 +95,17 @@ export class XRCameraManager {
       if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
         camera.projectionMatrix = cameraDevice.projectionMatrix;
       }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void {
+    const { _cameras: cameras } = this._engine.xrManager.inputManager;
+    for (let i = 0, n = cameras.length; i < n; i++) {
+      const { camera } = cameras[i];
+      camera && (camera.clearFlags |= CameraClearFlags.Color);
     }
   }
 

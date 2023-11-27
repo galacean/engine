@@ -9,6 +9,7 @@ export class WebXRFrame implements IXRFrame {
   private _session: WebXRSession;
 
   updateInputs(inputs: IXRInput[]): void {
+    if (!this._platformFrame) return;
     this._updateController(inputs);
     this._updateCamera(inputs);
   }

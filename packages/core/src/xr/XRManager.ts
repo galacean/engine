@@ -162,7 +162,7 @@ export class XRManager {
         // 3. Check if this feature is supported
         Promise.all(supportedPromises).then(() => {
           // 4. Initialize session
-          this.sessionManager.initialize(mode, enabledFeatures).then((session) => {
+          this.sessionManager._initialize(mode, enabledFeatures).then((session) => {
             this._mode = mode;
             // 5. Initialize all features
             const initializePromises = [];
@@ -170,6 +170,7 @@ export class XRManager {
               initializePromises.push(enabledFeatures[i].initialize());
             }
             Promise.all(initializePromises).then(() => {
+              this.cameraManager._onSessionInit();
               this.inputManager._onSessionInit(session);
               for (let i = 0, n = enabledFeatures.length; i < n; i++) {
                 enabledFeatures[i].onSessionInit();
@@ -190,8 +191,9 @@ export class XRManager {
   exitXR(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { sessionManager } = this;
-      sessionManager.destroy().then(() => {
+      sessionManager._destroy().then(() => {
         const { _features: features } = this;
+        this.cameraManager._onSessionDestroy();
         this.inputManager._onSessionDestroy();
         for (let i = 0, n = features.length; i < n; i++) {
           const feature = features[i];
@@ -214,7 +216,7 @@ export class XRManager {
   run(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { sessionManager } = this;
-      sessionManager.start().then(() => {
+      sessionManager._start().then(() => {
         const { _features: features } = this;
         this.inputManager._onSessionStart();
         for (let i = 0, n = features.length; i < n; i++) {
@@ -232,7 +234,7 @@ export class XRManager {
    */
   stop(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.sessionManager.stop().then(() => {
+      this.sessionManager._stop().then(() => {
         const { _features: features } = this;
         this.inputManager._onSessionStop();
         for (let i = 0, n = features.length; i < n; i++) {

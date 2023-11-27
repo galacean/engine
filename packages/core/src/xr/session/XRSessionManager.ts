@@ -7,6 +7,8 @@ export class XRSessionManager {
   protected _session: IXRSession;
   protected _state: XRSessionState = XRSessionState.None;
   private _rhi: IHardwareRenderer;
+  private _raf: (callback: FrameRequestCallback) => number;
+  private _caf: (id: number) => void;
 
   /**
    * Return the current session state.
@@ -43,7 +45,7 @@ export class XRSessionManager {
     if (this._state === XRSessionState.Running) {
       return this._session.requestAnimationFrame;
     } else {
-      return requestAnimationFrame;
+      return this._raf;
     }
   }
 
@@ -54,17 +56,20 @@ export class XRSessionManager {
     if (this._state === XRSessionState.Running) {
       return this._session.cancelAnimationFrame;
     } else {
-      return cancelAnimationFrame;
+      return this._caf;
     }
   }
 
+  constructor(protected _engine: Engine) {
+    this._rhi = _engine._hardwareRenderer;
+    this._raf = requestAnimationFrame.bind(window);
+    this._caf = cancelAnimationFrame.bind(window);
+  }
+
   /**
-   * Initialize the session.
-   * @param mode - The mode of the session
-   * @param features - The requested features
-   * @returns The promise of the session
+   * @internal
    */
-  initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
+  _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
     const { _xrDevice: xrDevice } = this._engine.xrManager;
     return new Promise((resolve, reject) => {
       xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
@@ -76,10 +81,9 @@ export class XRSessionManager {
   }
 
   /**
-   * Start the session.
-   * @returns The promise of the session
+   * @internal
    */
-  start(): Promise<void> {
+  _start(): Promise<void> {
     const { _session: session } = this;
     if (!session) {
       return Promise.reject("Without session to start.");
@@ -93,34 +97,37 @@ export class XRSessionManager {
   }
 
   /**
-   * Stop the session.
-   * @returns The promise of the session
+   * @internal
    */
-  stop(): Promise<void> {
+  _stop(): Promise<void> {
     const { _session: session } = this;
     if (!session) {
       return Promise.reject("Without session to stop.");
     }
+    const isRunning = !this._engine.isPaused;
+    isRunning && this._engine.pause();
     return new Promise((resolve, reject) => {
       session.stop().then(() => {
         const { _rhi: rhi } = this;
         rhi._mainFrameBuffer = null;
         rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
         this._state = XRSessionState.Paused;
+        isRunning && this._engine.resume();
         resolve();
       }, reject);
     });
   }
 
   /**
-   * Destroy the session.
-   * @returns The promise of the session
+   * @internal
    */
-  destroy(): Promise<void> {
+  _destroy(): Promise<void> {
     const { _session: session } = this;
     if (!session) {
       return Promise.reject("Without session to stop.");
     }
+    const isRunning = !this._engine.isPaused;
+    isRunning && this._engine.pause();
     return new Promise((resolve, reject) => {
       const { _rhi: rhi } = this;
       rhi._mainFrameBuffer = null;
@@ -128,13 +135,10 @@ export class XRSessionManager {
       session.end().then(() => {
         this._session = null;
         this._state = XRSessionState.None;
+        isRunning && this._engine.resume();
         resolve();
       }, reject);
     });
-  }
-
-  constructor(protected _engine: Engine) {
-    this._rhi = _engine._hardwareRenderer;
   }
 
   /**
