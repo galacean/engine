@@ -1,9 +1,9 @@
 import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
+import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { XRCamera } from "../../input/XRCamera";
 import { XRInputType } from "../../input/XRInputType";
-import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 
 /**
  * The manager of XR camera.
@@ -29,6 +29,8 @@ export class XRCameraManager {
       throw new Error("XR session is not available.");
     }
   }
+
+  constructor(private _engine: Engine) {}
 
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
@@ -60,8 +62,6 @@ export class XRCameraManager {
   getCameraByType(type: XRInputType.Camera | XRInputType.LeftCamera | XRInputType.RightCamera): Camera {
     return this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera;
   }
-
-  constructor(private _engine: Engine) {}
 
   /**
    * @internal

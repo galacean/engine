@@ -1,13 +1,13 @@
-import { XRInputManager } from "./input/XRInputManager";
-import { XRSessionManager } from "./session/XRSessionManager";
-import { XRCameraManager } from "./feature/camera/XRCameraManager";
-import { XRSessionState } from "./session/XRSessionState";
-import { XRSessionMode } from "./session/XRSessionMode";
-import { XRFeature } from "./feature/XRFeature";
 import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
-import { Scene } from "../Scene";
 import { Entity } from "../Entity";
+import { Scene } from "../Scene";
+import { XRFeature } from "./feature/XRFeature";
+import { XRCameraManager } from "./feature/camera/XRCameraManager";
+import { XRInputManager } from "./input/XRInputManager";
+import { XRSessionManager } from "./session/XRSessionManager";
+import { XRSessionMode } from "./session/XRSessionMode";
+import { XRSessionState } from "./session/XRSessionState";
 
 /**
  * XRManager is the entry point of the XR system.
@@ -66,6 +66,14 @@ export class XRManager {
    */
   get mode(): XRSessionMode {
     return this._mode;
+  }
+
+  constructor(engine: Engine, xrDevice: IXRDevice) {
+    this._engine = engine;
+    this._xrDevice = xrDevice;
+    this.sessionManager = new XRSessionManager(engine);
+    this.inputManager = new XRInputManager(engine);
+    this.cameraManager = new XRCameraManager(engine);
   }
 
   /**
@@ -138,6 +146,7 @@ export class XRManager {
 
   /**
    * Enter the session.
+   * @param mode - The mode of the session
    * @returns A promise that resolves if the session is entered, otherwise rejects
    */
   enterXR(mode: XRSessionMode): Promise<void> {
@@ -261,14 +270,6 @@ export class XRManager {
       this.inputManager._onDestroy();
       this.cameraManager._onDestroy();
     }
-  }
-
-  constructor(engine: Engine, xrDevice: IXRDevice) {
-    this._engine = engine;
-    this._xrDevice = xrDevice;
-    this.sessionManager = new XRSessionManager(engine);
-    this.inputManager = new XRInputManager(engine);
-    this.cameraManager = new XRCameraManager(engine);
   }
 
   /**
