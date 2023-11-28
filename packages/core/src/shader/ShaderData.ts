@@ -410,10 +410,11 @@ export class ShaderData implements IReferable, IClone {
   setTexture(property: ShaderProperty, value: Texture): void;
 
   setTexture(property: string | ShaderProperty, value: Texture): void {
-    if (this._getReferCount() > 0) {
+    const refCount = this._refCount;
+    if (refCount > 0) {
       const lastValue = this.getPropertyValue<Texture>(property);
-      lastValue && lastValue._addReferCount(-1);
-      value && value._addReferCount(1);
+      lastValue && lastValue._addReferCount(-refCount);
+      value && value._addReferCount(refCount);
     }
     this._setPropertyValue(property, ShaderPropertyType.Texture, value);
   }
