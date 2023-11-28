@@ -10,6 +10,9 @@ import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnim
  * @internal
  */
 export class AnimationCurveOwner<V extends KeyframeValueType> {
+  /** @internal */
+  static _components: Component[] = [];
+
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   static registerAssembler(componentType: ComponentType, property: string, assemblerType: AssemblerType): void {
@@ -28,7 +31,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   readonly target: Entity;
-  readonly type: new (entity: Entity) => Component;
   readonly property: string;
   readonly component: Component;
 
@@ -45,13 +47,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   constructor(
     target: Entity,
     type: new (entity: Entity) => Component,
+    component: Component,
     property: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
-    this.type = type;
     this.property = property;
-    this.component = target.getComponent(type);
+    this.component = component;
     this.cureType = cureType;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
@@ -158,11 +160,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   applyValue(value: V, weight: number, additive: boolean): void {
     const cureType = this.cureType;
+
     if (additive) {
+      const assembler = this._assembler;
+
       if (cureType._isCopyMode) {
-        cureType._additiveValue(value, weight, this.referenceTargetValue);
+        const additiveValue = cureType._additiveValue(value, weight, this.referenceTargetValue);
       } else {
-        const assembler = this._assembler;
         const originValue = assembler.getTargetValue();
         const additiveValue = cureType._additiveValue(value, weight, originValue);
         assembler.setTargetValue(additiveValue);

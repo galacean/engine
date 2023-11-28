@@ -1,4 +1,4 @@
-import { CstNode } from "chevrotain";
+import { CstNode, CstParser, createToken } from "chevrotain";
 import { AstNodeUtils } from "./AstNodeUtils";
 import {
   AddExprAstNode,
@@ -9,8 +9,10 @@ import {
   BlendFactorAstNode,
   BlendOperationAstNode,
   BooleanAstNode,
+  BreakStatementAstNode,
   CompareFunctionAstNode,
   ConditionExprAstNode,
+  ContinueStatementAstNode,
   CullModeAstNode,
   DeclarationWithoutAssignAstNode,
   DiscardStatementAstNode,
@@ -45,9 +47,6 @@ import {
   ObjectAstNode,
   PassPropertyAssignmentAstNode,
   PrecisionAstNode,
-  PropertyAstNode,
-  PropertyItemAstNode,
-  RangeAstNode,
   RelationExprAstNode,
   RelationOperatorAstNode,
   RenderQueueAssignmentAstNode,
@@ -68,7 +67,6 @@ import {
   VariableTypeAstNode
 } from "./ast-node";
 import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
-import { ShaderParser } from "./parser/ShaderParser";
 import {
   ICstNodeVisitor,
   _ruleAddOperatorCstChildren,
@@ -80,8 +78,10 @@ import {
   _ruleBlendStatePropertyDeclarationCstChildren,
   _ruleBlendStateValueCstChildren,
   _ruleBooleanCstChildren,
+  _ruleBreakStatementCstChildren,
   _ruleCompareFunctionCstChildren,
   _ruleConditionExprCstChildren,
+  _ruleContinueStatementCstChildren,
   _ruleCullModeCstChildren,
   _ruleDeclarationWithoutAssignCstChildren,
   _ruleDepthSatePropertyDeclarationCstChildren,
@@ -124,10 +124,6 @@ import {
   _ruleNumberCstChildren,
   _rulePassPropertyAssignmentCstChildren,
   _rulePrecisionPrefixCstChildren,
-  _rulePropertyCstChildren,
-  _rulePropertyItemCstChildren,
-  _rulePropertyItemValueCstChildren,
-  _ruleRangeCstChildren,
   _ruleRasterStatePropertyDeclarationCstChildren,
   _ruleRasterStatePropertyItemCstChildren,
   _ruleRasterStateValueCstChildren,
@@ -154,7 +150,7 @@ import {
   _ruleVariableTypeCstChildren
 } from "./types";
 
-export const parser = new ShaderParser();
+const parser = new CstParser([createToken({ name: "_", pattern: /_/ })]);
 
 const ShaderVisitorConstructor = parser.getBaseCstVisitorConstructorWithDefaults<any, AstNode>();
 
@@ -165,8 +161,6 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleShader(ctx: _ruleShaderCstChildren, param?: any) {
-    const editorProperties = ctx._ruleProperty ? this.visit(ctx._ruleProperty) : undefined;
-
     const subShader = ctx._ruleSubShader?.map((item) => this.visit(item));
 
     const position: IPositionRange = {
@@ -176,7 +170,6 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     return new AstNode<IShaderAstContent>(position, {
       name: ctx.ValueString[0].image.replace(/"(.*)"/, "$1"),
-      editorProperties,
       subShader,
       variables: ctx._ruleShaderPropertyDeclare?.map((item) => this.visit(item) as any),
       functions: ctx._ruleFn?.map((item) => this.visit(item)),
@@ -415,6 +408,22 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
     };
     return new DiscardStatementAstNode(position, null);
+  }
+
+  _ruleBreakStatement(children: _ruleBreakStatementCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.break[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+    };
+    return new BreakStatementAstNode(position, null);
+  }
+
+  _ruleContinueStatement(children: _ruleContinueStatementCstChildren, param?: any) {
+    const position: IPositionRange = {
+      start: AstNodeUtils.getTokenPosition(children.continue[0]).start,
+      end: AstNodeUtils.getTokenPosition(children.Semicolon[0]).end
+    };
+    return new ContinueStatementAstNode(position, null);
   }
 
   _ruleFnCall(ctx: _ruleFnCallCstChildren) {
@@ -999,33 +1008,6 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return Object.values(astNodeObj)[0];
   }
 
-  _ruleProperty(ctx: _rulePropertyCstChildren) {
-    const position: IPositionRange = {
-      start: AstNodeUtils.getTokenPosition(ctx.EditorProperties[0]).start,
-      end: AstNodeUtils.getTokenPosition(ctx.RCurly[0]).end
-    };
-
-    return new PropertyAstNode(position, ctx._rulePropertyItem?.map((item) => this.visit(item)));
-  }
-
-  _rulePropertyItem(ctx: _rulePropertyItemCstChildren, param?: any) {
-    const position: IPositionRange = {
-      start: AstNodeUtils.getTokenPosition(ctx.Identifier[0]).start,
-      end: AstNodeUtils.getTokenPosition(ctx.Semicolon[0]).end
-    };
-
-    return new PropertyItemAstNode(position, {
-      name: ctx.Identifier[0].image,
-      desc: ctx.ValueString[0].image,
-      type: AstNodeUtils.extractCstToken(ctx._rulePropertyItemType[0]),
-      default: this.visit(ctx._rulePropertyItemValue)
-    });
-  }
-
-  _rulePropertyItemValue(ctx: _rulePropertyItemValueCstChildren) {
-    return AstNodeUtils.defaultVisit.bind(this)(ctx);
-  }
-
   _ruleTupleFloat4(ctx: _ruleTupleFloat4CstChildren) {
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(ctx.LBracket[0]).start,
@@ -1041,13 +1023,5 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     };
 
     return new TupleNumber4AstNode(position, <ITupleNumber4>ctx.ValueInt.map((n) => Number(n.image)));
-  }
-
-  _ruleRange(ctx: _ruleRangeCstChildren) {
-    const position: IPositionRange = {
-      start: AstNodeUtils.getTokenPosition(ctx.Range[0]).start,
-      end: AstNodeUtils.getTokenPosition(ctx.RBracket[0]).end
-    };
-    return new RangeAstNode(position, <ITupleNumber2>ctx.ValueInt.map((int) => Number(int.image)));
   }
 }

@@ -21,6 +21,7 @@ import {
   GLTFParser,
   GLTFParserContext,
   GLTFParserType,
+  GLTFResource,
   GLTFSchemaParser,
   registerGLTFExtension,
   registerGLTFParser
@@ -121,6 +122,17 @@ before(async function () {
                 }
               }
             ]
+          },
+          EXT_lights_image_based: {
+            lights: [
+              {
+                intensity: 1.0,
+                rotation: [0, 0, 0, 1],
+                irradianceCoefficients: [],
+                specularImageSize: 256,
+                specularImages: []
+              }
+            ]
           }
         },
         nodes: [
@@ -148,7 +160,17 @@ before(async function () {
           }
         ],
         scene: 0,
-        scenes: [{ name: "scene", nodes: [0] }],
+        scenes: [
+          {
+            name: "scene",
+            nodes: [0],
+            extensions: {
+              EXT_lights_image_based: {
+                light: 0
+              }
+            }
+          }
+        ],
         materials: [
           {
             name: "pbr",
@@ -312,6 +334,21 @@ before(async function () {
     }
   }
 
+  @registerGLTFExtension("EXT_lights_image_based", GLTFExtensionMode.AdditiveParse)
+  class EXT_lights_image_based extends GLTFExtensionParser {
+    override additiveParse(
+      context: GLTFParserContext,
+      entity: Entity,
+      extensionSchema: {
+        light: number;
+      }
+    ): void {
+      const lightsSchema = context.glTF.extensions.EXT_lights_image_based.lights;
+      const lightSchema = lightsSchema[extensionSchema.light];
+      // ...
+    }
+  }
+
   @registerGLTFExtension("Custom_Material", GLTFExtensionMode.CreateAndParse)
   class CustomMaterial extends GLTFExtensionParser {
     createAndParse(
@@ -340,33 +377,34 @@ after(() => {
 
 describe("glTF Loader test", function () {
   it("Pipeline Parser", async () => {
-    const glTFResource: any = await engine.resourceManager.load({
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
-      url: ""
+      url: "mock/path/testA.gltf"
     });
     const { materials, entities, defaultSceneRoot, textures, meshes } = glTFResource;
+    const pbrMaterials = materials as PBRSpecularMaterial[] & PBRMaterial[];
 
     // material
-    expect(materials.length).to.equal(4);
-    expect(materials[0]).to.instanceOf(PBRMaterial);
-    expect(materials[1]).to.instanceOf(UnlitMaterial);
-    expect(materials[2]).to.instanceOf(PBRSpecularMaterial);
-    expect(materials[3]).to.instanceOf(BlinnPhongMaterial);
+    expect(pbrMaterials.length).to.equal(4);
+    expect(pbrMaterials[0]).to.instanceOf(PBRMaterial);
+    expect(pbrMaterials[1]).to.instanceOf(UnlitMaterial);
+    expect(pbrMaterials[2]).to.instanceOf(PBRSpecularMaterial);
+    expect(pbrMaterials[3]).to.instanceOf(BlinnPhongMaterial);
 
-    expect(materials[0].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
-    expect(materials[0].emissiveColor).to.deep.equal(new Color(1, 1, 1, 1));
-    expect(materials[0].renderFace).to.equal(RenderFace.Double);
-    expect(materials[0].isTransparent).to.be.true;
-    expect(materials[0].clearCoat).to.equal(0.5);
-    expect(materials[0].clearCoatRoughness).to.equal(0.5);
-    expect(materials[1].baseColor).to.deep.equal(new Color(0, 1, 0, 1));
-    expect(materials[1].renderFace).to.equal(RenderFace.Front);
-    expect(materials[1].isTransparent).to.be.false;
-    expect(materials[2].baseColor).to.deep.equal(new Color(0, 0, 1, 1));
-    expect(materials[2].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
-    expect(materials[2].alphaCutoff).to.equal(0.8);
-    expect(materials[2].glossiness).to.equal(0.5);
-    expect(materials[3].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
+    expect(pbrMaterials[0].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(pbrMaterials[0].emissiveColor).to.deep.equal(new Color(1, 1, 1, 1));
+    expect(pbrMaterials[0].renderFace).to.equal(RenderFace.Double);
+    expect(pbrMaterials[0].isTransparent).to.be.true;
+    expect(pbrMaterials[0].clearCoat).to.equal(0.5);
+    expect(pbrMaterials[0].clearCoatRoughness).to.equal(0.5);
+    expect(pbrMaterials[1].baseColor).to.deep.equal(new Color(0, 1, 0, 1));
+    expect(pbrMaterials[1].renderFace).to.equal(RenderFace.Front);
+    expect(pbrMaterials[1].isTransparent).to.be.false;
+    expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(0, 0, 1, 1));
+    expect(pbrMaterials[2].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(pbrMaterials[2].alphaCutoff).to.equal(0.8);
+    expect(pbrMaterials[2].glossiness).to.equal(0.5);
+    expect(pbrMaterials[3].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
 
     // entity
     expect(entities.length).to.equal(2);
@@ -390,23 +428,23 @@ describe("glTF Loader test", function () {
     expect(textures[0].filterMode).to.equal(TextureFilterMode.Trilinear);
     expect(textures[0].wrapModeU).to.equal(TextureWrapMode.Repeat);
     expect(textures[0].wrapModeV).to.equal(TextureWrapMode.Mirror);
-    expect(materials[0].tilingOffset.z).to.equal(0.5);
-    expect(materials[0].tilingOffset.w).to.equal(0.5);
-    expect(materials[0].tilingOffset.x).to.equal(2);
-    expect(materials[0].tilingOffset.y).to.equal(2);
-    expect(materials[0].baseTexture).to.exist;
-    expect(materials[0].roughnessMetallicTexture).to.exist;
-    expect(materials[0].emissiveTexture).to.exist;
-    expect(materials[0].normalTexture).to.exist;
-    expect(materials[0].normalTextureIntensity).to.equal(2);
-    expect(materials[0].occlusionTexture).to.exist;
-    expect(materials[0].occlusionTextureIntensity).to.equal(2);
-    expect(materials[0].occlusionTextureCoord).to.equal(TextureCoordinate.UV1);
-    expect(materials[0].clearCoatTexture).to.exist;
-    expect(materials[0].clearCoatRoughnessTexture).to.exist;
-    expect(materials[0].clearCoatNormalTexture).to.exist;
-    expect(materials[2].baseTexture).to.exist;
-    expect(materials[2].specularGlossinessTexture).to.exist;
+    expect(pbrMaterials[0].tilingOffset.z).to.equal(0.5);
+    expect(pbrMaterials[0].tilingOffset.w).to.equal(0.5);
+    expect(pbrMaterials[0].tilingOffset.x).to.equal(2);
+    expect(pbrMaterials[0].tilingOffset.y).to.equal(2);
+    expect(pbrMaterials[0].baseTexture).to.exist;
+    expect(pbrMaterials[0].roughnessMetallicTexture).to.exist;
+    expect(pbrMaterials[0].emissiveTexture).to.exist;
+    expect(pbrMaterials[0].normalTexture).to.exist;
+    expect(pbrMaterials[0].normalTextureIntensity).to.equal(2);
+    expect(pbrMaterials[0].occlusionTexture).to.exist;
+    expect(pbrMaterials[0].occlusionTextureIntensity).to.equal(2);
+    expect(pbrMaterials[0].occlusionTextureCoord).to.equal(TextureCoordinate.UV1);
+    expect(pbrMaterials[0].clearCoatTexture).to.exist;
+    expect(pbrMaterials[0].clearCoatRoughnessTexture).to.exist;
+    expect(pbrMaterials[0].clearCoatNormalTexture).to.exist;
+    expect(pbrMaterials[2].baseTexture).to.exist;
+    expect(pbrMaterials[2].specularGlossinessTexture).to.exist;
 
     // mesh
     expect(meshes.length).to.equal(1);
@@ -418,5 +456,65 @@ describe("glTF Loader test", function () {
     const renderer = entities[1].getComponent(SkinnedMeshRenderer);
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
+  });
+});
+
+describe("glTF instance test", function () {
+  it("GLTFResource GC", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testB.gltf"
+    });
+    const { materials, textures, meshes } = glTFResource;
+
+    let glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
+    expect(glTFResourceCache).to.not.be.null;
+
+    // Test GC with instance
+    const instance = glTFResource.instantiateSceneRoot();
+    engine.resourceManager.gc();
+    glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
+    expect(glTFResourceCache).to.be.not.null;
+    expect(materials[0].destroyed).to.be.false;
+
+    // Test GC with part instance exist
+    instance.children[0].destroy();
+    engine.resourceManager.gc();
+    glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
+    expect(glTFResourceCache).to.be.not.null;
+    expect(materials[0].destroyed).to.be.false;
+
+    // Test GC with no instance exist
+    instance.destroy();
+    engine.resourceManager.gc();
+    glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
+    expect(glTFResourceCache).to.be.null;
+    expect(materials[0].destroyed).to.be.true;
+  });
+});
+
+describe("glTF instance test", function () {
+  it("GLTFResource destroy directly", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testC.gltf"
+    });
+    const { materials, textures, meshes } = glTFResource;
+
+    let glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testC.gltf");
+    expect(glTFResourceCache).to.not.be.null;
+
+    // Test destroy sub resource directly with not destroy glTFResource
+    materials[0].destroy();
+    expect(materials[0].destroyed).to.be.false;
+
+    // Test destroy glTFResource directly
+    glTFResource.destroy();
+    expect(glTFResource.destroyed).to.be.true;
+
+    // Test destroy glTFResource directly with glTFResource already destroyed
+    expect(materials[0].destroyed).to.be.false;
+    materials[0].destroy();
+    expect(materials[0].destroyed).to.be.true;
   });
 });

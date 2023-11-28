@@ -1,5 +1,13 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Animator, AnimatorStateTransition, Camera } from "@galacean/engine-core";
+import {
+  Animator,
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode,
+  AnimatorLayerMask,
+  AnimatorStateMachine,
+  AnimatorStateTransition,
+  Camera
+} from "@galacean/engine-core";
 import { Quaternion } from "@galacean/engine-math";
 import { GLTFResource } from "@galacean/engine-loader";
 import chai, { expect } from "chai";
@@ -17,7 +25,7 @@ describe("Animator test", function () {
   let resource: GLTFResource;
   let engine: WebGLEngine;
 
- before(async function () {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
@@ -225,5 +233,43 @@ describe("Animator test", function () {
 
     // current animator layerState should be FixedCrossFading(3)
     expect(layerState).to.eq(3);
+  });
+
+  it("animation layer mask", () => {
+    const { animatorController } = animator;
+
+    const animatorStateMachine = new AnimatorStateMachine();
+    const additiveLayer = new AnimatorControllerLayer("additiveLayer");
+    additiveLayer.stateMachine = animatorStateMachine;
+    const mask = AnimatorLayerMask.createByEntity(animator.entity);
+    mask.setPathMaskActive("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04", false, true);
+    additiveLayer.mask = mask;
+    additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
+    animatorController.addLayer(additiveLayer);
+    const clip = animator.findAnimatorState("Run").clip;
+    const newState = animatorStateMachine.addState("Run");
+    newState.clipStartTime = 1;
+    newState.clip = clip;
+
+    animator.play("Walk", 0);
+    animator.play("Run", 1);
+
+    const parentEntity = animator.entity.findByPath("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/");
+    const targetEntity = animator.entity.findByPath(
+      "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04"
+    );
+    const childEntity = animator.entity.findByPath(
+      "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05"
+    );
+
+    const layerData = animator["_animatorLayersData"][1];
+    const layerCurveOwner = layerData.curveOwnerPool[targetEntity.instanceId]["0.rotationQuaternion"];
+    const parentLayerCurveOwner = layerData.curveOwnerPool[parentEntity.instanceId]["0.rotationQuaternion"];
+
+    const childLayerCurveOwner = layerData.curveOwnerPool[childEntity.instanceId]["0.rotationQuaternion"];
+
+    expect(layerCurveOwner.isActive).to.eq(false);
+    expect(parentLayerCurveOwner.isActive).to.eq(true);
+    expect(childLayerCurveOwner.isActive).to.eq(false);
   });
 });

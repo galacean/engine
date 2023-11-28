@@ -77,6 +77,9 @@ export class Camera extends Component {
   _replacementShader: Shader = null;
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
+  /** @internal */
+  @ignoreClone
+  _cameraIndex: number = -1;
 
   private _priority: number = 0;
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
@@ -106,8 +109,6 @@ export class Camera extends Component {
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
   @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
-  @deepClone
-  private _lastAspectSize: Vector2 = new Vector2(0, 0);
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
 
@@ -159,8 +160,8 @@ export class Camera extends Component {
    * the manual value will be kept. Call resetAspectRatio() to restore it.
    */
   get aspectRatio(): number {
-    const canvas = this._entity.engine.canvas;
-    return this._customAspectRatio ?? (canvas.width * this._viewport.z) / (canvas.height * this._viewport.w);
+    const pixelViewport = this.pixelViewport;
+    return this._customAspectRatio ?? pixelViewport.width / pixelViewport.height;
   }
 
   set aspectRatio(value: number) {
@@ -181,8 +182,6 @@ export class Camera extends Component {
     if (value !== this._viewport) {
       this._viewport.copyFrom(value);
     }
-    this._projMatChange();
-    this._updatePixelViewport();
   }
 
   /**
@@ -202,8 +201,8 @@ export class Camera extends Component {
 
   set priority(value: number) {
     if (this._priority !== value) {
-      if (this._entity._isActiveInScene && this.enabled) {
-        this.scene._cameraNeedSorting = true;
+      if (this._phasedActiveInScene) {
+        this.scene._componentsManager._cameraNeedSorting = true;
       }
       this._priority = value;
     }
@@ -261,18 +260,11 @@ export class Camera extends Component {
   get projectionMatrix(): Matrix {
     const virtualCamera = this._virtualCamera;
     const projectionMatrix = virtualCamera.projectionMatrix;
-    const canvas = this._entity.engine.canvas;
 
-    if (
-      (!this._isProjectionDirty || this._isProjMatSetting) &&
-      this._lastAspectSize.x === canvas.width &&
-      this._lastAspectSize.y === canvas.height
-    ) {
+    if (!this._isProjectionDirty || this._isProjMatSetting) {
       return projectionMatrix;
     }
     this._isProjectionDirty = false;
-    this._lastAspectSize.x = canvas.width;
-    this._lastAspectSize.y = canvas.height;
     const aspectRatio = this.aspectRatio;
     if (!virtualCamera.isOrthographic) {
       Matrix.perspective(
@@ -312,10 +304,10 @@ export class Camera extends Component {
 
   set renderTarget(value: RenderTarget | null) {
     if (this._renderTarget !== value) {
-      value?._addReferCount(1);
-      this._renderTarget?._addReferCount(-1);
+      this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
+      value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
-      this._updatePixelViewport();
+      this._onPixelViewportChanged();
     }
   }
 
@@ -331,8 +323,13 @@ export class Camera extends Component {
     this._isInvViewProjDirty = transform.registerWorldChangeFlag();
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
-    this.shaderData._addReferCount(1);
+    this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
+
+    this._onPixelViewportChanged = this._onPixelViewportChanged.bind(this);
+    //@ts-ignore
+    this._viewport._onValueChanged = this._onPixelViewportChanged;
+    this.engine.canvas._sizeUpdateFlagManager.addListener(this._onPixelViewportChanged);
   }
 
   /**
@@ -571,14 +568,14 @@ export class Camera extends Component {
    * @inheritdoc
    */
   override _onEnableInScene(): void {
-    this.scene._attachRenderCamera(this);
+    this.scene._componentsManager.addCamera(this);
   }
 
   /**
    * @inheritdoc
    */
   override _onDisableInScene(): void {
-    this.scene._detachRenderCamera(this);
+    this.scene._componentsManager.removeCamera(this);
   }
 
   /**
@@ -590,7 +587,11 @@ export class Camera extends Component {
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
-    this.shaderData._addReferCount(-1);
+    this._addResourceReferCount(this.shaderData, -1);
+
+    //@ts-ignore
+    this._viewport._onValueChanged = null;
+    this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
 
     this._entity = null;
     this._globalShaderMacro = null;
@@ -604,15 +605,23 @@ export class Camera extends Component {
     this._isInvViewProjDirty = null;
     this._viewport = null;
     this._inverseProjectionMatrix = null;
-    this._lastAspectSize = null;
     this._invViewProjMat = null;
   }
 
   private _updatePixelViewport(): void {
-    const viewport = this._viewport;
-    const width = this._renderTarget?.width ?? this.engine.canvas.width;
-    const height = this._renderTarget?.height ?? this.engine.canvas.height;
+    let width: number, height: number;
 
+    const renderTarget = this._renderTarget;
+    if (renderTarget) {
+      width = renderTarget.width;
+      height = renderTarget.height;
+    } else {
+      const canvas = this.engine.canvas;
+      width = canvas.width;
+      height = canvas.height;
+    }
+
+    const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
   }
 
@@ -667,5 +676,11 @@ export class Camera extends Component {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
+  }
+
+  @ignoreClone
+  private _onPixelViewportChanged(): void {
+    this._updatePixelViewport();
+    this._customAspectRatio ?? this._projMatChange();
   }
 }

@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RendererUpdateFlags } from "../Renderer";
 import { Utils } from "../Utils";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -21,6 +21,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
   private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
+  @deepClone
+  private _localBounds: BoundingBox = new BoundingBox();
+
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
   @ignoreClone
@@ -29,8 +32,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _maxVertexUniformVectors: number;
   @ignoreClone
   private _rootBone: Entity;
-  @ignoreClone
-  private _localBounds: BoundingBox = new BoundingBox();
   @ignoreClone
   private _jointMatrices: Float32Array;
   @ignoreClone

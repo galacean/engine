@@ -1,4 +1,3 @@
-import { Color, Vector2, Vector4, Rect, Vector3 } from "@galacean/engine-math";
 import {
   Sprite,
   SpriteDrawMode,
@@ -9,6 +8,7 @@ import {
   Texture2D,
   TextureFormat
 } from "@galacean/engine-core";
+import { Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
@@ -1304,12 +1304,48 @@ describe("SpriteRenderer", async () => {
   it("get set maskInteraction", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    const noneMaterial = spriteRenderer.getMaterial();
+
     spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
     expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.VisibleInsideMask);
+    const insideMaterial = spriteRenderer.getMaterial();
+
     spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
     expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.VisibleOutsideMask);
+    const outsideMaterial = spriteRenderer.getMaterial();
+
     spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
     expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.None);
+    expect(spriteRenderer.getMaterial()).to.eq(noneMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(insideMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(outsideMaterial);
+
+    spriteRenderer.setMaterial(noneMaterial.clone());
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
+    expect(spriteRenderer.getMaterial()).to.not.eq(noneMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.getMaterial()).to.not.eq(insideMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.getMaterial()).to.not.eq(outsideMaterial);
+
+    spriteRenderer.setMaterial(noneMaterial);
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
+    expect(spriteRenderer.getMaterial()).to.eq(noneMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(insideMaterial);
+
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.getMaterial()).to.eq(outsideMaterial);
+
+    const cloneRenderers = rootEntity.clone().getComponents(SpriteRenderer, []);
+    expect(cloneRenderers[cloneRenderers.length - 1].getMaterial()).to.eq(outsideMaterial);
   });
 
   it("DirtyFlag", () => {
@@ -1384,9 +1420,9 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
 
     const rootEntityClone = rootEntity.clone();
-    const spriteRendererClone = rootEntityClone.getComponent(SpriteRenderer);
-    expect(spriteRendererClone.sprite).to.deep.eq(spriteRenderer.sprite);
-    expect(spriteRendererClone.drawMode).to.eq(SpriteDrawMode.Sliced);
+    const spriteRendererClones = rootEntityClone.getComponents(SpriteRenderer, []);
+    expect(spriteRendererClones[spriteRendererClones.length - 1].sprite).to.deep.eq(spriteRenderer.sprite);
+    expect(spriteRendererClones[spriteRendererClones.length - 1].drawMode).to.eq(SpriteDrawMode.Sliced);
   });
 
   it("destroy", () => {

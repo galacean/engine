@@ -3,13 +3,13 @@ import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
+import { Scene } from "../../Scene";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
-import { Scene } from "../../Scene";
 
 /**
  * Pointer Manager.
@@ -143,7 +143,6 @@ export class PointerManager implements IInput {
             case "pointercancel":
               pointer.phase = PointerPhase.Leave;
               pointer._firePointerExitAndEnter(null);
-            default:
               break;
           }
         }
@@ -291,13 +290,15 @@ export class PointerManager implements IInput {
     const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
-      if (scene.destroyed) {
+      if (!scene.isActive || scene.destroyed) {
         continue;
       }
-      const { _activeCameras: cameras } = scene;
+      const { _activeCameras: cameras } = scene._componentsManager;
+      const elements = cameras._elements;
+
       for (let j = cameras.length - 1; j >= 0; j--) {
-        const camera = cameras[j];
-        if (!camera.enabled || camera.renderTarget) {
+        const camera = elements[j];
+        if (camera.renderTarget) {
           continue;
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;

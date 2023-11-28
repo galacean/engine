@@ -43,7 +43,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
+  @ignoreClone
   _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
@@ -156,7 +156,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     const shaderData = this.shaderData;
     this._overrideUpdate = this.update !== prototype.update;
 
-    shaderData._addReferCount(1);
+    this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
@@ -267,7 +267,7 @@ export class Renderer extends Component implements IComponentCustomClone {
 
     for (let i = count, n = internalMaterials.length; i < n; i++) {
       const internalMaterial = internalMaterials[i];
-      internalMaterial && internalMaterial._addReferCount(-1);
+      internalMaterial && this._addResourceReferCount(internalMaterial, -1);
     }
 
     internalMaterials.length !== count && (internalMaterials.length = count);
@@ -278,8 +278,8 @@ export class Renderer extends Component implements IComponentCustomClone {
       const material = materials[i];
       if (internalMaterial !== material) {
         internalMaterials[i] = material;
-        internalMaterial && internalMaterial._addReferCount(-1);
-        material && material._addReferCount(1);
+        internalMaterial && this._addResourceReferCount(internalMaterial, -1);
+        material && this._addResourceReferCount(material, 1);
       }
     }
   }
@@ -351,11 +351,12 @@ export class Renderer extends Component implements IComponentCustomClone {
     super._onDestroy();
     this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
-    this.shaderData._addReferCount(-1);
+    this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
-      materials[i]?._addReferCount(-1);
+      const material = materials[i];
+      material && this._addResourceReferCount(material, -1);
     }
 
     this._entity = null;
@@ -434,8 +435,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
-    material._addReferCount(-1);
-    insMaterial._addReferCount(1);
+    this._addResourceReferCount(material, -1);
+    this._addResourceReferCount(insMaterial, 1);
     this._materialsInstanced[index] = true;
     this._materials[index] = insMaterial;
     return insMaterial;
@@ -452,8 +453,8 @@ export class Renderer extends Component implements IComponentCustomClone {
       const materialsInstance = this._materialsInstanced;
       index < materialsInstance.length && (materialsInstance[index] = false);
 
-      internalMaterial && internalMaterial._addReferCount(-1);
-      material && material._addReferCount(1);
+      internalMaterial && this._addResourceReferCount(internalMaterial, -1);
+      material && this._addResourceReferCount(material, 1);
       materials[index] = material;
     }
   }

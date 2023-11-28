@@ -1,6 +1,8 @@
 import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
+import { SpriteMaskInteraction } from "./2d";
 import { Font } from "./2d/text/Font";
+import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
@@ -25,6 +27,7 @@ import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
+import { CompareFunction } from "./shader";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -81,6 +84,8 @@ export class Engine extends EventDispatcher {
 
   /* @internal */
   _spriteDefaultMaterial: Material;
+  /** @internal */
+  _spriteDefaultMaterials: Material[] = [];
   /* @internal */
   _spriteMaskDefaultMaterial: Material;
   /* @internal */
@@ -97,7 +102,9 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _magentaTexture2DArray: Texture2DArray;
   /* @internal */
-  _magentaMaterial: Material;
+  _meshMagentaMaterial: Material;
+  /* @internal */
+  _particleMagentaMaterial: Material;
   /* @internal */
   _depthTexture2D: Texture2D;
 
@@ -232,7 +239,16 @@ export class Engine extends EventDispatcher {
     this._canvas = canvas;
 
     this._spriteMaskManager = new SpriteMaskManager(this);
-    this._spriteDefaultMaterial = this._createSpriteMaterial();
+    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
+    this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
+      SpriteMaskInteraction.None
+    );
+    spriteDefaultMaterials[SpriteMaskInteraction.VisibleInsideMask] = this._createSpriteMaterial(
+      SpriteMaskInteraction.VisibleInsideMask
+    );
+    spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
+      SpriteMaskInteraction.VisibleOutsideMask
+    );
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
@@ -249,10 +265,15 @@ export class Engine extends EventDispatcher {
       this._depthTexture2D = depthTexture2D;
     }
 
-    const magentaMaterial = new Material(this, Shader.find("unlit"));
-    magentaMaterial.isGCIgnored = true;
-    magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._magentaMaterial = magentaMaterial;
+    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
+    meshMagentaMaterial.isGCIgnored = true;
+    meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    this._meshMagentaMaterial = meshMagentaMaterial;
+
+    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
+    particleMagentaMaterial.isGCIgnored = true;
+    particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    this._particleMagentaMaterial = particleMagentaMaterial;
 
     const innerSettings = this._settings;
     const colorSpace = configuration.colorSpace || ColorSpace.Linear;
@@ -309,66 +330,67 @@ export class Engine extends EventDispatcher {
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
-    const loopScenes = this._sceneManager._scenes.getLoopArray();
-    const sceneCount = loopScenes.length;
+    const scenes = this._sceneManager._scenes.getLoopArray();
+    const sceneCount = scenes.length;
+
     // Sort cameras and fire script `onStart`
     for (let i = 0; i < sceneCount; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
-      scene._cameraNeedSorting && scene._sortCameras();
-      scene._componentsManager.callScriptOnStart();
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      const componentsManager = scene._componentsManager;
+      componentsManager.sortCameras();
+      componentsManager.callScriptOnStart();
     }
 
     // Update physics and fire `onPhysicsUpdate`
     if (physicsInitialized) {
       for (let i = 0; i < sceneCount; i++) {
-        const scene = loopScenes[i];
-        if (scene.destroyed) continue;
+        const scene = scenes[i];
+        if (!scene.isActive || scene.destroyed) continue;
         scene.physics._update(deltaTime);
       }
     }
 
     // Fire `onPointerXX`
-    physicsInitialized && inputManager._firePointerScript(loopScenes);
+    physicsInitialized && inputManager._firePointerScript(scenes);
 
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callScriptOnUpdate(deltaTime);
     }
 
     // Update `Animator` logic
     for (let i = 0; i < sceneCount; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callAnimationUpdate(deltaTime);
     }
 
     // Fire `onLateUpdate`
     for (let i = 0; i < sceneCount; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callScriptOnLateUpdate(deltaTime);
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
     if (!this._isDeviceLost) {
-      this._render(loopScenes);
-    }
-
-    // Handling invalid scripts and fire `onDestroy`
-    for (let i = 0; i < sceneCount; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
-      if (!this._waitingDestroy) {
-        scene._componentsManager.handlingInvalidScripts();
-      }
+      this._render(scenes);
     }
 
     if (this._waitingDestroy) {
       this._destroy();
+    } else {
+      // Handling invalid scripts and fire `onDestroy`
+      for (let i = 0; i < sceneCount; i++) {
+        const scene = scenes[i];
+        if (!scene.isActive || scene.destroyed) continue;
+        scene._componentsManager.handlingInvalidScripts();
+      }
     }
+
     if (this._waitingGC) {
       this._gc();
       this._waitingGC = false;
@@ -404,9 +426,6 @@ export class Engine extends EventDispatcher {
     this._sceneManager._destroyAllScene();
 
     this._resourceManager._destroy();
-    this._whiteTexture2D.destroy(true);
-    this._magentaTexture2D.destroy(true);
-    this._magentaTextureCube.destroy(true);
     this._textDefaultFont = null;
     this._fontMap = null;
 
@@ -467,25 +486,29 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _render(loopScenes: ReadonlyArray<Scene>): void {
+  _render(scenes: ReadonlyArray<Scene>): void {
     // Update `Renderer` logic and shader data
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
-      const deltaTime = this.time.deltaTime;
+    const deltaTime = this.time.deltaTime;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callRendererOnUpdate(deltaTime);
       scene._updateShaderData();
     }
 
     // Fire script `onBeginRender` and `onEndRender`
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
-      const cameras = scene._activeCameras;
-      const cameraCount = cameras.length;
-      if (cameraCount > 0) {
-        for (let i = 0; i < cameraCount; i++) {
-          const camera = cameras[i];
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      const cameras = scene._componentsManager._activeCameras;
+
+      if (cameras.length === 0) {
+        Logger.debug("No active camera in scene.");
+        continue;
+      }
+
+      cameras.forEach(
+        (camera: Camera) => {
           const componentsManager = scene._componentsManager;
           componentsManager.callCameraOnBeginRender(camera);
           camera.render();
@@ -495,10 +518,11 @@ export class Engine extends EventDispatcher {
           if (this._hardwareRenderer._options._forceFlush) {
             this._hardwareRenderer.flush();
           }
+        },
+        (camera: Camera, index: number) => {
+          camera._cameraIndex = index;
         }
-      } else {
-        Logger.debug("No active camera in scene.");
-      }
+      );
     }
   }
 
@@ -609,7 +633,7 @@ export class Engine extends EventDispatcher {
     return Promise.all(initializePromises).then(() => this);
   }
 
-  private _createSpriteMaterial(): Material {
+  private _createSpriteMaterial(maskInteraction: SpriteMaskInteraction): Material {
     const material = new Material(this, Shader.find("Sprite"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
@@ -619,9 +643,21 @@ export class Engine extends EventDispatcher {
     target.sourceAlphaBlendFactor = BlendFactor.One;
     target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    if (maskInteraction !== SpriteMaskInteraction.None) {
+      const stencilState = renderState.stencilState;
+      stencilState.enabled = true;
+      stencilState.writeMask = 0x00;
+      stencilState.referenceValue = 1;
+      const compare =
+        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
+          ? CompareFunction.LessEqual
+          : CompareFunction.Greater;
+      stencilState.compareFunctionFront = compare;
+      stencilState.compareFunctionBack = compare;
+    }
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
-    material.renderState.renderQueueType = RenderQueueType.Transparent;
+    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }

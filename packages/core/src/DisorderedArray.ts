@@ -1,3 +1,5 @@
+import { Utils } from "./Utils";
+
 /**
  * High-performance unordered array, delete uses exchange method to improve performance, internal capacity only increases.
  */
@@ -66,24 +68,28 @@ export class DisorderedArray<T> {
     return end;
   }
 
-  forEach(callbackFn: (e: T) => void): void {
+  forEach(callbackFn: (element: T) => void, swapFn: (element: T, index: number) => void): void {
     this._startLoop();
     const elements = this._elements;
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
-    this._endLoop();
+    this._endLoop(swapFn);
   }
 
   forEachAndClean(callbackFn: (e: T) => void): void {
     this._startLoop();
     const elements = this._elements;
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
       element && callbackFn(element);
     }
     this._endLoopAndClear();
+  }
+
+  sort(compareFn: (a: T, b: T) => number): void {
+    Utils._quickSort(this._elements, 0, this.length, compareFn);
   }
 
   garbageCollection(): void {
@@ -94,17 +100,29 @@ export class DisorderedArray<T> {
     this._isLooping = true;
   }
 
-  private _endLoop(): void {
+  private _endLoop(swapFn: (e: T, idx: number) => void): void {
     this._isLooping = false;
-
     if (this._blankCount) {
+      let from = 0;
+      let to = this.length - 1;
       const elements = this._elements;
-      for (let i = 0, j = 0, n = this.length; i < n; i++) {
-        const element = elements[i];
-        if (element) {
-          elements[j++] = element;
-        }
-      }
+      partition: do {
+        while (elements[from])
+          if (++from >= to) {
+            break partition;
+          }
+
+        while (!elements[to])
+          if (from >= --to) {
+            break partition;
+          }
+
+        const swapElement = elements[to];
+        swapFn(swapElement, from);
+        elements[from++] = swapElement;
+        elements[to--] = null;
+      } while (from < to);
+
       this.length -= this._blankCount;
       this._blankCount = 0;
     }

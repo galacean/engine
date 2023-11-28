@@ -9,7 +9,6 @@ export type _ruleShaderCstChildren = {
   Shader: IToken[];
   ValueString: IToken[];
   LCurly: IToken[];
-  _ruleProperty?: _rulePropertyCstNode[];
   _ruleSubShader?: _ruleSubShaderCstNode[];
   _ruleRenderStateDeclaration?: _ruleRenderStateDeclarationCstNode[];
   _ruleTag?: _ruleTagCstNode[];
@@ -481,6 +480,26 @@ export type _ruleDiscardStatementCstChildren = {
   Semicolon: IToken[];
 };
 
+export interface _ruleBreakStatementCstNode extends CstNode {
+  name: "_ruleBreakStatement";
+  children: _ruleBreakStatementCstChildren;
+}
+
+export type _ruleBreakStatementCstChildren = {
+  break: IToken[];
+  Semicolon: IToken[];
+};
+
+export interface _ruleContinueStatementCstNode extends CstNode {
+  name: "_ruleContinueStatement";
+  children: _ruleContinueStatementCstChildren;
+}
+
+export type _ruleContinueStatementCstChildren = {
+  continue: IToken[];
+  Semicolon: IToken[];
+};
+
 export interface _ruleFnStatementCstNode extends CstNode {
   name: "_ruleFnStatement";
   children: _ruleFnStatementCstChildren;
@@ -493,6 +512,8 @@ export type _ruleFnStatementCstChildren = {
   _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
   _ruleFnConditionStatement?: _ruleFnConditionStatementCstNode[];
   _ruleDiscardStatement?: _ruleDiscardStatementCstNode[];
+  _ruleBreakStatement?: _ruleBreakStatementCstNode[];
+  _ruleContinueStatement?: _ruleContinueStatementCstNode[];
   _ruleForLoopStatement?: _ruleForLoopStatementCstNode[];
   _ruleFn?: _ruleFnCstNode[];
 };
@@ -1055,80 +1076,6 @@ export type _ruleRasterStatePropertyDeclarationCstChildren = {
   RCurly: IToken[];
 };
 
-export interface _rulePropertyCstNode extends CstNode {
-  name: "_ruleProperty";
-  children: _rulePropertyCstChildren;
-}
-
-export type _rulePropertyCstChildren = {
-  EditorProperties: IToken[];
-  LCurly: IToken[];
-  _rulePropertyItem?: _rulePropertyItemCstNode[];
-  RCurly: IToken[];
-};
-
-export interface _rulePropertyItemCstNode extends CstNode {
-  name: "_rulePropertyItem";
-  children: _rulePropertyItemCstChildren;
-}
-
-export type _rulePropertyItemCstChildren = {
-  Identifier: IToken[];
-  LBracket: IToken[];
-  ValueString: IToken[];
-  Comma: IToken[];
-  _rulePropertyItemType: _rulePropertyItemTypeCstNode[];
-  RBracket: IToken[];
-  SymbolEqual: IToken[];
-  _rulePropertyItemValue: _rulePropertyItemValueCstNode[];
-  Semicolon: IToken[];
-};
-
-export interface _rulePropertyItemTypeCstNode extends CstNode {
-  name: "_rulePropertyItemType";
-  children: _rulePropertyItemTypeCstChildren;
-}
-
-export type _rulePropertyItemTypeCstChildren = {
-  TypeInteger?: IToken[];
-  TypeString?: IToken[];
-  TypeFloat?: IToken[];
-  _ruleVariableType?: _ruleVariableTypeCstNode[];
-  _ruleRange?: _ruleRangeCstNode[];
-};
-
-export interface _ruleRangeCstNode extends CstNode {
-  name: "_ruleRange";
-  children: _ruleRangeCstChildren;
-}
-
-export type _ruleRangeCstChildren = {
-  Range: IToken[];
-  LBracket: IToken[];
-  ValueInt: IToken[];
-  Comma: IToken[];
-  RBracket: IToken[];
-};
-
-export interface _rulePropertyItemValueCstNode extends CstNode {
-  name: "_rulePropertyItemValue";
-  children: _rulePropertyItemValueCstChildren;
-}
-
-export type _rulePropertyItemValueCstChildren = {
-  _ruleTupleFloat4?: _ruleTupleFloat4CstNode[];
-  _ruleTupleFloat3?: _ruleTupleFloat3CstNode[];
-  _ruleTupleFloat2?: _ruleTupleFloat2CstNode[];
-  _ruleTupleInt4?: _ruleTupleInt4CstNode[];
-  _ruleTupleInt3?: _ruleTupleInt3CstNode[];
-  _ruleTupleInt2?: _ruleTupleInt2CstNode[];
-  ValueTrue?: IToken[];
-  ValueFalse?: IToken[];
-  ValueInt?: IToken[];
-  ValueString?: IToken[];
-  ValueFloat?: IToken[];
-};
-
 export interface _ruleTupleFloat4CstNode extends CstNode {
   name: "_ruleTupleFloat4";
   children: _ruleTupleFloat4CstChildren;
@@ -1241,6 +1188,8 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleArrayIndex(children: _ruleArrayIndexCstChildren, param?: IN): OUT;
   _ruleMultiplicationOperator(children: _ruleMultiplicationOperatorCstChildren, param?: IN): OUT;
   _ruleDiscardStatement(children: _ruleDiscardStatementCstChildren, param?: IN): OUT;
+  _ruleBreakStatement(children: _ruleBreakStatementCstChildren, param?: IN): OUT;
+  _ruleContinueStatement(children: _ruleContinueStatementCstChildren, param?: IN): OUT;
   _ruleFnStatement(children: _ruleFnStatementCstChildren, param?: IN): OUT;
   _ruleFnAssignStatement(children: _ruleFnAssignStatementCstChildren, param?: IN): OUT;
   _ruleForLoopStatement(children: _ruleForLoopStatementCstChildren, param?: IN): OUT;
@@ -1286,11 +1235,6 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleCullMode(children: _ruleCullModeCstChildren, param?: IN): OUT;
   _ruleRasterStatePropertyItem(children: _ruleRasterStatePropertyItemCstChildren, param?: IN): OUT;
   _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: IN): OUT;
-  _ruleProperty(children: _rulePropertyCstChildren, param?: IN): OUT;
-  _rulePropertyItem(children: _rulePropertyItemCstChildren, param?: IN): OUT;
-  _rulePropertyItemType(children: _rulePropertyItemTypeCstChildren, param?: IN): OUT;
-  _ruleRange(children: _ruleRangeCstChildren, param?: IN): OUT;
-  _rulePropertyItemValue(children: _rulePropertyItemValueCstChildren, param?: IN): OUT;
   _ruleTupleFloat4(children: _ruleTupleFloat4CstChildren, param?: IN): OUT;
   _ruleTupleFloat3(children: _ruleTupleFloat3CstChildren, param?: IN): OUT;
   _ruleTupleFloat2(children: _ruleTupleFloat2CstChildren, param?: IN): OUT;

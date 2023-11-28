@@ -19,4 +19,5 @@ export { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export * from "./Keyframe";
+export * from "./AnimatorLayerMask";
 export { StateMachineScript } from "./StateMachineScript";

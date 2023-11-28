@@ -62,13 +62,14 @@ export class MeshRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const mesh = this._mesh;
     if (mesh) {
-      mesh.destroyed || mesh._addReferCount(-1);
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
       mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
+
+    super._onDestroy();
   }
 
   /**
@@ -85,6 +86,10 @@ export class MeshRenderer extends Renderer {
   override _prepareRender(context: RenderContext): void {
     if (!this._mesh) {
       Logger.error("mesh is null.");
+      return;
+    }
+    if (this._mesh.destroyed) {
+      Logger.error("mesh is destroyed.");
       return;
     }
     super._prepareRender(context);
@@ -147,9 +152,12 @@ export class MeshRenderer extends Renderer {
     const renderPipeline = context.camera._renderPipeline;
     const meshRenderDataPool = this._engine._renderDataPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
-      const material = materials[i];
+      let material = materials[i];
       if (!material) {
         continue;
+      }
+      if (material.destroyed) {
+        material = this.engine._meshMagentaMaterial;
       }
 
       const renderData = meshRenderDataPool.getFromPool();
@@ -161,11 +169,11 @@ export class MeshRenderer extends Renderer {
   private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
-      lastMesh._addReferCount(-1);
+      this._addResourceReferCount(lastMesh, -1);
       lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
-      mesh._addReferCount(1);
+      this._addResourceReferCount(mesh, 1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }

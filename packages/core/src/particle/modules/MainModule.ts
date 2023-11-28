@@ -79,13 +79,9 @@ export class MainModule implements ICustomClone {
   /** If set to true, the Particle Generator automatically begins to play on startup. */
   playOnEnabled = true;
 
+  /** @internal */
   @ignoreClone
-  private _maxParticles = 1000;
-  @ignoreClone
-  private _generator: ParticleGenerator;
-  @ignoreClone
-  private _gravity = new Vector3();
-
+  _maxParticleBuffer = 1000;
   /** @internal */
   @ignoreClone
   readonly _startSpeedRand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
@@ -102,22 +98,20 @@ export class MainModule implements ICustomClone {
   @ignoreClone
   readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
 
+  @ignoreClone
+  private _generator: ParticleGenerator;
+  @ignoreClone
+  private _gravity = new Vector3();
+
   /**
    * Max particles count.
    */
   get maxParticles(): number {
-    return this._maxParticles;
+    return this._maxParticleBuffer - 1;
   }
 
   set maxParticles(value: number) {
-    if (this._maxParticles !== value) {
-      this._maxParticles = value;
-
-      const generator = this._generator;
-      if (value < generator._currentParticleCount) {
-        generator._resizeInstanceBuffer(value);
-      }
-    }
+    this._maxParticleBuffer = value + 1;
   }
 
   /**

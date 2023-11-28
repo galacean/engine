@@ -2,6 +2,7 @@ import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
+import { GLCapabilityType } from "../base/Constant";
 import { deepClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -9,7 +10,6 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Particle Renderer Component.
@@ -102,8 +102,8 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-      lastMesh?._addReferCount(-1);
-      value?._addReferCount(1);
+      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      value && this._addResourceReferCount(value, 1);
       if (this.renderMode === ParticleRenderMode.Mesh) {
         this.generator._reorganizeGeometryBuffers();
       }
@@ -180,25 +180,28 @@ export class ParticleRenderer extends Renderer {
 
   protected override _render(context: RenderContext): void {
     const generator = this.generator;
-    const primitive = generator._primitive;
+    generator._primitive.instanceCount = generator._getAliveParticleCount();
 
-    if (generator._firstActiveElement < generator._firstFreeElement) {
-      primitive.instanceCount = generator._firstFreeElement - generator._firstActiveElement;
-    } else {
-      let instanceCount = generator._currentParticleCount - generator._firstActiveElement;
-      if (generator._firstFreeElement > 0) {
-        instanceCount += generator._firstFreeElement;
-      }
-      primitive.instanceCount = instanceCount;
+    let material = this.getMaterial();
+    if (!material) {
+      return;
     }
 
-    const material = this.getMaterial();
+    if (material.destroyed) {
+      material = this.engine._particleMagentaMaterial;
+    }
+
     const renderData = this._engine._renderDataPool.getFromPool();
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
+    const mesh = this._mesh;
+    if (mesh) {
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    }
     this.generator._destroy();
   }
 }

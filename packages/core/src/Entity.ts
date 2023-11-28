@@ -67,9 +67,11 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-  /** @internal @todo: temporary solution */
-  _hookResource: ReferResource;
 
+  /** @internal */
+  _isTemplate: boolean = false;
+
+  private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
 
@@ -191,8 +193,7 @@ export class Entity extends EngineObject {
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
-    // @todo: should inverse traversal
-    for (let i = components.length - 1; i >= 0; i--) {
+    for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       if (component instanceof type) {
         return component;
@@ -398,17 +399,30 @@ export class Entity extends EngineObject {
     return cloneEntity;
   }
 
+  /**
+   * @internal
+   */
+  _markAsTemplate(templateResource: ReferResource): void {
+    this._isTemplate = true;
+    this._templateResource = templateResource;
+  }
+
   private _createCloneEntity(srcEntity: Entity): Entity {
     const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
 
-    const { _hookResource: hookResource } = this;
-    if (hookResource) {
-      cloneEntity._hookResource = hookResource;
-      hookResource._addReferCount(1);
+    const templateResource = this._templateResource;
+    if (templateResource) {
+      cloneEntity._templateResource = templateResource;
+      templateResource._addReferCount(1);
     }
+
     cloneEntity.layer = srcEntity.layer;
     cloneEntity._isActive = srcEntity._isActive;
-    cloneEntity.transform.localMatrix = srcEntity.transform.localMatrix;
+    const { transform: cloneTransform } = cloneEntity;
+    const { transform: srcTransform } = srcEntity;
+    cloneTransform.position = srcTransform.position;
+    cloneTransform.rotation = srcTransform.rotation;
+    cloneTransform.scale = srcTransform.scale;
 
     const children = srcEntity._children;
     for (let i = 0, n = srcEntity._children.length; i < n; i++) {
@@ -443,9 +457,10 @@ export class Entity extends EngineObject {
     }
 
     super.destroy();
-    if (this._hookResource) {
-      this._hookResource._addReferCount(-1);
-      this._hookResource = null;
+
+    if (this._templateResource) {
+      this._isTemplate || this._templateResource._addReferCount(-1);
+      this._templateResource = null;
     }
 
     const components = this._components;

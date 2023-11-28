@@ -1,5 +1,5 @@
 import { CstParser, Lexer, TokenType } from "chevrotain";
-import { Others, Symbols, Types, EditorTypes, Keywords, Values, GLKeywords, RenderState, _allTokens } from "./tokens";
+import { Others, Symbols, Types, Keywords, Values, GLKeywords, RenderState, _allTokens } from "./tokens";
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/Value";
 import { Identifier } from "./tokens/Other";
 import { ShaderFactory } from "@galacean/engine";
@@ -27,7 +27,6 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
       this.OR([
-        { ALT: () => this.SUBRULE(this._ruleProperty) },
         { ALT: () => this.SUBRULE(this._ruleSubShader) },
         { ALT: () => this.SUBRULE(this._ruleRenderStateDeclaration) },
         { ALT: () => this.SUBRULE(this._ruleTag) },
@@ -334,6 +333,16 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Symbols.Semicolon);
   });
 
+  private _ruleBreakStatement = this.RULE("_ruleBreakStatement", () => {
+    this.CONSUME(GLKeywords.Break);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
+  private _ruleContinueStatement = this.RULE("_ruleContinueStatement", () => {
+    this.CONSUME(GLKeywords.Continue);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
   private _ruleFnStatement = this.RULE("_ruleFnStatement", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleFnCall) },
@@ -342,6 +351,8 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
       { ALT: () => this.SUBRULE(this._ruleFnConditionStatement) },
       { ALT: () => this.SUBRULE(this._ruleDiscardStatement) },
+      { ALT: () => this.SUBRULE(this._ruleBreakStatement) },
+      { ALT: () => this.SUBRULE(this._ruleContinueStatement) },
       { ALT: () => this.SUBRULE(this._ruleForLoopStatement) },
       { ALT: () => this.SUBRULE(this._ruleFn) }
     ]);
@@ -700,64 +711,6 @@ export class ShaderParser extends CstParser {
     });
 
     this.CONSUME(Symbols.RCurly);
-  });
-
-  private _ruleProperty = this.RULE("_ruleProperty", () => {
-    this.CONSUME(Keywords.EditorProperties);
-    this.CONSUME(Symbols.LCurly);
-    this.MANY(() => {
-      this.SUBRULE(this._rulePropertyItem);
-    });
-    this.CONSUME(Symbols.RCurly);
-  });
-
-  private _rulePropertyItem = this.RULE("_rulePropertyItem", () => {
-    this.CONSUME(Others.Identifier);
-    this.CONSUME9(Symbols.LBracket);
-    this.CONSUME(Values.ValueString);
-    this.CONSUME(Symbols.Comma);
-    this.SUBRULE(this._rulePropertyItemType);
-    this.CONSUME(Symbols.RBracket);
-    this.CONSUME(Symbols.Equal);
-    this.SUBRULE(this._rulePropertyItemValue);
-    this.CONSUME(Symbols.Semicolon);
-  });
-
-  private _rulePropertyItemType = this.RULE("_rulePropertyItemType", () => {
-    this.OR([
-      ...EditorTypes.tokenList
-        .filter((item) => item.name !== "Range")
-        .map((item) => ({
-          ALT: () => this.CONSUME(item)
-        })),
-      { ALT: () => this.SUBRULE(this._ruleVariableType) },
-      { ALT: () => this.SUBRULE(this._ruleRange) }
-    ]);
-  });
-
-  private _ruleRange = this.RULE("_ruleRange", () => {
-    this.CONSUME(EditorTypes.TypeRange);
-    this.CONSUME2(Symbols.LBracket);
-    this.CONSUME(Values.ValueInt);
-    this.CONSUME(Symbols.Comma);
-    this.CONSUME1(Values.ValueInt);
-    this.CONSUME(Symbols.RBracket);
-  });
-
-  private _rulePropertyItemValue = this.RULE("_rulePropertyItemValue", () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this._ruleTupleFloat4) },
-      { ALT: () => this.SUBRULE(this._ruleTupleFloat3) },
-      { ALT: () => this.SUBRULE(this._ruleTupleFloat2) },
-      { ALT: () => this.SUBRULE(this._ruleTupleInt4) },
-      { ALT: () => this.SUBRULE(this._ruleTupleInt3) },
-      { ALT: () => this.SUBRULE(this._ruleTupleInt2) },
-      { ALT: () => this.CONSUME(Values.ValueTrue) },
-      { ALT: () => this.CONSUME(Values.ValueFalse) },
-      { ALT: () => this.CONSUME1(Values.ValueInt) },
-      { ALT: () => this.CONSUME(Values.ValueString) },
-      { ALT: () => this.CONSUME(Values.ValueFloat) }
-    ]);
   });
 
   private _consume(idx: number, tokType: TokenType) {
