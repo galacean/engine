@@ -68,6 +68,9 @@ export class XRManager {
     return this._mode;
   }
 
+  /**
+   * @internal
+   */
   constructor(engine: Engine, xrDevice: IXRDevice) {
     this._engine = engine;
     this._xrDevice = xrDevice;

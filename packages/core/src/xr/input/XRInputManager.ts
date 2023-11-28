@@ -29,6 +29,31 @@ export class XRInputManager {
   protected _trackingUpdate: UpdateFlagManager = new UpdateFlagManager();
 
   /**
+   * @internal 
+   */
+  constructor(engine: Engine) {
+    this._engine = engine;
+    const { _inputs: inputs, _controllers: controllers, _cameras: cameras } = this;
+    for (let i = XRInputType.Length - 1; i >= 0; i--) {
+      switch (i) {
+        case XRInputType.Camera:
+        case XRInputType.LeftCamera:
+        case XRInputType.RightCamera:
+          cameras.push((inputs[i] = new XRCamera(i)));
+          break;
+        case XRInputType.Controller:
+        case XRInputType.LeftController:
+        case XRInputType.RightController:
+          controllers.push((inputs[i] = new XRController(i)));
+          break;
+        default:
+          break;
+      }
+    }
+    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRInputType.Length);
+  }
+
+  /**
    * Returns the input instance.
    * @param type - The input type
    * @returns The input instance
@@ -95,28 +120,6 @@ export class XRInputManager {
       (controller.pressedButtons & button) !== 0 && out.push(controller);
     }
     return out;
-  }
-
-  constructor(engine: Engine) {
-    this._engine = engine;
-    const { _inputs: inputs, _controllers: controllers, _cameras: cameras } = this;
-    for (let i = XRInputType.Length - 1; i >= 0; i--) {
-      switch (i) {
-        case XRInputType.Camera:
-        case XRInputType.LeftCamera:
-        case XRInputType.RightCamera:
-          cameras.push((inputs[i] = new XRCamera(i)));
-          break;
-        case XRInputType.Controller:
-        case XRInputType.LeftController:
-        case XRInputType.RightController:
-          controllers.push((inputs[i] = new XRController(i)));
-          break;
-        default:
-          break;
-      }
-    }
-    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRInputType.Length);
   }
 
   /**

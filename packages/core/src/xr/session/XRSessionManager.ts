@@ -1,4 +1,4 @@
-import { IXRSession, IHardwareRenderer, IXRFeature } from "@galacean/engine-design";
+import { IHardwareRenderer, IXRFeature, IXRSession } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
@@ -6,6 +6,7 @@ import { XRSessionState } from "./XRSessionState";
 export class XRSessionManager {
   protected _session: IXRSession;
   protected _state: XRSessionState = XRSessionState.None;
+
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
@@ -60,6 +61,9 @@ export class XRSessionManager {
     }
   }
 
+  /**
+   * @internal
+   */
   constructor(protected _engine: Engine) {
     this._rhi = _engine._hardwareRenderer;
     this._raf = requestAnimationFrame.bind(window);
