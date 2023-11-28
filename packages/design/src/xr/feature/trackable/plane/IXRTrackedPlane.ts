@@ -9,4 +9,9 @@ export interface IXRTrackedPlane extends IXRTracked {
    *  and their Y coordinates are all zero.
    */
   polygon: Vector3[];
+  /**
+   * Whether this frame changes the attributes of the plane.
+   * Note: Includes `polygon` but no `pose`.
+   */
+  attributesDirty: boolean;
 }

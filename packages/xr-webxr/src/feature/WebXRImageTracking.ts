@@ -4,14 +4,13 @@ import {
   IXRRequestImageTracking,
   IXRTrackedImage
 } from "@galacean/engine-design";
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
+import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRFrame } from "../WebXRFrame";
 import { generateUUID } from "../util";
 
-// XRFeatureType.ImageTracking
-@registerXRPlatformFeature(2)
+@registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
  * WebXR implementation of XRPlatformImageTracking.
  * Note: each tracked image can appear at most once in the tracking results.
@@ -35,16 +34,12 @@ export class WebXRImageTracking implements IXRImageTracking {
   initialize(requestTrackings: IXRRequestImageTracking[]): Promise<void> {
     this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      // XRRequestTrackingState.Submitted
-      requestTrackings[i].state = 1;
+      requestTrackings[i].state = XRRequestTrackingState.Submitted;
     }
     return Promise.resolve();
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImageTracking[]): boolean {
-    if (!session._platformSession || !session._platformReferenceSpace || !frame._platformFrame) {
-      return false;
-    }
     switch (this._trackingScoreStatus) {
       case ImageTrackingScoreStatus.NotReceived:
         this._requestTrackingScore(session, requestTrackings);
@@ -64,17 +59,15 @@ export class WebXRImageTracking implements IXRImageTracking {
     const trackingResults = platformFrame.getImageTrackingResults();
     for (let i = 0, n = trackingResults.length; i < n; i++) {
       const trackingResult = trackingResults[i];
-      const { index } = trackingResult.index;
+      const { index } = trackingResult;
       const requestTrackingImage = requestTrackings[index];
       if (requestTrackingImage) {
         const tracked = requestTrackingImage.tracked[0];
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
-          // XRTrackingState.Tracking
-          tracked.state = 1;
+          tracked.state = XRTrackingState.Tracking;
         } else {
-          // XRTrackingState.TrackingLost
-          tracked.state = 2;
+          tracked.state = XRTrackingState.TrackingLost;
         }
         tempArr[index] = idx;
       } else {
@@ -83,8 +76,7 @@ export class WebXRImageTracking implements IXRImageTracking {
     }
 
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      // XRTrackingState.NotTracking
-      if (tempArr[i] !== idx) requestTrackings[i].tracked[0].state = 0;
+      if (tempArr[i] < idx) requestTrackings[i].tracked[0].state = XRTrackingState.NotTracking;
     }
   }
 
@@ -100,8 +92,7 @@ export class WebXRImageTracking implements IXRImageTracking {
             const requestTracking = requestTrackings[i];
             if (trackingScore === "trackable") {
               this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
-              // XRRequestTrackingState.Resolved
-              requestTracking.state = 2;
+              requestTracking.state = XRRequestTrackingState.Resolved;
               requestTracking.tracked = [
                 {
                   id: generateUUID(),
@@ -115,8 +106,7 @@ export class WebXRImageTracking implements IXRImageTracking {
                 }
               ];
             } else {
-              // XRRequestTrackingState.Rejected
-              requestTracking.state = 3;
+              requestTracking.state = XRRequestTrackingState.Rejected;
               console.warn(requestTracking.image.name, " unTrackable");
             }
           }
