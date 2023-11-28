@@ -29,7 +29,7 @@ export class XRInputManager {
   protected _trackingUpdate: UpdateFlagManager = new UpdateFlagManager();
 
   /**
-   * @internal 
+   * @internal
    */
   constructor(engine: Engine) {
     this._engine = engine;
