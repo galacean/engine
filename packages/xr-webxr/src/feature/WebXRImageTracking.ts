@@ -40,6 +40,7 @@ export class WebXRImageTracking implements IXRImageTracking {
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImageTracking[]): boolean {
+    if (!frame._platformFrame) return false;
     switch (this._trackingScoreStatus) {
       case ImageTrackingScoreStatus.NotReceived:
         this._requestTrackingScore(session, requestTrackings);

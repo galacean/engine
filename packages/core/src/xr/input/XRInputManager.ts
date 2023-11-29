@@ -2,7 +2,7 @@ import { IXRInput, IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
 import { XRCamera } from "./XRCamera";
-import { XRInputType } from "./XRInputType";
+import { XRTrackedInputType } from "./XRTrackedInputType";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { XRInputButton } from "./XRInputButton";
 import { XRTrackingState } from "./XRTrackingState";
@@ -34,23 +34,23 @@ export class XRInputManager {
   constructor(engine: Engine) {
     this._engine = engine;
     const { _inputs: inputs, _controllers: controllers, _cameras: cameras } = this;
-    for (let i = XRInputType.Length - 1; i >= 0; i--) {
+    for (let i = XRTrackedInputType.Length - 1; i >= 0; i--) {
       switch (i) {
-        case XRInputType.Camera:
-        case XRInputType.LeftCamera:
-        case XRInputType.RightCamera:
+        case XRTrackedInputType.Camera:
+        case XRTrackedInputType.LeftCamera:
+        case XRTrackedInputType.RightCamera:
           cameras.push((inputs[i] = new XRCamera(i)));
           break;
-        case XRInputType.Controller:
-        case XRInputType.LeftController:
-        case XRInputType.RightController:
+        case XRTrackedInputType.Controller:
+        case XRTrackedInputType.LeftController:
+        case XRTrackedInputType.RightController:
           controllers.push((inputs[i] = new XRController(i)));
           break;
         default:
           break;
       }
     }
-    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRInputType.Length);
+    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRTrackedInputType.Length);
   }
 
   /**
@@ -58,7 +58,7 @@ export class XRInputManager {
    * @param type - The input type
    * @returns The input instance
    */
-  getInput<T extends IXRInput>(type: XRInputType): T {
+  getInput<T extends IXRInput>(type: XRTrackedInputType): T {
     return <T>this._inputs[type];
   }
 

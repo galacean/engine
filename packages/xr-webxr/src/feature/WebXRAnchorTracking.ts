@@ -23,6 +23,7 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchorTracking[]): boolean {
+    if (!frame._platformFrame) return false;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state === XRRequestTrackingState.None) {

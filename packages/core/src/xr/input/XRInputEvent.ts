@@ -1,7 +1,7 @@
 import { IXRInputEvent } from "@galacean/engine-design";
 import { XRInputEventType } from "./XRInputEventType";
 import { XRTargetRayMode } from "./XRTargetRayMode";
-import { XRInputType } from "./XRInputType";
+import { XRTrackedInputType } from "./XRTrackedInputType";
 
 /**
  * XR interaction events.
@@ -15,7 +15,7 @@ export class XRInputEvent implements IXRInputEvent {
   /** The type of input event. */
   type: XRInputEventType;
   /** The type of input. */
-  input: XRInputType;
+  input: XRTrackedInputType;
   /** The unique ID of the touch point. (Appears only when targetRayMode is screen.)*/
   id?: number;
   /** The coordinate x on the screen. (Appears only when targetRayMode is screen.)*/

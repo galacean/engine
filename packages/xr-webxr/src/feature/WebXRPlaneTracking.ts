@@ -49,7 +49,7 @@ export class WebXRPlaneTracking implements IXRPlaneTracking {
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlaneTracking[]): boolean {
-    return true;
+    return !!frame._platformFrame;
   }
 
   getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlaneTracking[]): void {

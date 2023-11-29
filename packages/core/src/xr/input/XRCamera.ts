@@ -1,7 +1,7 @@
 import { Matrix, Quaternion, Rect, Vector3 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { IXRInput, IXRPose } from "@galacean/engine-design";
-import { XRInputType } from "./XRInputType";
+import { XRTrackedInputType } from "./XRTrackedInputType";
 import { XRTrackingState } from "./XRTrackingState";
 
 /**
@@ -27,7 +27,7 @@ export class XRCamera implements IXRInput {
     return this._pose;
   }
 
-  constructor(public type: XRInputType) {
+  constructor(public type: XRTrackedInputType) {
     this._pose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
   }
 }

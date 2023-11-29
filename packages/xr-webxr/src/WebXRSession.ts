@@ -1,5 +1,5 @@
 import { IXRSession, IXRInputEvent } from "@galacean/engine-design";
-import { XRInputEventType, XRInputType, XRTargetRayMode } from "@galacean/engine";
+import { XRInputEventType, XRTrackedInputType, XRTargetRayMode } from "@galacean/engine";
 import { WebXRFrame } from "./WebXRFrame";
 import { getInputSource } from "./util";
 
@@ -74,7 +74,7 @@ export class WebXRSession implements IXRSession {
       const event = {
         type: XRInputEventType.Select,
         targetRayMode: XRTargetRayMode.Screen,
-        input: XRInputType.Controller,
+        input: XRTrackedInputType.Controller,
         id: i,
         x: axes[0],
         y: axes[1]

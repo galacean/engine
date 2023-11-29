@@ -3,7 +3,7 @@ import { XRControllerPoseMode } from "./XRControllerPoseMode";
 import { DisorderedArray } from "../../DisorderedArray";
 import { IXRInput, IXRPose } from "@galacean/engine-design";
 import { XRInputButton } from "./XRInputButton";
-import { XRInputType } from "./XRInputType";
+import { XRTrackedInputType } from "./XRTrackedInputType";
 import { XRTrackingState } from "./XRTrackingState";
 
 /**
@@ -42,7 +42,7 @@ export class XRController implements IXRInput {
     }
   }
 
-  constructor(public type: XRInputType) {
+  constructor(public type: XRTrackedInputType) {
     this.upMap = [];
     this.downMap = [];
     this.upList = new DisorderedArray();

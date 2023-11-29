@@ -27,7 +27,7 @@ export { XRTrackingState } from "./input/XRTrackingState";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRInputButton } from "./input/XRInputButton";
 export { XRController } from "./input/XRController";
-export { XRInputType } from "./input/XRInputType";
+export { XRTrackedInputType } from "./input/XRTrackedInputType";
 export { XRCamera } from "./input/XRCamera";
 export { XRTargetRayMode } from "./input/XRTargetRayMode";
 export { XRInputEventType } from "./input/XRInputEventType";

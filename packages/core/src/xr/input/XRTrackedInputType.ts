@@ -1,7 +1,7 @@
 /**
- * Enum for XR input type.
+ * Enumerates some devices that can be tracked.(including status, posture and other information)
  */
-export enum XRInputType {
+export enum XRTrackedInputType {
   /** Controller */
   Controller,
   /** Left controller */

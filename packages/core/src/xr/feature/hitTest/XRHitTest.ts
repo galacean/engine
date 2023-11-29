@@ -6,7 +6,7 @@ import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRSessionMode } from "../../session/XRSessionMode";
-import { XRInputType } from "../../input/XRInputType";
+import { XRTrackedInputType } from "../../input/XRTrackedInputType";
 import { Engine } from "../../../Engine";
 
 /**
@@ -48,7 +48,7 @@ export class XRHitTest extends XRFeature {
     if (xrManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
-    const camera = this._xrCameraManager.getCameraByType(XRInputType.Camera);
+    const camera = this._xrCameraManager.getCameraByType(XRTrackedInputType.Camera);
     if (!camera) {
       throw new Error("No camera available.");
     }
