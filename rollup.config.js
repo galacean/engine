@@ -117,7 +117,13 @@ function config({ location, pkgJson }) {
       };
     },
     module: () => {
-      const plugins = [...commonPlugins];
+      const plugins = [
+        modify({
+          find: "chevrotain",
+          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
+        }),
+        ...commonPlugins
+      ];
       return {
         input,
         external,
