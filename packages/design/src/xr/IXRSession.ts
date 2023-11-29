@@ -65,13 +65,13 @@ export interface IXRSession {
    * Ends the xr session. Returns a promise which resolves when the
    * session has been start.
    */
-  start(): Promise<void>;
+  start(): void;
 
   /**
    * Ends the xr session. Returns a promise which resolves when the
    * session has been start.
    */
-  stop(): Promise<void>;
+  stop(): void;
 
   /**
    * Ends the xr session. Returns a promise which resolves when the

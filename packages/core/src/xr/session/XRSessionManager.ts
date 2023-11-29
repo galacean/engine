@@ -3,6 +3,9 @@ import { Engine } from "../../Engine";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
 
+/**
+ * XRSessionManager manages the life cycle of XR sessions.
+ */
 export class XRSessionManager {
   protected _session: IXRSession;
   protected _state: XRSessionState = XRSessionState.None;
@@ -85,41 +88,48 @@ export class XRSessionManager {
   }
 
   /**
-   * @internal
+   * Run the session.
+   * @returns A promise that resolves if the session is started, otherwise rejects
    */
-  _start(): Promise<void> {
+  run(): void {
     const { _session: session } = this;
     if (!session) {
-      return Promise.reject("Without session to start.");
+      throw new Error("Without session to run.");
     }
-    return new Promise((resolve, reject) => {
-      session.start().then(() => {
-        this._state = XRSessionState.Running;
-        resolve();
-      }, reject);
-    });
+    session.start();
+    this._state = XRSessionState.Running;
+    const { xrManager } = this._engine;
+    xrManager.inputManager._onSessionStart();
+    const features = xrManager.getFeatures();
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature?.enabled && feature.onSessionStart();
+    }
   }
 
   /**
-   * @internal
+   * Stop the session.
    */
-  _stop(): Promise<void> {
-    const { _session: session } = this;
+  stop(): void {
+    const { _session: session, _engine: engine } = this;
     if (!session) {
-      return Promise.reject("Without session to stop.");
+      throw new Error("Without session to stop.");
     }
-    const isRunning = !this._engine.isPaused;
-    isRunning && this._engine.pause();
-    return new Promise((resolve, reject) => {
-      session.stop().then(() => {
-        const { _rhi: rhi } = this;
-        rhi._mainFrameBuffer = null;
-        rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
-        this._state = XRSessionState.Paused;
-        isRunning && this._engine.resume();
-        resolve();
-      }, reject);
-    });
+    const isRunning = !engine.isPaused;
+    isRunning && engine.pause();
+    session.stop();
+    const { _rhi: rhi } = this;
+    rhi._mainFrameBuffer = null;
+    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    this._state = XRSessionState.Paused;
+    isRunning && engine.resume();
+    const { xrManager } = engine;
+    xrManager.inputManager._onSessionStop();
+    const features = xrManager.getFeatures();
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature?.enabled && feature.onSessionStop();
+    }
   }
 
   /**

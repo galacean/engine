@@ -84,13 +84,10 @@ export class WebXRSession implements IXRSession {
     return events;
   }
 
-  start(): Promise<void> {
-    return Promise.resolve();
-  }
+  start(): void {}
 
-  stop(): Promise<void> {
+  stop(): void {
     this._frame._platformFrame = null;
-    return Promise.resolve();
   }
 
   end(): Promise<void> {

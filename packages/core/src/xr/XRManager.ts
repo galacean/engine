@@ -138,27 +138,43 @@ export class XRManager {
   }
 
   /**
-   * Disable all features.
+   * Get all initialized features at this moment.
+   * Returns a read-only array.
    */
-  disableAllFeatures(): void {
-    const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      features[i] && (features[i].enabled = false);
+  getFeatures(): XRFeature[];
+  /**
+   * Get all initialized features at this moment.
+   * @param out - Save all features in `out`
+   */
+  getFeatures(out: XRFeature[]): XRFeature[];
+
+  getFeatures(out?: XRFeature[]): XRFeature[] {
+    if (out) {
+      const { _features: features } = this;
+      const n = features.length;
+      out.length = n;
+      for (let i = 0; i < n; i--) {
+        out[i] = features[i];
+      }
+      return out;
+    } else {
+      return this._features;
     }
   }
 
   /**
-   * Enter the session.
-   * @param mode - The mode of the session
-   * @returns A promise that resolves if the session is entered, otherwise rejects
+   * Enter XR immersive mode, when you call this method, it will initialize and display the XR virtual world.
+   * @param sessionMode - The mode of the session
+   * @param autoRun - Whether to automatically run the session
+   * @returns A promise that resolves if the XR virtual world is entered, otherwise rejects
    */
-  enterXR(mode: XRSessionMode): Promise<void> {
+  enterXR(sessionMode: XRSessionMode, autoRun: boolean = true): Promise<void> {
     if (this.sessionManager.session) {
       return Promise.reject(new Error("Please destroy the old session first."));
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
-      this._xrDevice.isSupportedSessionMode(mode).then(() => {
+      this._xrDevice.isSupportedSessionMode(sessionMode).then(() => {
         // 2. Collect all features
         const { _features: features } = this;
         const enabledFeatures = [];
@@ -174,8 +190,8 @@ export class XRManager {
         // 3. Check if this feature is supported
         Promise.all(supportedPromises).then(() => {
           // 4. Initialize session
-          this.sessionManager._initialize(mode, enabledFeatures).then((session) => {
-            this._mode = mode;
+          this.sessionManager._initialize(sessionMode, enabledFeatures).then((session) => {
+            this._mode = sessionMode;
             // 5. Initialize all features
             const initializePromises = [];
             for (let i = 0, n = enabledFeatures.length; i < n; i++) {
@@ -188,7 +204,8 @@ export class XRManager {
                 enabledFeatures[i].onSessionInit();
               }
               // 6. Auto run the session
-              this.run().then(resolve, reject);
+              autoRun && this.sessionManager.run();
+              resolve();
             }, reject);
           }, reject);
         }, reject);
@@ -197,8 +214,8 @@ export class XRManager {
   }
 
   /**
-   * Exit the session.
-   * @returns A promise that resolves if the session is destroyed, otherwise rejects
+   * Exit XR immersive mode, when you call this method, it will destroy the XR virtual world.
+   * @returns A promise that resolves if the XR virtual world is destroyed, otherwise rejects
    */
   exitXR(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -216,43 +233,6 @@ export class XRManager {
           feature.onDestroy();
         }
         features.length = 0;
-        resolve();
-      }, reject);
-    });
-  }
-
-  /**
-   * Start the session.
-   * @returns A promise that resolves if the session is started, otherwise rejects
-   */
-  run(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const { sessionManager } = this;
-      sessionManager._start().then(() => {
-        const { _features: features } = this;
-        this.inputManager._onSessionStart();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          feature?.enabled && feature.onSessionStart();
-        }
-        resolve();
-      }, reject);
-    });
-  }
-
-  /**
-   * Stop the session.
-   * @returns A promise that resolves if the session is stopped, otherwise rejects
-   */
-  stop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.sessionManager._stop().then(() => {
-        const { _features: features } = this;
-        this.inputManager._onSessionStop();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          feature?.enabled && feature.onSessionStop();
-        }
         resolve();
       }, reject);
     });
