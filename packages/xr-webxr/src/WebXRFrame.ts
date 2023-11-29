@@ -1,5 +1,5 @@
 import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
-import { Vector3, XRTrackedInputType } from "@galacean/engine";
+import { Vector3, XRTrackedInputDevice } from "@galacean/engine";
 import { WebXRSession } from "./WebXRSession";
 import { getInputSource, viewToCamera } from "./util";
 
@@ -71,7 +71,7 @@ export class WebXRFrame implements IXRFrame {
         const view = views[i];
         const type = viewToCamera(view.eye);
         const { transform } = views[i];
-        if (type === XRTrackedInputType.Camera) {
+        if (type === XRTrackedInputDevice.Camera) {
           hadUpdateCenterViewer ||= true;
         }
         const xrCamera = <IXRCamera>inputs[type];
@@ -90,9 +90,9 @@ export class WebXRFrame implements IXRFrame {
       }
 
       if (!hadUpdateCenterViewer) {
-        const leftCameraDevice = <IXRCamera>inputs[XRTrackedInputType.LeftCamera];
-        const rightCameraDevice = <IXRCamera>inputs[XRTrackedInputType.RightCamera];
-        const cameraDevice = <IXRCamera>inputs[XRTrackedInputType.Camera];
+        const leftCameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.LeftCamera];
+        const rightCameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.RightCamera];
+        const cameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.Camera];
         const { pose: leftCameraPose } = leftCameraDevice;
         const { pose: rightCameraPose } = rightCameraDevice;
         const { pose: cameraPose } = cameraDevice;
