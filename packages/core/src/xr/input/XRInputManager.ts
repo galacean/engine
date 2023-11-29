@@ -2,7 +2,7 @@ import { IXRInput, IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
 import { XRCamera } from "./XRCamera";
-import { XRTrackedInputType } from "./XRTrackedInputType";
+import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { XRInputButton } from "./XRInputButton";
 import { XRTrackingState } from "./XRTrackingState";
@@ -34,23 +34,23 @@ export class XRInputManager {
   constructor(engine: Engine) {
     this._engine = engine;
     const { _inputs: inputs, _controllers: controllers, _cameras: cameras } = this;
-    for (let i = XRTrackedInputType.Length - 1; i >= 0; i--) {
+    for (let i = XRTrackedInputDevice.Length - 1; i >= 0; i--) {
       switch (i) {
-        case XRTrackedInputType.Camera:
-        case XRTrackedInputType.LeftCamera:
-        case XRTrackedInputType.RightCamera:
+        case XRTrackedInputDevice.Camera:
+        case XRTrackedInputDevice.LeftCamera:
+        case XRTrackedInputDevice.RightCamera:
           cameras.push((inputs[i] = new XRCamera(i)));
           break;
-        case XRTrackedInputType.Controller:
-        case XRTrackedInputType.LeftController:
-        case XRTrackedInputType.RightController:
+        case XRTrackedInputDevice.Controller:
+        case XRTrackedInputDevice.LeftController:
+        case XRTrackedInputDevice.RightController:
           controllers.push((inputs[i] = new XRController(i)));
           break;
         default:
           break;
       }
     }
-    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRTrackedInputType.Length);
+    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRTrackedInputDevice.Length);
   }
 
   /**
@@ -58,7 +58,7 @@ export class XRInputManager {
    * @param type - The input type
    * @returns The input instance
    */
-  getInput<T extends IXRInput>(type: XRTrackedInputType): T {
+  getInput<T extends IXRInput>(type: XRTrackedInputDevice): T {
     return <T>this._inputs[type];
   }
 
