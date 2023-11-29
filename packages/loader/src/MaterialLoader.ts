@@ -31,7 +31,6 @@ class MaterialLoader extends Loader<Material> {
         type: "json"
       })
         .then((materialSchema: IMaterialSchema) => {
-          debugger;
           const engine = resourceManager.engine;
           const { name, shader, shaderData, macros, renderState } = materialSchema;
           const material = new Material(engine, Shader.find(shader));
