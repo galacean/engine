@@ -90,7 +90,7 @@ export class XRManager {
 
   /**
    * Check if the specified feature is supported.
-   * @param descriptors - The feature descriptor to check
+   * @param type - The type of the feature
    * @returns A promise that resolves if the feature is supported, otherwise rejects
    */
   isSupportedFeature<T extends XRFeature>(type: new (engine: Engine) => T): Promise<void> {
@@ -105,6 +105,7 @@ export class XRManager {
   /**
    * Add feature based on the xr feature type.
    * @param type - The type of the feature
+   * @param constructor - The constructor params of the feature
    * @returns The feature which has been added
    */
   addFeature<T extends new (engine: Engine, ...args: any[]) => XRFeature>(
