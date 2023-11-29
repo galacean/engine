@@ -4,12 +4,22 @@ import { ShaderVisitor } from "./ShaderVisitor";
 import RuntimeContext from "./RuntimeContext";
 
 export class ShaderLab implements IShaderLab {
+  /** @internal */
   private _parser: ShaderParser;
+  /** @internal */
   private _visitor: ShaderVisitor;
+  /** @internal */
+  private _context: RuntimeContext;
+
+  /** @internal */
+  get context() {
+    return this._context;
+  }
 
   constructor() {
     this._parser = new ShaderParser();
     this._visitor = new ShaderVisitor();
+    this._context = new RuntimeContext();
   }
 
   parseShader(shaderSource: string) {
@@ -26,8 +36,7 @@ export class ShaderLab implements IShaderLab {
 
     const ast = this._visitor.visit(cst);
 
-    const context = new RuntimeContext();
-    const shaderInfo = context.parse(ast);
+    const shaderInfo = this._context.parse(ast);
 
     return shaderInfo;
   }

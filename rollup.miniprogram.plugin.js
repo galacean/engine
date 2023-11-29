@@ -36,7 +36,8 @@ const adapterArray = [
   "WebGL2RenderingContext",
   "ImageData",
   "location",
-  "OffscreenCanvas"
+  "OffscreenCanvas",
+  "URLSearchParams"
 ];
 const adapterVars = {};
 

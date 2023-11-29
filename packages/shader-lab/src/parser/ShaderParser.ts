@@ -343,9 +343,14 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Symbols.Semicolon);
   });
 
+  private _ruleFnCallStatement = this.RULE("_ruleFnCallStatement", () => {
+    this.SUBRULE(this._ruleFnCall);
+    this.CONSUME(Symbols.Semicolon);
+  });
+
   private _ruleFnStatement = this.RULE("_ruleFnStatement", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this._ruleFnCall) },
+      { ALT: () => this.SUBRULE(this._ruleFnCallStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnReturnStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnAssignStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
@@ -354,7 +359,8 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleBreakStatement) },
       { ALT: () => this.SUBRULE(this._ruleContinueStatement) },
       { ALT: () => this.SUBRULE(this._ruleForLoopStatement) },
-      { ALT: () => this.SUBRULE(this._ruleFn) }
+      { ALT: () => this.SUBRULE(this._ruleFn) },
+      { ALT: () => this.SUBRULE(this._ruleFnBlockStatement) }
     ]);
   });
 
@@ -434,7 +440,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleConditionExpr = this.RULE("_ruleConditionExpr", () => {
     this.SUBRULE(this._ruleFnRelationExpr);
-    this.OPTION(() => {
+    this.MANY(() => {
       this.SUBRULE(this._ruleRelationOperator);
       this.SUBRULE1(this._ruleFnRelationExpr);
     });
