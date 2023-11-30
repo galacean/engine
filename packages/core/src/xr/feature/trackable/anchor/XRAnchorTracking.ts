@@ -60,7 +60,9 @@ export class XRAnchorTracking extends XRTrackableFeature<
   constructor(engine: Engine, anchors: IXRPose[] = []) {
     super(engine);
     this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };
-    this._platformFeature = <IXRAnchorTracking>engine.xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking);
+    this._platformFeature = <IXRAnchorTracking>(
+      engine.xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking)
+    );
     if (anchors) {
       for (let i = 0, n = anchors.length; i < n; i++) {
         this._addRequestTracking(this._createRequestTracking(anchors[i]));

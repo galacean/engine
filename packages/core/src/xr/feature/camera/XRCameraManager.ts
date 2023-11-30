@@ -13,18 +13,18 @@ export class XRCameraManager {
    * Return fixed foveation of the camera.
    */
   get fixedFoveation(): number {
-    const { session } = this._engine.xrManager.sessionManager;
-    if (session) {
-      return session.fixedFoveation;
+    const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
+    if (platformSession) {
+      return platformSession.fixedFoveation;
     } else {
       throw new Error("XR session is not available.");
     }
   }
 
   set fixedFoveation(value: number) {
-    const { session } = this._engine.xrManager.sessionManager;
-    if (session) {
-      session.fixedFoveation = value;
+    const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
+    if (platformSession) {
+      platformSession.fixedFoveation = value;
     } else {
       throw new Error("XR session is not available.");
     }

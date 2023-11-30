@@ -19,14 +19,15 @@ export class XRInputManager {
   /** @internal */
   _controllers: XRController[] = [];
 
-  protected _engine: Engine;
-  protected _session: IXRSession;
-  protected _inputs: IXRInput[] = [];
-  protected _added: IXRInput[] = [];
-  protected _updated: IXRInput[] = [];
-  protected _removed: IXRInput[] = [];
-  protected _statusSnapshot: XRTrackingState[] = [];
-  protected _trackingUpdate: UpdateFlagManager = new UpdateFlagManager();
+  private _engine: Engine;
+  private _inputs: IXRInput[] = [];
+  private _added: IXRInput[] = [];
+  private _updated: IXRInput[] = [];
+  private _removed: IXRInput[] = [];
+  private _statusSnapshot: XRTrackingState[] = [];
+  private _trackingUpdate: UpdateFlagManager = new UpdateFlagManager();
+
+  private _platformSession: IXRSession;
 
   /**
    * @internal
@@ -133,13 +134,13 @@ export class XRInputManager {
       _trackingUpdate: trackingUpdate,
       _statusSnapshot: statusSnapshot
     } = this;
-    const { _inputs: inputs, _session: session } = this;
-    const { events } = session;
-    for (let i = 0, n = events.length; i < n; i++) {
-      this._handleEvent(events[i]);
+    const { _inputs: inputs, _platformSession: platformSession } = this;
+    const { events: platformEvents } = platformSession;
+    for (let i = 0, n = platformEvents.length; i < n; i++) {
+      this._handleEvent(platformEvents[i]);
     }
-    session.resetEvents();
-    session.frame.updateInputs(inputs);
+    platformSession.resetEvents();
+    platformSession.frame.updateInputs(inputs);
     for (let i = 0, n = inputs.length; i < n; i++) {
       const input = inputs[i];
       if (!input) continue;
@@ -166,28 +167,28 @@ export class XRInputManager {
    * @internal
    */
   _onSessionInit(session: IXRSession): void {
-    this._session = session;
+    this._platformSession = session;
   }
 
   /**
    * @internal
    */
   _onSessionStart(): void {
-    this._session?.addEventListener();
+    this._platformSession?.addEventListener();
   }
 
   /**
    * @internal
    */
   _onSessionStop(): void {
-    this._session?.removeEventListener();
+    this._platformSession?.removeEventListener();
   }
 
   /**
    * @internal
    */
   _onSessionDestroy(): void {
-    this._session = null;
+    this._platformSession = null;
   }
 
   /**

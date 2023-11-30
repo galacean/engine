@@ -144,9 +144,8 @@ export class Engine extends EventDispatcher {
 
   private _animate = () => {
     if (this._vSyncCount) {
-      this._requestId =
-        this.xrManager?.sessionManager.requestAnimationFrame(this._animate) ||
-        window.requestAnimationFrame(this._animate);
+      const raf = this.xrManager?.sessionManager._getRequestAnimationFrame() || requestAnimationFrame;
+      this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
         this._vSyncCounter = 1;
@@ -303,11 +302,8 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    if (this.xrManager) {
-      this.xrManager.sessionManager.cancelAnimationFrame(this._requestId);
-    } else {
-      cancelAnimationFrame(this._requestId);
-    }
+    const caf = this.xrManager?.sessionManager._getCancelAnimationFrame() || cancelAnimationFrame;
+    caf(this._requestId);
     clearTimeout(this._timeoutId);
   }
 
@@ -319,9 +315,8 @@ export class Engine extends EventDispatcher {
     this._isPaused = false;
     this.time._reset();
     if (this._vSyncCount) {
-      this._requestId =
-        this.xrManager?.sessionManager.requestAnimationFrame(this._animate) ||
-        window.requestAnimationFrame(this._animate);
+      const raf = this.xrManager?.sessionManager._getRequestAnimationFrame() || requestAnimationFrame;
+      this._requestId = raf(this._animate);
     } else {
       this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
     }

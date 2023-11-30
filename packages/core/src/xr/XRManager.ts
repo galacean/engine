@@ -91,7 +91,7 @@ export class XRManager {
     type: T,
     ...constructor: TConstructor<T>
   ): XRFeature | null {
-    if (this.sessionManager.session) {
+    if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
     const { _features: features } = this;
@@ -152,7 +152,7 @@ export class XRManager {
    * @returns A promise that resolves if the XR virtual world is entered, otherwise rejects
    */
   enterXR(sessionMode: XRSessionMode, autoRun: boolean = true): Promise<void> {
-    if (this.sessionManager.session) {
+    if (this.sessionManager._platformSession) {
       return Promise.reject(new Error("Please destroy the old session first."));
     }
     return new Promise((resolve, reject) => {
@@ -224,7 +224,7 @@ export class XRManager {
    * Destroy xr module.
    */
   destroy(): void {
-    if (this.sessionManager.session) {
+    if (this.sessionManager._platformSession) {
       this.exitXR().then(() => {
         this.sessionManager._onDestroy();
         this.inputManager._onDestroy();
@@ -246,12 +246,12 @@ export class XRManager {
     sessionManager._onUpdate();
     this.inputManager._onUpdate();
     this.cameraManager._onUpdate();
-    const { session } = sessionManager;
-    const { frame } = session;
+    const { _platformSession: platformSession } = sessionManager;
+    const { frame: platformFrame } = platformSession;
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature.onUpdate(session, frame);
+      feature?.enabled && feature.onUpdate(platformSession, platformFrame);
     }
   }
 }

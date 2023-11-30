@@ -7,8 +7,10 @@ import { XRSessionState } from "./XRSessionState";
  * XRSessionManager manages the life cycle of XR sessions.
  */
 export class XRSessionManager {
+  /** @internal */
+  _platformSession: IXRSession;
+
   private _mode: XRSessionMode = XRSessionMode.None;
-  private _session: IXRSession;
   private _state: XRSessionState = XRSessionState.None;
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
@@ -32,46 +34,14 @@ export class XRSessionManager {
    * Return a list of supported frame rates.(only available in-session)
    */
   get supportedFrameRate(): Float32Array {
-    return this._session.supportedFrameRates;
+    return this._platformSession.supportedFrameRates;
   }
 
   /**
    * Return the current frame rate as reported by the device.
    */
   get frameRate(): number {
-    return this._session.frameRate;
-  }
-
-  /**
-   * @internal
-   * Return the current session.
-   */
-  get session(): IXRSession {
-    return this._session;
-  }
-
-  /**
-   * @internal
-   * Returns requestAnimationFrame in XR.
-   */
-  get requestAnimationFrame(): (callback: FrameRequestCallback) => number {
-    if (this._state === XRSessionState.Running) {
-      return this._session.requestAnimationFrame;
-    } else {
-      return this._raf;
-    }
-  }
-
-  /**
-   * @internal
-   * Returns cancelAnimationFrame in XR.
-   */
-  get cancelAnimationFrame(): (id: number) => void {
-    if (this._state === XRSessionState.Running) {
-      return this._session.cancelAnimationFrame;
-    } else {
-      return this._caf;
-    }
+    return this._platformSession.frameRate;
   }
 
   /**
@@ -96,11 +66,11 @@ export class XRSessionManager {
    * Run the session.
    */
   run(): void {
-    const { _session: session } = this;
-    if (!session) {
+    const { _platformSession: platformSession } = this;
+    if (!platformSession) {
       throw new Error("Without session to run.");
     }
-    session.start();
+    platformSession.start();
     this._state = XRSessionState.Running;
     const { xrManager } = this._engine;
     xrManager.inputManager._onSessionStart();
@@ -115,13 +85,13 @@ export class XRSessionManager {
    * Stop the session.
    */
   stop(): void {
-    const { _session: session, _engine: engine } = this;
-    if (!session) {
+    const { _platformSession: platformSession, _engine: engine } = this;
+    if (!platformSession) {
       throw new Error("Without session to stop.");
     }
     const isRunning = !engine.isPaused;
     isRunning && engine.pause();
-    session.stop();
+    platformSession.stop();
     const { _rhi: rhi } = this;
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
@@ -143,7 +113,7 @@ export class XRSessionManager {
     return new Promise((resolve, reject) => {
       this._engine.xrManager._platformDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
         this._mode = mode;
-        this._session = session;
+        this._platformSession = session;
         this._state = XRSessionState.Initialized;
         resolve(session);
       }, reject);
@@ -154,18 +124,40 @@ export class XRSessionManager {
    * @internal
    */
   _onUpdate() {
-    const { _rhi: rhi, session } = this;
-    rhi._mainFrameBuffer = session.framebuffer;
-    rhi._mainFrameWidth = session.framebufferWidth;
-    rhi._mainFrameHeight = session.framebufferHeight;
+    const { _rhi: rhi, _platformSession: platformSession } = this;
+    rhi._mainFrameBuffer = platformSession.framebuffer;
+    rhi._mainFrameWidth = platformSession.framebufferWidth;
+    rhi._mainFrameHeight = platformSession.framebufferHeight;
+  }
+
+  /**
+   * @internal
+   */
+  _getRequestAnimationFrame(): (callback: FrameRequestCallback) => number {
+    if (this._state === XRSessionState.Running) {
+      return this._platformSession.requestAnimationFrame;
+    } else {
+      return this._raf;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getCancelAnimationFrame(): (id: number) => void {
+    if (this._state === XRSessionState.Running) {
+      return this._platformSession.cancelAnimationFrame;
+    } else {
+      return this._caf;
+    }
   }
 
   /**
    * @internal
    */
   _destroy(): Promise<void> {
-    const { _session: session } = this;
-    if (!session) {
+    const { _platformSession: platformSession } = this;
+    if (!platformSession) {
       return Promise.reject("Without session to stop.");
     }
     const isRunning = !this._engine.isPaused;
@@ -174,8 +166,8 @@ export class XRSessionManager {
       const { _rhi: rhi } = this;
       rhi._mainFrameBuffer = null;
       rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
-      session.end().then(() => {
-        this._session = null;
+      platformSession.end().then(() => {
+        this._platformSession = null;
         this._state = XRSessionState.None;
         isRunning && this._engine.resume();
         resolve();

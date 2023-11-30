@@ -168,6 +168,6 @@ export abstract class XRTrackableFeature<
   }
 
   private _canModifyRequestTracking(): boolean {
-    return !this._sessionManager.session || this._platformFeature.canModifyRequestTrackingAfterInit;
+    return !this._sessionManager._platformSession || this._platformFeature.canModifyRequestTrackingAfterInit;
   }
 }
