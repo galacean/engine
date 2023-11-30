@@ -74,22 +74,7 @@ export class XRSessionManager {
   }
 
   /**
-   * @internal
-   */
-  _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
-    const { _xrDevice: xrDevice } = this._engine.xrManager;
-    return new Promise((resolve, reject) => {
-      xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
-        this._session = session;
-        this._state = XRSessionState.Initialized;
-        resolve(session);
-      }, reject);
-    });
-  }
-
-  /**
    * Run the session.
-   * @returns A promise that resolves if the session is started, otherwise rejects
    */
   run(): void {
     const { _session: session } = this;
@@ -135,6 +120,30 @@ export class XRSessionManager {
   /**
    * @internal
    */
+  _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
+    const { _xrDevice: xrDevice } = this._engine.xrManager;
+    return new Promise((resolve, reject) => {
+      xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
+        this._session = session;
+        this._state = XRSessionState.Initialized;
+        resolve(session);
+      }, reject);
+    });
+  }
+
+  /**
+   * @internal
+   */
+  _onUpdate() {
+    const { _rhi: rhi, session } = this;
+    rhi._mainFrameBuffer = session.framebuffer;
+    rhi._mainFrameWidth = session.framebufferWidth;
+    rhi._mainFrameHeight = session.framebufferHeight;
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): Promise<void> {
     const { _session: session } = this;
     if (!session) {
@@ -153,16 +162,6 @@ export class XRSessionManager {
         resolve();
       }, reject);
     });
-  }
-
-  /**
-   * @internal
-   */
-  _onUpdate() {
-    const { _rhi: rhi, session } = this;
-    rhi._mainFrameBuffer = session.framebuffer;
-    rhi._mainFrameWidth = session.framebufferWidth;
-    rhi._mainFrameHeight = session.framebufferHeight;
   }
 
   /**
