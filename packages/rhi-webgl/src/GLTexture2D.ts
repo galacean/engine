@@ -91,6 +91,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     this._bind();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
+    // Ensures a consistent color space unpacking of textures cross browser.
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
 
     if (this._texture.usage === TextureUsage.Dynamic) {
       gl.texImage2D(this._target, mipLevel, internalFormat, baseFormat, dataType, imageSource);
