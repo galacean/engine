@@ -22,7 +22,7 @@ export class XRManager {
   cameraManager: XRCameraManager;
 
   /** @internal */
-  _xrDevice: IXRDevice;
+  _platformDevice: IXRDevice;
 
   private _engine: Engine;
   private _scene: Scene;
@@ -66,7 +66,7 @@ export class XRManager {
    */
   constructor(engine: Engine, xrDevice: IXRDevice) {
     this._engine = engine;
-    this._xrDevice = xrDevice;
+    this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
     this.cameraManager = new XRCameraManager(engine);
@@ -78,7 +78,7 @@ export class XRManager {
    * @returns A promise that resolves if the feature is supported, otherwise rejects
    */
   isSupportedFeature(type: XRFeatureType): Promise<void> {
-    return this._xrDevice.isSupportedFeature(type);
+    return this._platformDevice.isSupportedFeature(type);
   }
 
   /**
@@ -91,6 +91,9 @@ export class XRManager {
     type: T,
     ...constructor: TConstructor<T>
   ): XRFeature | null {
+    if (this.sessionManager.session) {
+      throw new Error("Cannot add feature when the session is initialized.");
+    }
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];

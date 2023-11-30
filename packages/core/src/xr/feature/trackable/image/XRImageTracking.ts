@@ -78,7 +78,7 @@ export class XRImageTracking extends XRTrackableFeature<
   constructor(engine: Engine, images: IXRReferenceImage[]) {
     super(engine);
     this._config = { type: XRFeatureType.ImageTracking, images };
-    this._platformFeature = <IXRImageTracking>engine.xrManager._xrDevice.createFeature(XRFeatureType.ImageTracking);
+    this._platformFeature = <IXRImageTracking>engine.xrManager._platformDevice.createFeature(XRFeatureType.ImageTracking);
     if (images) {
       for (let i = 0, n = images.length; i < n; i++) {
         this._addRequestTracking(this._createRequestTracking(images[i]));

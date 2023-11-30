@@ -48,7 +48,7 @@ export class XRSessionManager {
    * @returns A promise that resolves if the mode is supported, otherwise rejects
    */
   isSupportedMode(mode: XRSessionMode): Promise<void> {
-    return this._engine.xrManager._xrDevice.isSupportedSessionMode(mode);
+    return this._engine.xrManager._platformDevice.isSupportedSessionMode(mode);
   }
 
   /**
@@ -141,7 +141,7 @@ export class XRSessionManager {
    */
   _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
     return new Promise((resolve, reject) => {
-      this._engine.xrManager._xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
+      this._engine.xrManager._platformDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
         this._mode = mode;
         this._session = session;
         this._state = XRSessionState.Initialized;

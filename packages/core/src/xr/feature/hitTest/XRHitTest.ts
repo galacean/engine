@@ -71,7 +71,7 @@ export class XRHitTest extends XRFeature {
     const { xrManager } = engine;
     this._xrCameraManager = xrManager.cameraManager;
     this._config = { type: XRFeatureType.HitTest };
-    this._platformFeature = xrManager._xrDevice.createFeature(XRFeatureType.HitTest);
+    this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
   }
 
   private _hitTestPlane(ray: Ray, result: IXRHitResult[]): void {

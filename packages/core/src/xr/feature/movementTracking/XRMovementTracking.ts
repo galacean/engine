@@ -23,7 +23,7 @@ export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXR
     super(engine);
     this._config = { type: XRFeatureType.MovementTracking, mode: trackingMode };
     this._platformFeature = <IXRMovementTracking>(
-      engine.xrManager._xrDevice.createFeature(XRFeatureType.MovementTracking)
+      engine.xrManager._platformDevice.createFeature(XRFeatureType.MovementTracking)
     );
   }
 }
