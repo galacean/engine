@@ -71,6 +71,7 @@ export class XRSessionManager {
       throw new Error("Without session to run.");
     }
     platformSession.start();
+    platformSession.addEventListener();
     this._state = XRSessionState.Running;
     const { xrManager } = this._engine;
     xrManager.inputManager._onSessionStart();
@@ -89,14 +90,8 @@ export class XRSessionManager {
     if (!platformSession) {
       throw new Error("Without session to stop.");
     }
-    const isRunning = !engine.isPaused;
-    isRunning && engine.pause();
     platformSession.stop();
-    const { _rhi: rhi } = this;
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     this._state = XRSessionState.Paused;
-    isRunning && engine.resume();
     const { xrManager } = engine;
     xrManager.inputManager._onSessionStop();
     const features = xrManager.getFeatures();
@@ -104,6 +99,14 @@ export class XRSessionManager {
       const feature = features[i];
       feature?.enabled && feature.onSessionStop();
     }
+  }
+
+  dispose() {
+    const { _rhi: rhi } = this;
+    rhi._mainFrameBuffer = null;
+    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    this._platformSession = null;
+    this._state = XRSessionState.None;
   }
 
   /**
@@ -160,16 +163,11 @@ export class XRSessionManager {
     if (!platformSession) {
       return Promise.reject("Without session to stop.");
     }
-    const isRunning = !this._engine.isPaused;
-    isRunning && this._engine.pause();
     return new Promise((resolve, reject) => {
-      const { _rhi: rhi } = this;
-      rhi._mainFrameBuffer = null;
-      rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
       platformSession.end().then(() => {
+        platformSession.removeEventListener();
         this._platformSession = null;
         this._state = XRSessionState.None;
-        isRunning && this._engine.resume();
         resolve();
       }, reject);
     });

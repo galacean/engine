@@ -173,16 +173,12 @@ export class XRInputManager {
   /**
    * @internal
    */
-  _onSessionStart(): void {
-    this._platformSession?.addEventListener();
-  }
+  _onSessionStart(): void {}
 
   /**
    * @internal
    */
-  _onSessionStop(): void {
-    this._platformSession?.removeEventListener();
-  }
+  _onSessionStop(): void {}
 
   /**
    * @internal

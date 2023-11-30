@@ -25,40 +25,22 @@ export class XRManager {
   _platformDevice: IXRDevice;
 
   private _engine: Engine;
-  private _scene: Scene;
   private _origin: Entity;
   private _features: XRFeature[] = [];
 
   /**
-   * The current xr scene.
-   */
-  get scene(): Scene {
-    return (this._scene ||= this._engine.sceneManager.scenes[0]);
-  }
-
-  set scene(value: Scene) {
-    if (this._scene !== value) {
-      this._scene = value;
-      this._origin && value.addRootEntity(this._origin);
-    }
-  }
-
-  /**
-   * The current xr origin.
+   * The current origin of XR space.
+   * @remarks The connection point between the virtual world and the real world ( XR Space )
    */
   get origin(): Entity {
-    if (this._origin) {
-      return this._origin;
-    } else {
-      const { scene } = this;
-      return scene.findEntityByName("XROrigin") || scene.createRootEntity("XROrigin");
-    }
+    return this._origin;
   }
 
   set origin(value: Entity) {
-    if (this._origin !== value) {
-      this._origin = value;
+    if (this.sessionManager._platformSession) {
+      throw new Error("Cannot set origin when the session is initialized.");
     }
+    this._origin = value;
   }
 
   /**
@@ -153,7 +135,10 @@ export class XRManager {
    */
   enterXR(sessionMode: XRSessionMode, autoRun: boolean = true): Promise<void> {
     if (this.sessionManager._platformSession) {
-      return Promise.reject(new Error("Please destroy the old session first."));
+      throw new Error("Please destroy the old session first.");
+    }
+    if (this._origin) {
+      throw new Error("Please set origin before enter XR.");
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
@@ -203,18 +188,6 @@ export class XRManager {
     return new Promise((resolve, reject) => {
       const { sessionManager } = this;
       sessionManager._destroy().then(() => {
-        const { _features: features } = this;
-        this.cameraManager._onSessionDestroy();
-        this.inputManager._onSessionDestroy();
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          if (feature?.enabled) {
-            feature.enabled = false;
-            feature.onSessionDestroy();
-          }
-          feature.onDestroy();
-        }
-        features.length = 0;
         resolve();
       }, reject);
     });
@@ -253,6 +226,22 @@ export class XRManager {
       const feature = features[i];
       feature?.enabled && feature.onUpdate(platformSession, platformFrame);
     }
+  }
+
+  private _onSessionEnded() {
+    this.sessionManager.dispose();
+    const { _features: features } = this;
+    this.cameraManager._onSessionDestroy();
+    this.inputManager._onSessionDestroy();
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      if (feature?.enabled) {
+        feature.enabled = false;
+        feature.onSessionDestroy();
+      }
+      feature.onDestroy();
+    }
+    features.length = 0;
   }
 }
 

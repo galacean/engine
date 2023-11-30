@@ -6,6 +6,7 @@ import { getInputSource } from "./util";
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame: (id: number) => void;
+  exitCallBack: () => any;
 
   /** @internal */
   _platformSession: XRSession;
@@ -84,6 +85,25 @@ export class WebXRSession implements IXRSession {
     return events;
   }
 
+  constructor(session: XRSession, layer: XRWebGLLayer, referenceSpace: XRReferenceSpace) {
+    this._frame = new WebXRFrame(this);
+    this._platformSession = session;
+    this._platformLayer = layer;
+    this._platformReferenceSpace = referenceSpace;
+    const xrRequestAnimationFrame = session.requestAnimationFrame.bind(session);
+    const onFrame = function (time: number, frame: XRFrame, callback: FrameRequestCallback) {
+      this._frame._platformFrame = frame;
+      callback(time);
+    }.bind(this);
+    this.requestAnimationFrame = (callback: FrameRequestCallback) => {
+      return xrRequestAnimationFrame((time: number, frame: XRFrame) => {
+        onFrame(time, frame, callback);
+      });
+    };
+    this.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
+    this._onSessionEvent = this._onSessionEvent.bind(this);
+  }
+
   start(): void {}
 
   stop(): void {
@@ -103,6 +123,7 @@ export class WebXRSession implements IXRSession {
     session.addEventListener("squeeze", onSessionEvent);
     session.addEventListener("squeezestart", onSessionEvent);
     session.addEventListener("squeezeend", onSessionEvent);
+    session.addEventListener("end", this.exitCallBack);
   }
 
   removeEventListener(): void {
@@ -113,30 +134,14 @@ export class WebXRSession implements IXRSession {
     session.removeEventListener("squeeze", onSessionEvent);
     session.removeEventListener("squeezestart", onSessionEvent);
     session.removeEventListener("squeezeend", onSessionEvent);
+    session.removeEventListener("end", this.exitCallBack);
     this._events.length = 0;
   }
+
+  addUnexpectedExitListener(): void {}
 
   resetEvents(): void {
     this._events.length = 0;
-  }
-
-  constructor(session: XRSession, layer: XRWebGLLayer, referenceSpace: XRReferenceSpace) {
-    this._frame = new WebXRFrame(this);
-    this._platformSession = session;
-    this._platformLayer = layer;
-    this._platformReferenceSpace = referenceSpace;
-    const xrRequestAnimationFrame = session.requestAnimationFrame.bind(session);
-    const onFrame = function (time: number, frame: XRFrame, callback: FrameRequestCallback) {
-      this._frame._platformFrame = frame;
-      callback(time);
-    }.bind(this);
-    this.requestAnimationFrame = (callback: FrameRequestCallback) => {
-      return xrRequestAnimationFrame((time: number, frame: XRFrame) => {
-        onFrame(time, frame, callback);
-      });
-    };
-    this.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
-    this._onSessionEvent = this._onSessionEvent.bind(this);
   }
 
   private _onSessionEvent(inputSourceEvent: XRInputSourceEvent) {

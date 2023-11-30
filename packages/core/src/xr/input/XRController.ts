@@ -24,15 +24,15 @@ export class XRController implements IXRInput {
   downList: DisorderedArray<XRInputButton>;
   /** the pose mode of the controller. (Default is Grip) */
   poseMode: XRControllerPoseMode;
-  /** The grip space pose of the controller. */
+  /** The grip space pose of the controller in XR space. */
   gripPose: IXRPose;
-  /** The target ray space pose of the controller. */
+  /** The target ray space pose of the controller in XR space. */
   targetRayPose: IXRPose;
 
   protected _pose: IXRPose;
 
   /**
-   * Returns the pose of the controller.
+   * Returns the pose of the controller in XR space.
    */
   get pose(): IXRPose {
     if (this.poseMode === XRControllerPoseMode.Grip) {

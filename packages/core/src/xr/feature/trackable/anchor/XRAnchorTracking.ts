@@ -20,7 +20,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
   IXRAnchorTracking
 > {
   /**
-   * Add a tracking anchor.
+   * Add a tracking anchor in XR space.
    * @param pose - The pose of anchor to be added
    */
   addAnchor(pose: IXRPose): IXRRequestAnchorTracking {

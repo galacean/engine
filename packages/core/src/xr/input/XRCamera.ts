@@ -21,7 +21,7 @@ export class XRCamera implements IXRInput {
   protected _pose: IXRPose;
 
   /**
-   * Return the pose of the input.
+   * Return the pose of the input in XR space.
    */
   get pose(): IXRPose {
     return this._pose;
