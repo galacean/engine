@@ -7,25 +7,25 @@ import { XRSessionState } from "./XRSessionState";
  * XRSessionManager manages the life cycle of XR sessions.
  */
 export class XRSessionManager {
-  protected _session: IXRSession;
-  protected _state: XRSessionState = XRSessionState.None;
-
+  private _mode: XRSessionMode = XRSessionMode.None;
+  private _session: IXRSession;
+  private _state: XRSessionState = XRSessionState.None;
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
+
+  /**
+   * The current session mode( AR or VR ).
+   */
+  get mode(): XRSessionMode {
+    return this._mode;
+  }
 
   /**
    * Return the current session state.
    */
   get state(): XRSessionState {
     return this._state;
-  }
-
-  /**
-   * Return the current session.
-   */
-  get session(): IXRSession {
-    return this._session;
   }
 
   /**
@@ -43,6 +43,33 @@ export class XRSessionManager {
   }
 
   /**
+   * Check if the specified mode is supported.
+   * @param mode - The mode to check
+   * @returns A promise that resolves if the mode is supported, otherwise rejects
+   */
+  isSupportedMode(mode: XRSessionMode): Promise<void> {
+    return this._engine.xrManager._xrDevice.isSupportedSessionMode(mode);
+  }
+
+  /**
+   * @internal
+   * Return the current session.
+   */
+  get session(): IXRSession {
+    return this._session;
+  }
+
+  /**
+   * @internal
+   */
+  constructor(protected _engine: Engine) {
+    this._rhi = _engine._hardwareRenderer;
+    this._raf = requestAnimationFrame.bind(window);
+    this._caf = cancelAnimationFrame.bind(window);
+  }
+
+  /**
+   * @internal
    * Returns requestAnimationFrame in XR.
    */
   get requestAnimationFrame(): (callback: FrameRequestCallback) => number {
@@ -54,6 +81,7 @@ export class XRSessionManager {
   }
 
   /**
+   * @internal
    * Returns cancelAnimationFrame in XR.
    */
   get cancelAnimationFrame(): (id: number) => void {
@@ -62,15 +90,6 @@ export class XRSessionManager {
     } else {
       return this._caf;
     }
-  }
-
-  /**
-   * @internal
-   */
-  constructor(protected _engine: Engine) {
-    this._rhi = _engine._hardwareRenderer;
-    this._raf = requestAnimationFrame.bind(window);
-    this._caf = cancelAnimationFrame.bind(window);
   }
 
   /**
@@ -121,9 +140,9 @@ export class XRSessionManager {
    * @internal
    */
   _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
-    const { _xrDevice: xrDevice } = this._engine.xrManager;
     return new Promise((resolve, reject) => {
-      xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
+      this._engine.xrManager._xrDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
+        this._mode = mode;
         this._session = session;
         this._state = XRSessionState.Initialized;
         resolve(session);

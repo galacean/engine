@@ -8,10 +8,16 @@ import { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
  */
 export interface IXRDevice {
   /**
-   * Whether the device is supported.
+   * Check if the specified session mode is supported.
    * @param mode - The mode of the session.
    */
   isSupportedSessionMode(mode: number): Promise<void>;
+
+  /**
+   * Check if the specified feature is supported.
+   * @param mode - The type of the feature.
+   */
+  isSupportedFeature(type: number): Promise<void>;
 
   /**
    * Get the platform feature instance of this device

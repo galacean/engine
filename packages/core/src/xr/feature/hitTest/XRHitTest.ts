@@ -30,7 +30,7 @@ export class XRHitTest extends XRFeature {
    * @returns The hit result
    */
   hitTest(ray: Ray, type: TrackableType): IXRHitResult[] {
-    if (this._engine.xrManager.mode !== XRSessionMode.AR) {
+    if (this._engine.xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
     return this._hitTest(ray, type);
@@ -44,8 +44,7 @@ export class XRHitTest extends XRFeature {
    * @returns The hit result
    */
   screenHitTest(x: number, y: number, type: TrackableType): IXRHitResult[] {
-    const { xrManager } = this._engine;
-    if (xrManager.mode !== XRSessionMode.AR) {
+    if (this._engine.xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
     const camera = this._xrCameraManager.getCameraByType(XRTrackedInputDevice.Camera);

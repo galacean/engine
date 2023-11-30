@@ -41,7 +41,10 @@ export class XRCameraManager {
    * @param type - The input type
    * @param camera - The camera to be attached
    */
-  attachCamera(type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera, camera: Camera): void {
+  attachCamera(
+    type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera,
+    camera: Camera
+  ): void {
     this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera = camera;
   }
 
@@ -50,7 +53,9 @@ export class XRCameraManager {
    * @param type - The input type
    * @returns The camera that was detached
    */
-  detachCamera(type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera): Camera {
+  detachCamera(
+    type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
+  ): Camera {
     const xrCamera = this._engine.xrManager.inputManager.getInput<XRCamera>(type);
     const preCamera = xrCamera.camera;
     xrCamera.camera = null;
@@ -62,7 +67,9 @@ export class XRCameraManager {
    * @param type - The input type
    * @returns The camera
    */
-  getCameraByType(type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera): Camera {
+  getCameraByType(
+    type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
+  ): Camera {
     return this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera;
   }
 

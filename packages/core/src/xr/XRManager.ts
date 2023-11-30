@@ -8,6 +8,7 @@ import { XRInputManager } from "./input/XRInputManager";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionMode } from "./session/XRSessionMode";
 import { XRSessionState } from "./session/XRSessionState";
+import { XRFeatureType } from "./feature/XRFeatureType";
 
 /**
  * XRManager is the entry point of the XR system.
@@ -26,7 +27,6 @@ export class XRManager {
   private _engine: Engine;
   private _scene: Scene;
   private _origin: Entity;
-  private _mode: XRSessionMode = XRSessionMode.None;
   private _features: XRFeature[] = [];
 
   /**
@@ -62,13 +62,6 @@ export class XRManager {
   }
 
   /**
-   * The current session mode( AR or VR ).
-   */
-  get mode(): XRSessionMode {
-    return this._mode;
-  }
-
-  /**
    * @internal
    */
   constructor(engine: Engine, xrDevice: IXRDevice) {
@@ -80,26 +73,12 @@ export class XRManager {
   }
 
   /**
-   * Check if the specified mode is supported.
-   * @param mode - The mode to check
-   * @returns A promise that resolves if the mode is supported, otherwise rejects
-   */
-  isSupportedSessionMode(mode: XRSessionMode): Promise<void> {
-    return this._xrDevice.isSupportedSessionMode(mode);
-  }
-
-  /**
    * Check if the specified feature is supported.
    * @param type - The type of the feature
    * @returns A promise that resolves if the feature is supported, otherwise rejects
    */
-  isSupportedFeature<T extends XRFeature>(type: new (engine: Engine) => T): Promise<void> {
-    const feature = this.getFeature(type);
-    if (feature) {
-      return feature.isSupported();
-    } else {
-      return Promise.reject("The platform interface layer is not implemented.");
-    }
+  isSupportedFeature(type: XRFeatureType): Promise<void> {
+    return this._xrDevice.isSupportedFeature(type);
   }
 
   /**
@@ -175,7 +154,7 @@ export class XRManager {
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
-      this._xrDevice.isSupportedSessionMode(sessionMode).then(() => {
+      this.sessionManager.isSupportedMode(sessionMode).then(() => {
         // 2. Collect all features
         const { _features: features } = this;
         const enabledFeatures = [];
@@ -192,7 +171,6 @@ export class XRManager {
         Promise.all(supportedPromises).then(() => {
           // 4. Initialize session
           this.sessionManager._initialize(sessionMode, enabledFeatures).then((session) => {
-            this._mode = sessionMode;
             // 5. Initialize all features
             const initializePromises = [];
             for (let i = 0, n = enabledFeatures.length; i < n; i++) {

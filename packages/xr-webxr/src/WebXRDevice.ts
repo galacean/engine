@@ -1,4 +1,5 @@
 import { IXRPlatformFeature, IHardwareRenderer, IXRDevice, IXRFeature } from "@galacean/engine-design";
+import { XRFeatureType } from "@galacean/engine";
 import { parseFeature, parseXRMode } from "./util";
 import { WebXRSession } from "./WebXRSession";
 
@@ -23,6 +24,10 @@ export class WebXRDevice implements IXRDevice {
         isSupported ? resolve() : reject(new Error("The current context doesn't support WebXR."));
       });
     });
+  }
+
+  isSupportedFeature(type: XRFeatureType): Promise<void> {
+    return Promise.resolve();
   }
 
   createFeature(type: number): IXRPlatformFeature {
