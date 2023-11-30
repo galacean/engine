@@ -166,7 +166,7 @@ export class XRManager {
           const feature = features[i];
           if (feature.enabled) {
             enabledFeatures.push(feature);
-            supportedPromises.push(feature.isSupported());
+            supportedPromises.push(feature._isSupported());
           }
         }
 

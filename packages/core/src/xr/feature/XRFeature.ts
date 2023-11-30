@@ -28,18 +28,6 @@ export abstract class XRFeature<
   }
 
   /**
-   * Returns whether the feature is supported.
-   * @returns The promise of the feature
-   */
-  isSupported(): Promise<void> {
-    if (this._platformFeature) {
-      return this._platformFeature.isSupported(this._generateConfig());
-    } else {
-      return Promise.resolve();
-    }
-  }
-
-  /**
    * Initialize the feature.
    * @returns The promise of the feature
    */
@@ -94,6 +82,19 @@ export abstract class XRFeature<
    * @param _engine - The engine
    */
   constructor(protected _engine: Engine) {}
+
+  /**
+   * @internal
+   * Returns whether the feature is supported.
+   * @returns The promise of the feature
+   */
+  _isSupported(): Promise<void> {
+    if (this._platformFeature) {
+      return this._platformFeature.isSupported(this._generateConfig());
+    } else {
+      return Promise.resolve();
+    }
+  }
 
   /**
    * @internal

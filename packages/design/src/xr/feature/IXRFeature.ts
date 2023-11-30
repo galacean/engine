@@ -10,11 +10,6 @@ export interface IXRFeature {
   enabled: boolean;
 
   /**
-   * Returns whether the feature is supported.
-   */
-  isSupported(): Promise<void>;
-
-  /**
    * Initialize the feature.
    */
   initialize(): Promise<void>;
@@ -58,6 +53,11 @@ export interface IXRFeature {
    * Called when the session is destroyed.
    */
   onSessionDestroy(): void;
+
+  /**
+   * Returns whether the feature is supported.
+   */
+  _isSupported(): Promise<void>;
 
   /**
    * Generate the config of the feature.
