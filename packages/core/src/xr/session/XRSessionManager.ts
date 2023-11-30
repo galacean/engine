@@ -43,29 +43,11 @@ export class XRSessionManager {
   }
 
   /**
-   * Check if the specified mode is supported.
-   * @param mode - The mode to check
-   * @returns A promise that resolves if the mode is supported, otherwise rejects
-   */
-  isSupportedMode(mode: XRSessionMode): Promise<void> {
-    return this._engine.xrManager._platformDevice.isSupportedSessionMode(mode);
-  }
-
-  /**
    * @internal
    * Return the current session.
    */
   get session(): IXRSession {
     return this._session;
-  }
-
-  /**
-   * @internal
-   */
-  constructor(protected _engine: Engine) {
-    this._rhi = _engine._hardwareRenderer;
-    this._raf = requestAnimationFrame.bind(window);
-    this._caf = cancelAnimationFrame.bind(window);
   }
 
   /**
@@ -90,6 +72,24 @@ export class XRSessionManager {
     } else {
       return this._caf;
     }
+  }
+
+  /**
+   * @internal
+   */
+  constructor(protected _engine: Engine) {
+    this._rhi = _engine._hardwareRenderer;
+    this._raf = requestAnimationFrame.bind(window);
+    this._caf = cancelAnimationFrame.bind(window);
+  }
+
+  /**
+   * Check if the specified mode is supported.
+   * @param mode - The mode to check
+   * @returns A promise that resolves if the mode is supported, otherwise rejects
+   */
+  isSupportedMode(mode: XRSessionMode): Promise<void> {
+    return this._engine.xrManager._platformDevice.isSupportedSessionMode(mode);
   }
 
   /**
