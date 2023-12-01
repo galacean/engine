@@ -28,5 +28,8 @@ export class XRCamera implements IXRInput {
     return this._pose;
   }
 
+  /**
+   * @internal
+   */
   constructor(public type: XRTrackedInputDevice) {}
 }
