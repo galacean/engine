@@ -1,8 +1,8 @@
 import { IXRMovementTracking, IXRMovementTrackingConfig } from "@galacean/engine-design";
-import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
-import { XRFeatureType } from "../XRFeatureType";
+import { XRManager } from "../../XRManager";
 import { XRFeature } from "../XRFeature";
-import { Engine } from "../../../Engine";
+import { XRFeatureType } from "../XRFeatureType";
+import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
 
 /**
  * The manager of XR movement tracking.
@@ -16,14 +16,14 @@ export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXR
   }
 
   /**
-   * @param engine - The engine
+   * @param xrManager - The xr manager
    * @param trackingMode - The tracking mode
    */
-  constructor(engine: Engine, trackingMode: XRMovementTrackingMode = XRMovementTrackingMode.Dof6) {
-    super(engine);
+  constructor(xrManager: XRManager, trackingMode: XRMovementTrackingMode = XRMovementTrackingMode.Dof6) {
+    super(xrManager);
     this._config = { type: XRFeatureType.MovementTracking, mode: trackingMode };
     this._platformFeature = <IXRMovementTracking>(
-      engine.xrManager._platformDevice.createFeature(XRFeatureType.MovementTracking)
+      xrManager._platformDevice.createFeature(XRFeatureType.MovementTracking)
     );
   }
 }

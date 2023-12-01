@@ -2,13 +2,13 @@ import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { XRFeature } from "./feature/XRFeature";
+import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRCameraManager } from "./feature/camera/XRCameraManager";
+import { XRMovementTracking } from "./feature/movementTracking/XRMovementTracking";
 import { XRInputManager } from "./input/XRInputManager";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionMode } from "./session/XRSessionMode";
 import { XRSessionState } from "./session/XRSessionState";
-import { XRFeatureType } from "./feature/XRFeatureType";
-import { XRMovementTracking } from "./feature/movementTracking/XRMovementTracking";
 
 /**
  * XRManager is the entry point of the XR system.
@@ -24,7 +24,6 @@ export class XRManager {
   /** @internal */
   _platformDevice: IXRDevice;
 
-  private _engine: Engine;
   private _origin: Entity;
   private _features: XRFeature[] = [];
 
@@ -47,7 +46,6 @@ export class XRManager {
    * @internal
    */
   constructor(engine: Engine, xrDevice: IXRDevice) {
-    this._engine = engine;
     this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
@@ -71,7 +69,7 @@ export class XRManager {
    * @param constructor - The constructor params of the feature
    * @returns The feature which has been added
    */
-  addFeature<T extends new (engine: Engine, ...args: any[]) => XRFeature>(
+  addFeature<T extends new (xrManager: XRManager, ...args: any[]) => XRFeature>(
     type: T,
     ...constructor: TConstructor<T>
   ): XRFeature | null {
@@ -83,7 +81,7 @@ export class XRManager {
       const feature = features[i];
       if (feature instanceof type) throw new Error("The feature has been added");
     }
-    const feature = new type(this._engine, ...constructor);
+    const feature = new type(this, ...constructor);
     feature.enabled = true;
     this._features.push(feature);
     return feature;
@@ -94,7 +92,7 @@ export class XRManager {
    * @param type - The type of the feature
    * @returns	The feature which match type
    */
-  getFeature<T extends XRFeature>(type: new (engine: Engine, ...args: any[]) => T): T | null {
+  getFeature<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T): T | null {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
@@ -270,8 +268,8 @@ export class XRManager {
   }
 }
 
-type TConstructor<T extends new (engine: Engine, ...args: any[]) => XRFeature> = T extends new (
-  engine: Engine,
+type TConstructor<T extends new (xrManager: XRManager, ...args: any[]) => XRFeature> = T extends new (
+  xrManager: XRManager,
   ...args: infer P
 ) => XRFeature
   ? P

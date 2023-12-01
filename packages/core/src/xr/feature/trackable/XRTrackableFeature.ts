@@ -1,16 +1,16 @@
 import {
-  IXRFrame,
-  IXRSession,
-  IXRTracked,
   IXRFeatureConfig,
+  IXRFrame,
   IXRRequestTracking,
-  IXRTrackableFeature
+  IXRSession,
+  IXRTrackableFeature,
+  IXRTracked
 } from "@galacean/engine-design";
-import { XRFeature } from "../XRFeature";
+import { XRManager } from "../../XRManager";
 import { XRTrackingState } from "../../input/XRTrackingState";
-import { XRRequestTrackingState } from "./XRRequestTrackingState";
 import { XRSessionManager } from "../../session/XRSessionManager";
-import { Engine } from "../../../Engine";
+import { XRFeature } from "../XRFeature";
+import { XRRequestTrackingState } from "./XRRequestTrackingState";
 
 /**
  * The base class of XR trackable manager.
@@ -51,9 +51,9 @@ export abstract class XRTrackableFeature<
   /**
    * @internal
    */
-  constructor(engine: Engine) {
-    super(engine);
-    this._sessionManager = engine.xrManager.sessionManager;
+  constructor(xrManager: XRManager) {
+    super(xrManager);
+    this._sessionManager = xrManager.sessionManager;
   }
 
   /**

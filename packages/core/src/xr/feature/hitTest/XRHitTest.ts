@@ -1,13 +1,13 @@
 import { IXRTrackedPlane } from "@galacean/engine-design";
-import { TrackableType } from "./TrackableType";
-import { XRCameraManager } from "../camera/XRCameraManager";
-import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
+import { XRManager } from "../../XRManager";
+import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
+import { XRSessionMode } from "../../session/XRSessionMode";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
-import { XRSessionMode } from "../../session/XRSessionMode";
-import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
-import { Engine } from "../../../Engine";
+import { XRCameraManager } from "../camera/XRCameraManager";
+import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
+import { TrackableType } from "./TrackableType";
 import { XRHitResult } from "./XRHitResult";
 
 /**
@@ -25,11 +25,10 @@ export class XRHitTest extends XRFeature {
   private _tempVec35: Vector3 = new Vector3();
 
   /**
-   * @internal
+
    */
-  constructor(engine: Engine) {
-    super(engine);
-    const { xrManager } = engine;
+  constructor(xrManager: XRManager) {
+    super(xrManager);
     this._xrCameraManager = xrManager.cameraManager;
     this._config = { type: XRFeatureType.HitTest };
     this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
@@ -42,7 +41,7 @@ export class XRHitTest extends XRFeature {
    * @returns The hit result
    */
   hitTest(ray: Ray, type: TrackableType): XRHitResult[] {
-    if (this._engine.xrManager.sessionManager.mode !== XRSessionMode.AR) {
+    if (this._xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
     return this._hitTest(ray, type);
@@ -56,7 +55,7 @@ export class XRHitTest extends XRFeature {
    * @returns The hit result
    */
   screenHitTest(x: number, y: number, type: TrackableType): XRHitResult[] {
-    if (this._engine.xrManager.sessionManager.mode !== XRSessionMode.AR) {
+    if (this._xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
     const camera = this._xrCameraManager.getCameraByType(XRTrackedInputDevice.Camera);
@@ -76,7 +75,7 @@ export class XRHitTest extends XRFeature {
   }
 
   private _hitTestPlane(ray: Ray, result: XRHitResult[]): void {
-    const planeManager = this._engine.xrManager.getFeature(XRPlaneTracking);
+    const planeManager = this._xrManager.getFeature(XRPlaneTracking);
     if (!planeManager || !planeManager.enabled) {
       throw new Error("The plane estimation function needs to be turned on for plane hit test.");
     }

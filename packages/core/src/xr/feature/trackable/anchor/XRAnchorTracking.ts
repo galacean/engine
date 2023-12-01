@@ -1,14 +1,14 @@
 import {
-  IXRTracked,
   IXRAnchorTracking,
   IXRAnchorTrackingConfig,
-  IXRRequestAnchorTracking
+  IXRRequestAnchorTracking,
+  IXRTracked
 } from "@galacean/engine-design";
-import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRManager } from "../../../XRManager";
+import { XRPose } from "../../../XRPose";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
-import { Engine } from "../../../../Engine";
-import { XRPose } from "../../../XRPose";
+import { XRTrackableFeature } from "../XRTrackableFeature";
 
 /**
  * The manager of XR anchor tracking.
@@ -20,14 +20,13 @@ export class XRAnchorTracking extends XRTrackableFeature<
   IXRAnchorTracking
 > {
   /**
-   * @internal
+   * @param xrManager - The xr manager
+   * @param anchors - The anchors to be tracked
    */
-  constructor(engine: Engine, anchors: XRPose[] = []) {
-    super(engine);
+  constructor(xrManager: XRManager, anchors: XRPose[] = []) {
+    super(xrManager);
     this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };
-    this._platformFeature = <IXRAnchorTracking>(
-      engine.xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking)
-    );
+    this._platformFeature = <IXRAnchorTracking>xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking);
     if (anchors) {
       for (let i = 0, n = anchors.length; i < n; i++) {
         this._addRequestTracking(this._createRequestTracking(anchors[i]));

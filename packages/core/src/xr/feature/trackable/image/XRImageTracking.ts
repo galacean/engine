@@ -1,15 +1,15 @@
 import {
-  IXRTrackedImage,
   IXRImageTracking,
   IXRImageTrackingConfig,
+  IXRReferenceImage,
   IXRRequestImageTracking,
-  IXRReferenceImage
+  IXRTrackedImage
 } from "@galacean/engine-design";
-import { XRTrackableFeature } from "../XRTrackableFeature";
-import { XRReferenceImage } from "./XRReferenceImage";
+import { XRManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
-import { Engine } from "../../../../Engine";
+import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRReferenceImage } from "./XRReferenceImage";
 
 /**
  * The manager of XR image tracking.
@@ -72,15 +72,13 @@ export class XRImageTracking extends XRTrackableFeature<
   }
 
   /**
-   * @param engine - The engine
+   * @param xrManager - The xr manager
    * @param images - The images to be tracked
    */
-  constructor(engine: Engine, images: IXRReferenceImage[]) {
-    super(engine);
+  constructor(xrManager: XRManager, images: IXRReferenceImage[]) {
+    super(xrManager);
     this._config = { type: XRFeatureType.ImageTracking, images };
-    this._platformFeature = <IXRImageTracking>(
-      engine.xrManager._platformDevice.createFeature(XRFeatureType.ImageTracking)
-    );
+    this._platformFeature = <IXRImageTracking>xrManager._platformDevice.createFeature(XRFeatureType.ImageTracking);
     if (images) {
       for (let i = 0, n = images.length; i < n; i++) {
         this._addRequestTracking(this._createRequestTracking(images[i]));

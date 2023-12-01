@@ -1,14 +1,14 @@
 import {
-  IXRTrackedPlane,
   IXRPlaneTracking,
   IXRPlaneTrackingConfig,
-  IXRRequestPlaneTracking
+  IXRRequestPlaneTracking,
+  IXRTrackedPlane
 } from "@galacean/engine-design";
-import { XRPlaneMode } from "./XRPlaneMode";
-import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
-import { Engine } from "../../../../Engine";
+import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRPlaneMode } from "./XRPlaneMode";
 
 /**
  * The manager of plane tracking feature.
@@ -31,15 +31,13 @@ export class XRPlaneTracking extends XRTrackableFeature<
   }
 
   /**
-   * @param engine - The engine
+   * @param xrManager - The xr manager
    * @param detectionMode - The plane detection mode
    */
-  constructor(engine: Engine, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
-    super(engine);
+  constructor(xrManager: XRManager, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
+    super(xrManager);
     this._config = { type: XRFeatureType.PlaneTracking, mode: detectionMode };
-    this._platformFeature = <IXRPlaneTracking>(
-      engine.xrManager._platformDevice.createFeature(XRFeatureType.PlaneTracking)
-    );
+    this._platformFeature = <IXRPlaneTracking>xrManager._platformDevice.createFeature(XRFeatureType.PlaneTracking);
     this._addRequestTracking({
       state: XRRequestTrackingState.None,
       detectionMode,

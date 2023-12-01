@@ -1,5 +1,5 @@
-import { IXRFeatureConfig, IXRFeature, IXRPlatformFeature, IXRSession, IXRFrame } from "@galacean/engine-design";
-import { Engine } from "../../Engine";
+import { IXRFeature, IXRFeatureConfig, IXRFrame, IXRPlatformFeature, IXRSession } from "@galacean/engine-design";
+import { XRManager } from "../XRManager";
 
 /**
  * The base class of XR feature manager.
@@ -28,9 +28,9 @@ export abstract class XRFeature<
   }
 
   /**
-   * @param engine - The engine
+   * @internal
    */
-  constructor(protected _engine: Engine) {}
+  constructor(protected _xrManager: XRManager) {}
 
   /**
    * Initialize the feature.
