@@ -1,5 +1,5 @@
+import { IXRPose } from "../../../IXRPose";
 import { IXRFeatureConfig } from "../../IXRFeatureConfig";
-import { IXRPose } from "../../../input/IXRPose";
 
 /**
  * The config of XR anchor tracking.

@@ -1,7 +1,7 @@
-import { IXRPlatformFeature, IHardwareRenderer, IXRDevice, IXRFeature } from "@galacean/engine-design";
 import { XRFeatureType } from "@galacean/engine";
-import { parseFeature, parseXRMode } from "./util";
+import { IHardwareRenderer, IXRDevice, IXRFeature, IXRPlatformFeature } from "@galacean/engine-design";
 import { WebXRSession } from "./WebXRSession";
+import { parseFeature, parseXRMode } from "./util";
 
 type PlatformFeatureConstructor = new () => IXRPlatformFeature;
 export class WebXRDevice implements IXRDevice {

@@ -1,4 +1,3 @@
-import { IXRPose } from "./IXRPose";
 export interface IXRInput {
   /** The type of the input. */
   type: number;

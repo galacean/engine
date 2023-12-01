@@ -1,5 +1,5 @@
-import { IXRSession, IXRInputEvent } from "@galacean/engine-design";
-import { XRInputEventType, XRTrackedInputDevice, XRTargetRayMode } from "@galacean/engine";
+import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine";
+import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { WebXRFrame } from "./WebXRFrame";
 import { getInputSource } from "./util";
 

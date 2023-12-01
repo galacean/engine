@@ -1,8 +1,8 @@
-import { IXRAnchorTracking, IXRAnchorTrackingConfig, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
+import { IXRAnchorTracking, IXRAnchorTrackingConfig, IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { WebXRSession } from "../WebXRSession";
 import { WebXRFrame } from "../WebXRFrame";
+import { WebXRSession } from "../WebXRSession";
 import { generateUUID } from "../util";
 
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)

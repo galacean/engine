@@ -1,6 +1,6 @@
 import { Matrix, Rect } from "@galacean/engine-math";
 import { IXRInput } from "./IXRInput";
-import { IXRPose } from "./IXRPose";
+import { IXRPose } from "../IXRPose";
 
 export interface IXRCamera extends IXRInput {
   /** The pose of the camera in XR space. */

@@ -1,5 +1,5 @@
-import { IXRRequestPlaneTracking } from "./IXRRequestPlaneTracking";
 import { IXRTrackableFeature } from "../IXRTrackableFeature";
+import { IXRRequestPlaneTracking } from "./IXRRequestPlaneTracking";
 import { IXRTrackedPlane } from "./IXRTrackedPlane";
 
 export interface IXRPlaneTracking extends IXRTrackableFeature<IXRTrackedPlane, IXRRequestPlaneTracking> {

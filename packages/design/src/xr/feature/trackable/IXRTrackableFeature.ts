@@ -1,8 +1,8 @@
-import { IXRPlatformFeature } from "../IXRPlatformFeature";
-import { IXRTracked } from "./IXRTracked";
-import { IXRSession } from "../../IXRSession";
 import { IXRFrame } from "../../IXRFrame";
+import { IXRSession } from "../../IXRSession";
+import { IXRPlatformFeature } from "../IXRPlatformFeature";
 import { IXRRequestTracking } from "./IXRRequestTracking";
+import { IXRTracked } from "./IXRTracked";
 
 export interface IXRTrackableFeature<
   TXRTracked extends IXRTracked,

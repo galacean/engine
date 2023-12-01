@@ -1,5 +1,5 @@
 import { IXRInput } from "./IXRInput";
-import { IXRPose } from "./IXRPose";
+import { IXRPose } from "../IXRPose";
 
 export interface IXRController extends IXRInput {
   /** The grip space pose of the controller in XR space. */

@@ -3,14 +3,14 @@ export { XRManager } from "./XRManager";
 // xr pose
 export { XRPose } from "./XRPose";
 // xr feature
-export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRFeature } from "./feature/XRFeature";
+export { XRFeatureType } from "./feature/XRFeatureType";
 // camera
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
-export { XRHitTest } from "./feature/hitTest/XRHitTest";
-export { XRHitResult } from "./feature/hitTest/XRHitResult";
 export { TrackableType } from "./feature/hitTest/TrackableType";
+export { XRHitResult } from "./feature/hitTest/XRHitResult";
+export { XRHitTest } from "./feature/hitTest/XRHitTest";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // movement tracking
@@ -22,19 +22,19 @@ export { XRAnchorTracking } from "./feature/trackable/anchor/XRAnchorTracking";
 export { XRImageTracking } from "./feature/trackable/image/XRImageTracking";
 export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
 // plane Tracking
-export { XRPlaneTracking } from "./feature/trackable/plane/XRPlaneTracking";
 export { XRPlaneMode } from "./feature/trackable/plane/XRPlaneMode";
+export { XRPlaneTracking } from "./feature/trackable/plane/XRPlaneTracking";
 
 // xr input
-export { XRTrackingState } from "./input/XRTrackingState";
-export { XRInputManager } from "./input/XRInputManager";
-export { XRInputButton } from "./input/XRInputButton";
-export { XRController } from "./input/XRController";
-export { XRTrackedInputDevice } from "./input/XRTrackedInputDevice";
 export { XRCamera } from "./input/XRCamera";
-export { XRTargetRayMode } from "./input/XRTargetRayMode";
+export { XRController } from "./input/XRController";
+export { XRInputButton } from "./input/XRInputButton";
 export { XRInputEventType } from "./input/XRInputEventType";
+export { XRInputManager } from "./input/XRInputManager";
+export { XRTargetRayMode } from "./input/XRTargetRayMode";
+export { XRTrackedInputDevice } from "./input/XRTrackedInputDevice";
 export { XRTrackedUpdateFlag } from "./input/XRTrackedUpdateFlag";
+export { XRTrackingState } from "./input/XRTrackingState";
 
 // xr session
 export { XRSessionManager } from "./session/XRSessionManager";

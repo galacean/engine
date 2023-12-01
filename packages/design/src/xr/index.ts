@@ -6,7 +6,7 @@ export type { IXRTrackableFeature } from "./feature/trackable/IXRTrackableFeatur
 
 export type { IXRInputEvent } from "./IXRInputEvent";
 export type { IXRInput } from "./input/IXRInput";
-export type { IXRPose } from "./input/IXRPose";
+export type { IXRPose } from "./IXRPose";
 export type { IXRController } from "./input/IXRController";
 export type { IXRCamera } from "./input/IXRCamera";
 

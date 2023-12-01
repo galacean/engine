@@ -1,7 +1,7 @@
+import { IXRFrame } from "../IXRFrame";
+import { IXRSession } from "../IXRSession";
 import { IXRFeatureConfig } from "./IXRFeatureConfig";
 import { IXRPlatformFeature } from "./IXRPlatformFeature";
-import { IXRSession } from "../IXRSession";
-import { IXRFrame } from "../IXRFrame";
 
 export interface IXRFeature {
   /** @internal */

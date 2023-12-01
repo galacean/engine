@@ -1,13 +1,13 @@
+import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
 import {
   IXRImageTracking,
   IXRImageTrackingConfig,
   IXRRequestImageTracking,
   IXRTrackedImage
 } from "@galacean/engine-design";
-import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
 import { registerXRPlatformFeature } from "../WebXRDevice";
-import { WebXRSession } from "../WebXRSession";
 import { WebXRFrame } from "../WebXRFrame";
+import { WebXRSession } from "../WebXRSession";
 import { generateUUID } from "../util";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
