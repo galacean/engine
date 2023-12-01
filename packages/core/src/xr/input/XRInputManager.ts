@@ -25,7 +25,7 @@ export class XRInputManager {
   private _listeners: ((added: readonly IXRInput[], removed: readonly IXRInput[]) => any)[] = [];
 
   /**
-   * @param engine - The engine
+   * @internal
    */
   constructor(engine: Engine) {
     this._engine = engine;

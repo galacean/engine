@@ -53,7 +53,7 @@ export class XRManager {
     this.inputManager = new XRInputManager(engine);
     this.cameraManager = new XRCameraManager(engine);
 
-    this.addFeature(XRMovementTracking)
+    this.addFeature(XRMovementTracking);
   }
 
   /**

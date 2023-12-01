@@ -45,7 +45,7 @@ export class XRSessionManager {
   }
 
   /**
-   * @param engine - The engine
+   * @internal
    */
   constructor(protected _engine: Engine) {
     this._rhi = _engine._hardwareRenderer;
