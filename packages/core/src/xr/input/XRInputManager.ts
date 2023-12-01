@@ -1,12 +1,13 @@
-import { IXRInput, IXRInputEvent } from "@galacean/engine-design";
+import { IXRInputEvent } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { XRController } from "./XRController";
 import { XRCamera } from "./XRCamera";
-import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
+import { XRController } from "./XRController";
+import { XRInput } from "./XRInput";
 import { XRInputButton } from "./XRInputButton";
-import { XRTrackingState } from "./XRTrackingState";
-import { XRTargetRayMode } from "./XRTargetRayMode";
 import { XRInputEventType } from "./XRInputEventType";
+import { XRTargetRayMode } from "./XRTargetRayMode";
+import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
+import { XRTrackingState } from "./XRTrackingState";
 
 /**
  * The manager of XR input.
@@ -18,11 +19,11 @@ export class XRInputManager {
   _controllers: XRController[] = [];
 
   private _engine: Engine;
-  private _added: IXRInput[] = [];
-  private _removed: IXRInput[] = [];
-  private _trackedDevices: IXRInput[] = [];
+  private _added: XRInput[] = [];
+  private _removed: XRInput[] = [];
+  private _trackedDevices: XRInput[] = [];
   private _statusSnapshot: XRTrackingState[] = [];
-  private _listeners: ((added: readonly IXRInput[], removed: readonly IXRInput[]) => any)[] = [];
+  private _listeners: ((added: readonly XRInput[], removed: readonly XRInput[]) => any)[] = [];
 
   /**
    * @internal
@@ -54,7 +55,7 @@ export class XRInputManager {
    * @param type - The tracked input device type
    * @returns The input instance
    */
-  getTrackedDevice<T extends IXRInput>(type: XRTrackedInputDevice): T {
+  getTrackedDevice<T extends XRInput>(type: XRTrackedInputDevice): T {
     return <T>this._trackedDevices[type];
   }
 
@@ -62,7 +63,7 @@ export class XRInputManager {
    * Add a listener for tracked device changes.
    * @param listener - The listener to add
    */
-  addTrackedDeviceChangedListener(listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => void): void {
+  addTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
     this._listeners.push(listener);
   }
 
@@ -70,9 +71,7 @@ export class XRInputManager {
    * Remove a listener of tracked device changes.
    * @param listener - The listener to remove
    */
-  removeTrackedDeviceChangedListener(
-    listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => void
-  ): void {
+  removeTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
     const { _listeners: listeners } = this;
     const index = listeners.indexOf(listener);
     if (index >= 0) {
