@@ -59,19 +59,19 @@ export class XRInputManager {
   }
 
   /**
-   * Add a listener for tracked device changes
+   * Add a listener for tracked device changes.
    * @param listener - The listener to add
    */
-  addTrackedDeviceChangedListener(listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => any): void {
+  addTrackedDeviceChangedListener(listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => void): void {
     this._listeners.push(listener);
   }
 
   /**
-   * Remove a listener of tracked device changes
+   * Remove a listener of tracked device changes.
    * @param listener - The listener to remove
    */
   removeTrackedDeviceChangedListener(
-    listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => any
+    listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => void
   ): void {
     const { _listeners: listeners } = this;
     const index = listeners.indexOf(listener);

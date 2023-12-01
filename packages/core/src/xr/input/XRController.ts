@@ -37,6 +37,9 @@ export class XRController implements IXRInput {
     }
   }
 
+  /**
+   * @internal
+   */
   constructor(public type: XRTrackedInputDevice) {
     this.poseMode = XRControllerPoseMode.Grip;
     this.gripPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
