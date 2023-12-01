@@ -31,7 +31,7 @@ export class XRCameraManager {
   }
 
   /**
-   * @internal
+   * @param engine - The engine
    */
   constructor(private _engine: Engine) {}
 

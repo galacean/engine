@@ -20,6 +20,22 @@ export class XRAnchorTracking extends XRTrackableFeature<
   IXRAnchorTracking
 > {
   /**
+   * @internal
+   */
+  constructor(engine: Engine, anchors: XRPose[] = []) {
+    super(engine);
+    this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };
+    this._platformFeature = <IXRAnchorTracking>(
+      engine.xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking)
+    );
+    if (anchors) {
+      for (let i = 0, n = anchors.length; i < n; i++) {
+        this._addRequestTracking(this._createRequestTracking(anchors[i]));
+      }
+    }
+  }
+
+  /**
    * Add a tracking anchor in XR space.
    * @param pose - The pose of anchor to be added
    */
@@ -51,23 +67,6 @@ export class XRAnchorTracking extends XRTrackableFeature<
       throw new Error("Cannot remove anchors from a disabled anchor manager.");
     }
     this._removeAllRequestTrackings();
-  }
-
-  /**
-   * @param engine - The engine
-   * @param anchors - The anchors to be tracked
-   */
-  constructor(engine: Engine, anchors: XRPose[] = []) {
-    super(engine);
-    this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };
-    this._platformFeature = <IXRAnchorTracking>(
-      engine.xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking)
-    );
-    if (anchors) {
-      for (let i = 0, n = anchors.length; i < n; i++) {
-        this._addRequestTracking(this._createRequestTracking(anchors[i]));
-      }
-    }
   }
 
   override _generateConfig(): IXRAnchorTrackingConfig {

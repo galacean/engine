@@ -25,6 +25,17 @@ export class XRHitTest extends XRFeature {
   private _tempVec35: Vector3 = new Vector3();
 
   /**
+   * @internal
+   */
+  constructor(engine: Engine) {
+    super(engine);
+    const { xrManager } = engine;
+    this._xrCameraManager = xrManager.cameraManager;
+    this._config = { type: XRFeatureType.HitTest };
+    this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
+  }
+
+  /**
    * Hit test.
    * @param ray - The ray to test
    * @param type - The type of hit test
@@ -62,17 +73,6 @@ export class XRHitTest extends XRFeature {
       this._hitTestPlane(ray, result);
     }
     return result;
-  }
-
-  /**
-   * @param engine - The engine
-   */
-  constructor(engine: Engine) {
-    super(engine);
-    const { xrManager } = engine;
-    this._xrCameraManager = xrManager.cameraManager;
-    this._config = { type: XRFeatureType.HitTest };
-    this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
   }
 
   private _hitTestPlane(ray: Ray, result: XRHitResult[]): void {

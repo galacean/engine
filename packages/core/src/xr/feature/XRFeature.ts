@@ -28,6 +28,11 @@ export abstract class XRFeature<
   }
 
   /**
+   * @param engine - The engine
+   */
+  constructor(protected _engine: Engine) {}
+
+  /**
    * Initialize the feature.
    * @returns The promise of the feature
    */
@@ -76,12 +81,6 @@ export abstract class XRFeature<
    * Called when the xr module is destroyed.
    */
   onDestroy(): void {}
-
-  /**
-   * @internal
-   * @param _engine - The engine
-   */
-  constructor(protected _engine: Engine) {}
 
   /**
    * @internal

@@ -8,6 +8,7 @@ import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionMode } from "./session/XRSessionMode";
 import { XRSessionState } from "./session/XRSessionState";
 import { XRFeatureType } from "./feature/XRFeatureType";
+import { XRMovementTracking } from "./feature/movementTracking/XRMovementTracking";
 
 /**
  * XRManager is the entry point of the XR system.
@@ -51,6 +52,8 @@ export class XRManager {
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
     this.cameraManager = new XRCameraManager(engine);
+
+    this.addFeature(XRMovementTracking)
   }
 
   /**
