@@ -6,8 +6,6 @@ import {
   IXRRequestTracking,
   IXRTrackableFeature
 } from "@galacean/engine-design";
-import { XRTrackedUpdateFlag } from "../../input/XRTrackedUpdateFlag";
-import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { XRFeature } from "../XRFeature";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRRequestTrackingState } from "./XRRequestTrackingState";
@@ -30,7 +28,11 @@ export abstract class XRTrackableFeature<
   protected _updated: TXRTracked[] = [];
   protected _removed: TXRTracked[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
-  private _trackedUpdateFlag: UpdateFlagManager = new UpdateFlagManager();
+  private _listeners: ((
+    added: readonly TXRTracked[],
+    updated: readonly TXRTracked[],
+    removed: readonly TXRTracked[]
+  ) => void)[] = [];
 
   /**
    * Return Request tracking requirements.
@@ -47,25 +49,41 @@ export abstract class XRTrackableFeature<
   }
 
   /**
-   * Add a listening function to track changes.
-   * @param listener - The listening function
+   * @internal
    */
-  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly TXRTracked[]) => any): void {
-    this._trackedUpdateFlag.addListener(listener);
+  constructor(engine: Engine) {
+    super(engine);
+    this._sessionManager = engine.xrManager.sessionManager;
   }
 
   /**
-   * Remove a listening function to track changes.
+   * Add a listening function for tracked object changes.
    * @param listener - The listening function
    */
-  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly TXRTracked[]) => any): void {
-    this._trackedUpdateFlag.removeListener(listener);
+  addTrackedObjectChangedListener(
+    listener: (added: readonly TXRTracked[], updated: readonly TXRTracked[], removed: readonly TXRTracked[]) => void
+  ): void {
+    this._listeners.push(listener);
+  }
+
+  /**
+   * Remove a listening function of tracked object changes.
+   * @param listener - The listening function
+   */
+  removeTrackedObjectChangedListener(
+    listener: (added: readonly TXRTracked[], updated: readonly TXRTracked[], removed: readonly TXRTracked[]) => void
+  ): void {
+    const { _listeners: listeners } = this;
+    const index = listeners.indexOf(listener);
+    if (index >= 0) {
+      listeners.splice(index, 1);
+    }
   }
 
   override onUpdate(session: IXRSession, frame: IXRFrame): void {
     const {
       _platformFeature: platformFeature,
-      _trackedUpdateFlag: trackedUpdateFlag,
+      _listeners: listeners,
       _requestTrackings: requestTrackings,
       _statusSnapshot: statusSnapshot,
       _added: added,
@@ -104,9 +122,11 @@ export abstract class XRTrackableFeature<
         }
       }
     }
-    added.length > 0 && trackedUpdateFlag.dispatch(XRTrackedUpdateFlag.Added, added);
-    updated.length > 0 && trackedUpdateFlag.dispatch(XRTrackedUpdateFlag.Updated, updated);
-    removed.length > 0 && trackedUpdateFlag.dispatch(XRTrackedUpdateFlag.Removed, removed);
+    if (added.length > 0 || updated.length > 0 || removed.length > 0) {
+      for (let i = 0, n = listeners.length; i < n; i++) {
+        listeners[i](added, updated, removed);
+      }
+    }
   }
 
   override onSessionStop(): void {
@@ -121,15 +141,6 @@ export abstract class XRTrackableFeature<
   override onDestroy(): void {
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
-  }
-
-  /**
-   * @internal
-   * @param engine - The engine
-   */
-  constructor(engine: Engine) {
-    super(engine);
-    this._sessionManager = engine.xrManager.sessionManager;
   }
 
   protected _addRequestTracking(requestTracking: TXRRequestTracking): void {

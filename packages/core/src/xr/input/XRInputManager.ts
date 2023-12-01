@@ -116,8 +116,10 @@ export class XRInputManager {
       statusSnapshot[i] = nowState;
     }
     // Dispatch change event
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i](added, removed);
+    if (added.length > 0 || removed.length > 0) {
+      for (let i = 0, n = listeners.length; i < n; i++) {
+        listeners[i](added, removed);
+      }
     }
   }
 
