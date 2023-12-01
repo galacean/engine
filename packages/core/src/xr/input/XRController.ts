@@ -66,7 +66,7 @@ export class XRController implements IXRInput {
    * @param button - The button to check
    * @returns Whether the button is held down
    */
-  isButtonHeldDown(button: number): boolean {
+  isButtonHeldDown(button: XRInputButton): boolean {
     return (this.pressedButtons & button) !== 0;
   }
 }
