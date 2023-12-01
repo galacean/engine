@@ -45,7 +45,7 @@ export class XRCameraManager {
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera,
     camera: Camera
   ): void {
-    this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera = camera;
+    this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type).camera = camera;
   }
 
   /**
@@ -56,7 +56,7 @@ export class XRCameraManager {
   detachCamera(
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
   ): Camera {
-    const xrCamera = this._engine.xrManager.inputManager.getInput<XRCamera>(type);
+    const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera.camera;
     xrCamera.camera = null;
     return preCamera;
@@ -70,13 +70,13 @@ export class XRCameraManager {
   getCameraByType(
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
   ): Camera {
-    return this._engine.xrManager.inputManager.getInput<XRCamera>(type).camera;
+    return this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type).camera;
   }
 
   /**
    * @internal
    */
-  _onSessionInit(): void {
+  _onSessionStart(): void {
     const { _cameras: cameras } = this._engine.xrManager.inputManager;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const { camera } = cameras[i];

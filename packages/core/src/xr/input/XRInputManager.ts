@@ -1,12 +1,10 @@
-import { IXRInput, IXRInputEvent, IXRSession } from "@galacean/engine-design";
+import { IXRInput, IXRInputEvent } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { XRController } from "./XRController";
 import { XRCamera } from "./XRCamera";
 import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
-import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { XRInputButton } from "./XRInputButton";
 import { XRTrackingState } from "./XRTrackingState";
-import { XRTrackedUpdateFlag } from "./XRTrackedUpdateFlag";
 import { XRTargetRayMode } from "./XRTargetRayMode";
 import { XRInputEventType } from "./XRInputEventType";
 
@@ -20,32 +18,29 @@ export class XRInputManager {
   _controllers: XRController[] = [];
 
   private _engine: Engine;
-  private _inputs: IXRInput[] = [];
   private _added: IXRInput[] = [];
-  private _updated: IXRInput[] = [];
   private _removed: IXRInput[] = [];
+  private _trackedDevices: IXRInput[] = [];
   private _statusSnapshot: XRTrackingState[] = [];
-  private _trackingUpdate: UpdateFlagManager = new UpdateFlagManager();
-
-  private _platformSession: IXRSession;
+  private _listeners: ((added: readonly IXRInput[], removed: readonly IXRInput[]) => any)[] = [];
 
   /**
    * @internal
    */
   constructor(engine: Engine) {
     this._engine = engine;
-    const { _inputs: inputs, _controllers: controllers, _cameras: cameras } = this;
+    const { _trackedDevices: trackedDevices, _controllers: controllers, _cameras: cameras } = this;
     for (let i = XRTrackedInputDevice.Length - 1; i >= 0; i--) {
       switch (i) {
         case XRTrackedInputDevice.Camera:
         case XRTrackedInputDevice.LeftCamera:
         case XRTrackedInputDevice.RightCamera:
-          cameras.push((inputs[i] = new XRCamera(i)));
+          cameras.push((trackedDevices[i] = new XRCamera(i)));
           break;
         case XRTrackedInputDevice.Controller:
         case XRTrackedInputDevice.LeftController:
         case XRTrackedInputDevice.RightController:
-          controllers.push((inputs[i] = new XRController(i)));
+          controllers.push((trackedDevices[i] = new XRController(i)));
           break;
         default:
           break;
@@ -55,100 +50,62 @@ export class XRInputManager {
   }
 
   /**
-   * Returns the input instance.
-   * @param type - The input type
+   * Returns the tracked device instance.
+   * @param type - The tracked input device type
    * @returns The input instance
    */
-  getInput<T extends IXRInput>(type: XRTrackedInputDevice): T {
-    return <T>this._inputs[type];
+  getTrackedDevice<T extends IXRInput>(type: XRTrackedInputDevice): T {
+    return <T>this._trackedDevices[type];
   }
 
   /**
-   * Add a listener to the input update event.
+   * Add a listener for tracked device changes
    * @param listener - The listener to add
    */
-  addListener(listener: (type: XRTrackedUpdateFlag, param: readonly IXRInput[]) => any): void {
-    this._trackingUpdate.addListener(listener);
+  addTrackedDeviceChangedListener(listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => any): void {
+    this._listeners.push(listener);
   }
 
   /**
-   * Remove a listener from the input update event.
+   * Remove a listener of tracked device changes
    * @param listener - The listener to remove
    */
-  removeListener(listener: (type: XRTrackedUpdateFlag, param: readonly IXRInput[]) => any): void {
-    this._trackingUpdate.removeListener(listener);
-  }
-
-  /**
-   * Returns whether the button is pressed.
-   * @param button - The button to check
-   * @returns Whether the button is pressed
-   */
-  isButtonDown(button: number, out: XRController[]): XRController[] {
-    const { _controllers: controllers } = this;
-    const { frameCount } = this._engine.time;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const controller = controllers[i];
-      controller.downMap[button] === frameCount && out.push(controller);
+  removeTrackedDeviceChangedListener(
+    listener: (added: readonly IXRInput[], removed: readonly IXRInput[]) => any
+  ): void {
+    const { _listeners: listeners } = this;
+    const index = listeners.indexOf(listener);
+    if (index >= 0) {
+      listeners.splice(index, 1);
     }
-    return out;
-  }
-
-  /**
-   * Returns whether the button is lifted.
-   * @param button - The button to check
-   * @returns Whether the button is lifted
-   */
-  isButtonUp(button: number, out: XRController[]): XRController[] {
-    const { _controllers: controllers } = this;
-    const { frameCount } = this._engine.time;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const controller = controllers[i];
-      controller.upMap[button] === frameCount && out.push(controller);
-    }
-    return out;
-  }
-
-  /**
-   * Returns whether the button is held down.
-   * @param button - The button to check
-   * @returns Whether the button is held down
-   */
-  isButtonHeldDown(button: number, out: XRController[]): XRController[] {
-    const { _controllers: controllers } = this;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const controller = controllers[i];
-      (controller.pressedButtons & button) !== 0 && out.push(controller);
-    }
-    return out;
   }
 
   /**
    * @internal
    */
   _onUpdate(): void {
-    const {
-      _added: added,
-      _updated: updated,
-      _removed: removed,
-      _trackingUpdate: trackingUpdate,
-      _statusSnapshot: statusSnapshot
-    } = this;
-    const { _inputs: inputs, _platformSession: platformSession } = this;
+    const { _added: added, _removed: removed, _listeners: listeners, _statusSnapshot: statusSnapshot } = this;
+    const { _trackedDevices: trackedDevices, _controllers: controllers } = this;
+    // Reset data
+    added.length = removed.length = 0;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      const controller = controllers[i];
+      controller.down = controller.up = 0;
+    }
+    // Handle events and update tracked devices
+    const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
     const { events: platformEvents } = platformSession;
     for (let i = 0, n = platformEvents.length; i < n; i++) {
       this._handleEvent(platformEvents[i]);
     }
     platformSession.resetEvents();
-    platformSession.frame.updateInputs(inputs);
-    for (let i = 0, n = inputs.length; i < n; i++) {
-      const input = inputs[i];
+    platformSession.frame.updateInputs(trackedDevices);
+    for (let i = 0, n = trackedDevices.length; i < n; i++) {
+      const input = trackedDevices[i];
       if (!input) continue;
       const nowState = input.trackingState;
       if (statusSnapshot[i] === XRTrackingState.Tracking) {
-        if (nowState === XRTrackingState.Tracking) {
-          updated.push(input);
-        } else {
+        if (nowState !== XRTrackingState.Tracking) {
           removed.push(input);
         }
       } else {
@@ -158,64 +115,38 @@ export class XRInputManager {
       }
       statusSnapshot[i] = nowState;
     }
-    if (added.length > 0) trackingUpdate.dispatch(XRTrackedUpdateFlag.Added, added);
-    if (updated.length > 0) trackingUpdate.dispatch(XRTrackedUpdateFlag.Updated, updated);
-    if (removed.length > 0) trackingUpdate.dispatch(XRTrackedUpdateFlag.Removed, removed);
+    // Dispatch change event
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      listeners[i](added, removed);
+    }
   }
 
   /**
    * @internal
    */
-  _onSessionInit(session: IXRSession): void {
-    this._platformSession = session;
+  _onDestroy(): void {
+    this._listeners.length = 0;
   }
-
-  /**
-   * @internal
-   */
-  _onSessionStart(): void {}
-
-  /**
-   * @internal
-   */
-  _onSessionStop(): void {}
-
-  /**
-   * @internal
-   */
-  _onSessionDestroy(): void {
-    this._platformSession = null;
-  }
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {}
 
   private _handleEvent(event: IXRInputEvent): void {
-    const { frameCount } = this._engine.time;
-    const input = <XRController>this._inputs[event.input];
+    const input = <XRController>this._trackedDevices[event.input];
     switch (event.targetRayMode) {
       case XRTargetRayMode.TrackedPointer:
         switch (event.type) {
           case XRInputEventType.SelectStart:
-            input.downList.add(XRInputButton.Select);
-            input.downMap[XRInputButton.Select] = frameCount;
+            input.down |= XRInputButton.Select;
             input.pressedButtons |= XRInputButton.Select;
             break;
           case XRInputEventType.SelectEnd:
-            input.upList.add(XRInputButton.Select);
-            input.upMap[XRInputButton.Select] = frameCount;
+            input.up |= XRInputButton.Select;
             input.pressedButtons &= ~XRInputButton.Select;
             break;
           case XRInputEventType.SqueezeStart:
-            input.downList.add(XRInputButton.Squeeze);
-            input.downMap[XRInputButton.Squeeze] = frameCount;
+            input.down |= XRInputButton.Squeeze;
             input.pressedButtons |= XRInputButton.Squeeze;
             break;
           case XRInputEventType.SqueezeEnd:
-            input.upList.add(XRInputButton.Squeeze);
-            input.upMap[XRInputButton.Squeeze] = frameCount;
+            input.up |= XRInputButton.Squeeze;
             input.pressedButtons &= ~XRInputButton.Squeeze;
             break;
           default:

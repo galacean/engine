@@ -6,7 +6,6 @@ import { getInputSource } from "./util";
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame: (id: number) => void;
-  exitCallBack: () => any;
 
   /** @internal */
   _platformSession: XRSession;
@@ -123,7 +122,6 @@ export class WebXRSession implements IXRSession {
     session.addEventListener("squeeze", onSessionEvent);
     session.addEventListener("squeezestart", onSessionEvent);
     session.addEventListener("squeezeend", onSessionEvent);
-    session.addEventListener("end", this.exitCallBack);
   }
 
   removeEventListener(): void {
@@ -134,11 +132,16 @@ export class WebXRSession implements IXRSession {
     session.removeEventListener("squeeze", onSessionEvent);
     session.removeEventListener("squeezestart", onSessionEvent);
     session.removeEventListener("squeezeend", onSessionEvent);
-    session.removeEventListener("end", this.exitCallBack);
     this._events.length = 0;
   }
 
-  addUnexpectedExitListener(): void {}
+  addExitListener(onExit: () => any): void {
+    this._platformSession.addEventListener("end", onExit);
+  }
+
+  removeExitListener(onExit: () => any): void {
+    this._platformSession.removeEventListener("end", onExit);
+  }
 
   resetEvents(): void {
     this._events.length = 0;

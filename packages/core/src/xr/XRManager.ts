@@ -1,7 +1,6 @@
 import { IXRDevice } from "@galacean/engine-design/src/xr/IXRDevice";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
-import { Scene } from "../Scene";
 import { XRFeature } from "./feature/XRFeature";
 import { XRCameraManager } from "./feature/camera/XRCameraManager";
 import { XRInputManager } from "./input/XRInputManager";
@@ -159,21 +158,9 @@ export class XRManager {
         Promise.all(supportedPromises).then(() => {
           // 4. Initialize session
           this.sessionManager._initialize(sessionMode, enabledFeatures).then((session) => {
-            // 5. Initialize all features
-            const initializePromises = [];
-            for (let i = 0, n = enabledFeatures.length; i < n; i++) {
-              initializePromises.push(enabledFeatures[i].initialize());
-            }
-            Promise.all(initializePromises).then(() => {
-              this.cameraManager._onSessionInit();
-              this.inputManager._onSessionInit(session);
-              for (let i = 0, n = enabledFeatures.length; i < n; i++) {
-                enabledFeatures[i].onSessionInit();
-              }
-              // 6. Auto run the session
-              autoRun && this.sessionManager.run();
-              resolve();
-            }, reject);
+            // 6. Auto run the session
+            autoRun && this.sessionManager.run();
+            resolve();
           }, reject);
         }, reject);
       }, reject);
@@ -228,11 +215,46 @@ export class XRManager {
     }
   }
 
-  private _onSessionEnded() {
-    this.sessionManager.dispose();
-    const { _features: features } = this;
+  /**
+   * @internal
+   */
+  _onSessionInit(): void {
+    const features = this.getFeatures();
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature?.enabled && feature.onSessionInit();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionStart(): void {
+    this.cameraManager._onSessionStart();
+    const features = this.getFeatures();
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature?.enabled && feature.onSessionStart();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionStop(): void {
+    const features = this.getFeatures();
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature?.enabled && feature.onSessionStop();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void {
     this.cameraManager._onSessionDestroy();
-    this.inputManager._onSessionDestroy();
+    const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       if (feature?.enabled) {

@@ -51,6 +51,7 @@ export class XRSessionManager {
     this._rhi = _engine._hardwareRenderer;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
+    this._onSessionDestroy = this._onSessionDestroy.bind(this);
   }
 
   /**
@@ -71,15 +72,8 @@ export class XRSessionManager {
       throw new Error("Without session to run.");
     }
     platformSession.start();
-    platformSession.addEventListener();
     this._state = XRSessionState.Running;
-    const { xrManager } = this._engine;
-    xrManager.inputManager._onSessionStart();
-    const features = xrManager.getFeatures();
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      feature?.enabled && feature.onSessionStart();
-    }
+    this._engine.xrManager._onSessionStart();
   }
 
   /**
@@ -92,21 +86,7 @@ export class XRSessionManager {
     }
     platformSession.stop();
     this._state = XRSessionState.Paused;
-    const { xrManager } = engine;
-    xrManager.inputManager._onSessionStop();
-    const features = xrManager.getFeatures();
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      feature?.enabled && feature.onSessionStop();
-    }
-  }
-
-  dispose() {
-    const { _rhi: rhi } = this;
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
-    this._platformSession = null;
-    this._state = XRSessionState.None;
+    this._engine.xrManager._onSessionStart();
   }
 
   /**
@@ -114,11 +94,22 @@ export class XRSessionManager {
    */
   _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
     return new Promise((resolve, reject) => {
-      this._engine.xrManager._platformDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
+      const { xrManager } = this._engine;
+      xrManager._platformDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
         this._mode = mode;
         this._platformSession = session;
         this._state = XRSessionState.Initialized;
-        resolve(session);
+        session.addEventListener();
+        session.addExitListener(this._onSessionDestroy);
+        // Initialize all features
+        const allPromises = [];
+        for (let i = 0, n = features.length; i < n; i++) {
+          allPromises.push(features[i].initialize());
+        }
+        Promise.all(allPromises).then(() => {
+          xrManager._onSessionInit();
+          resolve(session);
+        }, reject);
       }, reject);
     });
   }
@@ -163,14 +154,18 @@ export class XRSessionManager {
     if (!platformSession) {
       return Promise.reject("Without session to stop.");
     }
-    return new Promise((resolve, reject) => {
-      platformSession.end().then(() => {
-        platformSession.removeEventListener();
-        this._platformSession = null;
-        this._state = XRSessionState.None;
-        resolve();
-      }, reject);
-    });
+    return platformSession.end();
+  }
+
+  private _onSessionDestroy() {
+    const { _rhi: rhi, _platformSession: platformSession } = this;
+    rhi._mainFrameBuffer = null;
+    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    platformSession.removeEventListener();
+    platformSession.removeExitListener(this._onSessionDestroy);
+    this._platformSession = null;
+    this._state = XRSessionState.None;
+    this._engine.xrManager._onSessionDestroy();
   }
 
   /**
