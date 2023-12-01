@@ -1,9 +1,9 @@
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { XRControllerPoseMode } from "./XRControllerPoseMode";
-import { IXRInput, IXRPose } from "@galacean/engine-design";
+import { IXRInput } from "@galacean/engine-design";
 import { XRInputButton } from "./XRInputButton";
 import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
 import { XRTrackingState } from "./XRTrackingState";
+import { XRPose } from "../XRPose";
 
 /**
  * The XR controller.
@@ -18,18 +18,18 @@ export class XRController implements IXRInput {
   /** Record button pressed. */
   up: number = 0;
   /** the pose mode of the controller. (Default is Grip) */
-  poseMode: XRControllerPoseMode;
+  poseMode: XRControllerPoseMode = XRControllerPoseMode.Grip;
   /** The grip space pose of the controller in XR space. */
-  gripPose: IXRPose;
+  gripPose: XRPose = new XRPose();
   /** The target ray space pose of the controller in XR space. */
-  targetRayPose: IXRPose;
+  targetRayPose: XRPose = new XRPose();
 
-  protected _pose: IXRPose;
+  protected _pose: XRPose;
 
   /**
    * Returns the pose of the controller in XR space.
    */
-  get pose(): IXRPose {
+  get pose(): XRPose {
     if (this.poseMode === XRControllerPoseMode.Grip) {
       return this.gripPose;
     } else {
@@ -40,13 +40,10 @@ export class XRController implements IXRInput {
   /**
    * @internal
    */
-  constructor(public type: XRTrackedInputDevice) {
-    this.poseMode = XRControllerPoseMode.Grip;
-    this.gripPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
-    this.targetRayPose = { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() };
-  }
+  constructor(public type: XRTrackedInputDevice) {}
 
   /**
+   *
    * Returns whether the button is pressed.
    * @param button - The button to check
    * @returns Whether the button is pressed

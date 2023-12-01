@@ -1,5 +1,4 @@
 import {
-  IXRPose,
   IXRTracked,
   IXRAnchorTracking,
   IXRAnchorTrackingConfig,
@@ -9,6 +8,7 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { Engine } from "../../../../Engine";
+import { XRPose } from "../../../XRPose";
 
 /**
  * The manager of XR anchor tracking.
@@ -23,7 +23,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
    * Add a tracking anchor in XR space.
    * @param pose - The pose of anchor to be added
    */
-  addAnchor(pose: IXRPose): IXRRequestAnchorTracking {
+  addAnchor(pose: XRPose): IXRRequestAnchorTracking {
     if (!this._enabled) {
       throw new Error("Cannot add an anchor from a disabled anchor manager.");
     }
@@ -57,7 +57,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
    * @param engine - The engine
    * @param anchors - The anchors to be tracked
    */
-  constructor(engine: Engine, anchors: IXRPose[] = []) {
+  constructor(engine: Engine, anchors: XRPose[] = []) {
     super(engine);
     this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };
     this._platformFeature = <IXRAnchorTracking>(
@@ -80,7 +80,7 @@ export class XRAnchorTracking extends XRTrackableFeature<
     return config;
   }
 
-  private _createRequestTracking(pose: IXRPose): IXRRequestAnchorTracking {
+  private _createRequestTracking(pose: XRPose): IXRRequestAnchorTracking {
     return {
       pose,
       state: XRRequestTrackingState.None,

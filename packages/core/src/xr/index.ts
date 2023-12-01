@@ -1,5 +1,7 @@
 // xr manager
 export { XRManager } from "./XRManager";
+// xr pose
+export { XRPose } from "./XRPose";
 // xr feature
 export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRFeature } from "./feature/XRFeature";
@@ -7,6 +9,7 @@ export { XRFeature } from "./feature/XRFeature";
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
 export { XRHitTest } from "./feature/hitTest/XRHitTest";
+export { XRHitResult } from "./feature/hitTest/XRHitResult";
 export { TrackableType } from "./feature/hitTest/TrackableType";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";

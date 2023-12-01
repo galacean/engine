@@ -1,4 +1,4 @@
-import { IXRHitResult, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRTrackedPlane } from "@galacean/engine-design";
 import { TrackableType } from "./TrackableType";
 import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
@@ -8,6 +8,7 @@ import { XRFeatureType } from "../XRFeatureType";
 import { XRSessionMode } from "../../session/XRSessionMode";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
 import { Engine } from "../../../Engine";
+import { XRHitResult } from "./XRHitResult";
 
 /**
  * The manager of XR hit test.
@@ -29,7 +30,7 @@ export class XRHitTest extends XRFeature {
    * @param type - The type of hit test
    * @returns The hit result
    */
-  hitTest(ray: Ray, type: TrackableType): IXRHitResult[] {
+  hitTest(ray: Ray, type: TrackableType): XRHitResult[] {
     if (this._engine.xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
@@ -43,7 +44,7 @@ export class XRHitTest extends XRFeature {
    * @param type - The type of hit test
    * @returns The hit result
    */
-  screenHitTest(x: number, y: number, type: TrackableType): IXRHitResult[] {
+  screenHitTest(x: number, y: number, type: TrackableType): XRHitResult[] {
     if (this._engine.xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
@@ -55,7 +56,7 @@ export class XRHitTest extends XRFeature {
     return this._hitTest(ray, type);
   }
 
-  private _hitTest(ray: Ray, type: TrackableType): IXRHitResult[] {
+  private _hitTest(ray: Ray, type: TrackableType): XRHitResult[] {
     const result = [];
     if (type & TrackableType.Plane) {
       this._hitTestPlane(ray, result);
@@ -74,7 +75,7 @@ export class XRHitTest extends XRFeature {
     this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
   }
 
-  private _hitTestPlane(ray: Ray, result: IXRHitResult[]): void {
+  private _hitTestPlane(ray: Ray, result: XRHitResult[]): void {
     const planeManager = this._engine.xrManager.getFeature(XRPlaneTracking);
     if (!planeManager || !planeManager.enabled) {
       throw new Error("The plane estimation function needs to be turned on for plane hit test.");
@@ -91,13 +92,13 @@ export class XRHitTest extends XRFeature {
         Vector3.transformToVec3(hitPoint, trackedPlane.pose.inverseMatrix, hitPointInPlane);
         // Check if the hit position is within the plane boundary.
         if (this._checkPointerWithinPlane(hitPointInPlane, trackedPlane)) {
-          result.push({
-            point: hitPoint.clone(),
-            normal: normal.clone(),
-            trackableId: trackedPlane.id,
-            trackableType: TrackableType.Plane,
-            distance
-          });
+          const hitResult = new XRHitResult();
+          hitResult.point.copyFrom(hitPoint);
+          hitResult.normal.copyFrom(normal);
+          hitResult.distance = distance;
+          hitResult.trackableId = trackedPlane.id;
+          hitResult.trackableType = TrackableType.Plane;
+          result.push(hitResult);
         }
       }
     }

@@ -1,5 +1,5 @@
 import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
-import { Vector3, XRTrackedInputDevice } from "@galacean/engine";
+import { Vector3, XRTrackedInputDevice, XRTrackingState } from "@galacean/engine";
 import { WebXRSession } from "./WebXRSession";
 import { getInputSource, viewToCamera } from "./util";
 
@@ -34,7 +34,7 @@ export class WebXRFrame implements IXRFrame {
               gripPose.position.copyFrom(transform.position);
               gripPose.rotation.copyFrom(transform.orientation);
             }
-            input.trackingState = emulatedPosition ? 2 : 1;
+            input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
           }
           if (targetRaySpace) {
             const { transform, emulatedPosition } = frame.getPose(targetRaySpace, referenceSpace);
@@ -43,7 +43,7 @@ export class WebXRFrame implements IXRFrame {
               targetRayPose.matrix.copyFromArray(transform.matrix);
               targetRayPose.position.copyFrom(transform.position);
               targetRayPose.rotation.copyFrom(transform.orientation);
-              input.trackingState = emulatedPosition ? 2 : 1;
+              input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
             }
           }
           break;
