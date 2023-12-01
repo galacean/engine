@@ -86,7 +86,7 @@ export class XRSessionManager {
     }
     platformSession.stop();
     this._state = XRSessionState.Paused;
-    this._engine.xrManager._onSessionStart();
+    this._engine.xrManager._onSessionStop();
   }
 
   /**
@@ -149,7 +149,7 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  _destroy(): Promise<void> {
+  _end(): Promise<void> {
     const { _platformSession: platformSession } = this;
     if (!platformSession) {
       return Promise.reject("Without session to stop.");

@@ -10,7 +10,7 @@ export abstract class XRFeature<
 > implements IXRFeature
 {
   _platformFeature: TFeature;
-  protected _enabled: boolean = false;
+  protected _enabled: boolean = true;
   protected _config: TConfig;
 
   /**
@@ -30,7 +30,9 @@ export abstract class XRFeature<
   /**
    * @internal
    */
-  constructor(protected _xrManager: XRManager) {}
+  constructor(protected _xrManager: XRManager) {
+    this.onEnable();
+  }
 
   /**
    * Initialize the feature.
@@ -55,7 +57,7 @@ export abstract class XRFeature<
    * @param session - The xr session
    * @param frame - The xr frame
    */
-  onUpdate(session: IXRSession, frame: IXRFrame): void {}
+  onUpdate(): void {}
 
   /**
    * Called when the session is initialized.

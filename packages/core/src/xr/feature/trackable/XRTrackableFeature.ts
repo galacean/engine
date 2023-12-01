@@ -80,7 +80,9 @@ export abstract class XRTrackableFeature<
     }
   }
 
-  override onUpdate(session: IXRSession, frame: IXRFrame): void {
+  override onUpdate(): void {
+    const { _platformSession: platformSession } = this._sessionManager;
+    const { frame: platformFrame } = platformSession;
     const {
       _platformFeature: platformFeature,
       _listeners: listeners,
@@ -90,14 +92,14 @@ export abstract class XRTrackableFeature<
       _updated: updated,
       _removed: removed
     } = this;
-    if (!session || !frame || !requestTrackings.length) {
+    if (!platformFrame || !requestTrackings.length) {
       return;
     }
-    if (!platformFeature.checkAvailable(session, frame, requestTrackings)) {
+    if (!platformFeature.checkAvailable(platformSession, platformFrame, requestTrackings)) {
       return;
     }
     added.length = updated.length = removed.length = 0;
-    platformFeature.getTrackedResult(session, frame, requestTrackings);
+    platformFeature.getTrackedResult(platformSession, platformFrame, requestTrackings);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state !== XRRequestTrackingState.Resolved) {

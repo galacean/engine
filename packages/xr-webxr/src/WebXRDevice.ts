@@ -26,8 +26,8 @@ export class WebXRDevice implements IXRDevice {
     });
   }
 
-  isSupportedFeature(type: XRFeatureType): Promise<void> {
-    return Promise.resolve();
+  isSupportedFeature(type: XRFeatureType): boolean {
+    return true;
   }
 
   createFeature(type: number): IXRPlatformFeature {

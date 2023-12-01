@@ -27,7 +27,7 @@ export interface IXRFeature {
   /**
    * Update an instance of a feature.
    */
-  onUpdate(session: IXRSession, frame: IXRFrame): void;
+  onUpdate(): void;
 
   /**
    * Destroy an instance of a feature.

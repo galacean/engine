@@ -17,7 +17,7 @@ export interface IXRDevice {
    * Check if the specified feature is supported.
    * @param mode - The type of the feature.
    */
-  isSupportedFeature(type: number): Promise<void>;
+  isSupportedFeature(type: number): boolean;
 
   /**
    * Get the platform feature instance of this device

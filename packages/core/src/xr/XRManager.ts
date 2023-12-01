@@ -4,7 +4,6 @@ import { Entity } from "../Entity";
 import { XRFeature } from "./feature/XRFeature";
 import { XRFeatureType } from "./feature/XRFeatureType";
 import { XRCameraManager } from "./feature/camera/XRCameraManager";
-import { XRMovementTracking } from "./feature/movementTracking/XRMovementTracking";
 import { XRInputManager } from "./input/XRInputManager";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionMode } from "./session/XRSessionMode";
@@ -50,16 +49,14 @@ export class XRManager {
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
     this.cameraManager = new XRCameraManager(engine);
-
-    this.addFeature(XRMovementTracking);
   }
 
   /**
    * Check if the specified feature is supported.
    * @param type - The type of the feature
-   * @returns A promise that resolves if the feature is supported, otherwise rejects
+   * @returns If the feature is supported
    */
-  isSupportedFeature(type: XRFeatureType): Promise<void> {
+  isSupportedFeature(type: XRFeatureType): boolean {
     return this._platformDevice.isSupportedFeature(type);
   }
 
@@ -82,7 +79,6 @@ export class XRManager {
       if (feature instanceof type) throw new Error("The feature has been added");
     }
     const feature = new type(this, ...constructor);
-    feature.enabled = true;
     this._features.push(feature);
     return feature;
   }
@@ -104,40 +100,42 @@ export class XRManager {
 
   /**
    * Get all initialized features at this moment.
-   * Returns a read-only array.
+   * @param type - The type of the feature
    */
-  getFeatures(): XRFeature[];
+  getFeatures<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T): T[];
+
   /**
    * Get all initialized features at this moment.
+   * @param type - The type of the feature
    * @param out - Save all features in `out`
    */
-  getFeatures(out: XRFeature[]): XRFeature[];
+  getFeatures<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T, out: T[]): T[];
 
-  getFeatures(out?: XRFeature[]): XRFeature[] {
+  getFeatures<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T, out?: T[]): T[] {
     if (out) {
-      const { _features: features } = this;
-      const n = features.length;
-      out.length = n;
-      for (let i = 0; i < n; i--) {
-        out[i] = features[i];
-      }
-      return out;
+      out.length = 0;
     } else {
-      return this._features;
+      out = [];
     }
+    const { _features: features } = this;
+    for (let i = 0, n = features.length; i < n; i--) {
+      const feature = features[i];
+      feature instanceof type && out.push(feature);
+    }
+    return out;
   }
 
   /**
    * Enter XR immersive mode, when you call this method, it will initialize and display the XR virtual world.
    * @param sessionMode - The mode of the session
-   * @param autoRun - Whether to automatically run the session
+   * @param autoRun - Whether to automatically run the session, when `autoRun` is set to true, xr will start working immediately after initialization. Otherwise, you need to call `sessionManager.run` later to work.
    * @returns A promise that resolves if the XR virtual world is entered, otherwise rejects
    */
   enterXR(sessionMode: XRSessionMode, autoRun: boolean = true): Promise<void> {
     if (this.sessionManager._platformSession) {
-      throw new Error("Please destroy the old session first.");
+      throw new Error("Please exit XR immersive mode first.");
     }
-    if (this._origin) {
+    if (!this._origin) {
       throw new Error("Please set origin before enter XR.");
     }
     return new Promise((resolve, reject) => {
@@ -174,8 +172,7 @@ export class XRManager {
    */
   exitXR(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const { sessionManager } = this;
-      sessionManager._destroy().then(() => {
+      this.sessionManager._end().then(() => {
         resolve();
       }, reject);
     });
@@ -207,12 +204,10 @@ export class XRManager {
     sessionManager._onUpdate();
     this.inputManager._onUpdate();
     this.cameraManager._onUpdate();
-    const { _platformSession: platformSession } = sessionManager;
-    const { frame: platformFrame } = platformSession;
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature.onUpdate(platformSession, platformFrame);
+      feature?.enabled && feature.onUpdate();
     }
   }
 
@@ -220,7 +215,7 @@ export class XRManager {
    * @internal
    */
   _onSessionInit(): void {
-    const features = this.getFeatures();
+    const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature?.enabled && feature.onSessionInit();
@@ -232,7 +227,7 @@ export class XRManager {
    */
   _onSessionStart(): void {
     this.cameraManager._onSessionStart();
-    const features = this.getFeatures();
+    const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature?.enabled && feature.onSessionStart();
@@ -243,7 +238,7 @@ export class XRManager {
    * @internal
    */
   _onSessionStop(): void {
-    const features = this.getFeatures();
+    const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature?.enabled && feature.onSessionStop();
