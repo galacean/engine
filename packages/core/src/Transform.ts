@@ -754,9 +754,9 @@ export class Transform extends Component {
     if (relativeToLocal) {
       const { _tempVec30 } = Transform;
       Vector3.transformByQuat(translation, this.worldRotationQuaternion, _tempVec30);
-      this._worldPosition.add(_tempVec30);
+      this.worldPosition.add(_tempVec30);
     } else {
-      this._worldPosition.add(translation);
+      this.worldPosition.add(translation);
     }
   }
 
