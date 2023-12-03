@@ -76,9 +76,12 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
 
     const { x, y, z } = extent;
     const e = matrix.elements;
-    extent.x = Math.abs(x * e[0]) + Math.abs(y * e[4]) + Math.abs(z * e[8]);
-    extent.y = Math.abs(x * e[1]) + Math.abs(y * e[5]) + Math.abs(z * e[9]);
-    extent.z = Math.abs(x * e[2]) + Math.abs(y * e[6]) + Math.abs(z * e[10]);
+    extent.x =
+      BoundingBox._safeMultiply(x, e[0]) + BoundingBox._safeMultiply(y, e[4]) + BoundingBox._safeMultiply(z, e[8]);
+    extent.y =
+      BoundingBox._safeMultiply(x, e[1]) + BoundingBox._safeMultiply(y, e[5]) + BoundingBox._safeMultiply(z, e[9]);
+    extent.z =
+      BoundingBox._safeMultiply(x, e[2]) + BoundingBox._safeMultiply(y, e[6]) + BoundingBox._safeMultiply(z, e[10]);
 
     // set min、max
     Vector3.subtract(center, extent, out.min);
@@ -119,8 +122,12 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @returns The center point of this bounding box
    */
   getCenter(out: Vector3): Vector3 {
-    Vector3.add(this.min, this.max, out);
-    Vector3.scale(out, 0.5, out);
+    const { min, max } = this;
+    out.set(
+      this._safeGetCenter(max._x, min._x),
+      this._safeGetCenter(max._y, min._y),
+      this._safeGetCenter(max._z, min._z)
+    );
     return out;
   }
 
@@ -130,8 +137,12 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @returns The extent of this bounding box
    */
   getExtent(out: Vector3): Vector3 {
-    Vector3.subtract(this.max, this.min, out);
-    Vector3.scale(out, 0.5, out);
+    const { min, max } = this;
+    out.set(
+      this._safeGetExtend(max._x, min._x),
+      this._safeGetExtend(max._y, min._y),
+      this._safeGetExtend(max._z, min._z)
+    );
     return out;
   }
 
@@ -196,5 +207,39 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     this.min.copyFrom(source.min);
     this.max.copyFrom(source.max);
     return this;
+  }
+
+  private _safeGetCenter(max: number, min: number): number {
+    const needReverse = max < min;
+    const maxIsFinite = needReverse ? min === Infinity : max === Infinity;
+    const minIsFinite = needReverse ? max === -Infinity : min === -Infinity;
+    if (!maxIsFinite && !minIsFinite) {
+      return max * 0.5 + min * 0.5;
+    } else if (maxIsFinite && minIsFinite) {
+      return 0;
+    } else if (maxIsFinite) {
+      return Infinity;
+    } else {
+      return -Infinity;
+    }
+  }
+
+  private _safeGetExtend(max: number, min: number): number {
+    const needReverse = max < min;
+    const maxIsFinite = needReverse ? min === Infinity : max === Infinity;
+    const minIsFinite = needReverse ? max === -Infinity : min === -Infinity;
+    if (!maxIsFinite && !minIsFinite) {
+      return max * 0.5 - min * 0.5;
+    } else {
+      return Infinity;
+    }
+  }
+
+  private static _safeMultiply(checkNum: number, factor: number): number {
+    if (factor === 0) {
+      return 0;
+    } else {
+      return Math.abs(checkNum * factor);
+    }
   }
 }
