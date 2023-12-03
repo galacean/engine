@@ -73,16 +73,13 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     source.getCenter(center);
     source.getExtent(extent);
     Vector3.transformCoordinate(center, matrix, center);
-
     const { x, y, z } = extent;
     const e = matrix.elements;
-    extent.x =
-      BoundingBox._safeMultiply(x, e[0]) + BoundingBox._safeMultiply(y, e[4]) + BoundingBox._safeMultiply(z, e[8]);
-    extent.y =
-      BoundingBox._safeMultiply(x, e[1]) + BoundingBox._safeMultiply(y, e[5]) + BoundingBox._safeMultiply(z, e[9]);
-    extent.z =
-      BoundingBox._safeMultiply(x, e[2]) + BoundingBox._safeMultiply(y, e[6]) + BoundingBox._safeMultiply(z, e[10]);
-
+    extent.set(
+      BoundingBox._safeMultiply(x, e[0]) + BoundingBox._safeMultiply(y, e[4]) + BoundingBox._safeMultiply(z, e[8]),
+      BoundingBox._safeMultiply(x, e[1]) + BoundingBox._safeMultiply(y, e[5]) + BoundingBox._safeMultiply(z, e[9]),
+      BoundingBox._safeMultiply(x, e[2]) + BoundingBox._safeMultiply(y, e[6]) + BoundingBox._safeMultiply(z, e[10])
+    );
     // set min、max
     Vector3.subtract(center, extent, out.min);
     Vector3.add(center, extent, out.max);
@@ -229,7 +226,7 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     const maxIsFinite = needReverse ? min === Infinity : max === Infinity;
     const minIsFinite = needReverse ? max === -Infinity : min === -Infinity;
     if (!maxIsFinite && !minIsFinite) {
-      return max * 0.5 - min * 0.5;
+      return needReverse ? min * 0.5 - max * 0.5 : max * 0.5 - min * 0.5;
     } else {
       return Infinity;
     }
