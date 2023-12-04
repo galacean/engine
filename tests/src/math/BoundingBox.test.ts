@@ -63,8 +63,8 @@ describe("BoundingBox test", () => {
       new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     );
     BoundingBox.transform(maxValueBox, matrixWithoutScale, newBox);
-    expect(newBox.min).to.deep.eq(compare.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE));
-    expect(newBox.max).to.deep.eq(compare.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE));
+    expect(newBox.min).to.deep.eq(compare.set(-Infinity, -Infinity, -Infinity));
+    expect(newBox.max).to.deep.eq(compare.set(Infinity, Infinity, Infinity));
     BoundingBox.transform(maxValueBox, matrixWithScale, newBox);
     expect(newBox.min).to.deep.eq(compare.set(-Infinity, -Infinity, -Infinity));
     expect(newBox.max).to.deep.eq(compare.set(Infinity, Infinity, Infinity));
@@ -157,7 +157,7 @@ describe("BoundingBox test", () => {
       new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     );
     expect(maxValueBox1.getExtent(extent)).to.deep.eq(
-      compare.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
+      compare.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)
     );
 
     const maxValueBox2 = new BoundingBox(
