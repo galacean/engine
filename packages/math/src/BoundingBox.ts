@@ -207,28 +207,18 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
   }
 
   private _safeGetCenter(max: number, min: number): number {
-    const needReverse = max < min;
-    const maxIsFinite = needReverse ? min === Infinity : max === Infinity;
-    const minIsFinite = needReverse ? max === -Infinity : min === -Infinity;
-    if (!maxIsFinite && !minIsFinite) {
-      return max * 0.5 + min * 0.5;
-    } else if (maxIsFinite && minIsFinite) {
+    if (max === Infinity && min === -Infinity) {
       return 0;
-    } else if (maxIsFinite) {
-      return Infinity;
     } else {
-      return -Infinity;
+      return max * 0.5 + min * 0.5;
     }
   }
 
   private _safeGetExtend(max: number, min: number): number {
-    const needReverse = max < min;
-    const maxIsFinite = needReverse ? min === Infinity : max === Infinity;
-    const minIsFinite = needReverse ? max === -Infinity : min === -Infinity;
-    if (!maxIsFinite && !minIsFinite) {
-      return needReverse ? min * 0.5 - max * 0.5 : max * 0.5 - min * 0.5;
-    } else {
+    if (max === Infinity || min === -Infinity) {
       return Infinity;
+    } else {
+      return max * 0.5 - min * 0.5;
     }
   }
 

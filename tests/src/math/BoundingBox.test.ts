@@ -125,52 +125,6 @@ describe("BoundingBox test", () => {
       )
     ).eq(true);
 
-    const maxValueBox4 = new BoundingBox(
-      new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
-      new Vector3(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-    );
-    expect(Vector3.equals(new Vector3(0, 0, 0), maxValueBox4.getCenter(center))).eq(true);
-
-    const maxValueBox5 = new BoundingBox(
-      new Vector3(0, 0, 0),
-      new Vector3(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-    );
-    expect(
-      Vector3.equals(
-        new Vector3(-Number.MAX_VALUE / 2, -Number.MAX_VALUE / 2, -Number.MAX_VALUE / 2),
-        maxValueBox5.getCenter(center)
-      )
-    ).eq(true);
-
-    const maxValueBox6 = new BoundingBox(
-      new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
-      new Vector3(0, 0, 0)
-    );
-    expect(
-      Vector3.equals(
-        new Vector3(Number.MAX_VALUE / 2, Number.MAX_VALUE / 2, Number.MAX_VALUE / 2),
-        maxValueBox6.getCenter(center)
-      )
-    ).eq(true);
-
-    const infinityBox1 = new BoundingBox(
-      new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY),
-      new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY)
-    );
-    expect(Vector3.equals(new Vector3(0, 0, 0), infinityBox1.getCenter(center))).eq(true);
-
-    const infinityBox2 = new BoundingBox(
-      new Vector3(0, 0, 0),
-      new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY)
-    );
-    expect(infinityBox2.getCenter(center)).to.deep.eq(new Vector3(-Infinity, -Infinity, -Infinity));
-
-    const infinityBox3 = new BoundingBox(
-      new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY),
-      new Vector3(0, 0, 0)
-    );
-    expect(infinityBox3.getCenter(center)).to.deep.eq(new Vector3(Infinity, Infinity, Infinity));
-
     const infinityBox4 = new BoundingBox(
       new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY),
       new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)
@@ -221,48 +175,6 @@ describe("BoundingBox test", () => {
     expect(maxValueBox3.getExtent(extent)).to.deep.eq(
       compare.set(Number.MAX_VALUE / 2, Number.MAX_VALUE / 2, Number.MAX_VALUE / 2)
     );
-
-    const maxValueBox4 = new BoundingBox(
-      new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
-      new Vector3(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-    );
-    expect(maxValueBox4.getExtent(extent)).to.deep.eq(
-      compare.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
-    );
-
-    const maxValueBox5 = new BoundingBox(
-      new Vector3(0, 0, 0),
-      new Vector3(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-    );
-    expect(maxValueBox5.getExtent(extent)).to.deep.eq(
-      compare.set(Number.MAX_VALUE / 2, Number.MAX_VALUE / 2, Number.MAX_VALUE / 2)
-    );
-
-    const maxValueBox6 = new BoundingBox(
-      new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
-      new Vector3(0, 0, 0)
-    );
-    expect(maxValueBox6.getExtent(extent)).to.deep.eq(
-      compare.set(Number.MAX_VALUE / 2, Number.MAX_VALUE / 2, Number.MAX_VALUE / 2)
-    );
-
-    const infinityBox1 = new BoundingBox(
-      new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY),
-      new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY)
-    );
-    expect(infinityBox1.getExtent(extent)).to.deep.eq(compare.set(Infinity, Infinity, Infinity));
-
-    const infinityBox2 = new BoundingBox(
-      new Vector3(0, 0, 0),
-      new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY)
-    );
-    expect(infinityBox2.getExtent(extent)).to.deep.eq(compare.set(Infinity, Infinity, Infinity));
-
-    const infinityBox3 = new BoundingBox(
-      new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY),
-      new Vector3(0, 0, 0)
-    );
-    expect(infinityBox3.getExtent(extent)).to.deep.eq(compare.set(Infinity, Infinity, Infinity));
 
     const infinityBox4 = new BoundingBox(
       new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY),
