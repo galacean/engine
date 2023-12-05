@@ -36,7 +36,6 @@ export class XRPlaneTracking extends XRTrackableFeature<
    */
   constructor(xrManager: XRManager, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
     super(xrManager);
-    this._config = { type: XRFeatureType.PlaneTracking, mode: detectionMode };
     this._platformFeature = <IXRPlaneTracking>xrManager._platformDevice.createFeature(XRFeatureType.PlaneTracking);
     this._addRequestTracking({
       state: XRRequestTrackingState.None,
@@ -46,7 +45,6 @@ export class XRPlaneTracking extends XRTrackableFeature<
   }
 
   override _generateConfig(): IXRPlaneTrackingConfig {
-    this._config.mode = this._requestTrackings[0].detectionMode;
-    return this._config;
+    return { type: XRFeatureType.PlaneTracking, mode: this._requestTrackings[0].detectionMode };
   }
 }

@@ -25,7 +25,6 @@ export class XRAnchorTracking extends XRTrackableFeature<
    */
   constructor(xrManager: XRManager, anchors: XRPose[] = []) {
     super(xrManager);
-    this._config = { type: XRFeatureType.AnchorTracking, anchors: [] };
     this._platformFeature = <IXRAnchorTracking>xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking);
     if (anchors) {
       for (let i = 0, n = anchors.length; i < n; i++) {
@@ -69,13 +68,13 @@ export class XRAnchorTracking extends XRTrackableFeature<
   }
 
   override _generateConfig(): IXRAnchorTrackingConfig {
-    const { _config: config, _requestTrackings: requestTrackings } = this;
-    const { anchors } = config;
+    const { _requestTrackings: requestTrackings } = this;
+    const anchors = [];
     anchors.length = 0;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       anchors.push(requestTrackings[i].pose);
     }
-    return config;
+    return { type: XRFeatureType.AnchorTracking, anchors };
   }
 
   private _createRequestTracking(pose: XRPose): IXRRequestAnchorTracking {

@@ -7,11 +7,6 @@ import { IXRInputEvent } from "./IXRInputEvent";
  */
 export interface IXRSession {
   /**
-   * Fixed foveation for XR.
-   */
-  fixedFoveation: number;
-
-  /**
    * Returns the XR information of this frame.
    */
   get frame(): IXRFrame;
@@ -45,6 +40,17 @@ export interface IXRSession {
    * Returns the height of the device's default main framebuffer.
    */
   get framebufferHeight(): number;
+
+  /**
+   * Set fixed foveation for camera.
+   * @param value - The fixed foveation value
+   */
+  setFixedFoveation(value: number);
+
+  /**
+   * Return fixed foveation of camera.
+   */
+  getFixedFoveation(): number;
 
   /**
    * Add event listener for XR session.

@@ -92,7 +92,7 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<IXRSession> {
+  _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const { xrManager } = this._engine;
       xrManager._platformDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
@@ -108,7 +108,7 @@ export class XRSessionManager {
         }
         Promise.all(allPromises).then(() => {
           xrManager._onSessionInit();
-          resolve(session);
+          resolve();
         }, reject);
       }, reject);
     });

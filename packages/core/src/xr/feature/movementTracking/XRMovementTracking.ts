@@ -8,11 +8,20 @@ import { XRMovementTrackingMode } from "./XRMovementTrackingMode";
  * The manager of XR movement tracking.
  */
 export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXRMovementTracking> {
+  private _trackingMode: XRMovementTrackingMode;
+
   /**
    * Get the tracking mode.
    */
   get trackingMode(): XRMovementTrackingMode {
-    return this._config.mode;
+    return this._trackingMode;
+  }
+
+  set trackingMode(value: XRMovementTrackingMode) {
+    if (this._xrManager.sessionManager._platformSession) {
+      throw new Error("Cannot set tracking mode when the session is Initialized.");
+    }
+    this._trackingMode = value;
   }
 
   /**
@@ -21,9 +30,13 @@ export class XRMovementTracking extends XRFeature<IXRMovementTrackingConfig, IXR
    */
   constructor(xrManager: XRManager, trackingMode: XRMovementTrackingMode = XRMovementTrackingMode.Dof6) {
     super(xrManager);
-    this._config = { type: XRFeatureType.MovementTracking, mode: trackingMode };
+    this._trackingMode = trackingMode;
     this._platformFeature = <IXRMovementTracking>(
       xrManager._platformDevice.createFeature(XRFeatureType.MovementTracking)
     );
+  }
+
+  override _generateConfig(): IXRMovementTrackingConfig {
+    return { type: XRFeatureType.MovementTracking, mode: this._trackingMode };
   }
 }

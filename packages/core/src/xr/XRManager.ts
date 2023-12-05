@@ -132,7 +132,8 @@ export class XRManager {
    * @returns A promise that resolves if the XR virtual world is entered, otherwise rejects
    */
   enterXR(sessionMode: XRSessionMode, autoRun: boolean = true): Promise<void> {
-    if (this.sessionManager._platformSession) {
+    const { sessionManager } = this;
+    if (sessionManager._platformSession) {
       throw new Error("Please exit XR immersive mode first.");
     }
     if (!this._origin) {
@@ -140,27 +141,11 @@ export class XRManager {
     }
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
-      this.sessionManager.isSupportedMode(sessionMode).then(() => {
-        // 2. Collect all features
-        const { _features: features } = this;
-        const enabledFeatures = [];
-        const supportedPromises = [];
-        for (let i = 0, n = features.length; i < n; i++) {
-          const feature = features[i];
-          if (feature.enabled) {
-            enabledFeatures.push(feature);
-            supportedPromises.push(feature._isSupported());
-          }
-        }
-
-        // 3. Check if this feature is supported
-        Promise.all(supportedPromises).then(() => {
-          // 4. Initialize session
-          this.sessionManager._initialize(sessionMode, enabledFeatures).then((session) => {
-            // 6. Auto run the session
-            autoRun && this.sessionManager.run();
-            resolve();
-          }, reject);
+      sessionManager.isSupportedMode(sessionMode).then(() => {
+        // 2. Initialize session
+        sessionManager._initialize(sessionMode, this._features).then(() => {
+          autoRun && sessionManager.run();
+          resolve();
         }, reject);
       }, reject);
     });
@@ -179,9 +164,25 @@ export class XRManager {
   }
 
   /**
-   * Destroy xr module.
+   * @internal
    */
-  destroy(): void {
+  _update(): void {
+    const { sessionManager } = this;
+    if (sessionManager.state !== XRSessionState.Running) return;
+    sessionManager._onUpdate();
+    this.inputManager._onUpdate();
+    this.cameraManager._onUpdate();
+    const { _features: features } = this;
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature.enabled && feature._onUpdate();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
     if (this.sessionManager._platformSession) {
       this.exitXR().then(() => {
         this.sessionManager._onDestroy();
@@ -198,27 +199,11 @@ export class XRManager {
   /**
    * @internal
    */
-  _update(): void {
-    const { sessionManager } = this;
-    if (sessionManager.state !== XRSessionState.Running) return;
-    sessionManager._onUpdate();
-    this.inputManager._onUpdate();
-    this.cameraManager._onUpdate();
-    const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      feature?.enabled && feature.onUpdate();
-    }
-  }
-
-  /**
-   * @internal
-   */
   _onSessionInit(): void {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature.onSessionInit();
+      feature.enabled && feature._onSessionInit();
     }
   }
 
@@ -230,7 +215,7 @@ export class XRManager {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature.onSessionStart();
+      feature.enabled && feature._onSessionStart();
     }
   }
 
@@ -241,7 +226,7 @@ export class XRManager {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature?.enabled && feature.onSessionStop();
+      feature.enabled && feature._onSessionStop();
     }
   }
 
@@ -253,11 +238,8 @@ export class XRManager {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      if (feature?.enabled) {
-        feature.enabled = false;
-        feature.onSessionDestroy();
-      }
-      feature.onDestroy();
+      feature.enabled && feature._onSessionDestroy();
+      feature._onDestroy();
     }
     features.length = 0;
   }

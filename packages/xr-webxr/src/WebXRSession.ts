@@ -35,14 +35,6 @@ export class WebXRSession implements IXRSession {
     return this._frame;
   }
 
-  get fixedFoveation(): number {
-    return this._platformLayer.fixedFoveation;
-  }
-
-  set fixedFoveation(value: number) {
-    this._platformLayer.fixedFoveation = value;
-  }
-
   get framebuffer(): WebGLFramebuffer {
     return this._platformLayer.framebuffer;
   }
@@ -101,6 +93,14 @@ export class WebXRSession implements IXRSession {
     };
     this.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
     this._onSessionEvent = this._onSessionEvent.bind(this);
+  }
+
+  getFixedFoveation(): number {
+    return this._platformLayer.fixedFoveation;
+  }
+
+  setFixedFoveation(value: number) {
+    this._platformLayer.fixedFoveation = value;
   }
 
   start(): void {}

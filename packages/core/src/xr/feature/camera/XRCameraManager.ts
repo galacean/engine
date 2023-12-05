@@ -4,18 +4,21 @@ import { Engine } from "../../../Engine";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
+import { XRSessionMode } from "../../session/XRSessionMode";
+import { CameraType } from "../../../enums/CameraType";
+import { XRSessionState } from "../../session/XRSessionState";
 
 /**
  * The manager of XR camera.
  */
 export class XRCameraManager {
   /**
-   * Return fixed foveation of the camera.
+   * The fixed foveation of the camera.
    */
   get fixedFoveation(): number {
     const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
     if (platformSession) {
-      return platformSession.fixedFoveation;
+      return platformSession.getFixedFoveation();
     } else {
       throw new Error("XR session is not available.");
     }
@@ -24,7 +27,7 @@ export class XRCameraManager {
   set fixedFoveation(value: number) {
     const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
     if (platformSession) {
-      platformSession.fixedFoveation = value;
+      platformSession.setFixedFoveation(value);
     } else {
       throw new Error("XR session is not available.");
     }
@@ -46,6 +49,19 @@ export class XRCameraManager {
     camera: Camera
   ): void {
     this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type).camera = camera;
+    switch (type) {
+      case XRTrackedInputDevice.Camera:
+        camera._cameraType = CameraType.XRCenterCamera;
+        break;
+      case XRTrackedInputDevice.LeftCamera:
+        camera._cameraType = CameraType.XRLeftCamera;
+        break;
+      case XRTrackedInputDevice.RightCamera:
+        camera._cameraType = CameraType.XRRightCamera;
+        break;
+      default:
+        break;
+    }
   }
 
   /**
@@ -58,6 +74,7 @@ export class XRCameraManager {
   ): Camera {
     const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera.camera;
+    preCamera._cameraType = CameraType.Normal;
     xrCamera.camera = null;
     return preCamera;
   }
@@ -93,8 +110,10 @@ export class XRCameraManager {
       const cameraDevice = cameras[i];
       const { camera } = cameraDevice;
       if (!camera) continue;
-      camera.entity.transform.position = cameraDevice.pose.position;
-      camera.entity.transform.rotationQuaternion = cameraDevice.pose.rotation;
+      // sync position and rotation
+      const { transform } = camera.entity;
+      transform.position = cameraDevice.pose.position;
+      transform.rotationQuaternion = cameraDevice.pose.rotation;
       // sync viewport
       const { viewport } = camera;
       const { x, y, width, height } = cameraDevice.viewport;
@@ -116,6 +135,21 @@ export class XRCameraManager {
     for (let i = 0, n = cameras.length; i < n; i++) {
       const { camera } = cameras[i];
       camera && (camera.clearFlags |= CameraClearFlags.Color);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getCameraClearFlagsMask(cameraType: CameraType): CameraClearFlags {
+    if (cameraType === CameraType.XRCenterCamera) {
+      if (this._engine.xrManager.sessionManager.state === XRSessionState.Running) {
+        return CameraClearFlags.DepthStencil;
+      } else {
+        return CameraClearFlags.All;
+      }
+    } else {
+      return CameraClearFlags.All;
     }
   }
 

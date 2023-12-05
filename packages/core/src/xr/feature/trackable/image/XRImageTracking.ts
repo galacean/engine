@@ -77,7 +77,6 @@ export class XRImageTracking extends XRTrackableFeature<
    */
   constructor(xrManager: XRManager, images: IXRReferenceImage[]) {
     super(xrManager);
-    this._config = { type: XRFeatureType.ImageTracking, images };
     this._platformFeature = <IXRImageTracking>xrManager._platformDevice.createFeature(XRFeatureType.ImageTracking);
     if (images) {
       for (let i = 0, n = images.length; i < n; i++) {
@@ -87,13 +86,12 @@ export class XRImageTracking extends XRTrackableFeature<
   }
 
   override _generateConfig(): IXRImageTrackingConfig {
-    const { _config: config, _requestTrackings: requestTrackings } = this;
-    const { images } = config;
-    images.length = 0;
+    const { _requestTrackings: requestTrackings } = this;
+    const images = [];
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       images.push(requestTrackings[i].image);
     }
-    return config;
+    return { type: XRFeatureType.ImageTracking, images };
   }
 
   private _createRequestTracking(image: XRReferenceImage): IXRRequestImageTracking {

@@ -17,7 +17,5 @@ export enum XRTrackedInputDevice {
   /** Head */
   LeftHand,
   /** Right hand */
-  RightHand,
-  /** Length of input type */
-  Length
+  RightHand
 }

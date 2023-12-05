@@ -1,4 +1,4 @@
-import { IXRFeature, IXRFeatureConfig, IXRFrame, IXRPlatformFeature, IXRSession } from "@galacean/engine-design";
+import { IXRFeature, IXRFeatureConfig, IXRPlatformFeature } from "@galacean/engine-design";
 import { XRManager } from "../XRManager";
 
 /**
@@ -9,9 +9,9 @@ export abstract class XRFeature<
   TFeature extends IXRPlatformFeature = IXRPlatformFeature
 > implements IXRFeature
 {
+  /** @internal */
   _platformFeature: TFeature;
   protected _enabled: boolean = true;
-  protected _config: TConfig;
 
   /**
    * Returns whether the feature is enabled.
@@ -23,7 +23,7 @@ export abstract class XRFeature<
   set enabled(value: boolean) {
     if (this.enabled !== value) {
       this._enabled = value;
-      value ? this.onEnable() : this.onDisable();
+      value ? this._onEnable() : this._onDisable();
     }
   }
 
@@ -31,7 +31,7 @@ export abstract class XRFeature<
    * @internal
    */
   constructor(protected _xrManager: XRManager) {
-    this.onEnable();
+    this._onEnable();
   }
 
   /**
@@ -43,65 +43,50 @@ export abstract class XRFeature<
   }
 
   /**
-   * Called when be enabled.
+   * @internal
    */
-  onEnable(): void {}
-
-  /**
-   * Called when be disabled.
-   */
-  onDisable(): void {}
-
-  /**
-   * Called when xr frame is updated.
-   * @param session - The xr session
-   * @param frame - The xr frame
-   */
-  onUpdate(): void {}
-
-  /**
-   * Called when the session is initialized.
-   */
-  onSessionInit(): void {}
-
-  /**
-   * Called when session starts.
-   */
-  onSessionStart(): void {}
-
-  /**
-   * Called when the session is stopped.
-   */
-  onSessionStop(): void {}
-
-  /**
-   * Called when the session is destroyed.
-   */
-  onSessionDestroy(): void {}
-
-  /**
-   * Called when the xr module is destroyed.
-   */
-  onDestroy(): void {}
+  _onEnable(): void {}
 
   /**
    * @internal
-   * Returns whether the feature is supported.
-   * @returns The promise of the feature
    */
-  _isSupported(): Promise<void> {
-    if (this._platformFeature) {
-      return this._platformFeature.isSupported(this._generateConfig());
-    } else {
-      return Promise.resolve();
-    }
-  }
+  _onDisable(): void {}
+
+  /**
+   * @internal
+   */
+  _onUpdate(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionInit(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionStart(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionStop(): void {}
+
+  /**
+   * @internal
+   */
+  _onSessionDestroy(): void {}
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {}
 
   /**
    * @internal
    * @returns The config of the feature
    */
   _generateConfig(): TConfig {
-    return this._config;
+    return null;
   }
 }

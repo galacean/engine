@@ -1,11 +1,4 @@
-import {
-  IXRFeatureConfig,
-  IXRFrame,
-  IXRRequestTracking,
-  IXRSession,
-  IXRTrackableFeature,
-  IXRTracked
-} from "@galacean/engine-design";
+import { IXRFeatureConfig, IXRRequestTracking, IXRTrackableFeature, IXRTracked } from "@galacean/engine-design";
 import { XRManager } from "../../XRManager";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRSessionManager } from "../../session/XRSessionManager";
@@ -16,11 +9,11 @@ import { XRRequestTrackingState } from "./XRRequestTrackingState";
  * The base class of XR trackable manager.
  */
 export abstract class XRTrackableFeature<
-  TDescriptor extends IXRFeatureConfig,
+  TXRFeatureConfig extends IXRFeatureConfig,
   TXRTracked extends IXRTracked,
   TXRRequestTracking extends IXRRequestTracking<TXRTracked>,
   TTrackableFeature extends IXRTrackableFeature<TXRTracked, TXRRequestTracking>
-> extends XRFeature<TDescriptor, TTrackableFeature> {
+> extends XRFeature<TXRFeatureConfig, TTrackableFeature> {
   protected _sessionManager: XRSessionManager;
   protected _requestTrackings: TXRRequestTracking[] = [];
   protected _trackedObjects: TXRTracked[] = [];
@@ -80,7 +73,7 @@ export abstract class XRTrackableFeature<
     }
   }
 
-  override onUpdate(): void {
+  override _onUpdate(): void {
     const { _platformSession: platformSession } = this._sessionManager;
     const { frame: platformFrame } = platformSession;
     const {
@@ -131,16 +124,16 @@ export abstract class XRTrackableFeature<
     }
   }
 
-  override onSessionStop(): void {
+  override _onSessionStop(): void {
     this._added.length = this._updated.length = this._removed.length = 0;
   }
 
-  override onSessionDestroy(): void {
+  override _onSessionDestroy(): void {
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
-  override onDestroy(): void {
+  override _onDestroy(): void {
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
   }

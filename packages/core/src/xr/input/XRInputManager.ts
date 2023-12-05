@@ -31,7 +31,7 @@ export class XRInputManager {
   constructor(engine: Engine) {
     this._engine = engine;
     const { _trackedDevices: trackedDevices, _controllers: controllers, _cameras: cameras } = this;
-    for (let i = XRTrackedInputDevice.Length - 1; i >= 0; i--) {
+    for (let i = 0; i < 6; i++) {
       switch (i) {
         case XRTrackedInputDevice.Camera:
         case XRTrackedInputDevice.LeftCamera:
@@ -47,7 +47,7 @@ export class XRInputManager {
           break;
       }
     }
-    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, XRTrackedInputDevice.Length);
+    this._statusSnapshot.fill(XRTrackingState.NotTracking, 0, trackedDevices.length);
   }
 
   /**

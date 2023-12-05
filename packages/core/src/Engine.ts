@@ -1,5 +1,6 @@
 import { IHardwareRenderer, IPhysics, IPhysicsManager, IShaderLab, IXRDevice } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
+import { SpriteMaskInteraction } from "./2d";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
@@ -24,6 +25,7 @@ import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
+import { CompareFunction } from "./shader";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -38,8 +40,6 @@ import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { XRManager } from "./xr/XRManager";
-import { CompareFunction } from "./shader";
-import { SpriteMaskInteraction } from "./2d";
 
 ShaderPool.init();
 
@@ -441,6 +441,7 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
+    this.xrManager._destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation

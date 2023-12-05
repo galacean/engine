@@ -1,5 +1,3 @@
-import { IXRFrame } from "../IXRFrame";
-import { IXRSession } from "../IXRSession";
 import { IXRFeatureConfig } from "./IXRFeatureConfig";
 import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
@@ -15,52 +13,47 @@ export interface IXRFeature {
   initialize(): Promise<void>;
 
   /**
-   * Enable an instance of a feature.
+   * @internal
    */
-  onEnable(): void;
+  _onEnable(): void;
 
   /**
-   * Disable an instance of a feature.
+   * @internal
    */
-  onDisable(): void;
+  _onDisable(): void;
 
   /**
-   * Update an instance of a feature.
+   * @internal
    */
-  onUpdate(): void;
+  _onUpdate(): void;
 
   /**
-   * Destroy an instance of a feature.
+   * @internal
    */
-  onDestroy(): void;
+  _onDestroy(): void;
 
   /**
-   * Called when the session is initialized.
+   * @internal
    */
-  onSessionInit(): void;
+  _onSessionInit(): void;
 
   /**
-   * Called when session starts.
+   * @internal
    */
-  onSessionStart(): void;
+  _onSessionStart(): void;
 
   /**
-   * Called when the session is stopped.
+   * @internal
    */
-  onSessionStop(): void;
+  _onSessionStop(): void;
 
   /**
-   * Called when the session is destroyed.
+   * @internal
    */
-  onSessionDestroy(): void;
+  _onSessionDestroy(): void;
 
   /**
-   * Returns whether the feature is supported.
-   */
-  _isSupported(): Promise<void>;
-
-  /**
-   * Generate the config of the feature.
+   * @internal
    */
   _generateConfig(): IXRFeatureConfig;
 }
