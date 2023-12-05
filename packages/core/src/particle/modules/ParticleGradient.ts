@@ -72,6 +72,7 @@ export class ParticleGradient {
     }
 
     const key = typeof timeOrKey === "number" ? new GradientColorKey(timeOrKey, color) : timeOrKey;
+    key._onValueChanged = this._setColorTypeArrayDirty.bind(this);
     this._addKey(colorKeys, key);
     this._colorTypeArrayDirty = true;
   }
@@ -97,6 +98,7 @@ export class ParticleGradient {
     }
 
     const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha) : timeOrKey;
+    key._onValueChanged = this._setAlphaTypeArrayDirty.bind(this);
     this._addKey(alphaKeys, key);
     this._alphaTypeArrayDirty = true;
   }
@@ -200,28 +202,96 @@ export class ParticleGradient {
   private _removeKey<T extends { time: number }>(keys: T[], index: number): void {
     keys.splice(index, 1);
   }
+
+  private _setColorTypeArrayDirty(): void {
+    this._colorTypeArrayDirty = true;
+  }
+
+  private _setAlphaTypeArrayDirty(): void {
+    this._alphaTypeArrayDirty = true;
+  }
 }
 
 /**
  * The color key of the particle gradient.
  */
 export class GradientColorKey {
-  constructor(
-    /** The key time. */
-    public time: number,
-    /** The key color. */
-    public color: Color
-  ) {}
+  /** @internal */
+  _time: number;
+  /** @internal */
+  _color: Color;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * Constructor of GradientColorKey.
+   * @param time - The time of the gradient colorKey, default 0
+   * @param color - The alpha component of the gradient colorKey, default (0,0,0,1)
+   */
+  constructor(time: number = 0.5, color: Color = new Color()) {
+    this._time = time;
+    this._color = color;
+    // @ts-ignore
+    this._color._onValueChanged = this._onValueChanged;
+  }
+  /** The key time. */
+  public get time() {
+    return this._time;
+  }
+
+  public set time(value: number) {
+    this._time = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /** The key color. */
+  public get color() {
+    return this._color;
+  }
+
+  public set color(value: Color) {
+    this._color = value;
+    this._onValueChanged && this._onValueChanged();
+    // @ts-ignore
+    this._color._onValueChanged = this._onValueChanged;
+  }
 }
 
-/**
- * The alpha key of the particle gradient.
- */
 export class GradientAlphaKey {
-  constructor(
-    /** The key time. */
-    public time: number,
-    /** The key alpha. */
-    public alpha: number
-  ) {}
+  /** @internal */
+  _time: number;
+  /** @internal */
+  _alpha: number;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * Constructor of GradientAlphaKey.
+   * @param time - The time of the gradient alpha key, default 0
+   * @param alpha - The alpha component of the gradient alpha key, default 0
+   */
+  constructor(time: number = 0, alpha: number = 0) {
+    this._time = time;
+    this._alpha = alpha;
+  }
+
+  /** The key time. */
+  public get time() {
+    return this._time;
+  }
+
+  public set time(value: number) {
+    this._time = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /** The key alpha. */
+  public get alpha() {
+    return this._alpha;
+  }
+
+  public set alpha(value: number) {
+    this._alpha = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 }
