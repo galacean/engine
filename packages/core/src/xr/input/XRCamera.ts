@@ -8,12 +8,12 @@ import { XRInput } from "./XRInput";
  * The XR camera.
  */
 export class XRCamera extends XRInput implements IXRCamera {
+  /** The pose of the camera in XR space. */
+  pose: XRPose = new XRPose();
   /** The viewport of the camera. */
   viewport: Rect = new Rect();
   /** The projection matrix of the camera. */
   projectionMatrix: Matrix = new Matrix();
   /** The associated virtual camera. */
   camera: Camera;
-  /** The pose of the camera in XR space. */
-  pose: XRPose;
 }

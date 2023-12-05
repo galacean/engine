@@ -7,16 +7,16 @@ import { XRInputButton } from "./XRInputButton";
  * The XR controller.
  */
 export class XRController extends XRInput implements IXRController {
+  /** The grip space pose of the controller in XR space. */
+  gripPose: XRPose = new XRPose();
+  /** The target ray space pose of the controller in XR space. */
+  targetRayPose: XRPose = new XRPose();
   /** The currently pressed buttons of this controller. */
   pressedButtons: XRInputButton = XRInputButton.None;
   /** Record button lifted. */
   down: number = 0;
   /** Record button pressed. */
   up: number = 0;
-  /** The grip space pose of the controller in XR space. */
-  gripPose: XRPose = new XRPose();
-  /** The target ray space pose of the controller in XR space. */
-  targetRayPose: XRPose = new XRPose();
 
   /**
    *
