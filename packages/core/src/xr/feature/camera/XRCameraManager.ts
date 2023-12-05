@@ -93,13 +93,7 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  _onSessionStart(): void {
-    const { _cameras: cameras } = this._engine.xrManager.inputManager;
-    for (let i = 0, n = cameras.length; i < n; i++) {
-      const { camera } = cameras[i];
-      camera && (camera.clearFlags &= ~CameraClearFlags.Color);
-    }
-  }
+  _onSessionStart(): void {}
 
   /**
    * @internal
@@ -130,13 +124,7 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  _onSessionDestroy(): void {
-    const { _cameras: cameras } = this._engine.xrManager.inputManager;
-    for (let i = 0, n = cameras.length; i < n; i++) {
-      const { camera } = cameras[i];
-      camera && (camera.clearFlags |= CameraClearFlags.Color);
-    }
-  }
+  _onSessionDestroy(): void {}
 
   /**
    * @internal
