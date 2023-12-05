@@ -540,7 +540,6 @@ export class Camera extends Component {
         this.engine.xrManager.cameraManager._getCameraClearFlagsMask(this._cameraType)
       );
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
   }
 

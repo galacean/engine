@@ -126,12 +126,12 @@ export class XRCameraManager {
   _getCameraClearFlagsMask(cameraType: CameraType): CameraClearFlags {
     if (cameraType === CameraType.XRCenterCamera) {
       if (this._engine.xrManager.sessionManager.state === XRSessionState.Running) {
-        return CameraClearFlags.DepthStencil;
+        return CameraClearFlags.Color;
       } else {
-        return CameraClearFlags.All;
+        return CameraClearFlags.None;
       }
     } else {
-      return CameraClearFlags.All;
+      return CameraClearFlags.None;
     }
   }
 
