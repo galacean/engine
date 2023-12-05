@@ -2,10 +2,9 @@ import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
 import { Engine } from "../../../Engine";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
+import { CameraType } from "../../../enums/CameraType";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
-import { XRSessionMode } from "../../session/XRSessionMode";
-import { CameraType } from "../../../enums/CameraType";
 import { XRSessionState } from "../../session/XRSessionState";
 
 /**
@@ -49,19 +48,6 @@ export class XRCameraManager {
     camera: Camera
   ): void {
     this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type).camera = camera;
-    switch (type) {
-      case XRTrackedInputDevice.Camera:
-        camera._cameraType = CameraType.XRCenterCamera;
-        break;
-      case XRTrackedInputDevice.LeftCamera:
-        camera._cameraType = CameraType.XRLeftCamera;
-        break;
-      case XRTrackedInputDevice.RightCamera:
-        camera._cameraType = CameraType.XRRightCamera;
-        break;
-      default:
-        break;
-    }
   }
 
   /**
@@ -74,20 +60,8 @@ export class XRCameraManager {
   ): Camera {
     const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera.camera;
-    preCamera._cameraType = CameraType.Normal;
     xrCamera.camera = null;
     return preCamera;
-  }
-
-  /**
-   * Get the camera by the specified input type.
-   * @param type - The input type
-   * @returns The camera
-   */
-  getCameraByType(
-    type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
-  ): Camera {
-    return this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type).camera;
   }
 
   /**

@@ -1,11 +1,11 @@
 import { IXRFeatureConfig, IXRTrackedPlane } from "@galacean/engine-design";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { XRManager } from "../../XRManager";
+import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
 import { XRSessionMode } from "../../session/XRSessionMode";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
-import { XRCameraManager } from "../camera/XRCameraManager";
 import { XRPlaneTracking } from "../trackable/plane/XRPlaneTracking";
 import { TrackableType } from "./TrackableType";
 import { XRHitResult } from "./XRHitResult";
@@ -14,7 +14,6 @@ import { XRHitResult } from "./XRHitResult";
  * The manager of XR hit test.
  */
 export class XRHitTest extends XRFeature {
-  private _xrCameraManager: XRCameraManager;
   private _tempRay: Ray = new Ray();
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec30: Vector3 = new Vector3();
@@ -29,7 +28,6 @@ export class XRHitTest extends XRFeature {
    */
   constructor(xrManager: XRManager) {
     super(xrManager);
-    this._xrCameraManager = xrManager.cameraManager;
     this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
   }
 
@@ -54,10 +52,11 @@ export class XRHitTest extends XRFeature {
    * @returns The hit result
    */
   screenHitTest(x: number, y: number, type: TrackableType): XRHitResult[] {
-    if (this._xrManager.sessionManager.mode !== XRSessionMode.AR) {
+    const { _xrManager: xrManager } = this;
+    if (xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
-    const camera = this._xrCameraManager.getCameraByType(XRTrackedInputDevice.Camera);
+    const camera = xrManager.inputManager.getTrackedDevice<XRCamera>(XRTrackedInputDevice.Camera).camera;
     if (!camera) {
       throw new Error("No camera available.");
     }

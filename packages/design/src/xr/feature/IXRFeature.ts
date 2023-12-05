@@ -8,9 +8,9 @@ export interface IXRFeature {
   enabled: boolean;
 
   /**
-   * Initialize the feature.
+   * @internal
    */
-  initialize(): Promise<void>;
+  _initialize(): Promise<void>;
 
   /**
    * @internal

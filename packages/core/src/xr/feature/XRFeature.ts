@@ -35,10 +35,9 @@ export abstract class XRFeature<
   }
 
   /**
-   * Initialize the feature.
-   * @returns The promise of the feature
+   * @internal
    */
-  initialize(): Promise<void> {
+  _initialize(): Promise<void> {
     return Promise.resolve();
   }
 
@@ -87,6 +86,6 @@ export abstract class XRFeature<
    * @returns The config of the feature
    */
   _generateConfig(): TConfig {
-    return null;
+    throw new Error("Method not implemented.");
   }
 }

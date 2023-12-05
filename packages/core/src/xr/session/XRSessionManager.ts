@@ -104,7 +104,7 @@ export class XRSessionManager {
         // Initialize all features
         const allPromises = [];
         for (let i = 0, n = features.length; i < n; i++) {
-          allPromises.push(features[i].initialize());
+          allPromises.push(features[i]._initialize());
         }
         Promise.all(allPromises).then(() => {
           xrManager._onSessionInit();
