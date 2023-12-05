@@ -56,7 +56,7 @@ export class XRHitTest extends XRFeature {
     if (xrManager.sessionManager.mode !== XRSessionMode.AR) {
       throw new Error("Only AR mode supports using screen ray detection.");
     }
-    const camera = xrManager.inputManager.getTrackedDevice<XRCamera>(XRTrackedInputDevice.Camera).camera;
+    const { _camera: camera } = xrManager.inputManager.getTrackedDevice<XRCamera>(XRTrackedInputDevice.Camera);
     if (!camera) {
       throw new Error("No camera available.");
     }

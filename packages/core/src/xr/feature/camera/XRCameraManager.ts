@@ -47,7 +47,25 @@ export class XRCameraManager {
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera,
     camera: Camera
   ): void {
-    this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type).camera = camera;
+    const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
+    const preCamera = xrCamera._camera;
+    if (preCamera !== camera) {
+      preCamera && (preCamera._cameraType = CameraType.Normal);
+      switch (type) {
+        case XRTrackedInputDevice.Camera:
+          camera._cameraType = CameraType.XRCenterCamera;
+          break;
+        case XRTrackedInputDevice.LeftCamera:
+          camera._cameraType = CameraType.XRLeftCamera;
+          break;
+        case XRTrackedInputDevice.RightCamera:
+          camera._cameraType = CameraType.XRRightCamera;
+          break;
+        default:
+          break;
+      }
+      xrCamera._camera = camera;
+    }
   }
 
   /**
@@ -59,8 +77,9 @@ export class XRCameraManager {
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
   ): Camera {
     const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
-    const preCamera = xrCamera.camera;
-    xrCamera.camera = null;
+    const preCamera = xrCamera._camera;
+    preCamera && (preCamera._cameraType = CameraType.Normal);
+    xrCamera._camera = null;
     return preCamera;
   }
 
@@ -76,7 +95,7 @@ export class XRCameraManager {
     const { _cameras: cameras } = this._engine.xrManager.inputManager;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const cameraDevice = cameras[i];
-      const { camera } = cameraDevice;
+      const { _camera: camera } = cameraDevice;
       if (!camera) continue;
       // sync position and rotation
       const { transform } = camera.entity;
