@@ -99,8 +99,9 @@ export class XRCameraManager {
       if (!camera) continue;
       // sync position and rotation
       const { transform } = camera.entity;
-      transform.position = cameraDevice.pose.position;
-      transform.rotationQuaternion = cameraDevice.pose.rotation;
+      const { pose } = cameraDevice;
+      transform.position = pose.position;
+      transform.rotationQuaternion = pose.rotation;
       // sync viewport
       const { viewport } = camera;
       const { x, y, width, height } = cameraDevice.viewport;
