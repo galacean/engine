@@ -38,7 +38,6 @@ export class ParticleGradient {
    * @param alphaKeys - The alpha keys of the gradient
    */
   constructor(colorKeys: GradientColorKey[] = null, alphaKeys: GradientAlphaKey[] = null) {
-    this.colorKeys[0].color.r = 1;
     if (colorKeys) {
       for (let i = 0, n = colorKeys.length; i < n; i++) {
         const key = colorKeys[i];
@@ -110,6 +109,7 @@ export class ParticleGradient {
    * @param index - The remove color key index
    */
   removeColorKey(index: number): void {
+    this._colorKeys[index]._onValueChanged = null;
     this._removeKey(this._colorKeys, index);
     this._colorTypeArrayDirty = true;
   }
@@ -119,6 +119,7 @@ export class ParticleGradient {
    * @param index - The remove alpha key index
    */
   removeAlphaKey(index: number): void {
+    this._alphaKeys[index]._onValueChanged = null;
     this._removeKey(this._alphaKeys, index);
     this._alphaTypeArrayDirty = true;
   }
@@ -129,13 +130,21 @@ export class ParticleGradient {
    * @param alphaKeys - The alpha keys
    */
   setKeys(colorKeys: GradientColorKey[], alphaKeys: GradientAlphaKey[]): void {
-    this._alphaKeys.length = 0;
-    this._colorKeys.length = 0;
+    const currentColorKeys = this._colorKeys;
+    const currentAlphaKeys = this._alphaKeys;
+    for (let i = 0, n = currentColorKeys.length; i < n; i++) {
+      currentColorKeys[i]._onValueChanged = null;
+    }
+    for (let i = 0, n = currentAlphaKeys.length; i < n; i++) {
+      currentAlphaKeys[i]._onValueChanged = null;
+    }
+    currentColorKeys.length = 0;
+    currentAlphaKeys.length = 0;
     for (let i = 0, n = colorKeys.length; i < n; i++) {
-      this._addKey(this._colorKeys, colorKeys[i]);
+      this._addKey(currentColorKeys, colorKeys[i]);
     }
     for (let i = 0, n = alphaKeys.length; i < n; i++) {
-      this._addKey(this._alphaKeys, alphaKeys[i]);
+      this._addKey(currentAlphaKeys, alphaKeys[i]);
     }
     this._alphaTypeArrayDirty = true;
     this._colorTypeArrayDirty = true;
