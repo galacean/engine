@@ -218,11 +218,11 @@ export class ParticleGradient {
  * The color key of the particle gradient.
  */
 export class GradientColorKey {
-  private _time: number;
-  private _color: Color = new Color();
-
   /** @internal */
   _onValueChanged: () => void = null;
+
+  private _time: number;
+  private _color: Color = new Color();
 
   /**
    * Constructor of GradientColorKey.
@@ -266,11 +266,11 @@ export class GradientColorKey {
  * The alpha key of the particle gradient.
  */
 export class GradientAlphaKey {
-  private _time: number;
-  private _alpha: number;
-
   /** @internal */
   _onValueChanged: () => void = null;
+
+  private _time: number;
+  private _alpha: number;
 
   /**
    * Constructor of GradientAlphaKey.
