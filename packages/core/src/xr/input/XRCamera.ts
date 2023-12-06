@@ -4,7 +4,6 @@ import { Camera } from "../../Camera";
 import { XRPose } from "../XRPose";
 import { XRInput } from "./XRInput";
 
-
 /**
  * The XR camera.
  */
