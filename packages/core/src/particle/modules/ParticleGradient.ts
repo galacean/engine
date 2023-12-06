@@ -14,6 +14,7 @@ export class ParticleGradient {
   private _colorTypeArray: Float32Array;
   @ignoreClone
   private _alphaTypeArray: Float32Array;
+
   private _colorTypeArrayDirty: boolean = false;
   private _alphaTypeArrayDirty: boolean = false;
 
@@ -37,6 +38,7 @@ export class ParticleGradient {
    * @param alphaKeys - The alpha keys of the gradient
    */
   constructor(colorKeys: GradientColorKey[] = null, alphaKeys: GradientAlphaKey[] = null) {
+    this.colorKeys[0].color.r = 1;
     if (colorKeys) {
       for (let i = 0, n = colorKeys.length; i < n; i++) {
         const key = colorKeys[i];
@@ -216,81 +218,90 @@ export class ParticleGradient {
  * The color key of the particle gradient.
  */
 export class GradientColorKey {
-  /** @internal */
-  _time: number;
-  /** @internal */
-  _color: Color;
+  private _time: number;
+  private _color: Color = new Color();
+
   /** @internal */
   _onValueChanged: () => void = null;
 
   /**
    * Constructor of GradientColorKey.
-   * @param time - The time of the gradient colorKey, default 0
-   * @param color - The alpha component of the gradient colorKey, default (0,0,0,1)
+   * @param time - The time of the gradient colorKey
+   * @param color - The alpha component of the gradient colorKey
    */
-  constructor(time: number = 0.5, color: Color = new Color()) {
+  constructor(time: number, color: Color) {
     this._time = time;
-    this._color = color;
+    color && this._color.copyFrom(color);
     // @ts-ignore
     this._color._onValueChanged = this._onValueChanged;
   }
-  /** The key time. */
-  public get time() {
+
+  /**
+   * The key time.
+   */
+  get time(): number {
     return this._time;
   }
 
-  public set time(value: number) {
+  set time(value: number) {
     this._time = value;
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The key color. */
-  public get color() {
+  /**
+   * The key color.
+   */
+  get color(): Color {
     return this._color;
   }
 
-  public set color(value: Color) {
-    this._color = value;
-    this._onValueChanged && this._onValueChanged();
-    // @ts-ignore
-    this._color._onValueChanged = this._onValueChanged;
+  set color(value: Color) {
+    if (this._color !== value) {
+      this._color.copyFrom(value);
+    }
   }
 }
 
+/**
+ * The alpha key of the particle gradient.
+ */
 export class GradientAlphaKey {
-  /** @internal */
-  _time: number;
-  /** @internal */
-  _alpha: number;
+  private _time: number;
+  private _alpha: number;
+
   /** @internal */
   _onValueChanged: () => void = null;
 
   /**
    * Constructor of GradientAlphaKey.
-   * @param time - The time of the gradient alpha key, default 0
-   * @param alpha - The alpha component of the gradient alpha key, default 0
+   * @param time - The time of the gradient alpha key
+   * @param alpha - The alpha component of the gradient alpha key
    */
-  constructor(time: number = 0, alpha: number = 0) {
+  constructor(time: number, alpha: number) {
     this._time = time;
     this._alpha = alpha;
   }
 
-  /** The key time. */
-  public get time() {
+  /**
+   * The key time.
+   */
+  get time(): number {
     return this._time;
   }
 
-  public set time(value: number) {
+  set time(value: number) {
     this._time = value;
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The key alpha. */
-  public get alpha() {
+  /**
+   * The key alpha.
+   */
+  get alpha(): number {
     return this._alpha;
   }
 
-  public set alpha(value: number) {
+  set alpha(value: number) {
     this._alpha = value;
     this._onValueChanged && this._onValueChanged();
   }
