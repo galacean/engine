@@ -69,7 +69,7 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
   /**
    * @internal
    */
-  _makeUpOptions(options: XRSessionInit): void {
+  _assembleOptions(options: XRSessionInit): void {
     options.requiredFeatures.push("anchors");
   }
 

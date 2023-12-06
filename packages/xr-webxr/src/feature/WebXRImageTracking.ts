@@ -88,45 +88,10 @@ export class WebXRImageTracking implements IWebXRTrackablePlatformFeature {
     }
   }
 
-  private _requestTrackingScore(session: WebXRSession, requestTrackings: IXRRequestImageTracking[]): void {
-    this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
-    session._platformSession
-      // @ts-ignore
-      .getTrackedImageScores()
-      .then((trackingScores: ("untrackable" | "trackable")[]) => {
-        if (trackingScores) {
-          for (let i = 0, n = trackingScores.length; i < n; i++) {
-            const trackingScore = trackingScores[i];
-            const requestTracking = requestTrackings[i];
-            if (trackingScore === "trackable") {
-              this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
-              requestTracking.state = XRRequestTrackingState.Resolved;
-              requestTracking.tracked = [
-                {
-                  id: generateUUID(),
-                  measuredWidthInMeters: 1,
-                  pose: {
-                    matrix: new Matrix(),
-                    rotation: new Quaternion(),
-                    position: new Vector3(),
-                    inverseMatrix: new Matrix()
-                  },
-                  state: 0
-                }
-              ];
-            } else {
-              requestTracking.state = XRRequestTrackingState.Rejected;
-              console.warn(requestTracking.image.name, " unTrackable");
-            }
-          }
-        }
-      });
-  }
-
   /**
    * @internal
    */
-  _makeUpOptions(options: XRSessionInit): Promise<void> | void {
+  _assembleOptions(options: XRSessionInit): Promise<void> | void {
     options.requiredFeatures.push("image-tracking");
     const { _images: images } = this;
     const promiseArr: Promise<ImageBitmap>[] = [];
@@ -161,6 +126,41 @@ export class WebXRImageTracking implements IWebXRTrackablePlatformFeature {
     } else {
       return Promise.reject(new Error("Images.length is 0"));
     }
+  }
+
+  private _requestTrackingScore(session: WebXRSession, requestTrackings: IXRRequestImageTracking[]): void {
+    this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
+    session._platformSession
+      // @ts-ignore
+      .getTrackedImageScores()
+      .then((trackingScores: ("untrackable" | "trackable")[]) => {
+        if (trackingScores) {
+          for (let i = 0, n = trackingScores.length; i < n; i++) {
+            const trackingScore = trackingScores[i];
+            const requestTracking = requestTrackings[i];
+            if (trackingScore === "trackable") {
+              this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
+              requestTracking.state = XRRequestTrackingState.Resolved;
+              requestTracking.tracked = [
+                {
+                  id: generateUUID(),
+                  measuredWidthInMeters: 1,
+                  pose: {
+                    matrix: new Matrix(),
+                    rotation: new Quaternion(),
+                    position: new Vector3(),
+                    inverseMatrix: new Matrix()
+                  },
+                  state: 0
+                }
+              ];
+            } else {
+              requestTracking.state = XRRequestTrackingState.Rejected;
+              console.warn(requestTracking.image.name, " unTrackable");
+            }
+          }
+        }
+      });
   }
 
   private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: IXRTrackedImage, trackingResult: any) {

@@ -82,7 +82,7 @@ export class WebXRPlaneTracking implements IWebXRTrackablePlatformFeature {
   /**
    * @internal
    */
-  _makeUpOptions(options: XRSessionInit): void {
+  _assembleOptions(options: XRSessionInit): void {
     options.requiredFeatures.push("plane-detection");
   }
 
