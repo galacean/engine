@@ -115,7 +115,7 @@ export abstract class XRTrackableFeature<
     this._added.length = this._updated.length = this._removed.length = 0;
   }
 
-  override _onSessionDestroy(): void {
+  override _onSessionExit(): void {
     // prettier-ignore
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
   }

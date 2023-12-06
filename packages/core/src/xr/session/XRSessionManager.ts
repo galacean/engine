@@ -51,7 +51,7 @@ export class XRSessionManager {
     this._rhi = _engine._hardwareRenderer;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
-    this._onSessionDestroy = this._onSessionDestroy.bind(this);
+    this._onSessionExit = this._onSessionExit.bind(this);
   }
 
   /**
@@ -106,16 +106,9 @@ export class XRSessionManager {
         this._platformSession = session;
         this._state = XRSessionState.Initialized;
         session.addEventListener();
-        session.addExitListener(this._onSessionDestroy);
-        // Initialize all features
-        const initializePromises = [];
-        for (let i = 0, n = features.length; i < n; i++) {
-          initializePromises.push(features[i]._initialize());
-        }
-        Promise.all(initializePromises).then(() => {
-          xrManager._onSessionInit();
-          resolve();
-        }, reject);
+        session.addExitListener(this._onSessionExit);
+        xrManager._onSessionInit();
+        resolve();
       }, reject);
     });
   }
@@ -163,15 +156,15 @@ export class XRSessionManager {
     return platformSession.end();
   }
 
-  private _onSessionDestroy() {
+  private _onSessionExit() {
     const { _rhi: rhi, _platformSession: platformSession } = this;
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.removeEventListener();
-    platformSession.removeExitListener(this._onSessionDestroy);
+    platformSession.removeExitListener(this._onSessionExit);
     this._platformSession = null;
     this._state = XRSessionState.None;
-    this._engine.xrManager._onSessionDestroy();
+    this._engine.xrManager._onSessionExit();
   }
 
   /**

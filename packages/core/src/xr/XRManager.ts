@@ -233,12 +233,12 @@ export class XRManager {
   /**
    * @internal
    */
-  _onSessionDestroy(): void {
-    this.cameraManager._onSessionDestroy();
+  _onSessionExit(): void {
+    this.cameraManager._onSessionExit();
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
-      feature.enabled && feature._onSessionDestroy();
+      feature.enabled && feature._onSessionExit();
       feature._onDestroy();
     }
     features.length = 0;

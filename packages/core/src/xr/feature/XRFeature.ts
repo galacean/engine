@@ -39,13 +39,6 @@ export abstract class XRFeature<T extends IXRPlatformFeature = IXRPlatformFeatur
   /**
    * @internal
    */
-  _initialize(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  /**
-   * @internal
-   */
   _onEnable(): void {}
 
   /**
@@ -76,7 +69,7 @@ export abstract class XRFeature<T extends IXRPlatformFeature = IXRPlatformFeatur
   /**
    * @internal
    */
-  _onSessionDestroy(): void {}
+  _onSessionExit(): void {}
 
   /**
    * @internal

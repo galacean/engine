@@ -118,7 +118,7 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  _onSessionDestroy(): void {}
+  _onSessionExit(): void {}
 
   /**
    * @internal

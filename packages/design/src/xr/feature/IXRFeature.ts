@@ -9,11 +9,6 @@ export interface IXRFeature {
   /**
    * @internal
    */
-  _initialize(): Promise<void>;
-
-  /**
-   * @internal
-   */
   _onEnable(): void;
 
   /**
@@ -49,5 +44,5 @@ export interface IXRFeature {
   /**
    * @internal
    */
-  _onSessionDestroy(): void;
+  _onSessionExit(): void;
 }
