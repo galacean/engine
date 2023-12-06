@@ -25,7 +25,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     const assemblerType = subMap ? subMap[property] : undefined;
-    const isMethod = property.indexOf(")") !== -1;
     return assemblerType ?? UniversalAnimationCurveOwnerAssembler;
   }
 
