@@ -7,7 +7,13 @@ import {
   XRTrackingState,
   request
 } from "@galacean/engine";
-import { IXRReferenceImage, IXRRequestImageTracking, IXRTrackedImage } from "@galacean/engine-design";
+import {
+  IXRReferenceImage,
+  IXRRequestImageTracking,
+  IXRRequestTracking,
+  IXRTracked,
+  IXRTrackedImage
+} from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -36,12 +42,8 @@ export class WebXRImageTracking implements IWebXRTrackablePlatformFeature {
     this._images = images;
   }
 
-  initialize(requestTrackings: IXRRequestImageTracking[]): Promise<void> {
-    this._trackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      requestTrackings[i].state = XRRequestTrackingState.Submitted;
-    }
-    return Promise.resolve();
+  onAddRequestTracking(requestTracking: IXRRequestTracking<IXRTracked>): void {
+    requestTracking.state = XRRequestTrackingState.Submitted;
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImageTracking[]): boolean {
@@ -106,7 +108,8 @@ export class WebXRImageTracking implements IWebXRTrackablePlatformFeature {
                   pose: {
                     matrix: new Matrix(),
                     rotation: new Quaternion(),
-                    position: new Vector3()
+                    position: new Vector3(),
+                    inverseMatrix: new Matrix()
                   },
                   state: 0
                 }

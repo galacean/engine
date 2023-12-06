@@ -2,6 +2,7 @@ import { IXRRequestTracking, IXRTrackablePlatformFeature, IXRTracked } from "@ga
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRFeature } from "../XRFeature";
 import { XRRequestTrackingState } from "./XRRequestTrackingState";
+import { XRFeatureType } from "../XRFeatureType";
 
 /**
  * The base class of XR trackable manager.
@@ -126,16 +127,18 @@ export abstract class XRTrackableFeature<
   }
 
   protected _addRequestTracking(requestTracking: TXRRequestTracking): void {
-    if (!this._canModifyRequestTracking()) {
-      throw new Error("Request tracking cannot be modified after XR session initialization.");
+    const { _platformFeature: platformFeature } = this;
+    if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
+      throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
     this._requestTrackings.push(requestTracking);
-    this._platformFeature.onAddRequestTracking && this._platformFeature.onAddRequestTracking(requestTracking);
+    platformFeature.onAddRequestTracking && platformFeature.onAddRequestTracking(requestTracking);
   }
 
   protected _removeRequestTracking(requestTracking: TXRRequestTracking): void {
-    if (!this._canModifyRequestTracking()) {
-      throw new Error("Request tracking cannot be modified after XR session initialization.");
+    const { _platformFeature: platformFeature } = this;
+    if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
+      throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
     const { _requestTrackings: requestTrackings } = this;
     const lastIndex = requestTrackings.length - 1;
@@ -143,24 +146,21 @@ export abstract class XRTrackableFeature<
     if (index >= 0) {
       index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
       requestTrackings.length = lastIndex;
-      this._platformFeature.onDeleteRequestTracking && this._platformFeature.onDeleteRequestTracking(requestTracking);
+      platformFeature.onDelRequestTracking && platformFeature.onDelRequestTracking(requestTracking);
     }
   }
 
   protected _removeAllRequestTrackings(): void {
-    if (!this._canModifyRequestTracking()) {
-      throw new Error("Request tracking cannot be modified after XR session initialization.");
+    const { _platformFeature: platformFeature } = this;
+    if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
+      throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
-    const { _requestTrackings: requestTrackings, _platformFeature: platformFeature } = this;
-    if (platformFeature.onDeleteRequestTracking) {
+    const { _requestTrackings: requestTrackings } = this;
+    if (platformFeature.onDelRequestTracking) {
       for (let i = 0, n = requestTrackings.length; i < n; i++) {
-        platformFeature.onDeleteRequestTracking(requestTrackings[i]);
+        platformFeature.onDelRequestTracking(requestTrackings[i]);
       }
     }
     requestTrackings.length = 0;
-  }
-
-  private _canModifyRequestTracking(): boolean {
-    return !this._xrManager.sessionManager._platformSession || this._platformFeature.canModifyRequestTrackingAfterInit;
   }
 }

@@ -10,12 +10,6 @@ export interface IXRTrackablePlatformFeature extends IXRPlatformFeature {
   get canModifyRequestTrackingAfterInit(): boolean;
 
   /**
-   * Initialize the feature.
-   * @param descriptor - The descriptor of the feature
-   */
-  initialize(requestTrackings: IXRRequestTracking[]): Promise<void>;
-
-  /**
    * Get the tracked result.
    * @param session - The XR session
    * @param frame - The XR frame
@@ -41,5 +35,5 @@ export interface IXRTrackablePlatformFeature extends IXRPlatformFeature {
    * Called when request tracking is removed.
    * @param requestTracking - The request tracking
    */
-  onDeleteRequestTracking?(requestTracking: IXRRequestTracking): void;
+  onDelRequestTracking?(requestTracking: IXRRequestTracking): void;
 }

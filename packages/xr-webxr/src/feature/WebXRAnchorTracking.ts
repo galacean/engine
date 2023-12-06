@@ -15,10 +15,6 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
     return true;
   }
 
-  initialize(requestTrackings: IXRRequestAnchorTracking[]): Promise<void> {
-    return Promise.resolve();
-  }
-
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchorTracking[]): boolean {
     if (!frame._platformFrame) return false;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
@@ -53,7 +49,7 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
     }
   }
 
-  onDeleteRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
+  onDelRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
     switch (requestTracking.state) {
       case XRRequestTrackingState.Submitted:
         requestTracking.state = XRRequestTrackingState.WaitingDestroy;

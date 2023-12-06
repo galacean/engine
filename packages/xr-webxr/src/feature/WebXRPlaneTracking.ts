@@ -7,7 +7,7 @@ import {
   XRRequestTrackingState,
   XRTrackingState
 } from "@galacean/engine";
-import { IXRRequestPlaneTracking, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRRequestPlaneTracking, IXRRequestTracking, IXRTracked, IXRTrackedPlane } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -31,11 +31,8 @@ export class WebXRPlaneTracking implements IWebXRTrackablePlatformFeature {
     }
   }
 
-  initialize(requestTrackings: IXRRequestPlaneTracking[]): Promise<void> {
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      requestTrackings[i].state = XRRequestTrackingState.Resolved;
-    }
-    return Promise.resolve();
+  onAddRequestTracking(requestTracking: IXRRequestTracking<IXRTracked>): void {
+    requestTracking.state = XRRequestTrackingState.Resolved;
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlaneTracking[]): boolean {
