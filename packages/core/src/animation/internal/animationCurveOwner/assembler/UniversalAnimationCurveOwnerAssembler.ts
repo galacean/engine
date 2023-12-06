@@ -28,12 +28,12 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
     for (let i = 0; i < endIndex; i++) {
       const property = properties[i];
       if (property.indexOf("[") > -1) {
-        // 数组索引
+        // is array
         const indexPos = property.indexOf("[");
         mounted = mounted[property.slice(0, indexPos)];
         mounted = mounted[parseInt(property.slice(indexPos + 1, -1))];
       } else if (property.endsWith(")")) {
-        // 函数调用
+        // is method
         const methodName = property.slice(0, property.indexOf("("));
         const args = property
           .match(/\w+\(([^)]*)\)/)[1]
@@ -42,7 +42,7 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
           .filter((arg) => arg !== "");
         mounted = mounted[methodName](...args);
       } else {
-        // 属性访问
+        // is property
         mounted = mounted[property];
       }
     }
@@ -57,7 +57,6 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
       this._setType = SetType.Array;
       this._mounted = mounted[property.slice(0, indexPos)];
       this._arrayIndex = parseInt(property.slice(indexPos + 1, -1));
-      // 数组索引
     } else if (property.endsWith(")")) {
       this._methodName = property.slice(0, property.indexOf("("));
       const args = (this._args = property
@@ -80,7 +79,6 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
     const setType = this._setType;
 
     if (setType === SetType.Array) {
-      // 数组索引
       return this._mounted[this._arrayIndex];
     } else if (setType === SetType.Method) {
       return this._mounted[`_o_${property}`];
@@ -94,7 +92,6 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
     const setType = this._setType;
 
     if (setType === SetType.Array) {
-      // 数组索引
       this._mounted[this._arrayIndex] = value;
     } else if (setType === SetType.Method) {
       const methodName = this._methodName;
