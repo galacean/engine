@@ -95,7 +95,7 @@ export class ParticleGradient {
     const alphaKeys = this._alphaKeys;
 
     if (alphaKeys.length === 4) {
-      throw new Error("Gradient can only have 4 color keys");
+      throw new Error("Gradient can only have 4 alpha keys");
     }
 
     const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha) : timeOrKey;
