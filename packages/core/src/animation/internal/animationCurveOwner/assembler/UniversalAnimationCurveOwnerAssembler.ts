@@ -8,7 +8,6 @@ enum SetType {
   Method,
   Array
 }
-
 /**
  * @internal
  */
