@@ -1,4 +1,4 @@
-import { XRTrackedInputDevice, request } from "@galacean/engine";
+import { XRTrackedInputDevice } from "@galacean/engine";
 import { WebXRDevice } from "./WebXRDevice";
 
 export function generateUUID(): number {
@@ -55,8 +55,4 @@ export function viewToCamera(type: XREye): number {
     default:
       return XRTrackedInputDevice.Camera;
   }
-}
-
-function createImageBitmapByURL(url: string): Promise<ImageBitmap> {
-  return request<HTMLImageElement>(url, { type: "image" }).then((image) => createImageBitmap(image));
 }

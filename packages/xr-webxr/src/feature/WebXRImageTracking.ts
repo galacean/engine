@@ -7,16 +7,12 @@ import {
   XRTrackingState,
   request
 } from "@galacean/engine";
-import {
-  IXRReferenceImage,
-  IXRRequestImageTracking,
-  IXRTrackablePlatformFeature,
-  IXRTrackedImage
-} from "@galacean/engine-design";
+import { IXRReferenceImage, IXRRequestImageTracking, IXRTrackedImage } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { generateUUID } from "../util";
+import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
@@ -26,7 +22,7 @@ import { generateUUID } from "../util";
  * the device can choose an arbitrary instance to report a pose,
  * and this choice can change for future XRFrames.
  */
-export class WebXRImageTracking implements IXRTrackablePlatformFeature {
+export class WebXRImageTracking implements IWebXRTrackablePlatformFeature {
   private _images: IXRReferenceImage[];
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   private _tempIdx: number = 0;
@@ -124,6 +120,9 @@ export class WebXRImageTracking implements IXRTrackablePlatformFeature {
       });
   }
 
+  /**
+   * @internal
+   */
   _makeUpOptions(options: XRSessionInit): Promise<void> | void {
     options.requiredFeatures.push("image-tracking");
     const { _images: images } = this;

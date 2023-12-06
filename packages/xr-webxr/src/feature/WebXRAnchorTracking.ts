@@ -1,15 +1,16 @@
 import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
-import { IXRRequestAnchorTracking, IXRTrackablePlatformFeature } from "@galacean/engine-design";
+import { IXRRequestAnchorTracking } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { generateUUID } from "../util";
+import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
 
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
-export class WebXRAnchorTracking implements IXRTrackablePlatformFeature {
+export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
   get canModifyRequestTrackingAfterInit(): boolean {
     return true;
   }
@@ -69,6 +70,9 @@ export class WebXRAnchorTracking implements IXRTrackablePlatformFeature {
     }
   }
 
+  /**
+   * @internal
+   */
   _makeUpOptions(options: XRSessionInit): void {
     options.requiredFeatures.push("anchors");
   }

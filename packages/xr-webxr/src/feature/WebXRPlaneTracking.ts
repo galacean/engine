@@ -7,17 +7,18 @@ import {
   XRRequestTrackingState,
   XRTrackingState
 } from "@galacean/engine";
-import { IXRRequestPlaneTracking, IXRTrackablePlatformFeature, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRRequestPlaneTracking, IXRTrackedPlane } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { generateUUID } from "../util";
+import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
-export class WebXRPlaneTracking implements IXRTrackablePlatformFeature {
+export class WebXRPlaneTracking implements IWebXRTrackablePlatformFeature {
   private _lastDetectedPlanes: XRPlaneSet;
 
   get canModifyRequestTrackingAfterInit(): boolean {
@@ -81,6 +82,9 @@ export class WebXRPlaneTracking implements IXRTrackablePlatformFeature {
     this._lastDetectedPlanes = detectedPlanes;
   }
 
+  /**
+   * @internal
+   */
   _makeUpOptions(options: XRSessionInit): void {
     options.requiredFeatures.push("plane-detection");
   }
