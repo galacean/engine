@@ -1,5 +1,4 @@
-import { XRFeatureType, XRTrackedInputDevice, request } from "@galacean/engine";
-import { IXRFeatureConfig, IXRImageTrackingConfig } from "@galacean/engine-design";
+import { XRTrackedInputDevice, request } from "@galacean/engine";
 import { WebXRDevice } from "./WebXRDevice";
 
 export function generateUUID(): number {
@@ -14,56 +13,6 @@ export function parseXRMode(mode: number): XRSessionMode | null {
       return "immersive-vr";
     default:
       return null;
-  }
-}
-
-export function parseFeature(config: IXRFeatureConfig, options: XRSessionInit): Promise<void> | void {
-  const { requiredFeatures } = options;
-  switch (config.type) {
-    case XRFeatureType.AnchorTracking:
-      requiredFeatures.push("anchors");
-      break;
-    case XRFeatureType.ImageTracking:
-      requiredFeatures.push("image-tracking");
-      const { images } = <IXRImageTrackingConfig>config;
-      const promiseArr: Promise<ImageBitmap>[] = [];
-      if (images) {
-        for (let i = 0, n = images.length; i < n; i++) {
-          const referenceImage = images[i];
-          const { src } = images[i];
-          if (!src) {
-            return Promise.reject(new Error("referenceImage[" + referenceImage.name + "].src is null"));
-          } else {
-            if (typeof src === "string") {
-              promiseArr.push(createImageBitmapByURL(src));
-            } else {
-              promiseArr.push(createImageBitmap(src));
-            }
-          }
-        }
-        return new Promise((resolve, reject) => {
-          // @ts-ignore
-          const trackedImages = (options.trackedImages = []);
-          Promise.all(promiseArr).then((bitmaps: ImageBitmap[]) => {
-            for (let i = 0, n = bitmaps.length; i < n; i++) {
-              const bitmap = bitmaps[i];
-              trackedImages.push({
-                image: bitmap,
-                widthInMeters: images[i].physicalWidth ?? bitmap.width / 100
-              });
-            }
-            resolve();
-          }, reject);
-        });
-      } else {
-        return Promise.reject(new Error("Images.length is 0"));
-      }
-    case XRFeatureType.PlaneTracking:
-    case XRFeatureType.HitTest:
-      if (requiredFeatures.indexOf("plane-detection") < 0) {
-        requiredFeatures.push("plane-detection");
-      }
-      break;
   }
 }
 

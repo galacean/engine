@@ -95,18 +95,24 @@ export class XRSessionManager {
   _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const { xrManager } = this._engine;
-      xrManager._platformDevice.requestSession(this._rhi, mode, features).then((session: IXRSession) => {
+      // Initialize all features
+      const platformFeatures = [];
+      for (let i = 0, n = features.length; i < n; i++) {
+        const { _platformFeature: platformFeature } = features[i];
+        platformFeature && platformFeatures.push(platformFeature);
+      }
+      xrManager._platformDevice.requestSession(this._rhi, mode, platformFeatures).then((session: IXRSession) => {
         this._mode = mode;
         this._platformSession = session;
         this._state = XRSessionState.Initialized;
         session.addEventListener();
         session.addExitListener(this._onSessionDestroy);
         // Initialize all features
-        const allPromises = [];
+        const initializePromises = [];
         for (let i = 0, n = features.length; i < n; i++) {
-          allPromises.push(features[i]._initialize());
+          initializePromises.push(features[i]._initialize());
         }
-        Promise.all(allPromises).then(() => {
+        Promise.all(initializePromises).then(() => {
           xrManager._onSessionInit();
           resolve();
         }, reject);

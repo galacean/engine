@@ -1,16 +1,13 @@
-import { IXRFeature, IXRFeatureConfig, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRFeature, IXRPlatformFeature } from "@galacean/engine-design";
 import { XRManager } from "../XRManager";
+import { XRFeatureType } from "./XRFeatureType";
 
 /**
  * The base class of XR feature manager.
  */
-export abstract class XRFeature<
-  TConfig extends IXRFeatureConfig = IXRFeatureConfig,
-  TFeature extends IXRPlatformFeature = IXRPlatformFeature
-> implements IXRFeature
-{
+export abstract class XRFeature<T extends IXRPlatformFeature = IXRPlatformFeature> implements IXRFeature {
   /** @internal */
-  _platformFeature: TFeature;
+  _platformFeature: T;
   protected _enabled: boolean = true;
 
   /**
@@ -30,7 +27,12 @@ export abstract class XRFeature<
   /**
    * @internal
    */
-  constructor(protected _xrManager: XRManager) {
+  constructor(
+    protected _xrManager: XRManager,
+    protected _type: XRFeatureType,
+    ...args: any[]
+  ) {
+    this._platformFeature = <T>_xrManager._platformDevice.createPlatformFeature(_type, ...args);
     this._onEnable();
   }
 
@@ -80,12 +82,4 @@ export abstract class XRFeature<
    * @internal
    */
   _onDestroy(): void {}
-
-  /**
-   * @internal
-   * @returns The config of the feature
-   */
-  _generateConfig(): TConfig {
-    throw new Error("Method not implemented.");
-  }
 }

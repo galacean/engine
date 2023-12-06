@@ -1,7 +1,5 @@
-import { IXRFeatureConfig, IXRRequestTracking, IXRTrackableFeature, IXRTracked } from "@galacean/engine-design";
-import { XRManager } from "../../XRManager";
+import { IXRRequestTracking, IXRTrackablePlatformFeature, IXRTracked } from "@galacean/engine-design";
 import { XRTrackingState } from "../../input/XRTrackingState";
-import { XRSessionManager } from "../../session/XRSessionManager";
 import { XRFeature } from "../XRFeature";
 import { XRRequestTrackingState } from "./XRRequestTrackingState";
 
@@ -9,12 +7,9 @@ import { XRRequestTrackingState } from "./XRRequestTrackingState";
  * The base class of XR trackable manager.
  */
 export abstract class XRTrackableFeature<
-  TXRFeatureConfig extends IXRFeatureConfig,
   TXRTracked extends IXRTracked,
-  TXRRequestTracking extends IXRRequestTracking<TXRTracked>,
-  TTrackableFeature extends IXRTrackableFeature<TXRTracked, TXRRequestTracking>
-> extends XRFeature<TXRFeatureConfig, TTrackableFeature> {
-  protected _sessionManager: XRSessionManager;
+  TXRRequestTracking extends IXRRequestTracking<TXRTracked>
+> extends XRFeature<IXRTrackablePlatformFeature> {
   protected _requestTrackings: TXRRequestTracking[] = [];
   protected _trackedObjects: TXRTracked[] = [];
   protected _added: TXRTracked[] = [];
@@ -42,14 +37,6 @@ export abstract class XRTrackableFeature<
   }
 
   /**
-   * @internal
-   */
-  constructor(xrManager: XRManager) {
-    super(xrManager);
-    this._sessionManager = xrManager.sessionManager;
-  }
-
-  /**
    * Add a listening function for tracked object changes.
    * @param listener - The listening function
    */
@@ -74,7 +61,7 @@ export abstract class XRTrackableFeature<
   }
 
   override _onUpdate(): void {
-    const { _platformSession: platformSession } = this._sessionManager;
+    const { _platformSession: platformSession } = this._xrManager.sessionManager;
     const { frame: platformFrame } = platformSession;
     const {
       _platformFeature: platformFeature,
@@ -174,6 +161,6 @@ export abstract class XRTrackableFeature<
   }
 
   private _canModifyRequestTracking(): boolean {
-    return !this._sessionManager._platformSession || this._platformFeature.canModifyRequestTrackingAfterInit;
+    return !this._xrManager.sessionManager._platformSession || this._platformFeature.canModifyRequestTrackingAfterInit;
   }
 }

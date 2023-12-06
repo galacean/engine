@@ -7,12 +7,7 @@ import {
   XRRequestTrackingState,
   XRTrackingState
 } from "@galacean/engine";
-import {
-  IXRPlaneTracking,
-  IXRPlaneTrackingConfig,
-  IXRRequestPlaneTracking,
-  IXRTrackedPlane
-} from "@galacean/engine-design";
+import { IXRRequestPlaneTracking, IXRTrackablePlatformFeature, IXRTrackedPlane } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -22,23 +17,17 @@ import { generateUUID } from "../util";
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
-export class WebXRPlaneTracking implements IXRPlaneTracking {
+export class WebXRPlaneTracking implements IXRTrackablePlatformFeature {
   private _lastDetectedPlanes: XRPlaneSet;
 
   get canModifyRequestTrackingAfterInit(): boolean {
     return false;
   }
 
-  get detectionMode(): number {
-    return XRPlaneMode.EveryThing;
-  }
-
-  set detectionMode(mode: number) {
-    console.warn("WebXR does not support modifying plane tracking mode.");
-  }
-
-  isSupported(config: IXRPlaneTrackingConfig): Promise<void> {
-    return Promise.resolve();
+  constructor(detectedMode: XRPlaneMode) {
+    if (detectedMode !== XRPlaneMode.EveryThing) {
+      console.log("WebXR only support XRPlaneMode.EveryThing");
+    }
   }
 
   initialize(requestTrackings: IXRRequestPlaneTracking[]): Promise<void> {
@@ -90,6 +79,10 @@ export class WebXRPlaneTracking implements IXRPlaneTracking {
       }
     });
     this._lastDetectedPlanes = detectedPlanes;
+  }
+
+  _makeUpOptions(options: XRSessionInit): void {
+    options.requiredFeatures.push("plane-detection");
   }
 
   private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: IWebXRTrackedPlane): void {

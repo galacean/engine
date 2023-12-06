@@ -1,8 +1,16 @@
-import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
 import {
-  IXRImageTracking,
-  IXRImageTrackingConfig,
+  Matrix,
+  Quaternion,
+  Vector3,
+  XRFeatureType,
+  XRRequestTrackingState,
+  XRTrackingState,
+  request
+} from "@galacean/engine";
+import {
+  IXRReferenceImage,
   IXRRequestImageTracking,
+  IXRTrackablePlatformFeature,
   IXRTrackedImage
 } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
@@ -18,7 +26,8 @@ import { generateUUID } from "../util";
  * the device can choose an arbitrary instance to report a pose,
  * and this choice can change for future XRFrames.
  */
-export class WebXRImageTracking implements IXRImageTracking {
+export class WebXRImageTracking implements IXRTrackablePlatformFeature {
+  private _images: IXRReferenceImage[];
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   private _tempIdx: number = 0;
   private _tempArr: number[] = [];
@@ -27,8 +36,8 @@ export class WebXRImageTracking implements IXRImageTracking {
     return false;
   }
 
-  isSupported(config: IXRImageTrackingConfig): Promise<void> {
-    return Promise.resolve();
+  constructor(images: IXRReferenceImage[]) {
+    this._images = images;
   }
 
   initialize(requestTrackings: IXRRequestImageTracking[]): Promise<void> {
@@ -115,6 +124,43 @@ export class WebXRImageTracking implements IXRImageTracking {
       });
   }
 
+  _makeUpOptions(options: XRSessionInit): Promise<void> | void {
+    options.requiredFeatures.push("image-tracking");
+    const { _images: images } = this;
+    const promiseArr: Promise<ImageBitmap>[] = [];
+    if (images) {
+      for (let i = 0, n = images.length; i < n; i++) {
+        const referenceImage = images[i];
+        const { src } = images[i];
+        if (!src) {
+          return Promise.reject(new Error("referenceImage[" + referenceImage.name + "].src is null"));
+        } else {
+          if (typeof src === "string") {
+            promiseArr.push(this._createImageBitmapByURL(src));
+          } else {
+            promiseArr.push(createImageBitmap(src));
+          }
+        }
+      }
+      return new Promise((resolve, reject) => {
+        // @ts-ignore
+        const trackedImages = (options.trackedImages = []);
+        Promise.all(promiseArr).then((bitmaps: ImageBitmap[]) => {
+          for (let i = 0, n = bitmaps.length; i < n; i++) {
+            const bitmap = bitmaps[i];
+            trackedImages.push({
+              image: bitmap,
+              widthInMeters: images[i].physicalWidth ?? bitmap.width / 100
+            });
+          }
+          resolve();
+        }, reject);
+      });
+    } else {
+      return Promise.reject(new Error("Images.length is 0"));
+    }
+  }
+
   private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: IXRTrackedImage, trackingResult: any) {
     const { pose } = trackedImage;
     const { transform } = frame.getPose(trackingResult.imageSpace, space);
@@ -122,6 +168,10 @@ export class WebXRImageTracking implements IXRImageTracking {
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     trackedImage.measuredWidthInMeters = trackingResult.measuredWidthInMeters;
+  }
+
+  private _createImageBitmapByURL(url: string): Promise<ImageBitmap> {
+    return request<HTMLImageElement>(url, { type: "image" }).then((image) => createImageBitmap(image));
   }
 }
 

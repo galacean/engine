@@ -1,5 +1,5 @@
 import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
-import { IXRAnchorTracking, IXRAnchorTrackingConfig, IXRRequestAnchorTracking } from "@galacean/engine-design";
+import { IXRRequestAnchorTracking, IXRTrackablePlatformFeature } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -9,13 +9,9 @@ import { generateUUID } from "../util";
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
-export class WebXRAnchorTracking implements IXRAnchorTracking {
+export class WebXRAnchorTracking implements IXRTrackablePlatformFeature {
   get canModifyRequestTrackingAfterInit(): boolean {
     return true;
-  }
-
-  isSupported(config: IXRAnchorTrackingConfig): Promise<void> {
-    return Promise.resolve();
   }
 
   initialize(requestTrackings: IXRRequestAnchorTracking[]): Promise<void> {
@@ -71,6 +67,10 @@ export class WebXRAnchorTracking implements IXRAnchorTracking {
         requestTracking.state = XRRequestTrackingState.Destroyed;
         break;
     }
+  }
+
+  _makeUpOptions(options: XRSessionInit): void {
+    options.requiredFeatures.push("anchors");
   }
 
   private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: IWebXRRequestTrackingAnchor): void {

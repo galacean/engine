@@ -1,9 +1,9 @@
 import { XRFeatureType } from "@galacean/engine";
-import { IHardwareRenderer, IXRDevice, IXRFeature, IXRPlatformFeature } from "@galacean/engine-design";
+import { IHardwareRenderer, IXRDevice, IXRPlatformFeature } from "@galacean/engine-design";
 import { WebXRSession } from "./WebXRSession";
-import { parseFeature, parseXRMode } from "./util";
+import { parseXRMode } from "./util";
+import { IWebXRFeature } from "./feature/WebXRFeature";
 
-type PlatformFeatureConstructor = new () => IXRPlatformFeature;
 export class WebXRDevice implements IXRDevice {
   /** @internal */
   static _platformFeatureMap: PlatformFeatureConstructor[] = [];
@@ -30,18 +30,18 @@ export class WebXRDevice implements IXRDevice {
     return true;
   }
 
-  createFeature(type: number): IXRPlatformFeature {
+  createPlatformFeature(type: number, ...args: any[]): IXRPlatformFeature {
     const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
-    return platformFeatureConstructor ? new platformFeatureConstructor() : null;
+    return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(rhi: IHardwareRenderer, mode: number, requestFeatures: IXRFeature[]): Promise<WebXRSession> {
+  requestSession(rhi: IHardwareRenderer, mode: number, platformFeatures: IWebXRFeature[]): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
       const options: XRSessionInit = { requiredFeatures: ["local"] };
       const promiseArr = [];
-      for (let i = 0, n = requestFeatures.length; i < n; i++) {
-        const promise = parseFeature(requestFeatures[i]._generateConfig(), options);
+      for (let i = 0, n = platformFeatures.length; i < n; i++) {
+        const promise = platformFeatures[i]._makeUpOptions(options);
         promise && promiseArr.push(promise);
       }
       Promise.all(promiseArr).then(() => {
@@ -82,6 +82,7 @@ export class WebXRDevice implements IXRDevice {
   }
 }
 
+type PlatformFeatureConstructor = new (...args: any[]) => IXRPlatformFeature;
 export function registerXRPlatformFeature(type: number) {
   return (platformFeatureConstructor: PlatformFeatureConstructor) => {
     WebXRDevice._platformFeatureMap[type] = platformFeatureConstructor;

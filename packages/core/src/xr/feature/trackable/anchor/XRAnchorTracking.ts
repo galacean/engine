@@ -1,9 +1,4 @@
-import {
-  IXRAnchorTracking,
-  IXRAnchorTrackingConfig,
-  IXRRequestAnchorTracking,
-  IXRTracked
-} from "@galacean/engine-design";
+import { IXRRequestAnchorTracking, IXRTracked } from "@galacean/engine-design";
 import { XRManager } from "../../../XRManager";
 import { XRPose } from "../../../XRPose";
 import { XRFeatureType } from "../../XRFeatureType";
@@ -13,23 +8,19 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
 /**
  * The manager of XR anchor tracking.
  */
-export class XRAnchorTracking extends XRTrackableFeature<
-  IXRAnchorTrackingConfig,
-  IXRTracked,
-  IXRRequestAnchorTracking,
-  IXRAnchorTracking
-> {
+export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestAnchorTracking> {
   /**
    * @param xrManager - The xr manager
    * @param anchors - The anchors to be tracked
    */
   constructor(xrManager: XRManager, anchors: XRPose[] = []) {
-    super(xrManager);
-    this._platformFeature = <IXRAnchorTracking>xrManager._platformDevice.createFeature(XRFeatureType.AnchorTracking);
-    if (anchors) {
-      for (let i = 0, n = anchors.length; i < n; i++) {
-        this._addRequestTracking(this._createRequestTracking(anchors[i]));
-      }
+    super(xrManager, XRFeatureType.AnchorTracking);
+    for (let i = 0, n = anchors.length; i < n; i++) {
+      this._addRequestTracking({
+        pose: anchors[i],
+        state: XRRequestTrackingState.None,
+        tracked: []
+      });
     }
   }
 
@@ -41,7 +32,11 @@ export class XRAnchorTracking extends XRTrackableFeature<
     if (!this._enabled) {
       throw new Error("Cannot add an anchor from a disabled anchor manager.");
     }
-    const requestTracking = this._createRequestTracking(pose);
+    const requestTracking = {
+      pose,
+      state: XRRequestTrackingState.None,
+      tracked: []
+    };
     this._addRequestTracking(requestTracking);
     return requestTracking;
   }
@@ -65,23 +60,5 @@ export class XRAnchorTracking extends XRTrackableFeature<
       throw new Error("Cannot remove anchors from a disabled anchor manager.");
     }
     this._removeAllRequestTrackings();
-  }
-
-  override _generateConfig(): IXRAnchorTrackingConfig {
-    const { _requestTrackings: requestTrackings } = this;
-    const anchors = [];
-    anchors.length = 0;
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      anchors.push(requestTrackings[i].pose);
-    }
-    return { type: XRFeatureType.AnchorTracking, anchors };
-  }
-
-  private _createRequestTracking(pose: XRPose): IXRRequestAnchorTracking {
-    return {
-      pose,
-      state: XRRequestTrackingState.None,
-      tracked: []
-    };
   }
 }

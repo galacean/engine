@@ -1,4 +1,4 @@
-import { IXRFeatureConfig, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRTrackedPlane } from "@galacean/engine-design";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { XRManager } from "../../XRManager";
 import { XRCamera } from "../../input/XRCamera";
@@ -27,8 +27,7 @@ export class XRHitTest extends XRFeature {
 
    */
   constructor(xrManager: XRManager) {
-    super(xrManager);
-    this._platformFeature = xrManager._platformDevice.createFeature(XRFeatureType.HitTest);
+    super(xrManager, XRFeatureType.HitTest);
   }
 
   /**
@@ -62,10 +61,6 @@ export class XRHitTest extends XRFeature {
     }
     const ray = camera.screenPointToRay(this._tempVec2.set(x, y), this._tempRay);
     return this._hitTest(ray, type);
-  }
-
-  override _generateConfig(): IXRFeatureConfig {
-    return { type: XRFeatureType.HitTest };
   }
 
   private _hitTest(ray: Ray, type: TrackableType): XRHitResult[] {

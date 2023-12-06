@@ -1,104 +1,30 @@
-import {
-  IXRImageTracking,
-  IXRImageTrackingConfig,
-  IXRReferenceImage,
-  IXRRequestImageTracking,
-  IXRTrackedImage
-} from "@galacean/engine-design";
+import { IXRReferenceImage, IXRRequestImageTracking, IXRTrackedImage } from "@galacean/engine-design";
 import { XRManager } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { XRTrackableFeature } from "../XRTrackableFeature";
-import { XRReferenceImage } from "./XRReferenceImage";
 
 /**
  * The manager of XR image tracking.
  */
-export class XRImageTracking extends XRTrackableFeature<
-  IXRImageTrackingConfig,
-  IXRTrackedImage,
-  IXRRequestImageTracking,
-  IXRImageTracking
-> {
-  /**
-   * Add a tracking image
-   * @param image - xr reference image
-   */
-  addImage(image: XRReferenceImage): void;
-
-  /**
-   * Add tracking images
-   * @param images - xr reference images
-   */
-  addImage(images: XRReferenceImage[]): void;
-
-  addImage(imageOrArr: XRReferenceImage | XRReferenceImage[]): void {
-    if (imageOrArr instanceof Array) {
-      for (let i = 0, n = imageOrArr.length; i < n; i++) {
-        this._addRequestTracking(this._createRequestTracking(imageOrArr[i]));
-      }
-    } else {
-      this._addRequestTracking(this._createRequestTracking(imageOrArr));
-    }
-  }
-
-  /**
-   * Remove a tracking image
-   * @param image - xr reference image
-   */
-  removeImage(image: XRReferenceImage): void;
-
-  /**
-   * Remove tracking images
-   * @param images - xr reference images
-   */
-  removeImage(images: XRReferenceImage[]): void;
-
-  removeImage(imageOrArr: XRReferenceImage | XRReferenceImage[]): void {
-    if (imageOrArr instanceof XRReferenceImage) {
-      this._removeRequestTracking(this._createRequestTracking(imageOrArr));
-    } else {
-      for (let i = 0, n = imageOrArr.length; i < n; i++) {
-        this._removeRequestTracking(this._createRequestTracking(imageOrArr[i]));
-      }
-    }
-  }
-
-  /**
-   * Remove all tracking images
-   */
-  removeAllImages(): void {
-    this._removeAllRequestTrackings();
-  }
-
+export class XRImageTracking extends XRTrackableFeature<IXRTrackedImage, IXRRequestImageTracking> {
   /**
    * @param xrManager - The xr manager
    * @param images - The images to be tracked
    */
   constructor(xrManager: XRManager, images: IXRReferenceImage[]) {
-    super(xrManager);
-    this._platformFeature = <IXRImageTracking>xrManager._platformDevice.createFeature(XRFeatureType.ImageTracking);
-    if (images) {
+    super(xrManager, XRFeatureType.ImageTracking, images);
+    const imageLength = images ? images.length : 0;
+    if (imageLength > 0) {
       for (let i = 0, n = images.length; i < n; i++) {
-        this._addRequestTracking(this._createRequestTracking(images[i]));
+        this._addRequestTracking({
+          image: images[i],
+          state: XRRequestTrackingState.None,
+          tracked: []
+        });
       }
+    } else {
+      console.warn("No image to be tracked.");
     }
-  }
-
-  override _generateConfig(): IXRImageTrackingConfig {
-    const { _requestTrackings: requestTrackings } = this;
-    const images = [];
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      images.push(requestTrackings[i].image);
-    }
-    return { type: XRFeatureType.ImageTracking, images };
-  }
-
-  private _createRequestTracking(image: XRReferenceImage): IXRRequestImageTracking {
-    return {
-      image,
-      state: XRRequestTrackingState.None,
-      tracked: []
-    };
   }
 }

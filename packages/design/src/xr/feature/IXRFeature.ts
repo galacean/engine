@@ -1,4 +1,3 @@
-import { IXRFeatureConfig } from "./IXRFeatureConfig";
 import { IXRPlatformFeature } from "./IXRPlatformFeature";
 
 export interface IXRFeature {
@@ -51,9 +50,4 @@ export interface IXRFeature {
    * @internal
    */
   _onSessionDestroy(): void;
-
-  /**
-   * @internal
-   */
-  _generateConfig(): IXRFeatureConfig;
 }

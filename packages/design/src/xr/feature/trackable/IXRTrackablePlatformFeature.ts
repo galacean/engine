@@ -2,12 +2,8 @@ import { IXRFrame } from "../../IXRFrame";
 import { IXRSession } from "../../IXRSession";
 import { IXRPlatformFeature } from "../IXRPlatformFeature";
 import { IXRRequestTracking } from "./IXRRequestTracking";
-import { IXRTracked } from "./IXRTracked";
 
-export interface IXRTrackableFeature<
-  TXRTracked extends IXRTracked,
-  TXRRequestTracking extends IXRRequestTracking<TXRTracked>
-> extends IXRPlatformFeature {
+export interface IXRTrackablePlatformFeature extends IXRPlatformFeature {
   /**
    * Returns whether request tracking can be modified after initialization.
    */
@@ -17,7 +13,7 @@ export interface IXRTrackableFeature<
    * Initialize the feature.
    * @param descriptor - The descriptor of the feature
    */
-  initialize(requestTrackings: TXRRequestTracking[]): Promise<void>;
+  initialize(requestTrackings: IXRRequestTracking[]): Promise<void>;
 
   /**
    * Get the tracked result.
@@ -25,7 +21,7 @@ export interface IXRTrackableFeature<
    * @param frame - The XR frame
    * @param requestTrackings - The request trackings
    */
-  getTrackedResult(session: IXRSession, frame: IXRFrame, requestTrackings: TXRRequestTracking[]): void;
+  getTrackedResult(session: IXRSession, frame: IXRFrame, requestTrackings: IXRRequestTracking[]): void;
 
   /**
    * Check if the feature is available.
@@ -33,17 +29,17 @@ export interface IXRTrackableFeature<
    * @param frame - The XR frame
    * @param requestTrackings - The request trackings
    */
-  checkAvailable(session: IXRSession, frame: IXRFrame, requestTrackings: TXRRequestTracking[]): boolean;
+  checkAvailable(session: IXRSession, frame: IXRFrame, requestTrackings: IXRRequestTracking[]): boolean;
 
   /**
    * Called when request tracking is added.
    * @param requestTracking - The request tracking
    */
-  onAddRequestTracking?(requestTracking: TXRRequestTracking): void;
+  onAddRequestTracking?(requestTracking: IXRRequestTracking): void;
 
   /**
    * Called when request tracking is removed.
    * @param requestTracking - The request tracking
    */
-  onDeleteRequestTracking?(requestTracking: TXRRequestTracking): void;
+  onDeleteRequestTracking?(requestTracking: IXRRequestTracking): void;
 }
