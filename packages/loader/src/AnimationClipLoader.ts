@@ -80,8 +80,10 @@ class AnimationClipLoader extends Loader<AnimationClip> {
           return keyframe;
         });
       } else {
-        return keyframe.value;
+        return Promise.resolve(keyframe.value);
       }
+    } else {
+      return Promise.resolve(keyframe.value);
     }
   }
 }

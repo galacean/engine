@@ -6,7 +6,6 @@ import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnim
 import { KeyframeValueType } from "../../Keyframe";
 import { IAnimationCurveOwnerAssembler } from "./assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnimationCurveOwnerAssembler";
-import { MethodAnimationCurveOwnerAssembler } from "./assembler/MethodAnimationCurveOwnerAssembler";
 
 /**
  * @internal
@@ -26,10 +25,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     const assemblerType = subMap ? subMap[property] : undefined;
-    const isMethod = property.indexOf("()") !== -1;
-    return assemblerType ?? isMethod
-      ? MethodAnimationCurveOwnerAssembler
-      : UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
+    const isMethod = property.indexOf(")") !== -1;
+    return assemblerType ?? UniversalAnimationCurveOwnerAssembler;
   }
 
   readonly target: Entity;
