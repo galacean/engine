@@ -140,6 +140,7 @@ export class ParticleGradient {
     }
     currentColorKeys.length = 0;
     currentAlphaKeys.length = 0;
+
     for (let i = 0, n = colorKeys.length; i < n; i++) {
       this._addKey(currentColorKeys, colorKeys[i]);
     }
@@ -234,18 +235,6 @@ export class GradientColorKey {
   private _color: Color = new Color();
 
   /**
-   * Constructor of GradientColorKey.
-   * @param time - The time of the gradient colorKey
-   * @param color - The alpha component of the gradient colorKey
-   */
-  constructor(time: number, color: Color) {
-    this._time = time;
-    color && this._color.copyFrom(color);
-    // @ts-ignore
-    this._color._onValueChanged = this._onValueChanged;
-  }
-
-  /**
    * The key time.
    */
   get time(): number {
@@ -269,6 +258,18 @@ export class GradientColorKey {
       this._color.copyFrom(value);
     }
   }
+
+  /**
+   * Constructor of GradientColorKey.
+   * @param time - The time of the gradient colorKey
+   * @param color - The alpha component of the gradient colorKey
+   */
+  constructor(time: number, color: Color) {
+    this._time = time;
+    color && this._color.copyFrom(color);
+    // @ts-ignore
+    this._color._onValueChanged = this._onValueChanged;
+  }
 }
 
 /**
@@ -280,16 +281,6 @@ export class GradientAlphaKey {
 
   private _time: number;
   private _alpha: number;
-
-  /**
-   * Constructor of GradientAlphaKey.
-   * @param time - The time of the gradient alpha key
-   * @param alpha - The alpha component of the gradient alpha key
-   */
-  constructor(time: number, alpha: number) {
-    this._time = time;
-    this._alpha = alpha;
-  }
 
   /**
    * The key time.
@@ -313,5 +304,15 @@ export class GradientAlphaKey {
   set alpha(value: number) {
     this._alpha = value;
     this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * Constructor of GradientAlphaKey.
+   * @param time - The time of the gradient alpha key
+   * @param alpha - The alpha component of the gradient alpha key
+   */
+  constructor(time: number, alpha: number) {
+    this._time = time;
+    this._alpha = alpha;
   }
 }
