@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { ParticleGradient, GradientColorKey, GradientAlphaKey } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ColorSpace } from "packages/core/src";
 
 describe("ParticleGradient tests", () => {
   it("Constructor initializes empty keys when no arguments are provided", () => {
