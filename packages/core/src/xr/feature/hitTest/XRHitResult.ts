@@ -13,7 +13,7 @@ export class XRHitResult {
   normal: Vector3 = new Vector3();
   /** The distance from the origin of the ray to the hit point. */
   distance: number;
-  /** The id of the hit tracked object, such as the id of IXRTrackedPlane. */
+  /** The hit tracked object, such as IXRTrackedPlane. */
   trackedObject: IXRTracked;
   /** The type of tracked object detected, such as TrackableType.Plane */
   trackableType: TrackableType;

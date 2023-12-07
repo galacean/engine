@@ -30,7 +30,6 @@ export { XRInputEventType } from "./input/XRInputEventType";
 export { XRInputManager } from "./input/XRInputManager";
 export { XRTargetRayMode } from "./input/XRTargetRayMode";
 export { XRTrackedInputDevice } from "./input/XRTrackedInputDevice";
-export { XRTrackedUpdateFlag } from "./input/XRTrackedUpdateFlag";
 export { XRTrackingState } from "./input/XRTrackingState";
 
 // xr session
