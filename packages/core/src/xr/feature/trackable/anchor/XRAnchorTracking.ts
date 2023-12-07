@@ -4,18 +4,19 @@ import { XRPose } from "../../../XRPose";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRAnchor } from "./XRAnchor";
 
 /**
  * The manager of XR anchor tracking.
  */
 @registerXRFeature(XRFeatureType.AnchorTracking)
 export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestAnchorTracking> {
-  private _anchors: XRPose[];
+  private _anchors: XRAnchor[];
 
   /**
    * The anchors to be tracked.
    */
-  get anchors(): readonly XRPose[] {
+  get anchors(): readonly XRAnchor[] {
     return this._anchors;
   }
 
@@ -23,12 +24,12 @@ export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestA
    * @param xrManager - The xr manager
    * @param anchors - The anchors to be tracked
    */
-  constructor(xrManager: XRManager, anchors: XRPose[] = []) {
+  constructor(xrManager: XRManager, anchors: XRAnchor[] = []) {
     super(xrManager, XRFeatureType.AnchorTracking);
     this._anchors = anchors;
     for (let i = 0, n = anchors.length; i < n; i++) {
       this._addRequestTracking({
-        pose: anchors[i],
+        anchor: anchors[i],
         state: XRRequestTrackingState.None,
         tracked: []
       });
@@ -37,30 +38,36 @@ export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestA
 
   /**
    * Add a tracking anchor in XR space.
-   * @param pose - The pose of anchor to be added
+   * @param anchor - The anchor to be added
    */
-  addAnchor(pose: XRPose): IXRRequestAnchorTracking {
+  addAnchor(anchor: XRAnchor): void {
     if (!this._enabled) {
       throw new Error("Cannot add an anchor from a disabled anchor manager.");
     }
     const requestTracking = {
-      pose,
+      anchor,
       state: XRRequestTrackingState.None,
       tracked: []
     };
     this._addRequestTracking(requestTracking);
-    return requestTracking;
   }
 
   /**
    * Remove a tracking anchor.
    * @param anchor - The anchor to be removed
    */
-  removeAnchor(anchor: IXRRequestAnchorTracking): void {
+  removeAnchor(anchor: XRAnchor): void {
     if (!this._enabled) {
       throw new Error("Cannot remove an anchor from a disabled anchor manager.");
     }
-    this._removeRequestTracking(anchor);
+    const { _requestTrackings: requestTrackings } = this;
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      const requestTracking = requestTrackings[i];
+      if (requestTracking.anchor === anchor) {
+        this._removeRequestTracking(requestTracking);
+        return;
+      }
+    }
   }
 
   /**

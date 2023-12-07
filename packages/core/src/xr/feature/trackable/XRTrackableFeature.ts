@@ -12,7 +12,7 @@ export abstract class XRTrackableFeature<
   K extends IXRRequestTracking<T>
 > extends XRFeature<IXRTrackablePlatformFeature> {
   protected _requestTrackings: K[] = [];
-  protected _trackedObjects: T[] = [];
+  protected _tracked: T[] = [];
   protected _added: T[] = [];
   protected _updated: T[] = [];
   protected _removed: T[] = [];
@@ -20,26 +20,17 @@ export abstract class XRTrackableFeature<
   private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
 
   /**
-   * Return Request tracking requirements.
-   */
-  get requestTrackings(): readonly K[] {
-    return this._requestTrackings;
-  }
-
-  /**
    * Returns the tracked objects.
    */
-  get trackedObjects(): readonly T[] {
-    return this._trackedObjects;
+  get tracked(): readonly T[] {
+    return this._tracked;
   }
 
   /**
    * Add a listening function for tracked object changes.
    * @param listener - The listening function
    */
-  addTrackedObjectChangedListener(
-    listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void
-  ): void {
+  addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
     this._listeners.push(listener);
   }
 
@@ -47,9 +38,7 @@ export abstract class XRTrackableFeature<
    * Remove a listening function of tracked object changes.
    * @param listener - The listening function
    */
-  removeTrackedObjectChangedListener(
-    listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void
-  ): void {
+  removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
     const { _listeners: listeners } = this;
     const index = listeners.indexOf(listener);
     if (index >= 0) {
@@ -65,6 +54,7 @@ export abstract class XRTrackableFeature<
       _listeners: listeners,
       _requestTrackings: requestTrackings,
       _statusSnapshot: statusSnapshot,
+      _tracked: allTracked,
       _added: added,
       _updated: updated,
       _removed: removed
@@ -92,10 +82,12 @@ export abstract class XRTrackableFeature<
           } else {
             added.push(trackedObject);
             statusSnapshot[trackId] = XRTrackingState.Tracking;
+            allTracked.push(trackedObject);
           }
         } else {
           if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
             removed.push(trackedObject);
+            allTracked.splice(allTracked.indexOf(trackedObject), 1);
           }
           statusSnapshot[trackId] = trackedObject.state;
         }
@@ -114,12 +106,12 @@ export abstract class XRTrackableFeature<
 
   override _onSessionExit(): void {
     // prettier-ignore
-    this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
+    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
   override _onDestroy(): void {
     // prettier-ignore
-    this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
+    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
   protected _addRequestTracking(requestTracking: K): void {
@@ -136,13 +128,18 @@ export abstract class XRTrackableFeature<
     if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
       throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
-    const { _requestTrackings: requestTrackings } = this;
+    const { _requestTrackings: requestTrackings, _tracked: allTracked } = this;
     const lastIndex = requestTrackings.length - 1;
     const index = requestTrackings.indexOf(requestTracking);
     if (index >= 0) {
       index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
       requestTrackings.length = lastIndex;
       platformFeature.onDelRequestTracking && platformFeature.onDelRequestTracking(requestTracking);
+      const waitRemoveTracked = requestTracking.tracked;
+      for (let i = 0, n = waitRemoveTracked.length; i < n; i++) {
+        const trackedObject = waitRemoveTracked[i];
+        trackedObject.state === XRTrackingState.Tracking && allTracked.splice(allTracked.indexOf(trackedObject), 1);
+      }
     }
   }
 
@@ -158,5 +155,6 @@ export abstract class XRTrackableFeature<
       }
     }
     requestTrackings.length = 0;
+    this._tracked.length = 0;
   }
 }

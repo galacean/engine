@@ -71,7 +71,7 @@ export class XRHitTest extends XRFeature {
       throw new Error("The plane estimation function needs to be turned on for plane hit test.");
     }
     const { _tempVec30: normal, _tempVec31: hitPoint, _tempVec32: hitPointInPlane } = this;
-    const planes = planeManager.trackedObjects;
+    const planes = planeManager.tracked;
     for (let i = 0, n = planes.length; i < n; i++) {
       const trackedPlane = planes[i];
       normal.set(0, 1, 0).transformNormal(trackedPlane.pose.matrix);

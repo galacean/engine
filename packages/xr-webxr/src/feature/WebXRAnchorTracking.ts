@@ -73,12 +73,12 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
     options.requiredFeatures.push("anchors");
   }
 
-  private _addAnchor(session: WebXRSession, frame: WebXRFrame, anchor: IWebXRRequestTrackingAnchor): void {
+  private _addAnchor(session: WebXRSession, frame: WebXRFrame, requestTracking: IWebXRRequestTrackingAnchor): void {
     if (!session || !frame) {
       return;
     }
-    anchor.state = XRRequestTrackingState.Submitted;
-    const { position, rotation } = anchor.pose;
+    requestTracking.state = XRRequestTrackingState.Submitted;
+    const { position, rotation } = requestTracking.anchor.pose;
     const { _platformFrame: platformFrame } = frame;
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     platformFrame
@@ -91,13 +91,13 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
       )
       .then(
         (xrAnchor) => {
-          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
+          if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
             xrAnchor.delete();
-            anchor.state = XRRequestTrackingState.Destroyed;
+            requestTracking.state = XRRequestTrackingState.Destroyed;
           } else {
-            anchor.xrAnchor = xrAnchor;
-            anchor.state = XRRequestTrackingState.Resolved;
-            anchor.tracked = [
+            requestTracking.xrAnchor = xrAnchor;
+            requestTracking.state = XRRequestTrackingState.Resolved;
+            requestTracking.tracked = [
               {
                 id: generateUUID(),
                 pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
@@ -107,19 +107,20 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
           }
         },
         () => {
-          if (anchor.state === XRRequestTrackingState.WaitingDestroy) {
-            anchor.state = XRRequestTrackingState.Destroyed;
+          if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
+            requestTracking.state = XRRequestTrackingState.Destroyed;
           } else {
-            anchor.state = XRRequestTrackingState.Rejected;
+            requestTracking.state = XRRequestTrackingState.Rejected;
           }
         }
       );
   }
 
-  private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, trackedAnchor: IWebXRRequestTrackingAnchor): boolean {
-    const { xrAnchor, pose } = trackedAnchor;
+  private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, requestTracking: IWebXRRequestTrackingAnchor): boolean {
+    const { xrAnchor } = requestTracking;
     const xrPose = frame.getPose(xrAnchor.anchorSpace, space);
     const { transform } = xrPose;
+    const { pose } = requestTracking.anchor;
     pose.matrix.copyFromArray(transform.matrix);
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);

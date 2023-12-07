@@ -14,6 +14,7 @@ export { XRHitTest } from "./feature/hitTest/XRHitTest";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // anchor tracking
+export { XRAnchor } from "./feature/trackable/anchor/XRAnchor";
 export { XRAnchorTracking } from "./feature/trackable/anchor/XRAnchorTracking";
 // image tracking
 export { XRImageTracking } from "./feature/trackable/image/XRImageTracking";
