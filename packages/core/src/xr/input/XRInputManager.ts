@@ -18,7 +18,6 @@ export class XRInputManager {
   /** @internal */
   _controllers: XRController[] = [];
 
-  private _engine: Engine;
   private _added: XRInput[] = [];
   private _removed: XRInput[] = [];
   private _trackedDevices: XRInput[] = [];
@@ -28,8 +27,7 @@ export class XRInputManager {
   /**
    * @internal
    */
-  constructor(engine: Engine) {
-    this._engine = engine;
+  constructor(private _engine: Engine) {
     const { _trackedDevices: trackedDevices, _controllers: controllers, _cameras: cameras } = this;
     for (let i = 0; i < 6; i++) {
       switch (i) {

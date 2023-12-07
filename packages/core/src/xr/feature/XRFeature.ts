@@ -1,11 +1,11 @@
-import { IXRFeature, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRPlatformFeature } from "@galacean/engine-design";
 import { XRManager } from "../XRManager";
 import { XRFeatureType } from "./XRFeatureType";
 
 /**
  * The base class of XR feature manager.
  */
-export abstract class XRFeature<T extends IXRPlatformFeature = IXRPlatformFeature> implements IXRFeature {
+export abstract class XRFeature<T extends IXRPlatformFeature = IXRPlatformFeature> {
   /** @internal */
   _platformFeature: T;
   protected _enabled: boolean = true;

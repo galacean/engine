@@ -24,7 +24,7 @@ export class XRHitTest extends XRFeature {
   private _tempVec35: Vector3 = new Vector3();
 
   /**
-
+   * @param xrManager - The xr manager
    */
   constructor(xrManager: XRManager) {
     super(xrManager, XRFeatureType.HitTest);
@@ -38,7 +38,7 @@ export class XRHitTest extends XRFeature {
    */
   hitTest(ray: Ray, type: TrackableType): XRHitResult[] {
     if (this._xrManager.sessionManager.mode !== XRSessionMode.AR) {
-      throw new Error("Only AR mode supports using screen ray detection.");
+      throw new Error("Only AR mode supports using ray detection.");
     }
     return this._hitTest(ray, type);
   }
@@ -53,7 +53,7 @@ export class XRHitTest extends XRFeature {
   screenHitTest(x: number, y: number, type: TrackableType): XRHitResult[] {
     const { _xrManager: xrManager } = this;
     if (xrManager.sessionManager.mode !== XRSessionMode.AR) {
-      throw new Error("Only AR mode supports using screen ray detection.");
+      throw new Error("Only AR mode supports using screen ray hit test.");
     }
     const { _camera: camera } = xrManager.inputManager.getTrackedDevice<XRCamera>(XRTrackedInputDevice.Camera);
     if (!camera) {
@@ -92,7 +92,7 @@ export class XRHitTest extends XRFeature {
           hitResult.point.copyFrom(hitPoint);
           hitResult.normal.copyFrom(normal);
           hitResult.distance = distance;
-          hitResult.trackableId = trackedPlane.id;
+          hitResult.trackedObject = trackedPlane;
           hitResult.trackableType = TrackableType.Plane;
           result.push(hitResult);
         }

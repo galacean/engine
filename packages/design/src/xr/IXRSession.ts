@@ -64,15 +64,9 @@ export interface IXRSession {
 
   /**
    * Add exit listener for XR session.
-   * @param onExit - The exit listener
+   * @param sessionExitCallBack - The exit listener
    */
-  addExitListener(onExit: () => any): void;
-
-  /**
-   * Remove exit listener for XR session.
-   * @param onExit - The exit listener
-   */
-  removeExitListener(onExit: () => any): void;
+  setSessionExitCallBack(sessionExitCallBack: () => void): void;
 
   /**
    * Reset event flow.

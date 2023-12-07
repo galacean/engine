@@ -1,11 +1,13 @@
 import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine";
 import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { WebXRFrame } from "./WebXRFrame";
-import { getInputSource } from "./util";
+import { getInputSource } from "./Util";
 
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame: (id: number) => void;
+  /** @internal */
+  _onSessionExitCallBack: () => void;
 
   /** @internal */
   _platformSession: XRSession;
@@ -93,6 +95,7 @@ export class WebXRSession implements IXRSession {
     };
     this.cancelAnimationFrame = session.cancelAnimationFrame.bind(session);
     this._onSessionEvent = this._onSessionEvent.bind(this);
+    this._onSessionExit = this._onSessionExit.bind(this);
   }
 
   getFixedFoveation(): number {
@@ -114,6 +117,10 @@ export class WebXRSession implements IXRSession {
     return this._platformSession.end();
   }
 
+  setSessionExitCallBack(onSessionExitCallBack: () => void): void {
+    this._onSessionExitCallBack = onSessionExitCallBack;
+  }
+
   addEventListener(): void {
     const { _onSessionEvent: onSessionEvent, _platformSession: session } = this;
     session.addEventListener("select", onSessionEvent);
@@ -122,6 +129,7 @@ export class WebXRSession implements IXRSession {
     session.addEventListener("squeeze", onSessionEvent);
     session.addEventListener("squeezestart", onSessionEvent);
     session.addEventListener("squeezeend", onSessionEvent);
+    session.addEventListener("end", this._onSessionExit);
   }
 
   removeEventListener(): void {
@@ -132,22 +140,22 @@ export class WebXRSession implements IXRSession {
     session.removeEventListener("squeeze", onSessionEvent);
     session.removeEventListener("squeezestart", onSessionEvent);
     session.removeEventListener("squeezeend", onSessionEvent);
+    session.addEventListener("end", this._onSessionExit);
     this._events.length = 0;
-  }
-
-  addExitListener(onExit: () => any): void {
-    this._platformSession.addEventListener("end", onExit);
-  }
-
-  removeExitListener(onExit: () => any): void {
-    this._platformSession.removeEventListener("end", onExit);
   }
 
   resetEvents(): void {
     this._events.length = 0;
   }
 
-  private _onSessionEvent(inputSourceEvent: XRInputSourceEvent) {
+  private _onSessionExit(): void {
+    if (this._onSessionExitCallBack) {
+      this._onSessionExitCallBack();
+      this._onSessionExitCallBack = null;
+    }
+  }
+
+  private _onSessionEvent(inputSourceEvent: XRInputSourceEvent): void {
     const { inputSource } = inputSourceEvent;
     const event: IXRInputEvent = {
       type: this._inputEventTypeMap[inputSourceEvent.type],

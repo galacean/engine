@@ -1,3 +1,4 @@
+import { IXRTracked } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { TrackableType } from "./TrackableType";
 
@@ -13,7 +14,7 @@ export class XRHitResult {
   /** The distance from the origin of the ray to the hit point. */
   distance: number;
   /** The id of the hit tracked object, such as the id of IXRTrackedPlane. */
-  trackableId: number;
+  trackedObject: IXRTracked;
   /** The type of tracked object detected, such as TrackableType.Plane */
   trackableType: TrackableType;
 }

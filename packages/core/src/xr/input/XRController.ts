@@ -14,9 +14,9 @@ export class XRController extends XRInput implements IXRController {
   /** The currently pressed buttons of this controller. */
   pressedButtons: XRInputButton = XRInputButton.None;
   /** Record button lifted. */
-  down: number = 0;
+  down: XRInputButton = XRInputButton.None;
   /** Record button pressed. */
-  up: number = 0;
+  up: XRInputButton = XRInputButton.None;
 
   /**
    *

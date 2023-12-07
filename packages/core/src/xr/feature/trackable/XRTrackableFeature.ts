@@ -8,32 +8,28 @@ import { XRFeatureType } from "../XRFeatureType";
  * The base class of XR trackable manager.
  */
 export abstract class XRTrackableFeature<
-  TXRTracked extends IXRTracked,
-  TXRRequestTracking extends IXRRequestTracking<TXRTracked>
+  T extends IXRTracked,
+  K extends IXRRequestTracking<T>
 > extends XRFeature<IXRTrackablePlatformFeature> {
-  protected _requestTrackings: TXRRequestTracking[] = [];
-  protected _trackedObjects: TXRTracked[] = [];
-  protected _added: TXRTracked[] = [];
-  protected _updated: TXRTracked[] = [];
-  protected _removed: TXRTracked[] = [];
+  protected _requestTrackings: K[] = [];
+  protected _trackedObjects: T[] = [];
+  protected _added: T[] = [];
+  protected _updated: T[] = [];
+  protected _removed: T[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
-  private _listeners: ((
-    added: readonly TXRTracked[],
-    updated: readonly TXRTracked[],
-    removed: readonly TXRTracked[]
-  ) => void)[] = [];
+  private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
 
   /**
    * Return Request tracking requirements.
    */
-  get requestTrackings(): readonly TXRRequestTracking[] {
+  get requestTrackings(): readonly K[] {
     return this._requestTrackings;
   }
 
   /**
    * Returns the tracked objects.
    */
-  get trackedObjects(): readonly TXRTracked[] {
+  get trackedObjects(): readonly T[] {
     return this._trackedObjects;
   }
 
@@ -42,7 +38,7 @@ export abstract class XRTrackableFeature<
    * @param listener - The listening function
    */
   addTrackedObjectChangedListener(
-    listener: (added: readonly TXRTracked[], updated: readonly TXRTracked[], removed: readonly TXRTracked[]) => void
+    listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void
   ): void {
     this._listeners.push(listener);
   }
@@ -52,7 +48,7 @@ export abstract class XRTrackableFeature<
    * @param listener - The listening function
    */
   removeTrackedObjectChangedListener(
-    listener: (added: readonly TXRTracked[], updated: readonly TXRTracked[], removed: readonly TXRTracked[]) => void
+    listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void
   ): void {
     const { _listeners: listeners } = this;
     const index = listeners.indexOf(listener);
@@ -126,7 +122,7 @@ export abstract class XRTrackableFeature<
     this._requestTrackings.length = this._trackedObjects.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
-  protected _addRequestTracking(requestTracking: TXRRequestTracking): void {
+  protected _addRequestTracking(requestTracking: K): void {
     const { _platformFeature: platformFeature } = this;
     if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
       throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
@@ -135,7 +131,7 @@ export abstract class XRTrackableFeature<
     platformFeature.onAddRequestTracking && platformFeature.onAddRequestTracking(requestTracking);
   }
 
-  protected _removeRequestTracking(requestTracking: TXRRequestTracking): void {
+  protected _removeRequestTracking(requestTracking: K): void {
     const { _platformFeature: platformFeature } = this;
     if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
       throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");

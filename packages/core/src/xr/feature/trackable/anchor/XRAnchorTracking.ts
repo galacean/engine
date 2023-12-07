@@ -9,12 +9,22 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
  * The manager of XR anchor tracking.
  */
 export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestAnchorTracking> {
+  private _anchors: XRPose[];
+
+  /**
+   * The anchors to be tracked.
+   */
+  get anchors(): readonly XRPose[] {
+    return this._anchors;
+  }
+
   /**
    * @param xrManager - The xr manager
    * @param anchors - The anchors to be tracked
    */
   constructor(xrManager: XRManager, anchors: XRPose[] = []) {
     super(xrManager, XRFeatureType.AnchorTracking);
+    this._anchors = anchors;
     for (let i = 0, n = anchors.length; i < n; i++) {
       this._addRequestTracking({
         pose: anchors[i],

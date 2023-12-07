@@ -17,7 +17,7 @@ import {
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
-import { generateUUID } from "../util";
+import { generateUUID } from "../Util";
 import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)

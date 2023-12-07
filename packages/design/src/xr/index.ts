@@ -1,5 +1,4 @@
 export type { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
-export type { IXRFeature } from "./feature/IXRFeature";
 export type { IXRTrackablePlatformFeature } from "./feature/trackable/IXRTrackablePlatformFeature";
 
 export type { IXRInputEvent } from "./IXRInputEvent";

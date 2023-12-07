@@ -1,5 +1,6 @@
-import { IHardwareRenderer, IXRFeature, IXRSession } from "@galacean/engine-design";
+import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
+import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
 
@@ -92,7 +93,7 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  _initialize(mode: XRSessionMode, features: IXRFeature[]): Promise<void> {
+  _initialize(mode: XRSessionMode, features: XRFeature[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const { xrManager } = this._engine;
       // Initialize all features
@@ -101,15 +102,17 @@ export class XRSessionManager {
         const { _platformFeature: platformFeature } = features[i];
         platformFeature && platformFeatures.push(platformFeature);
       }
-      xrManager._platformDevice.requestSession(this._rhi, mode, platformFeatures).then((session: IXRSession) => {
-        this._mode = mode;
-        this._platformSession = session;
-        this._state = XRSessionState.Initialized;
-        session.addEventListener();
-        session.addExitListener(this._onSessionExit);
-        xrManager._onSessionInit();
-        resolve();
-      }, reject);
+      xrManager._platformDevice
+        .requestSession(this._rhi, mode, platformFeatures)
+        .then((platformSession: IXRSession) => {
+          this._mode = mode;
+          this._platformSession = platformSession;
+          this._state = XRSessionState.Initialized;
+          platformSession.setSessionExitCallBack(this._onSessionExit);
+          platformSession.addEventListener();
+          xrManager._onSessionInit();
+          resolve();
+        }, reject);
     });
   }
 
@@ -161,7 +164,6 @@ export class XRSessionManager {
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.removeEventListener();
-    platformSession.removeExitListener(this._onSessionExit);
     this._platformSession = null;
     this._state = XRSessionState.None;
     this._engine.xrManager._onSessionExit();

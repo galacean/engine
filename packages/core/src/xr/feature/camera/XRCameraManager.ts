@@ -1,8 +1,8 @@
 import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../../../Camera";
-import { Engine } from "../../../Engine";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { CameraType } from "../../../enums/CameraType";
+import { XRManager } from "../../XRManager";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
 import { XRSessionState } from "../../session/XRSessionState";
@@ -15,7 +15,7 @@ export class XRCameraManager {
    * The fixed foveation of the camera.
    */
   get fixedFoveation(): number {
-    const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
+    const { _platformSession: platformSession } = this._xrManager.sessionManager;
     if (platformSession) {
       return platformSession.getFixedFoveation();
     } else {
@@ -24,7 +24,7 @@ export class XRCameraManager {
   }
 
   set fixedFoveation(value: number) {
-    const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
+    const { _platformSession: platformSession } = this._xrManager.sessionManager;
     if (platformSession) {
       platformSession.setFixedFoveation(value);
     } else {
@@ -35,7 +35,7 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  constructor(private _engine: Engine) {}
+  constructor(private _xrManager: XRManager) {}
 
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
@@ -47,7 +47,7 @@ export class XRCameraManager {
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera,
     camera: Camera
   ): void {
-    const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
+    const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
     if (preCamera !== camera) {
       preCamera && (preCamera._cameraType = CameraType.Normal);
@@ -76,7 +76,7 @@ export class XRCameraManager {
   detachCamera(
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
   ): Camera {
-    const xrCamera = this._engine.xrManager.inputManager.getTrackedDevice<XRCamera>(type);
+    const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
     preCamera && (preCamera._cameraType = CameraType.Normal);
     xrCamera._camera = null;
@@ -92,7 +92,7 @@ export class XRCameraManager {
    * @internal
    */
   _onUpdate(): void {
-    const { _cameras: cameras } = this._engine.xrManager.inputManager;
+    const { _cameras: cameras } = this._xrManager.inputManager;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const cameraDevice = cameras[i];
       const { _camera: camera } = cameraDevice;
@@ -125,7 +125,7 @@ export class XRCameraManager {
    */
   _getCameraClearFlagsMask(cameraType: CameraType): CameraClearFlags {
     if (cameraType === CameraType.XRCenterCamera) {
-      if (this._engine.xrManager.sessionManager.state === XRSessionState.Running) {
+      if (this._xrManager.sessionManager.state === XRSessionState.Running) {
         return CameraClearFlags.Color;
       } else {
         return CameraClearFlags.None;

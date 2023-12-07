@@ -1,7 +1,7 @@
 import { Vector3, XRTrackedInputDevice, XRTrackingState } from "@galacean/engine";
 import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
 import { WebXRSession } from "./WebXRSession";
-import { getInputSource, viewToCamera } from "./util";
+import { getInputSource, viewToCamera } from "./Util";
 
 export class WebXRFrame implements IXRFrame {
   /** @internal */

@@ -14,11 +14,11 @@ import { XRSessionState } from "./session/XRSessionState";
  */
 export class XRManager {
   /** Input manager for XR. */
-  inputManager: XRInputManager;
+  readonly inputManager: XRInputManager;
   /** Session manager for XR. */
-  sessionManager: XRSessionManager;
+  readonly sessionManager: XRSessionManager;
   /** Camera manager for XR. */
-  cameraManager: XRCameraManager;
+  readonly cameraManager: XRCameraManager;
 
   /** @internal */
   _platformDevice: IXRDevice;
@@ -48,7 +48,7 @@ export class XRManager {
     this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(engine);
     this.inputManager = new XRInputManager(engine);
-    this.cameraManager = new XRCameraManager(engine);
+    this.cameraManager = new XRCameraManager(this);
   }
 
   /**
