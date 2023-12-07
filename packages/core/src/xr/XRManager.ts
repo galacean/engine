@@ -65,13 +65,13 @@ export class XRManager {
   /**
    * Add feature based on the xr feature type.
    * @param type - The type of the feature
-   * @param constructor - The constructor params of the feature
+   * @param args - The constructor params of the feature
    * @returns The feature which has been added
    */
-  addFeature<T extends XRFeature>(
-    type: TFeatureConstructor<T>,
-    ...constructor: TFeatureConstructorArguments<T>
-  ): T | null {
+  addFeature<T extends new (xrManager: XRManager, ...args: any[]) => XRFeature>(
+    type: T,
+    ...args: TFeatureConstructorArguments<T>
+  ): XRFeature | null {
     if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
@@ -80,7 +80,7 @@ export class XRManager {
       const feature = features[i];
       if (feature instanceof type) throw new Error("The feature has been added");
     }
-    const feature = new type(this, ...constructor);
+    const feature = new type(this, ...args);
     this._features.push(feature);
     return feature;
   }
@@ -258,6 +258,9 @@ export function registerXRFeature<T extends XRFeature>(type: XRFeatureType): (fe
 
 type TFeatureConstructor<T extends XRFeature> = new (xrManager: XRManager, ...args: any[]) => T;
 
-type TFeatureConstructorArguments<T extends XRFeature> = T extends new (xrManager: XRManager, ...args: infer P) => T
+type TFeatureConstructorArguments<T extends new (xrManager: XRManager, ...args: any[]) => XRFeature> = T extends new (
+  xrManager: XRManager,
+  ...args: infer P
+) => XRFeature
   ? P
   : never;
