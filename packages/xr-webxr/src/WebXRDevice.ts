@@ -87,7 +87,7 @@ export class WebXRDevice implements IXRDevice {
 }
 
 type PlatformFeatureConstructor = new (...args: any[]) => IXRPlatformFeature;
-export function registerXRPlatformFeature(type: number) {
+export function registerXRPlatformFeature(type: XRFeatureType) {
   return (platformFeatureConstructor: PlatformFeatureConstructor) => {
     WebXRDevice._platformFeatureMap[type] = platformFeatureConstructor;
   };

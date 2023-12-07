@@ -1,6 +1,6 @@
 import { IXRTrackedPlane } from "@galacean/engine-design";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
-import { XRManager } from "../../XRManager";
+import { XRManager, registerXRFeature } from "../../XRManager";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
 import { XRSessionMode } from "../../session/XRSessionMode";
@@ -13,6 +13,7 @@ import { XRHitResult } from "./XRHitResult";
 /**
  * The manager of XR hit test.
  */
+@registerXRFeature(XRFeatureType.HitTest)
 export class XRHitTest extends XRFeature {
   private _tempRay: Ray = new Ray();
   private _tempVec2: Vector2 = new Vector2();

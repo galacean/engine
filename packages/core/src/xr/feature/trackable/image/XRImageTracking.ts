@@ -1,5 +1,5 @@
 import { IXRReferenceImage, IXRRequestImageTracking, IXRTrackedImage } from "@galacean/engine-design";
-import { XRManager } from "../../../XRManager";
+import { XRManager, registerXRFeature } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { XRTrackableFeature } from "../XRTrackableFeature";
@@ -7,6 +7,7 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
 /**
  * The manager of XR image tracking.
  */
+@registerXRFeature(XRFeatureType.ImageTracking)
 export class XRImageTracking extends XRTrackableFeature<IXRTrackedImage, IXRRequestImageTracking> {
   private _images: IXRReferenceImage[];
   /**

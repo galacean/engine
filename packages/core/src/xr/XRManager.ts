@@ -8,11 +8,13 @@ import { XRInputManager } from "./input/XRInputManager";
 import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionMode } from "./session/XRSessionMode";
 import { XRSessionState } from "./session/XRSessionState";
-
 /**
  * XRManager is the entry point of the XR system.
  */
 export class XRManager {
+  /** @internal */
+  static _featureMap: Map<TFeatureConstructor<XRFeature>, XRFeatureType> = new Map();
+
   /** Input manager for XR. */
   readonly inputManager: XRInputManager;
   /** Session manager for XR. */
@@ -56,8 +58,8 @@ export class XRManager {
    * @param type - The type of the feature
    * @returns If the feature is supported
    */
-  isSupportedFeature(type: XRFeatureType): boolean {
-    return this._platformDevice.isSupportedFeature(type);
+  isSupportedFeature<T extends XRFeature>(feature: TFeatureConstructor<T>): boolean {
+    return this._platformDevice.isSupportedFeature(XRManager._featureMap.get(feature));
   }
 
   /**
@@ -66,10 +68,10 @@ export class XRManager {
    * @param constructor - The constructor params of the feature
    * @returns The feature which has been added
    */
-  addFeature<T extends new (xrManager: XRManager, ...args: any[]) => XRFeature>(
-    type: T,
-    ...constructor: TConstructor<T>
-  ): XRFeature | null {
+  addFeature<T extends XRFeature>(
+    type: TFeatureConstructor<T>,
+    ...constructor: TFeatureConstructorArguments<T>
+  ): T | null {
     if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
@@ -88,7 +90,7 @@ export class XRManager {
    * @param type - The type of the feature
    * @returns	The feature which match type
    */
-  getFeature<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T): T | null {
+  getFeature<T extends XRFeature>(type: TFeatureConstructor<T>): T | null {
     const { _features: features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
@@ -102,16 +104,16 @@ export class XRManager {
    * Get all initialized features at this moment.
    * @param type - The type of the feature
    */
-  getFeatures<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T): T[];
+  getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>): T[];
 
   /**
    * Get all initialized features at this moment.
    * @param type - The type of the feature
    * @param out - Save all features in `out`
    */
-  getFeatures<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T, out: T[]): T[];
+  getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>, out: T[]): T[];
 
-  getFeatures<T extends XRFeature>(type: new (xrManager: XRManager, ...args: any[]) => T, out?: T[]): T[] {
+  getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>, out?: T[]): T[] {
     if (out) {
       out.length = 0;
     } else {
@@ -245,9 +247,17 @@ export class XRManager {
   }
 }
 
-type TConstructor<T extends new (xrManager: XRManager, ...args: any[]) => XRFeature> = T extends new (
-  xrManager: XRManager,
-  ...args: infer P
-) => XRFeature
+/**
+ * @internal
+ */
+export function registerXRFeature<T extends XRFeature>(type: XRFeatureType): (feature: TFeatureConstructor<T>) => void {
+  return (feature: TFeatureConstructor<T>) => {
+    XRManager._featureMap.set(feature, type);
+  };
+}
+
+type TFeatureConstructor<T extends XRFeature> = new (xrManager: XRManager, ...args: any[]) => T;
+
+type TFeatureConstructorArguments<T extends XRFeature> = T extends new (xrManager: XRManager, ...args: infer P) => T
   ? P
   : never;

@@ -1,5 +1,5 @@
 import { IXRRequestAnchorTracking, IXRTracked } from "@galacean/engine-design";
-import { XRManager } from "../../../XRManager";
+import { XRManager, registerXRFeature } from "../../../XRManager";
 import { XRPose } from "../../../XRPose";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRRequestTrackingState } from "../XRRequestTrackingState";
@@ -8,6 +8,7 @@ import { XRTrackableFeature } from "../XRTrackableFeature";
 /**
  * The manager of XR anchor tracking.
  */
+@registerXRFeature(XRFeatureType.AnchorTracking)
 export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestAnchorTracking> {
   private _anchors: XRPose[];
 
