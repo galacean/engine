@@ -4,19 +4,23 @@
 		for(int i = 0; i < RENDERER_BLENDSHAPE_COUNT; i++){
 			int vertexElementOffset = vertexOffset;
 			float weight = renderer_BlendShapeWeights[i];
-			position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
+			// Warnning: Multiplying by 0 creates weird precision issues, causing rendering anomalies in Ace2 Android13
+			if(weight != 0.0){
+				position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
+	
+				#ifndef MATERIAL_OMIT_NORMAL
+					#if defined( RENDERER_HAS_NORMAL ) && defined( RENDERER_BLENDSHAPE_HAS_NORMAL )
+						vertexElementOffset += 1;
+						normal += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
+					#endif
+	
+					#if defined( RENDERER_HAS_TANGENT ) && defined(RENDERER_BLENDSHAPE_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
+						vertexElementOffset += 1;
+						tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
+					#endif
+				#endif
+			}
 			
-			#ifndef MATERIAL_OMIT_NORMAL
-				#if defined( RENDERER_HAS_NORMAL ) && defined( RENDERER_BLENDSHAPE_HAS_NORMAL )
-					vertexElementOffset += 1;
-					normal += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
-				#endif
-
-				#if defined( RENDERER_HAS_TANGENT ) && defined(RENDERER_BLENDSHAPE_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
-					vertexElementOffset += 1;
-					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
-				#endif
-			#endif
 		}
 	#else
 		position.xyz += POSITION_BS0 * renderer_BlendShapeWeights[0];
