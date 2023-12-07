@@ -89,6 +89,9 @@ export class Shader {
       }
 
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
+      if (shaderMap[shaderInfo.name]) {
+        throw `Shader named "${nameOrShaderSource}" already exists.`;
+      }
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
           if (typeof passInfo === "string") {
