@@ -37,10 +37,11 @@ export class XRHitTest extends XRFeature {
    * @returns The hit result
    */
   hitTest(ray: Ray, type: TrackableType): XRHitResult[] {
-    if (this._xrManager.sessionManager.mode !== XRSessionMode.AR) {
-      throw new Error("Only AR mode supports using ray detection.");
+    const result = [];
+    if (type & TrackableType.Plane) {
+      this._hitTestPlane(ray, result);
     }
-    return this._hitTest(ray, type);
+    return result;
   }
 
   /**
@@ -60,15 +61,7 @@ export class XRHitTest extends XRFeature {
       throw new Error("No camera available.");
     }
     const ray = camera.screenPointToRay(this._tempVec2.set(x, y), this._tempRay);
-    return this._hitTest(ray, type);
-  }
-
-  private _hitTest(ray: Ray, type: TrackableType): XRHitResult[] {
-    const result = [];
-    if (type & TrackableType.Plane) {
-      this._hitTestPlane(ray, result);
-    }
-    return result;
+    return this.hitTest(ray, type);
   }
 
   private _hitTestPlane(ray: Ray, result: XRHitResult[]): void {
