@@ -14,7 +14,6 @@ import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 
-@registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
  * WebXR implementation of XRPlatformImageTracking.
  * Note: each tracked image can appear at most once in the tracking results.
@@ -22,6 +21,7 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
  * the device can choose an arbitrary instance to report a pose,
  * and this choice can change for future XRFrames.
  */
+@registerXRPlatformFeature(XRFeatureType.ImageTracking)
 export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage, IXRRequestImage> {
   private _images: IXRReferenceImage[];
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;

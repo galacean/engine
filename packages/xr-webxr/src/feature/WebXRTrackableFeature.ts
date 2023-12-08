@@ -3,6 +3,9 @@ import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRFeature } from "./WebXRFeature";
 
+/**
+ * @internal
+ */
 export abstract class WebXRTrackableFeature<T extends IXRTracked, K extends IXRRequestTracking<T>>
   extends WebXRFeature
   implements IXRTrackablePlatformFeature<T, K>

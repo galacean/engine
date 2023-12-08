@@ -5,11 +5,11 @@ import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
-
-@registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
+
+@registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IWebXRRequestTrackingAnchor> {
   get canModifyRequestTrackingAfterInit(): boolean {
     return true;

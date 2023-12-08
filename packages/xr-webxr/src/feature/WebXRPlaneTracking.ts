@@ -14,10 +14,10 @@ import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 
-@registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
+@registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPlane, IXRRequestPlane> {
   private _lastDetectedPlanes: XRPlaneSet;
 
