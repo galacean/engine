@@ -3,7 +3,16 @@ import { CstChildrenDictionary, CstNode, ICstVisitor, IToken } from "chevrotain"
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";
 
+export interface IPositionOffset {
+  /** Offset of the first character of the Token. 0-indexed. */
+  index: number;
+  line: number;
+}
+
 export class AstNodeUtils {
+  /** EditorProperties offset */
+  static positionOffset: IPositionOffset | undefined;
+
   static isCstNode(node: any) {
     return !!node.children;
   }
@@ -29,10 +38,10 @@ export class AstNodeUtils {
     return undefined;
   }
 
-  static defaultVisit(this: ICstVisitor<any, AstNode>, ctx: CstChildrenDictionary): ObjectAstNode {
+  static defaultVisit(this: ICstVisitor<any, AstNode>, ctx: CstChildrenDictionary, lineOffset: number): ObjectAstNode {
     const content = {} as Record<string, AstNode>;
-    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1 },
-      end: IPosition = { line: 0, character: -1 };
+    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1, index: -1 },
+      end: IPosition = { line: 0, character: -1, index: -1 };
 
     for (const k in ctx) {
       if (AstNodeUtils.isCstNode(ctx[k][0])) {
@@ -60,14 +69,20 @@ export class AstNodeUtils {
   }
 
   static getTokenPosition(token: IToken): IPositionRange {
+    let lineOffset = 0;
+    if (this.positionOffset && token.startOffset >= this.positionOffset.index) {
+      lineOffset = this.positionOffset.line;
+    }
     return {
       start: {
-        line: token.startLine,
-        character: token.startColumn
+        line: token.startLine + lineOffset,
+        character: token.startColumn,
+        index: token.startOffset
       },
       end: {
-        line: token.endLine,
-        character: token.endColumn
+        line: token.endLine + lineOffset,
+        character: token.endColumn,
+        index: token.endOffset
       }
     };
   }

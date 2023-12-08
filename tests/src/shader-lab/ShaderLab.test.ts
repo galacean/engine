@@ -112,6 +112,7 @@ describe("ShaderLab", () => {
   let passList: ISubShaderInfo["passes"];
   let pass: IShaderPassInfo;
   let usePass: string;
+  let context: any;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
@@ -119,6 +120,7 @@ describe("ShaderLab", () => {
     passList = subShader.passes;
     usePass = <string>passList[0];
     pass = <IShaderPassInfo>passList[1];
+    context = (shader as any)._context;
   });
 
   it("create shaderLab", async () => {
@@ -130,6 +132,10 @@ describe("ShaderLab", () => {
     expect(subShader.name).to.equal("subname");
     expect(pass.name).to.equal("default");
     expect(usePass).to.equal("pbr/Default/Forward");
+  });
+
+  it("position offset", () => {
+    expect((shaderLab as any).positionOffset).to.eql({ index: 20, line: 8 });
   });
 
   it("render state", () => {
