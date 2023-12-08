@@ -2,6 +2,9 @@ import { IXRTracked } from "@galacean/engine-design";
 import { XRPose } from "../../XRPose";
 import { XRTrackingState } from "../../input/XRTrackingState";
 
+/**
+ * A tracked object in XR space.
+ */
 export abstract class XRTracked implements IXRTracked {
   /** The unique id of the trackable. */
   id: number;

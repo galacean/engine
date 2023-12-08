@@ -18,6 +18,13 @@ export class XRPlaneTracking extends XRTrackableFeature<XRTrackedPlane, XRReques
   }
 
   /**
+   * The tracked planes.
+   */
+  get trackedPlanes(): readonly XRTrackedPlane[] {
+    return this._tracked;
+  }
+
+  /**
    * @param xrManager - The xr manager
    * @param detectionMode - The plane detection mode
    */

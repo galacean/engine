@@ -2,25 +2,27 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { XRManager, registerXRFeature } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRAnchor } from "./XRAnchor";
 import { XRRequestAnchor } from "./XRRequestAnchor";
-import { XRTrackedAnchor } from "./XRTrackedAnchor";
 
 /**
  * The manager of XR anchor tracking.
  */
 @registerXRFeature(XRFeatureType.AnchorTracking)
-export class XRAnchorTracking extends XRTrackableFeature<XRTrackedAnchor, XRRequestAnchor> {
+export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnchor> {
+  private _anchors: XRAnchor[] = [];
+
   /**
    * The anchors to tracking.
    */
-  get requestAnchors(): readonly XRRequestAnchor[] {
-    return this._requestTrackings;
+  get trackingAnchors(): readonly XRAnchor[] {
+    return this._anchors;
   }
 
   /**
    * The tracked anchors.
    */
-  get trackedAnchors(): readonly XRTrackedAnchor[] {
+  get trackedAnchors(): readonly XRAnchor[] {
     return this._tracked;
   }
 
@@ -35,32 +37,41 @@ export class XRAnchorTracking extends XRTrackableFeature<XRTrackedAnchor, XRRequ
    * Add a anchor in XR space.
    * @param anchor - The anchor to be added
    */
-  addAnchor(position: Vector3, rotation: Quaternion): XRRequestAnchor {
+  addAnchor(position: Vector3, rotation: Quaternion): XRAnchor {
     if (!this._enabled) {
       throw new Error("Cannot add an anchor from a disabled anchor manager.");
     }
+    const { _anchors: anchors } = this;
     const requestAnchor = new XRRequestAnchor(position, rotation);
-    requestAnchor.tracked = [new XRTrackedAnchor()];
+    const anchor = requestAnchor.tracked[0];
+    anchors.push(anchor);
     this._addRequestTracking(requestAnchor);
-    return requestAnchor;
+    return anchor;
   }
 
   /**
    * Remove a anchor in XR space.
    * @param anchor - The anchor to be removed
    */
-  removeAnchor(anchor: XRRequestAnchor): void {
+  removeAnchor(anchor: XRAnchor): void {
     if (!this._enabled) {
       throw new Error("Cannot remove an anchor from a disabled anchor manager.");
     }
-    const { _requestTrackings: requestTrackings } = this;
-    requestTrackings.splice(requestTrackings.indexOf(anchor), 1);
+    const { _requestTrackings: requestTrackings, _anchors: anchors } = this;
+    anchors.splice(anchors.indexOf(anchor), 1);
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      const requestAnchor = requestTrackings[i];
+      if (requestAnchor.tracked[0] === anchor) {
+        this._removeRequestTracking(requestAnchor);
+        break;
+      }
+    }
   }
 
   /**
    * Remove all tracking anchors.
    */
-  removeAllAnchors(): void {
+  clearAnchors(): void {
     if (!this._enabled) {
       throw new Error("Cannot remove anchors from a disabled anchor manager.");
     }

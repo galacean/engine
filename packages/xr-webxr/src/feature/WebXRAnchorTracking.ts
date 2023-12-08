@@ -4,18 +4,18 @@ import { generateUUID } from "../Util";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
-import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
+import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
-export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature<IXRTracked, IXRRequestAnchor<IXRTracked>> {
+export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IWebXRRequestTrackingAnchor> {
   get canModifyRequestTrackingAfterInit(): boolean {
     return true;
   }
 
-  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchor<IXRTracked>[]): boolean {
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IWebXRRequestTrackingAnchor[]): boolean {
     if (!frame._platformFrame) return false;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
@@ -26,7 +26,7 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature<IXRTr
     return true;
   }
 
-  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchor<IXRTracked>[]): void {
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IWebXRRequestTrackingAnchor[]): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     const { trackedAnchors } = platformFrame;
@@ -128,6 +128,6 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature<IXRTr
   }
 }
 
-interface IWebXRRequestTrackingAnchor extends IXRRequestAnchor<IXRTracked> {
+interface IWebXRRequestTrackingAnchor extends IXRRequestAnchor {
   xrAnchor: XRAnchor;
 }

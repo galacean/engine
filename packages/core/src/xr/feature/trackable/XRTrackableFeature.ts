@@ -1,13 +1,15 @@
-import { IXRRequestTracking, IXRTrackablePlatformFeature, IXRTracked } from "@galacean/engine-design";
+import { IXRTrackablePlatformFeature } from "@galacean/engine-design";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
+import { XRRequestTracking } from "./XRRequestTracking";
 import { XRRequestTrackingState } from "./XRRequestTrackingState";
+import { XRTracked } from "./XRTracked";
 
 /**
  * The base class of XR trackable manager.
  */
-export abstract class XRTrackableFeature<T extends IXRTracked, K extends IXRRequestTracking<T>> extends XRFeature<
+export abstract class XRTrackableFeature<T extends XRTracked, K extends XRRequestTracking<T>> extends XRFeature<
   IXRTrackablePlatformFeature<T, K>
 > {
   protected _requestTrackings: K[] = [];

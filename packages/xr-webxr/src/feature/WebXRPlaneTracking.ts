@@ -7,20 +7,18 @@ import {
   XRRequestTrackingState,
   XRTrackingState
 } from "@galacean/engine";
-import { IXRRequestPlane, IXRRequestTracking, IXRTracked, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRRequestPlane, IXRTrackedPlane } from "@galacean/engine-design";
+import { generateUUID } from "../Util";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
-import { generateUUID } from "../Util";
-import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
+import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
-export class WebXRPlaneTracking
-  implements IWebXRTrackablePlatformFeature<IXRTrackedPlane, IXRRequestPlane<IXRTrackedPlane>>
-{
+export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPlane, IXRRequestPlane> {
   private _lastDetectedPlanes: XRPlaneSet;
 
   get canModifyRequestTrackingAfterInit(): boolean {
@@ -33,23 +31,15 @@ export class WebXRPlaneTracking
     }
   }
 
-  onAddRequestTracking(requestTracking: IXRRequestTracking<IXRTracked>): void {
+  onAddRequestTracking(requestTracking: IXRRequestPlane): void {
     requestTracking.state = XRRequestTrackingState.Resolved;
   }
 
-  checkAvailable(
-    session: WebXRSession,
-    frame: WebXRFrame,
-    requestTrackings: IXRRequestPlane<IXRTrackedPlane>[]
-  ): boolean {
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlane[]): boolean {
     return !!frame._platformFrame;
   }
 
-  getTrackedResult(
-    session: WebXRSession,
-    frame: WebXRFrame,
-    requestTrackings: IXRRequestPlane<IXRTrackedPlane>[]
-  ): void {
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlane[]): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     // @ts-ignore

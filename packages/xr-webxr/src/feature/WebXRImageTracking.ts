@@ -7,18 +7,12 @@ import {
   XRTrackingState,
   request
 } from "@galacean/engine";
-import {
-  IXRReferenceImage,
-  IXRRequestImage,
-  IXRRequestTracking,
-  IXRTracked,
-  IXRTrackedImage
-} from "@galacean/engine-design";
+import { IXRReferenceImage, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
 import { generateUUID } from "../Util";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
-import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
+import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
 /**
@@ -28,9 +22,7 @@ import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature
  * the device can choose an arbitrary instance to report a pose,
  * and this choice can change for future XRFrames.
  */
-export class WebXRImageTracking
-  implements IWebXRTrackablePlatformFeature<IXRTrackedImage, IXRRequestImage<IXRTrackedImage>>
-{
+export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage, IXRRequestImage> {
   private _images: IXRReferenceImage[];
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   private _tempIdx: number = 0;
@@ -44,15 +36,11 @@ export class WebXRImageTracking
     this._images = images;
   }
 
-  onAddRequestTracking(requestTracking: IXRRequestTracking<IXRTracked>): void {
+  onAddRequestTracking(requestTracking: IXRRequestImage): void {
     requestTracking.state = XRRequestTrackingState.Submitted;
   }
 
-  checkAvailable(
-    session: WebXRSession,
-    frame: WebXRFrame,
-    requestTrackings: IXRRequestImage<IXRTrackedImage>[]
-  ): boolean {
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImage[]): boolean {
     if (!frame._platformFrame) return false;
     switch (this._trackingScoreStatus) {
       case ImageTrackingScoreStatus.NotReceived:
@@ -64,11 +52,7 @@ export class WebXRImageTracking
     return true;
   }
 
-  getTrackedResult(
-    session: WebXRSession,
-    frame: WebXRFrame,
-    requestTrackings: IXRRequestImage<IXRTrackedImage>[]
-  ): void {
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImage[]): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     const { _tempArr: tempArr } = this;
@@ -138,7 +122,7 @@ export class WebXRImageTracking
     }
   }
 
-  private _requestTrackingScore(session: WebXRSession, requestTrackings: IXRRequestImage<IXRTrackedImage>[]): void {
+  private _requestTrackingScore(session: WebXRSession, requestTrackings: IXRRequestImage[]): void {
     this._trackingScoreStatus = ImageTrackingScoreStatus.Waiting;
     session._platformSession
       // @ts-ignore

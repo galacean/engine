@@ -1,13 +1,13 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { XRRequestTracking } from "../XRRequestTracking";
-import { XRTrackedAnchor } from "./XRTrackedAnchor";
+import { XRAnchor } from "./XRAnchor";
 
-export class XRRequestAnchor extends XRRequestTracking<XRTrackedAnchor> {
+export class XRRequestAnchor extends XRRequestTracking<XRAnchor> {
   constructor(
     public position: Vector3,
     public rotation: Quaternion
   ) {
     super();
-    this.tracked.push(new XRTrackedAnchor());
+    this.tracked = [new XRAnchor()];
   }
 }

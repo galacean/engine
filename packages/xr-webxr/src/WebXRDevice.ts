@@ -1,14 +1,8 @@
 import { XRFeatureType } from "@galacean/engine";
-import {
-  IHardwareRenderer,
-  IXRDevice,
-  IXRPlatformFeature,
-  IXRRequestTracking,
-  IXRTracked
-} from "@galacean/engine-design";
+import { IHardwareRenderer, IXRDevice } from "@galacean/engine-design";
 import { parseXRMode } from "./Util";
 import { WebXRSession } from "./WebXRSession";
-import { IWebXRTrackablePlatformFeature } from "./feature/IWebXRTrackablePlatformFeature";
+import { WebXRFeature } from "./feature/WebXRFeature";
 
 export class WebXRDevice implements IXRDevice {
   /** @internal */
@@ -36,16 +30,12 @@ export class WebXRDevice implements IXRDevice {
     return true;
   }
 
-  createPlatformFeature(type: number, ...args: any[]): IXRPlatformFeature {
+  createPlatformFeature(type: number, ...args: any[]): WebXRFeature {
     const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(
-    rhi: IHardwareRenderer,
-    mode: number,
-    platformFeatures: IWebXRTrackablePlatformFeature<IXRTracked, IXRRequestTracking<IXRTracked>>[]
-  ): Promise<WebXRSession> {
+  requestSession(rhi: IHardwareRenderer, mode: number, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
       const options: XRSessionInit = { requiredFeatures: ["local"] };
@@ -92,7 +82,7 @@ export class WebXRDevice implements IXRDevice {
   }
 }
 
-type PlatformFeatureConstructor = new (...args: any[]) => IXRPlatformFeature;
+type PlatformFeatureConstructor = new (...args: any[]) => WebXRFeature;
 export function registerXRPlatformFeature(type: XRFeatureType) {
   return (platformFeatureConstructor: PlatformFeatureConstructor) => {
     WebXRDevice._platformFeatureMap[type] = platformFeatureConstructor;
