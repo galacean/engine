@@ -1,10 +1,9 @@
-import { IXRReferenceImage } from "@galacean/engine-design";
 import { XRManager, registerXRFeature } from "../../../XRManager";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableFeature } from "../XRTrackableFeature";
+import { XRReferenceImage } from "./XRReferenceImage";
 import { XRRequestImage } from "./XRRequestImage";
 import { XRTrackedImage } from "./XRTrackedImage";
-import { XRReferenceImage } from "./XRReferenceImage";
 
 /**
  * The manager of XR image tracking.
