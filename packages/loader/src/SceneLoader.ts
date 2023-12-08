@@ -103,6 +103,14 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
               if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
+              if (shadow.shadowFourCascadeSplits != undefined) {
+                const value = shadow.shadowFourCascadeSplits;
+                scene.shadowFourCascadeSplits.set(
+                  value[0] / 100,
+                  (value[0] + value[1]) / 100,
+                  (value[0] + value[1] + value[2]) / 100
+                );
+              }
             }
 
             return Promise.all(promises).then(() => {
