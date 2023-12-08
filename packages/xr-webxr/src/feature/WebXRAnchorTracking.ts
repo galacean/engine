@@ -1,21 +1,21 @@
 import { Matrix, Quaternion, Vector3, XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine";
-import { IXRRequestAnchorTracking } from "@galacean/engine-design";
+import { IXRRequestAnchor, IXRTracked } from "@galacean/engine-design";
+import { generateUUID } from "../Util";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
-import { generateUUID } from "../Util";
 import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature";
 
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
-export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
+export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature<IXRTracked, IXRRequestAnchor<IXRTracked>> {
   get canModifyRequestTrackingAfterInit(): boolean {
     return true;
   }
 
-  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchorTracking[]): boolean {
+  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchor<IXRTracked>[]): boolean {
     if (!frame._platformFrame) return false;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
@@ -26,7 +26,7 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
     return true;
   }
 
-  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchorTracking[]): void {
+  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestAnchor<IXRTracked>[]): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     const { trackedAnchors } = platformFrame;
@@ -78,7 +78,7 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
       return;
     }
     requestTracking.state = XRRequestTrackingState.Submitted;
-    const { position, rotation } = requestTracking.anchor.pose;
+    const { position, rotation } = requestTracking;
     const { _platformFrame: platformFrame } = frame;
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     platformFrame
@@ -120,7 +120,7 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
     const { xrAnchor } = requestTracking;
     const xrPose = frame.getPose(xrAnchor.anchorSpace, space);
     const { transform } = xrPose;
-    const { pose } = requestTracking.anchor;
+    const { pose } = requestTracking.tracked[0];
     pose.matrix.copyFromArray(transform.matrix);
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
@@ -128,6 +128,6 @@ export class WebXRAnchorTracking implements IWebXRTrackablePlatformFeature {
   }
 }
 
-interface IWebXRRequestTrackingAnchor extends IXRRequestAnchorTracking {
+interface IWebXRRequestTrackingAnchor extends IXRRequestAnchor<IXRTracked> {
   xrAnchor: XRAnchor;
 }

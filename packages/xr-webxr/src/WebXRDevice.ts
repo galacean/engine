@@ -1,7 +1,13 @@
 import { XRFeatureType } from "@galacean/engine";
-import { IHardwareRenderer, IXRDevice, IXRPlatformFeature } from "@galacean/engine-design";
-import { WebXRSession } from "./WebXRSession";
+import {
+  IHardwareRenderer,
+  IXRDevice,
+  IXRPlatformFeature,
+  IXRRequestTracking,
+  IXRTracked
+} from "@galacean/engine-design";
 import { parseXRMode } from "./Util";
+import { WebXRSession } from "./WebXRSession";
 import { IWebXRTrackablePlatformFeature } from "./feature/IWebXRTrackablePlatformFeature";
 
 export class WebXRDevice implements IXRDevice {
@@ -38,7 +44,7 @@ export class WebXRDevice implements IXRDevice {
   requestSession(
     rhi: IHardwareRenderer,
     mode: number,
-    platformFeatures: IWebXRTrackablePlatformFeature[]
+    platformFeatures: IWebXRTrackablePlatformFeature<IXRTracked, IXRRequestTracking<IXRTracked>>[]
   ): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);

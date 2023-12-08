@@ -7,7 +7,7 @@ import {
   XRRequestTrackingState,
   XRTrackingState
 } from "@galacean/engine";
-import { IXRRequestPlaneTracking, IXRRequestTracking, IXRTracked, IXRTrackedPlane } from "@galacean/engine-design";
+import { IXRRequestPlane, IXRRequestTracking, IXRTracked, IXRTrackedPlane } from "@galacean/engine-design";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -18,7 +18,9 @@ import { IWebXRTrackablePlatformFeature } from "./IWebXRTrackablePlatformFeature
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
-export class WebXRPlaneTracking implements IWebXRTrackablePlatformFeature {
+export class WebXRPlaneTracking
+  implements IWebXRTrackablePlatformFeature<IXRTrackedPlane, IXRRequestPlane<IXRTrackedPlane>>
+{
   private _lastDetectedPlanes: XRPlaneSet;
 
   get canModifyRequestTrackingAfterInit(): boolean {
@@ -35,11 +37,19 @@ export class WebXRPlaneTracking implements IWebXRTrackablePlatformFeature {
     requestTracking.state = XRRequestTrackingState.Resolved;
   }
 
-  checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlaneTracking[]): boolean {
+  checkAvailable(
+    session: WebXRSession,
+    frame: WebXRFrame,
+    requestTrackings: IXRRequestPlane<IXRTrackedPlane>[]
+  ): boolean {
     return !!frame._platformFrame;
   }
 
-  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlaneTracking[]): void {
+  getTrackedResult(
+    session: WebXRSession,
+    frame: WebXRFrame,
+    requestTrackings: IXRRequestPlane<IXRTrackedPlane>[]
+  ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     // @ts-ignore

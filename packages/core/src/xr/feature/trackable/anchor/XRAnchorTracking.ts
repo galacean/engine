@@ -1,73 +1,60 @@
-import { IXRRequestAnchorTracking, IXRTracked } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { XRManager, registerXRFeature } from "../../../XRManager";
-import { XRPose } from "../../../XRPose";
 import { XRFeatureType } from "../../XRFeatureType";
-import { XRRequestTrackingState } from "../XRRequestTrackingState";
 import { XRTrackableFeature } from "../XRTrackableFeature";
-import { XRAnchor } from "./XRAnchor";
+import { XRRequestAnchor } from "./XRRequestAnchor";
+import { XRTrackedAnchor } from "./XRTrackedAnchor";
 
 /**
  * The manager of XR anchor tracking.
  */
 @registerXRFeature(XRFeatureType.AnchorTracking)
-export class XRAnchorTracking extends XRTrackableFeature<IXRTracked, IXRRequestAnchorTracking> {
-  private _anchors: XRAnchor[];
+export class XRAnchorTracking extends XRTrackableFeature<XRTrackedAnchor, XRRequestAnchor> {
+  /**
+   * The anchors to tracking.
+   */
+  get requestAnchors(): readonly XRRequestAnchor[] {
+    return this._requestTrackings;
+  }
 
   /**
-   * The anchors to be tracked.
+   * The tracked anchors.
    */
-  get anchors(): readonly XRAnchor[] {
-    return this._anchors;
+  get trackedAnchors(): readonly XRTrackedAnchor[] {
+    return this._tracked;
   }
 
   /**
    * @param xrManager - The xr manager
-   * @param anchors - The anchors to be tracked
    */
-  constructor(xrManager: XRManager, anchors: XRAnchor[] = []) {
+  constructor(xrManager: XRManager) {
     super(xrManager, XRFeatureType.AnchorTracking);
-    this._anchors = anchors;
-    for (let i = 0, n = anchors.length; i < n; i++) {
-      this._addRequestTracking({
-        anchor: anchors[i],
-        state: XRRequestTrackingState.None,
-        tracked: []
-      });
-    }
   }
 
   /**
-   * Add a tracking anchor in XR space.
+   * Add a anchor in XR space.
    * @param anchor - The anchor to be added
    */
-  addAnchor(anchor: XRAnchor): void {
+  addAnchor(position: Vector3, rotation: Quaternion): XRRequestAnchor {
     if (!this._enabled) {
       throw new Error("Cannot add an anchor from a disabled anchor manager.");
     }
-    const requestTracking = {
-      anchor,
-      state: XRRequestTrackingState.None,
-      tracked: []
-    };
-    this._addRequestTracking(requestTracking);
+    const requestAnchor = new XRRequestAnchor(position, rotation);
+    requestAnchor.tracked = [new XRTrackedAnchor()];
+    this._addRequestTracking(requestAnchor);
+    return requestAnchor;
   }
 
   /**
-   * Remove a tracking anchor.
+   * Remove a anchor in XR space.
    * @param anchor - The anchor to be removed
    */
-  removeAnchor(anchor: XRAnchor): void {
+  removeAnchor(anchor: XRRequestAnchor): void {
     if (!this._enabled) {
       throw new Error("Cannot remove an anchor from a disabled anchor manager.");
     }
     const { _requestTrackings: requestTrackings } = this;
-    for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      const requestTracking = requestTrackings[i];
-      if (requestTracking.anchor === anchor) {
-        this._removeRequestTracking(requestTracking);
-        return;
-      }
-    }
+    requestTrackings.splice(requestTrackings.indexOf(anchor), 1);
   }
 
   /**
