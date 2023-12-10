@@ -30,6 +30,18 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
   onAddRequestTracking(requestTracking: IXRRequestImage): void {
     // XRRequestTrackingState.Submitted
     requestTracking.state = 1;
+    requestTracking.tracked[0] = {
+      id: WebXRDevice.generateUUID(),
+      measuredWidthInMeters: 1,
+      pose: {
+        matrix: new Matrix(),
+        rotation: new Quaternion(),
+        position: new Vector3(),
+        inverseMatrix: new Matrix()
+      },
+      // XRTrackingState.NotTracking
+      state: 0
+    };
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImage[]): boolean {
@@ -131,19 +143,6 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
               this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
               // XRRequestTrackingState.Resolved
               requestTracking.state = 2;
-              requestTracking.tracked = [
-                {
-                  id: WebXRDevice.generateUUID(),
-                  measuredWidthInMeters: 1,
-                  pose: {
-                    matrix: new Matrix(),
-                    rotation: new Quaternion(),
-                    position: new Vector3(),
-                    inverseMatrix: new Matrix()
-                  },
-                  state: 0
-                }
-              ];
             } else {
               // XRRequestTrackingState.Rejected
               requestTracking.state = 3;

@@ -19,7 +19,7 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
   constructor(detectedMode: number) {
     // XRPlaneMode.EveryThing
     if (detectedMode !== 3) {
-      console.log("WebXR only support XRPlaneMode.EveryThing");
+      console.warn("WebXR only support XRPlaneMode.EveryThing");
     }
   }
 
