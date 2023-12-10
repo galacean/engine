@@ -43,9 +43,9 @@ export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnch
     }
     const { _anchors: anchors } = this;
     const requestAnchor = new XRRequestAnchor(position, rotation);
+    this._addRequestTracking(requestAnchor);
     const anchor = requestAnchor.tracked[0];
     anchors.push(anchor);
-    this._addRequestTracking(requestAnchor);
     return anchor;
   }
 

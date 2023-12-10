@@ -24,7 +24,6 @@ export { XRTrackedImage } from "./feature/trackable/image/XRTrackedImage";
 export { XRPlaneMode } from "./feature/trackable/plane/XRPlaneMode";
 export { XRPlaneTracking } from "./feature/trackable/plane/XRPlaneTracking";
 export { XRTrackedPlane } from "./feature/trackable/plane/XRTrackedPlane";
-
 // xr input
 export { XRCamera } from "./input/XRCamera";
 export { XRController } from "./input/XRController";
@@ -34,7 +33,6 @@ export { XRInputManager } from "./input/XRInputManager";
 export { XRTargetRayMode } from "./input/XRTargetRayMode";
 export { XRTrackedInputDevice } from "./input/XRTrackedInputDevice";
 export { XRTrackingState } from "./input/XRTrackingState";
-
 // xr session
 export { XRSessionManager } from "./session/XRSessionManager";
 export { XRSessionMode } from "./session/XRSessionMode";

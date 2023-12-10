@@ -1,8 +1,9 @@
+import { Engine } from "@galacean/engine";
 import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
+import { XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
-import { XRManagerExtended } from "../XRManagerExtended";
 
 /**
  * XRSessionManager manages the life cycle of XR sessions.
@@ -13,6 +14,7 @@ export class XRSessionManager {
 
   private _mode: XRSessionMode = XRSessionMode.None;
   private _state: XRSessionState = XRSessionState.None;
+  private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
 
@@ -49,8 +51,10 @@ export class XRSessionManager {
    */
   constructor(
     private _xrManager: XRManagerExtended,
-    private _rhi: IHardwareRenderer
+    private _engine: Engine
   ) {
+    // @ts-ignore
+    this._rhi = _engine._hardwareRenderer;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
     this._onSessionExit = this._onSessionExit.bind(this);
@@ -69,26 +73,39 @@ export class XRSessionManager {
    * Run the session.
    */
   run(): void {
-    const { _platformSession: platformSession } = this;
+    const { _platformSession: platformSession, _engine: engine } = this;
     if (!platformSession) {
       throw new Error("Without session to run.");
     }
     platformSession.start();
     this._state = XRSessionState.Running;
     this._xrManager._onSessionStart();
+    if (!engine.isPaused) {
+      engine.pause();
+      engine.resume();
+    }
   }
 
   /**
    * Stop the session.
    */
   stop(): void {
-    const { _platformSession: platformSession } = this;
+    const { _platformSession: platformSession, _engine: engine, _rhi: rhi } = this;
     if (!platformSession) {
       throw new Error("Without session to stop.");
     }
+    if (this._state !== XRSessionState.Running) {
+      throw new Error("Session is not running.");
+    }
+    rhi._mainFrameBuffer = null;
+    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.stop();
     this._state = XRSessionState.Paused;
     this._xrManager._onSessionStop();
+    if (!engine.isPaused) {
+      engine.pause();
+      engine.resume();
+    }
   }
 
   /**
@@ -152,7 +169,7 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  _end(): Promise<void> {
+  _exit(): Promise<void> {
     const { _platformSession: platformSession } = this;
     if (!platformSession) {
       return Promise.reject("Without session to stop.");
@@ -161,13 +178,17 @@ export class XRSessionManager {
   }
 
   private _onSessionExit() {
-    const { _rhi: rhi, _platformSession: platformSession } = this;
+    const { _rhi: rhi, _platformSession: platformSession, _engine: engine } = this;
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.removeEventListener();
     this._platformSession = null;
     this._state = XRSessionState.None;
     this._xrManager._onSessionExit();
+    if (!engine.isPaused) {
+      engine.pause();
+      engine.resume();
+    }
   }
 
   /**

@@ -16,6 +16,7 @@ import { XRHitResult } from "./XRHitResult";
 @registerXRFeature(XRFeatureType.HitTest)
 export class XRHitTest extends XRFeature {
   private _tempRay: Ray = new Ray();
+  private _tempPlane: Plane = new Plane();
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec30: Vector3 = new Vector3();
   private _tempVec31: Vector3 = new Vector3();
@@ -70,12 +71,13 @@ export class XRHitTest extends XRFeature {
     if (!planeManager || !planeManager.enabled) {
       throw new Error("The plane estimation function needs to be turned on for plane hit test.");
     }
-    const { _tempVec30: normal, _tempVec31: hitPoint, _tempVec32: hitPointInPlane } = this;
+    const { _tempPlane: plane, _tempVec30: normal, _tempVec31: hitPoint, _tempVec32: hitPointInPlane } = this;
     const planes = planeManager.tracked;
     for (let i = 0, n = planes.length; i < n; i++) {
       const trackedPlane = planes[i];
       normal.set(0, 1, 0).transformNormal(trackedPlane.pose.matrix);
-      const plane = new Plane(normal, -Vector3.dot(normal, trackedPlane.pose.position));
+      plane.normal.copyFrom(normal);
+      plane.distance = -Vector3.dot(normal, trackedPlane.pose.position);
       const distance = ray.intersectPlane(plane);
       if (distance >= 0) {
         ray.getPoint(distance, hitPoint);

@@ -53,6 +53,15 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     }
   }
 
+  onAddRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
+    requestTracking.tracked.push({
+      id: WebXRDevice.generateUUID(),
+      pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
+      // XRTrackingState.NotTracking
+      state: 0
+    });
+  }
+
   onDelRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
     switch (requestTracking.state) {
       // XRRequestTrackingState.Submitted
@@ -110,14 +119,6 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
             requestTracking.xrAnchor = xrAnchor;
             // XRRequestTrackingState.Resolved
             requestTracking.state = 2;
-            requestTracking.tracked = [
-              {
-                id: WebXRDevice.generateUUID(),
-                pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-                // XRTrackingState.NotTracking
-                state: 0
-              }
-            ];
           }
         },
         () => {

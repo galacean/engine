@@ -15,6 +15,5 @@ export class XRRequestAnchor extends XRRequestTracking<XRAnchor> {
     public rotation: Quaternion
   ) {
     super();
-    this.tracked = [new XRAnchor()];
   }
 }

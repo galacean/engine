@@ -135,7 +135,7 @@ export class XRManagerExtended extends XRManager {
    */
   override exitXR(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.sessionManager._end().then(() => {
+      this.sessionManager._exit().then(() => {
         resolve();
       }, reject);
     });
@@ -147,8 +147,7 @@ export class XRManagerExtended extends XRManager {
   override _initialize(engine: Engine, xrDevice: IXRDevice): void {
     this._features = [];
     this._platformDevice = xrDevice;
-    // @ts-ignore
-    this.sessionManager = new XRSessionManager(this, engine._hardwareRenderer);
+    this.sessionManager = new XRSessionManager(this, engine);
     this.inputManager = new XRInputManager(this, engine);
     this.cameraManager = new XRCameraManager(this);
   }
@@ -189,29 +188,6 @@ export class XRManagerExtended extends XRManager {
   /**
    * @internal
    */
-  _onSessionInit(): void {
-    const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      feature.enabled && feature._onSessionInit();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _onSessionStart(): void {
-    this.cameraManager._onSessionStart();
-    const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      feature.enabled && feature._onSessionStart();
-    }
-  }
-
-  /**
-   * @internal
-   */
   override _getRequestAnimationFrame(): (callback: FrameRequestCallback) => number {
     return this.sessionManager._getRequestAnimationFrame();
   }
@@ -238,6 +214,29 @@ export class XRManagerExtended extends XRManager {
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature.enabled && feature._onSessionStop();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionInit(): void {
+    const { _features: features } = this;
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature.enabled && feature._onSessionInit();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onSessionStart(): void {
+    this.cameraManager._onSessionStart();
+    const { _features: features } = this;
+    for (let i = 0, n = features.length; i < n; i++) {
+      const feature = features[i];
+      feature.enabled && feature._onSessionStart();
     }
   }
 
