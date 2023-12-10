@@ -1,5 +1,4 @@
 import { IXRInputEvent } from "@galacean/engine-design";
-import { Engine } from "../../Engine";
 import { XRCamera } from "./XRCamera";
 import { XRController } from "./XRController";
 import { XRInput } from "./XRInput";
@@ -8,6 +7,8 @@ import { XRInputEventType } from "./XRInputEventType";
 import { XRTargetRayMode } from "./XRTargetRayMode";
 import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
 import { XRTrackingState } from "./XRTrackingState";
+import { XRManagerExtended } from "../XRManagerExtended";
+import { Engine } from "@galacean/engine";
 
 /**
  * The manager of XR input.
@@ -27,7 +28,10 @@ export class XRInputManager {
   /**
    * @internal
    */
-  constructor(private _engine: Engine) {
+  constructor(
+    private _xrManager: XRManagerExtended,
+    private _engine: Engine
+  ) {
     const { _trackedDevices: trackedDevices, _controllers: controllers, _cameras: cameras } = this;
     for (let i = 0; i < 6; i++) {
       switch (i) {
@@ -90,7 +94,7 @@ export class XRInputManager {
       controller.down = controller.up = 0;
     }
     // Handle events and update tracked devices
-    const { _platformSession: platformSession } = this._engine.xrManager.sessionManager;
+    const { _platformSession: platformSession } = this._xrManager.sessionManager;
     const { events: platformEvents } = platformSession;
     for (let i = 0, n = platformEvents.length; i < n; i++) {
       this._handleEvent(platformEvents[i]);

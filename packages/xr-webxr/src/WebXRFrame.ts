@@ -1,7 +1,7 @@
-import { Vector3, XRTrackedInputDevice, XRTrackingState } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine";
 import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
-import { WebXRSession } from "./WebXRSession";
 import { getInputSource, viewToCamera } from "./Util";
+import { WebXRSession } from "./WebXRSession";
 
 export class WebXRFrame implements IXRFrame {
   /** @internal */
@@ -34,7 +34,7 @@ export class WebXRFrame implements IXRFrame {
               gripPose.position.copyFrom(transform.position);
               gripPose.rotation.copyFrom(transform.orientation);
             }
-            input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
+            input.trackingState = emulatedPosition ? 2 : 1;
           }
           if (targetRaySpace) {
             const { transform, emulatedPosition } = frame.getPose(targetRaySpace, referenceSpace);
@@ -43,7 +43,7 @@ export class WebXRFrame implements IXRFrame {
               targetRayPose.matrix.copyFromArray(transform.matrix);
               targetRayPose.position.copyFrom(transform.position);
               targetRayPose.rotation.copyFrom(transform.orientation);
-              input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
+              input.trackingState = emulatedPosition ? 2 : 1;
             }
           }
           break;
@@ -71,7 +71,8 @@ export class WebXRFrame implements IXRFrame {
         const view = views[i];
         const type = viewToCamera(view.eye);
         const { transform } = views[i];
-        if (type === XRTrackedInputDevice.Camera) {
+        // type === XRTrackedInputDevice.Camera
+        if (type === 3) {
           hadUpdateCenterViewer ||= true;
         }
         const xrCamera = <IXRCamera>inputs[type];
@@ -90,9 +91,12 @@ export class WebXRFrame implements IXRFrame {
       }
 
       if (!hadUpdateCenterViewer) {
-        const leftCameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.LeftCamera];
-        const rightCameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.RightCamera];
-        const cameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.Camera];
+        // XRTrackedInputDevice.LeftCamera
+        const leftCameraDevice = <IXRCamera>inputs[4];
+        // XRTrackedInputDevice.RightCamera
+        const rightCameraDevice = <IXRCamera>inputs[5];
+        // XRTrackedInputDevice.Camera
+        const cameraDevice = <IXRCamera>inputs[3];
         const { pose: leftCameraPose } = leftCameraDevice;
         const { pose: rightCameraPose } = rightCameraDevice;
         const { pose: cameraPose } = cameraDevice;

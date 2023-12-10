@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine";
 import { XRTracked } from "../XRTracked";
 import { XRPlaneMode } from "./XRPlaneMode";
 

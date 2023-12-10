@@ -1,6 +1,6 @@
 import { IXRTrackedPlane } from "@galacean/engine-design";
-import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine-math";
-import { XRManager, registerXRFeature } from "../../XRManager";
+import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine";
+import { XRManagerExtended, registerXRFeature } from "../../XRManagerExtended";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
 import { XRSessionMode } from "../../session/XRSessionMode";
@@ -27,7 +27,7 @@ export class XRHitTest extends XRFeature {
   /**
    * @param xrManager - The xr manager
    */
-  constructor(xrManager: XRManager) {
+  constructor(xrManager: XRManagerExtended) {
     super(xrManager, XRFeatureType.HitTest);
   }
 

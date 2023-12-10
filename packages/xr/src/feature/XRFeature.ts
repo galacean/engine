@@ -1,5 +1,5 @@
 import { IXRPlatformFeature } from "@galacean/engine-design";
-import { XRManager } from "../XRManager";
+import { XRManagerExtended } from "../XRManagerExtended";
 import { XRFeatureType } from "./XRFeatureType";
 
 /**
@@ -28,7 +28,7 @@ export abstract class XRFeature<T extends IXRPlatformFeature = IXRPlatformFeatur
    * @internal
    */
   constructor(
-    protected _xrManager: XRManager,
+    protected _xrManager: XRManagerExtended,
     protected _type: XRFeatureType,
     ...args: any[]
   ) {

@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { XRRequestTracking } from "../XRRequestTracking";
 import { XRAnchor } from "./XRAnchor";
 

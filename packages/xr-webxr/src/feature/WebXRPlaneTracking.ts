@@ -1,15 +1,6 @@
-import {
-  Matrix,
-  Quaternion,
-  Vector3,
-  XRFeatureType,
-  XRPlaneMode,
-  XRRequestTrackingState,
-  XRTrackingState
-} from "@galacean/engine";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
 import { IXRRequestPlane, IXRTrackedPlane } from "@galacean/engine-design";
-import { generateUUID } from "../Util";
-import { registerXRPlatformFeature } from "../WebXRDevice";
+import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
@@ -17,7 +8,7 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 /**
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
-@registerXRPlatformFeature(XRFeatureType.PlaneTracking)
+@registerXRPlatformFeature(2)
 export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPlane, IXRRequestPlane> {
   private _lastDetectedPlanes: XRPlaneSet;
 
@@ -25,14 +16,16 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     return false;
   }
 
-  constructor(detectedMode: XRPlaneMode) {
-    if (detectedMode !== XRPlaneMode.EveryThing) {
+  constructor(detectedMode: number) {
+    // XRPlaneMode.EveryThing
+    if (detectedMode !== 3) {
       console.log("WebXR only support XRPlaneMode.EveryThing");
     }
   }
 
   onAddRequestTracking(requestTracking: IXRRequestPlane): void {
-    requestTracking.state = XRRequestTrackingState.Resolved;
+    // XRRequestTrackingState.Resolved
+    requestTracking.state = 2;
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlane[]): boolean {
@@ -48,10 +41,12 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     for (let i = 0, n = tracked.length; i < n; i++) {
       const trackedPlane = tracked[i];
       if (detectedPlanes.has(trackedPlane.xrPlane)) {
-        trackedPlane.state = XRTrackingState.Tracking;
+        // XRTrackingState.Tracking
+        trackedPlane.state = 1;
         this._updatePlane(platformFrame, platformReferenceSpace, trackedPlane);
       } else {
-        trackedPlane.state = XRTrackingState.NotTracking;
+        // XRTrackingState.NotTracking
+        trackedPlane.state = 0;
       }
     }
 
@@ -59,15 +54,17 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     detectedPlanes.forEach((xrPlane) => {
       if (!lastDetectedPlanes?.has(xrPlane)) {
         const plane = {
-          id: generateUUID(),
+          id: WebXRDevice.generateUUID(),
           pose: {
             matrix: new Matrix(),
             rotation: new Quaternion(),
             position: new Vector3(),
             inverseMatrix: new Matrix()
           },
-          planeMode: XRPlaneMode.Horizontal,
-          state: XRTrackingState.Tracking,
+          // XRPlaneMode.Horizontal
+          planeMode: 1,
+          // XRTrackingState.Tracking
+          state: 1,
           xrPlane: xrPlane,
           polygon: [],
           attributesDirty: false
@@ -91,8 +88,10 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     const planePose = frame.getPose(xrPlane.planeSpace, space);
     if (!planePose) return;
     const { transform, emulatedPosition } = planePose;
-    trackedPlane.state = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
-    trackedPlane.planeMode = xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical;
+    // XRTrackingState.TrackingLost : XRTrackingState.Tracking
+    trackedPlane.state = emulatedPosition ? 2 : 1;
+    // XRPlaneMode.Horizontal : XRPlaneMode.Vertical
+    trackedPlane.planeMode = xrPlane.orientation === "horizontal" ? 1 : 2;
     if (trackedPlane.lastChangedTime < xrPlane.lastChangedTime) {
       trackedPlane.lastChangedTime = xrPlane.lastChangedTime;
       trackedPlane.attributesDirty = true;

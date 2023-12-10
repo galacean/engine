@@ -1,4 +1,4 @@
-import { XRManager, registerXRFeature } from "../../../XRManager";
+import { XRManagerExtended, registerXRFeature } from "../../../XRManagerExtended";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRPlaneMode } from "./XRPlaneMode";
@@ -28,7 +28,7 @@ export class XRPlaneTracking extends XRTrackableFeature<XRTrackedPlane, XRReques
    * @param xrManager - The xr manager
    * @param detectionMode - The plane detection mode
    */
-  constructor(xrManager: XRManager, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
+  constructor(xrManager: XRManagerExtended, detectionMode: XRPlaneMode = XRPlaneMode.EveryThing) {
     super(xrManager, XRFeatureType.PlaneTracking, detectionMode);
     this._addRequestTracking(new XRRequestPlane(detectionMode));
   }

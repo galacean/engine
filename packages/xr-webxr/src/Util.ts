@@ -1,10 +1,3 @@
-import { XRTrackedInputDevice } from "@galacean/engine";
-import { WebXRDevice } from "./WebXRDevice";
-
-export function generateUUID(): number {
-  return ++WebXRDevice._uuid;
-}
-
 export function parseXRMode(mode: number): XRSessionMode | null {
   switch (mode) {
     case 1:
@@ -22,21 +15,21 @@ export function getInputSource(inputSource: XRInputSource): number {
     case "gaze":
       break;
     case "screen":
-      return XRTrackedInputDevice.Controller;
+      return 0;
     case "tracked-pointer":
       if (inputSource.hand) {
         switch (inputSource.handedness) {
           case "left":
-            return XRTrackedInputDevice.LeftHand;
+            return 6;
           case "right":
-            return XRTrackedInputDevice.RightHand;
+            return 7;
         }
       } else {
         switch (inputSource.handedness) {
           case "left":
-            return XRTrackedInputDevice.LeftController;
+            return 1;
           case "right":
-            return XRTrackedInputDevice.RightController;
+            return 2;
         }
       }
       break;
@@ -49,10 +42,10 @@ export function getInputSource(inputSource: XRInputSource): number {
 export function viewToCamera(type: XREye): number {
   switch (type) {
     case "left":
-      return XRTrackedInputDevice.LeftCamera;
+      return 4;
     case "right":
-      return XRTrackedInputDevice.RightCamera;
+      return 5;
     default:
-      return XRTrackedInputDevice.Camera;
+      return 3;
   }
 }

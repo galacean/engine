@@ -1,5 +1,5 @@
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
 import { IXRPose } from "@galacean/engine-design";
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 
 /**
  * Data for describing pose in the XR space.

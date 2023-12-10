@@ -1,5 +1,5 @@
 {
-  "name": "@galacean/engine-xr-webxr",
+  "name": "@galacean/engine-xr",
   "version": "1.1.0-alpha.0",
   "publishConfig": {
     "access": "public",
@@ -15,7 +15,7 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.webxr",
+    "name": "Galacean.xr",
     "globals": {
       "@galacean/engine": "Galacean"
     }
@@ -27,7 +27,6 @@
   ],
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-xr": "workspace:*",
     "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {

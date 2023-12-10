@@ -1,5 +1,5 @@
-import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { XRManager, registerXRFeature } from "../../../XRManager";
+import { Quaternion, Vector3 } from "@galacean/engine";
+import { XRManagerExtended, registerXRFeature } from "../../../XRManagerExtended";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRAnchor } from "./XRAnchor";
@@ -29,7 +29,7 @@ export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnch
   /**
    * @param xrManager - The xr manager
    */
-  constructor(xrManager: XRManager) {
+  constructor(xrManager: XRManagerExtended) {
     super(xrManager, XRFeatureType.AnchorTracking);
   }
 

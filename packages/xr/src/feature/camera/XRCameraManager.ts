@@ -1,8 +1,5 @@
-import { Matrix } from "@galacean/engine-math";
-import { Camera } from "../../../Camera";
-import { CameraClearFlags } from "../../../enums/CameraClearFlags";
-import { CameraType } from "../../../enums/CameraType";
-import { XRManager } from "../../XRManager";
+import { Camera, CameraClearFlags, CameraType, Matrix } from "@galacean/engine";
+import { XRManagerExtended } from "../../XRManagerExtended";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
 import { XRSessionState } from "../../session/XRSessionState";
@@ -35,7 +32,7 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  constructor(private _xrManager: XRManager) {}
+  constructor(private _xrManager: XRManagerExtended) {}
 
   /**
    * Attach the camera to the specified input type(Camera, LeftCamera or RightCamera).
@@ -50,15 +47,19 @@ export class XRCameraManager {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
     if (preCamera !== camera) {
+      // @ts-ignore
       preCamera && (preCamera._cameraType = CameraType.Normal);
       switch (type) {
         case XRTrackedInputDevice.Camera:
+          // @ts-ignore
           camera._cameraType = CameraType.XRCenterCamera;
           break;
         case XRTrackedInputDevice.LeftCamera:
+          // @ts-ignore
           camera._cameraType = CameraType.XRLeftCamera;
           break;
         case XRTrackedInputDevice.RightCamera:
+          // @ts-ignore
           camera._cameraType = CameraType.XRRightCamera;
           break;
         default:
@@ -78,6 +79,7 @@ export class XRCameraManager {
   ): Camera {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
+    // @ts-ignore
     preCamera && (preCamera._cameraType = CameraType.Normal);
     xrCamera._camera = null;
     return preCamera;

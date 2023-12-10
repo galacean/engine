@@ -1,6 +1,5 @@
 import { IXRCamera } from "@galacean/engine-design";
-import { Matrix, Rect } from "@galacean/engine-math";
-import { Camera } from "../../Camera";
+import { Matrix, Rect, Camera } from "@galacean/engine";
 import { XRPose } from "../XRPose";
 import { XRInput } from "./XRInput";
 

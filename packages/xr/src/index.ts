@@ -1,5 +1,5 @@
 // xr manager
-export { XRManager } from "./XRManager";
+import "./XRManagerExtended";
 // xr pose
 export { XRPose } from "./XRPose";
 // xr feature
@@ -14,13 +14,16 @@ export { XRHitTest } from "./feature/hitTest/XRHitTest";
 // tracking
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // anchor tracking
+export { XRAnchor } from "./feature/trackable/anchor/XRAnchor";
 export { XRAnchorTracking } from "./feature/trackable/anchor/XRAnchorTracking";
 // image tracking
 export { XRImageTracking } from "./feature/trackable/image/XRImageTracking";
 export { XRReferenceImage } from "./feature/trackable/image/XRReferenceImage";
+export { XRTrackedImage } from "./feature/trackable/image/XRTrackedImage";
 // plane Tracking
 export { XRPlaneMode } from "./feature/trackable/plane/XRPlaneMode";
 export { XRPlaneTracking } from "./feature/trackable/plane/XRPlaneTracking";
+export { XRTrackedPlane } from "./feature/trackable/plane/XRTrackedPlane";
 
 // xr input
 export { XRCamera } from "./input/XRCamera";

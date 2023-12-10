@@ -532,7 +532,7 @@ export class Camera extends Component {
     }
     let clearMask: CameraClearFlags;
     if (this._cameraType !== CameraType.Normal) {
-      clearMask = this.engine.xrManager.cameraManager._getCameraClearFlagsMask(this._cameraType);
+      clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);
     this._engine._renderCount++;

@@ -3,7 +3,7 @@ import { XRPose } from "../../XRPose";
 import { XRTrackingState } from "../../input/XRTrackingState";
 
 /**
- * @internal
+ * The base class of XR tracked object.
  */
 export abstract class XRTracked implements IXRTracked {
   /** The unique id of the trackable. */

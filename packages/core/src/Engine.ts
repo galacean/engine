@@ -144,7 +144,7 @@ export class Engine extends EventDispatcher {
 
   private _animate = () => {
     if (this._vSyncCount) {
-      const raf = this.xrManager?.sessionManager._getRequestAnimationFrame() || requestAnimationFrame;
+      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
       this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
@@ -258,7 +258,10 @@ export class Engine extends EventDispatcher {
     this.inputManager = new InputManager(this);
 
     const { xrDevice } = configuration;
-    xrDevice && (this.xrManager = new XRManager(this, xrDevice));
+    if (xrDevice) {
+      this.xrManager = new XRManager();
+      this.xrManager._initialize(this, xrDevice);
+    }
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -302,7 +305,7 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    const caf = this.xrManager?.sessionManager._getCancelAnimationFrame() || cancelAnimationFrame;
+    const caf = this.xrManager?._getCancelAnimationFrame() || cancelAnimationFrame;
     caf(this._requestId);
     clearTimeout(this._timeoutId);
   }
@@ -315,7 +318,7 @@ export class Engine extends EventDispatcher {
     this._isPaused = false;
     this.time._reset();
     if (this._vSyncCount) {
-      const raf = this.xrManager?.sessionManager._getRequestAnimationFrame() || requestAnimationFrame;
+      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
       this._requestId = raf(this._animate);
     } else {
       this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);

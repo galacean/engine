@@ -34,8 +34,10 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
+export { CameraType } from "./enums/CameraType";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { XRManager } from "./xr/XRManager";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./shadow/index";
@@ -56,7 +58,6 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
-export * from "./xr/index";
 
 // Export for CanvasRenderer plugin.
 export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";

@@ -1,4 +1,4 @@
-import { XRManager, registerXRFeature } from "../../../XRManager";
+import { XRManagerExtended, registerXRFeature } from "../../../XRManagerExtended";
 import { XRFeatureType } from "../../XRFeatureType";
 import { XRTrackableFeature } from "../XRTrackableFeature";
 import { XRReferenceImage } from "./XRReferenceImage";
@@ -29,7 +29,7 @@ export class XRImageTracking extends XRTrackableFeature<XRTrackedImage, XRReques
    * @param xrManager - The xr manager
    * @param images - The images to be tracked
    */
-  constructor(xrManager: XRManager, images: XRReferenceImage[]) {
+  constructor(xrManager: XRManagerExtended, images: XRReferenceImage[]) {
     super(xrManager, XRFeatureType.ImageTracking, images);
     this._images = images;
     const imageLength = images ? images.length : 0;

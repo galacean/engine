@@ -1,8 +1,8 @@
 import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
-import { Engine } from "../../Engine";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
+import { XRManagerExtended } from "../XRManagerExtended";
 
 /**
  * XRSessionManager manages the life cycle of XR sessions.
@@ -13,7 +13,6 @@ export class XRSessionManager {
 
   private _mode: XRSessionMode = XRSessionMode.None;
   private _state: XRSessionState = XRSessionState.None;
-  private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
 
@@ -48,8 +47,10 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  constructor(protected _engine: Engine) {
-    this._rhi = _engine._hardwareRenderer;
+  constructor(
+    private _xrManager: XRManagerExtended,
+    private _rhi: IHardwareRenderer
+  ) {
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
     this._onSessionExit = this._onSessionExit.bind(this);
@@ -61,7 +62,7 @@ export class XRSessionManager {
    * @returns A promise that resolves if the mode is supported, otherwise rejects
    */
   isSupportedMode(mode: XRSessionMode): Promise<void> {
-    return this._engine.xrManager._platformDevice.isSupportedSessionMode(mode);
+    return this._xrManager._platformDevice.isSupportedSessionMode(mode);
   }
 
   /**
@@ -74,20 +75,20 @@ export class XRSessionManager {
     }
     platformSession.start();
     this._state = XRSessionState.Running;
-    this._engine.xrManager._onSessionStart();
+    this._xrManager._onSessionStart();
   }
 
   /**
    * Stop the session.
    */
   stop(): void {
-    const { _platformSession: platformSession, _engine: engine } = this;
+    const { _platformSession: platformSession } = this;
     if (!platformSession) {
       throw new Error("Without session to stop.");
     }
     platformSession.stop();
     this._state = XRSessionState.Paused;
-    this._engine.xrManager._onSessionStop();
+    this._xrManager._onSessionStop();
   }
 
   /**
@@ -95,7 +96,7 @@ export class XRSessionManager {
    */
   _initialize(mode: XRSessionMode, features: XRFeature[]): Promise<void> {
     return new Promise((resolve, reject) => {
-      const { xrManager } = this._engine;
+      const { _xrManager: xrManager } = this;
       // Initialize all features
       const platformFeatures = [];
       for (let i = 0, n = features.length; i < n; i++) {
@@ -166,7 +167,7 @@ export class XRSessionManager {
     platformSession.removeEventListener();
     this._platformSession = null;
     this._state = XRSessionState.None;
-    this._engine.xrManager._onSessionExit();
+    this._xrManager._onSessionExit();
   }
 
   /**

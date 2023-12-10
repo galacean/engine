@@ -1,7 +1,6 @@
-import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine";
 import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
-import { WebXRFrame } from "./WebXRFrame";
 import { getInputSource } from "./Util";
+import { WebXRFrame } from "./WebXRFrame";
 
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
@@ -20,17 +19,26 @@ export class WebXRSession implements IXRSession {
   private _events: IXRInputEvent[] = [];
   private _screenPointers: XRInputSource[] = [];
   private _inputEventTypeMap: Record<string, number> = {
-    selectstart: XRInputEventType.SelectStart,
-    select: XRInputEventType.Select,
-    selectend: XRInputEventType.SelectEnd,
-    squeezestart: XRInputEventType.SqueezeStart,
-    squeeze: XRInputEventType.Squeeze,
-    squeezeend: XRInputEventType.SqueezeEnd
+    // XRInputEventType.SelectStart
+    selectstart: 0,
+    // XRInputEventType.Select
+    select: 1,
+    // XRInputEventType.SelectEnd
+    selectend: 2,
+    // XRInputEventType.SqueezeStart
+    squeezestart: 3,
+    // XRInputEventType.Squeeze
+    squeeze: 4,
+    // XRInputEventType.SqueezeEnd
+    squeezeend: 5
   };
   private _targetRayModeMap: Record<string, number> = {
-    gaze: XRTargetRayMode.Gaze,
-    "tracked-pointer": XRTargetRayMode.TrackedPointer,
-    screen: XRTargetRayMode.Screen
+    // XRTargetRayMode.Gaze
+    gaze: 0,
+    // XRTargetRayMode.TrackedPointer
+    "tracked-pointer": 1,
+    // XRTargetRayMode.Screen
+    screen: 2
   };
 
   get frame(): WebXRFrame {
@@ -66,9 +74,12 @@ export class WebXRSession implements IXRSession {
       if (!inputSource) continue;
       const { axes } = inputSource.gamepad;
       const event = {
-        type: XRInputEventType.Select,
-        targetRayMode: XRTargetRayMode.Screen,
-        input: XRTrackedInputDevice.Controller,
+        // XRInputEventType.Select
+        type: 1,
+        // XRTargetRayMode.Screen
+        targetRayMode: 2,
+        // XRTrackedInputDevice.Controller
+        input: 0,
         id: i,
         x: axes[0],
         y: axes[1]
@@ -162,14 +173,15 @@ export class WebXRSession implements IXRSession {
       input: getInputSource(inputSource),
       targetRayMode: this._targetRayModeMap[inputSource.targetRayMode]
     };
-    if (event.targetRayMode === XRTargetRayMode.Screen) {
-      event.targetRayMode = XRTargetRayMode.Screen;
+    // XRTargetRayMode.Screen
+    if (event.targetRayMode === 2) {
       const { _screenPointers: screenPointers } = this;
       const { axes } = inputSource.gamepad;
       event.x = axes[0];
       event.y = axes[1];
       switch (event.type) {
-        case XRInputEventType.SelectStart:
+        // XRInputEventType.SelectStart
+        case 0:
           let idx = -1;
           let emptyIdx = -1;
           for (let i = screenPointers.length - 1; i >= 0; i--) {
@@ -192,7 +204,8 @@ export class WebXRSession implements IXRSession {
           }
           event.id = idx;
           break;
-        case XRInputEventType.SelectEnd:
+        // XRInputEventType.SelectEnd
+        case 2:
           for (let i = screenPointers.length - 1; i >= 0; i--) {
             if (screenPointers[i] === inputSource) {
               screenPointers[i] = null;

@@ -1,6 +1,6 @@
 import { IXRTracked } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
 import { TrackableType } from "./TrackableType";
+import { Vector3 } from "@galacean/engine";
 
 /**
  * XR hit result.
