@@ -110,10 +110,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
-  protected _generateTracked(): T {
-    return null;
-  }
-
   protected _addRequestTracking(requestTracking: K): void {
     const { _platformFeature: platformFeature } = this;
     if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
@@ -157,4 +153,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     requestTrackings.length = 0;
     this._tracked.length = 0;
   }
+
+  protected abstract _generateTracked(): T;
 }
