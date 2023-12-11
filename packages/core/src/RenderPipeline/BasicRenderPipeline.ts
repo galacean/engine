@@ -140,9 +140,10 @@ export class BasicRenderPipeline {
     const camera = this._camera;
     const scene = camera.scene;
     const cullingResults = this._cullingResults;
+    const sunlight = scene._lightManager._sunlight;
     camera.engine._spriteMaskManager.clear();
 
-    if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
+    if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster.onRender(context);
     }
 
