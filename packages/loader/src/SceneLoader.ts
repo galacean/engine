@@ -103,6 +103,9 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
               if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
+              if (shadow.shadowTwoCascadeSplits != undefined) {
+                scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits[0] / 100;
+              }
               if (shadow.shadowFourCascadeSplits != undefined) {
                 const value = shadow.shadowFourCascadeSplits;
                 scene.shadowFourCascadeSplits.set(
