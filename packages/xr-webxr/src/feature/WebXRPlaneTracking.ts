@@ -10,21 +10,14 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
  *  WebXR implementation of XRPlatformPlaneTracking.
  */
 @registerXRPlatformFeature(XRFeatureType.PlaneTracking)
-export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPlane, IXRRequestPlane> {
+export class WebXRPlaneTracking extends WebXRTrackableFeature<IWebXRTrackedPlane, IXRRequestPlane> {
   private _lastDetectedPlanes: XRPlaneSet;
 
-  get canModifyRequestTrackingAfterInit(): boolean {
-    return false;
-  }
-
   constructor(detectedMode: number) {
+    super();
     if (detectedMode !== XRPlaneMode.EveryThing) {
       console.warn("WebXR only support XRPlaneMode.EveryThing");
     }
-  }
-
-  onAddRequestTracking(requestTracking: IXRRequestPlane): void {
-    requestTracking.state = XRRequestTrackingState.Resolved;
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlane[]): boolean {
@@ -35,7 +28,7 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     session: WebXRSession,
     frame: WebXRFrame,
     requestTrackings: IXRRequestPlane[],
-    generateTracked: () => IXRTrackedPlane
+    generateTracked: () => IWebXRTrackedPlane
   ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
@@ -56,11 +49,17 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     detectedPlanes.forEach((xrPlane) => {
       if (!lastDetectedPlanes?.has(xrPlane)) {
         const plane = generateTracked();
+        plane.xrPlane = xrPlane;
+        plane.lastChangedTime = -1;
         this._updatePlane(platformFrame, platformReferenceSpace, plane);
         tracked.push(plane);
       }
     });
     this._lastDetectedPlanes = detectedPlanes;
+  }
+
+  override onAddRequestTracking(requestTracking: IXRRequestPlane): void {
+    requestTracking.state = XRRequestTrackingState.Resolved;
   }
 
   /**

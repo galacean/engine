@@ -1,4 +1,5 @@
 import { IXRRequestTracking, IXRTrackablePlatformFeature, IXRTracked } from "@galacean/engine-design";
+import { XRRequestTrackingState } from "@galacean/engine-xr";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRFeature } from "./WebXRFeature";
@@ -22,4 +23,10 @@ export abstract class WebXRTrackableFeature<T extends IXRTracked, K extends IXRR
   ): void;
 
   abstract checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: K[]): boolean;
+
+  onAddRequestTracking(requestTracking: K): void {}
+
+  onDelRequestTracking(requestTracking: K): void {
+    requestTracking.state = XRRequestTrackingState.Destroyed;
+  }
 }

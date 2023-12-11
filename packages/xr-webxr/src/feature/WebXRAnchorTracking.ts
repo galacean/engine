@@ -8,11 +8,7 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
  * WebXR implementation of XRPlatformAnchorTracking.
  */
 @registerXRPlatformFeature(XRFeatureType.AnchorTracking)
-export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IWebXRRequestTrackingAnchor> {
-  get canModifyRequestTrackingAfterInit(): boolean {
-    return true;
-  }
-
+export class WebXRAnchorTracking extends WebXRTrackableFeature<IXRTracked, IWebXRRequestTrackingAnchor> {
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IWebXRRequestTrackingAnchor[]): boolean {
     if (!frame._platformFrame) return false;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
@@ -47,7 +43,11 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     }
   }
 
-  onDelRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
+  override get canModifyRequestTrackingAfterInit(): boolean {
+    return true;
+  }
+
+  override onDelRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
     switch (requestTracking.state) {
       case XRRequestTrackingState.Submitted:
         requestTracking.state = XRRequestTrackingState.WaitingDestroy;

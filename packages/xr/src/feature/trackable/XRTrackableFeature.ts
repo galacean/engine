@@ -65,29 +65,47 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     platformFeature.getTrackedResult(platformSession, platformFrame, requestTrackings, this._generateTracked);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
-      if (requestTracking.state !== XRRequestTrackingState.Resolved) {
-        continue;
-      }
-      const { tracked } = requestTracking;
-      for (let j = 0, n = tracked.length; j < n; j++) {
-        const trackedObject = tracked[j];
-        const trackId = trackedObject.id;
-        if (trackedObject.state === XRTrackingState.Tracking) {
-          if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
-            updated.push(trackedObject);
-          } else {
-            added.push(trackedObject);
-            statusSnapshot[trackId] = XRTrackingState.Tracking;
-            allTracked.push(trackedObject);
+      switch (requestTracking.state) {
+        case XRRequestTrackingState.Destroyed:
+          const destroyedTracked = requestTracking.tracked;
+          for (let j = 0, n = destroyedTracked.length; j < n; j++) {
+            const tracked = destroyedTracked[j];
+            const trackId = tracked.id;
+            if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
+              removed.push(tracked);
+              allTracked.splice(allTracked.indexOf(tracked), 1);
+            }
+            statusSnapshot[trackId] = XRTrackingState.NotTracking;
           }
-        } else {
-          if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
-            removed.push(trackedObject);
-            allTracked.splice(allTracked.indexOf(trackedObject), 1);
+          break;
+        case XRRequestTrackingState.Resolved:
+          const { tracked } = requestTracking;
+          for (let j = 0, n = tracked.length; j < n; j++) {
+            const trackedObject = tracked[j];
+            const trackId = trackedObject.id;
+            if (trackedObject.state === XRTrackingState.Tracking) {
+              if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
+                updated.push(trackedObject);
+              } else {
+                added.push(trackedObject);
+                statusSnapshot[trackId] = XRTrackingState.Tracking;
+                allTracked.push(trackedObject);
+              }
+            } else {
+              if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
+                removed.push(trackedObject);
+                allTracked.splice(allTracked.indexOf(trackedObject), 1);
+              }
+              statusSnapshot[trackId] = trackedObject.state;
+            }
           }
-          statusSnapshot[trackId] = trackedObject.state;
-        }
+          break;
+        default:
+          break;
       }
+    }
+    for (let i = requestTrackings.length - 1; i >= 0; i--) {
+      requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
       for (let i = 0, n = listeners.length; i < n; i++) {
@@ -116,7 +134,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
       throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
     this._requestTrackings.push(requestTracking);
-    platformFeature.onAddRequestTracking && platformFeature.onAddRequestTracking(requestTracking);
+    platformFeature.onAddRequestTracking(requestTracking);
   }
 
   protected _removeRequestTracking(requestTracking: K): void {
@@ -124,19 +142,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
       throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
-    const { _requestTrackings: requestTrackings, _tracked: allTracked } = this;
-    const lastIndex = requestTrackings.length - 1;
-    const index = requestTrackings.indexOf(requestTracking);
-    if (index >= 0) {
-      index !== lastIndex && (requestTrackings[index] = requestTrackings[lastIndex]);
-      requestTrackings.length = lastIndex;
-      platformFeature.onDelRequestTracking && platformFeature.onDelRequestTracking(requestTracking);
-      const waitRemoveTracked = requestTracking.tracked;
-      for (let i = 0, n = waitRemoveTracked.length; i < n; i++) {
-        const trackedObject = waitRemoveTracked[i];
-        trackedObject.state === XRTrackingState.Tracking && allTracked.splice(allTracked.indexOf(trackedObject), 1);
-      }
-    }
+    platformFeature.onDelRequestTracking(requestTracking);
   }
 
   protected _removeAllRequestTrackings(): void {
@@ -145,13 +151,9 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
       throw new Error(XRFeatureType[this._type] + " request tracking cannot be modified after initialization.");
     }
     const { _requestTrackings: requestTrackings } = this;
-    if (platformFeature.onDelRequestTracking) {
-      for (let i = 0, n = requestTrackings.length; i < n; i++) {
-        platformFeature.onDelRequestTracking(requestTrackings[i]);
-      }
+    for (let i = 0, n = requestTrackings.length; i < n; i++) {
+      platformFeature.onDelRequestTracking(requestTrackings[i]);
     }
-    requestTrackings.length = 0;
-    this._tracked.length = 0;
   }
 
   protected abstract _generateTracked(): T;

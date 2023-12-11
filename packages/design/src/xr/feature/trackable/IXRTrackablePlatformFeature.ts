@@ -31,11 +31,11 @@ export interface IXRTrackablePlatformFeature<T extends IXRTracked, K extends IXR
    * Called when request tracking is added.
    * @param requestTracking - The request tracking
    */
-  onAddRequestTracking?(requestTracking: K): void;
+  onAddRequestTracking(requestTracking: K): void;
 
   /**
    * Called when request tracking is removed.
    * @param requestTracking - The request tracking
    */
-  onDelRequestTracking?(requestTracking: K): void;
+  onDelRequestTracking(requestTracking: K): void;
 }

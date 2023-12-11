@@ -13,22 +13,15 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
  * and this choice can change for future XRFrames.
  */
 @registerXRPlatformFeature(XRFeatureType.ImageTracking)
-export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage, IXRRequestImage> {
+export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, IXRRequestImage> {
   private _images: IXRReferenceImage[];
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
   private _tempIdx: number = 0;
   private _tempArr: number[] = [];
 
-  get canModifyRequestTrackingAfterInit(): boolean {
-    return false;
-  }
-
   constructor(images: IXRReferenceImage[]) {
+    super();
     this._images = images;
-  }
-
-  onAddRequestTracking(requestTracking: IXRRequestImage): void {
-    requestTracking.state = XRRequestTrackingState.Submitted;
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImage[]): boolean {
@@ -60,7 +53,7 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
       const { index } = trackingResult;
       const requestTrackingImage = requestTrackings[index];
       if (requestTrackingImage) {
-        const tracked = requestTrackingImage.tracked[0] || generateTracked();
+        const tracked = (requestTrackingImage.tracked[0] ||= generateTracked());
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
           tracked.state = XRTrackingState.Tracking;
@@ -76,6 +69,10 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       if (tempArr[i] < idx) requestTrackings[i].tracked[0].state = XRTrackingState.NotTracking;
     }
+  }
+
+  override onAddRequestTracking(requestTracking: IXRRequestImage): void {
+    requestTracking.state = XRRequestTrackingState.Submitted;
   }
 
   /**
