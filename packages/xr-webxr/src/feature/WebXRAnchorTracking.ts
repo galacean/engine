@@ -18,7 +18,7 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state === XRRequestTrackingState.None) {
-        this._addAnchor(session, frame, <IWebXRRequestTrackingAnchor>requestTracking);
+        this._addAnchor(session, frame, requestTracking);
       }
     }
     return true;
@@ -29,7 +29,7 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     const { _platformFrame: platformFrame } = frame;
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      const requestTracking = <IWebXRRequestTrackingAnchor>requestTrackings[i];
+      const requestTracking = requestTrackings[i];
       if (requestTracking.state !== XRRequestTrackingState.Resolved) continue;
       const tracked = requestTracking.tracked[0];
       if (trackedAnchors.has(requestTracking.xrAnchor)) {
@@ -54,9 +54,7 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
         break;
       case XRRequestTrackingState.Resolved:
         requestTracking.xrAnchor.delete();
-        requestTracking.xrAnchor = null;
         requestTracking.state = XRRequestTrackingState.Destroyed;
-        requestTracking.tracked.length = 0;
         break;
       default:
         requestTracking.state = XRRequestTrackingState.Destroyed;
