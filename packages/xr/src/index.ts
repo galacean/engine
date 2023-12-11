@@ -4,15 +4,12 @@ import "./XRManagerExtended";
 export { XRPose } from "./XRPose";
 // xr feature
 export { XRFeature } from "./feature/XRFeature";
-export { XRFeatureType } from "./feature/XRFeatureType";
 // camera
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
 export { TrackableType } from "./feature/hitTest/TrackableType";
 export { XRHitResult } from "./feature/hitTest/XRHitResult";
 export { XRHitTest } from "./feature/hitTest/XRHitTest";
-// tracking
-export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 // anchor tracking
 export { XRAnchor } from "./feature/trackable/anchor/XRAnchor";
 export { XRAnchorTracking } from "./feature/trackable/anchor/XRAnchorTracking";
@@ -28,9 +25,7 @@ export { XRTrackedPlane } from "./feature/trackable/plane/XRTrackedPlane";
 export { XRCamera } from "./input/XRCamera";
 export { XRController } from "./input/XRController";
 export { XRInputButton } from "./input/XRInputButton";
-export { XRInputEventType } from "./input/XRInputEventType";
 export { XRInputManager } from "./input/XRInputManager";
-export { XRTargetRayMode } from "./input/XRTargetRayMode";
 export { XRTrackedInputDevice } from "./input/XRTrackedInputDevice";
 export { XRTrackingState } from "./input/XRTrackingState";
 // xr session

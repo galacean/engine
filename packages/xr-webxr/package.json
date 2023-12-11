@@ -15,7 +15,7 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.webxr",
+    "name": "Galacean.WebXR",
     "globals": {
       "@galacean/engine": "Galacean"
     }

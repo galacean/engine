@@ -1,4 +1,5 @@
 /**
+ * @internal
  * Enum for XR feature type.
  */
 export enum XRFeatureType {

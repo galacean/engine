@@ -21,13 +21,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
 
   /**
-   * Returns the tracked objects.
-   */
-  get tracked(): readonly T[] {
-    return this._tracked;
-  }
-
-  /**
    * Add a listening function for tracked object changes.
    * @param listener - The listening function
    */
