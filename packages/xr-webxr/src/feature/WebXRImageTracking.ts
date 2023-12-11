@@ -1,7 +1,6 @@
 import { IXRReferenceImage, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine-xr";
-import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
@@ -30,17 +29,6 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
 
   onAddRequestTracking(requestTracking: IXRRequestImage): void {
     requestTracking.state = XRRequestTrackingState.Submitted;
-    requestTracking.tracked[0] = {
-      id: WebXRDevice.generateUUID(),
-      measuredWidthInMeters: 1,
-      pose: {
-        matrix: new Matrix(),
-        rotation: new Quaternion(),
-        position: new Vector3(),
-        inverseMatrix: new Matrix()
-      },
-      state: XRTrackingState.NotTracking
-    };
   }
 
   checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImage[]): boolean {
@@ -55,7 +43,12 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
     return true;
   }
 
-  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestImage[]): void {
+  getTrackedResult(
+    session: WebXRSession,
+    frame: WebXRFrame,
+    requestTrackings: IXRRequestImage[],
+    generateTracked: () => IXRTrackedImage
+  ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     const { _tempArr: tempArr } = this;
@@ -67,7 +60,7 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
       const { index } = trackingResult;
       const requestTrackingImage = requestTrackings[index];
       if (requestTrackingImage) {
-        const tracked = requestTrackingImage.tracked[0];
+        const tracked = requestTrackingImage.tracked[0] || generateTracked();
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
           tracked.state = XRTrackingState.Tracking;

@@ -12,6 +12,8 @@ import { XRTracked } from "./XRTracked";
 export abstract class XRTrackableFeature<T extends XRTracked, K extends XRRequestTracking<T>> extends XRFeature<
   IXRTrackablePlatformFeature<T, K>
 > {
+  protected static _uuid = 0;
+
   protected _requestTrackings: K[] = [];
   protected _tracked: T[] = [];
   protected _added: T[] = [];
@@ -60,7 +62,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
       return;
     }
     added.length = updated.length = removed.length = 0;
-    platformFeature.getTrackedResult(platformSession, platformFrame, requestTrackings);
+    platformFeature.getTrackedResult(platformSession, platformFrame, requestTrackings, this._generateTracked);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state !== XRRequestTrackingState.Resolved) {
@@ -106,6 +108,10 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   override _onDestroy(): void {
     // prettier-ignore
     this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
+  }
+
+  protected _generateTracked(): T {
+    return null;
   }
 
   protected _addRequestTracking(requestTracking: K): void {

@@ -1,7 +1,6 @@
 import { IXRRequestAnchor, IXRTracked } from "@galacean/engine-design";
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine-xr";
-import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
+import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
 import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
@@ -46,14 +45,6 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
         tracked.state = XRTrackingState.NotTracking;
       }
     }
-  }
-
-  onAddRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
-    requestTracking.tracked.push({
-      id: WebXRDevice.generateUUID(),
-      pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-      state: XRTrackingState.NotTracking
-    });
   }
 
   onDelRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {

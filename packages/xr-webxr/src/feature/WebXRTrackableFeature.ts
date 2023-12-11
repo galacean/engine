@@ -14,7 +14,12 @@ export abstract class WebXRTrackableFeature<T extends IXRTracked, K extends IXRR
     return false;
   }
 
-  abstract getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: K[]): void;
+  abstract getTrackedResult(
+    session: WebXRSession,
+    frame: WebXRFrame,
+    requestTrackings: K[],
+    generateTracked: () => T
+  ): void;
 
   abstract checkAvailable(session: WebXRSession, frame: WebXRFrame, requestTrackings: K[]): boolean;
 }

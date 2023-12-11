@@ -7,11 +7,6 @@ import { WebXRFeature } from "./feature/WebXRFeature";
 export class WebXRDevice implements IXRDevice {
   /** @internal */
   static _platformFeatureMap: PlatformFeatureConstructor[] = [];
-  /** @internal */
-  static _uuid: number = 0;
-  static generateUUID(): number {
-    return ++WebXRDevice._uuid;
-  }
 
   isSupportedSessionMode(mode: XRSessionMode): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {

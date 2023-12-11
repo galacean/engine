@@ -43,10 +43,11 @@ export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnch
     }
     const { _anchors: anchors } = this;
     const requestAnchor = new XRRequestAnchor(position, rotation);
+    const xrAnchor = this._generateTracked();
+    requestAnchor.tracked[0] = xrAnchor;
     this._addRequestTracking(requestAnchor);
-    const anchor = requestAnchor.tracked[0];
-    anchors.push(anchor);
-    return anchor;
+    anchors.push(xrAnchor);
+    return xrAnchor;
   }
 
   /**
@@ -58,7 +59,6 @@ export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnch
       throw new Error("Cannot remove an anchor from a disabled anchor manager.");
     }
     const { _requestTrackings: requestTrackings, _anchors: anchors } = this;
-    anchors.splice(anchors.indexOf(anchor), 1);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestAnchor = requestTrackings[i];
       if (requestAnchor.tracked[0] === anchor) {
@@ -66,6 +66,7 @@ export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnch
         break;
       }
     }
+    anchors.splice(anchors.indexOf(anchor), 1);
   }
 
   /**
@@ -76,5 +77,11 @@ export class XRAnchorTracking extends XRTrackableFeature<XRAnchor, XRRequestAnch
       throw new Error("Cannot remove anchors from a disabled anchor manager.");
     }
     this._removeAllRequestTrackings();
+  }
+
+  protected override _generateTracked(): XRAnchor {
+    const anchor = new XRAnchor();
+    anchor.id = XRTrackableFeature._uuid++;
+    return anchor;
   }
 }

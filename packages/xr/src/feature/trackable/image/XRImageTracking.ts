@@ -41,4 +41,10 @@ export class XRImageTracking extends XRTrackableFeature<XRTrackedImage, XRReques
       console.warn("No image to be tracked.");
     }
   }
+
+  protected override _generateTracked(): XRTrackedImage {
+    const image = new XRTrackedImage();
+    image.id = XRTrackableFeature._uuid++;
+    return image;
+  }
 }

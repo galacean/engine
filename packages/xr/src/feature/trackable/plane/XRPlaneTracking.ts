@@ -32,4 +32,10 @@ export class XRPlaneTracking extends XRTrackableFeature<XRTrackedPlane, XRReques
     super(xrManager, XRFeatureType.PlaneTracking, detectionMode);
     this._addRequestTracking(new XRRequestPlane(detectionMode));
   }
+
+  protected override _generateTracked(): XRTrackedPlane {
+    const plane = new XRTrackedPlane();
+    plane.id = XRTrackableFeature._uuid++;
+    return plane;
+  }
 }

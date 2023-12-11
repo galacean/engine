@@ -17,7 +17,7 @@ export interface IXRTrackablePlatformFeature<T extends IXRTracked, K extends IXR
    * @param frame - The XR frame
    * @param requestTrackings - The request trackings
    */
-  getTrackedResult(session: IXRSession, frame: IXRFrame, requestTrackings: K[]): void;
+  getTrackedResult(session: IXRSession, frame: IXRFrame, requestTrackings: K[], generateTracked: () => T): void;
 
   /**
    * Check if the feature is available.

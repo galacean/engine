@@ -31,7 +31,12 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     return !!frame._platformFrame;
   }
 
-  getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IXRRequestPlane[]): void {
+  getTrackedResult(
+    session: WebXRSession,
+    frame: WebXRFrame,
+    requestTrackings: IXRRequestPlane[],
+    generateTracked: () => IXRTrackedPlane
+  ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
     // @ts-ignore
@@ -50,20 +55,7 @@ export class WebXRPlaneTracking implements WebXRTrackableFeature<IWebXRTrackedPl
     const { _lastDetectedPlanes: lastDetectedPlanes } = this;
     detectedPlanes.forEach((xrPlane) => {
       if (!lastDetectedPlanes?.has(xrPlane)) {
-        const plane = {
-          id: WebXRDevice.generateUUID(),
-          pose: {
-            matrix: new Matrix(),
-            rotation: new Quaternion(),
-            position: new Vector3(),
-            inverseMatrix: new Matrix()
-          },
-          planeMode: XRPlaneMode.Horizontal,
-          state: XRTrackingState.Tracking,
-          xrPlane: xrPlane,
-          polygon: [],
-          attributesDirty: false
-        };
+        const plane = generateTracked();
         this._updatePlane(platformFrame, platformReferenceSpace, plane);
         tracked.push(plane);
       }
