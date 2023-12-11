@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { IXRRequestAnchor, IXRTracked } from "@galacean/engine-design";
 import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";

@@ -1,5 +1,5 @@
-import { Matrix, Quaternion, Vector3, request } from "@galacean/engine";
 import { IXRReferenceImage, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -99,15 +99,11 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
     if (images) {
       for (let i = 0, n = images.length; i < n; i++) {
         const referenceImage = images[i];
-        const { src } = images[i];
-        if (!src) {
+        const { imageSource } = images[i];
+        if (!imageSource) {
           return Promise.reject(new Error("referenceImage[" + referenceImage.name + "].src is null"));
         } else {
-          if (typeof src === "string") {
-            promiseArr.push(this._createImageBitmapByURL(src));
-          } else {
-            promiseArr.push(createImageBitmap(src));
-          }
+          promiseArr.push(createImageBitmap(imageSource));
         }
       }
       return new Promise((resolve, reject) => {
@@ -160,10 +156,6 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     trackedImage.measuredWidthInMeters = trackingResult.measuredWidthInMeters;
-  }
-
-  private _createImageBitmapByURL(url: string): Promise<ImageBitmap> {
-    return request<HTMLImageElement>(url, { type: "image" }).then((image) => createImageBitmap(image));
   }
 }
 

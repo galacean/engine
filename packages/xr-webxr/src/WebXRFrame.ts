@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine-math";
 import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
 import { getInputSource, viewToCamera } from "./Util";
 import { WebXRSession } from "./WebXRSession";

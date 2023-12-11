@@ -220,15 +220,12 @@ importers:
 
   packages/xr-webxr:
     devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-      '@galacean/engine-xr':
+      '@galacean/engine-math':
         specifier: workspace:*
-        version: link:../xr
+        version: link:../math
 
   tests:
     dependencies:

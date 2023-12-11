@@ -3,8 +3,7 @@
  */
 export interface IXRReferenceImage {
   name: string;
-  src:
-    | string
+  imageSource:
     | HTMLImageElement
     | SVGImageElement
     | HTMLVideoElement

@@ -6,8 +6,7 @@ import { IXRReferenceImage } from "@galacean/engine-design";
 export class XRReferenceImage implements IXRReferenceImage {
   constructor(
     public name: string,
-    public src:
-      | string
+    public imageSource:
       | HTMLImageElement
       | SVGImageElement
       | HTMLVideoElement
