@@ -1,5 +1,6 @@
-import { Vector3 } from "@galacean/engine-math";
 import { IXRCamera, IXRController, IXRFrame, IXRInput } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
+import { XRTrackedInputDevice, XRTrackingState } from "@galacean/engine-xr";
 import { getInputSource, viewToCamera } from "./Util";
 import { WebXRSession } from "./WebXRSession";
 
@@ -34,7 +35,7 @@ export class WebXRFrame implements IXRFrame {
               gripPose.position.copyFrom(transform.position);
               gripPose.rotation.copyFrom(transform.orientation);
             }
-            input.trackingState = emulatedPosition ? 2 : 1;
+            input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
           }
           if (targetRaySpace) {
             const { transform, emulatedPosition } = frame.getPose(targetRaySpace, referenceSpace);
@@ -43,7 +44,7 @@ export class WebXRFrame implements IXRFrame {
               targetRayPose.matrix.copyFromArray(transform.matrix);
               targetRayPose.position.copyFrom(transform.position);
               targetRayPose.rotation.copyFrom(transform.orientation);
-              input.trackingState = emulatedPosition ? 2 : 1;
+              input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
             }
           }
           break;
@@ -71,8 +72,7 @@ export class WebXRFrame implements IXRFrame {
         const view = views[i];
         const type = viewToCamera(view.eye);
         const { transform } = views[i];
-        // type === XRTrackedInputDevice.Camera
-        if (type === 3) {
+        if (type === XRTrackedInputDevice.Camera) {
           hadUpdateCenterViewer ||= true;
         }
         const xrCamera = <IXRCamera>inputs[type];
@@ -81,7 +81,7 @@ export class WebXRFrame implements IXRFrame {
         pose.position.copyFrom(transform.position);
         pose.rotation.copyFrom(transform.orientation);
         xrCamera.projectionMatrix.copyFromArray(view.projectionMatrix);
-        xrCamera.trackingState = emulatedPosition ? 2 : 1;
+        xrCamera.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
         const xrViewport = layer.getViewport(view);
         const width = xrViewport.width / framebufferWidth;
         const height = xrViewport.height / framebufferHeight;
@@ -91,12 +91,9 @@ export class WebXRFrame implements IXRFrame {
       }
 
       if (!hadUpdateCenterViewer) {
-        // XRTrackedInputDevice.LeftCamera
-        const leftCameraDevice = <IXRCamera>inputs[4];
-        // XRTrackedInputDevice.RightCamera
-        const rightCameraDevice = <IXRCamera>inputs[5];
-        // XRTrackedInputDevice.Camera
-        const cameraDevice = <IXRCamera>inputs[3];
+        const leftCameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.LeftCamera];
+        const rightCameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.RightCamera];
+        const cameraDevice = <IXRCamera>inputs[XRTrackedInputDevice.Camera];
         const { pose: leftCameraPose } = leftCameraDevice;
         const { pose: rightCameraPose } = rightCameraDevice;
         const { pose: cameraPose } = cameraDevice;
@@ -110,7 +107,7 @@ export class WebXRFrame implements IXRFrame {
         elements[13] = position.y;
         elements[14] = position.z;
         cameraDevice.projectionMatrix.copyFrom(leftCameraDevice.projectionMatrix);
-        cameraDevice.trackingState = emulatedPosition ? 2 : 1;
+        cameraDevice.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
         cameraDevice.viewport =
           leftCameraDevice.viewport.width && leftCameraDevice.viewport.height
             ? leftCameraDevice.viewport

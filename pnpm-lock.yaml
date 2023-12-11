@@ -219,6 +219,10 @@ importers:
         version: link:../design
 
   packages/xr-webxr:
+    dependencies:
+      '@galacean/engine-xr':
+        specifier: workspace:*
+        version: link:../xr
     devDependencies:
       '@galacean/engine-design':
         specifier: workspace:*

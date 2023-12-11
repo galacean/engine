@@ -15,7 +15,7 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.webxr",
+    "name": "Galacean.WebXR",
     "globals": {
       "@galacean/engine": "Galacean"
     }
@@ -25,6 +25,9 @@
     "libs/**/*",
     "types/**/*"
   ],
+  "dependencies": {
+    "@galacean/engine-xr": "workspace:*"
+  },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*"

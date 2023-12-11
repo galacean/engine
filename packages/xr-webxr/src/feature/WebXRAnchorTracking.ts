@@ -1,5 +1,6 @@
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { IXRRequestAnchor, IXRTracked } from "@galacean/engine-design";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine-xr";
 import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -7,7 +8,7 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
 /**
  * WebXR implementation of XRPlatformAnchorTracking.
  */
-@registerXRPlatformFeature(0)
+@registerXRPlatformFeature(XRFeatureType.AnchorTracking)
 export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IWebXRRequestTrackingAnchor> {
   get canModifyRequestTrackingAfterInit(): boolean {
     return true;
@@ -17,8 +18,7 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     if (!frame._platformFrame) return false;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
-      // XRRequestTrackingState.None
-      if (requestTracking.state === 0) {
+      if (requestTracking.state === XRRequestTrackingState.None) {
         this._addAnchor(session, frame, <IWebXRRequestTrackingAnchor>requestTracking);
       }
     }
@@ -31,24 +31,19 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = <IWebXRRequestTrackingAnchor>requestTrackings[i];
-      // XRRequestTrackingState.Resolved
-      if (requestTracking.state !== 2) continue;
+      if (requestTracking.state !== XRRequestTrackingState.Resolved) continue;
       const tracked = requestTracking.tracked[0];
       if (trackedAnchors.has(requestTracking.xrAnchor)) {
         const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTracking);
         if (emulated) {
-          // XRTrackingState.Tracking
-          if (tracked.state === 1) {
-            // XRTrackingState.TrackingLost
-            tracked.state = 2;
+          if (tracked.state === XRTrackingState.Tracking) {
+            tracked.state = XRTrackingState.TrackingLost;
           }
         } else {
-          // XRTrackingState.Tracking
-          tracked.state = 1;
+          tracked.state = XRTrackingState.Tracking;
         }
       } else {
-        // XRTrackingState.NotTracking
-        tracked.state = 0;
+        tracked.state = XRTrackingState.NotTracking;
       }
     }
   }
@@ -57,29 +52,23 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     requestTracking.tracked.push({
       id: WebXRDevice.generateUUID(),
       pose: { matrix: new Matrix(), rotation: new Quaternion(), position: new Vector3() },
-      // XRTrackingState.NotTracking
-      state: 0
+      state: XRTrackingState.NotTracking
     });
   }
 
   onDelRequestTracking(requestTracking: IWebXRRequestTrackingAnchor): void {
     switch (requestTracking.state) {
-      // XRRequestTrackingState.Submitted
-      case 1:
-        // XRRequestTrackingState.WaitingDestroy
-        requestTracking.state = 5;
+      case XRRequestTrackingState.Submitted:
+        requestTracking.state = XRRequestTrackingState.WaitingDestroy;
         break;
-      // XRRequestTrackingState.Resolved
-      case 2:
+      case XRRequestTrackingState.Resolved:
         requestTracking.xrAnchor.delete();
         requestTracking.xrAnchor = null;
-        // XRRequestTrackingState.Destroyed
-        requestTracking.state = 4;
+        requestTracking.state = XRRequestTrackingState.Destroyed;
         requestTracking.tracked.length = 0;
         break;
       default:
-        // XRRequestTrackingState.Destroyed
-        requestTracking.state = 4;
+        requestTracking.state = XRRequestTrackingState.Destroyed;
         break;
     }
   }
@@ -95,8 +84,7 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
     if (!session || !frame) {
       return;
     }
-    // XRRequestTrackingState.Submitted
-    requestTracking.state = 1;
+    requestTracking.state = XRRequestTrackingState.Submitted;
     const { position, rotation } = requestTracking;
     const { _platformFrame: platformFrame } = frame;
     const { _platformReferenceSpace: platformReferenceSpace } = session;
@@ -110,25 +98,19 @@ export class WebXRAnchorTracking implements WebXRTrackableFeature<IXRTracked, IW
       )
       .then(
         (xrAnchor) => {
-          // XRRequestTrackingState.WaitingDestroy
-          if (requestTracking.state === 5) {
+          if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
             xrAnchor.delete();
-            // XRRequestTrackingState.Destroyed
-            requestTracking.state = 4;
+            requestTracking.state = XRRequestTrackingState.Destroyed;
           } else {
             requestTracking.xrAnchor = xrAnchor;
-            // XRRequestTrackingState.Resolved
-            requestTracking.state = 2;
+            requestTracking.state = XRRequestTrackingState.Resolved;
           }
         },
         () => {
-          // XRRequestTrackingState.WaitingDestroy
-          if (requestTracking.state === 5) {
-            // XRRequestTrackingState.Destroyed
-            requestTracking.state = 4;
+          if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
+            requestTracking.state = XRRequestTrackingState.Destroyed;
           } else {
-            // XRRequestTrackingState.Rejected
-            requestTracking.state = 3;
+            requestTracking.state = XRRequestTrackingState.Rejected;
           }
         }
       );

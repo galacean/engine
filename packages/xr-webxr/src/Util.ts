@@ -1,3 +1,5 @@
+import { XRTrackedInputDevice } from "@galacean/engine-xr";
+
 export function parseXRMode(mode: number): XRSessionMode | null {
   switch (mode) {
     case 1:
@@ -9,27 +11,27 @@ export function parseXRMode(mode: number): XRSessionMode | null {
   }
 }
 
-export function getInputSource(inputSource: XRInputSource): number {
+export function getInputSource(inputSource: XRInputSource): XRTrackedInputDevice {
   let type: number;
   switch (inputSource.targetRayMode) {
     case "gaze":
       break;
     case "screen":
-      return 0;
+      return XRTrackedInputDevice.Controller;
     case "tracked-pointer":
       if (inputSource.hand) {
         switch (inputSource.handedness) {
           case "left":
-            return 6;
+            return XRTrackedInputDevice.LeftHand;
           case "right":
-            return 7;
+            return XRTrackedInputDevice.RightHand;
         }
       } else {
         switch (inputSource.handedness) {
           case "left":
-            return 1;
+            return XRTrackedInputDevice.LeftController;
           case "right":
-            return 2;
+            return XRTrackedInputDevice.RightController;
         }
       }
       break;
@@ -39,13 +41,13 @@ export function getInputSource(inputSource: XRInputSource): number {
   return type;
 }
 
-export function viewToCamera(type: XREye): number {
+export function viewToCamera(type: XREye): XRTrackedInputDevice {
   switch (type) {
     case "left":
-      return 4;
+      return XRTrackedInputDevice.LeftCamera;
     case "right":
-      return 5;
+      return XRTrackedInputDevice.RightCamera;
     default:
-      return 3;
+      return XRTrackedInputDevice.Camera;
   }
 }

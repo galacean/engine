@@ -1,5 +1,6 @@
 import { IXRReferenceImage, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { XRFeatureType, XRRequestTrackingState, XRTrackingState } from "@galacean/engine-xr";
 import { WebXRDevice, registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
 import { WebXRSession } from "../WebXRSession";
@@ -12,7 +13,7 @@ import { WebXRTrackableFeature } from "./WebXRTrackableFeature";
  * the device can choose an arbitrary instance to report a pose,
  * and this choice can change for future XRFrames.
  */
-@registerXRPlatformFeature(1)
+@registerXRPlatformFeature(XRFeatureType.ImageTracking)
 export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage, IXRRequestImage> {
   private _images: IXRReferenceImage[];
   private _trackingScoreStatus: ImageTrackingScoreStatus = ImageTrackingScoreStatus.NotReceived;
@@ -28,8 +29,7 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
   }
 
   onAddRequestTracking(requestTracking: IXRRequestImage): void {
-    // XRRequestTrackingState.Submitted
-    requestTracking.state = 1;
+    requestTracking.state = XRRequestTrackingState.Submitted;
     requestTracking.tracked[0] = {
       id: WebXRDevice.generateUUID(),
       measuredWidthInMeters: 1,
@@ -39,8 +39,7 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
         position: new Vector3(),
         inverseMatrix: new Matrix()
       },
-      // XRTrackingState.NotTracking
-      state: 0
+      state: XRTrackingState.NotTracking
     };
   }
 
@@ -71,11 +70,9 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
         const tracked = requestTrackingImage.tracked[0];
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
-          // XRTrackingState.Tracking
-          tracked.state = 1;
+          tracked.state = XRTrackingState.Tracking;
         } else {
-          // XRTrackingState.TrackingLost
-          tracked.state = 2;
+          tracked.state = XRTrackingState.TrackingLost;
         }
         tempArr[index] = idx;
       } else {
@@ -84,8 +81,7 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
     }
 
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
-      // XRTrackingState.NotTracking
-      if (tempArr[i] < idx) requestTrackings[i].tracked[0].state = 0;
+      if (tempArr[i] < idx) requestTrackings[i].tracked[0].state = XRTrackingState.NotTracking;
     }
   }
 
@@ -137,11 +133,9 @@ export class WebXRImageTracking implements WebXRTrackableFeature<IXRTrackedImage
             const requestTracking = requestTrackings[i];
             if (trackingScore === "trackable") {
               this._trackingScoreStatus = ImageTrackingScoreStatus.Received;
-              // XRRequestTrackingState.Resolved
-              requestTracking.state = 2;
+              requestTracking.state = XRRequestTrackingState.Resolved;
             } else {
-              // XRRequestTrackingState.Rejected
-              requestTracking.state = 3;
+              requestTracking.state = XRRequestTrackingState.Rejected;
               console.warn(requestTracking.image.name, " unTrackable");
             }
           }

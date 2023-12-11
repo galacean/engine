@@ -1,4 +1,5 @@
 import { IHardwareRenderer, IXRDevice } from "@galacean/engine-design";
+import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
 import { WebXRSession } from "./WebXRSession";
 import { WebXRFeature } from "./feature/WebXRFeature";
@@ -12,7 +13,7 @@ export class WebXRDevice implements IXRDevice {
     return ++WebXRDevice._uuid;
   }
 
-  isSupportedSessionMode(mode: number): Promise<void> {
+  isSupportedSessionMode(mode: XRSessionMode): Promise<void> {
     return new Promise((resolve, reject: (reason: Error) => void) => {
       if (!window.isSecureContext) {
         reject(new Error("WebXR is available only in secure contexts (HTTPS)."));
@@ -28,16 +29,16 @@ export class WebXRDevice implements IXRDevice {
     });
   }
 
-  isSupportedFeature(type: number): boolean {
+  isSupportedFeature(type: XRFeatureType): boolean {
     return true;
   }
 
-  createPlatformFeature(type: number, ...args: any[]): WebXRFeature {
+  createPlatformFeature(type: XRFeatureType, ...args: any[]): WebXRFeature {
     const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(rhi: IHardwareRenderer, mode: number, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
+  requestSession(rhi: IHardwareRenderer, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
       const options: XRSessionInit = { requiredFeatures: ["local"] };
@@ -85,7 +86,7 @@ export class WebXRDevice implements IXRDevice {
 }
 
 type PlatformFeatureConstructor = new (...args: any[]) => WebXRFeature;
-export function registerXRPlatformFeature(type: number) {
+export function registerXRPlatformFeature(type: XRFeatureType) {
   return (platformFeatureConstructor: PlatformFeatureConstructor) => {
     WebXRDevice._platformFeatureMap[type] = platformFeatureConstructor;
   };

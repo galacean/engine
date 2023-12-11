@@ -32,3 +32,9 @@ export { XRTrackingState } from "./input/XRTrackingState";
 export { XRSessionManager } from "./session/XRSessionManager";
 export { XRSessionMode } from "./session/XRSessionMode";
 export { XRSessionState } from "./session/XRSessionState";
+
+// only use in xr backend
+export { XRFeatureType } from "./feature/XRFeatureType";
+export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
+export { XRInputEventType } from "./input/XRInputEventType";
+export { XRTargetRayMode } from "./input/XRTargetRayMode";
