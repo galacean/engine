@@ -10,12 +10,12 @@ import { XRTrackedImage } from "./XRTrackedImage";
  */
 @registerXRFeature(XRFeatureType.ImageTracking)
 export class XRImageTracking extends XRTrackableFeature<XRTrackedImage, XRRequestImage> {
-  private _images: XRReferenceImage[];
+  private _trackingImages: XRReferenceImage[];
   /**
    * The image to tracking.
    */
-  get images(): readonly XRReferenceImage[] {
-    return this._images;
+  get trackingImages(): readonly XRReferenceImage[] {
+    return this._trackingImages;
   }
 
   /**
@@ -27,15 +27,15 @@ export class XRImageTracking extends XRTrackableFeature<XRTrackedImage, XRReques
 
   /**
    * @param xrManager - The xr manager
-   * @param images - The images to be tracked
+   * @param trackingImages - The images to be tracked
    */
-  constructor(xrManager: XRManagerExtended, images: XRReferenceImage[]) {
-    super(xrManager, XRFeatureType.ImageTracking, images);
-    this._images = images;
-    const imageLength = images ? images.length : 0;
+  constructor(xrManager: XRManagerExtended, trackingImages: XRReferenceImage[]) {
+    super(xrManager, XRFeatureType.ImageTracking, trackingImages);
+    this._trackingImages = trackingImages;
+    const imageLength = trackingImages ? trackingImages.length : 0;
     if (imageLength > 0) {
-      for (let i = 0, n = images.length; i < n; i++) {
-        this._addRequestTracking(new XRRequestImage(images[i]));
+      for (let i = 0, n = trackingImages.length; i < n; i++) {
+        this._addRequestTracking(new XRRequestImage(trackingImages[i]));
       }
     } else {
       console.warn("No image to be tracked.");
