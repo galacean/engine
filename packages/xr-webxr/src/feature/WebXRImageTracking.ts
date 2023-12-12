@@ -142,7 +142,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
     pose.matrix.copyFromArray(transform.matrix);
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
-    trackedImage.measuredWidthInMeters = trackingResult.measuredWidthInMeters;
+    trackedImage.measuredPhysicalWidth = trackingResult.measuredWidthInMeters;
   }
 }
 

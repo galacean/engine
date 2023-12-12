@@ -5,5 +5,5 @@ export interface IXRTrackedImage extends IXRTracked {
   /** The reference image which was used to detect this image in the environment.  */
   referenceImage: IXRReferenceImage;
   /** The width of the image in meters in the physical world. */
-  measuredWidthInMeters: number;
+  measuredPhysicalWidth: number;
 }

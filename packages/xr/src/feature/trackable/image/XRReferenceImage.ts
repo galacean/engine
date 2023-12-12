@@ -12,15 +12,7 @@ export class XRReferenceImage implements IXRReferenceImage {
    */
   constructor(
     public name: string,
-    public imageSource:
-      | HTMLImageElement
-      | SVGImageElement
-      | HTMLVideoElement
-      | HTMLCanvasElement
-      | Blob
-      | ImageData
-      | ImageBitmap
-      | OffscreenCanvas,
+    public imageSource: ImageBitmapSource,
     public physicalWidth: number
   ) {}
 }

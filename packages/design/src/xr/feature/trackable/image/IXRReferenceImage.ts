@@ -3,14 +3,6 @@
  */
 export interface IXRReferenceImage {
   name: string;
-  imageSource:
-    | HTMLImageElement
-    | SVGImageElement
-    | HTMLVideoElement
-    | HTMLCanvasElement
-    | Blob
-    | ImageData
-    | ImageBitmap
-    | OffscreenCanvas;
+  imageSource: ImageBitmapSource;
   physicalWidth: number;
 }
