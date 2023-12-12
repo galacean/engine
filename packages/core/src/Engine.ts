@@ -446,7 +446,7 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
-    this.xrManager._destroy();
+    this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation
