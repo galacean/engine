@@ -1,5 +1,5 @@
-import { IXRTrackedPlane } from "@galacean/engine-design";
 import { Plane, Ray, Vector2, Vector3 } from "@galacean/engine";
+import { IXRTrackedPlane } from "@galacean/engine-design";
 import { XRManagerExtended, registerXRFeature } from "../../XRManagerExtended";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
@@ -48,8 +48,8 @@ export class XRHitTest extends XRFeature {
 
   /**
    * Screen hit test.
-   * @param x - The x coordinate of the screen point (normalized)
-   * @param y - The y coordinate of the screen point (normalized)
+   * @param x - The x coordinate of the screen point
+   * @param y - The y coordinate of the screen point
    * @param type - The type of hit test
    * @returns The hit result
    */

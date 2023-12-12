@@ -1,11 +1,12 @@
 import { Vector3 } from "@galacean/engine";
+import { IXRTrackedPlane } from "@galacean/engine-design";
 import { XRTracked } from "../XRTracked";
 import { XRPlaneMode } from "./XRPlaneMode";
 
 /**
  * The tracked plane in XR space.
  */
-export class XRTrackedPlane extends XRTracked {
+export class XRTrackedPlane extends XRTracked implements IXRTrackedPlane {
   /** Whether the detected plane is horizontal or vertical. */
   planeMode: XRPlaneMode;
   /** The points that make up this plane.

@@ -13,5 +13,4 @@ export interface IXRReferenceImage {
     | ImageBitmap
     | OffscreenCanvas;
   physicalWidth: number;
-  physicalHeight: number;
 }

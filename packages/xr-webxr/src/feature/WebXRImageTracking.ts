@@ -40,7 +40,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
     session: WebXRSession,
     frame: WebXRFrame,
     requestTrackings: IXRRequestImage[],
-    generateTracked: () => IXRTrackedImage
+    generateTracked: (image: IXRReferenceImage) => IXRTrackedImage
   ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
@@ -53,7 +53,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
       const { index } = trackingResult;
       const requestTrackingImage = requestTrackings[index];
       if (requestTrackingImage) {
-        const tracked = (requestTrackingImage.tracked[0] ||= generateTracked());
+        const tracked = (requestTrackingImage.tracked[0] ||= generateTracked(requestTrackingImage.image));
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
           tracked.state = XRTrackingState.Tracking;
@@ -97,10 +97,9 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
         const trackedImages = (options.trackedImages = []);
         Promise.all(promiseArr).then((bitmaps: ImageBitmap[]) => {
           for (let i = 0, n = bitmaps.length; i < n; i++) {
-            const bitmap = bitmaps[i];
             trackedImages.push({
-              image: bitmap,
-              widthInMeters: images[i].physicalWidth ?? bitmap.width / 100
+              image: bitmaps[i],
+              widthInMeters: images[i].physicalWidth
             });
           }
           resolve();
