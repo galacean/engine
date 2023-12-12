@@ -3,6 +3,7 @@ import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
+import { Shader } from "@galacean/engine-core";
 
 import chai, { expect } from "chai";
 import spies from "chai-spies";
@@ -204,5 +205,22 @@ describe("ShaderLab", () => {
   it("No frag shader args", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/noFragArgs.shader")).toString();
     glslValidate(demoShader, shaderLab);
+  });
+
+  it("water full shader(complex)", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/waterfull.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("glass shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("shader with duplicate name", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
+    (Shader as any)._shaderLab = shaderLab;
+    expect(Shader.create(demoShader) instanceof Shader).to.be.true;
+    expect(Shader.create.bind(null, demoShader)).to.throw('Shader named "Gem" already exists.');
   });
 });

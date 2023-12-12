@@ -162,9 +162,8 @@ export interface IFnConditionStatementAstContent {
 }
 
 export interface IConditionExprAstContent {
-  leftExpr: RelationExprAstNode;
-  rightExpr?: RelationExprAstNode;
-  operator?: RelationOperatorAstNode;
+  expressionList: RelationExprAstNode[];
+  operatorList?: RelationOperatorAstNode[];
 }
 
 export interface IFnRelationExprAstContent {
@@ -226,6 +225,8 @@ export type IArrayIndexAstContent = FnAtomicExprAstNode;
 export type IVariablePropertyAstContent = string;
 
 export type IFnReturnStatementAstContent = ObjectAstNode;
+
+export type IFnCallStatementAstContent = FnCallAstNode;
 
 export interface IFnArgAstContent {
   name: string;

@@ -13,7 +13,7 @@ function searchTests(root: string) {
       }
       describe(file, function () {
         require(filePath);
-      })
+      });
     } else if (stat.isDirectory()) {
       searchTests(filePath);
     }

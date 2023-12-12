@@ -500,13 +500,23 @@ export type _ruleContinueStatementCstChildren = {
   Semicolon: IToken[];
 };
 
+export interface _ruleFnCallStatementCstNode extends CstNode {
+  name: "_ruleFnCallStatement";
+  children: _ruleFnCallStatementCstChildren;
+}
+
+export type _ruleFnCallStatementCstChildren = {
+  _ruleFnCall: _ruleFnCallCstNode[];
+  Semicolon: IToken[];
+};
+
 export interface _ruleFnStatementCstNode extends CstNode {
   name: "_ruleFnStatement";
   children: _ruleFnStatementCstChildren;
 }
 
 export type _ruleFnStatementCstChildren = {
-  _ruleFnCall?: _ruleFnCallCstNode[];
+  _ruleFnCallStatement?: _ruleFnCallStatementCstNode[];
   _ruleFnReturnStatement?: _ruleFnReturnStatementCstNode[];
   _ruleFnAssignStatement?: _ruleFnAssignStatementCstNode[];
   _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
@@ -516,6 +526,7 @@ export type _ruleFnStatementCstChildren = {
   _ruleContinueStatement?: _ruleContinueStatementCstNode[];
   _ruleForLoopStatement?: _ruleForLoopStatementCstNode[];
   _ruleFn?: _ruleFnCstNode[];
+  _ruleFnBlockStatement?: _ruleFnBlockStatementCstNode[];
 };
 
 export interface _ruleFnAssignStatementCstNode extends CstNode {
@@ -1190,6 +1201,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleDiscardStatement(children: _ruleDiscardStatementCstChildren, param?: IN): OUT;
   _ruleBreakStatement(children: _ruleBreakStatementCstChildren, param?: IN): OUT;
   _ruleContinueStatement(children: _ruleContinueStatementCstChildren, param?: IN): OUT;
+  _ruleFnCallStatement(children: _ruleFnCallStatementCstChildren, param?: IN): OUT;
   _ruleFnStatement(children: _ruleFnStatementCstChildren, param?: IN): OUT;
   _ruleFnAssignStatement(children: _ruleFnAssignStatementCstChildren, param?: IN): OUT;
   _ruleForLoopStatement(children: _ruleForLoopStatementCstChildren, param?: IN): OUT;
