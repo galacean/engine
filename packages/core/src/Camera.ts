@@ -19,6 +19,7 @@ import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { CameraType } from "./enums/CameraType";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -62,6 +63,8 @@ export class Camera extends Component {
    */
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
 
+  /** @internal */
+  _cameraType: CameraType = CameraType.Normal;
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
@@ -524,7 +527,11 @@ export class Camera extends Component {
       mipLevel = 0;
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel);
+    let clearMask: CameraClearFlags;
+    if (this._cameraType !== CameraType.Normal) {
+      clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
+    }
+    this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);
     this._engine._renderCount++;
   }
 
