@@ -42,10 +42,9 @@ export class XRImageTracking extends XRTrackableFeature<XRTrackedImage, XRReques
     }
   }
 
-  protected override _generateTracked(referenceImage: XRReferenceImage): XRTrackedImage {
+  protected override _generateTracked(): XRTrackedImage {
     const image = new XRTrackedImage();
     image.id = XRTrackableFeature._uuid++;
-    image.referenceImage = referenceImage;
     return image;
   }
 }

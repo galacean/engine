@@ -156,5 +156,5 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     }
   }
 
-  protected abstract _generateTracked(...arg: any[]): T;
+  protected abstract _generateTracked(): T;
 }

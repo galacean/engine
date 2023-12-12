@@ -40,7 +40,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
     session: WebXRSession,
     frame: WebXRFrame,
     requestTrackings: IXRRequestImage[],
-    generateTracked: (image: IXRReferenceImage) => IXRTrackedImage
+    generateTracked: () => IXRTrackedImage
   ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
     const { _platformFrame: platformFrame } = frame;
@@ -53,7 +53,11 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
       const { index } = trackingResult;
       const requestTrackingImage = requestTrackings[index];
       if (requestTrackingImage) {
-        const tracked = (requestTrackingImage.tracked[0] ||= generateTracked(requestTrackingImage.image));
+        let tracked = requestTrackingImage.tracked[0];
+        if (!tracked) {
+          tracked = requestTrackingImage.tracked[0] = generateTracked();
+          tracked.referenceImage = requestTrackingImage.image;
+        }
         if (trackingResult.trackingState === "tracked") {
           this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
           tracked.state = XRTrackingState.Tracking;
