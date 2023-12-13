@@ -220,7 +220,12 @@ describe("ShaderLab", () => {
   it("shader with duplicate name", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
     (Shader as any)._shaderLab = shaderLab;
-    expect(Shader.create(demoShader) instanceof Shader).to.be.true;
+
+    const shaderInstance = Shader.create(demoShader);
+    expect(shaderInstance instanceof Shader).to.be.true;
     expect(Shader.create.bind(null, demoShader)).to.throw('Shader named "Gem" already exists.');
+    shaderInstance.destroy();
+    const sameNameShader = Shader.create(demoShader);
+    expect(sameNameShader instanceof Shader).to.be.true;
   });
 });
