@@ -1,4 +1,4 @@
-import { AssetType, AudioClip, AudioSource, Engine,AudioListener} from "@galacean/engine-core";
+import { AssetType, AudioClip, AudioSource, Engine} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 import { sound } from "../model/sound";
@@ -36,9 +36,7 @@ describe("AudioSource", () => {
         const scene = engine.sceneManager.activeScene;
         const rootEntity = scene.createRootEntity();
         const audioEntity = rootEntity.createChild()
-        const listenEntity = rootEntity.createChild("listen");
 
-        listenEntity.addComponent(AudioListener);
         audioSource = audioEntity.addComponent(AudioSource)
         audioSource.clip = clip
         

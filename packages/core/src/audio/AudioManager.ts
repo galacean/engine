@@ -4,7 +4,7 @@
  */
 export class AudioManager {
   private static _context: AudioContext;
-  private static _listener: GainNode;
+  private static _gainNode: GainNode;
   private static _unlocked: boolean = false;
 
   /**
@@ -12,7 +12,8 @@ export class AudioManager {
    */
   static get context(): AudioContext {
     if (!AudioManager._context) {
-      AudioManager._context = new window.AudioContext();}
+      AudioManager._context = new window.AudioContext();
+    }
       if (AudioManager._context.state !== "running") {
         window.document.addEventListener("pointerdown", AudioManager._unlock, true);
     }
@@ -20,14 +21,15 @@ export class AudioManager {
   }
 
   /**
-   * Audio Listener. Can only have one listener in a Scene.
+   * Audio GainNode.
    */
-  static get listener(): GainNode {
-    return AudioManager._listener;
-  }
-
-  static set listener(value: GainNode) {
-    AudioManager._listener = value;
+  static get gainNode(): GainNode {
+    if(!AudioManager._gainNode){
+      const gain = AudioManager.context.createGain();
+      gain.connect(AudioManager.context.destination);
+      AudioManager._gainNode = gain;
+    }
+    return AudioManager._gainNode;
   }
 
   private static _unlock(): void {
