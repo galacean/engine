@@ -1,6 +1,6 @@
-import { Engine, Entity, Loader } from "@galacean/engine-core";
-import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef } from "../schema";
-import { SceneParserContext } from "../scene/SceneParserContext";
+import { EngineObject, Entity, Loader } from "@galacean/engine-core";
+import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef, IPrefabFile, IRefEntity } from "../schema";
+import { ParserContext } from "./ParserContext";
 
 export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();
@@ -9,7 +9,7 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  constructor(private readonly _context: SceneParserContext) {}
+  constructor(private readonly _context: ParserContext<IPrefabFile, EngineObject>) {}
 
   parseEntity(entityConfig: IEntity): Promise<Entity> {
     return this._getEntityByConfig(entityConfig).then((entity) => {
@@ -107,15 +107,16 @@ export class ReflectionParser {
     const assetRefId: string = entityConfig.assetRefId;
     const engine = this._context.engine;
     if (assetRefId) {
-      return (
-        engine.resourceManager
-          // @ts-ignore
-          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
-          .then((entity) => {
-            entity.name = entityConfig.name;
-            return entity;
-          })
-      );
+      return engine.resourceManager
+        .getResourceByRef({
+          refId: assetRefId,
+          key: (entityConfig as IRefEntity).key,
+          isClone: (entityConfig as IRefEntity).isClone
+        })
+        .then((entity) => {
+          entity.name = entityConfig.name;
+          return entity;
+        });
     } else {
       const entity = new Entity(engine, entityConfig.name);
       return Promise.resolve(entity);

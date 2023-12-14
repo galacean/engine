@@ -35,6 +35,9 @@ export class ResourceManager {
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
 
+  /** @internal */
+  contextMap: Record<string, any> = Object.create(null);
+
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
@@ -480,7 +483,8 @@ export class ResourceManager {
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
         url,
-        type: this._editorResourceConfig[refId].type
+        type: this._editorResourceConfig[refId].type,
+        params: { refId }
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));

@@ -52,5 +52,7 @@ export enum AssetType {
   /** Source Font, include ttf、 otf and woff. */
   SourceFont = "SourceFont",
   /** Project asset. */
-  Project = "project"
+  Project = "project",
+  /** Prefab. */
+  Prefab = "Prefab"
 }

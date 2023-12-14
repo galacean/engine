@@ -40,12 +40,39 @@ export interface IBasicEntity {
   parent?: string;
 }
 
-export type IEntity = IBasicEntity | IRefEntity;
+export type IEntity = IBasicEntity | IRefEntity | IPrefabEntity | IStrippedEntity;
 
 export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
   isClone?: boolean;
+  modifications: {
+    target: IPrefabModifyTarget;
+    methods?: { [methodName: string]: Array<IMethodParams> };
+    props?: { [key: string]: IBasicType | IMethodParams };
+  }[];
+  removedComponents: IPrefabModifyTarget[];
+}
+
+export interface IPrefabModifyTarget {
+  entityId: string;
+  componentId: string;
+}
+
+export interface IPrefabEntity extends IBasicEntity {
+  prefabSource: { assetId: string };
+  modifications: {
+    target: IPrefabModifyTarget;
+    methods?: { [methodName: string]: Array<IMethodParams> };
+    props?: { [key: string]: IBasicType | IMethodParams };
+  }[];
+  removedComponents: IPrefabModifyTarget[];
+}
+
+export interface IStrippedEntity extends IBasicEntity {
+  strippedId?: string;
+  strippedPath?: string;
+  prefabInstanceId: string;
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;
