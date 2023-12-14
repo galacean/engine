@@ -7,17 +7,31 @@ import { AudioManager } from "./AudioManager";
  * Can only have one in a scene.
  */
 export class AudioListener extends Component {
+  private static instance: AudioListener | null = null;
   /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
-    const gain = AudioManager.context.createGain();
-    gain.connect(AudioManager.context.destination);
-    AudioManager.listener = gain;
+    if (AudioListener.instance) {
+      throw new Error("There can only be one AudioListener in a scene.");
+    }
+    AudioListener.instance = this;
+    if (!AudioManager.listener) {
+      const gain = AudioManager.context.createGain();
+      gain.connect(AudioManager.context.destination);
+      AudioManager.listener = gain;
+    }
   }
 
   protected override _onDestroy(): void {
-    AudioManager.listener = null;
+    if (AudioListener.instance === this) {
+      AudioListener.instance = null;
+    }
+    
+    if (AudioManager.listener) {
+      AudioManager.listener.disconnect();
+      AudioManager.listener = null;
+    }
   }
 }

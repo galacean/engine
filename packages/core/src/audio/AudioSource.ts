@@ -9,26 +9,19 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
  */
 export class AudioSource extends Component {
   @ignoreClone
-  /** Whether the clip playing right now */
-  isPlaying: Readonly<boolean>;
+  private _isPlaying: boolean = false
 
   @ignoreClone
   private _clip: AudioClip;
   @deepClone
   private _gainNode: GainNode;
   @ignoreClone
-  private _sourceNode: AudioBufferSourceNode;
+  private _sourceNode: AudioBufferSourceNode | null  = null;
 
   @deepClone
-  private _startTime: number = 0;
-  @deepClone
   private _pausedTime: number = -1;
-  @deepClone
-  private _endTime: number = -1;
-  @deepClone
-  private _duration: number = null;
   @ignoreClone
-  private _absoluteStartTime: number;
+  private _absoluteStartTime: number = -1
 
   @deepClone
   private _volume: number = 1;
@@ -40,7 +33,7 @@ export class AudioSource extends Component {
   private _loop: boolean = false;
 
   /**
-   * The audio cilp to play
+   * The audio cilp to play.
    */
   get clip(): AudioClip {
     return this._clip;
@@ -55,6 +48,13 @@ export class AudioSource extends Component {
   }
 
   /**
+   * Whether the clip playing right now (Read Only).
+   */
+  get isPlaying():boolean{
+    return this._isPlaying
+  }
+
+  /**
    * The volume of the audio source. 1.0 is origin volume.
    */
   get volume(): number {
@@ -63,13 +63,13 @@ export class AudioSource extends Component {
 
   set volume(value: number) {
     this._volume = value;
-    if (this.isPlaying) {
+    if (this._isPlaying) {
       this._gainNode.gain.setValueAtTime(value, AudioManager.context.currentTime);
     }
   }
 
   /**
-   * The playback speed of the audio source, 1.0 is normal playback speed.
+   * The playback rate of the audio source, 1.0 is normal playback speed.
    */
   get playbackRate(): number {
     return this._playbackRate;
@@ -77,14 +77,14 @@ export class AudioSource extends Component {
 
   set playbackRate(value: number) {
     this._playbackRate = value;
-    if (this.isPlaying) {
+    if (this._isPlaying) {
       this._sourceNode.playbackRate.value = this._playbackRate;
     }
   }
 
   /**
    * Mutes / Unmutes the AudioSource.
-   * Mute sets the volume = 0, Un-Mute restore the original volume.
+   * Mute sets volume as 0, Un-Mute restore volume.
    */
   get mute(): boolean {
     return this.volume === 0;
@@ -111,63 +111,37 @@ export class AudioSource extends Component {
       this._loop = value;
 
       if (this.isPlaying) {
-        this._setSourceNodeLoop(this._sourceNode);
+        this._sourceNode.loop = this._loop;
       }
     }
-  }
-
-  /**
-   * The time, in seconds, at which the sound should begin to play. Default 0.
-   */
-  get startTime(): number {
-    return this._startTime;
-  }
-
-  set startTime(value: number) {
-    this._startTime = value;
-  }
-
-  /**
-   * The time, in seconds, at which the sound should stop to play.
-   */
-  get endTime(): number {
-    return this._endTime;
-  }
-
-  set endTime(value: number) {
-    this._endTime = value;
-    this._duration = this._endTime - this._startTime;
   }
 
   /**
    * Playback position in seconds.
    */
   get time(): number {
-    if (this.isPlaying) {
-      return this._pausedTime > 0
-        ? this.engine.time.elapsedTime - this._absoluteStartTime + this._pausedTime
-        : this.engine.time.elapsedTime - this._absoluteStartTime + this.startTime;
+    if (this._isPlaying) {
+     return this.engine.time.elapsedTime - this._absoluteStartTime 
     }
-    return 0;
+    return this._pausedTime >= 0 ? this._pausedTime : 0;
   }
 
   /**
    * Plays the clip.
    */
   play(): void {
-    if (!this._clip || !this.clip.duration || this.isPlaying) return;
-    if (this.startTime > this._clip.duration || this.startTime < 0) return;
-    if (this._duration && this._duration < 0) return;
-
+    if (!this._isValidClip() || this._isPlaying) return;
+    this._initSourceNode();
+    console.log(this._pausedTime)
+    this._startPlayback(this._pausedTime >= 0 ? this._pausedTime : 0);
     this._pausedTime = -1;
-    this._play(this.startTime, this._duration);
   }
 
   /**
    * Stops playing the clip.
    */
   stop(): void {
-    if (this._sourceNode && this.isPlaying) {
+    if (this._sourceNode && this._isPlaying) {
       this._sourceNode.stop();
     }
   }
@@ -176,24 +150,16 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
-    if (this._sourceNode && this.isPlaying) {
+    if (this._sourceNode && this._isPlaying) {
+   
       this._pausedTime = this.time;
 
-      this.isPlaying = false;
+      this._isPlaying = false;
 
       this._sourceNode.disconnect();
       this._sourceNode.onended = null;
       this._sourceNode = null;
-    }
-  }
-
-  /**
-   * Unpause the paused playback of this AudioSource.
-   */
-  unPause(): void {
-    if (!this.isPlaying && this._pausedTime > 0) {
-      const duration = this.endTime > 0 ? this.endTime - this._pausedTime : null;
-      this._play(this._pausedTime, duration);
+      console.log(this._pausedTime)
     }
   }
 
@@ -210,14 +176,14 @@ export class AudioSource extends Component {
    * @internal
    */
   override _onEnable(): void {
-    this._clip && this.unPause();
+   this.play();
   }
 
   /**
    * @internal
    */
   override _onDisable(): void {
-    this._clip && this.pause();
+    this._isValidClip() && this.pause();
   }
 
   /**
@@ -231,36 +197,34 @@ export class AudioSource extends Component {
     }
   }
 
-  private _play(startTime: number, duration: number | null): void {
-    const source = AudioManager.context.createBufferSource();
-    source.buffer = this._clip.getData();
-    source.onended = this._onPlayEnd;
-    source.playbackRate.value = this._playbackRate;
-
-    this._setSourceNodeLoop(source);
-
-    this._gainNode.gain.setValueAtTime(this._volume, 0);
-    source.connect(this._gainNode);
-
-    duration ? source.start(0, startTime, duration) : source.start(0, startTime);
-
-    this._absoluteStartTime = this.engine.time.elapsedTime;
-    this._sourceNode = source;
-    this.isPlaying = true;
-  }
-
   private _onPlayEnd(): void {
     if (!this.isPlaying) return;
-    this.isPlaying = false;
+    this._isPlaying = false;
   }
 
-  private _setSourceNodeLoop(sourceNode: AudioBufferSourceNode) {
-    sourceNode.loop = this._loop;
-    if (this._loop) {
-      sourceNode.loopStart = this.startTime;
-      if (this.endTime > 0) {
-        sourceNode.loopEnd = this.endTime;
-      }
+  private _initSourceNode(): void {
+    if (this._sourceNode) {
+      this._sourceNode.disconnect();
     }
+    this._sourceNode = AudioManager.context.createBufferSource();
+
+    const {_sourceNode : sourceNode} = this
+    sourceNode.buffer = this._clip.getData();
+    sourceNode.onended = this._onPlayEnd.bind(this);
+    sourceNode.playbackRate.value = this._playbackRate;
+
+    sourceNode.loop = this._loop;
+    this._gainNode.gain.setValueAtTime(this._volume, AudioManager.context.currentTime);
+    sourceNode.connect(this._gainNode);
+  }
+
+  private _startPlayback(startTime: number): void {
+    this._sourceNode.start(0, startTime);
+    this._absoluteStartTime = AudioManager.context.currentTime - startTime;
+    this._isPlaying = true;
+  }
+
+  private _isValidClip(): boolean {
+    return this._clip && this._clip.duration > 0;
   }
 }

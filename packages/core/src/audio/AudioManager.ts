@@ -3,11 +3,8 @@
  * Audio Manager
  */
 export class AudioManager {
-  /** @internal */
   private static _context: AudioContext;
-  /** @internal */
   private static _listener: GainNode;
-
   private static _unlocked: boolean = false;
 
   /**
@@ -15,10 +12,9 @@ export class AudioManager {
    */
   static get context(): AudioContext {
     if (!AudioManager._context) {
-      AudioManager._context = new window.AudioContext();
-    }
-    if (AudioManager._context.state !== "running") {
-      window.document.addEventListener("pointerdown", AudioManager._unlock, true);
+      AudioManager._context = new window.AudioContext();}
+      if (AudioManager._context.state !== "running") {
+        window.document.addEventListener("pointerdown", AudioManager._unlock, true);
     }
     return AudioManager._context;
   }
