@@ -1,9 +1,10 @@
+import { IPoolElement } from "../RenderPipeline/IPoolElement";
 import { MeshTopology } from "./enums/MeshTopology";
 
 /**
  * Sub-mesh, mainly contains drawing information.
  */
-export class SubMesh {
+export class SubMesh implements IPoolElement {
   /** Start drawing offset. */
   start: number;
   /** Drawing count. */
@@ -22,4 +23,6 @@ export class SubMesh {
     this.count = count;
     this.topology = topology;
   }
+
+  dispose?(): void {}
 }

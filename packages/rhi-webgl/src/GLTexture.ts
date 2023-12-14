@@ -8,10 +8,11 @@ import {
   TextureDepthCompareFunction,
   TextureFilterMode,
   TextureFormat,
+  TextureUsage,
   TextureWrapMode
 } from "@galacean/engine-core";
-import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
 /**
  * Texture in WebGL platform.
@@ -95,14 +96,19 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.FLOAT,
           isCompressed: false
         };
-      case TextureFormat.DXT1:
+      case TextureFormat.BC1:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
           isCompressed: true
         };
-      case TextureFormat.DXT5:
+      case TextureFormat.BC3:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT,
+          isCompressed: true
+        };
+      case TextureFormat.BC7:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT,
           isCompressed: true
         };
       case TextureFormat.ETC1_RGB:
@@ -542,11 +548,11 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
+    const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
 
-    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA)) {
+    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {

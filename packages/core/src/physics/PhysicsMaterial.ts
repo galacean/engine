@@ -1,5 +1,5 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
@@ -11,12 +11,13 @@ export class PhysicsMaterial {
   private _staticFriction: number = 0.1;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
+  private _destroyed: boolean;
 
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
-    this._nativeMaterial = PhysicsManager._nativePhysics.createPhysicsMaterial(
+    this._nativeMaterial = PhysicsScene._nativePhysics.createPhysicsMaterial(
       this._staticFriction,
       this._dynamicFriction,
       this._bounciness,
@@ -99,6 +100,7 @@ export class PhysicsMaterial {
    * @internal
    */
   _destroy() {
-    this._nativeMaterial.destroy();
+    !this._destroyed && this._nativeMaterial.destroy();
+    this._destroyed = true;
   }
 }

@@ -2,9 +2,10 @@
  * EventDispatcher, which can be inherited as a base class.
  */
 export class EventDispatcher {
+  private static _dispatchingListenersPool: EventData[][] = [];
+
   private _events: Record<string, EventData | EventData[]> = Object.create(null);
   private _eventCount: number = 0;
-  private _dispatchingListeners: EventData[] = [];
 
   /**
    * Determine whether there is event listening.
@@ -54,7 +55,8 @@ export class EventDispatcher {
       const count = listeners.length;
 
       // cloning list to avoid structure breaking
-      const dispatchingListeners = this._dispatchingListeners;
+      const { _dispatchingListenersPool: pool } = EventDispatcher;
+      const dispatchingListeners = pool.length > 0 ? pool.pop() : [];
       dispatchingListeners.length = count;
       for (let i = 0; i < count; i++) {
         dispatchingListeners[i] = listeners[i];
@@ -70,6 +72,7 @@ export class EventDispatcher {
 
       // remove hooked function to avoid gc problem
       dispatchingListeners.length = 0;
+      pool.push(dispatchingListeners);
     } else {
       if (listeners.once) this.off(event, listeners.fn);
       listeners.fn(data);

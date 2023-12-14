@@ -577,6 +577,24 @@ export class Transform extends Component {
     return isInvert;
   }
 
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    //@ts-ignore
+    this._worldPosition._onValueChanged = null;
+    //@ts-ignore
+    this._rotation._onValueChanged = null;
+    //@ts-ignore
+    this._worldRotation._onValueChanged = null;
+    //@ts-ignore
+    this._rotationQuaternion._onValueChanged = null;
+    //@ts-ignore
+    this._worldRotationQuaternion._onValueChanged = null;
+    //@ts-ignore
+    this._position._onValueChanged = null;
+    //@ts-ignore
+    this._scale._onValueChanged = null;
+  }
+
   /**
    * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
@@ -736,9 +754,9 @@ export class Transform extends Component {
     if (relativeToLocal) {
       const { _tempVec30 } = Transform;
       Vector3.transformByQuat(translation, this.worldRotationQuaternion, _tempVec30);
-      this._worldPosition.add(_tempVec30);
+      this.worldPosition.add(_tempVec30);
     } else {
-      this._worldPosition.add(translation);
+      this.worldPosition.add(translation);
     }
   }
 

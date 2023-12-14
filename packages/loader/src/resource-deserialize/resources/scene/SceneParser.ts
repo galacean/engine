@@ -1,7 +1,7 @@
 import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
-import { IEntity, IScene } from "../prefab/PrefabDesign";
-import { PrefabParser } from "../prefab/PrefabParser";
-import { ReflectionParser } from "../prefab/ReflectionParser";
+import { PrefabParser } from "../parser/PrefabParser";
+import { ReflectionParser } from "../parser/ReflectionParser";
+import type { IScene } from "../schema";
 import { SceneParserContext } from "./SceneParserContext";
 
 /** @Internal */
@@ -28,9 +28,10 @@ export class SceneParser {
   private _resolve: (scene: Scene) => void;
   private _reject: (reason: any) => void;
   private _engine: Engine;
+  private _reflectionParser: ReflectionParser;
 
   constructor(public readonly context: SceneParserContext) {
-    this._engine = this.context.scene.engine;
+    this._engine = context.scene.engine;
     this._organizeEntities = this._organizeEntities.bind(this);
     this._parseComponents = this._parseComponents.bind(this);
     this._clearAndResolveScene = this._clearAndResolveScene.bind(this);
@@ -38,6 +39,7 @@ export class SceneParser {
       this._reject = reject;
       this._resolve = resolve;
     });
+    this._reflectionParser = new ReflectionParser(context);
   }
 
   /** start parse the scene */
@@ -60,7 +62,7 @@ export class SceneParser {
       entityConfigMap.set(entityConfig.id, entityConfig);
       // record root entities
       if (!entityConfig.parent) rootIds.push(entityConfig.id);
-      return ReflectionParser.parseEntity(entityConfig, engine);
+      return this._reflectionParser.parseEntity(entityConfig);
     });
 
     return Promise.all(promises).then((entities) => {
@@ -99,7 +101,7 @@ export class SceneParser {
           component = entity.getComponent(Loader.getClass(key));
         }
         component = component || entity.addComponent(Loader.getClass(key));
-        const promise = ReflectionParser.parsePropsAndMethods(component, componentConfig, entity.engine);
+        const promise = this._reflectionParser.parsePropsAndMethods(component, componentConfig);
         promises.push(promise);
       }
     }

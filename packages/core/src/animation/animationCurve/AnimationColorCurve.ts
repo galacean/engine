@@ -1,5 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -11,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Color>>()
 export class AnimationColorCurve extends AnimationCurve<Color> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -23,6 +24,13 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
     owner.fixedPoseValue = new Color();
     owner.baseEvaluateData.value = new Color();
     owner.crossEvaluateData.value = new Color();
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Color();
   }
 
   /**
@@ -61,7 +69,7 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
-  static _copyValue(source: Color, out: Color): Color {
+  static _setValue(source: Color, out: Color): Color {
     out.copyFrom(source);
     return out;
   }

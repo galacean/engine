@@ -1,7 +1,7 @@
-import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@galacean/engine-core";
+import { AnimationClip, EngineObject, Material, Mesh } from "@galacean/engine-core";
+import type { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFExtensionMode, GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
-import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 /**
@@ -9,20 +9,6 @@ import { GLTFParserContext } from "./GLTFParserContext";
  */
 export abstract class GLTFParser {
   private static readonly _extensionParsers: Record<string, GLTFExtensionParser[]> = {};
-
-  /**
-   * Execute all parses of extension to initialize plugin.
-   * @remarks Some plugins require initialization.
-   * @returns The void or promise
-   */
-  static executeExtensionsInitialize(extensionName: string): void | Promise<void> {
-    const parsers = GLTFParser._extensionParsers[extensionName];
-    const length = parsers?.length;
-
-    if (length) {
-      return parsers[length - 1].initialize();
-    }
-  }
 
   /**
    * Execute all parses of extension to create resource.
@@ -144,7 +130,7 @@ export abstract class GLTFParser {
     }
   }
 
-  abstract parse(context: GLTFParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
+  abstract parse(context: GLTFParserContext, index?: number);
 }
 
 /**

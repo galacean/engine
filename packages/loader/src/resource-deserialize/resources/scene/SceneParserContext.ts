@@ -1,5 +1,5 @@
-import { Component, Entity, Scene } from "@galacean/engine-core";
-import { IEntity, IScene } from "../prefab/PrefabDesign";
+import { Component, Engine, Entity, ResourceManager, Scene } from "@galacean/engine-core";
+import type { IEntity, IScene } from "../schema";
 
 export class SceneParserContext {
   entityMap: Map<string, Entity> = new Map();
@@ -7,7 +7,15 @@ export class SceneParserContext {
   assets: Map<string, any> = new Map();
   entityConfigMap: Map<string, IEntity> = new Map();
   rootIds: string[] = [];
-  constructor(public readonly originalData: IScene, public readonly scene: Scene) {}
+  readonly engine: Engine;
+  readonly resourceManager: ResourceManager;
+  constructor(
+    public readonly originalData: IScene,
+    public readonly scene: Scene
+  ) {
+    this.engine = scene.engine;
+    this.resourceManager = scene.engine.resourceManager;
+  }
 
   destroy() {
     this.entityMap.clear();

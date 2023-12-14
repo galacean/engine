@@ -3,6 +3,7 @@ export { TextureCubeFace } from "./enums/TextureCubeFace";
 export { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 export { TextureFilterMode } from "./enums/TextureFilterMode";
 export { TextureFormat } from "./enums/TextureFormat";
+export { TextureUsage } from "./enums/TextureUsage";
 export { TextureWrapMode } from "./enums/TextureWrapMode";
 export { RenderTarget } from "./RenderTarget";
 export { Texture } from "./Texture";

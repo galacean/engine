@@ -1,5 +1,5 @@
 import { UnlitMaterial } from "@galacean/engine-core";
-import { IMaterial } from "../GLTFSchema";
+import type { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";

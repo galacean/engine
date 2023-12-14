@@ -59,16 +59,27 @@ export class AnimationClip extends EngineObject {
   addEvent(event: AnimationEvent): void;
 
   addEvent(param: AnimationEvent | string, time?: number, parameter?: Object): void {
+    let newEvent: AnimationEvent;
     if (typeof param === "string") {
       const event = new AnimationEvent();
       event.functionName = param;
       event.time = time;
       event.parameter = parameter;
-      this._events.push(event);
+      newEvent = event;
     } else {
-      this._events.push(param);
+      newEvent = param;
     }
-    this._events.sort((a, b) => a.time - b.time);
+    const events = this._events;
+    const count = events.length;
+    const eventTime = newEvent.time;
+    const maxEventTime = count ? events[count - 1].time : 0;
+    if (eventTime >= maxEventTime) {
+      events.push(newEvent);
+    } else {
+      let index = count;
+      while (--index >= 0 && eventTime < events[index].time);
+      events.splice(index + 1, 0, newEvent);
+    }
   }
 
   /**
@@ -122,8 +133,15 @@ export class AnimationClip extends EngineObject {
       const curveData = curveBindings[i];
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
-        const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        curveOwner.evaluateAndApplyValue(curveData.curve, time, 1, false);
+        const component = targetEntity.getComponent(curveData.type);
+        if (!component) {
+          continue;
+        }
+        const curveOwner = curveData._getTempCurveOwner(targetEntity, component);
+        if (curveOwner && curveData.curve.keys.length) {
+          const value = curveOwner.evaluateValue(curveData.curve, time, false);
+          curveOwner.applyValue(value, 1, false);
+        }
       }
     }
   }

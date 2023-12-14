@@ -93,15 +93,31 @@ describe("Asset Promise test", function () {
       }, 20);
     });
 
-    let expectProgress = 0;
+    let currentProgress = 0;
     assetPromise.onProgress((progress) => {
-      expectProgress += 0.1;
-      console.log("set progress", expectProgress, progress);
-      expect(progress).to.approximately(expectProgress, 0.0001);
+      currentProgress = progress;
     });
 
     await assetPromise.then((e) => {
+      expect(currentProgress).to.eq(1);
       expect(e).to.eq(10);
+    });
+  });
+
+  it("promise immediately", async () => {
+    let currentProgress = 0;
+    const assetPromise = new AssetPromise<number>((resolve, reject, setProgress) => {
+      setProgress(1);
+      resolve(1);
+    });
+
+    assetPromise.onProgress((progress) => {
+      currentProgress = progress;
+    });
+
+    await assetPromise.then((e) => {
+      expect(currentProgress).to.eq(1);
+      expect(e).to.eq(1);
     });
   });
 

@@ -14,7 +14,5 @@ export interface IPlatformBuffer {
 
   getData(data: ArrayBufferView, bufferByteOffset?: number, dataOffset?: number, dataLength?: number): void;
 
-  resize(byteLength: number): void;
-
   destroy(): void;
 }

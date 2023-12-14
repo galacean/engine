@@ -7,6 +7,7 @@ import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { Logger } from "../../base";
+import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
  * @internal
@@ -20,7 +21,7 @@ export class TiledSpriteAssembler {
   static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
 
   static resetData(renderer: SpriteRenderer): void {
-    renderer._verticesData.triangles ||= [];
+    renderer._verticesData.triangles = [];
   }
 
   static updatePositions(renderer: SpriteRenderer): void {

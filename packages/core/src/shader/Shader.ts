@@ -1,9 +1,20 @@
+import { IShaderLab } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
+import { BlendFactor } from "./enums/BlendFactor";
+import { BlendOperation } from "./enums/BlendOperation";
+import { ColorWriteMask } from "./enums/ColorWriteMask";
+import { CompareFunction } from "./enums/CompareFunction";
+import { CullMode } from "./enums/CullMode";
+import { RenderQueueType } from "./enums/RenderQueueType";
+import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { StencilOperation } from "./enums/StencilOperation";
+import { RenderState } from "./state/RenderState";
 
 /**
  * Shader for rendering.
@@ -11,14 +22,33 @@ import { SubShader } from "./SubShader";
 export class Shader {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
+
   /** @internal */
-  static readonly _shaderExtension: string[] = [
-    "GL_EXT_shader_texture_lod",
-    "GL_OES_standard_derivatives",
-    "GL_EXT_draw_buffers"
-  ];
+  static _shaderLab?: IShaderLab;
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
+
+  /**
+   * Create a shader by source code.
+   *
+   * @remarks
+   *
+   * ShaderLab must be enabled first as follows:
+   * ```ts
+   * // Import shaderLab
+   * import { ShaderLab } from "@galacean/engine-shader-lab";
+   * // Create engine with shaderLab
+   * const engine = await WebGLEngine.create({ canvas: "canvas", shader: new ShaderLab() });
+   * ...
+   * ```
+   *
+   * @param shaderSource - shader code
+   * @returns Shader
+   *
+   * @throws
+   * Throw string exception if shaderLab has not been enabled properly.
+   */
+  static create(shaderSource: string): Shader;
 
   /**
    * Create a shader.
@@ -46,30 +76,86 @@ export class Shader {
   static create(name: string, subShaders: SubShader[]): Shader;
 
   static create(
-    name: string,
-    vertexSourceOrShaderPassesOrSubShaders: SubShader[] | ShaderPass[] | string,
+    nameOrShaderSource: string,
+    vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
   ): Shader {
-    const shaderMap = Shader._shaderMap;
-    if (shaderMap[name]) {
-      throw `Shader named "${name}" already exists.`;
-    }
     let shader: Shader;
-    if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
-      const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-      shader = new Shader(name, [new SubShader("Default", [shaderPass])]);
+    const shaderMap = Shader._shaderMap;
+
+    if (!vertexSourceOrShaderPassesOrSubShaders) {
+      if (!Shader._shaderLab) {
+        throw "ShaderLab has not been set up yet.";
+      }
+
+      const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
+      if (shaderMap[shaderInfo.name]) {
+        throw `Shader named "${shaderInfo.name}" already exists.`;
+      }
+      const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
+        const passList = subShaderInfo.passes.map((passInfo) => {
+          if (typeof passInfo === "string") {
+            // Use pass reference
+            const paths = passInfo.split("/");
+            return Shader.find(paths[0])
+              ?.subShaders.find((subShader) => subShader.name === paths[1])
+              ?.passes.find((pass) => pass.name === paths[2]);
+          }
+
+          const shaderPass = new ShaderPass(
+            passInfo.name,
+            passInfo.vertexSource,
+            passInfo.fragmentSource,
+            passInfo.tags
+          );
+          const renderStates = passInfo.renderStates;
+          const renderState = new RenderState();
+          shaderPass._renderState = renderState;
+
+          // Parse const render state
+          const constRenderStateInfo = renderStates[0];
+          for (let k in constRenderStateInfo) {
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
+          }
+
+          // Parse variable render state
+          const variableRenderStateInfo = renderStates[1];
+          const renderStateDataMap = {} as Record<number, ShaderProperty>;
+          for (let k in variableRenderStateInfo) {
+            renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
+          }
+          shaderPass._renderStateDataMap = renderStateDataMap;
+          return shaderPass;
+        });
+        return new SubShader(shaderInfo.name, passList, subShaderInfo.tags);
+      });
+
+      shader = new Shader(shaderInfo.name, subShaderList);
+      shaderMap[shaderInfo.name] = shader;
+      return shader;
     } else {
-      if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
-        if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
-          shader = new Shader(name, [new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)]);
-        } else {
-          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
-        }
+      if (shaderMap[nameOrShaderSource]) {
+        throw `Shader named "${nameOrShaderSource}" already exists.`;
+      }
+      if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
+        shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
-        throw "SubShader or ShaderPass count must large than 0.";
+        if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
+          if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
+            shader = new Shader(nameOrShaderSource, [
+              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+            ]);
+          } else {
+            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+          }
+        } else {
+          throw "SubShader or ShaderPass count must large than 0.";
+        }
       }
     }
-    shaderMap[name] = shader;
+
+    shaderMap[nameOrShaderSource] = shader;
     return shader;
   }
 
@@ -90,7 +176,10 @@ export class Shader {
     return this._subShaders;
   }
 
-  private constructor(public readonly name: string, subShaders: SubShader[]) {
+  private constructor(
+    public readonly name: string,
+    subShaders: SubShader[]
+  ) {
     this.name = name;
     this._subShaders = subShaders;
   }
@@ -126,6 +215,96 @@ export class Shader {
       if (isValid) return true;
     }
     return false;
+  }
+
+  private static _applyConstRenderStates(
+    renderState: RenderState,
+    key: RenderStateElementKey,
+    value: boolean | string | number | Color
+  ): void {
+    switch (key) {
+      case RenderStateElementKey.BlendStateEnabled0:
+        renderState.blendState.targetBlendState.enabled = <boolean>value;
+        break;
+      case RenderStateElementKey.BlendStateColorBlendOperation0:
+        renderState.blendState.targetBlendState.colorBlendOperation = <BlendOperation>value;
+        break;
+      case RenderStateElementKey.BlendStateAlphaBlendOperation0:
+        renderState.blendState.targetBlendState.alphaBlendOperation = <BlendOperation>value;
+        break;
+      case RenderStateElementKey.BlendStateSourceColorBlendFactor0:
+        renderState.blendState.targetBlendState.sourceColorBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateDestinationColorBlendFactor0:
+        renderState.blendState.targetBlendState.destinationColorBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateSourceAlphaBlendFactor0:
+        renderState.blendState.targetBlendState.sourceAlphaBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0:
+        renderState.blendState.targetBlendState.destinationAlphaBlendFactor = <BlendFactor>value;
+        break;
+      case RenderStateElementKey.BlendStateColorWriteMask0:
+        renderState.blendState.targetBlendState.colorWriteMask = <ColorWriteMask>value;
+        break;
+      case RenderStateElementKey.DepthStateEnabled:
+        renderState.depthState.enabled = <boolean>value;
+        break;
+      case RenderStateElementKey.DepthStateWriteEnabled:
+        renderState.depthState.writeEnabled = <boolean>value;
+        break;
+      case RenderStateElementKey.DepthStateCompareFunction:
+        renderState.depthState.compareFunction = <CompareFunction>value;
+        break;
+      case RenderStateElementKey.StencilStateEnabled:
+        renderState.stencilState.enabled = <boolean>value;
+        break;
+      case RenderStateElementKey.StencilStateReferenceValue:
+        renderState.stencilState.referenceValue = <number>value;
+        break;
+      case RenderStateElementKey.StencilStateMask:
+        renderState.stencilState.mask = <number>value;
+        break;
+      case RenderStateElementKey.StencilStateWriteMask:
+        renderState.stencilState.writeMask = <number>value;
+        break;
+      case RenderStateElementKey.StencilStateCompareFunctionFront:
+        renderState.stencilState.compareFunctionFront = <CompareFunction>value;
+        break;
+      case RenderStateElementKey.StencilStateCompareFunctionBack:
+        renderState.stencilState.compareFunctionBack = <CompareFunction>value;
+        break;
+      case RenderStateElementKey.StencilStatePassOperationFront:
+        renderState.stencilState.passOperationFront = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStatePassOperationBack:
+        renderState.stencilState.passOperationBack = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateFailOperationFront:
+        renderState.stencilState.failOperationFront = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateFailOperationBack:
+        renderState.stencilState.failOperationBack = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateZFailOperationFront:
+        renderState.stencilState.zFailOperationFront = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.StencilStateZFailOperationBack:
+        renderState.stencilState.zFailOperationBack = <StencilOperation>value;
+        break;
+      case RenderStateElementKey.RasterStateCullMode:
+        renderState.rasterState.cullMode = <CullMode>value;
+        break;
+      case RenderStateElementKey.RasterStateDepthBias:
+        renderState.rasterState.depthBias = <number>value;
+        break;
+      case RenderStateElementKey.RasterStateSlopeScaledDepthBias:
+        renderState.rasterState.slopeScaledDepthBias = <number>value;
+        break;
+      case RenderStateElementKey.RenderQueueType:
+        renderState.renderQueueType = <RenderQueueType>value;
+        break;
+    }
   }
 
   /**
