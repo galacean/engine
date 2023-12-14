@@ -9,21 +9,21 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
  */
 export class AudioSource extends Component {
   @ignoreClone
-  private _isPlaying: boolean = false
+  private _isPlaying: boolean = false;
   @ignoreClone
-  private _isPlayOnAwake: boolean = false
+  private _isPlayOnAwake: boolean = false;
 
   @ignoreClone
   private _clip: AudioClip;
   @deepClone
   private _gainNode: GainNode;
   @ignoreClone
-  private _sourceNode: AudioBufferSourceNode | null  = null;
+  private _sourceNode: AudioBufferSourceNode | null = null;
 
   @deepClone
   private _pausedTime: number = -1;
   @ignoreClone
-  private _absoluteStartTime: number = -1
+  private _absoluteStartTime: number = -1;
 
   @deepClone
   private _volume: number = 1;
@@ -52,8 +52,8 @@ export class AudioSource extends Component {
   /**
    * Whether the clip playing right now (Read Only).
    */
-  get isPlaying():boolean{
-    return this._isPlaying
+  get isPlaying(): boolean {
+    return this._isPlaying;
   }
 
   /**
@@ -135,9 +135,9 @@ export class AudioSource extends Component {
   get time(): number {
     if (this._isPlaying) {
       return this._pausedTime > 0
-     ? this.engine.time.elapsedTime - this._absoluteStartTime + this._pausedTime
-     : this.engine.time.elapsedTime - this._absoluteStartTime 
-    }else{
+        ? this.engine.time.elapsedTime - this._absoluteStartTime + this._pausedTime
+        : this.engine.time.elapsedTime - this._absoluteStartTime;
+    } else {
       return this._pausedTime > 0 ? this._pausedTime : 0;
     }
   }
@@ -158,7 +158,7 @@ export class AudioSource extends Component {
   stop(): void {
     if (this._sourceNode && this._isPlaying) {
       this._sourceNode.stop();
-      this._pausedTime = -1
+      this._pausedTime = -1;
     }
   }
 
@@ -189,7 +189,7 @@ export class AudioSource extends Component {
    * @internal
    */
   override _onEnable(): void {
-   this.play();
+    this.play();
   }
 
   /**
@@ -202,10 +202,9 @@ export class AudioSource extends Component {
   /**
    * @internal
    */
-    override _onAwake(): void {
-      this._isPlayOnAwake && this.play();
+  override _onAwake(): void {
+    this._isPlayOnAwake && this.play();
   }
-
 
   /**
    * @internal
@@ -221,8 +220,8 @@ export class AudioSource extends Component {
   private _onPlayEnd(): void {
     if (!this.isPlaying) return;
     this._isPlaying = false;
-    this._absoluteStartTime = -1
-    this._pausedTime = -1
+    this._absoluteStartTime = -1;
+    this._pausedTime = -1;
   }
 
   private _initSourceNode(): void {
@@ -231,7 +230,7 @@ export class AudioSource extends Component {
     }
     this._sourceNode = AudioManager.context.createBufferSource();
 
-    const {_sourceNode : sourceNode} = this
+    const { _sourceNode: sourceNode } = this;
     sourceNode.buffer = this._clip.getData();
     sourceNode.onended = this._onPlayEnd.bind(this);
     sourceNode.playbackRate.value = this._playbackRate;
@@ -243,7 +242,8 @@ export class AudioSource extends Component {
 
   private _startPlayback(startTime: number): void {
     this._sourceNode.start(0, startTime);
-    this._absoluteStartTime = this._absoluteStartTime > 0 ? this.engine.time.elapsedTime - startTime:this.engine.time.elapsedTime;
+    this._absoluteStartTime =
+      this._absoluteStartTime > 0 ? this.engine.time.elapsedTime - startTime : this.engine.time.elapsedTime;
     this._isPlaying = true;
   }
 

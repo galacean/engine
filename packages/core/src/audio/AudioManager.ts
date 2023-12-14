@@ -14,8 +14,8 @@ export class AudioManager {
     if (!AudioManager._context) {
       AudioManager._context = new window.AudioContext();
     }
-      if (AudioManager._context.state !== "running") {
-        window.document.addEventListener("pointerdown", AudioManager._unlock, true);
+    if (AudioManager._context.state !== "running") {
+      window.document.addEventListener("pointerdown", AudioManager._unlock, true);
     }
     return AudioManager._context;
   }
@@ -24,7 +24,7 @@ export class AudioManager {
    * Audio GainNode.
    */
   static get gainNode(): GainNode {
-    if(!AudioManager._gainNode){
+    if (!AudioManager._gainNode) {
       const gain = AudioManager.context.createGain();
       gain.connect(AudioManager.context.destination);
       AudioManager._gainNode = gain;

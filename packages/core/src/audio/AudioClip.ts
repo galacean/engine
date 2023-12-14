@@ -5,7 +5,7 @@ import { ReferResource } from "../asset/ReferResource";
  * Audio Clip
  */
 export class AudioClip extends ReferResource {
-  /** 
+  /**
    * Name of clip.
    */
   name: string;
