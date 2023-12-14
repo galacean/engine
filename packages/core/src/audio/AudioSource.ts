@@ -132,7 +132,6 @@ export class AudioSource extends Component {
   play(): void {
     if (!this._isValidClip() || this._isPlaying) return;
     this._initSourceNode();
-    console.log(this._pausedTime)
     this._startPlayback(this._pausedTime >= 0 ? this._pausedTime : 0);
     this._pausedTime = -1;
   }
@@ -143,6 +142,7 @@ export class AudioSource extends Component {
   stop(): void {
     if (this._sourceNode && this._isPlaying) {
       this._sourceNode.stop();
+      this._pausedTime = -1
     }
   }
 
@@ -159,7 +159,6 @@ export class AudioSource extends Component {
       this._sourceNode.disconnect();
       this._sourceNode.onended = null;
       this._sourceNode = null;
-      console.log(this._pausedTime)
     }
   }
 
