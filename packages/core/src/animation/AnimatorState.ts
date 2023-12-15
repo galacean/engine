@@ -1,3 +1,4 @@
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
@@ -18,12 +19,13 @@ export class AnimatorState {
   _onStateUpdateScripts: StateMachineScript[] = [];
   /** @internal */
   _onStateExitScripts: StateMachineScript[] = [];
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _clipStartTime: number = 0;
   private _clipEndTime: number = 1;
   private _clip: AnimationClip;
   private _transitions: AnimatorStateTransition[] = [];
-  private _clipChangedListeners: (() => void)[] = [];
 
   /**
    * The transitions that are going out of the state.
@@ -145,21 +147,6 @@ export class AnimatorState {
   /**
    * @internal
    */
-  addClipChangedListener(listener: () => void): void {
-    this._clipChangedListeners.push(listener);
-  }
-
-  /**
-   * @internal
-   */
-  removeClipChangedListener(listener: () => void): void {
-    const index = this._clipChangedListeners.indexOf(listener);
-    index !== -1 && this._clipChangedListeners.splice(index, 1);
-  }
-
-  /**
-   * @internal
-   */
   _getDuration(): number {
     if (this.clip) {
       return (this._clipEndTime - this._clipStartTime) * this.clip.length;
@@ -190,8 +177,6 @@ export class AnimatorState {
    * @internal
    */
   _onClipChanged(): void {
-    for (let i = 0, n = this._clipChangedListeners.length; i < n; i++) {
-      this._clipChangedListeners[i]();
-    }
+    this._updateFlagManager.dispatch();
   }
 }
