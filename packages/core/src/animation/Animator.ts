@@ -324,11 +324,9 @@ export class Animator extends Component {
   private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = [];
-    const { eventHandlers, clipChangedListener } = animatorStateData;
+    const { eventHandlers } = animatorStateData;
 
-    clipChangedListener && state._updateFlagManager.removeListener(clipChangedListener);
-
-    animatorStateData.clipChangedListener = () => {
+    const clipChangedListener = () => {
       this._entity.getComponents(Script, scripts);
       const scriptCount = scripts.length;
       const { events } = state.clip;
@@ -348,9 +346,8 @@ export class Animator extends Component {
         eventHandlers.push(eventHandler);
       }
     };
-
-    animatorStateData.clipChangedListener();
-    state._updateFlagManager.addListener(animatorStateData.clipChangedListener);
+    clipChangedListener();
+    state._updateFlagManager.addListener(clipChangedListener);
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
