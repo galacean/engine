@@ -23,6 +23,7 @@ export class AnimatorState {
   private _clipEndTime: number = 1;
   private _clip: AnimationClip;
   private _transitions: AnimatorStateTransition[] = [];
+  private _clipChangedListeners: (() => void)[] = [];
 
   /**
    * The transitions that are going out of the state.
@@ -39,8 +40,21 @@ export class AnimatorState {
   }
 
   set clip(clip: AnimationClip) {
+    const lastClip = this._clip;
+    if (lastClip === clip) {
+      return;
+    }
+
+    if (lastClip) {
+      lastClip._updateFlagManager.removeListener(this._onClipChanged);
+    }
+
     this._clip = clip;
     this._clipEndTime = Math.min(this._clipEndTime, 1);
+
+    this._onClipChanged();
+
+    clip._updateFlagManager.addListener(this._onClipChanged);
   }
 
   /**
@@ -68,7 +82,9 @@ export class AnimatorState {
   /**
    * @param name - The state's name
    */
-  constructor(public readonly name: string) {}
+  constructor(public readonly name: string) {
+    this._onClipChanged = this._onClipChanged.bind(this);
+  }
 
   /**
    * Add an outgoing transition to the destination state.
@@ -129,6 +145,21 @@ export class AnimatorState {
   /**
    * @internal
    */
+  addClipChangedListener(listener: () => void): void {
+    this._clipChangedListeners.push(listener);
+  }
+
+  /**
+   * @internal
+   */
+  removeClipChangedListener(listener: () => void): void {
+    const index = this._clipChangedListeners.indexOf(listener);
+    index !== -1 && this._clipChangedListeners.splice(index, 1);
+  }
+
+  /**
+   * @internal
+   */
   _getDuration(): number {
     if (this.clip) {
       return (this._clipEndTime - this._clipStartTime) * this.clip.length;
@@ -152,6 +183,15 @@ export class AnimatorState {
     if (script.onStateExit !== prototype.onStateExit) {
       const index = this._onStateExitScripts.indexOf(script);
       index !== -1 && this._onStateExitScripts.splice(index, 1);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onClipChanged(): void {
+    for (let i = 0, n = this._clipChangedListeners.length; i < n; i++) {
+      this._clipChangedListeners[i]();
     }
   }
 }

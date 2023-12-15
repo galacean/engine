@@ -305,7 +305,6 @@ export class Animator extends Component {
 
         const { property } = curve;
         const { instanceId } = targetEntity;
-
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity, component));
@@ -325,26 +324,34 @@ export class Animator extends Component {
   private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = [];
-    this._entity.getComponents(Script, scripts);
-    const scriptCount = scripts.length;
-    const { eventHandlers } = animatorStateData;
-    const { events } = state.clip;
+    const { eventHandlers, clipChangedListener } = animatorStateData;
 
-    eventHandlers.length = 0;
-    for (let i = 0, n = events.length; i < n; i++) {
-      const event = events[i];
-      const eventHandler = eventHandlerPool.getFromPool();
-      const funcName = event.functionName;
-      const { handlers } = eventHandler;
+    clipChangedListener && state.removeClipChangedListener(clipChangedListener);
 
-      eventHandler.event = event;
-      handlers.length = 0;
-      for (let j = scriptCount - 1; j >= 0; j--) {
-        const handler = <Function>scripts[j][funcName];
-        handler && handlers.push(handler);
+    animatorStateData.clipChangedListener = () => {
+      this._entity.getComponents(Script, scripts);
+      const scriptCount = scripts.length;
+      const { events } = state.clip;
+      eventHandlers.length = 0;
+      for (let i = 0, n = events.length; i < n; i++) {
+        const event = events[i];
+        const eventHandler = eventHandlerPool.getFromPool();
+        const funcName = event.functionName;
+        const { handlers } = eventHandler;
+
+        eventHandler.event = event;
+        handlers.length = 0;
+        for (let j = scriptCount - 1; j >= 0; j--) {
+          const handler = <Function>scripts[j][funcName];
+          handler && handlers.push(handler);
+        }
+        eventHandlers.push(eventHandler);
       }
-      eventHandlers.push(eventHandler);
-    }
+    };
+
+    animatorStateData.clipChangedListener();
+
+    state.addClipChangedListener(animatorStateData.clipChangedListener);
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
