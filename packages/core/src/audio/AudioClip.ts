@@ -8,12 +8,12 @@ import { AudioManager } from "./AudioManager";
 export class AudioClip extends ReferResource {
   /** @internal */
   _context: AudioContext;
+  private _audioBuffer: AudioBuffer | null = null;
+
   /**
    * Name of clip.
    */
   name: string;
-
-  private _audioBuffer: AudioBuffer;
 
   /**
    * Number of discrete audio channels.
@@ -39,20 +39,29 @@ export class AudioClip extends ReferResource {
   /**
    * Get the clip's audio buffer.
    */
-  getData(): AudioBuffer {
+  getAudioSource(): AudioBuffer {
     return this._audioBuffer;
   }
 
   /**
    * Set audio buffer for the clip.
    */
-  setData(value: AudioBuffer): void {
+  setAudioSource(value: AudioBuffer): void {
     this._audioBuffer = value;
   }
 
-  constructor(engine: Engine, name: string = null) {
+  constructor(engine: Engine, name: string = "") {
     super(engine);
     this.name = name;
     this._context = AudioManager.context;
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._audioBuffer = null;
+    this.name = null;
   }
 }

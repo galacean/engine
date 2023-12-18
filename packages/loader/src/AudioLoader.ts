@@ -25,7 +25,7 @@ class AudioLoader extends Loader<AudioClip> {
         audioClip._context
           .decodeAudioData(arrayBuffer)
           .then((result: AudioBuffer) => {
-            audioClip.setData(result);
+            audioClip.setAudioSource(result);
 
             if (url.indexOf("data:") !== 0) {
               const index = url.lastIndexOf("/");

@@ -158,6 +158,7 @@ export class AudioSource extends Component {
   stop(): void {
     if (this._sourceNode && this._isPlaying) {
       this._sourceNode.stop();
+      this._sourceNode.onended = this._sourceNode.disconnect;
       this._pausedTime = -1;
     }
   }
@@ -231,7 +232,7 @@ export class AudioSource extends Component {
     this._sourceNode = AudioManager.context.createBufferSource();
 
     const { _sourceNode: sourceNode } = this;
-    sourceNode.buffer = this._clip.getData();
+    sourceNode.buffer = this._clip.getAudioSource();
     sourceNode.onended = this._onPlayEnd.bind(this);
     sourceNode.playbackRate.value = this._playbackRate;
 
