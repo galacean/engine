@@ -149,5 +149,6 @@ export class ShaderPass extends ShaderPart {
     const shaderProgramPool = this.engine._shaderProgramPools[this._shaderPassId];
     if (!shaderProgramPool) return;
     shaderProgramPool.destroy();
+    this._engine._shaderProgramPools[this._shaderPassId] = null;
   }
 }
