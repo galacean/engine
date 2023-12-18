@@ -16,6 +16,8 @@ export class AudioManager {
     }
     if (AudioManager._context.state !== "running") {
       window.document.addEventListener("pointerdown", AudioManager._unlock, true);
+      window.document.addEventListener("touchend", AudioManager._unlock, true);
+      window.document.addEventListener("touchstart", AudioManager._unlock, true);
     }
     return AudioManager._context;
   }
@@ -39,6 +41,8 @@ export class AudioManager {
     AudioManager._context.resume().then(() => {
       if (AudioManager._context.state === "running") {
         window.document.removeEventListener("pointerdown", AudioManager._unlock, true);
+        window.document.removeEventListener("touchend", AudioManager._unlock, true);
+        window.document.removeEventListener("touchstart", AudioManager._unlock, true);
         AudioManager._unlocked = true;
       }
     });
