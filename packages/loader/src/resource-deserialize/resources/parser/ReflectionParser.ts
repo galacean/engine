@@ -18,6 +18,7 @@ export class ReflectionParser {
       if (position) entity.transform.position.copyFrom(position);
       if (rotation) entity.transform.rotation.copyFrom(rotation);
       if (scale) entity.transform.scale.copyFrom(scale);
+      entity.layer = entityConfig.layer ?? entity.layer;
       return entity;
     });
   }
