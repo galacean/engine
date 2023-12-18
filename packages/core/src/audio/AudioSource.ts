@@ -32,6 +32,9 @@ export class AudioSource extends Component {
   @deepClone
   private _loop: boolean = false;
 
+  /** If set to true, the audio component automatically begins to play on startup. */
+  playOnEnabled = true;
+
   /**
    * The audio cilp to play.
    */
@@ -44,6 +47,10 @@ export class AudioSource extends Component {
     if (lastClip !== value) {
       lastClip && lastClip._addReferCount(-1);
       this._clip = value;
+
+      if (this.playOnEnabled && this.enabled) {
+        this.play();
+      }
     }
   }
 
@@ -180,15 +187,13 @@ export class AudioSource extends Component {
    * @internal
    */
   override _onEnable(): void {
-    if (!this._canPlay()) return;
-    this.play();
+    this.playOnEnabled && this.play();
   }
 
   /**
    * @internal
    */
   override _onDisable(): void {
-    if (!this._canPlay()) return;
     this.pause();
   }
 
