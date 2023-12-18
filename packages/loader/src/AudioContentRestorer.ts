@@ -20,7 +20,7 @@ export class AudioContentRestorer extends ContentRestorer<AudioClip> {
       })
       .then((audioBuffer) => {
         const resource = this.resource;
-        resource.setData(audioBuffer);
+        resource.setAudioSource(audioBuffer);
         return resource;
       });
   }
