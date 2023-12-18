@@ -41,8 +41,6 @@ import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat 
 import { CompareFunction } from "./shader";
 import { SpriteMaskInteraction } from "./2d";
 
-ShaderPool.init();
-
 /**
  * Engine.
  */
@@ -232,6 +230,7 @@ export class Engine extends EventDispatcher {
 
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
+    ShaderPool.init(this);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 

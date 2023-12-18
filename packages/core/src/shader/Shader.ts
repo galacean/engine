@@ -15,11 +15,12 @@ import { RenderQueueType } from "./enums/RenderQueueType";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
 import { StencilOperation } from "./enums/StencilOperation";
 import { RenderState } from "./state/RenderState";
+import { ReferResource } from "../asset/ReferResource";
 
 /**
  * Shader for rendering.
  */
-export class Shader {
+export class Shader extends ReferResource {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
 
@@ -48,7 +49,7 @@ export class Shader {
    * @throws
    * Throw string exception if shaderLab has not been enabled properly.
    */
-  static create(shaderSource: string): Shader;
+  static create(engine: Engine, shaderSource: string): Shader;
 
   /**
    * Create a shader.
@@ -57,7 +58,7 @@ export class Shader {
    * @param fragmentSource - Fragment source code
    * @returns Shader
    */
-  static create(name: string, vertexSource: string, fragmentSource: string): Shader;
+  static create(engine: Engine, name: string, vertexSource: string, fragmentSource: string): Shader;
 
   /**
    * Create a shader.
@@ -65,7 +66,7 @@ export class Shader {
    * @param shaderPasses - Shader passes
    * @returns Shader
    */
-  static create(name: string, shaderPasses: ShaderPass[]): Shader;
+  static create(engine: Engine, name: string, shaderPasses: ShaderPass[]): Shader;
 
   /**
    * Create a shader.
@@ -73,9 +74,10 @@ export class Shader {
    * @param subShaders - Sub shaders
    * @returns Shader
    */
-  static create(name: string, subShaders: SubShader[]): Shader;
+  static create(engine: Engine, name: string, subShaders: SubShader[]): Shader;
 
   static create(
+    engine: Engine,
     nameOrShaderSource: string,
     vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
@@ -103,6 +105,7 @@ export class Shader {
           }
 
           const shaderPass = new ShaderPass(
+            engine,
             passInfo.name,
             passInfo.vertexSource,
             passInfo.fragmentSource,
@@ -127,10 +130,10 @@ export class Shader {
           shaderPass._renderStateDataMap = renderStateDataMap;
           return shaderPass;
         });
-        return new SubShader(shaderInfo.name, passList, subShaderInfo.tags);
+        return new SubShader(engine, shaderInfo.name, passList, subShaderInfo.tags);
       });
 
-      shader = new Shader(shaderInfo.name, subShaderList);
+      shader = new Shader(engine, shaderInfo.name, subShaderList);
       shaderMap[shaderInfo.name] = shader;
       return shader;
     } else {
@@ -138,16 +141,20 @@ export class Shader {
         throw `Shader named "${nameOrShaderSource}" already exists.`;
       }
       if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
-        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-        shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
+        const shaderPass = new ShaderPass(engine, vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
+        shader = new Shader(engine, nameOrShaderSource, [new SubShader(engine, "Default", [shaderPass])]);
       } else {
         if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
           if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
-            shader = new Shader(nameOrShaderSource, [
-              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+            shader = new Shader(engine, nameOrShaderSource, [
+              new SubShader(engine, "Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
             ]);
           } else {
-            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+            shader = new Shader(
+              engine,
+              nameOrShaderSource,
+              <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice()
+            );
           }
         } else {
           throw "SubShader or ShaderPass count must large than 0.";
@@ -177,9 +184,11 @@ export class Shader {
   }
 
   private constructor(
+    engine: Engine,
     public readonly name: string,
     subShaders: SubShader[]
   ) {
+    super(engine);
     this.name = name;
     this._subShaders = subShaders;
   }
@@ -215,6 +224,14 @@ export class Shader {
       if (isValid) return true;
     }
     return false;
+  }
+
+  override destroy(force?: boolean): boolean {
+    for (const subShader of this._subShaders) {
+      subShader.destroy();
+    }
+    delete Shader._shaderMap[this.name];
+    return super.destroy(force);
   }
 
   private static _applyConstRenderStates(
@@ -339,12 +356,5 @@ export class Shader {
    */
   static getPropertyByName(name: string): ShaderProperty {
     return ShaderProperty.getByName(name);
-  }
-
-  /**
-   * remove from shaderMap
-   */
-  destroy() {
-    delete Shader._shaderMap[this.name];
   }
 }

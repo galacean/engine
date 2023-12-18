@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderPass } from "./ShaderPass";
 
@@ -19,8 +20,8 @@ export class SubShader extends ShaderPart {
    * @param name - Name of the sub shader
    * @param passes - Sub shader passes
    */
-  constructor(name: string, passes: ShaderPass[], tags?: Record<string, number | string | boolean>) {
-    super();
+  constructor(engine: Engine, name: string, passes: ShaderPass[], tags?: Record<string, number | string | boolean>) {
+    super(engine);
     this._name = name;
     const passCount = passes.length;
     if (passCount < 1) {
@@ -30,6 +31,12 @@ export class SubShader extends ShaderPart {
 
     for (const key in tags) {
       this.setTag(key, tags[key]);
+    }
+  }
+
+  override destroy(): void {
+    for (const pass of this._passes) {
+      pass.destroy();
     }
   }
 }

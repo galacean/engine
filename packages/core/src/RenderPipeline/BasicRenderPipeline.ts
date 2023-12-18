@@ -23,6 +23,7 @@ import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
 import { PipelineStage } from "./enums/PipelineStage";
+import { SubShader } from "../shader";
 
 /**
  * Basic render pipeline.
@@ -220,7 +221,10 @@ export class BasicRenderPipeline {
   pushRenderData(context: RenderContext, data: RenderData): void {
     const { material } = data;
     const { renderStates } = material;
-    const materialSubShader = material.shader.subShaders[0];
+    let materialSubShader: SubShader = material.shader.subShaders[0];
+    if (material.shader.destroyed) {
+      materialSubShader = this._camera.engine._meshMagentaMaterial.shader.subShaders[0];
+    }
     const replacementShader = context.replacementShader;
 
     if (replacementShader) {

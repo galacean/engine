@@ -56,6 +56,14 @@ export class ShaderProgramPool {
     this._lastQueryMap[this._lastQueryKey] = shaderProgram;
   }
 
+  /**
+   * clear and destroy cached shader programs
+   */
+  destroy() {
+    this._clear();
+    this._cacheMap = null;
+  }
+
   private _resizeCacheMapHierarchy(
     cacheMap: Tree<ShaderProgram>,
     hierarchy: number,
@@ -77,6 +85,19 @@ export class ShaderProgramPool {
       for (let k in cacheMap) {
         this._resizeCacheMapHierarchy(<Tree<ShaderProgram>>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
+    }
+  }
+
+  private _clear(_cacheMap?: Tree<ShaderProgram>) {
+    const map = _cacheMap ?? this._cacheMap;
+    for (const key in map) {
+      const node = map[key];
+      if (node instanceof ShaderProgram) {
+        node.destroy();
+        continue;
+      }
+
+      this._clear(node);
     }
   }
 }

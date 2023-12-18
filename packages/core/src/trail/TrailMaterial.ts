@@ -4,10 +4,12 @@ import { BlendFactor, Shader } from "../shader";
 import FRAG_SHADER from "./trail.fs.glsl";
 import VERT_SHADER from "./trail.vs.glsl";
 
-Shader.create("trail", VERT_SHADER, FRAG_SHADER);
-
 export class TrailMaterial extends Material {
   constructor(engine: Engine) {
+    if (!Shader.find("trail")) {
+      Shader.create(engine, "trail", VERT_SHADER, FRAG_SHADER);
+    }
+
     super(engine, Shader.find("trail"));
 
     const target = this.renderState.blendState.targetBlendState;

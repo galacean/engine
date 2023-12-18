@@ -11,7 +11,8 @@ import {
   ShaderTagKey,
   SubShader,
   RenderQueueType,
-  Material
+  Material,
+  Engine
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { ShaderLab } from "@galacean/engine-shader-lab";
@@ -21,31 +22,41 @@ import spies from "chai-spies";
 chai.use(spies);
 
 describe("Shader", () => {
+  let engine: Engine;
+
+  before(async function () {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), shaderLab: new ShaderLab() });
+  });
+
   describe("Custom Shader", () => {
     it("Shader", () => {
       // Create shader
-      let customShader = Shader.create("customByStringCreate", customVS, customFS);
-      customShader = Shader.create("customByPassCreate", [new ShaderPass(customVS, customFS)]);
-      customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      let customShader = Shader.create(engine, "customByStringCreate", customVS, customFS);
+      customShader = Shader.create(engine, "customByPassCreate", [new ShaderPass(engine, customVS, customFS)]);
+      customShader = Shader.create(engine, "custom", [
+        new SubShader(engine, "Default", [new ShaderPass(engine, customVS, customFS)])
+      ]);
 
       // Create same name shader
       expect(() => {
-        Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+        Shader.create(engine, "custom", [
+          new SubShader(engine, "Default", [new ShaderPass(engine, customVS, customFS)])
+        ]);
       }).throw();
 
       // Create shader by empty SubShader array
       expect(() => {
-        Shader.create("customByEmptySubShader", []);
+        Shader.create(engine, "customByEmptySubShader", []);
       }).to.throw();
 
       // Create shader by empty string
       expect(() => {
-        Shader.create("customByEmptyString", "", "");
+        Shader.create(engine, "customByEmptyString", "", "");
       }).to.throw();
 
       // Create shader by empty pass
       expect(() => {
-        Shader.create("customByEmptyPass", [new SubShader("Default", [])]);
+        Shader.create(engine, "customByEmptyPass", [new SubShader(engine, "Default", [])]);
       }).to.throw();
 
       // Base struct created by Shader.create
@@ -150,10 +161,8 @@ describe("Shader", () => {
     });
 
     it("ShaderLab", async function () {
-      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), shaderLab: new ShaderLab() });
-
       // Test that shader created successfully, if use shaderLab.
-      let shader = Shader.create(testShaderLabCode);
+      let shader = Shader.create(engine, testShaderLabCode);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);

@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
 import skyProceduralVs from "../shaderlib/extra/SkyProcedural.vs.glsl";
@@ -30,11 +31,16 @@ import { ShaderPass } from "./ShaderPass";
  * @internal
  */
 export class ShaderPool {
-  static init(): void {
-    const shadowCasterPass = new ShaderPass("ShadowCaster", shadowMapVs, shadowMapFs, {
+  private static _initialized = false;
+
+  static init(engine: Engine): void {
+    if (this._initialized) return;
+    this._initialized = true;
+
+    const shadowCasterPass = new ShaderPass(engine, "ShadowCaster", shadowMapVs, shadowMapFs, {
       pipelineStage: PipelineStage.ShadowCaster
     });
-    const depthOnlyPass = new ShaderPass("DepthOnly", depthOnlyVs, depthOnlyFs, {
+    const depthOnlyPass = new ShaderPass(engine, "DepthOnly", depthOnlyVs, depthOnlyFs, {
       pipelineStage: PipelineStage.DepthOnly
     });
     const basePasses = [shadowCasterPass, depthOnlyPass];
@@ -43,22 +49,34 @@ export class ShaderPool {
       pipelineStage: PipelineStage.Forward
     };
 
-    Shader.create("blinn-phong", [
-      new ShaderPass("Forward", blinnPhongVs, blinnPhongFs, forwardPassTags),
+    Shader.create(engine, "blinn-phong", [
+      new ShaderPass(engine, "Forward", blinnPhongVs, blinnPhongFs, forwardPassTags),
       ...basePasses
     ]);
-    Shader.create("pbr", [new ShaderPass("Forward", pbrVs, pbrFs, forwardPassTags), ...basePasses]);
-    Shader.create("pbr-specular", [new ShaderPass("Forward", pbrVs, pbrSpecularFs, forwardPassTags), ...basePasses]);
-    Shader.create("unlit", [new ShaderPass("Forward", unlitVs, unlitFs, forwardPassTags), ...basePasses]);
+    Shader.create(engine, "pbr", [new ShaderPass(engine, "Forward", pbrVs, pbrFs, forwardPassTags), ...basePasses]);
+    Shader.create(engine, "pbr-specular", [
+      new ShaderPass(engine, "Forward", pbrVs, pbrSpecularFs, forwardPassTags),
+      ...basePasses
+    ]);
+    Shader.create(engine, "unlit", [
+      new ShaderPass(engine, "Forward", unlitVs, unlitFs, forwardPassTags),
+      ...basePasses
+    ]);
 
-    Shader.create("skybox", [new ShaderPass("Forward", skyboxVs, skyboxFs, forwardPassTags)]);
-    Shader.create("SkyProcedural", [new ShaderPass("Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)]);
+    Shader.create(engine, "skybox", [new ShaderPass(engine, "Forward", skyboxVs, skyboxFs, forwardPassTags)]);
+    Shader.create(engine, "SkyProcedural", [
+      new ShaderPass(engine, "Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)
+    ]);
 
-    Shader.create("particle-shader", [new ShaderPass("Forward", particleVs, particleFs, forwardPassTags)]);
-    Shader.create("SpriteMask", [new ShaderPass("Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)]);
-    Shader.create("Sprite", [new ShaderPass("Forward", spriteVs, spriteFs, forwardPassTags)]);
-    Shader.create("background-texture", [
-      new ShaderPass("Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
+    Shader.create(engine, "particle-shader", [
+      new ShaderPass(engine, "Forward", particleVs, particleFs, forwardPassTags)
+    ]);
+    Shader.create(engine, "SpriteMask", [
+      new ShaderPass(engine, "Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)
+    ]);
+    Shader.create(engine, "Sprite", [new ShaderPass(engine, "Forward", spriteVs, spriteFs, forwardPassTags)]);
+    Shader.create(engine, "background-texture", [
+      new ShaderPass(engine, "Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
     ]);
   }
 }

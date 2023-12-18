@@ -3,7 +3,8 @@ import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
-import { Shader } from "@galacean/engine-core";
+import { Shader, Engine } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
 import chai, { expect } from "chai";
 import spies from "chai-spies";
@@ -113,12 +114,16 @@ describe("ShaderLab", () => {
   let pass: IShaderPassInfo;
   let usePass: string;
 
-  before(() => {
+  let engine: Engine;
+
+  before(async () => {
     shader = shaderLab.parseShader(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     usePass = <string>passList[0];
     pass = <IShaderPassInfo>passList[1];
+
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), shaderLab: new ShaderLab() });
   });
 
   it("create shaderLab", async () => {
@@ -221,11 +226,11 @@ describe("ShaderLab", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
     (Shader as any)._shaderLab = shaderLab;
 
-    const shaderInstance = Shader.create(demoShader);
+    const shaderInstance = Shader.create(engine, demoShader);
     expect(shaderInstance).instanceOf(Shader);
-    expect(Shader.create.bind(null, demoShader)).to.throw('Shader named "Gem" already exists.');
+    expect(Shader.create.bind(null, engine, demoShader)).to.throw('Shader named "Gem" already exists.');
     shaderInstance.destroy();
-    const sameNameShader = Shader.create(demoShader);
+    const sameNameShader = Shader.create(engine, demoShader);
     expect(sameNameShader).instanceOf(Shader);
   });
 });

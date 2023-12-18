@@ -37,6 +37,7 @@ export class ShaderPass extends ShaderPart {
    * @param tags - Tags
    */
   constructor(
+    engine: Engine,
     name: string,
     vertexSource: string,
     fragmentSource: string,
@@ -49,15 +50,21 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentSource - Fragment shader source
    * @param tags - Tags
    */
-  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
+  constructor(
+    engine: Engine,
+    vertexSource: string,
+    fragmentSource: string,
+    tags?: Record<string, number | string | boolean>
+  );
 
   constructor(
+    engine: Engine,
     nameOrVertexSource: string,
     vertexSourceOrFragmentSource: string,
     fragmentSourceOrTags: string | Record<string, number | string | boolean>,
     tags?: Record<string, number | string | boolean>
   ) {
-    super();
+    super(engine);
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     if (typeof fragmentSourceOrTags === "string") {
@@ -136,5 +143,11 @@ export class ShaderPass extends ShaderPart {
 
     shaderProgramPool.cache(shaderProgram);
     return shaderProgram;
+  }
+
+  override destroy(): void {
+    const shaderProgramPool = this.engine._shaderProgramPools[this._shaderPassId];
+    if (!shaderProgramPool) return;
+    shaderProgramPool.destroy();
   }
 }

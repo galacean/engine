@@ -1,10 +1,10 @@
-import { Logger } from "../base";
+import { EngineObject, Logger } from "../base";
 import { ShaderTagKey } from "./ShaderTagKey";
 
 /**
  * Base class for shader structure.
  */
-export abstract class ShaderPart {
+export abstract class ShaderPart extends EngineObject {
   protected _name: string;
 
   private _tagsMap: Record<number, number | string | boolean> = Object.create(null);
