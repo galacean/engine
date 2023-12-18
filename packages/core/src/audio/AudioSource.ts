@@ -33,7 +33,7 @@ export class AudioSource extends Component {
   private _loop: boolean = false;
 
   /** If set to true, the audio component automatically begins to play on startup. */
-  playOnEnabled = true;
+  playOnEnabled: boolean = true;
 
   /**
    * The audio cilp to play.
