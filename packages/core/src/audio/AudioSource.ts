@@ -10,8 +10,6 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
 export class AudioSource extends Component {
   @ignoreClone
   private _isPlaying: boolean = false;
-  @ignoreClone
-  private _isPlayOnAwake: boolean = false;
 
   @ignoreClone
   private _clip: AudioClip;
@@ -54,17 +52,6 @@ export class AudioSource extends Component {
    */
   get isPlaying(): boolean {
     return this._isPlaying;
-  }
-
-  /**
-   * Whether the clip playing on Awake.
-   */
-  get playOnAwake(): boolean {
-    return this._isPlayOnAwake;
-  }
-
-  set playOnAwake(value: boolean) {
-    this._isPlayOnAwake = value;
   }
 
   /**
@@ -123,7 +110,7 @@ export class AudioSource extends Component {
     if (value !== this._loop) {
       this._loop = value;
 
-      if (this.isPlaying) {
+      if (this._isPlaying) {
         this._sourceNode.loop = this._loop;
       }
     }
@@ -146,20 +133,25 @@ export class AudioSource extends Component {
    * Plays the clip.
    */
   play(): void {
-    if (!this._isValidClip() || this._isPlaying) return;
+    if (!this._canPlay()) return;
+    if (this._isPlaying) return;
     this._initSourceNode();
     this._startPlayback(this._pausedTime > 0 ? this._pausedTime : 0);
+
     this._pausedTime = -1;
+    this._isPlaying = true;
   }
 
   /**
    * Stops playing the clip.
    */
   stop(): void {
-    if (this._sourceNode && this._isPlaying) {
-      this._sourceNode.stop();
-      this._sourceNode.onended = this._sourceNode.disconnect;
+    if (this._isPlaying) {
+      this._clearSourceNode();
+
+      this._isPlaying = false;
       this._pausedTime = -1;
+      this._absoluteStartTime = -1;
     }
   }
 
@@ -167,13 +159,11 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
-    if (this._sourceNode && this._isPlaying) {
-      this._pausedTime = this.time;
-      this._isPlaying = false;
+    if (this._isPlaying) {
+      this._clearSourceNode();
 
-      this._sourceNode.disconnect();
-      this._sourceNode.onended = null;
-      this._sourceNode = null;
+      this._isPlaying = false;
+      this._pausedTime = this.time;
     }
   }
 
@@ -190,6 +180,7 @@ export class AudioSource extends Component {
    * @internal
    */
   override _onEnable(): void {
+    if (!this._canPlay()) return;
     this.play();
   }
 
@@ -197,14 +188,8 @@ export class AudioSource extends Component {
    * @internal
    */
   override _onDisable(): void {
-    this._isValidClip() && this.pause();
-  }
-
-  /**
-   * @internal
-   */
-  override _onAwake(): void {
-    this._isPlayOnAwake && this.play();
+    if (!this._canPlay()) return;
+    this.pause();
   }
 
   /**
@@ -219,36 +204,56 @@ export class AudioSource extends Component {
   }
 
   private _onPlayEnd(): void {
-    if (!this.isPlaying) return;
-    this._isPlaying = false;
-    this._absoluteStartTime = -1;
-    this._pausedTime = -1;
+    this.stop();
   }
 
   private _initSourceNode(): void {
-    if (this._sourceNode) {
-      this._sourceNode.disconnect();
-    }
+    this._clearSourceNode();
     this._sourceNode = AudioManager.context.createBufferSource();
 
     const { _sourceNode: sourceNode } = this;
     sourceNode.buffer = this._clip.getAudioSource();
-    sourceNode.onended = this._onPlayEnd.bind(this);
+    sourceNode.onended = this._onPlayEnd;
     sourceNode.playbackRate.value = this._playbackRate;
-
     sourceNode.loop = this._loop;
+
     this._gainNode.gain.setValueAtTime(this._volume, AudioManager.context.currentTime);
     sourceNode.connect(this._gainNode);
+  }
+
+  private _clearSourceNode(): void {
+    if (!this._sourceNode) return;
+
+    this._sourceNode.stop();
+    this._sourceNode.disconnect();
+    this._sourceNode.onended = null;
+    this._sourceNode = null;
   }
 
   private _startPlayback(startTime: number): void {
     this._sourceNode.start(0, startTime);
     this._absoluteStartTime =
       this._absoluteStartTime > 0 ? this.engine.time.elapsedTime - startTime : this.engine.time.elapsedTime;
-    this._isPlaying = true;
+  }
+
+  private _canPlay(): boolean {
+    return this._isValidClip() && this._isAudioContextRunning();
   }
 
   private _isValidClip(): boolean {
-    return this._clip && this._clip.duration > 0;
+    if (!this._clip || this._clip.duration <= 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private _isAudioContextRunning(): boolean {
+    if (AudioManager.context.state !== "running") {
+      console.warn("AudioContext is not running. User interaction required.");
+      return false;
+    }
+
+    return true;
   }
 }
