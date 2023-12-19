@@ -1,7 +1,7 @@
+import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { GLCapabilityType } from "../../base/Constant";
 import { deepClone } from "../../clone/CloneManager";
-import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { BlendFactor } from "../enums/BlendFactor";

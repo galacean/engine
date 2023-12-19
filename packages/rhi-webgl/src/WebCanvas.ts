@@ -6,40 +6,10 @@ type OffscreenCanvas = any;
 /**
  * The canvas used on the web, which can support HTMLCanvasElement and OffscreenCanvas.
  */
-export class WebCanvas implements Canvas {
+export class WebCanvas extends Canvas {
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
-  private _width: number;
-  private _height: number;
   private _scale: Vector2 = new Vector2();
-
-  /**
-   * @inheritdoc
-   */
-  get width(): number {
-    return this._width;
-  }
-
-  set width(value: number) {
-    if (this._width !== value) {
-      this._webCanvas.width = value;
-      this._width = value;
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  get height(): number {
-    return this._height;
-  }
-
-  set height(value: number) {
-    if (this._height !== value) {
-      this._webCanvas.height = value;
-      this._height = value;
-    }
-  }
 
   /**
    * The scale of canvas, the value is visible width/height divide the render width/height.
@@ -81,11 +51,12 @@ export class WebCanvas implements Canvas {
    * @param webCanvas - Web native canvas
    */
   constructor(webCanvas: HTMLCanvasElement | OffscreenCanvas) {
+    super();
     const width = webCanvas.width;
     const height = webCanvas.height;
     this._webCanvas = webCanvas;
-    this._width = width;
-    this._height = height;
+    this.width = width;
+    this.height = height;
   }
 
   /**
@@ -96,5 +67,10 @@ export class WebCanvas implements Canvas {
   setScale(x: number, y: number): void {
     this._scale.set(x, y);
     this.scale = this._scale;
+  }
+
+  protected override _onSizeChanged(width: number, height: number): void {
+    this._webCanvas.width = width;
+    this._webCanvas.height = height;
   }
 }

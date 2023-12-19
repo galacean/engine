@@ -1,4 +1,4 @@
-import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
+import { IHardwareRenderer } from "@galacean/engine-design";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";

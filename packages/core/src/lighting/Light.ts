@@ -31,11 +31,12 @@ export abstract class Light extends Component {
   /** @internal */
   @ignoreClone
   _lightIndex: number = -1;
+  /** @internal */
+  _lightColor: Color = new Color();
 
   private _color: Color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
-  private _lightColor: Color = new Color();
 
   /**
    * Light Color.

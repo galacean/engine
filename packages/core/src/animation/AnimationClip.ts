@@ -4,6 +4,7 @@ import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./animationCurve/AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { KeyframeValueType } from "./Keyframe";
 
 /**
@@ -92,7 +93,7 @@ export class AnimationClip extends EngineObject {
   /**
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
-   * @param type- The class type of the component that is animated
+   * @param type - The class type of the component that is animated
    * @param propertyName - The name or path to the property being animated
    * @param curve - The animation curve
    */
@@ -101,15 +102,46 @@ export class AnimationClip extends EngineObject {
     type: new (entity: Entity) => T,
     propertyName: string,
     curve: AnimationCurve<KeyframeValueType>
+  ): void;
+
+  /**
+   * Add curve binding for the clip.
+   * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
+   * @param type - The class type of the component that is animated
+   * @param typeIndex - The type index of the component that is animated
+   * @param propertyName - The name or path to the property being animated
+   * @param curve - The animation curve
+   */
+  addCurveBinding<T extends Component>(
+    relativePath: string,
+    type: new (entity: Entity) => T,
+    typeIndex: number,
+    propertyName: string,
+    curve: AnimationCurve<KeyframeValueType>
+  ): void;
+
+  addCurveBinding<T extends Component>(
+    relativePath: string,
+    type: new (entity: Entity) => T,
+    typeIndexOrPropertyName: number | string,
+    propertyNameOrCurve: string | AnimationCurve<KeyframeValueType>,
+    curve?: AnimationCurve<KeyframeValueType>
   ): void {
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
-    curveBinding.property = propertyName;
-    curveBinding.curve = curve;
-    if (curve.length > this._length) {
-      this._length = curve.length;
+
+    if (typeof typeIndexOrPropertyName === "number") {
+      curveBinding.typeIndex = typeIndexOrPropertyName;
+      curveBinding.property = <string>propertyNameOrCurve;
+      curveBinding.curve = curve;
+    } else {
+      curveBinding.typeIndex = 0;
+      curveBinding.property = typeIndexOrPropertyName;
+      curveBinding.curve = <AnimationCurve<KeyframeValueType>>propertyNameOrCurve;
     }
+
+    this._length = Math.max(this._length, curveBinding.curve.length);
     this._curveBindings.push(curveBinding);
   }
 
@@ -130,16 +162,19 @@ export class AnimationClip extends EngineObject {
   _sampleAnimation(entity: Entity, time: number): void {
     const { _curveBindings: curveBindings } = this;
     for (let i = curveBindings.length - 1; i >= 0; i--) {
-      const curveData = curveBindings[i];
-      const targetEntity = entity.findByPath(curveData.relativePath);
+      const curve = curveBindings[i];
+      const targetEntity = entity.findByPath(curve.relativePath);
       if (targetEntity) {
-        const component = targetEntity.getComponent(curveData.type);
+        const component =
+          curve.typeIndex > 0
+            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
+            : targetEntity.getComponent(curve.type);
         if (!component) {
           continue;
         }
-        const curveOwner = curveData._getTempCurveOwner(targetEntity, component);
-        if (curveOwner && curveData.curve.keys.length) {
-          const value = curveOwner.evaluateValue(curveData.curve, time, false);
+        const curveOwner = curve._getTempCurveOwner(targetEntity, component);
+        if (curveOwner && curve.curve.keys.length) {
+          const value = curveOwner.evaluateValue(curve.curve, time, false);
           curveOwner.applyValue(value, 1, false);
         }
       }

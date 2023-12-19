@@ -29,14 +29,13 @@ export type RequestConfig = {
  * @param config - Load configuration
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setProgress) => {
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const retryCount = config.retryCount ?? defaultRetryCount;
     const retryInterval = config.retryInterval ?? defaultInterval;
     config.timeout = config.timeout ?? defaultTimeout;
     config.type = config.type ?? getMimeTypeFromUrl(url);
-    const realRequest = config.type === "image" ? requestImage : requestRes;
     const executor = new MultiExecutor(
-      () => realRequest<T>(url, config).onProgress(setProgress),
+      () => requestRes<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress),
       retryCount,
       retryInterval
     );
@@ -44,56 +43,48 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
   });
 }
 
-function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
-  return new AssetPromise((resolve, reject) => {
-    const { timeout } = config;
-    const img = new Image();
-    const onerror = () => {
-      reject(new Error(`request ${url} fail`));
-    };
-    img.onerror = onerror;
-
-    img.onabort = onerror;
-
-    let timeoutId = -1;
-    if (timeout != Infinity) {
-      timeoutId = window.setTimeout(() => {
-        reject(new Error(`request ${url} timeout`));
-      }, timeout);
-    }
-
-    img.onload = ((timeoutId) => {
-      return () => {
-        // Call requestAnimationFrame to avoid iOS's bug.
-        requestAnimationFrame(() => {
-          //@ts-ignore
-          resolve(img);
-          img.onload = null;
-          img.onerror = null;
-          img.onabort = null;
-        });
-        clearTimeout(timeoutId);
-      };
-    })(timeoutId);
-
-    img.crossOrigin = "anonymous";
-
-    img.src = url;
-  });
-}
-
 function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setProgress) => {
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const xhr = new XMLHttpRequest();
+    const isImg = config.type === "image";
+
     xhr.timeout = config.timeout;
     config.method = config.method ?? "get";
+
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
         reject(new Error(`request failed from: ${url}`));
         return;
       }
       const result = xhr.response ?? xhr.responseText;
-      resolve(result);
+      if (isImg) {
+        const img = new Image();
+
+        img.onload = () => {
+          // Call requestAnimationFrame to avoid iOS's bug.
+          requestAnimationFrame(() => {
+            setTaskCompleteProgress(1, 1);
+            //@ts-ignore
+            resolve(img);
+
+            img.onload = null;
+            img.onerror = null;
+            img.onabort = null;
+            URL.revokeObjectURL(img.src);
+          });
+        };
+
+        img.onerror = img.onabort = () => {
+          reject(new Error(`request ${img.src} fail`));
+          URL.revokeObjectURL(img.src);
+        };
+
+        img.crossOrigin = "anonymous";
+        img.src = URL.createObjectURL(result);
+      } else {
+        setTaskCompleteProgress(1, 1);
+        resolve(result);
+      }
     };
     xhr.onerror = () => {
       reject(new Error(`request failed from: ${url}`));
@@ -102,12 +93,14 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
       reject(new Error(`request timeout from: ${url}`));
     };
     xhr.onprogress = (e) => {
-      setProgress(e.loaded / e.total);
+      if (e.lengthComputable) {
+        setTaskDetailProgress(url, e.loaded, e.total);
+      }
     };
     xhr.open(config.method, url, true);
     xhr.withCredentials = config.credentials === "include";
-    //@ts-ignore
-    xhr.responseType = config.type;
+    // @ts-ignore
+    xhr.responseType = isImg ? "blob" : config.type;
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {

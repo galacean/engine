@@ -131,8 +131,8 @@ export class TextRenderer extends Renderer {
   set font(value: Font) {
     const lastFont = this._font;
     if (lastFont !== value) {
-      lastFont && lastFont._addReferCount(-1);
-      value && value._addReferCount(1);
+      lastFont && this._addResourceReferCount(lastFont, -1);
+      value && this._addResourceReferCount(value, 1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -286,7 +286,7 @@ export class TextRenderer extends Renderer {
   _init(): void {
     const { engine } = this;
     this._font = engine._textDefaultFont;
-    this._font._addReferCount(1);
+    this._addResourceReferCount(this._font, 1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
@@ -294,6 +294,11 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
+    if (this._font) {
+      this._addResourceReferCount(this._font, -1);
+      this._font = null;
+    }
+
     super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
@@ -302,10 +307,6 @@ export class TextRenderer extends Renderer {
     }
     charRenderDatas.length = 0;
 
-    if (this._font) {
-      this._font._addReferCount(-1);
-      this._font = null;
-    }
     this._subFont && (this._subFont = null);
   }
 
