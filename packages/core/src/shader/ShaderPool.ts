@@ -59,41 +59,41 @@ export class ShaderPool {
     Shader.create(this._engine, "blinn-phong", [
       new ShaderPass(this._engine, "Forward", blinnPhongVs, blinnPhongFs, forwardPassTags),
       ...basePasses
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "pbr", [
       new ShaderPass(this._engine, "Forward", pbrVs, pbrFs, forwardPassTags),
       ...basePasses
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "pbr-specular", [
       new ShaderPass(this._engine, "Forward", pbrVs, pbrSpecularFs, forwardPassTags),
       ...basePasses
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "unlit", [
       new ShaderPass(this._engine, "Forward", unlitVs, unlitFs, forwardPassTags),
       ...basePasses
-    ]);
+    ]).isGCIgnored = true;
 
     Shader.create(this._engine, "skybox", [
       new ShaderPass(this._engine, "Forward", skyboxVs, skyboxFs, forwardPassTags)
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "SkyProcedural", [
       new ShaderPass(this._engine, "Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)
-    ]);
+    ]).isGCIgnored = true;
 
     Shader.create(this._engine, "particle-shader", [
       new ShaderPass(this._engine, "Forward", particleVs, particleFs, forwardPassTags)
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "SpriteMask", [
       new ShaderPass(this._engine, "Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "Sprite", [
       new ShaderPass(this._engine, "Forward", spriteVs, spriteFs, forwardPassTags)
-    ]);
+    ]).isGCIgnored = true;
     Shader.create(this._engine, "background-texture", [
       new ShaderPass(this._engine, "Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
-    ]);
+    ]).isGCIgnored = true;
 
-    Shader.create(this._engine, "trail", trailVs, trailFs);
+    Shader.create(this._engine, "trail", trailVs, trailFs).isGCIgnored = true;
   }
 
   /**
