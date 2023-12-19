@@ -33,7 +33,7 @@ class MaterialLoader extends Loader<Material> {
         .then((materialSchema: IMaterialSchema) => {
           const engine = resourceManager.engine;
           const { name, shader, shaderData, macros, renderState } = materialSchema;
-          const material = new Material(engine, Shader.find(shader));
+          const material = new Material(engine, engine.shaderPool.find(shader));
           material.name = name;
 
           const texturePromises = new Array<Promise<Texture2D>>();

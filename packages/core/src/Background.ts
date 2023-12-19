@@ -139,7 +139,7 @@ export class Background {
   }
 
   private _initMaterial(engine: Engine): void {
-    const material = (this._material = new Material(engine, Shader.find("background-texture")));
+    const material = (this._material = new Material(engine, engine.shaderPool.find("background-texture")));
     material.renderState.depthState.compareFunction = CompareFunction.LessEqual;
     material._addReferCount(1);
   }

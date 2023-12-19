@@ -27,8 +27,6 @@ export class Shader extends ReferResource {
   /** @internal */
   static _shaderLab?: IShaderLab;
 
-  private static _shaderMap: Record<string, Shader> = Object.create(null);
-
   /**
    * Create a shader by source code.
    *
@@ -83,7 +81,7 @@ export class Shader extends ReferResource {
     fragmentSource?: string
   ): Shader {
     let shader: Shader;
-    const shaderMap = Shader._shaderMap;
+    const shaderMap = engine._shaderPool._shaderMap;
 
     if (!vertexSourceOrShaderPassesOrSubShaders) {
       if (!Shader._shaderLab) {
@@ -99,8 +97,8 @@ export class Shader extends ReferResource {
           if (typeof passInfo === "string") {
             // Use pass reference
             const paths = passInfo.split("/");
-            return Shader.find(paths[0])
-              ?.subShaders.find((subShader) => subShader.name === paths[1])
+            return shaderMap[paths[0]]?.subShaders
+              .find((subShader) => subShader.name === paths[1])
               ?.passes.find((pass) => pass.name === paths[2]);
           }
 
@@ -166,14 +164,6 @@ export class Shader extends ReferResource {
     return shader;
   }
 
-  /**
-   * Find a shader by name.
-   * @param name - Name of the shader
-   */
-  static find(name: string): Shader {
-    return Shader._shaderMap[name];
-  }
-
   private _subShaders: SubShader[];
 
   /**
@@ -227,11 +217,11 @@ export class Shader extends ReferResource {
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
     for (const subShader of this._subShaders) {
       subShader.destroy();
     }
-    delete Shader._shaderMap[this.name];
-    super._onDestroy();
+    delete this.engine.shaderPool._shaderMap[this.name];
   }
 
   private static _applyConstRenderStates(

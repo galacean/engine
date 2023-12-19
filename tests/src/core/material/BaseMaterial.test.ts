@@ -10,7 +10,7 @@ describe("BaseMaterial", () => {
 
   class TestMaterial extends BaseMaterial {
     constructor(engine) {
-      super(engine, Shader.find("blinn-phong"));
+      super(engine, engine.shaderPool.find("blinn-phong"));
     }
 
     clone(): TestMaterial {

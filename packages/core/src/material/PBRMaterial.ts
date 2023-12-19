@@ -72,7 +72,7 @@ export class PBRMaterial extends PBRBaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("pbr"));
+    super(engine, engine.shaderPool.find("pbr"));
     this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
     this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     this.shaderData.setFloat(PBRMaterial._iorProp, 1.5);

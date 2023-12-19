@@ -84,7 +84,7 @@ export class SkyBoxMaterial extends Material {
   }
 
   constructor(engine: Engine) {
-    super(engine, Shader.find("skybox"));
+    super(engine, engine.shaderPool.find("skybox"));
 
     this.renderState.rasterState.cullMode = CullMode.Off;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;

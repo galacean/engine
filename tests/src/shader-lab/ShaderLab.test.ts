@@ -188,38 +188,38 @@ describe("ShaderLab", () => {
   });
 
   it("engine shader", async () => {
-    glslValidate(demoShader);
+    glslValidate(engine, demoShader);
   });
 
   it("include", () => {
     ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(engine, demoShader, shaderLab);
   });
 
   it("planarShadow shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/planarShadow.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(engine, demoShader, shaderLab);
   });
 
   it("Empty macro shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/triangle.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(engine, demoShader, shaderLab);
   });
 
   it("No frag shader args", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/noFragArgs.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(engine, demoShader, shaderLab);
   });
 
   it("water full shader(complex)", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/waterfull.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(engine, demoShader, shaderLab);
   });
 
   it("glass shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(engine, demoShader, shaderLab);
   });
 
   it("shader with duplicate name", () => {

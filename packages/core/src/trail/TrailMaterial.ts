@@ -1,16 +1,10 @@
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
-import { BlendFactor, Shader } from "../shader";
-import FRAG_SHADER from "./trail.fs.glsl";
-import VERT_SHADER from "./trail.vs.glsl";
+import { BlendFactor } from "../shader";
 
 export class TrailMaterial extends Material {
   constructor(engine: Engine) {
-    if (!Shader.find("trail")) {
-      Shader.create(engine, "trail", VERT_SHADER, FRAG_SHADER);
-    }
-
-    super(engine, Shader.find("trail"));
+    super(engine, engine.shaderPool.find("trail"));
 
     const target = this.renderState.blendState.targetBlendState;
     target.enabled = true;

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, ShaderFactory } from "@galacean/engine-core";
+import { Engine, ShaderFactory } from "@galacean/engine-core";
 import { ISubShaderInfo } from "@galacean/engine-design";
 
 function addLineNum(str: string) {
@@ -19,11 +19,12 @@ function addLineNum(str: string) {
     .join("\n");
 }
 
-function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
+function validateShaderPass(engine: Engine, pass: ISubShaderInfo["passes"][number]) {
   if (typeof pass === "string") {
     // builtin shader pass
     const paths = pass.split("/");
-    const shaderPass = Shader.find(paths[0])
+    const shaderPass = engine.shaderPool
+      .find(paths[0])
       ?.subShaders.find((subShader) => subShader.name === paths[1])
       ?.passes.find((pass) => pass.name === paths[2]);
     expect(!!shaderPass).to.be.true;
@@ -68,12 +69,12 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
   }
 }
 
-export function glslValidate(shaderSource, _shaderLab?: ShaderLab) {
+export function glslValidate(engine: Engine, shaderSource, _shaderLab?: ShaderLab) {
   const shaderLab = _shaderLab ?? new ShaderLab();
 
   const shader = shaderLab.parseShader(shaderSource);
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {
-    subShader.passes.map((pass) => validateShaderPass(pass));
+    subShader.passes.map((pass) => validateShaderPass(engine, pass));
   });
 }

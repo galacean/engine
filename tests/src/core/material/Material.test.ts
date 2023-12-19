@@ -5,7 +5,7 @@ import { expect } from "chai";
 
 describe("Material", () => {
   let engine: WebGLEngine;
- before(async function () {
+  before(async function () {
     this.timeout(10000);
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
@@ -23,7 +23,7 @@ describe("Material", () => {
     const intArray = new Int32Array([5, 6, 6, 6]);
     const floatArray = new Float32Array([0.4, 0.323, 2323.232, 23.232]);
 
-    const material = new Material(engine, Shader.find("blinn-phong"));
+    const material = new Material(engine, engine.shaderPool.find("blinn-phong"));
     const shaderData = material.shaderData;
 
     shaderData.setFloat("_float", 0.2);

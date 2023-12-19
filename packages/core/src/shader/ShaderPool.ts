@@ -23,6 +23,8 @@ import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
+import trailVs from "../shaderlib/trail.vs.glsl";
+import trailFs from "../shaderlib/trail.fs.glsl";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
 
@@ -31,16 +33,21 @@ import { ShaderPass } from "./ShaderPass";
  * @internal
  */
 export class ShaderPool {
-  private static _initialized = false;
+  /** @internal */
+  _shaderMap: Record<string, Shader>;
+  /** @internal */
+  private _engine: Engine;
 
-  static init(engine: Engine): void {
-    if (this._initialized) return;
-    this._initialized = true;
+  constructor(engine: Engine) {
+    this._engine = engine;
+    this._shaderMap = Object.create(null);
+  }
 
-    const shadowCasterPass = new ShaderPass(engine, "ShadowCaster", shadowMapVs, shadowMapFs, {
+  init() {
+    const shadowCasterPass = new ShaderPass(this._engine, "ShadowCaster", shadowMapVs, shadowMapFs, {
       pipelineStage: PipelineStage.ShadowCaster
     });
-    const depthOnlyPass = new ShaderPass(engine, "DepthOnly", depthOnlyVs, depthOnlyFs, {
+    const depthOnlyPass = new ShaderPass(this._engine, "DepthOnly", depthOnlyVs, depthOnlyFs, {
       pipelineStage: PipelineStage.DepthOnly
     });
     const basePasses = [shadowCasterPass, depthOnlyPass];
@@ -49,34 +56,62 @@ export class ShaderPool {
       pipelineStage: PipelineStage.Forward
     };
 
-    Shader.create(engine, "blinn-phong", [
-      new ShaderPass(engine, "Forward", blinnPhongVs, blinnPhongFs, forwardPassTags),
+    Shader.create(this._engine, "blinn-phong", [
+      new ShaderPass(this._engine, "Forward", blinnPhongVs, blinnPhongFs, forwardPassTags),
       ...basePasses
     ]);
-    Shader.create(engine, "pbr", [new ShaderPass(engine, "Forward", pbrVs, pbrFs, forwardPassTags), ...basePasses]);
-    Shader.create(engine, "pbr-specular", [
-      new ShaderPass(engine, "Forward", pbrVs, pbrSpecularFs, forwardPassTags),
+    Shader.create(this._engine, "pbr", [
+      new ShaderPass(this._engine, "Forward", pbrVs, pbrFs, forwardPassTags),
       ...basePasses
     ]);
-    Shader.create(engine, "unlit", [
-      new ShaderPass(engine, "Forward", unlitVs, unlitFs, forwardPassTags),
+    Shader.create(this._engine, "pbr-specular", [
+      new ShaderPass(this._engine, "Forward", pbrVs, pbrSpecularFs, forwardPassTags),
+      ...basePasses
+    ]);
+    Shader.create(this._engine, "unlit", [
+      new ShaderPass(this._engine, "Forward", unlitVs, unlitFs, forwardPassTags),
       ...basePasses
     ]);
 
-    Shader.create(engine, "skybox", [new ShaderPass(engine, "Forward", skyboxVs, skyboxFs, forwardPassTags)]);
-    Shader.create(engine, "SkyProcedural", [
-      new ShaderPass(engine, "Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)
+    Shader.create(this._engine, "skybox", [
+      new ShaderPass(this._engine, "Forward", skyboxVs, skyboxFs, forwardPassTags)
+    ]);
+    Shader.create(this._engine, "SkyProcedural", [
+      new ShaderPass(this._engine, "Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)
     ]);
 
-    Shader.create(engine, "particle-shader", [
-      new ShaderPass(engine, "Forward", particleVs, particleFs, forwardPassTags)
+    Shader.create(this._engine, "particle-shader", [
+      new ShaderPass(this._engine, "Forward", particleVs, particleFs, forwardPassTags)
     ]);
-    Shader.create(engine, "SpriteMask", [
-      new ShaderPass(engine, "Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)
+    Shader.create(this._engine, "SpriteMask", [
+      new ShaderPass(this._engine, "Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)
     ]);
-    Shader.create(engine, "Sprite", [new ShaderPass(engine, "Forward", spriteVs, spriteFs, forwardPassTags)]);
-    Shader.create(engine, "background-texture", [
-      new ShaderPass(engine, "Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
+    Shader.create(this._engine, "Sprite", [
+      new ShaderPass(this._engine, "Forward", spriteVs, spriteFs, forwardPassTags)
     ]);
+    Shader.create(this._engine, "background-texture", [
+      new ShaderPass(this._engine, "Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
+    ]);
+
+    Shader.create(this._engine, "trail", trailVs, trailFs);
+  }
+
+  /**
+   * @internal
+   */
+  _destroy() {
+    for (const shaderName in this._shaderMap) {
+      const shader = this._shaderMap[shaderName];
+      shader.destroy(true);
+    }
+    this._shaderMap = null;
+  }
+
+  /**
+   * Find a shader by name.
+   * @param name - Name of the shader
+   */
+  find(name: string): Shader {
+    return this._shaderMap[name];
   }
 }

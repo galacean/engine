@@ -64,7 +64,7 @@ describe("Shader", () => {
       expect(customShader.subShaders[0].passes).length(1);
 
       // Shader find
-      expect(customShader).equal(Shader.find("custom"));
+      expect(customShader).equal(engine.shaderPool.find("custom"));
 
       // Shader property
       const customProperty = ShaderProperty.getByName("customProperty");
@@ -83,7 +83,7 @@ describe("Shader", () => {
     });
 
     it("SubShader", () => {
-      const customShader = Shader.find("custom");
+      const customShader = engine.shaderPool.find("custom");
       const subShader = customShader.subShaders[0];
 
       // Add tag by name
@@ -108,7 +108,7 @@ describe("Shader", () => {
     });
 
     it("PassShader", () => {
-      const customShader = Shader.find("custom");
+      const customShader = engine.shaderPool.find("custom");
       const shaderPass = customShader.subShaders[0].passes[0];
 
       // Add tag by name

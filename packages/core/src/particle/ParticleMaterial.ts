@@ -43,7 +43,7 @@ export class ParticleMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("particle-shader"));
+    super(engine, engine.shaderPool.find("particle-shader"));
 
     const shaderData = this.shaderData;
     shaderData.setColor(BaseMaterial._baseColorProp, new Color(1, 1, 1, 1));

@@ -110,6 +110,8 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
+  _shaderPool: ShaderPool;
+  /** @internal */
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _canSpriteBatch: boolean = true;
@@ -173,6 +175,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * The pool for shader cache
+   */
+  get shaderPool(): ShaderPool {
+    return this._shaderPool;
+  }
+
+  /**
    * The scene manager.
    */
   get sceneManager(): SceneManager {
@@ -230,12 +239,13 @@ export class Engine extends EventDispatcher {
 
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
-    ShaderPool.init(this);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
     this._canvas = canvas;
 
+    this._shaderPool = new ShaderPool(this);
+    this._shaderPool.init();
     this._spriteMaskManager = new SpriteMaskManager(this);
     const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
     this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
@@ -263,12 +273,12 @@ export class Engine extends EventDispatcher {
       this._depthTexture2D = depthTexture2D;
     }
 
-    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
+    const meshMagentaMaterial = new Material(this, this._shaderPool.find("unlit"));
     meshMagentaMaterial.isGCIgnored = true;
     meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._meshMagentaMaterial = meshMagentaMaterial;
 
-    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
+    const particleMagentaMaterial = new Material(this, this._shaderPool.find("particle-shader"));
     particleMagentaMaterial.isGCIgnored = true;
     particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._particleMagentaMaterial = particleMagentaMaterial;
@@ -626,7 +636,7 @@ export class Engine extends EventDispatcher {
   }
 
   private _createSpriteMaterial(maskInteraction: SpriteMaskInteraction): Material {
-    const material = new Material(this, Shader.find("Sprite"));
+    const material = new Material(this, this._shaderPool.find("Sprite"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
     target.enabled = true;
@@ -655,7 +665,7 @@ export class Engine extends EventDispatcher {
   }
 
   private _createSpriteMaskMaterial(): Material {
-    const material = new Material(this, Shader.find("SpriteMask"));
+    const material = new Material(this, this._shaderPool.find("SpriteMask"));
     const renderState = material.renderState;
     renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
     renderState.rasterState.cullMode = CullMode.Off;
