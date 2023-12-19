@@ -19,7 +19,7 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
     switch (primitiveInfo.type) {
       case PrimitiveType.Sphere:
         const sphereInfo = <SphereRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setCCSudivSphereData(
+        PrimitiveMesh._setSphereData(
           this.resource,
           sphereInfo.radius,
           sphereInfo.segments,
