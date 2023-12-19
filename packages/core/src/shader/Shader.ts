@@ -227,11 +227,16 @@ export class Shader extends ReferResource {
   }
 
   override destroy(force?: boolean): boolean {
+    this._addReferCount(-1);
+    return super.destroy(force);
+  }
+
+  protected override _onDestroy(): void {
     for (const subShader of this._subShaders) {
       subShader.destroy();
     }
     delete Shader._shaderMap[this.name];
-    return super.destroy(force);
+    super._onDestroy();
   }
 
   private static _applyConstRenderStates(
