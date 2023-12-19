@@ -1,4 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -10,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<boolean>>()
 export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
-  static _isReferenceType: boolean = false;
+  static _isCopyMode: boolean = false;
   /** @internal */
-  static _isInterpolationType: boolean = false;
+  static _supportInterpolationMode: boolean = false;
 
   /**
    * @internal
@@ -23,11 +24,19 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
     owner.baseEvaluateData.value = false;
     owner.crossEvaluateData.value = false;
   }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = false;
+  }
+
   /**
    * @internal
    */
   static _lerpValue(srcValue: boolean, destValue: boolean): boolean {
-    return destValue;
+    return srcValue;
   }
 
   /**
@@ -53,7 +62,7 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /**
    * @internal
    */
-  static _copyValue(value: boolean): boolean {
+  static _setValue(value: boolean): boolean {
     return value;
   }
 

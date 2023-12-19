@@ -69,9 +69,9 @@ export class ModelMesh extends Mesh {
   get vertexCount(): number {
     if (this._vertexCountDirty) {
       let vertexCount = 0;
-      const positionElement = this._vertexElementMap[VertexAttribute.Position];
+      const positionElement = this._primitive._vertexElementMap[VertexAttribute.Position];
       if (positionElement) {
-        const positionBufferBinding = this._vertexBufferBindings[positionElement.bindingIndex];
+        const positionBufferBinding = this._primitive.vertexBufferBindings[positionElement.bindingIndex];
         if (positionBufferBinding) {
           vertexCount = positionBufferBinding.buffer.byteLength / positionBufferBinding.stride;
         }
@@ -87,15 +87,15 @@ export class ModelMesh extends Mesh {
    */
   get vertexElements(): Readonly<VertexElement[]> {
     this._updateVertexElements();
-    return this._vertexElements;
+    return this._primitive.vertexElements;
   }
 
   /**
    * Vertex buffer binding collection.
    */
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+  get vertexBufferBindings(): ReadonlyArray<VertexBufferBinding> {
     // @todo: update if dirty like `vertexElements` is better
-    return this._vertexBufferBindings;
+    return this._primitive.vertexBufferBindings;
   }
 
   /**
@@ -462,7 +462,7 @@ export class ModelMesh extends Mesh {
     }
 
     // Clear data if vertex element not contains
-    const vertexElementMap = this._vertexElementMap;
+    const vertexElementMap = this._primitive._vertexElementMap;
     vertexElementMap[VertexAttribute.Position] || this.setPositions(null);
     vertexElementMap[VertexAttribute.Normal] || this.setNormals(null);
     vertexElementMap[VertexAttribute.Color] || this.setColors(null);
@@ -481,7 +481,7 @@ export class ModelMesh extends Mesh {
     // Destroy internal vertex buffer immediately
     const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
     if (internalVertexBufferIndex !== -1) {
-      this._vertexBufferBindings[internalVertexBufferIndex]?.buffer.destroy();
+      this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer.destroy();
       this._setVertexBufferBinding(internalVertexBufferIndex, null);
       this._internalVertexBufferCreatedInfo.z = -1;
     }
@@ -491,14 +491,15 @@ export class ModelMesh extends Mesh {
     this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
+    this._blendShapeManager._vertexElementOffset = count;
   }
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
+   * @param vertexBufferBinding - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, index?: number): void;
 
   /**
    * Set vertex buffer binding.
@@ -518,7 +519,7 @@ export class ModelMesh extends Mesh {
     isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrIndex));
     const index = isBinding ? strideOrIndex : indexOrNull;
 
-    const bindings = this._vertexBufferBindings;
+    const bindings = this._primitive.vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
 
     const needLength = index + 1;
@@ -547,7 +548,7 @@ export class ModelMesh extends Mesh {
    */
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
     const count = vertexBufferBindings.length;
-    const bindings = this._vertexBufferBindings;
+    const bindings = this._primitive.vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
 
     const needLength = firstIndex + count;
@@ -569,6 +570,16 @@ export class ModelMesh extends Mesh {
       }
     }
     this._vertexCountDirty = true;
+  }
+
+  /**
+   * Get `VertexElement` by attribute.
+   * @param attribute - Vertex attribute
+   * @returns Vertex element
+   */
+  getVertexElement(attribute: VertexAttribute): VertexElement | null {
+    this._updateVertexElements();
+    return this._primitive._vertexElementMap[attribute];
   }
 
   /**
@@ -605,8 +616,8 @@ export class ModelMesh extends Mesh {
   uploadData(releaseData: boolean): void {
     this._updateVertexElements();
 
-    // If releaseData is false, we shouldn't update buffer data version
-    releaseData || (this._advancedDataSyncToBuffer = true);
+    // Shouldn't update buffer data version when sync advanced data to buffer
+    this._advancedDataSyncToBuffer = true;
 
     // Update internal vertex buffer if needed
     this._updateInternalVertexBuffer(releaseData);
@@ -616,7 +627,7 @@ export class ModelMesh extends Mesh {
       this._updateAdvancedVertices();
 
       const vertexBufferInfos = this._vertexBufferInfos;
-      const vertexBufferBindings = this._vertexBufferBindings;
+      const vertexBufferBindings = this._primitive.vertexBufferBindings;
       for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
         const vertexBufferInfo = vertexBufferInfos[i];
         // VertexBufferInfo maybe undefined
@@ -631,7 +642,7 @@ export class ModelMesh extends Mesh {
 
     if (this._indicesChangeFlag) {
       const { _indices: indices } = this;
-      const indexBuffer = this._indexBufferBinding?._buffer;
+      const indexBuffer = this._primitive.indexBufferBinding?._buffer;
       if (indices) {
         if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
           indexBuffer?.destroy();
@@ -639,7 +650,7 @@ export class ModelMesh extends Mesh {
           this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
         } else {
           indexBuffer.setData(indices);
-          if (this._indexBufferBinding._format !== this._indicesFormat) {
+          if (this._primitive.indexBufferBinding._format !== this._indicesFormat) {
             this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
           }
         }
@@ -752,7 +763,7 @@ export class ModelMesh extends Mesh {
    * @internal
    */
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    const vertexBufferBindings = this._vertexBufferBindings;
+    const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
     const onVertexBufferChanged = () => {
       if (!this._advancedDataSyncToBuffer) {
@@ -812,7 +823,7 @@ export class ModelMesh extends Mesh {
   ): T[] | null {
     const advancedVertexDataVersions = this._advancedVertexDataVersions;
     const advancedDataVersion = advancedVertexDataVersions[vertexElementIndex] ?? -1;
-    const vertexElement = this._vertexElementMap[vertexAttribute];
+    const vertexElement = this._primitive._vertexElementMap[vertexAttribute];
     const bufferDataVersion = vertexElement ? this._vertexBufferInfos[vertexElement.bindingIndex].dataVersion : -1;
     if (advancedDataVersion >= bufferDataVersion) {
       return vertices;
@@ -856,7 +867,7 @@ export class ModelMesh extends Mesh {
       // Destroy old internal vertex buffer
       const createdInternalBufferIndex = bufferCreatedInfo.z;
       if (createdInternalBufferIndex !== -1) {
-        this._vertexBufferBindings[createdInternalBufferIndex]?.buffer.destroy();
+        this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer.destroy();
         this._setVertexBufferBinding(createdInternalBufferIndex, null);
       }
 
@@ -902,12 +913,13 @@ export class ModelMesh extends Mesh {
     attributeType: string,
     onVertexParse: (dataReader: TypedArray, offset: number) => T
   ): T[] {
-    const vertexElement = this._vertexElementMap[attributeType];
+    const primitive = this._primitive;
+    const vertexElement = primitive._vertexElementMap[attributeType];
     if (!vertexElement) {
       return null;
     }
 
-    const bufferBinding = this._vertexBufferBindings[vertexElement.bindingIndex];
+    const bufferBinding = primitive.vertexBufferBindings[vertexElement.bindingIndex];
     const buffer = bufferBinding?.buffer;
     if (!buffer) {
       return null;
@@ -938,7 +950,8 @@ export class ModelMesh extends Mesh {
     attribute: VertexAttribute,
     flag: VertexElementFlags
   ): void {
-    const vertexElementMap = this._vertexElementMap;
+    const primitive = this._primitive;
+    const vertexElementMap = primitive._vertexElementMap;
 
     if (vertices) {
       if (!vertexElementMap[attribute]) {
@@ -954,7 +967,7 @@ export class ModelMesh extends Mesh {
     } else {
       const vertexElement = vertexElementMap[attribute];
       if (vertexElement) {
-        const index = this._vertexElements.indexOf(vertexElement);
+        const index = this._primitive.vertexElements.indexOf(vertexElement);
         if (index >= this._internalVertexElementsOffset) {
           this._internalVertexBufferStride -= this._getAttributeByteLength(attribute);
           this._internalVertexElementsFlags &= ~flag;
@@ -1030,7 +1043,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _updateVertexElements(): void {
-    const vertexElements = this._vertexElements;
+    const vertexElements = this._primitive.vertexElements;
     const bsManager = this._blendShapeManager;
     const previousCount = vertexElements.length;
     const previousBSOffset = bsManager._vertexElementOffset;
@@ -1115,9 +1128,10 @@ export class ModelMesh extends Mesh {
     elementIndex: VertexElementIndex,
     onVertexWrite: (typedArray: TypedArray, offset: number, index: number) => void
   ): void {
-    const vertexElement = this._vertexElementMap[attribute];
+    const primitive = this._primitive;
+    const vertexElement = primitive._vertexElementMap[attribute];
     const bindingIndex = vertexElement.bindingIndex;
-    const bufferBinding = this._vertexBufferBindings[bindingIndex];
+    const bufferBinding = primitive.vertexBufferBindings[bindingIndex];
     const buffer = bufferBinding?.buffer;
     if (!buffer) {
       return;
@@ -1219,7 +1233,7 @@ export class ModelMesh extends Mesh {
     }
 
     let i = 0;
-    const vertexBufferBindings = this._vertexBufferBindings;
+    const vertexBufferBindings = this._primitive.vertexBufferBindings;
     for (let n = vertexBufferBindings.length; i < n; i++) {
       if (!vertexBufferBindings[i]) {
         break;
@@ -1294,7 +1308,15 @@ export class ModelMesh extends Mesh {
     this._blendShapeManager._releaseMemoryCache();
 
     if (!isDestroy) {
-      this._vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+      this._primitive.vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+
+      // If release data, we need update buffer data version to ensure get data method can read buffer
+      const dataVersion = this._dataVersionCounter++;
+      const vertexBufferInfos = this._vertexBufferInfos;
+      for (let i = 0, n = vertexBufferInfos.length; i < n; i++) {
+        const vertexBufferInfo = vertexBufferInfos[i];
+        vertexBufferInfo && (vertexBufferInfo.dataVersion = dataVersion);
+      }
     }
   }
 

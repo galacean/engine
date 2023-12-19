@@ -1,9 +1,21 @@
-import { ShaderLib } from "./ShaderLib";
 import { Logger } from "../base/Logger";
+import { ShaderLib } from "./ShaderLib";
 
-class ShaderFactory {
+export class ShaderFactory {
+  /** @internal */
+  static readonly _shaderExtension = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives", "GL_EXT_draw_buffers"]
+    .map((e) => `#extension ${e} : enable\n`)
+    .join("");
+
   static parseCustomMacros(macros: string[]) {
     return macros.map((m) => `#define ${m}\n`).join("");
+  }
+
+  static registerInclude(includeName: string, includeSource: string) {
+    if (ShaderLib[includeName]) {
+      throw `The "${includeName}" shader include already exist`;
+    }
+    ShaderLib[includeName] = includeSource;
   }
 
   static parseIncludes(src: string) {
@@ -21,14 +33,6 @@ class ShaderFactory {
     }
 
     return src.replace(regex, replace);
-  }
-
-  /**
-   * GLSL extension.
-   * @param extensions - such as ["GL_EXT_shader_texture_lod"]
-   * */
-  static parseExtension(extensions: string[]): string {
-    return extensions.map((e) => `#extension ${e} : enable\n`).join("");
   }
 
   /**
@@ -79,5 +83,3 @@ class ShaderFactory {
     return shader;
   }
 }
-
-export { ShaderFactory };

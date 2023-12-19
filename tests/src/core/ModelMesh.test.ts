@@ -38,7 +38,7 @@ describe("ModelMesh Test", async function () {
   let falsyTangents: Vector4[];
   let falsyWeights: Vector4[];
   let falsyJoints: Vector4[];
-  before(async () => {
+ before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     modelMesh = new ModelMesh(engine);
     positions = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];
@@ -515,5 +515,30 @@ describe("ModelMesh Test", async function () {
     expect(positions1).deep.eq(rightPositions);
     expect(normals1).deep.eq(rightNormals);
     expect(uvs1).deep.eq(rightUVs);
+  });
+
+  it("Test blend shape buffer offset", () => {
+    const mesh = new ModelMesh(engine);
+    const deltaPositions = [new Vector3(0.0, 0.0, 0.0)];
+    const blendShape = new BlendShape("BlendShapeTest");
+    blendShape.addFrame(1.0, deltaPositions);
+    mesh.addBlendShape(blendShape);
+    const vertexElements = [
+      new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.UV, 0, VertexElementFormat.Vector3, 1)
+    ];
+    // 顶点
+    const pos = new Float32Array(3);
+    // UV
+    const uv = new Float32Array(2);
+    (pos[0] = -1), (pos[1] = 1), (pos[2] = 1);
+    (uv[0] = 0), (uv[1] = 0);
+    const posBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, pos, BufferUsage.Static, true);
+    const uvBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, uv, BufferUsage.Static, true);
+    mesh.setVertexElements(vertexElements);
+    mesh.setVertexBufferBinding(posBuffer, 12, 0);
+    mesh.setVertexBufferBinding(uvBuffer, 8, 1);
+    mesh.uploadData(false);
+    expect(mesh.vertexBufferBindings.length).eq(3);
   });
 });

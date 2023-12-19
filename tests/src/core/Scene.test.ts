@@ -1,15 +1,19 @@
-import { Engine, Entity, Scene } from "@galacean/engine-core";
+import { BackgroundMode, Engine, Entity, Scene, TextureFormat, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Scene", () => {
   let engine: Engine;
   let scene: Scene;
-  before(async () => {
+  before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     engine.run();
     scene = engine.sceneManager.scenes[0];
+    scene.background.mode = BackgroundMode.Texture;
+    const texture2D = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+    texture2D.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
+    scene.background.texture = texture2D;
   });
 
   beforeEach(() => {
@@ -118,7 +122,6 @@ describe("Scene", () => {
     });
 
     it("Child entity became root entity", () => {
-     
       const child0 = new Entity(engine, "child0");
       const child1 = new Entity(engine, "child1");
       child0.addChild(child1);
@@ -129,7 +132,7 @@ describe("Scene", () => {
       scene.addRootEntity(child1);
       expect(child1.children.length).eq(0);
       expect(scene.rootEntities.length).eq(previousSceneRootEntityCount + 1);
-      
+
       child0.destroy();
       expect(scene.rootEntities.length).eq(previousSceneRootEntityCount);
     });
@@ -141,9 +144,41 @@ describe("Scene", () => {
 
       engine.sceneManager.addScene(scene);
       expect(engine.sceneManager.scenes.length).eq(2);
+      engine.sceneManager.addScene(0, scene);
+      expect(engine.sceneManager.scenes.length).eq(2);
 
       engine.sceneManager.removeScene(scene);
       expect(engine.sceneManager.scenes.length).eq(1);
+      engine.sceneManager.removeScene(scene);
+      expect(engine.sceneManager.scenes.length).eq(1);
+    });
+
+    it("The second scene destroy", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+
+      scene.destroy();
+      expect(engine.sceneManager.scenes.length).eq(1);
+    });
+  });
+
+  describe("MultiScene isActive test", () => {
+    it("Add and remove", () => {
+      const scene = new Scene(engine);
+      expect(scene.isActive).eq(true);
+      scene.isActive = false;
+      expect(scene.isActive).eq(false);
+
+      engine.sceneManager.addScene(scene);
+      expect(scene["_isActiveInEngine"]).eq(false);
+      scene.isActive = true;
+      expect(scene["_isActiveInEngine"]).eq(true);
+
+      engine.sceneManager.removeScene(scene);
+      expect(scene["_isActiveInEngine"]).eq(false);
+      engine.sceneManager.addScene(scene);
+      expect(scene["_isActiveInEngine"]).eq(true);
+      engine.sceneManager.removeScene(scene);
     });
 
     it("The second scene destroy", () => {

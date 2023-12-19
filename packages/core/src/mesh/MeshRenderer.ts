@@ -64,8 +64,8 @@ export class MeshRenderer extends Renderer {
   protected override _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
-    if (mesh && !mesh.destroyed) {
-      mesh._addReferCount(-1);
+    if (mesh) {
+      mesh.destroyed || mesh._addReferCount(-1);
       mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
@@ -74,9 +74,24 @@ export class MeshRenderer extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: MeshRenderer): void {
-    super._cloneTo(target);
+  override _cloneTo(target: MeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
     target.mesh = this._mesh;
+  }
+
+  /**
+   * @internal
+   */
+  override _prepareRender(context: RenderContext): void {
+    if (!this._mesh) {
+      Logger.error("mesh is null.");
+      return;
+    }
+    if (this._mesh.destroyed) {
+      Logger.error("mesh is destroyed.");
+      return;
+    }
+    super._prepareRender(context);
   }
 
   /**
@@ -99,52 +114,54 @@ export class MeshRenderer extends Renderer {
    */
   protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
-    if (mesh) {
-      if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
-        const shaderData = this.shaderData;
-        const vertexElements = mesh._vertexElements;
+    if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
+      const shaderData = this.shaderData;
+      const vertexElements = mesh._primitive.vertexElements;
 
-        shaderData.disableMacro(MeshRenderer._uvMacro);
-        shaderData.disableMacro(MeshRenderer._uv1Macro);
-        shaderData.disableMacro(MeshRenderer._normalMacro);
-        shaderData.disableMacro(MeshRenderer._tangentMacro);
-        shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
+      shaderData.disableMacro(MeshRenderer._uvMacro);
+      shaderData.disableMacro(MeshRenderer._uv1Macro);
+      shaderData.disableMacro(MeshRenderer._normalMacro);
+      shaderData.disableMacro(MeshRenderer._tangentMacro);
+      shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
 
-        for (let i = 0, n = vertexElements.length; i < n; i++) {
-          switch (vertexElements[i].semantic) {
-            case "TEXCOORD_0":
-              shaderData.enableMacro(MeshRenderer._uvMacro);
-              break;
-            case "TEXCOORD_1":
-              shaderData.enableMacro(MeshRenderer._uv1Macro);
-              break;
-            case "NORMAL":
-              shaderData.enableMacro(MeshRenderer._normalMacro);
-              break;
-            case "TANGENT":
-              shaderData.enableMacro(MeshRenderer._tangentMacro);
-              break;
-            case "COLOR_0":
-              this._enableVertexColor && shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
-              break;
-          }
+      for (let i = 0, n = vertexElements.length; i < n; i++) {
+        switch (vertexElements[i].attribute) {
+          case "TEXCOORD_0":
+            shaderData.enableMacro(MeshRenderer._uvMacro);
+            break;
+          case "TEXCOORD_1":
+            shaderData.enableMacro(MeshRenderer._uv1Macro);
+            break;
+          case "NORMAL":
+            shaderData.enableMacro(MeshRenderer._normalMacro);
+            break;
+          case "TANGENT":
+            shaderData.enableMacro(MeshRenderer._tangentMacro);
+            break;
+          case "COLOR_0":
+            this._enableVertexColor && shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
+            break;
         }
-        this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
+      }
+      this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
+    }
+
+    const materials = this._materials;
+    const subMeshes = mesh.subMeshes;
+    const renderPipeline = context.camera._renderPipeline;
+    const meshRenderDataPool = this._engine._renderDataPool;
+    for (let i = 0, n = subMeshes.length; i < n; i++) {
+      let material = materials[i];
+      if (!material) {
+        continue;
+      }
+      if (material.destroyed) {
+        material = this.engine._meshMagentaMaterial;
       }
 
-      const materials = this._materials;
-      const subMeshes = mesh.subMeshes;
-      const renderPipeline = context.camera._renderPipeline;
-      const meshRenderDataPool = this._engine._meshRenderDataPool;
-      for (let i = 0, n = subMeshes.length; i < n; i++) {
-        const material = materials[i];
-        if (!material) continue;
-        const renderData = meshRenderDataPool.getFromPool();
-        renderData.set(this, material, mesh, subMeshes[i]);
-        renderPipeline.pushRenderData(context, renderData);
-      }
-    } else {
-      Logger.error("mesh is null.");
+      const renderData = meshRenderDataPool.getFromPool();
+      renderData.setX(this, material, mesh._primitive, subMeshes[i]);
+      renderPipeline.pushRenderData(context, renderData);
     }
   }
 

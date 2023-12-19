@@ -3,16 +3,14 @@ import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
-
 describe("camera test", function () {
+  const canvasDOM = new OffscreenCanvas(256, 256);
   let rootEntity: Entity;
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
-  before(async () => {
+  before(async function () {
+    this.timeout(10000);
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();
     camera = rootEntity.addComponent(Camera);
@@ -206,6 +204,15 @@ describe("camera test", function () {
     const screenPoint = camera.worldToScreenPoint(worldPoint, new Vector3());
     const expectedworldPoint = camera.screenToWorldPoint(screenPoint, new Vector3());
     expect(worldPoint.z).to.be.closeTo(expectedworldPoint.z, 0.1, "Result z should match expected value");
+  });
+
+  it("precision of viewportPointToRay", () => {
+    camera.farClipPlane = 1000000000;
+    camera.nearClipPlane = 0.1;
+    const ray = camera.viewportPointToRay(new Vector2(0.5, 0.5), new Ray());
+    expect(ray.direction.x).not.to.be.NaN;
+    expect(ray.direction.y).not.to.be.NaN;
+    expect(Math.abs(ray.direction.z)).not.eq(Infinity);
   });
 
   /*

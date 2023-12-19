@@ -1,5 +1,6 @@
 import { Engine, Entity, Loader } from "@galacean/engine-core";
-import type { IAssetRef, IBasicType, IClassObject, IEntity } from "../schema";
+import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef } from "../schema";
+import { SceneParserContext } from "../scene/SceneParserContext";
 
 export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();
@@ -8,20 +9,104 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
-    return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
+  constructor(private readonly _context: SceneParserContext) {}
+
+  parseEntity(entityConfig: IEntity): Promise<Entity> {
+    return this._getEntityByConfig(entityConfig).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
       const { position, rotation, scale } = entityConfig;
       if (position) entity.transform.position.copyFrom(position);
       if (rotation) entity.transform.rotation.copyFrom(rotation);
       if (scale) entity.transform.scale.copyFrom(scale);
+      entity.layer = entityConfig.layer ?? entity.layer;
       return entity;
     });
   }
 
-  private static getEntityByConfig(entityConfig: IEntity, engine: Engine): Promise<Entity> {
+  parseClassObject(item: IClassObject) {
+    const Class = Loader.getClass(item.class);
+    const params = item.constructParams ?? [];
+    return Promise.all(params.map((param) => this.parseBasicType(param)))
+      .then((resultParams) => new Class(...resultParams))
+      .then((instance) => this.parsePropsAndMethods(instance, item));
+  }
+
+  parsePropsAndMethods(instance: any, item: Omit<IClassObject, "class">) {
+    const promises = [];
+    if (item.methods) {
+      for (let methodName in item.methods) {
+        const methodParams = item.methods[methodName];
+        for (let i = 0, count = methodParams.length; i < count; i++) {
+          promises.push(this.parseMethod(instance, methodName, methodParams[i]));
+        }
+      }
+    }
+
+    if (item.props) {
+      for (let key in item.props) {
+        const value = item.props[key];
+        const promise = this.parseBasicType(value, instance[key]).then((v) => {
+          return (instance[key] = v);
+        });
+        promises.push(promise);
+      }
+    }
+
+    return Promise.all(promises).then(() => {
+      const handle = ReflectionParser.customParseComponentHandles[instance.constructor.name];
+      if (handle) return handle(instance, item);
+      else return instance;
+    });
+  }
+
+  parseMethod(instance: any, methodName: string, methodParams: Array<IBasicType>) {
+    return Promise.all(methodParams.map((param) => this.parseBasicType(param))).then((result) => {
+      return instance[methodName](...result);
+    });
+  }
+
+  parseBasicType(value: IBasicType, originValue?: any): Promise<any> {
+    if (Array.isArray(value)) {
+      return Promise.all(value.map((item) => this.parseBasicType(item)));
+    } else if (typeof value === "object" && value != null) {
+      if (ReflectionParser._isClass(value)) {
+        // class object
+        return this.parseClassObject(value);
+      } else if (ReflectionParser._isAssetRef(value)) {
+        // reference object
+        // @ts-ignore
+        return this._context.resourceManager.getResourceByRef(value);
+      } else if (ReflectionParser._isEntityRef(value)) {
+        // entity reference
+        return Promise.resolve(this._context.entityMap.get(value.entityId));
+      } else if (originValue) {
+        const promises: Promise<any>[] = [];
+        for (let key in value as any) {
+          if (key === "methods") {
+            const methods: any = value[key];
+            for (let methodName in methods) {
+              const methodParams = methods[methodName];
+              for (let i = 0, count = methodParams.length; i < count; i++) {
+                const params = methodParams[i];
+                const promise = this.parseMethod(originValue, methodName, params);
+                promises.push(promise);
+              }
+            }
+          } else {
+            promises.push(this.parseBasicType(value[key], originValue[key]).then((v) => (originValue[key] = v)));
+          }
+        }
+        return Promise.all(promises).then(() => originValue);
+      }
+    }
+    // primitive type
+    return Promise.resolve(value);
+  }
+
+  private _getEntityByConfig(entityConfig: IEntity) {
     // @ts-ignore
     const assetRefId: string = entityConfig.assetRefId;
+    const engine = this._context.engine;
     if (assetRefId) {
       return (
         engine.resourceManager
@@ -38,94 +123,15 @@ export class ReflectionParser {
     }
   }
 
-  static parseClassObject(
-    item: IClassObject,
-    engine: Engine,
-    resourceManager: any = engine.resourceManager
-  ): Promise<any> {
-    const Class = Loader.getClass(item.class);
-    const params = item.constructParams ?? [];
-    const instance = new Class(...params);
-    return this.parsePropsAndMethods(instance, item, engine, resourceManager);
-  }
-
-  static parseBasicType(
-    value: IBasicType,
-    engine: Engine,
-    resourceManager: any = engine.resourceManager
-  ): Promise<any> {
-    if (Array.isArray(value)) {
-      return Promise.all(value.map((item) => this.parseBasicType(item, engine, resourceManager)));
-    } else if (typeof value === "object" && value != null) {
-      if (this._isClass(value)) {
-        // class object
-        return this.parseClassObject(value, engine, resourceManager);
-      } else if (this._isRef(value)) {
-        // reference object
-        return resourceManager.getResourceByRef(value);
-      } else {
-        // basic type
-        return Promise.resolve(value);
-      }
-    } else {
-      return Promise.resolve(value);
-    }
-  }
-
-  static parsePropsAndMethods(
-    instance: any,
-    item: Omit<IClassObject, "class">,
-    engine: Engine,
-    resourceManager: any = engine.resourceManager
-  ) {
-    const promises = [];
-    if (item.methods) {
-      for (let methodName in item.methods) {
-        const methodParams = item.methods[methodName];
-        for (let i = 0, count = methodParams.length; i < count; i++) {
-          const params = methodParams[i];
-          const promise = this.parseMethod(instance, methodName, params, engine, resourceManager);
-          promises.push(promise);
-        }
-      }
-    }
-
-    if (item.props) {
-      for (let key in item.props) {
-        const value = item.props[key];
-        const promise = this.parseBasicType(value, engine).then((v) => {
-          return (instance[key] = v);
-        });
-        promises.push(promise);
-      }
-    }
-
-    return Promise.all(promises).then(() => {
-      const handle = this.customParseComponentHandles[instance.constructor.name];
-      if (handle) return handle(instance, item, engine);
-      else return instance;
-    });
-  }
-
-  static parseMethod(
-    instance: any,
-    methodName: string,
-    methodParams: Array<IBasicType>,
-    engine: Engine,
-    resourceManager: any = engine.resourceManager
-  ) {
-    return Promise.all(methodParams.map((param) => this.parseBasicType(param, engine, resourceManager))).then(
-      (result) => {
-        return instance[methodName](...result);
-      }
-    );
-  }
-
   private static _isClass(value: any): value is IClassObject {
     return value["class"] != undefined;
   }
 
-  private static _isRef(value: any): value is IAssetRef {
+  private static _isAssetRef(value: any): value is IAssetRef {
     return value["refId"] != undefined;
+  }
+
+  private static _isEntityRef(value: any): value is IEntityRef {
+    return value["entityId"] != undefined;
   }
 }

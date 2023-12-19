@@ -1,8 +1,26 @@
-import { IndexFormat, TypedArray, Utils, VertexElementFormat } from "@galacean/engine-core";
+import {
+  IndexFormat,
+  Texture2D,
+  TextureFilterMode,
+  TypedArray,
+  Utils,
+  VertexElementFormat
+} from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
-import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
-import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
+import {
+  AccessorComponentType,
+  AccessorType,
+  IAccessor,
+  IBufferView,
+  IGLTF,
+  ISampler,
+  ISamplerInfo,
+  TextureMagFilter,
+  TextureMinFilter
+} from "./GLTFSchema";
+import { GLTFTextureParser } from "./parser";
+import { BufferInfo, GLTFParserContext, GLTFParserType } from "./parser/GLTFParserContext";
 
 /**
  * @internal
@@ -110,54 +128,76 @@ export class GLTFUtils {
     }
   }
 
-  static getAccessorBuffer(context: GLTFParserContext, bufferViews: IBufferView[], accessor: IAccessor): BufferInfo {
-    const { buffers } = context;
-
+  static getAccessorBuffer(
+    context: GLTFParserContext,
+    bufferViews: IBufferView[],
+    accessor: IAccessor
+  ): Promise<BufferInfo> {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    const bufferIndex = bufferView.buffer;
-    const buffer = buffers[bufferIndex];
-    const bufferByteOffset = bufferView.byteOffset || 0;
-    const byteOffset = accessor.byteOffset || 0;
+    return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
+      const bufferIndex = bufferView.buffer;
+      const buffer = buffers[bufferIndex];
+      const bufferByteOffset = bufferView.byteOffset ?? 0;
+      const byteOffset = accessor.byteOffset ?? 0;
 
-    const TypedArray = GLTFUtils.getComponentType(componentType);
-    const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
-    const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
-    const elementStride = dataElementSize * dataElementBytes;
-    const accessorCount = accessor.count;
-    const bufferStride = bufferView.byteStride;
+      const TypedArray = GLTFUtils.getComponentType(componentType);
+      const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
+      const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
+      const elementStride = dataElementSize * dataElementBytes;
+      const accessorCount = accessor.count;
+      const bufferStride = bufferView.byteStride;
 
-    let bufferInfo: BufferInfo;
-    // According to the glTF official documentation only byteStride not undefined is allowed
-    if (bufferStride !== undefined && bufferStride !== elementStride) {
-      const bufferSlice = Math.floor(byteOffset / bufferStride);
-      const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
-      const accessorBufferCache = context.accessorBufferCache;
-      bufferInfo = accessorBufferCache[bufferCacheKey];
-      if (!bufferInfo) {
-        const offset = bufferByteOffset + bufferSlice * bufferStride;
-        const count = accessorCount * (bufferStride / dataElementBytes);
+      let bufferInfo: BufferInfo;
+      // According to the glTF official documentation only byteStride not undefined is allowed
+      if (bufferStride !== undefined && bufferStride !== elementStride) {
+        const bufferSlice = Math.floor(byteOffset / bufferStride);
+        const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+        const accessorBufferCache = context.accessorBufferCache;
+        bufferInfo = accessorBufferCache[bufferCacheKey];
+        if (!bufferInfo) {
+          const offset = bufferByteOffset + bufferSlice * bufferStride;
+          const count = accessorCount * (bufferStride / dataElementBytes);
+          const data = new TypedArray(buffer, offset, count);
+          accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+          bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+            new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+          );
+        }
+      } else {
+        const offset = bufferByteOffset + byteOffset;
+        const count = accessorCount * dataElementSize;
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+        bufferInfo = new BufferInfo(data, false, elementStride);
         bufferInfo.restoreInfo = new BufferDataRestoreInfo(
           new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
         );
       }
-    } else {
-      const offset = bufferByteOffset + byteOffset;
-      const count = accessorCount * dataElementSize;
-      const data = new TypedArray(buffer, offset, count);
-      bufferInfo = new BufferInfo(data, false, elementStride);
-      bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-        new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
-      );
-    }
 
-    if (accessor.sparse) {
-      GLTFUtils.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
+      if (accessor.sparse) {
+        GLTFUtils.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
+      }
+      return bufferInfo;
+    });
+  }
+
+  public static bufferToVector3Array(
+    data: TypedArray,
+    byteStride: number,
+    accessorByteOffset: number,
+    count: number
+  ): Vector3[] {
+    const bytesPerElement = data.BYTES_PER_ELEMENT;
+    const offset = (accessorByteOffset % byteStride) / bytesPerElement;
+    const stride = byteStride / bytesPerElement;
+
+    const vector3s = new Array<Vector3>(count);
+    for (let i = 0; i < count; i++) {
+      const index = offset + i * stride;
+      vector3s[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
     }
-    return bufferInfo;
+    return vector3s;
   }
 
   /**
@@ -444,16 +484,48 @@ export class GLTFUtils {
     };
   }
 
-  private static _formatRelativePath(path: string): string {
-    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
-    return path
-      .split("/")
-      .filter(Boolean)
-      .reduce((acc, cur) => {
-        if (cur === "..") acc.pop();
-        else if (cur !== ".") acc.push(cur);
-        return acc;
-      }, [])
-      .join("/");
+  static parseSampler(texture: Texture2D, samplerInfo: ISamplerInfo): void {
+    const { filterMode, wrapModeU, wrapModeV } = samplerInfo;
+
+    if (filterMode !== undefined) {
+      texture.filterMode = filterMode;
+    }
+
+    if (wrapModeU !== undefined) {
+      texture.wrapModeU = wrapModeU;
+    }
+
+    if (wrapModeV !== undefined) {
+      texture.wrapModeV = wrapModeV;
+    }
+  }
+
+  static getSamplerInfo(sampler: ISampler): ISamplerInfo {
+    const { minFilter, magFilter, wrapS, wrapT } = sampler;
+    const info = <ISamplerInfo>{};
+
+    if (minFilter || magFilter) {
+      info.mipmap = minFilter >= TextureMinFilter.NEAREST_MIPMAP_NEAREST;
+
+      if (magFilter === TextureMagFilter.NEAREST) {
+        info.filterMode = TextureFilterMode.Point;
+      } else {
+        if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
+          info.filterMode = TextureFilterMode.Bilinear;
+        } else {
+          info.filterMode = TextureFilterMode.Trilinear;
+        }
+      }
+    }
+
+    if (wrapS) {
+      info.wrapModeU = GLTFTextureParser._wrapMap[wrapS];
+    }
+
+    if (wrapT) {
+      info.wrapModeV = GLTFTextureParser._wrapMap[wrapT];
+    }
+
+    return info;
   }
 }

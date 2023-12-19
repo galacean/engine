@@ -160,6 +160,42 @@ describe("Script", () => {
       expect(script.onDisable).to.have.been.called.exactly(2);
     });
 
+    it("Script delete in the main loop", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+
+      class Script1 extends Script {
+        onUpdate(deltaTime: number): void {}
+      }
+      class Script2 extends Script {
+        onUpdate(deltaTime: number): void {}
+      }
+      const entity1 = scene.createRootEntity("1");
+      const script1 = entity1.addComponent(Script1);
+      const entity2 = scene.createRootEntity("2");
+      const script2 = entity2.addComponent(Script2);
+      class Script3 extends Script {
+        onUpdate(deltaTime: number): void {
+          if (!entity1.destroyed) {
+            entity1.destroy();
+          } else {
+            entity2.destroy();
+          }
+        }
+      }
+      const entity3 = scene.createRootEntity("0");
+      const script3 = entity3.addComponent(Script3);
+      Script1.prototype.onUpdate = chai.spy(Script1.prototype.onUpdate);
+      Script2.prototype.onUpdate = chai.spy(Script2.prototype.onUpdate);
+      Script3.prototype.onUpdate = chai.spy(Script3.prototype.onUpdate);
+      engine.update();
+      engine.update();
+      engine.update();
+      expect(script1.onUpdate).to.have.been.called.exactly(1);
+      expect(script2.onUpdate).to.have.been.called.exactly(1);
+      expect(script3.onUpdate).to.have.been.called.exactly(3);
+    });
+
     it("Engine destroy outside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {
@@ -252,7 +288,7 @@ describe("Script", () => {
     });
 
     it("Dependent components", async () => {
-      @dependentComponents(Camera,DependentMode.CheckOnly)
+      @dependentComponents(Camera, DependentMode.CheckOnly)
       class CheckScript extends Script {}
 
       @dependentComponents(Camera, DependentMode.AutoAdd)
@@ -272,6 +308,18 @@ describe("Script", () => {
       entity2.addComponent(AutoAddScript);
       const camera = entity2.getComponent(Camera);
       expect(camera).to.not.null;
+    });
+
+    it("remove entity", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      entity.addComponent(Script);
+      rootEntity.removeChild(entity);
+      expect(() => {
+        engine.update();
+      }).to.not.throw();
     });
   });
 });

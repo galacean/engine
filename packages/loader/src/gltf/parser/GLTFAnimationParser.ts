@@ -3,7 +3,6 @@ import {
   AnimationFloatArrayCurve,
   AnimationQuaternionCurve,
   AnimationVector3Curve,
-  AssetPromise,
   Component,
   Entity,
   InterpolationType,
@@ -13,7 +12,6 @@ import {
   TypedArray
 } from "@galacean/engine-core";
 import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
-import { GLTFUtils } from "../GLTFUtils";
 import {
   AccessorType,
   AnimationChannelTargetPath,
@@ -21,22 +19,28 @@ import {
   IAnimation,
   IAnimationChannel
 } from "../GLTFSchema";
+import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+@registerGLTFParser(GLTFParserType.Animation)
 export class GLTFAnimationParser extends GLTFParser {
   /**
    * @internal
    */
-  static _parseStandardProperty(context: GLTFParserContext, animationClip: AnimationClip, animationInfo: IAnimation) {
-    const { glTF, glTFResource } = context;
-    const { entities } = glTFResource;
+  static _parseStandardProperty(
+    context: GLTFParserContext,
+    animationClip: AnimationClip,
+    animationInfo: IAnimation
+  ): Promise<AnimationClip> {
+    const { glTF } = context;
     const { accessors, bufferViews } = glTF;
     const { channels, samplers } = animationInfo;
-
     const sampleDataCollection = new Array<SampleData>();
+    const entities = context.get<Entity>(GLTFParserType.Entity);
 
     let duration = -1;
+    let promises = new Array<Promise<void | Entity[]>>();
 
     // parse samplers
     for (let j = 0, m = samplers.length; j < m; j++) {
@@ -44,85 +48,100 @@ export class GLTFAnimationParser extends GLTFParser {
       const inputAccessor = accessors[gltfSampler.input];
       const outputAccessor = accessors[gltfSampler.output];
 
-      const input = GLTFUtils.getAccessorBuffer(context, bufferViews, inputAccessor).data;
-      let output = GLTFUtils.getAccessorBuffer(context, bufferViews, outputAccessor).data;
-
-      if (outputAccessor.normalized) {
-        const scale = GLTFUtils.getNormalizedComponentScale(outputAccessor.componentType);
-        const scaled = new Float32Array(output.length);
-        for (let k = 0, v = output.length; k < v; k++) {
-          scaled[k] = output[k] * scale;
+      const promise = Promise.all([
+        GLTFUtils.getAccessorBuffer(context, bufferViews, inputAccessor),
+        GLTFUtils.getAccessorBuffer(context, bufferViews, outputAccessor)
+      ]).then((bufferInfos) => {
+        const input = bufferInfos[0].data;
+        let output = bufferInfos[1].data;
+        if (outputAccessor.normalized) {
+          const scale = GLTFUtils.getNormalizedComponentScale(outputAccessor.componentType);
+          const scaled = new Float32Array(output.length);
+          for (let k = 0, v = output.length; k < v; k++) {
+            scaled[k] = output[k] * scale;
+          }
+          output = scaled;
         }
-        output = scaled;
-      }
 
-      const outputStride = output.length / input.length;
+        const outputStride = output.length / input.length;
 
-      const interpolation = gltfSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
-      let samplerInterpolation: InterpolationType;
-      switch (interpolation) {
-        case AnimationSamplerInterpolation.CubicSpine:
-          samplerInterpolation = InterpolationType.CubicSpine;
-          break;
-        case AnimationSamplerInterpolation.Step:
-          samplerInterpolation = InterpolationType.Step;
-          break;
-        case AnimationSamplerInterpolation.Linear:
-          samplerInterpolation = InterpolationType.Linear;
-          break;
-      }
+        const interpolation = gltfSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
+        let samplerInterpolation: InterpolationType;
+        switch (interpolation) {
+          case AnimationSamplerInterpolation.CubicSpine:
+            samplerInterpolation = InterpolationType.CubicSpine;
+            break;
+          case AnimationSamplerInterpolation.Step:
+            samplerInterpolation = InterpolationType.Step;
+            break;
+          case AnimationSamplerInterpolation.Linear:
+            samplerInterpolation = InterpolationType.Linear;
+            break;
+        }
 
-      const maxTime = input[input.length - 1];
-      if (maxTime > duration) {
-        duration = maxTime;
-      }
+        const maxTime = input[input.length - 1];
+        if (maxTime > duration) {
+          duration = maxTime;
+        }
 
-      sampleDataCollection.push({
-        type: outputAccessor.type,
-        interpolation: samplerInterpolation,
-        input,
-        output,
-        outputSize: outputStride
+        sampleDataCollection.push({
+          type: outputAccessor.type,
+          interpolation: samplerInterpolation,
+          input,
+          output,
+          outputSize: outputStride
+        });
       });
+      promises.push(promise);
     }
 
-    for (let j = 0, m = channels.length; j < m; j++) {
-      const gltfChannel = channels[j];
-      const { target } = gltfChannel;
+    promises.push(context.get<Entity>(GLTFParserType.Scene));
 
-      const channelTargetEntity = entities[target.node];
-      let relativePath = "";
-      let entity = channelTargetEntity;
-      while (entity.parent) {
-        relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
-        entity = entity.parent;
+    return Promise.all(promises).then(() => {
+      for (let j = 0, m = channels.length; j < m; j++) {
+        const gltfChannel = channels[j];
+        const { target } = gltfChannel;
+
+        const channelTargetEntity = entities[target.node];
+        let relativePath = "";
+        let entity = channelTargetEntity;
+        while (entity.parent) {
+          relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
+          entity = entity.parent;
+        }
+
+        // If the target node is in the default scene, relativePath will be empty
+        if (context.glTFResource.sceneRoots.indexOf(entity) === -1) {
+          continue;
+        }
+
+        let ComponentType: new (entity: Entity) => Component;
+        let propertyName: string;
+        switch (target.path) {
+          case AnimationChannelTargetPath.TRANSLATION:
+            ComponentType = Transform;
+            propertyName = "position";
+            break;
+          case AnimationChannelTargetPath.ROTATION:
+            ComponentType = Transform;
+            propertyName = "rotationQuaternion";
+            break;
+          case AnimationChannelTargetPath.SCALE:
+            ComponentType = Transform;
+            propertyName = "scale";
+            break;
+          case AnimationChannelTargetPath.WEIGHTS:
+            ComponentType = SkinnedMeshRenderer;
+            propertyName = "blendShapeWeights";
+            break;
+          default:
+        }
+
+        const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
+        animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
       }
-
-      let ComponentType: new (entity: Entity) => Component;
-      let propertyName: string;
-      switch (target.path) {
-        case AnimationChannelTargetPath.TRANSLATION:
-          ComponentType = Transform;
-          propertyName = "position";
-          break;
-        case AnimationChannelTargetPath.ROTATION:
-          ComponentType = Transform;
-          propertyName = "rotationQuaternion";
-          break;
-        case AnimationChannelTargetPath.SCALE:
-          ComponentType = Transform;
-          propertyName = "scale";
-          break;
-        case AnimationChannelTargetPath.WEIGHTS:
-          ComponentType = SkinnedMeshRenderer;
-          propertyName = "blendShapeWeights";
-          break;
-        default:
-      }
-
-      const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
-      animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
-    }
+      return animationClip;
+    });
   }
 
   private static _addCurve(
@@ -184,12 +203,12 @@ export class GLTFAnimationParser extends GLTFParser {
           if (curve.interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = Array.from(output.subarray(offset, offset + outputSize));
             offset += outputSize;
-            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
             keyframe.outTangent = Array.from(output.subarray(offset, offset + outputSize));
             offset += outputSize;
           } else {
-            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
             offset += outputSize;
           }
           curve.addKey(keyframe);
@@ -199,53 +218,22 @@ export class GLTFAnimationParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> {
-    const { glTF, buffers, glTFResource } = context;
-    const { entities } = glTFResource;
-    const { animations, accessors, bufferViews } = glTF;
-    if (!animations) {
-      return;
-    }
-    const animationClipsPromiseInfo = context.animationClipsPromiseInfo;
+  parse(context: GLTFParserContext, index: number): Promise<AnimationClip> {
+    const animationInfo = context.glTF.animations[index];
+    const { name = `AnimationClip${index}` } = animationInfo;
 
-    const animationClipCount = animations.length;
-    const animationClipPromises = [];
-    const animationsIndices = new Array<{
-      name: string;
-      index: number;
-    }>(animationClipCount);
-
-    for (let i = 0; i < animationClipCount; i++) {
-      const animationInfo = animations[i];
-      const { name = `AnimationClip${i}` } = animationInfo;
-
-      let animationClip = <AnimationClip>(
+    const animationClipPromise =
+      <Promise<AnimationClip> | AnimationClip>(
         GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
-      );
+      ) || GLTFAnimationParser._parseStandardProperty(context, new AnimationClip(name), animationInfo);
 
-      if (!animationClip) {
-        animationClip = new AnimationClip(name);
-        GLTFAnimationParser._parseStandardProperty(context, animationClip, animationInfo);
-      }
-
-      animationClipPromises.push(animationClip);
-    }
-    return AssetPromise.all(animationClipPromises).then((animationClips) => {
-      glTFResource.animations = animationClips;
-      for (let i = 0; i < glTF.animations.length; i++) {
-        const animationInfo = glTF.animations[i];
-        GLTFParser.executeExtensionsAdditiveAndParse(
-          animationInfo.extensions,
-          context,
-          animationClips[i],
-          animationInfo
-        );
-      }
-      animationClipsPromiseInfo.resolve(animationClips);
-      return animationClipsPromiseInfo.promise;
+    return Promise.resolve(animationClipPromise).then((animationClip) => {
+      GLTFParser.executeExtensionsAdditiveAndParse(animationInfo.extensions, context, animationClip, animationInfo);
+      return animationClip;
     });
   }
 }
+
 interface SampleData {
   type: AccessorType;
   input: TypedArray;

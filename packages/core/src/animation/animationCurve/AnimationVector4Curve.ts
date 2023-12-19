@@ -1,5 +1,6 @@
 import { Vector4 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -11,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Vector4>>()
 export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -23,6 +24,13 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     owner.fixedPoseValue = new Vector4();
     owner.baseEvaluateData.value = new Vector4();
     owner.crossEvaluateData.value = new Vector4();
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Vector4();
   }
 
   /**
@@ -61,7 +69,7 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   /**
    * @internal
    */
-  static _copyValue(source: Vector4, out: Vector4): Vector4 {
+  static _setValue(source: Vector4, out: Vector4): Vector4 {
     out.copyFrom(source);
     return out;
   }

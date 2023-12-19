@@ -57,7 +57,7 @@ export abstract class Basic2DBatcher {
 
       for (let i = 0, n = charsData.length; i < n; ++i) {
         const charRenderElement = pool.getFromPool();
-        charRenderElement.set(charsData[i], element.shaderPass, element.renderState);
+        charRenderElement.set(charsData[i], element.shaderPasses);
         this._drawSubElement(charRenderElement, camera);
       }
     } else {
@@ -140,26 +140,28 @@ export abstract class Basic2DBatcher {
   private _createMesh(engine: Engine, index: number): BufferMesh {
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;
     const mesh = new BufferMesh(engine, `BufferMesh${index}`);
-
+    mesh.isGCIgnored = true;
     const vertexElements: VertexElement[] = [];
     const vertexStride = this.createVertexElements(vertexElements);
 
     // vertices
-    this._vertexBuffers[index] = new Buffer(
+    const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * 4 * vertexStride,
+      MAX_VERTEX_COUNT * vertexStride,
       BufferUsage.Dynamic
-    );
+    ));
+    vertexBuffer.isGCIgnored = true;
     // indices
-    this._indiceBuffers[index] = new Buffer(
+    const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 2 * 3,
+      MAX_VERTEX_COUNT * 6,
       BufferUsage.Dynamic
-    );
-    mesh.setVertexBufferBinding(this._vertexBuffers[index], vertexStride);
-    mesh.setIndexBufferBinding(this._indiceBuffers[index], IndexFormat.UInt16);
+    ));
+    indiceBuffer.isGCIgnored = true;
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
     mesh.setVertexElements(vertexElements);
 
     return mesh;

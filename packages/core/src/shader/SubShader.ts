@@ -19,8 +19,9 @@ export class SubShader extends ShaderPart {
    * @param name - Name of the sub shader
    * @param passes - Sub shader passes
    */
-  constructor(public readonly name: string, passes: ShaderPass[], tags?: Record<string, number | string | boolean>) {
+  constructor(name: string, passes: ShaderPass[], tags?: Record<string, number | string | boolean>) {
     super();
+    this._name = name;
     const passCount = passes.length;
     if (passCount < 1) {
       throw " count must large than 0.";

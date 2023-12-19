@@ -5,11 +5,13 @@ import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
+import { ReferResource } from "../asset/ReferResource";
+import { Engine } from "../Engine";
 
 /**
  * Ambient light.
  */
-export class AmbientLight {
+export class AmbientLight extends ReferResource {
   private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
   private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
   private static _decodeRGBMMacro: ShaderMacro = ShaderMacro.getByName("SCENE_IS_DECODE_ENV_RGBM");
@@ -151,8 +153,8 @@ export class AmbientLight {
    * @internal
    */
   _addToScene(scene: Scene): void {
+    this._addReferCount(1);
     this._scenes.push(scene);
-
     const shaderData = scene.shaderData;
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
@@ -168,9 +170,17 @@ export class AmbientLight {
    * @internal
    */
   _removeFromScene(scene: Scene): void {
+    this._addReferCount(-1);
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     scenes.splice(index, 1);
+    const shaderData = scene.shaderData;
+    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    shaderData.disableMacro(AmbientLight._specularMacro);
+  }
+
+  constructor(engine: Engine) {
+    super(engine);
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {

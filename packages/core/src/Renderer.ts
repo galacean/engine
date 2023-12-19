@@ -6,7 +6,7 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { ICustomClone } from "./clone/ComponentCloner";
+import { IComponentCustomClone } from "./clone/ComponentCloner";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -18,7 +18,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component implements ICustomClone {
+export class Renderer extends Component implements IComponentCustomClone {
   private static _tempVector0 = new Vector3();
 
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
@@ -29,10 +29,6 @@ export class Renderer extends Component implements ICustomClone {
   private static _mvInvMatrixProperty = ShaderProperty.getByName("renderer_MVInvMat");
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
   private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
-
-  /** ShaderData related to renderer. */
-  @deepClone
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
 
   /** @internal */
   @ignoreClone
@@ -47,7 +43,7 @@ export class Renderer extends Component implements ICustomClone {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
+  @ignoreClone
   _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
@@ -59,6 +55,8 @@ export class Renderer extends Component implements ICustomClone {
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
 
+  @deepClone
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -69,13 +67,20 @@ export class Renderer extends Component implements ICustomClone {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @ignoreClone
+  @assignmentClone
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
 
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+
+  /**
+   * ShaderData related to renderer.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -332,7 +337,7 @@ export class Renderer extends Component implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: Renderer): void {
+  _cloneTo(target: Renderer, srcRoot: Entity, targetRoot: Entity): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);
@@ -352,6 +357,18 @@ export class Renderer extends Component implements ICustomClone {
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addReferCount(-1);
     }
+
+    this._entity = null;
+    this._globalShaderMacro = null;
+    this._bounds = null;
+    this._materials = null;
+    this._shaderData = null;
+    this._mvMatrix = null;
+    this._mvpMatrix = null;
+    this._mvInvMatrix = null;
+    this._normalMatrix = null;
+    this._materialsInstanced = null;
+    this._rendererLayer = null;
   }
 
   /**

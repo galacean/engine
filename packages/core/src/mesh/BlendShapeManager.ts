@@ -45,7 +45,7 @@ export class BlendShapeManager {
   /** @internal */
   _bufferBindingOffset: number = -1;
   /** @internal */
-  _vertexElementOffset: number;
+  _vertexElementOffset: number = 0;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
@@ -123,11 +123,11 @@ export class BlendShapeManager {
           }
           this._filterCondensedBlendShapeWeights(skinnedMeshRenderer.blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
-          this._modelMesh._enableVAO = false;
+          this._modelMesh._primitive.enableVAO = false;
           blendShapeCount = maxBlendCount;
         } else {
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-          this._modelMesh._enableVAO = true;
+          this._modelMesh._primitive.enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
@@ -204,14 +204,17 @@ export class BlendShapeManager {
       return;
     }
 
-    const internalVertexBufferIndex = this._modelMesh._internalVertexBufferIndex;
-    const vertexBufferBindings = this._modelMesh._vertexBufferBindings;
-    for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+    const modelMesh = this._modelMesh;
+    const internalVertexBufferIndex = modelMesh._internalVertexBufferIndex;
+    const vertexBufferBindings = modelMesh._primitive.vertexBufferBindings;
+    let i = 0;
+    const n = Math.max(vertexBufferBindings.length, internalVertexBufferIndex + 1);
+    for (; i < n; i++) {
       if (!vertexBufferBindings[i] && i !== internalVertexBufferIndex) {
         break;
       }
     }
-    this._bufferBindingOffset = internalVertexBufferIndex + 1;
+    this._bufferBindingOffset = i;
   }
 
   /**
@@ -543,7 +546,7 @@ export class BlendShapeManager {
     condensedBlendShapeWeights: Float32Array
   ): void {
     const condensedWeightsCount = condensedBlendShapeWeights.length;
-    const vertexElements = this._modelMesh._vertexElements;
+    const vertexElements = this._modelMesh._primitive.vertexElements;
     const vertexBufferStoreInfo = this._storeInVertexBufferInfo;
     let thresholdWeight = Number.POSITIVE_INFINITY;
     let thresholdIndex: number;

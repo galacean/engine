@@ -1,5 +1,5 @@
-import { IColliderShape } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
+import { IColliderShape } from "@galacean/engine-design";
 import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
@@ -31,7 +31,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
 
   protected _physXPhysics: PhysXPhysics;
-  protected _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _worldScale: Vector3 = new Vector3(1, 1, 1);
   protected _position: Vector3 = new Vector3();
   protected _rotation: Vector3 = null;
   protected _axis: Quaternion = null;
@@ -40,7 +40,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   /** @internal */
-  _pxMaterials: any[] = new Array(1);
+  _pxMaterial: any;
   /** @internal */
   _pxShape: any;
   /** @internal */
@@ -72,7 +72,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     }
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setLocalPosition(this._position, this._scale);
+      controllers.get(i)._updateShapePosition(this._position, this._worldScale);
     }
 
     this._setLocalPose();
@@ -82,12 +82,12 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    this._scale.copyFrom(scale);
+    this._worldScale.copyFrom(scale);
     this._setLocalPose();
 
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._setLocalPosition(this._position, this._scale);
+      controllers.get(i)._updateShapePosition(this._position, this._worldScale);
     }
   }
 
@@ -108,8 +108,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
-    this._pxMaterials[0] = value._pxMaterial;
-    this._pxShape.setMaterials(this._pxMaterials);
+    this._pxMaterial = value._pxMaterial;
+    this._pxShape.setMaterial(this._pxMaterial);
   }
 
   /**
@@ -138,14 +138,14 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   protected _setLocalPose(): void {
     const transform = PhysXColliderShape.transform;
-    Vector3.multiply(this._position, this._scale, transform.translation);
+    Vector3.multiply(this._position, this._worldScale, transform.translation);
     transform.rotation = this._physXRotation;
     this._pxShape.setLocalPose(transform);
   }
 
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
-    this._pxMaterials[0] = material._pxMaterial;
+    this._pxMaterial = material._pxMaterial;
     this._pxShape = this._physXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,

@@ -13,13 +13,20 @@ import { RenderState } from "../shader/state/RenderState";
 export class Material extends ReferResource implements IClone {
   /** Name. */
   name: string;
-  /** Shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
   /** @internal */
   _shader: Shader;
   /** @internal */
   _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
+
+  /**
+   *  Shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Shader used by the material.
@@ -93,7 +100,19 @@ export class Material extends ReferResource implements IClone {
   }
 
   override _addReferCount(value: number): void {
+    if (this._destroyed) return;
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
+  }
+
+  /**
+   * @override
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._shader = null;
+    this._shaderData = null;
+    this._renderStates.length = 0;
+    this._renderStates = null;
   }
 }

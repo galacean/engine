@@ -60,6 +60,14 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
    * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
    */
   _forceFlush?: boolean;
+
+  /**
+   * @internal
+   * Max allow skin uniform vectors count, default is 256
+   *
+   * @remarks large count maybe cause performance issue.
+   */
+  _maxAllowSkinUniformVectorCount?: number;
 }
 
 /**
@@ -126,6 +134,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       webGLMode: WebGLMode.Auto,
       stencil: true,
       _forceFlush: false,
+      _maxAllowSkinUniformVectorCount: 256,
       ...initializeOptions
     };
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
@@ -304,11 +313,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {
+  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: any) {
     // todo: VAO not support morph animation
     if (primitive) {
-      //@ts-ignore
-      primitive._draw(shaderProgram, subPrimitive);
+      primitive.draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
     }
