@@ -17,6 +17,7 @@ export class RenderQueue {
   static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
     return (
       a.data.component.priority - b.data.component.priority ||
+      a.data.material._priority - b.data.material._priority ||
       a.data.component._distanceForSort - b.data.component._distanceForSort
     );
   }
@@ -27,6 +28,7 @@ export class RenderQueue {
   static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
     return (
       a.data.component.priority - b.data.component.priority ||
+      a.data.material._priority - b.data.material._priority ||
       b.data.component._distanceForSort - a.data.component._distanceForSort
     );
   }
