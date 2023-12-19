@@ -7,7 +7,10 @@ import { PrimitiveMesh } from "./PrimitiveMesh";
  * @internal
  */
 export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
-  constructor(resource: ModelMesh, public primitiveInfo: PrimitiveRestoreInfo) {
+  constructor(
+    resource: ModelMesh,
+    public primitiveInfo: PrimitiveRestoreInfo
+  ) {
     super(resource);
   }
 
@@ -136,14 +139,23 @@ enum PrimitiveType {
  * @internal
  */
 export class PrimitiveRestoreInfo {
-  constructor(public type: PrimitiveType, public vertexBuffer: Buffer, public noLongerAccessible: boolean) {}
+  constructor(
+    public type: PrimitiveType,
+    public vertexBuffer: Buffer,
+    public noLongerAccessible: boolean
+  ) {}
 }
 
 /**
  * @internal
  */
 export class SphereRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public radius: number, public segments: number, vertexBuffer: Buffer, noLongerAccessible: boolean) {
+  constructor(
+    public radius: number,
+    public segments: number,
+    vertexBuffer: Buffer,
+    noLongerAccessible: boolean
+  ) {
     super(PrimitiveType.Sphere, vertexBuffer, noLongerAccessible);
   }
 }
@@ -152,7 +164,12 @@ export class SphereRestoreInfo extends PrimitiveRestoreInfo {
  * @internal
  */
 export class CCSphereRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public radius: number, public step: number, vertexBuffer: Buffer, noLongerAccessible: boolean) {
+  constructor(
+    public radius: number,
+    public step: number,
+    vertexBuffer: Buffer,
+    noLongerAccessible: boolean
+  ) {
     super(PrimitiveType.CCSphere, vertexBuffer, noLongerAccessible);
   }
 }
