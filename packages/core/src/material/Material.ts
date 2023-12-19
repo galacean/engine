@@ -54,6 +54,11 @@ export class Material extends ReferResource implements IClone {
     } else {
       renderStates.length = maxPassCount;
     }
+
+    if (this._shader) {
+      this._shader._addReferCount(-1);
+    }
+    value._addReferCount(1);
   }
 
   /**
@@ -103,6 +108,7 @@ export class Material extends ReferResource implements IClone {
     if (this._destroyed) return;
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
+    this._shader._addReferCount(value);
   }
 
   /**

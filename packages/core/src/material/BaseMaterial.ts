@@ -55,6 +55,11 @@ export class BaseMaterial extends Material {
     } else {
       renderStates.length = maxPassCount;
     }
+
+    if (this._shader) {
+      this._addReferCount(-1);
+    }
+    value._addReferCount(1);
   }
 
   /**
