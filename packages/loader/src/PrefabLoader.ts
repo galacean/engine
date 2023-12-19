@@ -24,14 +24,7 @@ class PrefabLoader extends Loader<Entity | IPrefabContextData> {
         .then((data) => {
           const parser = PrefabParser.parse(engine, data);
           parser.promise.then((prefab) => {
-            if (item?.params?.needContext) {
-              resolve({
-                context: parser.context,
-                entity: prefab
-              });
-            } else {
-              resolve(prefab);
-            }
+            resolve(prefab);
           });
         })
         .catch(reject);

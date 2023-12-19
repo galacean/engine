@@ -4,14 +4,7 @@ import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
 import { PrefabParserContext } from "../prefab/PrefabParserContext";
 
-/**
- * HierarchyParser parser.
- * Any HierarchyParser parser should extends this class, like scene parser, prefab parser, etc.
- * @export
- * @abstract
- * @class HierarchyParserParser
- * @template T
- */
+/** @Internal */
 export default abstract class HierarchyParser<T extends Scene | Entity, V extends ParserContext<IPrefabFile, T>> {
   /**
    * The promise of parsed object.
@@ -59,12 +52,6 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
       .catch(this._reject);
   }
 
-  /**
-   * Append child entity to target.
-   * @abstract
-   * @param {Entity} entity
-   * @memberof ParserContext
-   */
   protected abstract handleRootEntity(id: string): void;
 
   private _parseEntities(): Promise<Entity[]> {
@@ -216,6 +203,7 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
   private _parseGLTF(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.assetRefId;
     const context = new ParserContext<IPrefabFile, Entity>(null, engine);
+
     return (
       engine.resourceManager
         // @ts-ignore
@@ -227,7 +215,6 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
         .then((entity) => {
           if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
-          entity.name = entityConfig.name;
           this._traverseAddEntityToMap(entity, context, "");
 
           this.prefabContextMap.set(entity, context);
@@ -239,6 +226,8 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
 
   private _parsePrefab(entityConfig: IPrefabEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.prefabSource?.assetId;
+    const context = new ParserContext<IPrefabFile, Entity>(null, engine);
+
     return (
       engine.resourceManager
         // @ts-ignore
@@ -248,8 +237,10 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
         .then((entity: Entity) => {
           if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
-          // this.prefabContextMap.set(entity, context);
-          // this.prefabPromiseMap.get(entityConfig.id)?.resolve(context);
+          this._traverseAddEntityToMap(entity, context, "");
+
+          this.prefabContextMap.set(entity, context);
+          this.prefabPromiseMap.get(entityConfig.id)?.resolve(context);
           return entity;
         })
     );
