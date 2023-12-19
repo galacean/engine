@@ -57,7 +57,7 @@ export class BaseMaterial extends Material {
     }
 
     if (this._shader) {
-      this._addReferCount(-1);
+      this._shader._addReferCount(-1);
     }
     value._addReferCount(1);
   }
