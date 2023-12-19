@@ -17,7 +17,8 @@
     "b:umd": "cross-env BUILD_TYPE=UMD rollup -c",
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
     "b:all": "npm run b:types && cross-env BUILD_TYPE=ALL rollup -c",
-    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types"
+    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
@@ -42,7 +43,6 @@
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^5.0.0",
     "floss": "^5.0.1",
-    "husky": "^4.3.7",
     "lint-staged": "^10.5.3",
     "nyc": "^15.1.0",
     "prettier": "^3.0.0",
@@ -52,13 +52,9 @@
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-swc3": "^0.10.1",
     "ts-node": "^10",
-    "typescript": "^5.1.6"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
+    "typescript": "^5.1.6",
+    "@types/webxr": "latest",
+    "husky": "^8.0.0"
   },
   "lint-staged": {
     "*.{ts}": [

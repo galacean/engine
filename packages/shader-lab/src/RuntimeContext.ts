@@ -58,6 +58,12 @@ interface IReferenceStructInfo {
 }
 
 export default class RuntimeContext {
+  private _shaderAst: AstNode<IShaderAstContent>;
+
+  get shaderAst() {
+    return this._shaderAst;
+  }
+
   functionAstStack: { fnAst: FnAstNode; localDeclaration: VariableDeclarationAstNode[] }[] = [];
   /** Diagnostic for linting service. */
   diagnostics: IDiagnostic[] = [];
@@ -123,6 +129,7 @@ export default class RuntimeContext {
   }
 
   parse(ast: AstNode<IShaderAstContent>): IShaderInfo {
+    this._shaderAst = ast;
     this._shaderReset();
 
     this._initShaderGlobalList(ast);
@@ -144,6 +151,12 @@ export default class RuntimeContext {
     return ret;
   }
 
+  private _resetPassScopeGlobalReference() {
+    for (const [_, g] of this._passGlobalMap) {
+      g.referenced = false;
+    }
+  }
+
   private _parsePassProperty(
     passAst: AstNode<IPassAstContent>,
     prop: PassPropertyAssignmentAstNode,
@@ -160,7 +173,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        this._initPassGlobalList(passAst);
+        this._resetPassScopeGlobalReference();
         ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(passAst, prop, this);
         break;
       case FRAG_FN_NAME:
@@ -172,7 +185,7 @@ export default class RuntimeContext {
           });
           return;
         }
-        this._initPassGlobalList(passAst);
+        this._resetPassScopeGlobalReference();
         ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(passAst, prop, this);
         break;
       default:
@@ -192,11 +205,13 @@ export default class RuntimeContext {
   }
 
   parsePassInfo(ast: AstNode<IPassAstContent | IUsePassAstContent>): IShaderPassInfo | string {
-    this._passReset();
-
     if (typeof ast.content === "string") {
+      // UsePass
       return ast.content;
     }
+
+    this._passReset();
+    this._initPassGlobalList(<AstNode<IPassAstContent>>ast);
 
     const ret = {} as IShaderPassInfo;
     ret.name = ast.content.name;
@@ -205,17 +220,16 @@ export default class RuntimeContext {
     const [constantProps, variableProps] = ret.renderStates;
 
     this.payload = { parsingRenderState: true };
-    const tmpRenderStates = ast.content.renderStates;
-    ast.content.properties.forEach((prop) =>
+    const tmpRenderStates = ast.content.renderStates ?? [];
+    ast.content.properties?.forEach((prop) =>
       this._parsePassProperty(<AstNode<IPassAstContent>>ast, prop, ret, tmpRenderStates)
     );
-    if (tmpRenderStates) {
-      for (const rs of tmpRenderStates) {
-        const [constP, variableP] = rs.getContentValue(this).properties;
-        Object.assign(constantProps, constP);
-        Object.assign(variableProps, variableP);
-      }
+    for (const rs of tmpRenderStates) {
+      const [constP, variableP] = rs.getContentValue(this).properties;
+      Object.assign(constantProps, constP);
+      Object.assign(variableProps, variableP);
     }
+
     this.payload = undefined;
 
     const renderQueueNode = ast.content.renderQueue;

@@ -10,6 +10,7 @@ export class AnimationCurveLayerOwner {
   crossCurveMark: number = 0;
   curveOwner: AnimationCurveOwner<KeyframeValueType>;
   finalValue: KeyframeValueType;
+  isActive: boolean = true;
 
   initFinalValue() {
     const { cureType, defaultValue } = this.curveOwner;

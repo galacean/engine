@@ -102,8 +102,8 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-      lastMesh?._addReferCount(-1);
-      value?._addReferCount(1);
+      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      value && this._addResourceReferCount(value, 1);
       if (this.renderMode === ParticleRenderMode.Mesh) {
         this.generator._reorganizeGeometryBuffers();
       }
@@ -180,17 +180,7 @@ export class ParticleRenderer extends Renderer {
 
   protected override _render(context: RenderContext): void {
     const generator = this.generator;
-    const primitive = generator._primitive;
-
-    if (generator._firstActiveElement < generator._firstFreeElement) {
-      primitive.instanceCount = generator._firstFreeElement - generator._firstActiveElement;
-    } else {
-      let instanceCount = generator._currentParticleCount - generator._firstActiveElement;
-      if (generator._firstFreeElement > 0) {
-        instanceCount += generator._firstFreeElement;
-      }
-      primitive.instanceCount = instanceCount;
-    }
+    generator._primitive.instanceCount = generator._getAliveParticleCount();
 
     let material = this.getMaterial();
     if (!material) {
@@ -208,6 +198,10 @@ export class ParticleRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     super._onDestroy();
+    const mesh = this._mesh;
+    if (mesh) {
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    }
     this.generator._destroy();
   }
 }
