@@ -1,5 +1,4 @@
-import { KeyframeValueType, MethodParam } from "../../../Keyframe";
-import { AnimationMethodCurve } from "../../../animationCurve";
+import { KeyframeValueType } from "../../../Keyframe";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
@@ -14,7 +13,6 @@ enum SetType {
 export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<KeyframeValueType> {
   private _mounted: Record<string, KeyframeValueType>;
   private _propertyName: string;
-  private _isMethodParamValue: KeyframeValueType;
   private _setType: SetType;
   private _methodName: string;
   private _args: any[];
@@ -50,7 +48,6 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
     const property = properties[endIndex];
 
     this._mounted = mounted;
-    this._isMethodParamValue = owner.cureType === AnimationMethodCurve;
 
     if (property.indexOf("[") > -1) {
       const indexPos = property.indexOf("[");
@@ -98,17 +95,8 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
       const args = this._args;
       const replaceValueIndex = this._replaceValueIndex;
 
-      if (this._isMethodParamValue) {
-        if (!value) return;
-
-        for (let i = 0, n = (value as MethodParam).length; i < n; i++) {
-          args.splice(replaceValueIndex, 1, ...value[i]);
-          (this._mounted[methodName] as any)(...args);
-        }
-      } else {
-        args[replaceValueIndex] = value;
-        (this._mounted[methodName] as any)(...args);
-      }
+      args[replaceValueIndex] = value;
+      (this._mounted[methodName] as any)(...args);
 
       // saveOriginValue
       this._mounted[`_o_${property}`] = value;
