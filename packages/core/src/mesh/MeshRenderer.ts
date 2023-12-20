@@ -156,7 +156,7 @@ export class MeshRenderer extends Renderer {
       if (!material) {
         continue;
       }
-      if (material.destroyed) {
+      if (material.destroyed || material.shader.destroyed) {
         material = this.engine._meshMagentaMaterial;
       }
 

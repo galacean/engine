@@ -36,6 +36,12 @@ export class Material extends ReferResource implements IClone {
   }
 
   set shader(value: Shader) {
+    const refCount = this._getReferCount();
+    if (refCount > 0) {
+      this._shader?._addReferCount(-refCount);
+      value._addReferCount(refCount);
+    }
+
     this._shader = value;
 
     const renderStates = this._renderStates;
@@ -103,6 +109,7 @@ export class Material extends ReferResource implements IClone {
     if (this._destroyed) return;
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
+    this._shader._addReferCount(value);
   }
 
   /**
