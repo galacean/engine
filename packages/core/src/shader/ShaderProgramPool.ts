@@ -65,7 +65,7 @@ export class ShaderProgramPool {
   }
 
   private _recursiveDestroy(hierarchy: number, cacheMap: Tree<ShaderProgram>): void {
-    if (hierarchy === this._cacheHierarchyDepth) {
+    if (hierarchy === this._cacheHierarchyDepth - 1) {
       for (let k in cacheMap) {
         (<ShaderProgram>cacheMap[k]).destroy();
       }
