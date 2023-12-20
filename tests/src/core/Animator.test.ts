@@ -227,7 +227,7 @@ describe("Animator test", function () {
     expect(layerState).to.eq(3);
   });
 
-  it.only("animation event", () => {
+  it("animation event", () => {
     animator.play("Walk");
 
     class TestScript extends Script {
