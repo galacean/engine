@@ -215,8 +215,8 @@ export class TextUtils {
           } else {
             word += char;
             wordWidth += charInfo.xAdvance;
-            wordMaxAscent = lineMaxAscent = Math.max(wordMaxAscent, ascent);
-            wordMaxDescent = lineMaxDescent = Math.max(wordMaxDescent, descent);
+            wordMaxAscent = lineMaxAscent = Math.max(wordMaxAscent, lineMaxAscent, ascent);
+            wordMaxDescent = lineMaxDescent = Math.max(wordMaxDescent, lineMaxDescent, descent);
           }
         }
       }
@@ -287,6 +287,7 @@ export class TextUtils {
       let maxDescent = 0;
 
       for (let j = 0, m = line.length; j < m; ++j) {
+        debugger;
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
