@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "packageManager": "pnpm@8.6.2",
   "private": true,
-  "type": "module",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "test": "cross-env TS_NODE_PROJECT=tsconfig.tests.json floss --path tests -r ts-node/register",
