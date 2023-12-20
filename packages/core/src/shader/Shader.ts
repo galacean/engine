@@ -5,7 +5,6 @@ import { IReferable } from "../asset/IReferable";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
-import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
 import { BlendFactor } from "./enums/BlendFactor";
@@ -262,7 +261,6 @@ export class Shader implements IReferable {
   private _refCount: number = 0;
   private _destroyed: boolean = false;
   private _subShaders: SubShader[];
-  private _shaderPrograms: ShaderProgram[] = [];
 
   /**
    * Sub shaders of the shader.
@@ -305,13 +303,11 @@ export class Shader implements IReferable {
 
     let isValid = false;
     const subShaders = this._subShaders;
-    const shaderPrograms = this._shaderPrograms;
     for (let i = 0, n = subShaders.length; i < n; i++) {
       const { passes } = subShaders[i];
       for (let j = 0, m = passes.length; j < m; j++) {
         const shaderProgram = passes[j]._getShaderProgram(engine, compileMacros);
         isValid = j === 0 ? shaderProgram.isValid : isValid && shaderProgram.isValid;
-        shaderPrograms.push(shaderProgram);
       }
     }
     return isValid;
@@ -327,11 +323,13 @@ export class Shader implements IReferable {
       return false;
     }
 
-    const shaderPrograms = this._shaderPrograms;
-    for (let i = 0, n = shaderPrograms.length; i < n; i++) {
-      shaderPrograms[i].destroy();
+    const subShaders = this._subShaders;
+    for (let i = 0, n = subShaders.length; i < n; i++) {
+      const subShader = subShaders[i];
+      for (let j = 0, m = subShader.passes.length; j < m; j++) {
+        subShader.passes[j]._destroy();
+      }
     }
-    shaderPrograms.length = 0;
 
     delete Shader._shaderMap[this.name];
     this._destroyed = true;
