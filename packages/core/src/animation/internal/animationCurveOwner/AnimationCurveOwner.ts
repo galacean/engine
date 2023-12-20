@@ -1,5 +1,6 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
+import { SkinnedMeshRenderer } from "../../../mesh";
 import { AnimationCurve } from "../../animationCurve/AnimationCurve";
 import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
@@ -41,24 +42,27 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
+  private _isBlendShape: boolean;
 
   constructor(
     target: Entity,
     type: new (entity: Entity) => Component,
+    component: Component,
     property: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
-    this.type = type;
     this.property = property;
-    this.component = target.getComponent(type);
+    this.component = component;
     this.cureType = cureType;
+
+    this._isBlendShape = this.component instanceof SkinnedMeshRenderer;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
 
-    if (cureType._isReferenceType) {
+    if (cureType._isCopyMode) {
       this.referenceTargetValue = this._assembler.getTargetValue();
     }
   }
@@ -77,6 +81,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     crossWeight: number,
     additive: boolean
   ): KeyframeValueType {
+    if (!this.cureType._supportInterpolationMode) {
+      return this.evaluateValue(destCurve, destTime, false);
+    }
+
     const srcValue =
       srcCurve && srcCurve.keys.length
         ? additive
@@ -104,6 +112,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     crossWeight: number,
     additive: boolean
   ): KeyframeValueType {
+    if (!this.cureType._supportInterpolationMode) {
+      return this.evaluateValue(destCurve, destTime, false);
+    }
+
     const srcValue = additive
       ? this.cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
       : this.fixedPoseValue;
@@ -124,8 +136,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   getEvaluateValue(out: V): V {
-    if (this.cureType._isReferenceType) {
-      this.cureType._copyValue(this.baseEvaluateData.value, out);
+    if (this.cureType._isCopyMode) {
+      this.cureType._setValue(this.baseEvaluateData.value, out);
       return out;
     } else {
       return this.baseEvaluateData.value;
@@ -133,16 +145,16 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveDefaultValue(): void {
-    if (this.cureType._isReferenceType) {
-      this.cureType._copyValue(this.referenceTargetValue, this.defaultValue);
+    if (this.cureType._isCopyMode) {
+      this.cureType._setValue(this.referenceTargetValue, this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
     }
   }
 
   saveFixedPoseValue(): void {
-    if (this.cureType._isReferenceType) {
-      this.cureType._copyValue(this.referenceTargetValue, this.fixedPoseValue);
+    if (this.cureType._isCopyMode) {
+      this.cureType._setValue(this.referenceTargetValue, this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
     }
@@ -150,26 +162,40 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   applyValue(value: V, weight: number, additive: boolean): void {
     const cureType = this.cureType;
+
     if (additive) {
-      if (cureType._isReferenceType) {
-        cureType._additiveValue(value, weight, this.referenceTargetValue);
+      const assembler = this._assembler;
+
+      if (cureType._isCopyMode) {
+        const additiveValue = cureType._additiveValue(value, weight, this.referenceTargetValue);
+        // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
+        if (this._isBlendShape) {
+          assembler.setTargetValue(additiveValue);
+        }
       } else {
-        const assembler = this._assembler;
         const originValue = assembler.getTargetValue();
         const additiveValue = cureType._additiveValue(value, weight, originValue);
         assembler.setTargetValue(additiveValue);
       }
     } else {
       if (weight === 1.0) {
-        if (cureType._isReferenceType) {
-          cureType._copyValue(value, this.referenceTargetValue);
+        if (cureType._isCopyMode) {
+          cureType._setValue(value, this.referenceTargetValue);
+          // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
+          if (this._isBlendShape) {
+            this._assembler.setTargetValue(this.referenceTargetValue);
+          }
         } else {
           this._assembler.setTargetValue(value);
         }
       } else {
-        if (cureType._isReferenceType) {
+        if (cureType._isCopyMode) {
           const targetValue = this.referenceTargetValue;
           cureType._lerpValue(targetValue, value, weight, targetValue);
+          // @todo: Temp solution with blendShape bug when multi SkinnedMeshRenderer in a entity. we need to run setTargetValue to solve it.
+          if (this._isBlendShape) {
+            this._assembler.setTargetValue(targetValue);
+          }
         } else {
           const originValue = this._assembler.getTargetValue();
           const lerpValue = cureType._lerpValue(originValue, value, weight);
@@ -180,7 +206,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   private _lerpValue(srcValue: V, destValue: V, crossWeight: number): KeyframeValueType {
-    if (this.cureType._isReferenceType) {
+    if (this.cureType._isCopyMode) {
       return this.cureType._lerpValue(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
     } else {
       this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);

@@ -1,3 +1,4 @@
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
@@ -18,6 +19,8 @@ export class AnimatorState {
   _onStateUpdateScripts: StateMachineScript[] = [];
   /** @internal */
   _onStateExitScripts: StateMachineScript[] = [];
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _clipStartTime: number = 0;
   private _clipEndTime: number = 1;
@@ -39,8 +42,21 @@ export class AnimatorState {
   }
 
   set clip(clip: AnimationClip) {
+    const lastClip = this._clip;
+    if (lastClip === clip) {
+      return;
+    }
+
+    if (lastClip) {
+      lastClip._updateFlagManager.removeListener(this._onClipChanged);
+    }
+
     this._clip = clip;
     this._clipEndTime = Math.min(this._clipEndTime, 1);
+
+    this._onClipChanged();
+
+    clip._updateFlagManager.addListener(this._onClipChanged);
   }
 
   /**
@@ -68,14 +84,26 @@ export class AnimatorState {
   /**
    * @param name - The state's name
    */
-  constructor(public readonly name: string) {}
+  constructor(public readonly name: string) {
+    this._onClipChanged = this._onClipChanged.bind(this);
+  }
 
   /**
    * Add an outgoing transition to the destination state.
    * @param transition - The transition
    */
   addTransition(transition: AnimatorStateTransition): void {
-    this._transitions.push(transition);
+    const transitions = this._transitions;
+    const count = transitions.length;
+    const time = transition.exitTime;
+    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
+    if (time >= maxExitTime) {
+      transitions.push(transition);
+    } else {
+      let index = count;
+      while (--index >= 0 && time < transitions[index].exitTime);
+      transitions.splice(index + 1, 0, transition);
+    }
   }
 
   /**
@@ -143,5 +171,12 @@ export class AnimatorState {
       const index = this._onStateExitScripts.indexOf(script);
       index !== -1 && this._onStateExitScripts.splice(index, 1);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _onClipChanged(): void {
+    this._updateFlagManager.dispatch();
   }
 }

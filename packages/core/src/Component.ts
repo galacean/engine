@@ -1,6 +1,7 @@
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 import { Entity } from "./Entity";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
 
 /**
@@ -13,6 +14,9 @@ export class Component extends EngineObject {
   /** @internal */
   @ignoreClone
   _awoken: boolean = false;
+
+  @ignoreClone
+  protected _phasedActiveInScene: boolean = false;
 
   @ignoreClone
   private _phasedActive: boolean = false;
@@ -29,6 +33,15 @@ export class Component extends EngineObject {
   set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
+      if (this._entity._isActiveInScene) {
+        if (value) {
+          this._phasedActiveInScene = true;
+          this._onEnableInScene();
+        } else {
+          this._phasedActiveInScene = false;
+          this._onDisableInScene();
+        }
+      }
       if (this._entity.isActiveInHierarchy) {
         if (value) {
           this._phasedActive = true;
@@ -78,25 +91,54 @@ export class Component extends EngineObject {
   /**
    * @internal
    */
-  _setActive(value: boolean): void {
+  _onEnableInScene(): void {}
+
+  /**
+   * @internal
+   */
+  _onDisableInScene(): void {}
+
+  /**
+   * @internal
+   */
+  _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const entity = this._entity;
-    if (value) {
-      // Awake condition is un awake && current entity is active in hierarchy
-      if (!this._awoken && entity._isActiveInHierarchy) {
-        this._awoken = true;
-        this._onAwake();
+
+    // Process active in scene, precautions are the same as below
+    if (activeChangeFlag & ActiveChangeFlag.Scene) {
+      if (value) {
+        if (!this._phasedActiveInScene && entity._isActiveInScene && this._enabled) {
+          this._phasedActiveInScene = true;
+          this._onEnableInScene();
+        }
+      } else {
+        if (this._phasedActiveInScene && !(entity._isActiveInScene && this._enabled)) {
+          this._phasedActiveInScene = false;
+          this._onDisableInScene();
+        }
       }
-      // Developer maybe do `isActive = false` in `onAwake` method
-      // Enable condition is phased active state is false && current component is active in hierarchy
-      if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
-        this._phasedActive = true;
-        this._onEnable();
-      }
-    } else {
-      // Disable condition is phased active state is true && current compoment is inActive in hierarchy
-      if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
-        this._phasedActive = false;
-        this._onDisable();
+    }
+
+    // Process active in hierarchy
+    if (activeChangeFlag & ActiveChangeFlag.Hierarchy) {
+      if (value) {
+        // Awake condition is un awake && current entity is active in hierarchy
+        if (!this._awoken && entity._isActiveInHierarchy) {
+          this._awoken = true;
+          this._onAwake();
+        }
+        // Developer maybe do `isActive = false` in `onAwake` method
+        // Enable condition is phased active state is false && current component is active in hierarchy
+        if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
+          this._phasedActive = true;
+          this._onEnable();
+        }
+      } else {
+        // Disable condition is phased active state is true && current component is inActive in hierarchy
+        if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
+          this._phasedActive = false;
+          this._onDisable();
+        }
       }
     }
   }
@@ -106,9 +148,11 @@ export class Component extends EngineObject {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._entity._removeComponent(this);
-    if (this._entity.isActiveInHierarchy) {
-      this._enabled && this._onDisable();
+    const entity = this._entity;
+    entity._removeComponent(this);
+    if (this._enabled) {
+      entity._isActiveInScene && this._onDisableInScene();
+      entity._isActiveInHierarchy && this._onDisable();
     }
   }
 }

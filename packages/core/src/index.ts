@@ -26,11 +26,12 @@ export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";
 
-export * from "./RenderPipeline";
+export * from "./RenderPipeline/index";
 export * from "./base";
 
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
+export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { ColorSpace } from "./enums/ColorSpace";

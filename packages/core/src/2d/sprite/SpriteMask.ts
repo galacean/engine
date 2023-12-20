@@ -177,8 +177,8 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
+  override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
   }
 
@@ -222,7 +222,7 @@ export class SpriteMask extends Renderer {
     renderData.set(this, material, this._verticesData);
 
     const renderElement = this._engine._renderElementPool.getFromPool();
-    renderElement.set(renderData, material.shader.subShaders[0].passes[0], material.renderStates[0]);
+    renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }
 
@@ -274,6 +274,9 @@ export class SpriteMask extends Renderer {
         break;
       case SpriteModifyFlags.pivot:
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        break;
+      case SpriteModifyFlags.destroy:
+        this.sprite = null;
         break;
       default:
         break;

@@ -1,3 +1,4 @@
+import { Quaternion, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
@@ -13,14 +14,14 @@ import {
   ISpringJoint,
   IStaticCollider
 } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
-import { LitePhysicsManager } from "./LitePhysicsManager";
 import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
+import { LitePhysicsScene } from "./LitePhysicsScene";
 import { LiteStaticCollider } from "./LiteStaticCollider";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
+import { LitePhysicsManager } from "./LitePhysicsManager";
 
 export class LitePhysics implements IPhysics {
   /**
@@ -33,15 +34,23 @@ export class LitePhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsManager }
    */
-  createPhysicsManager(
+  createPhysicsManager(): IPhysicsManager {
+    return null;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createPhysicsScene }
+   */
+  createPhysicsScene(
+    physicsManager: LitePhysicsManager,
     onContactBegin?: (obj1: number, obj2: number) => void,
     onContactEnd?: (obj1: number, obj2: number) => void,
     onContactPersist?: (obj1: number, obj2: number) => void,
     onTriggerBegin?: (obj1: number, obj2: number) => void,
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerPersist?: (obj1: number, obj2: number) => void
-  ): IPhysicsManager {
-    return new LitePhysicsManager(
+  ): LitePhysicsScene {
+    return new LitePhysicsScene(
       onContactBegin,
       onContactEnd,
       onContactPersist,

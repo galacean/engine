@@ -57,7 +57,7 @@ export abstract class Basic2DBatcher {
 
       for (let i = 0, n = charsData.length; i < n; ++i) {
         const charRenderElement = pool.getFromPool();
-        charRenderElement.set(charsData[i], element.shaderPass, element.renderState);
+        charRenderElement.set(charsData[i], element.shaderPasses);
         this._drawSubElement(charRenderElement, camera);
       }
     } else {

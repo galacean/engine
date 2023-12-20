@@ -1,12 +1,17 @@
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { Camera } from "./Camera";
+import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { LightManager } from "./lighting/LightManager";
+import { PhysicsScene } from "./physics/PhysicsScene";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -26,6 +31,10 @@ export class Scene extends EngineObject {
 
   /** Scene name. */
   name: string;
+
+  /** Physics. */
+  readonly physics: PhysicsScene = new PhysicsScene(this);
+
   /** If cast shadows. */
   castShadows: boolean = true;
   /** The resolution of the shadow maps. */
@@ -37,10 +46,18 @@ export class Scene extends EngineObject {
   /** Max Shadow distance. */
   shadowDistance: number = 50;
 
+  /* @internal */
+  _cameraNeedSorting: boolean = false;
+  /* @internal */
+  _lightManager: LightManager = new LightManager();
+  /* @internal */
+  _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
   _activeCameras: Camera[] = [];
   /** @internal */
   _isActiveInEngine: boolean = false;
+  /** @internal */
+  _sceneManager: SceneManager;
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
@@ -58,6 +75,25 @@ export class Scene extends EngineObject {
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
+  private _isActive: boolean = true;
+
+  /**
+   * Whether the scene is active.
+   */
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  set isActive(value: boolean) {
+    if (this._isActive !== value) {
+      this._isActive = value;
+      if (value) {
+        this._sceneManager && this._processActive(true);
+      } else {
+        this._sceneManager && this._processActive(false);
+      }
+    }
+  }
 
   /**
    * Scene-related shader data.
@@ -207,8 +243,8 @@ export class Scene extends EngineObject {
 
     const shaderData = this.shaderData;
     shaderData._addReferCount(1);
-    this.ambientLight = new AmbientLight();
-    engine.sceneManager._allScenes.push(this);
+    this.ambientLight = new AmbientLight(engine);
+    engine.sceneManager._allCreatedScenes.push(this);
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
     shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
@@ -253,30 +289,46 @@ export class Scene extends EngineObject {
     }
 
     const isRoot = entity._isRoot;
-    // let entity become root
+    // Let entity become root
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
     }
 
-    // add or remove from scene's rootEntities
+    // Add or remove from scene's rootEntities
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
         oldScene._removeFromEntityList(entity);
       }
       this._addToRootEntityList(index, entity);
-      Entity._traverseSetOwnerScene(entity, this);
     } else if (!isRoot) {
       this._addToRootEntityList(index, entity);
     }
 
-    // process entity active/inActive
-    if (this._isActiveInEngine) {
-      !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
-    } else {
-      entity._isActiveInHierarchy && entity._processInActive();
+    // Process entity active/inActive
+    let inActiveChangeFlag = ActiveChangeFlag.None;
+    if (entity._isActiveInHierarchy) {
+      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
     }
+
+    // Cross scene should inActive first and then active
+    entity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+
+    inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+
+    if (oldScene !== this) {
+      Entity._traverseSetOwnerScene(entity, this);
+    }
+
+    let activeChangeFlag = ActiveChangeFlag.None;
+    if (entity._isActive) {
+      if (this._isActiveInEngine) {
+        !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+      }
+      (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
+    }
+    activeChangeFlag && entity._processActive(activeChangeFlag);
   }
 
   /**
@@ -287,7 +339,11 @@ export class Scene extends EngineObject {
     if (entity._isRoot && entity._scene == this) {
       this._removeFromEntityList(entity);
       entity._isRoot = false;
-      this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
+
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       Entity._traverseSetOwnerScene(entity, null);
     }
   }
@@ -337,26 +393,22 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Destroy this scene.
+   * @internal
    */
-  override destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    this._destroy();
-
-    const allScenes = this.engine.sceneManager._allScenes;
-    allScenes.splice(allScenes.indexOf(this), 1);
+  _sortCameras(): void {
+    this._activeCameras.sort((a, b) => a.priority - b.priority);
+    this._cameraNeedSorting = false;
   }
 
   /**
    * @internal
    */
   _attachRenderCamera(camera: Camera): void {
-    const index = this._activeCameras.indexOf(camera);
+    const activeCameras = this._activeCameras;
+    const index = activeCameras.indexOf(camera);
     if (index === -1) {
-      this._activeCameras.push(camera);
+      activeCameras.push(camera);
+      this._cameraNeedSorting = true;
     } else {
       Logger.warn("Camera already attached.");
     }
@@ -366,9 +418,10 @@ export class Scene extends EngineObject {
    * @internal
    */
   _detachRenderCamera(camera: Camera): void {
-    const index = this._activeCameras.indexOf(camera);
+    const activeCameras = this._activeCameras;
+    const index = activeCameras.indexOf(camera);
     if (index !== -1) {
-      this._activeCameras.splice(index, 1);
+      activeCameras.splice(index, 1);
     }
   }
 
@@ -381,7 +434,11 @@ export class Scene extends EngineObject {
     for (let i = rootEntities.length - 1; i >= 0; i--) {
       const entity = rootEntities[i];
       if (entity._isActive) {
-        active ? entity._processActive() : entity._processInActive();
+        if (active) {
+          entity._processActive(ActiveChangeFlag.Hierarchy);
+        } else {
+          entity._processInActive(ActiveChangeFlag.Hierarchy);
+        }
       }
     }
   }
@@ -392,15 +449,16 @@ export class Scene extends EngineObject {
   _updateShaderData(): void {
     const shaderData = this.shaderData;
     const engine = this._engine;
-    const lightManager = engine._lightManager;
+    const lightManager = this._lightManager;
 
     engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+    lightManager._updateSunLightIndex();
 
-    const sunLightIndex = lightManager._getSunLightIndex();
-    if (sunLightIndex !== -1) {
-      const sunlight = lightManager._directLights.get(sunLightIndex);
+    if (lightManager._directLights.length > 0) {
+      const sunlight = lightManager._directLights.get(0);
+
       shaderData.setColor(Scene._sunlightColorProperty, sunlight._getLightIntensityColor());
       shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
       this._sunLight = sunlight;
@@ -438,14 +496,24 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _destroy(): void {
-    this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
+  protected override _onDestroy(): void {
+    super._onDestroy();
+
+    // Remove from sceneManager
+    const sceneManager = this._engine.sceneManager;
+    sceneManager.removeScene(this);
+
     while (this.rootEntitiesCount > 0) {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
     this.background.destroy();
+    this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
+    this._componentsManager.handlingInvalidScripts();
+
+    const allCreatedScenes = sceneManager._allCreatedScenes;
+    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {

@@ -12,9 +12,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Vector2>>()
 export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -69,7 +69,7 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   /**
    * @internal
    */
-  static _copyValue(source: Vector2, out: Vector2): Vector2 {
+  static _setValue(source: Vector2, out: Vector2): Vector2 {
     out.copyFrom(source);
     return out;
   }

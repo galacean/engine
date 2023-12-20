@@ -1,32 +1,39 @@
 import { IJoint } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../../clone/CloneManager";
 import { Component } from "../../Component";
 import { dependentComponents, DependentMode } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { Collider } from "../Collider";
+import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
  * A base class providing common functionality for joints.
  * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
  */
 @dependentComponents(Collider, DependentMode.CheckOnly)
-export class Joint extends Component {
-  protected _connectedCollider = new JointCollider();
-  protected _collider = new JointCollider();
+export class Joint extends Component implements ICustomClone {
+  @ignoreClone
+  protected _colliderInfo = new JointColliderInfo();
+  @ignoreClone
+  protected _connectedColliderInfo = new JointColliderInfo();
+  @ignoreClone
   protected _nativeJoint: IJoint;
+  @ignoreClone
   private _force: number = 0;
+  @ignoreClone
   private _torque: number = 0;
 
   /**
    * The connected collider.
    */
   get connectedCollider(): Collider {
-    return this._connectedCollider.collider;
+    return this._connectedColliderInfo.collider;
   }
 
   set connectedCollider(value: Collider) {
-    if (this._connectedCollider.collider !== value) {
-      this._connectedCollider.collider = value;
+    if (this._connectedColliderInfo.collider !== value) {
+      this._connectedColliderInfo.collider = value;
       this._nativeJoint.setConnectedCollider(value._nativeCollider);
     }
   }
@@ -36,11 +43,11 @@ export class Joint extends Component {
    * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
    */
   get connectedAnchor(): Vector3 {
-    return this._connectedCollider.localPosition;
+    return this._connectedColliderInfo.localPosition;
   }
 
   set connectedAnchor(value: Vector3) {
-    const connectedAnchor = this._connectedCollider.localPosition;
+    const connectedAnchor = this._connectedColliderInfo.localPosition;
     if (value !== connectedAnchor) {
       connectedAnchor.copyFrom(value);
     }
@@ -51,12 +58,12 @@ export class Joint extends Component {
    *  The scale to apply to the inverse mass of collider 0 for resolving this constraint.
    */
   get connectedMassScale(): number {
-    return this._connectedCollider.massScale;
+    return this._connectedColliderInfo.massScale;
   }
 
   set connectedMassScale(value: number) {
-    if (value !== this._connectedCollider.massScale) {
-      this._connectedCollider.massScale = value;
+    if (value !== this._connectedColliderInfo.massScale) {
+      this._connectedColliderInfo.massScale = value;
       this._nativeJoint.setConnectedMassScale(value);
     }
   }
@@ -65,12 +72,12 @@ export class Joint extends Component {
    * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
    */
   get connectedInertiaScale(): number {
-    return this._connectedCollider.inertiaScale;
+    return this._connectedColliderInfo.inertiaScale;
   }
 
   set connectedInertiaScale(value: number) {
-    if (value !== this._connectedCollider.inertiaScale) {
-      this._connectedCollider.inertiaScale = value;
+    if (value !== this._connectedColliderInfo.inertiaScale) {
+      this._connectedColliderInfo.inertiaScale = value;
       this._nativeJoint.setConnectedInertiaScale(value);
     }
   }
@@ -79,12 +86,12 @@ export class Joint extends Component {
    * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
    */
   get massScale(): number {
-    return this._collider.massScale;
+    return this._colliderInfo.massScale;
   }
 
   set massScale(value: number) {
-    if (value !== this._collider.massScale) {
-      this._collider.massScale = value;
+    if (value !== this._colliderInfo.massScale) {
+      this._colliderInfo.massScale = value;
       this._nativeJoint.setMassScale(value);
     }
   }
@@ -93,12 +100,12 @@ export class Joint extends Component {
    * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
    */
   get inertiaScale(): number {
-    return this._collider.inertiaScale;
+    return this._colliderInfo.inertiaScale;
   }
 
   set inertiaScale(value: number) {
-    if (value !== this._collider.inertiaScale) {
-      this._collider.inertiaScale = value;
+    if (value !== this._colliderInfo.inertiaScale) {
+      this._colliderInfo.inertiaScale = value;
       this._nativeJoint.setInertiaScale(value);
     }
   }
@@ -133,14 +140,28 @@ export class Joint extends Component {
 
   constructor(entity: Entity) {
     super(entity);
-    this._connectedCollider.localPosition = new Vector3();
+    this._connectedColliderInfo.localPosition = new Vector3();
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Joint): void {
+    target.connectedCollider = this.connectedCollider;
+    target.connectedAnchor = this.connectedAnchor;
+    target.connectedMassScale = this.connectedMassScale;
+    target.connectedInertiaScale = this.connectedInertiaScale;
+    target.massScale = this.massScale;
+    target.inertiaScale = this.inertiaScale;
+    target.breakForce = this.breakForce;
+    target.breakTorque = this.breakTorque;
   }
 }
 
 /**
  * @internal
  */
-class JointCollider {
+class JointColliderInfo {
   collider: Collider = null;
   localPosition: Vector3;
   localRotation: Quaternion;

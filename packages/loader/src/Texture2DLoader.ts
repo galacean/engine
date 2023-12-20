@@ -6,7 +6,9 @@ import {
   resourceLoader,
   ResourceManager,
   Texture2D,
-  TextureFormat
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
 } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
@@ -22,14 +24,15 @@ class Texture2DLoader extends Loader<Texture2D> {
       };
       this.request<HTMLImageElement>(url, requestConfig)
         .then((image) => {
-          const params = item.params;
-          const texture = new Texture2D(
-            resourceManager.engine,
-            image.width,
-            image.height,
-            params?.format,
-            params?.mipmap
-          );
+          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
+            (item.params as Partial<Texture2DParams>) ?? {};
+
+          const texture = new Texture2D(resourceManager.engine, image.width, image.height, format, mipmap);
+
+          texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
+          texture.filterMode = filterMode ?? texture.filterMode;
+          texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
+          texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
           texture.setImageSource(image);
           texture.generateMipmaps();
@@ -57,4 +60,12 @@ export interface Texture2DParams {
   format: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
   mipmap: boolean;
+  /** Wrapping mode for texture coordinate S. */
+  wrapModeU: TextureWrapMode;
+  /** Wrapping mode for texture coordinate T. */
+  wrapModeV: TextureWrapMode;
+  /** Filter mode for texture. */
+  filterMode: TextureFilterMode;
+  /** Anisotropic level for texture. */
+  anisoLevel: number;
 }

@@ -18,6 +18,8 @@ export class Material extends ReferResource implements IClone {
   _shader: Shader;
   /** @internal */
   _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+  /** @internal */
+  _priority: number = 0; // todo: temporary resolution of submesh rendering order issue.
 
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
@@ -100,6 +102,7 @@ export class Material extends ReferResource implements IClone {
   }
 
   override _addReferCount(value: number): void {
+    if (this._destroyed) return;
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
   }
@@ -108,6 +111,7 @@ export class Material extends ReferResource implements IClone {
    * @override
    */
   protected override _onDestroy(): void {
+    super._onDestroy();
     this._shader = null;
     this._shaderData = null;
     this._renderStates.length = 0;

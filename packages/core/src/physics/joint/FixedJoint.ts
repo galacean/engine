@@ -1,5 +1,5 @@
 import { Collider } from "../Collider";
-import { PhysicsManager } from "../PhysicsManager";
+import { PhysicsScene } from "../PhysicsScene";
 import { Joint } from "./Joint";
 
 /*
@@ -10,8 +10,8 @@ export class FixedJoint extends Joint {
    * @internal
    */
   override _onAwake() {
-    const collider = this._collider;
+    const collider = this._colliderInfo;
     collider.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(collider.collider._nativeCollider);
+    this._nativeJoint = PhysicsScene._nativePhysics.createFixedJoint(collider.collider._nativeCollider);
   }
 }

@@ -254,8 +254,8 @@ export class SpriteRenderer extends Renderer {
 
   set maskInteraction(value: SpriteMaskInteraction) {
     if (this._maskInteraction !== value) {
+      this._updateStencilState(this._maskInteraction, value);
       this._maskInteraction = value;
-      this._updateStencilState();
     }
   }
 
@@ -273,8 +273,8 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteRenderer): void {
-    super._cloneTo(target);
+  override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
     target._assembler.resetData(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
@@ -356,26 +356,25 @@ export class SpriteRenderer extends Renderer {
     this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
-  private _updateStencilState(): void {
-    // Update stencil.
-    const material = this.getInstanceMaterial();
-    const stencilState = material.renderState.stencilState;
-    const maskInteraction = this._maskInteraction;
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      stencilState.enabled = false;
-      stencilState.writeMask = 0xff;
-      stencilState.referenceValue = 0;
-      stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
+  private _updateStencilState(from: SpriteMaskInteraction, to: SpriteMaskInteraction): void {
+    const material = this.getMaterial();
+    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this._engine;
+    if (material === spriteDefaultMaterials[from]) {
+      this.setMaterial(spriteDefaultMaterials[to]);
     } else {
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
+      const { stencilState } = material.renderState;
+      if (to === SpriteMaskInteraction.None) {
+        stencilState.enabled = false;
+        stencilState.writeMask = 0xff;
+        stencilState.referenceValue = 0;
+        stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
+      } else {
+        stencilState.enabled = true;
+        stencilState.writeMask = 0x00;
+        stencilState.referenceValue = 1;
+        stencilState.compareFunctionFront = stencilState.compareFunctionBack =
+          to === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
+      }
     }
   }
 
@@ -412,6 +411,9 @@ export class SpriteRenderer extends Renderer {
         break;
       case SpriteModifyFlags.pivot:
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        break;
+      case SpriteModifyFlags.destroy:
+        this.sprite = null;
         break;
     }
   }

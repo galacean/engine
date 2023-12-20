@@ -74,6 +74,12 @@ class MaterialLoader extends Loader<Material> {
                   })
                 );
                 break;
+              case "Boolean":
+                materialShaderData.setInt(key, value ? 1 : 0);
+                break;
+              case "Integer":
+                materialShaderData.setInt(key, Number(value));
+                break;
             }
           }
 

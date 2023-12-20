@@ -23,7 +23,8 @@ class EnvLoader extends Loader<AmbientLight> {
           const shByteLength = 27 * 4;
           const size = new Uint16Array(arraybuffer, shByteLength, 1)?.[0];
 
-          const texture = new TextureCube(resourceManager.engine, size);
+          const { engine } = resourceManager;
+          const texture = new TextureCube(engine, size);
           texture.filterMode = TextureFilterMode.Trilinear;
           const mipmapCount = texture.mipmapCount;
           let offset = shByteLength + 2;
@@ -39,7 +40,7 @@ class EnvLoader extends Loader<AmbientLight> {
             }
           }
 
-          const ambientLight = new AmbientLight();
+          const ambientLight = new AmbientLight(engine);
           const sh = new SphericalHarmonics3();
 
           ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
