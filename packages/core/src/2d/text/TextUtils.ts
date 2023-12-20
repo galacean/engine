@@ -287,7 +287,6 @@ export class TextUtils {
       let maxDescent = 0;
 
       for (let j = 0, m = line.length; j < m; ++j) {
-        debugger;
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
