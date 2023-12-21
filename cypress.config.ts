@@ -4,22 +4,28 @@ import { compare } from "odiff-bin";
 const path = require("path");
 const fs = require("fs-extra");
 
-const downloadDirectory = path.join(__dirname, "cypress/downloads");
+const downloadDirectory = path.join(__dirname, "e2e/downloads");
 let isRunningInCommandLine = false;
 export default defineConfig({
   e2e: {
     viewportWidth: 1200,
     viewportHeight: 800,
-    baseUrl: "http://localhost:3000",
+    baseUrl: "http://localhost:5175",
     defaultCommandTimeout: 60000,
+    fileServerFolder: "e2e",
+    supportFile: "e2e/support/e2e.ts",
+    fixturesFolder: "e2e/fixtures",
+    screenshotsFolder: "e2e/screenshots",
+    videosFolder: "e2e/videos",
+    specPattern: "e2e/tests/*.cy.ts",
     setupNodeEvents(on, config) {
       // implement node event listeners here
       on("before:browser:launch", (browser, launchOptions) => {
         console.log("launching browser %s is headless? %s", browser.name, browser.isHeadless);
         // supply the absolute path to an unpacked extension's folder
         // NOTE: extensions cannot be loaded in headless Chrome
-        if (fs.existsSync("cypress/diff")) {
-          fs.rmdirSync("cypress/diff", { recursive: true });
+        if (fs.existsSync("e2e/diff")) {
+          fs.rmdirSync("e2e/diff", { recursive: true });
         }
         if (browser.name === "chrome") {
           launchOptions.preferences.default["download"] = {
@@ -35,9 +41,9 @@ export default defineConfig({
         on("task", {
           async compare({ fileName, options }) {
             fileName += ".png";
-            const baseFolder = "cypress/fixtures/originImage/";
-            const newFolder = path.join("cypress/screenshots", isRunningInCommandLine ? options.specFolder : "");
-            const diffFolder = path.join("cypress/diff", options.specFolder);
+            const baseFolder = "e2e/fixtures/originImage/";
+            const newFolder = path.join("e2e/screenshots", isRunningInCommandLine ? options.specFolder : "");
+            const diffFolder = path.join("e2e/diff", options.specFolder);
             if (!fs.existsSync(diffFolder)) {
               fs.mkdirSync(diffFolder, { recursive: true });
             }

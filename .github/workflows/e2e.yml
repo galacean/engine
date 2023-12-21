@@ -30,7 +30,7 @@ jobs:
       uses: cypress-io/github-action@v5
       with:
         start: npm run demo
-        wait-on: 'http://localhost:3000'
+        wait-on: 'http://localhost:5175'
         wait-on-timeout: 120 
         browser: chrome
     - name: Upload Diff
@@ -38,16 +38,16 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cypress-diff
-        path: cypress/diff/
+        path: e2e/diff/
     - name: Upload Origin
       if: failure()
       uses: actions/upload-artifact@v3
       with:
         name: cypress-origin
-        path: cypress/fixtures/originImage
+        path: e2e/fixtures/originImage
     - name: Upload Screenshots
       if: failure()
       uses: actions/upload-artifact@v3
       with:
         name: cypress-screenshots
-        path: cypress/screenshots/
+        path: e2e/screenshots/

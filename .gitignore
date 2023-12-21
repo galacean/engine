@@ -7,7 +7,7 @@ tmp
 /packages/*/types
 /packages/*/doc
 /tests/node_modules
-/cypress/node_modules
+/e2e/node_modules
 /playground/node_modules
 types
 /packages/*/test/fixtures/**/node_modules
@@ -26,7 +26,7 @@ stats.html
 tsconfig.tsbuildinfo
 api
 yarn.lock
-cypress/videos/*
-cypress/screenshots/*
-cypress/diff/*
-cypress/.dev/mpa
+e2e/videos/*
+e2e/screenshots/*
+e2e/diff/*
+e2e/.dev/mpa
