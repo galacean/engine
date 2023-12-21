@@ -55,8 +55,7 @@ uniform float material_OcclusionTextureCoord;
 #endif
 
 #ifdef MATERIAL_ENABLE_ANISOTROPY
-    uniform float material_Anisotropy;
-    uniform vec3 material_AnisotropyDirection;
+    uniform vec3 material_AnisotropyInfo;
 #endif
 
 

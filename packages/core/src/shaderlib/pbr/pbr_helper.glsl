@@ -57,8 +57,10 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_ENABLE_ANISOTROPY
-        geometry.anisotropy = material_Anisotropy;
-        geometry.anisotropicT = normalize(tbn * material_AnisotropyDirection);
+        float anisotropy = material_AnisotropyInfo.z;
+        vec3 anisotropicDirection = vec3(material_AnisotropyInfo.xy, 0.0);
+        geometry.anisotropy = anisotropy;
+        geometry.anisotropicT = normalize(tbn * anisotropicDirection);
         geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
         geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal);
     #endif

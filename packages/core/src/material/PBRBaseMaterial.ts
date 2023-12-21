@@ -1,4 +1,4 @@
-import { Color, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger, ShaderProperty } from "..";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
@@ -20,8 +20,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
   private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
 
-  private static _anisotropyProp = ShaderProperty.getByName("material_Anisotropy");
-  private static _anisotropyDirectionProp = ShaderProperty.getByName("material_AnisotropyDirection");
+  private static _anisotropyInfoProp = ShaderProperty.getByName("material_AnisotropyInfo");
+  private _anisotropyDirection = new Vector2();
 
   /**
    * Base color.
@@ -250,31 +250,33 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * The Amount of anisotropy. Scalar between −1 and 1.
    */
   get anisotropy(): number {
-    return this.shaderData.getFloat(PBRBaseMaterial._anisotropyProp);
+    return this.shaderData.getVector3(PBRBaseMaterial._anisotropyInfoProp).z;
   }
 
   set anisotropy(value: number) {
-    if (!!this.shaderData.getFloat(PBRBaseMaterial._anisotropyProp) !== !!value) {
+    const anisotropyInfo = this.shaderData.getVector3(PBRBaseMaterial._anisotropyInfoProp);
+    if (!!anisotropyInfo.z !== !!value) {
       if (value === 0) {
         this.shaderData.disableMacro("MATERIAL_ENABLE_ANISOTROPY");
       } else {
         this.shaderData.enableMacro("MATERIAL_ENABLE_ANISOTROPY");
       }
     }
-    this.shaderData.setFloat(PBRBaseMaterial._anisotropyProp, value);
+    anisotropyInfo.z = value;
   }
 
   /**
    * The direction of the surface to control the shape of the specular highlights
    */
-  get anisotropyDirection(): Vector3 {
-    return this.shaderData.getVector3(PBRBaseMaterial._anisotropyDirectionProp);
+  get anisotropyDirection(): Vector2 {
+    this._anisotropyDirection.copyFrom(this.shaderData.getVector3(PBRBaseMaterial._anisotropyInfoProp));
+
+    return this._anisotropyDirection;
   }
 
-  set anisotropyDirection(value: Vector3) {
-    const direction = this.shaderData.getVector3(PBRBaseMaterial._anisotropyDirectionProp);
-    if (value !== direction) {
-      direction.copyFrom(value);
+  set anisotropyDirection(value: Vector2) {
+    if (value !== this._anisotropyDirection) {
+      this._anisotropyDirection.copyFrom(value);
     }
   }
 
@@ -302,7 +304,14 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setFloat(PBRBaseMaterial._clearCoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearCoatRoughnessProp, 0);
 
-    shaderData.setFloat(PBRBaseMaterial._anisotropyProp, 0);
-    shaderData.setVector3(PBRBaseMaterial._anisotropyDirectionProp, new Vector3(1, 0, 0));
+    shaderData.setVector3(PBRBaseMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
+    // @ts-ignore
+    this._anisotropyDirection._onValueChanged = this._onAnisotropyDirectionChanged.bind(this);
+  }
+
+  private _onAnisotropyDirectionChanged(): void {
+    const anisotropyInfo = this.shaderData.getVector3(PBRBaseMaterial._anisotropyInfoProp);
+    anisotropyInfo.x = this._anisotropyDirection.x;
+    anisotropyInfo.y = this._anisotropyDirection.y;
   }
 }
