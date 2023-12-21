@@ -29,7 +29,7 @@ jobs:
     - name: Run Cypress Tests
       uses: cypress-io/github-action@v5
       with:
-        start: npm run e2e:demo
+        start: npm run e2e:case
         wait-on: 'http://localhost:5175'
         wait-on-timeout: 120 
         browser: chrome

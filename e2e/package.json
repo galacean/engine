@@ -4,7 +4,7 @@
   "version": "1.0.0-alpha.6",
   "license": "MIT",
   "scripts": {
-    "demo": "vite serve .dev --config .dev/vite.config.js",
+    "case": "vite serve .dev --config .dev/vite.config.js",
     "b:types": "echo hi"
   },
   "files": [

@@ -13,7 +13,7 @@ fs.emptyDirSync(path.resolve(__dirname, OUT_PATH));
 
 // create mpa
 const demoList = fs
-  .readdirSync(path.join(__dirname, "../demo"))
+  .readdirSync(path.join(__dirname, "../case"))
   .filter((name) => /.ts$/.test(name) && name.indexOf(".") !== 0)
   .map((name) => {
     return {
@@ -24,7 +24,7 @@ const demoList = fs
 demoList.forEach(({ file }) => {
   const ejs = templateStr.replaceEJS("url", `./${file}.ts`);
 
-  fs.outputFileSync(path.resolve(__dirname, OUT_PATH, file + ".ts"), `import "../../demo/${file}"`);
+  fs.outputFileSync(path.resolve(__dirname, OUT_PATH, file + ".ts"), `import "../../case/${file}"`);
   fs.outputFileSync(path.resolve(__dirname, OUT_PATH, file + ".html"), ejs);
 });
 
