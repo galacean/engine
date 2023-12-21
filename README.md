@@ -75,6 +75,21 @@ Everyone is welcome to join us! Whether you find a bug, have a great feature req
 
 Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡献指南](https://github.com/galacean/engine/wiki/%E5%A6%82%E4%BD%95%E4%B8%8E%E6%88%91%E4%BB%AC%E5%85%B1%E5%BB%BA-Oasis-%E5%BC%80%E6%BA%90%E4%BA%92%E5%8A%A8%E5%BC%95%E6%93%8E) before submitting changes.
 
+## Clone
+Prerequisites:
+- [git-lfs](https://git-lfs.com/)
+  
+We use Git LFS to manage baseline images for e2e tests, so it's necessary to install it before cloning.
+
+```sh
+brew install git-lfs
+```
+Then you can clone this project as usual.
+
+```sh
+git clone git@github.com:galacean/runtime.git
+```
+
 ## Build
 
 Prerequisites:
