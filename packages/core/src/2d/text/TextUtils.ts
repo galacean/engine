@@ -215,8 +215,8 @@ export class TextUtils {
           } else {
             word += char;
             wordWidth += charInfo.xAdvance;
-            wordMaxAscent = Math.max(wordMaxAscent, lineMaxAscent, ascent);
-            wordMaxDescent = Math.max(wordMaxDescent, lineMaxDescent, descent);
+            wordMaxAscent = Math.max(wordMaxAscent, ascent);
+            wordMaxDescent = Math.max(wordMaxDescent, descent);
           }
         }
       }
