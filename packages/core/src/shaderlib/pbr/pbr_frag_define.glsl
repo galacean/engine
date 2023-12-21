@@ -54,6 +54,10 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_ClearCoatNormalTexture;
 #endif
 
+#ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
+    uniform sampler2D material_AnisotropyTexture;
+#endif
+
 #ifdef MATERIAL_ENABLE_ANISOTROPY
     uniform vec3 material_AnisotropyInfo;
 #endif

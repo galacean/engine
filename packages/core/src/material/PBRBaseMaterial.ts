@@ -21,6 +21,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
 
   private static _anisotropyInfoProp = ShaderProperty.getByName("material_AnisotropyInfo");
+  private static _anisotropyTextureProp = ShaderProperty.getByName("material_AnisotropyTexture");
   private _anisotropyDirection = new Vector2();
 
   /**
@@ -277,6 +278,23 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set anisotropyDirection(value: Vector2) {
     if (value !== this._anisotropyDirection) {
       this._anisotropyDirection.copyFrom(value);
+    }
+  }
+
+  /**
+   * The anisotropy texture.
+   */
+  get anisotropyTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._anisotropyTextureProp);
+  }
+
+  set anisotropyTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._anisotropyTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_ANISOTROPY_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_ANISOTROPY_TEXTURE");
     }
   }
 

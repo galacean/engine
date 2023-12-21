@@ -59,6 +59,12 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
     #ifdef MATERIAL_ENABLE_ANISOTROPY
         float anisotropy = material_AnisotropyInfo.z;
         vec3 anisotropicDirection = vec3(material_AnisotropyInfo.xy, 0.0);
+        #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
+            vec3 anisotropyTextureInfo = texture2D( material_AnisotropyTexture, v_uv ).rgb;
+            anisotropy *= anisotropyTextureInfo.b;
+            anisotropicDirection.xy *= anisotropyTextureInfo.rg * 2.0 - 1.0;
+        #endif
+
         geometry.anisotropy = anisotropy;
         geometry.anisotropicT = normalize(tbn * anisotropicDirection);
         geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
