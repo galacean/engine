@@ -200,6 +200,23 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(162);
     expect(result.lines).to.be.deep.equal(["  ", "  ", "W", "o", "rl", "d"]);
     expect(result.lineHeight).to.be.equal(27);
+
+    const root = scene.rootEntities[0];
+    const wrap1TextEntity = root.createChild("wrap1");
+    const wrap1TextRenderer = wrap1TextEntity.addComponent(TextRenderer);
+    wrap1TextRenderer.enableWrapping = true;
+    wrap1TextRenderer.width = 5;
+    wrap1TextRenderer.fontSize = 60;
+    wrap1TextRenderer.text = "测试";
+    const text1Metrics = TextUtils.measureTextWithWrap(wrap1TextRenderer);
+    const wrap2TextEntity = root.createChild("wrap2");
+    const wrap2TextRenderer = wrap2TextEntity.addComponent(TextRenderer);
+    wrap2TextRenderer.enableWrapping = true;
+    wrap2TextRenderer.width = 5;
+    wrap2TextRenderer.fontSize = 60;
+    wrap2TextRenderer.text = "测试。";
+    const text2Metrics = TextUtils.measureTextWithWrap(wrap2TextRenderer);
+    expect(text1Metrics.lineMaxSizes[0].size).to.be.equal(text2Metrics.lineMaxSizes[0].size);
   });
 
   it("measureTextWithoutWrap", () => {
