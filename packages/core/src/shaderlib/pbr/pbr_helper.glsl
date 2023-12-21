@@ -17,6 +17,19 @@ float getAARoughnessFactor(vec3 normal) {
     #endif
 }
 
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+// Aniso Bent Normals
+// Mc Alley https://www.gdcvault.com/play/1022235/Rendering-the-World-of-Far 
+vec3 getAnisotropicBentNormal(Geometry geometry, vec3 n) {
+    vec3  anisotropyDirection = geometry.anisotropy >= 0.0 ? geometry.anisotropicB : geometry.anisotropicT;
+    vec3  anisotropicTangent  = cross(anisotropyDirection, geometry.viewDir);
+    vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
+    vec3  bentNormal          = normalize(mix(n, anisotropicNormal, abs(geometry.anisotropy)));
+
+    return bentNormal;
+}
+#endif
+
 void initGeometry(out Geometry geometry, bool isFrontFacing){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(camera_Position - v_pos);
@@ -47,6 +60,7 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
         geometry.anisotropy = material_Anisotropy;
         geometry.anisotropicT = normalize(tbn * material_AnisotropyDirection);
         geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
+        geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal);
     #endif
 }
 

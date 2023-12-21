@@ -29,7 +29,7 @@ float G_GGX_SmithCorrelated(float alpha, float dotNL, float dotNV ) {
 
 }
 
-#if defined(MATERIAL_ENABLE_ANISOTROPY)
+#ifdef MATERIAL_ENABLE_ANISOTROPY
 float G_GGX_SmithCorrelated_Anisotropic(float at, float ab, float ToV, float BoV,
         float ToL, float BoL, float NoV, float NoL) {
     // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
@@ -53,7 +53,7 @@ float D_GGX(float alpha, float dotNH ) {
 
 }
 
-#if defined(MATERIAL_ENABLE_ANISOTROPY)
+#ifdef MATERIAL_ENABLE_ANISOTROPY
 float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
     // Burley 2012, "Physically-Based Shading at Disney"
 
@@ -70,15 +70,13 @@ float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
 
 vec3 isotropicLobe(vec3 specularColor, float alpha, float dotNV, float dotNL, float dotNH, float dotLH) {
 	vec3 F = F_Schlick( specularColor, dotLH );
-
-	float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
-
 	float D = D_GGX( alpha, dotNH );
+	float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
 
 	return F * ( G * D );
 }
 
-#if defined(MATERIAL_ENABLE_ANISOTROPY)
+#ifdef MATERIAL_ENABLE_ANISOTROPY
 vec3 anisotropicLobe(vec3 h, vec3 l, Geometry geometry, vec3 specularColor, float alpha, float dotNV, float dotNL, float dotNH, float dotLH) {
     vec3 t = geometry.anisotropicT;
     vec3 b = geometry.anisotropicB;
@@ -99,11 +97,11 @@ vec3 anisotropicLobe(vec3 h, vec3 l, Geometry geometry, vec3 specularColor, floa
     float ab = max(alpha * (1.0 - geometry.anisotropy), MIN_ROUGHNESS);
 
     // specular anisotropic BRDF
-    float D = D_GGX_Anisotropic(at, ab, dotTH, dotBH, dotNH);
-    float V = G_GGX_SmithCorrelated_Anisotropic(at, ab, dotTV, dotBV, dotTL, dotBL, dotNV, dotNL);
 	vec3 F = F_Schlick( specularColor, dotLH );
+    float D = D_GGX_Anisotropic(at, ab, dotTH, dotBH, dotNH);
+    float G = G_GGX_SmithCorrelated_Anisotropic(at, ab, dotTV, dotBV, dotTL, dotBL, dotNV, dotNL);
 
-    return (D * V) * F;
+    return F * ( G * D );
 }
 #endif
 

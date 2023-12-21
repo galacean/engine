@@ -82,6 +82,7 @@ struct Geometry {
     #ifdef MATERIAL_ENABLE_ANISOTROPY
         vec3  anisotropicT;
         vec3  anisotropicB;
+        vec3  anisotropicN;
         float anisotropy;
     #endif
 };
