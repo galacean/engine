@@ -77,14 +77,9 @@ Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [è´¡ç
 
 ## Clone
 Prerequisites:
-- [git-lfs](https://git-lfs.com/)
+- [git-lfs](https://git-lfs.com/) (Install by official website)
   
-We use Git LFS to manage baseline images for e2e tests, so it's necessary to install it before cloning.
-
-```sh
-brew install git-lfs
-```
-Then you can clone this project as usual.
+Clone this repository:
 
 ```sh
 git clone git@github.com:galacean/runtime.git
