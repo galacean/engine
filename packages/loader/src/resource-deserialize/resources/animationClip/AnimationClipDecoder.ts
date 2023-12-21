@@ -60,6 +60,7 @@ export class AnimationClipDecoder {
         const componentStr = bufferReader.nextStr();
         const componentType = ComponentMap[componentStr];
         const property = bufferReader.nextStr();
+        const getProperty = bufferReader.nextStr();
         let curve: AnimationCurve<KeyframeValueType>;
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
@@ -265,7 +266,7 @@ export class AnimationClipDecoder {
             break;
           }
         }
-        clip.addCurveBinding(relativePath, componentType, property, curve);
+        clip.addCurveBinding(relativePath, componentType, property, getProperty, curve);
       }
       resolve(clip);
     });

@@ -1,7 +1,6 @@
 import { Color, Quaternion, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { ReferResource } from "../asset/ReferResource";
 
-export type MethodParam = Array<Array<any>>;
 /**
  * Keyframe.
  * @typeParam V - Type of Keyframe value

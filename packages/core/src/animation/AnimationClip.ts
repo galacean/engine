@@ -94,13 +94,15 @@ export class AnimationClip extends EngineObject {
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type - The class type of the component that is animated
-   * @param propertyName - The name or path to the property being animated
+   * @param property - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
+   * @param getProperty - The name or path to get the value when being animated, default value is property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     relativePath: string,
     type: new (entity: Entity) => T,
-    propertyName: string,
+    property: string,
+    getProperty: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
 
@@ -109,36 +111,41 @@ export class AnimationClip extends EngineObject {
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type - The class type of the component that is animated
    * @param typeIndex - The type index of the component that is animated
-   * @param propertyName - The name or path to the property being animated
+   * @param property - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
+   * @param getProperty - The name or path to get the value when being animated, default value is property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     relativePath: string,
     type: new (entity: Entity) => T,
     typeIndex: number,
-    propertyName: string,
+    property: string,
+    getProperty: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
 
   addCurveBinding<T extends Component>(
     relativePath: string,
     type: new (entity: Entity) => T,
-    typeIndexOrPropertyName: number | string,
-    propertyNameOrCurve: string | AnimationCurve<KeyframeValueType>,
+    typeIndexOrProperty: number | string,
+    propertyOrGetProperty: string,
+    getPropertyOrCurve: string | AnimationCurve<KeyframeValueType>,
     curve?: AnimationCurve<KeyframeValueType>
   ): void {
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
 
-    if (typeof typeIndexOrPropertyName === "number") {
-      curveBinding.typeIndex = typeIndexOrPropertyName;
-      curveBinding.property = <string>propertyNameOrCurve;
+    if (typeof typeIndexOrProperty === "number") {
+      curveBinding.typeIndex = typeIndexOrProperty;
+      curveBinding.property = <string>propertyOrGetProperty;
+      curveBinding.getProperty = <string>getPropertyOrCurve;
       curveBinding.curve = curve;
     } else {
       curveBinding.typeIndex = 0;
-      curveBinding.property = typeIndexOrPropertyName;
-      curveBinding.curve = <AnimationCurve<KeyframeValueType>>propertyNameOrCurve;
+      curveBinding.property = typeIndexOrProperty;
+      curveBinding.getProperty = <string>propertyOrGetProperty;
+      curveBinding.curve = <AnimationCurve<KeyframeValueType>>getPropertyOrCurve;
     }
 
     this._length = Math.max(this._length, curveBinding.curve.length);
