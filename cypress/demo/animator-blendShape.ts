@@ -18,8 +18,7 @@ import { e2eReady, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-  engine.canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
+  engine.canvas.resizeByClientSize(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
