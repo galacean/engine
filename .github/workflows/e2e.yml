@@ -1,5 +1,12 @@
 name: End-to-end tests
-on: [push]
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
 
 jobs:
   e2e:
