@@ -8,8 +8,12 @@ describe("TextUtils", () => {
   let scene: Scene;
   let textEntity1: Entity;
   let textEntity2: Entity;
+  let textEntity3: Entity;
+  let textEntity4: Entity;
   let textRendererTruncate: TextRenderer;
   let textRendererOverflow: TextRenderer;
+  let wrap1TextRenderer: TextRenderer;
+  let wrap2TextRenderer: TextRenderer;
 
   before(async function () {
     engine = await WebGLEngine.create({
@@ -29,12 +33,19 @@ describe("TextUtils", () => {
 
     textEntity1 = rootEntity.createChild("text1");
     textEntity2 = rootEntity.createChild("text2");
+    textEntity3 = rootEntity.createChild("text3");
+    textEntity4 = rootEntity.createChild("text4");
 
     textRendererTruncate = textEntity1.addComponent(TextRenderer);
     textRendererTruncate.font = Font.createFromOS(engine, "Arial");
 
     textRendererOverflow = textEntity2.addComponent(TextRenderer);
     textRendererOverflow.font = Font.createFromOS(engine, "Arial");
+
+    wrap1TextRenderer = textEntity3.addComponent(TextRenderer);
+    wrap1TextRenderer.font = Font.createFromOS(engine, "Arial");
+    wrap2TextRenderer = textEntity4.addComponent(TextRenderer);
+    wrap2TextRenderer.font = Font.createFromOS(engine, "Arial");
 
     engine.run();
   });
@@ -201,16 +212,11 @@ describe("TextUtils", () => {
     expect(result.lines).to.be.deep.equal(["  ", "  ", "W", "o", "rl", "d"]);
     expect(result.lineHeight).to.be.equal(27);
 
-    const root = scene.rootEntities[0];
-    const wrap1TextEntity = root.createChild("wrap1");
-    const wrap1TextRenderer = wrap1TextEntity.addComponent(TextRenderer);
     wrap1TextRenderer.enableWrapping = true;
     wrap1TextRenderer.width = 5;
     wrap1TextRenderer.fontSize = 60;
     wrap1TextRenderer.text = "测试";
     const text1Metrics = TextUtils.measureTextWithWrap(wrap1TextRenderer);
-    const wrap2TextEntity = root.createChild("wrap2");
-    const wrap2TextRenderer = wrap2TextEntity.addComponent(TextRenderer);
     wrap2TextRenderer.enableWrapping = true;
     wrap2TextRenderer.width = 5;
     wrap2TextRenderer.fontSize = 60;
