@@ -1,9 +1,9 @@
 describe.only("Material", () => {
-  it.only("PBR", () => {
+  it("PBR", () => {
     cy.screenshotWithThreshold("Material", "material-pbr", 0.3);
   });
 
-  it("PBR Clearcoat", () => {
+  it.only("PBR Clearcoat", () => {
     cy.screenshotWithThreshold("Material", "material-pbr-clearcoat", 0.3);
   });
 
