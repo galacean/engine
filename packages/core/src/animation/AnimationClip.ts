@@ -94,13 +94,13 @@ export class AnimationClip extends EngineObject {
    * Add curve binding for the clip.
    * @param entityPath - Path to the game object this curve applies to. The entityPath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param componentType - The class type of the component that is animated
-   * @param property - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
+   * @param propertyPath - The path to the property being animated, support "a.b" and "a.b[x]" description mode
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
     componentType: new (entity: Entity) => T,
-    property: string,
+    propertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
 
@@ -108,15 +108,15 @@ export class AnimationClip extends EngineObject {
    * Add curve binding for the clip.
    * @param entityPath - Path to the game object this curve applies to. The entityPath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param componentType - The class type of the component that is animated
-   * @param setValuePath - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
-   * @param getValuePath - The name or path to get the value when being animated, default value is property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
+   * @param setPropertyPath - The path to set the property being animated, support "a.b", "a.b[x]" and "a.b('c', 0, $value)" description mode
+   * @param getPropertyPath - The path to get the value when being animated, support "a.b", "a.b[x]" and "a.b('c', 0, $value)" description mode
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
     componentType: new (entity: Entity) => T,
-    setValuePath: string,
-    getValuePath: string,
+    setPropertyPath: string,
+    getPropertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
 
@@ -125,14 +125,14 @@ export class AnimationClip extends EngineObject {
    * @param entityPath - Path to the game object this curve applies to. The entityPath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param componentType - The type index of the component that is animated
    * @param componentIndex - The class type of the component that is animated
-   * @param property - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
+   * @param propertyPath - The path to the property being animated, support "a.b" and "a.b[x]" description mode
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
     componentType: new (entity: Entity) => T,
     componentIndex: number,
-    property: string,
+    propertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
 
@@ -141,52 +141,47 @@ export class AnimationClip extends EngineObject {
    * @param entityPath - Path to the game object this curve applies to. The entityPath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param componentType - The class type of the component that is animated
    * @param componentIndex - The class type of the component that is animated
-   * @param setValuePath - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
-   * @param getValuePath - The name or path to get the value when being animated, default value is property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
+   * @param setPropertyPath - The path to set the property being animated, support "a.b", "a.b[x]" and "a.b('c', 0, $value)" description mode
+   * @param getPropertyPath - The path to get the value when being animated, support "a.b", "a.b[x]" and "a.b('c', 0, $value)" description mode
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
     componentType: new (entity: Entity) => T,
     componentIndex: number,
-    setValuePath: string,
-    getValuePath: string,
+    setPropertyPath: string,
+    getPropertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
 
   addCurveBinding<T extends Component>(
     entityPath: string,
     componentType: new (entity: Entity) => T,
-    propertyOrSetValuePathOrComponentIndex: number | string,
-    curveOrSetValuePathOrGetValuePath: AnimationCurve<KeyframeValueType> | string,
-    curveOrGetValuePath?: AnimationCurve<KeyframeValueType> | string,
+    propertyOrSetPropertyPathOrComponentIndex: number | string,
+    curveOrSetPropertyPathOrGetPropertyPath: AnimationCurve<KeyframeValueType> | string,
+    curveOrGetPropertyPath?: AnimationCurve<KeyframeValueType> | string,
     curve?: AnimationCurve<KeyframeValueType>
   ): void {
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = entityPath;
     curveBinding.type = componentType;
 
-    if (typeof propertyOrSetValuePathOrComponentIndex === "number") {
-      curveBinding.typeIndex = propertyOrSetValuePathOrComponentIndex;
-      if (typeof curveOrSetValuePathOrGetValuePath === "string" && typeof curveOrGetValuePath === "string") {
-        curveBinding.property = curveOrSetValuePathOrGetValuePath;
-        curveBinding.getProperty = curveOrGetValuePath;
+    if (typeof propertyOrSetPropertyPathOrComponentIndex === "number") {
+      curveBinding.typeIndex = propertyOrSetPropertyPathOrComponentIndex;
+      curveBinding.property = <string>curveOrSetPropertyPathOrGetPropertyPath;
+      if (typeof curveOrGetPropertyPath === "string") {
+        curveBinding.getProperty = curveOrGetPropertyPath;
         curveBinding.curve = curve;
       } else {
-        curveBinding.property = <string>curveOrSetValuePathOrGetValuePath;
-        curveBinding.curve = <AnimationCurve<KeyframeValueType>>curveOrGetValuePath;
+        curveBinding.curve = curveOrGetPropertyPath;
       }
     } else {
-      if (
-        typeof propertyOrSetValuePathOrComponentIndex === "string" &&
-        typeof curveOrSetValuePathOrGetValuePath === "string"
-      ) {
-        curveBinding.property = propertyOrSetValuePathOrComponentIndex;
-        curveBinding.getProperty = curveOrSetValuePathOrGetValuePath;
-        curveBinding.curve = <AnimationCurve<KeyframeValueType>>curveOrGetValuePath;
+      curveBinding.property = propertyOrSetPropertyPathOrComponentIndex;
+      if (typeof curveOrSetPropertyPathOrGetPropertyPath === "string") {
+        curveBinding.getProperty = curveOrSetPropertyPathOrGetPropertyPath;
+        curveBinding.curve = <AnimationCurve<KeyframeValueType>>curveOrGetPropertyPath;
       } else {
-        curveBinding.property = propertyOrSetValuePathOrComponentIndex;
-        curveBinding.curve = <AnimationCurve<KeyframeValueType>>curveOrSetValuePathOrGetValuePath;
+        curveBinding.curve = curveOrSetPropertyPathOrGetPropertyPath;
       }
     }
 
