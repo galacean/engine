@@ -76,7 +76,7 @@ jobs:
 
   e2e:
 
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
