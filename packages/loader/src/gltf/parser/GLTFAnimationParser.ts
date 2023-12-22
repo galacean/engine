@@ -142,10 +142,10 @@ export class GLTFAnimationParser extends GLTFParser {
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
           const mesh = glTF.nodes[target.node].mesh;
           for (let i = 0, n = glTF.meshes[mesh].primitives.length; i < n; i++) {
-            animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, "", curve);
+            animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, curve);
           }
         } else {
-          animationClip.addCurveBinding(relativePath, ComponentType, propertyName, "", curve);
+          animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
         }
       }
       return animationClip;
