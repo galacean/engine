@@ -20,7 +20,12 @@ import { e2eReady, updateForE2E } from "./.mockForE2E";
 Logger.enable();
 
 // Create engine
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({
+  canvas: "canvas",
+  graphicDeviceOptions: {
+    antialias: false
+  }
+}).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
