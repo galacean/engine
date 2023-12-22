@@ -18,6 +18,7 @@ export default defineConfig({
     screenshotsFolder: "e2e/screenshots",
     videosFolder: "e2e/videos",
     specPattern: "e2e/tests/*.cy.ts",
+    video: false,
     setupNodeEvents(on, config) {
       // implement node event listeners here
       on("before:browser:launch", (browser, launchOptions) => {
