@@ -95,7 +95,7 @@ export class AnimationClip extends EngineObject {
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type - The class type of the component that is animated
    * @param property - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
-   * @param getProperty - The name or path to get the value when being animated, default value is property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
+   * @param getProperty - The name or path to get the value when being animated, is considered the same as property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
@@ -112,7 +112,7 @@ export class AnimationClip extends EngineObject {
    * @param type - The class type of the component that is animated
    * @param typeIndex - The type index of the component that is animated
    * @param property - The name or path to the property being animated. @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0, $value)"
-   * @param getProperty - The name or path to get the value when being animated, default value is property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
+   * @param getProperty - The name or path to get the value when being animated, '' is considered the same as property @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
