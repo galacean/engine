@@ -91,16 +91,10 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-        cache: pnpm
-    - name: Install dependencies
-      run: pnpm i
-    - name: Build
-      run: npm run build
-
     - name: Run Cypress Tests
       uses: cypress-io/github-action@v5
       with:
-        install: false
+        build: npm run build
         start: npm run e2e:case
         wait-on: 'http://localhost:5175'
         wait-on-timeout: 120 
