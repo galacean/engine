@@ -143,6 +143,9 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
+      '@galacean/engine-shader-lab':
+        specifier: workspace:*
+        version: link:../packages/shader-lab
       '@galacean/engine-toolkit':
         specifier: ^1.0.0-beta.1
         version: 1.0.0-beta.1(@galacean/engine@packages+galacean)
