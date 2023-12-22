@@ -100,6 +100,7 @@ jobs:
     - name: Run Cypress Tests
       uses: cypress-io/github-action@v5
       with:
+        install: false
         start: npm run e2e:case
         wait-on: 'http://localhost:5175'
         wait-on-timeout: 120 
