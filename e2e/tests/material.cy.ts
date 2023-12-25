@@ -1,5 +1,5 @@
 describe("Material", () => {
-  it.only("PBR", () => {
+  it("PBR", () => {
     cy.screenshotWithThreshold("Material", "material-pbr", 0.2);
   });
 
@@ -8,10 +8,10 @@ describe("Material", () => {
   });
 
   it.only("Unlit", () => {
-    cy.screenshotWithThreshold("Material", "material-unlit", 0.2);
+    cy.screenshotWithThreshold("Material", "material-unlit", 0);
   });
 
-  it.only("Blinn Phong", () => {
+  it("Blinn Phong", () => {
     cy.screenshotWithThreshold("Material", "material-blinn-phong", 0.2);
   });
 

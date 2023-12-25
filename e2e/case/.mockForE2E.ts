@@ -58,7 +58,7 @@ export function initScreenshot(
     height,
     renderColorTexture,
     undefined,
-    8
+    1
   );
 
   // render to off-screen
