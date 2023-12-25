@@ -14,7 +14,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -26,7 +26,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // Create camera
   const cameraEntity = rootEntity.createChild("Camera");
   cameraEntity.transform.setPosition(0, 5, 30);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
 
   // Create Direct Light
   const light1 = rootEntity.createChild();
@@ -73,8 +73,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         material.renderFace = RenderFace.Double;
         renderer.setMaterial(material);
         materials.push(material);
-        updateForE2E(engine);
-        e2eReady();
       });
+      updateForE2E(engine);
+      const category = "Material";
+      const name = "material-blinn-phong";
+      initScreenshot(category, name, engine, camera);
     });
 });

@@ -41,7 +41,7 @@
     "chai": "^4.3.6",
     "chai-spies": "^1.0.0",
     "cross-env": "^5.2.0",
-    "cypress": "^13.6.1",
+    "cypress": "^12.17.1",
     "cypress-recurse": "^1.23.0",
     "electron": "^13",
     "eslint": "^8.44.0",

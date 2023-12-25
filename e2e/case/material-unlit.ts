@@ -3,7 +3,7 @@
  * @category Material
  */
 import { Camera, GLTFResource, Vector3, WebGLEngine, Logger } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
 Logger.enable();
 
 // Create engine
@@ -16,7 +16,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // Create camera
   const cameraEntity = rootEntity.createChild("Camera");
   cameraEntity.transform.position = new Vector3(0, 0, 5);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
 
   engine.run();
 
@@ -25,6 +25,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .then((gltf) => {
       rootEntity.addChild(gltf.defaultSceneRoot);
       updateForE2E(engine);
-      e2eReady();
+      const category = "Material";
+      const name = "material-unlit";
+      initScreenshot(category, name, engine, camera);
     });
 });

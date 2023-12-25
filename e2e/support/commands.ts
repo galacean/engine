@@ -1,4 +1,6 @@
 import { recurse } from "cypress-recurse";
+import * as path from "path";
+
 /// <reference types="cypress" />
 // ***********************************************
 // This example commands.ts shows you how to
@@ -35,18 +37,21 @@ declare global {
 }
 
 Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) => {
-  cy.visit(`/mpa/${name}.html`);
+  const downloadsFolder = Cypress.config("downloadsFolder");
 
-  cy.get(".cypressReady").then(() => {
-    return new Promise((resolve) => {
-      const imageName = `${category}_${name}`;
-      resolve(
-        recurse(
-          () => {
-            return cy
-              .get("#canvas")
-              .screenshot(imageName, { overwrite: true, capture: "viewport" })
-              .then(() => {
+  cy.visit(`/mpa/${name}.html`);
+  const imageName = `${category}_${name}.png`;
+  const filePath = path.join(downloadsFolder, imageName);
+  cy.get("#screenshot")
+    .click({ force: true })
+    .then(() => {
+      return new Promise((resolve) => {
+        cy.log(`Reading file ${filePath}`);
+        resolve(
+          recurse(
+            () => {
+              return cy.readFile(filePath).then(() => {
+                cy.log(`Comparing ${imageName} with threshold ${threshold}`);
                 return cy.task("compare", {
                   fileName: imageName,
                   options: {
@@ -56,13 +61,13 @@ Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) 
                   }
                 });
               });
-          },
-          ({ match }) => match,
-          {
-            limit: 3
-          }
-        )
-      );
+            },
+            ({ match }) => match,
+            {
+              limit: 2
+            }
+          )
+        );
+      });
     });
-  });
 });

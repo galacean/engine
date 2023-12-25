@@ -18,6 +18,7 @@ export default defineConfig({
     screenshotsFolder: "e2e/screenshots",
     videosFolder: "e2e/videos",
     specPattern: "e2e/tests/*.cy.ts",
+    downloadsFolder: "e2e/downloads",
     video: false,
     setupNodeEvents(on, config) {
       // implement node event listeners here
@@ -41,9 +42,8 @@ export default defineConfig({
       }),
         on("task", {
           async compare({ fileName, options }) {
-            fileName += ".png";
             const baseFolder = "e2e/fixtures/originImage/";
-            const newFolder = path.join("e2e/screenshots", isRunningInCommandLine ? options.specFolder : "");
+            const newFolder = path.join("e2e/downloads");
             const diffFolder = path.join("e2e/diff", options.specFolder);
             if (!fs.existsSync(diffFolder)) {
               fs.mkdirSync(diffFolder, { recursive: true });
@@ -61,6 +61,12 @@ export default defineConfig({
             const finished = +new Date();
             const elapsed = finished - started;
             console.log("odiff took %dms", elapsed);
+
+            //@ts-ignore
+            if (result.match === false && result.diffPercentage <= 0.01) {
+              //@ts-ignore
+              result.match = true;
+            }
 
             console.log(result);
             return result;

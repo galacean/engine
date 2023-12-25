@@ -24,7 +24,6 @@ const engine = await WebGLEngine.create({ canvas: "canvas" });
 engine.canvas.resizeByClientSize(2);
 const scene = engine.sceneManager.activeScene;
 const rootEntity = scene.createRootEntity();
-console.log(99, SystemInfo.devicePixelRatio);
 // camera
 const cameraEntity = rootEntity.createChild("camera_node");
 cameraEntity.transform.position = new Vector3(0, 1, 5);
