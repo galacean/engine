@@ -8,7 +8,7 @@ describe.only("Material", () => {
   });
 
   it.only("Unlit", () => {
-    cy.screenshotWithThreshold("Material", "material-unlit", 0);
+    cy.screenshotWithThreshold("Sprite", "sprite-size", 0);
   });
 
   it("Blinn Phong", () => {
