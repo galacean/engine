@@ -16,6 +16,7 @@ import {
   TorusRestoreInfo
 } from "./PrimitiveMeshRestorer";
 import { VertexAttribute } from "./enums/VertexAttribute";
+import { off } from "process";
 
 /**
  * Used to generate common primitive meshes.
@@ -38,6 +39,10 @@ export class PrimitiveMesh {
     new Vector3(-1, 1, -1)
   ];
 
+  // private static readonly _initialVertices = new Float32Array([
+  //   -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1
+  // ]);
+
   private static readonly _initialCells = [
     [0, 1, 2, 3],
     [3, 2, 4, 5],
@@ -46,6 +51,15 @@ export class PrimitiveMesh {
     [7, 6, 1, 0],
     [6, 4, 2, 1]
   ];
+
+  private static readonly _defaultIndices = [
+    [3, 6, -1, 9, 8],
+    [-1, -1, 7, 10, 11],
+    [-1, -1, 1, -1, 5],
+    [-1, -1, 4, 0, 2]
+  ];
+
+  private static _edgeIdx: number = 0;
 
   /**
    * Create a sphere mesh.
@@ -461,20 +475,52 @@ export class PrimitiveMesh {
   } {
     const { _tempVec31: tempVec1, _tempVec32: tempVec2, _tempVec33: tempVec3 } = PrimitiveMesh;
 
-    let cells = PrimitiveMesh._initialCells.map((cell) => [...cell]);
-    let vertices = PrimitiveMesh._initialVertices.map((vertex) => vertex.clone());
-
-    const getIndex = (vertex: Vector3): number => {
-      const idx = vertices.findIndex((value) => Vector3.equals(value, vertex));
-      return idx > -1 ? idx : vertices.push(vertex) - 1;
-    };
+    let cells = PrimitiveMesh._initialCells.slice();
+    let vertices = PrimitiveMesh._initialVertices.slice();
 
     const points: Array<IPoint> = [];
     const edges: Map<number, IEdge> = new Map();
     const faces: Array<IFace> = [];
 
-    for (let i = 0; i < step; i++) {
+    function calculateEdgeIndex(
+      edge: IEdge,
+      currFaceIdx: number,
+      offset: number,
+      cellIdx: number,
+      stepIdx: number,
+      currStep: number
+    ): number {
+      let index;
+      const edgePoint = edge.edgePoint;
+      const adjacentFaceIdx = edge.adjacentFaces[0] === currFaceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
+
+      if (currFaceIdx > adjacentFaceIdx) {
+        if (currStep === 0) {
+          index = PrimitiveMesh._defaultIndices[stepIdx][currFaceIdx - 1] + offset;
+        } else {
+          index = cells[4 * adjacentFaceIdx + cellIdx][3];
+        }
+      } else {
+        vertices[PrimitiveMesh._edgeIdx + offset] = edgePoint;
+        index = PrimitiveMesh._edgeIdx + offset;
+        PrimitiveMesh._edgeIdx++;
+      }
+
+      return index;
+    }
+
+    let previousVertices = PrimitiveMesh._initialVertices.slice();
+
+    for (let m = 0; m < step; m++) {
+      // const verticesSize = 24 * Math.pow(4, m) + 2;
+      // const vertices = new Float32Array(3 * verticesSize);
+      // vertices.set(previousVertices);
+
+      // 提前给vertices扩容
+      vertices.length = 24 * Math.pow(4, m) + 2;
+
       points.length = 0;
+      points.length = 6 * Math.pow(4, m) + 2;
       edges.clear();
       faces.length = 0;
 
@@ -493,8 +539,10 @@ export class PrimitiveMesh {
         const cellLength = cell.length;
         for (let j = 0; j < cellLength; j++) {
           const idx = cell[j];
+
           const vertex = vertices[idx];
 
+          // 那不能这么写了！- 在开头一次性create？？
           if (!points[idx]) {
             const point: IPoint = {
               position: vertex,
@@ -504,8 +552,8 @@ export class PrimitiveMesh {
             };
             points[idx] = point;
           }
-          points[idx].facePoint.push(i);
 
+          points[idx].facePoint.push(i);
           faces[i].vertices.push(idx);
           faces[i].facePoint.add(vertex);
         }
@@ -538,7 +586,6 @@ export class PrimitiveMesh {
           faces[i].adjacentEdges.push(edgeIdxKey);
         }
       }
-
       // Get edges' edgePoint.
       for (let [key, edge] of edges) {
         const { adjacentFaces, edgePoint } = edge;
@@ -578,30 +625,75 @@ export class PrimitiveMesh {
         Vector3.add(tempVec1.scale(m1), tempVec2.scale(m2), curPoint.newPosition);
         Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
       }
-
       // Get updated cells and vertices.
+      let tempCells = cells.slice();
+      // 准备两个cells
+
       cells.length = 0;
-      vertices.length = 0;
+      cells.length = faces.length * 4;
+
+      this._edgeIdx = 0;
+
+      // const newPositionlength = vertices.length;
+      const newPositionlength = 6 * Math.pow(4, m) + 2;
+      const faceLength = 6 * Math.pow(4, m);
+
+      let startA = 0;
       for (let i = 0; i < faces.length; i++) {
         const curFace = faces[i];
 
+        vertices[newPositionlength + i] = curFace.facePoint;
+        const ic = newPositionlength + i;
+
+        let bIdx0 = 0;
+        let bIdx1 = 0;
+        let bIdx2 = 0;
+
+        let dIdx0 = 0;
+
         for (let j = 0; j < curFace.vertices.length; j++) {
-          const curPoint = curFace.vertices[j];
+          const ia = tempCells[Math.floor(startA / 4)][startA % 4];
+          startA++;
 
-          const a = points[curPoint].newPosition;
-          const b = edges.get(curFace.adjacentEdges[j % 4]).edgePoint;
-          const c = curFace.facePoint;
-          const d = edges.get(curFace.adjacentEdges[(j + 3) % 4]).edgePoint;
+          let id, ib;
 
-          const ia = getIndex(a);
-          const ib = getIndex(b);
-          const ic = getIndex(c);
-          const id = getIndex(d);
-          cells.push([ia, ib, ic, id]);
+          const edgeB = edges.get(curFace.adjacentEdges[j % 4]);
+          const edgeD = edges.get(curFace.adjacentEdges[(j + 3) % 4]);
+
+          switch (j) {
+            case 0: {
+              ib = calculateEdgeIndex(edgeB, i, newPositionlength + faceLength, 0, 0, m);
+              id = calculateEdgeIndex(edgeD, i, newPositionlength + faceLength, 1, 1, m);
+
+              bIdx0 = ib;
+              dIdx0 = id;
+              break;
+            }
+            case 1: {
+              ib = calculateEdgeIndex(edgeB, i, newPositionlength + faceLength, 3, 2, m);
+              bIdx1 = ib;
+              id = bIdx0;
+              break;
+            }
+            case 2: {
+              ib = calculateEdgeIndex(edgeB, i, newPositionlength + faceLength, 2, 3, m);
+              bIdx2 = ib;
+              id = bIdx1;
+              break;
+            }
+            case 3: {
+              id = bIdx2;
+              ib = dIdx0;
+              break;
+            }
+          }
+          cells[4 * i + j] = [ia, ib, ic, id];
         }
       }
-    }
 
+      // previousVertices = vertices;
+      // -------------------------------------------------------------
+    }
     return { cells, positions: vertices };
   }
 
