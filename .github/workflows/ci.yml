@@ -75,7 +75,7 @@ jobs:
       - run: curl -s https://codecov.io/bash
 
   e2e:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
