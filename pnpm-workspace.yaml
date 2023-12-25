@@ -3,3 +3,4 @@ packages:
   - 'packages/*'
   # all packages in subdirs of components/
   - 'tests'
+  - 'e2e'

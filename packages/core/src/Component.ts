@@ -35,20 +35,28 @@ export class Component extends EngineObject {
       this._enabled = value;
       if (this._entity._isActiveInScene) {
         if (value) {
-          this._phasedActiveInScene = true;
-          this._onEnableInScene();
+          if (!this._phasedActiveInScene) {
+            this._phasedActiveInScene = true;
+            this._onEnableInScene();
+          }
         } else {
-          this._phasedActiveInScene = false;
-          this._onDisableInScene();
+          if (this._phasedActiveInScene) {
+            this._phasedActiveInScene = false;
+            this._onDisableInScene();
+          }
         }
       }
       if (this._entity.isActiveInHierarchy) {
         if (value) {
-          this._phasedActive = true;
-          this._onEnable();
+          if (!this._phasedActive) {
+            this._phasedActive = true;
+            this._onEnable();
+          }
         } else {
-          this._phasedActive = false;
-          this._onDisable();
+          if (this._phasedActive) {
+            this._phasedActive = false;
+            this._onDisable();
+          }
         }
       }
     }

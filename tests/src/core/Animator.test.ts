@@ -1,5 +1,5 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Animator, AnimatorStateTransition, Camera } from "@galacean/engine-core";
+import { AnimationEvent, Animator, AnimatorStateTransition, Camera, Script } from "@galacean/engine-core";
 import { Quaternion } from "@galacean/engine-math";
 import { GLTFResource } from "@galacean/engine-loader";
 import chai, { expect } from "chai";
@@ -225,5 +225,25 @@ describe("Animator test", function () {
 
     // current animator layerState should be FixedCrossFading(3)
     expect(layerState).to.eq(3);
+  });
+
+  it("animation event", () => {
+    animator.play("Walk");
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+    TestScript.prototype.event0 = chai.spy(TestScript.prototype.event0);
+
+    animator.entity.addComponent(TestScript);
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+
+    const state = animator.findAnimatorState("Walk");
+    state.clip.addEvent(event0);
+    animator.update(10);
+    expect(TestScript.prototype.event0).to.have.been.called.exactly(1);
   });
 });
