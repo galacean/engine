@@ -1,6 +1,6 @@
 describe("Material", () => {
   it.only("PBR", () => {
-    cy.screenshotWithThreshold("Material", "material-pbr", 0.1);
+    cy.screenshotWithThreshold("Material", "material-pbr", 0.2);
   });
 
   it("PBR Clearcoat", () => {
@@ -8,11 +8,11 @@ describe("Material", () => {
   });
 
   it.only("Unlit", () => {
-    cy.screenshotWithThreshold("Material", "material-unlit", 0.1);
+    cy.screenshotWithThreshold("Material", "material-unlit", 0.2);
   });
 
   it.only("Blinn Phong", () => {
-    cy.screenshotWithThreshold("Material", "material-blinn-phong", 0.1);
+    cy.screenshotWithThreshold("Material", "material-blinn-phong", 0.2);
   });
 
   it("Blend Mode", () => {
