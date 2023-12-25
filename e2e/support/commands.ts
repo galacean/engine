@@ -51,7 +51,8 @@ Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) 
                   fileName: imageName,
                   options: {
                     specFolder: Cypress.spec.name,
-                    threshold
+                    threshold,
+                    antialiasing: true
                   }
                 });
               });
