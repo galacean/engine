@@ -56,6 +56,26 @@ export class ShaderProgramPool {
     this._lastQueryMap[this._lastQueryKey] = shaderProgram;
   }
 
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._recursiveDestroy(0, this._cacheMap);
+    this._cacheMap = Object.create(null);
+  }
+
+  private _recursiveDestroy(hierarchy: number, cacheMap: Tree<ShaderProgram>): void {
+    if (hierarchy === this._cacheHierarchyDepth - 1) {
+      for (let k in cacheMap) {
+        (<ShaderProgram>cacheMap[k]).destroy();
+      }
+      return;
+    }
+    for (let k in cacheMap) {
+      this._recursiveDestroy(++hierarchy, <Tree<ShaderProgram>>cacheMap[k]);
+    }
+  }
+
   private _resizeCacheMapHierarchy(
     cacheMap: Tree<ShaderProgram>,
     hierarchy: number,
