@@ -187,7 +187,7 @@ export class ParticleRenderer extends Renderer {
       return;
     }
 
-    if (material.destroyed) {
+    if (material.destroyed || material.shader.destroyed) {
       material = this.engine._particleMagentaMaterial;
     }
 
