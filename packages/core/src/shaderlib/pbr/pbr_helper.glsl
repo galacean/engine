@@ -18,16 +18,17 @@ float getAARoughnessFactor(vec3 normal) {
 }
 
 #ifdef MATERIAL_ENABLE_ANISOTROPY
-// Aniso Bent Normals
-// Mc Alley https://www.gdcvault.com/play/1022235/Rendering-the-World-of-Far 
-vec3 getAnisotropicBentNormal(Geometry geometry, vec3 n) {
-    vec3  anisotropyDirection = geometry.anisotropy >= 0.0 ? geometry.anisotropicB : geometry.anisotropicT;
-    vec3  anisotropicTangent  = cross(anisotropyDirection, geometry.viewDir);
-    vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
-    vec3  bentNormal          = normalize(mix(n, anisotropicNormal, abs(geometry.anisotropy)));
+    // Aniso Bent Normals
+    // Mc Alley https://www.gdcvault.com/play/1022235/Rendering-the-World-of-Far 
+    vec3 getAnisotropicBentNormal(Geometry geometry, vec3 n, float roughness) {
+        vec3  anisotropyDirection = geometry.anisotropy >= 0.0 ? geometry.anisotropicB : geometry.anisotropicT;
+        vec3  anisotropicTangent  = cross(anisotropyDirection, geometry.viewDir);
+        vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
+        // reduce stretching for (roughness < 0.2), refer to https://advances.realtimerendering.com/s2018/Siggraph%202018%20HDRP%20talk_with%20notes.pdf 80
+        vec3  bentNormal          = normalize( mix(n, anisotropicNormal, abs(geometry.anisotropy) * saturate( 5.0 * roughness)) );
 
-    return bentNormal;
-}
+        return bentNormal;
+    }
 #endif
 
 void initGeometry(out Geometry geometry, bool isFrontFacing){
@@ -68,11 +69,10 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
         geometry.anisotropy = anisotropy;
         geometry.anisotropicT = normalize(tbn * anisotropicDirection);
         geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
-        geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal);
     #endif
 }
 
-void initMaterial(out Material material, const in Geometry geometry){
+void initMaterial(out Material material, inout Geometry geometry){
         vec4 baseColor = material_BaseColor;
         float metal = material_Metal;
         float roughness = material_Roughness;
@@ -147,6 +147,10 @@ void initMaterial(out Material material, const in Geometry geometry){
         #else
             material.opacity = 1.0;
         #endif
+        #ifdef MATERIAL_ENABLE_ANISOTROPY
+            geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal, material.roughness);
+        #endif
+
 }
 
 // direct + indirect
