@@ -1,4 +1,4 @@
-import { MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
@@ -13,7 +13,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
   private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
 
-  private static _iorProp = Shader.getPropertyByName("material_IOR");
+  private static _iorProp = ShaderProperty.getByName("material_IOR");
 
   private static _anisotropyInfoProp = ShaderProperty.getByName("material_AnisotropyInfo");
   private static _anisotropyTextureProp = ShaderProperty.getByName("material_AnisotropyTexture");
@@ -75,6 +75,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   /**
    * The strength of anisotropy, when anisotropyTexture is present, this value is multiplied by the blue channel.
+   * @defaultValue `0`
    */
   get anisotropy(): number {
     return this.shaderData.getVector3(PBRMaterial._anisotropyInfoProp).z;
@@ -94,6 +95,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   /**
    * The rotation of the anisotropy in tangent, bitangent space, value in degrees.
+   * @defaultValue `0`
    */
   get anisotropyRotation(): number {
     return this._anisotropyRotation;

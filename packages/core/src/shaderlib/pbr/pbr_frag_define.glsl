@@ -1,3 +1,6 @@
+#define MIN_PERCEPTUAL_ROUGHNESS 0.045
+#define MIN_ROUGHNESS            0.002025
+
 uniform float material_AlphaCutoff;
 uniform vec4 material_BaseColor;
 uniform float material_Metal;
