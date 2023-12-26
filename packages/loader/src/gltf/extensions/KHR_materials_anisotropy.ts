@@ -11,7 +11,7 @@ class KHR_materials_anisotropy extends GLTFExtensionParser {
     const { anisotropyStrength = 0, anisotropyRotation = 0, anisotropyTexture } = schema;
 
     material.anisotropy = anisotropyStrength;
-    material.anisotropyDirection.set(Math.cos(anisotropyRotation), Math.sin(anisotropyRotation));
+    material.anisotropyRotation = anisotropyRotation;
 
     if (anisotropyTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(anisotropyTexture, "Anisotropy texture");

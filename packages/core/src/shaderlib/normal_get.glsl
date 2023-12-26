@@ -44,11 +44,11 @@ mat3 getTBN(bool isFrontFacing){
 	        vec3 dp2perp = cross(dp2, normal);
 	        vec3 dp1perp = cross(normal, dp1);
 	        vec3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
-	        vec3 binormal = dp2perp * duv1.y + dp1perp * duv2.y;
+	        vec3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
 
 	        // construct a scale-invariant frame 
-	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(binormal, binormal)));
-	        mat3 tbn = mat3(tangent * invmax, binormal * invmax, normal);
+	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(bitangent, bitangent)));
+	        mat3 tbn = mat3(tangent * invmax, bitangent * invmax, normal);
         #else
             mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);
         #endif
