@@ -35,11 +35,11 @@ describe("PrimitiveMesh", () => {
     expect(sphereMesh.vertexBufferBindings.length).equal(2);
   });
 
-  it("createCCSubdivSphere", () => {
+  it("createSubdivisionSurfaceSphere", () => {
     // Test that createSphere works correctly.
     const radius = 2.333;
     const steps = 3.2;
-    const sphereMesh = PrimitiveMesh.createCCSubdivSphere(engine, radius, steps, false);
+    const sphereMesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine, radius, steps, false);
 
     expect(sphereMesh.vertexCount).equal(417);
     expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });

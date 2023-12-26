@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { GLCapabilityType } from "../base/Constant";
 import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
@@ -27,25 +27,17 @@ export class PrimitiveMesh {
   private static _tempVec33: Vector3 = new Vector3();
   private static _tempVec34: Vector3 = new Vector3();
 
-  private static readonly _initialVertices = new Float32Array([
+  private static readonly _seedPositions = new Float32Array([
     -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1
   ]);
 
-  private static readonly _initialCells = [
-    [0, 1, 2, 3],
-    [3, 2, 4, 5],
-    [5, 4, 6, 7],
-    [7, 0, 3, 5],
-    [7, 6, 1, 0],
-    [6, 4, 2, 1]
-  ];
+  private static readonly _seedCells = new Float32Array([
+    0, 1, 2, 3, 3, 2, 4, 5, 5, 4, 6, 7, 7, 0, 3, 5, 7, 6, 1, 0, 6, 4, 2, 1
+  ]);
 
-  private static readonly _defaultIndices = [
-    [3, 6, -1, 9, 8],
-    [-1, -1, 7, 10, 11],
-    [-1, -1, 1, -1, 5],
-    [-1, -1, 4, 0, 2]
-  ];
+  private static readonly _specialIndex = new Float32Array([
+    3, 6, -1, 9, 8, -1, -1, 7, 10, 11, -1, -1, 1, -1, 5, -1, -1, 4, 0, 2
+  ]);
 
   private static _edgeIdx: number = 0;
 
@@ -81,14 +73,14 @@ export class PrimitiveMesh {
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Sphere model mesh
    */
-  static createCCSubdivSphere(
+  static createSubdivisionSurfaceSphere(
     engine: Engine,
     radius: number = 1,
     step: number = 3,
     noLongerAccessible: boolean = true
   ): ModelMesh {
     const sphereMesh = new ModelMesh(engine);
-    PrimitiveMesh._setCCSudivSphereData(sphereMesh, radius, step, noLongerAccessible, false);
+    PrimitiveMesh._setSubdivisionSurfaceSphereData(sphereMesh, radius, step, noLongerAccessible, false);
 
     const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
@@ -311,7 +303,7 @@ export class PrimitiveMesh {
   /**
    * @internal
    */
-  static _setCCSudivSphereData(
+  static _setSubdivisionSurfaceSphereData(
     sphereMesh: ModelMesh,
     radius: number,
     step: number,
@@ -324,7 +316,7 @@ export class PrimitiveMesh {
     let { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
     const positionCount = positions.length / 3;
-    const cellsCount = cells.length;
+    const cellsCount = cells.length * 0.25;
     const vertexCount = positionCount + Math.pow(2, step + 1) + 15;
 
     const vertices = new Float32Array(vertexCount * 8);
@@ -336,10 +328,11 @@ export class PrimitiveMesh {
       let y = positions[3 * i + 1];
       let z = positions[3 * i + 2];
 
-      const length = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2));
-      x = x / length;
-      y = y / length;
-      z = z / length;
+      let len = Math.sqrt(x * x + y * y + z * z);
+      len = 1 / len;
+      x = x * len;
+      y = y * len;
+      z = z * len;
 
       vertices[i * 8] = x * radius;
       vertices[i * 8 + 1] = y * radius;
@@ -356,15 +349,13 @@ export class PrimitiveMesh {
     // Get indices.
     let offset = 0;
     for (let i = 0; i < cellsCount; i++) {
-      const cell = cells[i];
+      indices[offset++] = cells[4 * i];
+      indices[offset++] = cells[4 * i + 1];
+      indices[offset++] = cells[4 * i + 2];
 
-      indices[offset++] = cell[0];
-      indices[offset++] = cell[1];
-      indices[offset++] = cell[2];
-
-      indices[offset++] = cell[0];
-      indices[offset++] = cell[2];
-      indices[offset++] = cell[3];
+      indices[offset++] = cells[4 * i];
+      indices[offset++] = cells[4 * i + 2];
+      indices[offset++] = cells[4 * i + 3];
     }
 
     // Solve texture seam problem caused by vertex sharing.
@@ -463,47 +454,42 @@ export class PrimitiveMesh {
    * @internal
    */
   static _subdivCatmullClark(step: number): {
-    cells: number[][];
+    cells: Float32Array;
     positions: Float32Array;
   } {
     const { _tempVec31: tempVec1, _tempVec32: tempVec2, _tempVec33: tempVec3 } = PrimitiveMesh;
 
-    let cells = PrimitiveMesh._initialCells.slice();
     const points: Array<IPoint> = [];
     const edges: Map<number, IEdge> = new Map();
     const faces: Array<IFace> = [];
 
-    let previousVertices = PrimitiveMesh._initialVertices.slice();
+    let previousPositions = PrimitiveMesh._seedPositions.slice();
+    let preCells = PrimitiveMesh._seedCells.slice();
 
     for (let m = 0; m < step; m++) {
-      // 提前给vertices扩容
-      const verticesSize = 24 * Math.pow(4, m) + 2;
-      const vertices = new Float32Array(3 * verticesSize);
-      vertices.set(previousVertices);
+      const positionCount = 24 * Math.pow(4, m) + 2;
+      const positions = new Float32Array(3 * positionCount);
+      positions.set(previousPositions);
+
+      const preCellCount = preCells.length * 0.25;
+      const cells = new Float32Array(24 * Math.pow(4, m + 1));
 
       points.length = 0;
-      points.length = 6 * Math.pow(4, m) + 2;
       edges.clear();
       faces.length = 0;
 
       // Get cell faces.
-      const cellsCount = cells.length;
-      for (let i = 0; i < cellsCount; i++) {
-        const cell = cells[i];
-
+      for (let i = 0; i < preCellCount; i++) {
         faces[i] = {
           facePoint: new Vector3(),
           vertices: [],
           adjacentEdges: []
         };
 
-        // Get cell points.
-        const cellLength = cell.length;
-        for (let j = 0; j < cellLength; j++) {
-          const idx = cell[j];
+        for (let j = 0; j < 4; j++) {
+          const idx = preCells[4 * i + j];
 
-          const vertex = new Vector3(vertices[3 * idx], vertices[3 * idx + 1], vertices[3 * idx + 2]);
-          // 那不能这么写了！- 在开头一次性create？？
+          const vertex = new Vector3(positions[3 * idx], positions[3 * idx + 1], positions[3 * idx + 2]);
           if (!points[idx]) {
             const point: IPoint = {
               position: vertex,
@@ -520,14 +506,14 @@ export class PrimitiveMesh {
         }
 
         // Get cell face's facePoint.
-        faces[i].facePoint.scale(1 / cellLength);
+        faces[i].facePoint.scale(0.25);
 
         // Get cell edges.
-        for (let j = 0; j < cellLength; j++) {
-          const vertexIdxA = cell[j];
-          const vertexIdxB = cell[(j + 1) % cellLength];
-          const edgeIdxKey =
-            (Math.min(vertexIdxA, vertexIdxB) * vertices.length) / 3 + Math.max(vertexIdxA, vertexIdxB);
+        for (let j = 0; j < 4; j++) {
+          const vertexIdxA = preCells[4 * i + j];
+          const vertexIdxB = preCells[4 * i + ((j + 1) % 4)];
+          const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * positionCount + Math.max(vertexIdxA, vertexIdxB);
+
           if (!edges.has(edgeIdxKey)) {
             const edge: IEdge = {
               midPoint: new Vector3(),
@@ -535,20 +521,11 @@ export class PrimitiveMesh {
               adjacentFaces: []
             };
 
-            const tempA = new Vector3(
-              vertices[3 * vertexIdxA],
-              vertices[3 * vertexIdxA + 1],
-              vertices[3 * vertexIdxA + 2]
+            edge.midPoint.set(
+              0.5 * (positions[3 * vertexIdxA] + positions[3 * vertexIdxB]),
+              0.5 * (positions[3 * vertexIdxA + 1] + positions[3 * vertexIdxB + 1]),
+              0.5 * (positions[3 * vertexIdxA + 2] + positions[3 * vertexIdxB + 2])
             );
-
-            const tempB = new Vector3(
-              vertices[3 * vertexIdxB],
-              vertices[3 * vertexIdxB + 1],
-              vertices[3 * vertexIdxB + 2]
-            );
-
-            Vector3.add(tempA, tempB, edge.midPoint);
-            edge.midPoint.scale(0.5);
 
             points[vertexIdxA].edgeMidPoint.push(edgeIdxKey);
             points[vertexIdxB].edgeMidPoint.push(edgeIdxKey);
@@ -600,108 +577,72 @@ export class PrimitiveMesh {
         Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
       }
 
-      //temp
-      function calculateEdgeIndex(
-        edge: IEdge,
-        currFaceIdx: number,
-        offset: number,
-        cellIdx: number,
-        stepIdx: number,
-        currStep: number
-      ): number {
-        let index;
-        const edgePoint = edge.edgePoint;
-        const adjacentFaceIdx = edge.adjacentFaces[0] === currFaceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
+      const prePointCount = 6 * Math.pow(4, m) + 2;
+      const facePointCount = 6 * Math.pow(4, m);
+      const offset = prePointCount + facePointCount;
 
-        if (currFaceIdx > adjacentFaceIdx) {
-          if (currStep === 0) {
-            index = PrimitiveMesh._defaultIndices[stepIdx][currFaceIdx - 1] + offset;
-          } else {
-            index = cells[4 * adjacentFaceIdx + cellIdx][3];
-          }
-        } else {
-          vertices[3 * (PrimitiveMesh._edgeIdx + offset)] = edgePoint.x;
-          vertices[3 * (PrimitiveMesh._edgeIdx + offset) + 1] = edgePoint.y;
-          vertices[3 * (PrimitiveMesh._edgeIdx + offset) + 2] = edgePoint.z;
-          index = PrimitiveMesh._edgeIdx + offset;
-          PrimitiveMesh._edgeIdx++;
-        }
-
-        return index;
-      }
-
-      // Get updated cells and vertices.
-      let tempCells = cells.slice();
-      // 准备两个cells
-
-      cells.length = 0;
-      cells.length = faces.length * 4;
+      let pointIdx = 0;
 
       this._edgeIdx = 0;
 
-      const newPositionlength = 6 * Math.pow(4, m) + 2;
-      const faceLength = 6 * Math.pow(4, m);
-
-      let startA = 0;
+      // Get New positions, which consists of updated positions of exising points, face points and edge points.
       for (let i = 0; i < faces.length; i++) {
+        // Add face point to new positions.
         const curFace = faces[i];
+        positions[3 * (prePointCount + i)] = curFace.facePoint.x;
+        positions[3 * (prePointCount + i) + 1] = curFace.facePoint.y;
+        positions[3 * (prePointCount + i) + 2] = curFace.facePoint.z;
 
-        vertices[3 * (newPositionlength + i)] = curFace.facePoint.x;
-        vertices[3 * (newPositionlength + i) + 1] = curFace.facePoint.y;
-        vertices[3 * (newPositionlength + i) + 2] = curFace.facePoint.z;
+        // Get the face point index.
+        const ic = prePointCount + i;
 
-        const ic = newPositionlength + i;
+        let bIdx0 = 0,
+          bIdx1 = 0,
+          bIdx2 = 0,
+          dIdx0 = 0;
 
-        let bIdx0 = 0;
-        let bIdx1 = 0;
-        let bIdx2 = 0;
-
-        let dIdx0 = 0;
-
-        for (let j = 0; j < curFace.vertices.length; j++) {
-          const ia = tempCells[Math.floor(startA / 4)][startA % 4];
-          startA++;
+        for (let j = 0; j < 4; j++) {
+          // Get the updated exising point index.
+          const ia = preCells[pointIdx++];
 
           let id, ib;
 
           const edgeB = edges.get(curFace.adjacentEdges[j % 4]);
           const edgeD = edges.get(curFace.adjacentEdges[(j + 3) % 4]);
 
-          switch (j) {
-            case 0: {
-              ib = calculateEdgeIndex(edgeB, i, newPositionlength + faceLength, 0, 0, m);
-              id = calculateEdgeIndex(edgeD, i, newPositionlength + faceLength, 1, 1, m);
+          // ib and id share four edge points in one cell.
+          if (j === 0) {
+            ib = this._calculateEdgeIndex(cells, positions, edgeB, i, m, offset, 0, 0);
+            id = this._calculateEdgeIndex(cells, positions, edgeD, i, m, offset, 1, 1);
 
-              bIdx0 = ib;
-              dIdx0 = id;
-              break;
-            }
-            case 1: {
-              ib = calculateEdgeIndex(edgeB, i, newPositionlength + faceLength, 3, 2, m);
-              bIdx1 = ib;
-              id = bIdx0;
-              break;
-            }
-            case 2: {
-              ib = calculateEdgeIndex(edgeB, i, newPositionlength + faceLength, 2, 3, m);
-              bIdx2 = ib;
-              id = bIdx1;
-              break;
-            }
-            case 3: {
-              id = bIdx2;
-              ib = dIdx0;
-              break;
-            }
+            bIdx0 = ib;
+            dIdx0 = id;
+          } else if (j === 1) {
+            ib = this._calculateEdgeIndex(cells, positions, edgeB, i, m, offset, 3, 2);
+
+            bIdx1 = ib;
+            id = bIdx0;
+          } else if (j === 2) {
+            ib = this._calculateEdgeIndex(cells, positions, edgeB, i, m, offset, 2, 3);
+
+            bIdx2 = ib;
+            id = bIdx1;
+          } else if (j === 3) {
+            id = bIdx2;
+            ib = dIdx0;
           }
-          cells[4 * i + j] = [ia, ib, ic, id];
+
+          cells[4 * (4 * i + j)] = ia;
+          cells[4 * (4 * i + j) + 1] = ib;
+          cells[4 * (4 * i + j) + 2] = ic;
+          cells[4 * (4 * i + j) + 3] = id;
         }
       }
 
-      previousVertices = vertices;
-      // -------------------------------------------------------------
+      previousPositions = positions;
+      preCells = cells;
     }
-    return { cells, positions: previousVertices };
+    return { cells: preCells, positions: previousPositions };
   }
 
   /**
@@ -805,6 +746,41 @@ export class PrimitiveMesh {
         }
       }
     }
+  }
+  /**
+   * @internal
+   * Get edge point index.
+   */
+  static _calculateEdgeIndex(
+    cells: Float32Array,
+    positions: Float32Array,
+    edge: IEdge,
+    currFaceIdx: number,
+    currStep: number,
+    offset: number,
+    cellIdx: number,
+    stepIdx: number
+  ): { index: number; edgeIdx: number } {
+    let index;
+    const edgePoint = edge.edgePoint;
+    const adjacentFaceIdx = edge.adjacentFaces[0] === currFaceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
+
+    if (currFaceIdx > adjacentFaceIdx) {
+      if (currStep === 0) {
+        index = PrimitiveMesh._specialIndex[5 * stepIdx + currFaceIdx - 1] + offset;
+      } else {
+        index = cells[16 * adjacentFaceIdx + 4 * cellIdx + 3];
+      }
+    } else {
+      positions[3 * (PrimitiveMesh._edgeIdx + offset)] = edgePoint.x;
+      positions[3 * (PrimitiveMesh._edgeIdx + offset) + 1] = edgePoint.y;
+      positions[3 * (PrimitiveMesh._edgeIdx + offset) + 2] = edgePoint.z;
+
+      index = PrimitiveMesh._edgeIdx + offset;
+      PrimitiveMesh._edgeIdx++;
+    }
+
+    return index;
   }
 
   /**

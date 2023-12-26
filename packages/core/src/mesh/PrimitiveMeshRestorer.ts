@@ -31,7 +31,7 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
 
       case PrimitiveType.CCSphere:
         const CCSphereInfo = <CCSphereRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setCCSudivSphereData(
+        PrimitiveMesh._setSubdivisionSurfaceSphereData(
           this.resource,
           CCSphereInfo.radius,
           CCSphereInfo.step,
