@@ -13,14 +13,6 @@ export const updateForE2E = (engine, deltaTime = 100) => {
   }
 };
 
-export const e2eReady = () => {
-  setTimeout(() => {
-    const text = document.createElement("div");
-    text.id = "cypressReady";
-    document.body.appendChild(text);
-  }, 1000);
-}
-
 let screenshotCanvas: HTMLCanvasElement = null;
 let flipYCanvas: HTMLCanvasElement = null;
 
@@ -32,10 +24,10 @@ export function initScreenshot(
   width: number = 1200,
   height: number = 800,
   flipY = true,
-  isPNG = true,
+  isPNG = false,
   jpgQuality = 1
 ) {
-  const imageName = `${category}_${name}.png`;
+  const imageName = `${category}_${name}.jpg`;
 
   if (!screenshotCanvas) {
     screenshotCanvas = document.createElement("canvas");

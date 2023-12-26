@@ -10,15 +10,13 @@ import {
   Camera,
   DirectLight,
   Font,
-  FontStyle,
   GLTFResource,
   Script,
-  SystemInfo,
   TextRenderer,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.canvas.resizeByClientSize(2);
@@ -27,7 +25,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
   const lightNode = rootEntity.createChild("light_node");
@@ -78,6 +76,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("walk", 0);
 
       updateForE2E(engine, 500);
-      e2eReady();
+      const category = "Animator";
+      const name = "animator-event";
+      initScreenshot(category, name, engine, camera);
     });
 });

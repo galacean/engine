@@ -14,7 +14,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {

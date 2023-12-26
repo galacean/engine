@@ -16,7 +16,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
@@ -28,7 +28,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
   const lightNode = rootEntity.createChild("light_node");
@@ -63,6 +63,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("walk", 0);
       animator.play("sad_pose", 1);
       updateForE2E(engine);
-      e2eReady();
+      const category = "Animator";
+      const name = "animator-additive";
+      initScreenshot(category, name, engine, camera);
     });
 });

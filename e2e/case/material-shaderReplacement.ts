@@ -16,7 +16,7 @@ import {
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 /**
  * Main function.

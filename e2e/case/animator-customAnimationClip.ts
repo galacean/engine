@@ -18,12 +18,11 @@ import {
   Keyframe,
   Logger,
   SpotLight,
-  SystemInfo,
   Transform,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -36,7 +35,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraEntity = cameraWrap.createChild("camera");
   cameraEntity.transform.position = new Vector3(0, 3, 8);
   cameraEntity.transform.rotation = new Vector3(-2, 0, 0);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
 
   const lightWrap = rootEntity.createChild("light_wrap");
 
@@ -183,6 +182,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play(animations[0].name, 0);
 
       updateForE2E(engine, 500);
-      e2eReady();
+      const category = "Animator";
+      const name = "animator-customAnimationClip";
+      initScreenshot(category, name, engine, camera);
     });
 });

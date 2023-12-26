@@ -15,7 +15,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 

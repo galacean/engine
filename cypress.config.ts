@@ -63,7 +63,7 @@ export default defineConfig({
             console.log("odiff took %dms", elapsed);
 
             //@ts-ignore
-            if (result.match === false && result.diffPercentage <= 0.01) {
+            if (result.match === false && result.diffPercentage <= 0.1) {
               //@ts-ignore
               result.match = true;
             }

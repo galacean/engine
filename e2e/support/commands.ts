@@ -40,7 +40,7 @@ Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) 
   const downloadsFolder = Cypress.config("downloadsFolder");
 
   cy.visit(`/mpa/${name}.html`);
-  const imageName = `${category}_${name}.png`;
+  const imageName = `${category}_${name}.jpg`;
   const filePath = path.join(downloadsFolder, imageName);
   cy.get("#screenshot")
     .click({ force: true })

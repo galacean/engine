@@ -3,7 +3,7 @@
  * @category Material
  */
 import { Camera, GLTFResource, Vector3, WebGLEngine, Logger } from "@galacean/engine";
-import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 Logger.enable();
 
 // Create engine

@@ -19,7 +19,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 const shaderLab = new ShaderLab();
 
