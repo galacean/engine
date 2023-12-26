@@ -19,7 +19,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
 
 const shaderLab = new ShaderLab();
 
@@ -130,7 +130,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("cameraNode");
   cameraEntity.transform.setPosition(0, 0, 5);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
 
   // create plane
   const triangle = rootEntity.createChild("plane");
@@ -141,7 +141,8 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   material.shaderData.setColor("u_color", new Color(1.0, 1.0, 0));
   renderer.setMaterial(material);
 
-  engine.run();
   updateForE2E(engine);
-  e2eReady();
+  const category = "Material";
+  const name = "material-shaderLab";
+  initScreenshot(category, name, engine, camera);
 });

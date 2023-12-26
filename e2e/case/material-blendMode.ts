@@ -3,7 +3,7 @@
  * @category Material
  */
 import { Camera, GLTFResource, Vector3, WebGLEngine } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { e2eReady, initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -15,7 +15,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // Create camera
   const cameraEntity = rootEntity.createChild("Camera");
   cameraEntity.transform.position = new Vector3(0, 1, 10);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
 
   scene.ambientLight.diffuseSolidColor.set(1, 1, 1, 1);
 
@@ -23,8 +23,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/d099b30b-59a3-42e4-99eb-b158afa8e65d.glb")
     .then((glTF) => {
       rootEntity.addChild(glTF.defaultSceneRoot);
-      engine.run();
       updateForE2E(engine);
-      e2eReady();
+      const category = "Material";
+      const name = "material-blendMode";
+      initScreenshot(category, name, engine, camera);
     });
 });

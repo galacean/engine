@@ -4,11 +4,11 @@ describe("Material", () => {
   });
 
   it("PBR Clearcoat", () => {
-    cy.screenshotWithThreshold("Material", "material-pbr-clearcoat", 0.3);
+    cy.screenshotWithThreshold("Material", "material-pbr-clearcoat", 0.2);
   });
 
-  it.only("Unlit", () => {
-    cy.screenshotWithThreshold("Material", "material-unlit", 0);
+  it("Unlit", () => {
+    cy.screenshotWithThreshold("Material", "material-unlit", 0.2);
   });
 
   it("Blinn Phong", () => {
@@ -16,14 +16,14 @@ describe("Material", () => {
   });
 
   it("Blend Mode", () => {
-    cy.screenshotWithThreshold("Material", "material-blendMode", 0.3);
+    cy.screenshotWithThreshold("Material", "material-blendMode", 0.2);
   });
 
   it("ShaderLab", () => {
-    cy.screenshotWithThreshold("Material", "material-shaderLab", 0.3);
+    cy.screenshotWithThreshold("Material", "material-shaderLab", 0.2);
   });
 
   it("Shader Replacement", () => {
-    cy.screenshotWithThreshold("Material", "material-shaderReplacement", 0.3);
+    cy.screenshotWithThreshold("Material", "material-shaderReplacement", 0.2);
   });
 });
