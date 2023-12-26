@@ -100,12 +100,14 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set anisotropyRotation(value: number) {
-    const anisotropyInfo = this.shaderData.getVector3(PBRMaterial._anisotropyInfoProp);
-    const rad = MathUtil.degreeToRadFactor * value;
-    anisotropyInfo.x = Math.cos(rad);
-    anisotropyInfo.y = Math.sin(rad);
+    if (this._anisotropyRotation !== value) {
+      this._anisotropyRotation = value;
 
-    this._anisotropyRotation = value;
+      const anisotropyInfo = this.shaderData.getVector3(PBRMaterial._anisotropyInfoProp);
+      const rad = MathUtil.degreeToRadFactor * value;
+      anisotropyInfo.x = Math.cos(rad);
+      anisotropyInfo.y = Math.sin(rad);
+    }
   }
 
   /**
