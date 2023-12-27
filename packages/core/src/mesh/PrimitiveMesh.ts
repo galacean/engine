@@ -319,7 +319,7 @@ export class PrimitiveMesh {
     const { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
     const positionCount = positions.length / 3;
-    const cellsCount = cells.length * 0.25;
+    const cellsCount = cells.length / 4;
     const vertexCount = positionCount + Math.pow(2, step + 1) + 15;
 
     const vertices = new Float32Array(vertexCount * 8);
@@ -615,7 +615,8 @@ export class PrimitiveMesh {
           // Get the updated exising point index.
           const ia = preCells[pointIdx++];
 
-          let id, ib;
+          let id = 0,
+            ib = 0;
 
           const edgeB = edges.get(curFace.adjacentEdges[k % 4]);
           const edgeD = edges.get(curFace.adjacentEdges[(k + 3) % 4]);
@@ -778,8 +779,8 @@ export class PrimitiveMesh {
     offset: number,
     cellIdx: number,
     stepIdx: number
-  ): { index: number; edgeIdx: number } {
-    let index;
+  ): number {
+    let index = 0;
     const edgePoint = edge.edgePoint;
     const adjacentFaceIdx = edge.adjacentFaces[0] === currFaceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
 
