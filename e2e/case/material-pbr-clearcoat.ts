@@ -15,7 +15,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
@@ -35,7 +35,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraNode = rootEntity.createChild("camera_node");
   cameraNode.transform.setPosition(1, 0, 17);
   cameraNode.transform.lookAt(new Vector3());
-  cameraNode.addComponent(Camera);
+  const camera = cameraNode.addComponent(Camera);
 
   // Create sky
   const sky = background.sky;
@@ -66,6 +66,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   ]).then(() => {
     engine.run();
     updateForE2E(engine);
-    e2eReady();
+    const category = "Material";
+    const name = "material-pbr-clearcoat";
+    initScreenshot(category, name, engine, camera);
   });
 });

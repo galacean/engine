@@ -61,6 +61,7 @@
     "cypress": "^12.17.1",
     "cypress-recurse": "^1.23.0",
     "odiff-bin": "^2.5.0"
+
   },
   "lint-staged": {
     "*.{ts}": [

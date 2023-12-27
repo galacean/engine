@@ -116,4 +116,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cypress-screenshots
-        path: e2e/screenshots/
+        path: e2e/downloads/

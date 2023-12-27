@@ -16,7 +16,7 @@ import {
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 /**
  * Main function.
@@ -109,7 +109,9 @@ async function main() {
 
       camera.setReplacementShader(Shader.find("UVCheckShader"));
       updateForE2E(engine);
-      e2eReady();
+      const category = "Material";
+      const name = "material-shaderReplacement";
+      initScreenshot(category, name, engine, camera);
     });
 }
 main();
