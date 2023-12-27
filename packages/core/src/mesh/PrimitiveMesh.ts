@@ -540,7 +540,7 @@ export class PrimitiveMesh {
           }
 
           edges.get(edgeIdxKey).adjacentFaces.push(j);
-          face.adjacentEdges.push(edgeIdxKey);
+          face.adjacentEdges.push(edges.get(edgeIdxKey));
         }
       }
       // Get edges' edgePoint.
@@ -607,8 +607,8 @@ export class PrimitiveMesh {
           let id = 0,
             ib = 0;
 
-          const edgeB = edges.get(curFace.adjacentEdges[k % 4]);
-          const edgeD = edges.get(curFace.adjacentEdges[(k + 3) % 4]);
+          const edgeB = curFace.adjacentEdges[k % 4];
+          const edgeD = curFace.adjacentEdges[(k + 3) % 4];
 
           // ib and id share four edge points in one cell.
           if (k === 0) {
@@ -1651,5 +1651,5 @@ interface IPoint {
 
 interface IFace {
   facePoint: Vector3;
-  adjacentEdges: Array<number>;
+  adjacentEdges: Array<IEdge>;
 }
