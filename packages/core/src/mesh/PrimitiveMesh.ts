@@ -316,7 +316,7 @@ export class PrimitiveMesh {
   ): void {
     step = MathUtil.clamp(Math.floor(step), 1, 6);
 
-    let { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
+    const { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
     const positionCount = positions.length / 3;
     const cellsCount = cells.length * 0.25;
@@ -327,38 +327,41 @@ export class PrimitiveMesh {
 
     // Get normals, uvs, and scale to radius.
     for (let i = 0; i < positionCount; i++) {
-      let x = positions[3 * i];
-      let y = positions[3 * i + 1];
-      let z = positions[3 * i + 2];
+      let offset = 3 * i;
 
-      let len = Math.sqrt(x * x + y * y + z * z);
-      len = 1 / len;
-      x = x * len;
-      y = y * len;
-      z = z * len;
+      let x = positions[offset];
+      let y = positions[offset + 1];
+      let z = positions[offset + 2];
 
-      vertices[i * 8] = x * radius;
-      vertices[i * 8 + 1] = y * radius;
-      vertices[i * 8 + 2] = z * radius;
+      const reciprocalLength = 1 / Math.sqrt(x * x + y * y + z * z);
+      x *= reciprocalLength;
+      y *= reciprocalLength;
+      z *= reciprocalLength;
 
-      vertices[i * 8 + 3] = x;
-      vertices[i * 8 + 4] = y;
-      vertices[i * 8 + 5] = z;
+      offset = 8 * i;
+      vertices[offset] = x * radius;
+      vertices[offset + 1] = y * radius;
+      vertices[offset + 2] = z * radius;
 
-      vertices[i * 8 + 6] = (Math.PI - Math.atan2(z, x)) / (2 * Math.PI);
-      vertices[i * 8 + 7] = Math.acos(y) / Math.PI;
+      vertices[offset + 3] = x;
+      vertices[offset + 4] = y;
+      vertices[offset + 5] = z;
+
+      vertices[offset + 6] = (Math.PI - Math.atan2(z, x)) / (2 * Math.PI);
+      vertices[offset + 7] = Math.acos(y) / Math.PI;
     }
 
     // Get indices.
     let offset = 0;
     for (let i = 0; i < cellsCount; i++) {
-      indices[offset++] = cells[4 * i];
-      indices[offset++] = cells[4 * i + 1];
-      indices[offset++] = cells[4 * i + 2];
+      const idx = 4 * i;
+      indices[offset++] = cells[idx];
+      indices[offset++] = cells[idx + 1];
+      indices[offset++] = cells[idx + 2];
 
-      indices[offset++] = cells[4 * i];
-      indices[offset++] = cells[4 * i + 2];
-      indices[offset++] = cells[4 * i + 3];
+      indices[offset++] = cells[idx];
+      indices[offset++] = cells[idx + 2];
+      indices[offset++] = cells[idx + 3];
     }
 
     // Solve texture seam problem caused by vertex sharing.
@@ -491,7 +494,8 @@ export class PrimitiveMesh {
 
         for (let j = 0; j < 4; j++) {
           const idx = preCells[4 * i + j];
-          const vertex = new Vector3(positions[3 * idx], positions[3 * idx + 1], positions[3 * idx + 2]);
+          const offset = 3 * idx;
+          const vertex = new Vector3(positions[offset], positions[offset + 1], positions[offset + 2]);
 
           if (!points[idx]) {
             const point: IPoint = {
@@ -524,10 +528,12 @@ export class PrimitiveMesh {
               adjacentFaces: []
             };
 
+            const offsetA = 3 * vertexIdxA;
+            const offsetB = 3 * vertexIdxB;
             edge.midPoint.set(
-              0.5 * (positions[3 * vertexIdxA] + positions[3 * vertexIdxB]),
-              0.5 * (positions[3 * vertexIdxA + 1] + positions[3 * vertexIdxB + 1]),
-              0.5 * (positions[3 * vertexIdxA + 2] + positions[3 * vertexIdxB + 2])
+              0.5 * (positions[offsetA] + positions[offsetB]),
+              0.5 * (positions[offsetA + 1] + positions[offsetB + 1]),
+              0.5 * (positions[offsetA + 2] + positions[offsetB + 2])
             );
 
             points[vertexIdxA].edgeMidPoint.push(edgeIdxKey);
@@ -591,9 +597,11 @@ export class PrimitiveMesh {
       for (let i = 0; i < faces.length; i++) {
         // Add face point to new positions.
         const curFace = faces[i];
-        positions[3 * (prePointCount + i)] = curFace.facePoint.x;
-        positions[3 * (prePointCount + i) + 1] = curFace.facePoint.y;
-        positions[3 * (prePointCount + i) + 2] = curFace.facePoint.z;
+
+        let idx = 3 * (prePointCount + i);
+        positions[idx] = curFace.facePoint.x;
+        positions[idx + 1] = curFace.facePoint.y;
+        positions[idx + 2] = curFace.facePoint.z;
 
         // Get the face point index.
         const ic = prePointCount + i;
@@ -634,10 +642,11 @@ export class PrimitiveMesh {
             ib = dIdx0;
           }
 
-          cells[4 * (4 * i + j)] = ia;
-          cells[4 * (4 * i + j) + 1] = ib;
-          cells[4 * (4 * i + j) + 2] = ic;
-          cells[4 * (4 * i + j) + 3] = id;
+          idx = 4 * (4 * i + j);
+          cells[idx] = ia;
+          cells[idx + 1] = ib;
+          cells[idx + 2] = ic;
+          cells[idx + 3] = id;
         }
       }
 
@@ -666,10 +675,12 @@ export class PrimitiveMesh {
     } = PrimitiveMesh;
     let count = 0;
 
-    for (let i = 0; i < indices.length / 3; i++) {
-      const m1 = indices[i * 3] * 8;
-      const m2 = indices[i * 3 + 1] * 8;
-      const m3 = indices[i * 3 + 2] * 8;
+    const indicesCount = indices.length / 3;
+    for (let i = 0; i < indicesCount; i++) {
+      let offset = i * 3;
+      const m1 = indices[offset] * 8;
+      const m2 = indices[offset + 1] * 8;
+      const m3 = indices[offset + 2] * 8;
 
       pointA.set(vertices[m1 + 6], vertices[m1 + 7], 0);
       pointB.set(vertices[m2 + 6], vertices[m2 + 7], 0);
@@ -686,21 +697,24 @@ export class PrimitiveMesh {
       if (ab.z > 0) {
         for (let j = 0; j < 3; j++) {
           const e = indices[i * 3 + j];
-          if (vertices[8 * e + 6] === 0) {
+          const idx = 8 * e;
+          if (vertices[idx + 6] === 0) {
             if (!flippedVertex[e]) {
-              vertices[8 * (currentCount + count)] = vertices[8 * e];
-              vertices[8 * (currentCount + count) + 1] = vertices[8 * e + 1];
-              vertices[8 * (currentCount + count) + 2] = vertices[8 * e + 2];
+              const offset = 8 * (currentCount + count);
 
-              vertices[8 * (currentCount + count) + 3] = vertices[8 * e + 3];
-              vertices[8 * (currentCount + count) + 4] = vertices[8 * e + 4];
-              vertices[8 * (currentCount + count) + 5] = vertices[8 * e + 5];
+              vertices[offset] = vertices[idx];
+              vertices[offset + 1] = vertices[idx + 1];
+              vertices[offset + 2] = vertices[idx + 2];
 
-              vertices[8 * (currentCount + count) + 6] = vertices[8 * e + 6] + 1;
-              vertices[8 * (currentCount + count) + 7] = vertices[8 * e + 7];
+              vertices[offset + 3] = vertices[idx + 3];
+              vertices[offset + 4] = vertices[idx + 4];
+              vertices[offset + 5] = vertices[idx + 5];
+
+              vertices[offset + 6] = vertices[idx + 6] + 1;
+              vertices[offset + 7] = vertices[idx + 7];
 
               flippedVertex[e] = currentCount + count;
-              count += 1;
+              count++;
             }
             indices[i * 3 + j] = flippedVertex[e];
           }
@@ -729,22 +743,24 @@ export class PrimitiveMesh {
         const index = indices[i + j];
 
         if (verticesAtPole.has(index)) {
-          vertices[8 * (count + currentCount)] = vertices[8 * index];
-          vertices[8 * (count + currentCount) + 1] = vertices[8 * index + 1];
-          vertices[8 * (count + currentCount) + 2] = vertices[8 * index + 2];
+          const offset = 8 * (count + currentCount);
+          const idx = 8 * index;
+          vertices[offset] = vertices[idx];
+          vertices[offset + 1] = vertices[idx + 1];
+          vertices[offset + 2] = vertices[idx + 2];
 
-          vertices[8 * (count + currentCount) + 3] = vertices[8 * index + 3];
-          vertices[8 * (count + currentCount) + 4] = vertices[8 * index + 4];
-          vertices[8 * (count + currentCount) + 5] = vertices[8 * index + 5];
+          vertices[offset + 3] = vertices[idx + 3];
+          vertices[offset + 4] = vertices[idx + 4];
+          vertices[offset + 5] = vertices[idx + 5];
 
-          vertices[8 * (count + currentCount) + 6] =
+          vertices[offset + 6] =
             (vertices[8 * indices[i] + 6] + vertices[8 * indices[i + 1] + 6] + vertices[8 * indices[i + 2] + 6] - 0.5) /
             2;
-          vertices[8 * (count + currentCount) + 7] = vertices[8 * index + 7];
+          vertices[offset + 7] = vertices[idx + 7];
 
           indices[i + j] = count + currentCount;
 
-          count += 1;
+          count++;
         }
       }
     }
@@ -774,9 +790,10 @@ export class PrimitiveMesh {
         index = cells[16 * adjacentFaceIdx + 4 * cellIdx + 3];
       }
     } else {
-      positions[3 * (PrimitiveMesh._sphereEdgeIdx + offset)] = edgePoint.x;
-      positions[3 * (PrimitiveMesh._sphereEdgeIdx + offset) + 1] = edgePoint.y;
-      positions[3 * (PrimitiveMesh._sphereEdgeIdx + offset) + 2] = edgePoint.z;
+      const idx = 3 * (PrimitiveMesh._sphereEdgeIdx + offset);
+      positions[idx] = edgePoint.x;
+      positions[idx + 1] = edgePoint.y;
+      positions[idx + 2] = edgePoint.z;
 
       index = PrimitiveMesh._sphereEdgeIdx + offset;
       PrimitiveMesh._sphereEdgeIdx++;
