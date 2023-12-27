@@ -1,13 +1,13 @@
 import {
-  resourceLoader,
-  Loader,
   AssetPromise,
   AssetType,
   LoadItem,
-  Sprite,
-  Texture2D,
+  Loader,
   ResourceManager,
-  SpriteAtlas
+  Sprite,
+  SpriteAtlas,
+  Texture2D,
+  resourceLoader
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
@@ -19,27 +19,49 @@ class SpriteLoader extends Loader<Sprite> {
         type: "json"
       })
         .then((data) => {
-          if (data.belongToAtlas) {
-            resourceManager
-              // @ts-ignore
-              .getResourceByRef<SpriteAtlas>(data.belongToAtlas)
-              .then((atlas) => {
-                resolve(atlas.getSprite(data.fullPath));
-              })
-              .catch(reject);
-          } else if (data.texture) {
-            resourceManager
-              // @ts-ignore
-              .getResourceByRef<Texture2D>(data.texture)
-              .then((texture) => {
-                resolve(new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border));
-              })
-              .catch(reject);
+          (data.belongToAtlas
+            ? this._loadFromAtlas(resourceManager, data)
+            : this._loadFromTexture(resourceManager, data)
+          )
+            .then(resolve)
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  private _loadFromAtlas(resourceManager: ResourceManager, data: any): Promise<Sprite> {
+    return new Promise<Sprite>((resolve, reject) => {
+      resourceManager
+        // @ts-ignore
+        .getResourceByRef(data.belongToAtlas)
+        .then((atlas: SpriteAtlas) => {
+          const sprite = atlas.getSprite(data.fullPath);
+          if (sprite) {
+            resolve(sprite);
           } else {
-            resolve(new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border));
+            this._loadFromTexture(resourceManager, data).then((sprite) => {
+              resolve(sprite);
+            });
           }
         })
         .catch(reject);
     });
+  }
+
+  private _loadFromTexture(resourceManager: ResourceManager, data: any): Promise<Sprite> {
+    if (data.texture) {
+      return new Promise<Sprite>((resolve, reject) => {
+        resourceManager
+          // @ts-ignore
+          .getResourceByRef(data.texture)
+          .then((texture: Texture2D) => {
+            resolve(new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border));
+          })
+          .catch(reject);
+      });
+    } else {
+      return Promise.resolve(new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border));
+    }
   }
 }
