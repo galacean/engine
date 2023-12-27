@@ -488,7 +488,6 @@ export class PrimitiveMesh {
       for (let j = 0; j < preCellCount; j++) {
         const face = (faces[j] = {
           facePoint: new Vector3(),
-          vertices: [],
           adjacentEdges: []
         });
 
@@ -500,7 +499,6 @@ export class PrimitiveMesh {
           if (!points[idx]) {
             const point: IPoint = {
               position: vertex,
-              newPosition: new Vector3(),
               facePoint: [],
               edgeMidPoint: []
             };
@@ -508,7 +506,6 @@ export class PrimitiveMesh {
           }
 
           points[idx].facePoint.push(j);
-          face.vertices.push(idx);
           face.facePoint.add(vertex);
         }
 
@@ -563,11 +560,6 @@ export class PrimitiveMesh {
       for (let j = 0; j < points.length; j++) {
         const curPoint = points[j];
 
-        const n = curPoint.facePoint.length;
-        const m1 = (n - 3) / n;
-        const m2 = 1 / n;
-        const m3 = 2 / n;
-
         tempVec1.copyFrom(curPoint.position);
         tempVec2.set(0, 0, 0);
         tempVec3.set(0, 0, 0);
@@ -581,9 +573,6 @@ export class PrimitiveMesh {
           tempVec3.add(edges.get(value).midPoint);
         });
         tempVec3.scale(1 / curPoint.edgeMidPoint.length);
-
-        Vector3.add(tempVec1.scale(m1), tempVec2.scale(m2), curPoint.newPosition);
-        Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
       }
 
       const prePointCount = 6 * Math.pow(4, i) + 2;
@@ -1656,13 +1645,11 @@ interface IEdge {
 
 interface IPoint {
   position: Vector3;
-  newPosition: Vector3;
   facePoint: Array<number>;
   edgeMidPoint: Array<number>;
 }
 
 interface IFace {
   facePoint: Vector3;
-  vertices: Array<number>;
   adjacentEdges: Array<number>;
 }
