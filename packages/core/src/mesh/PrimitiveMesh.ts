@@ -465,9 +465,9 @@ export class PrimitiveMesh {
   } {
     const { _tempVec31: tempVec1, _tempVec32: tempVec2, _tempVec33: tempVec3 } = PrimitiveMesh;
 
-    const points: Array<IPoint> = [];
-    const edges: Map<number, IEdge> = new Map();
-    const faces: Array<IFace> = [];
+    const points = new Array<IPoint>();
+    const edges = new Map<number, IEdge>();
+    const faces = new Array<IFace>();
 
     let previousPositions = PrimitiveMesh._sphereSeedPositions.slice();
     let preCells = PrimitiveMesh._sphereSeedCells.slice();
