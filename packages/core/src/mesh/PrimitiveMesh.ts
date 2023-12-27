@@ -311,7 +311,7 @@ export class PrimitiveMesh {
     isRestoreMode: boolean,
     restoreVertexBuffer?: Buffer
   ): void {
-    step = Math.max(1, Math.floor(step));
+    step = MathUtil.clamp(Math.floor(step), 1, 6);
 
     let { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
 
@@ -488,8 +488,8 @@ export class PrimitiveMesh {
 
         for (let j = 0; j < 4; j++) {
           const idx = preCells[4 * i + j];
-
           const vertex = new Vector3(positions[3 * idx], positions[3 * idx + 1], positions[3 * idx + 2]);
+
           if (!points[idx]) {
             const point: IPoint = {
               position: vertex,
@@ -582,7 +582,6 @@ export class PrimitiveMesh {
       const offset = prePointCount + facePointCount;
 
       let pointIdx = 0;
-
       this._edgeIdx = 0;
 
       // Get New positions, which consists of updated positions of exising points, face points and edge points.
