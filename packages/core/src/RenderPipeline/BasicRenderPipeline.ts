@@ -134,14 +134,16 @@ export class BasicRenderPipeline {
    * @param context - Render context
    * @param cubeFace - Render surface of cube texture
    * @param mipLevel - Set mip level the data want to write
+   * @param ignoreClear - Ignore clear flag
    */
-  render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
+  render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
     const camera = this._camera;
     const scene = camera.scene;
     const cullingResults = this._cullingResults;
+    const sunlight = scene._lightManager._sunlight;
     camera.engine._spriteMaskManager.clear();
 
-    if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
+    if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster.onRender(context);
     }
 
@@ -162,7 +164,7 @@ export class BasicRenderPipeline {
     }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
-      this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel);
+      this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel, ignoreClear);
     }
   }
 
@@ -171,7 +173,8 @@ export class BasicRenderPipeline {
     pass: RenderPass,
     camera: Camera,
     cubeFace?: TextureCubeFace,
-    mipLevel?: number
+    mipLevel?: number,
+    ignoreClear?: CameraClearFlags
   ) {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
@@ -184,7 +187,7 @@ export class BasicRenderPipeline {
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera.viewport, mipLevel);
       renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
-      const clearFlags = pass.clearFlags ?? camera.clearFlags;
+      const clearFlags = (pass.clearFlags ?? camera.clearFlags) & ~(ignoreClear ?? CameraClearFlags.None);
       const color = pass.clearColor ?? background.solidColor;
       if (clearFlags !== CameraClearFlags.None) {
         rhi.clearRenderTarget(camera.engine, clearFlags, color);
@@ -195,7 +198,7 @@ export class BasicRenderPipeline {
       } else {
         opaqueQueue.render(camera, pass.mask, PipelineStage.Forward);
         alphaTestQueue.render(camera, pass.mask, PipelineStage.Forward);
-        if (camera.clearFlags & CameraClearFlags.Color) {
+        if (clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
           } else if (background.mode === BackgroundMode.Texture && background.texture) {

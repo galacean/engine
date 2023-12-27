@@ -1,6 +1,8 @@
-import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
+import { IHardwareRenderer, IPhysics, IPhysicsManager, IShaderLab, IXRDevice } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
+import { SpriteMaskInteraction } from "./2d";
 import { Font } from "./2d/text/Font";
+import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
@@ -24,7 +26,7 @@ import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
-import { IHardwareRenderer } from "./renderingHardwareInterface";
+import { CompareFunction } from "./shader";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -38,8 +40,7 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { CompareFunction } from "./shader";
-import { SpriteMaskInteraction } from "./2d";
+import { XRManager } from "./xr/XRManager";
 
 ShaderPool.init();
 
@@ -56,6 +57,8 @@ export class Engine extends EventDispatcher {
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
+  /** XR manager of Engine. */
+  readonly xrManager: XRManager;
 
   /** @internal */
   _particleBufferUtils: ParticleBufferUtils;
@@ -142,7 +145,8 @@ export class Engine extends EventDispatcher {
 
   private _animate = () => {
     if (this._vSyncCount) {
-      this._requestId = requestAnimationFrame(this._animate);
+      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+      this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
         this._vSyncCounter = 1;
@@ -254,6 +258,12 @@ export class Engine extends EventDispatcher {
 
     this.inputManager = new InputManager(this);
 
+    const { xrDevice } = configuration;
+    if (xrDevice) {
+      this.xrManager = new XRManager();
+      this.xrManager._initialize(this, xrDevice);
+    }
+
     this._initMagentaTextures(hardwareRenderer);
 
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
@@ -296,7 +306,8 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    cancelAnimationFrame(this._requestId);
+    const caf = this.xrManager?._getCancelAnimationFrame() || cancelAnimationFrame;
+    caf(this._requestId);
     clearTimeout(this._timeoutId);
   }
 
@@ -307,7 +318,12 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    this._requestId = requestAnimationFrame(this._animate);
+    if (this._vSyncCount) {
+      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+      this._requestId = raf(this._animate);
+    } else {
+      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+    }
   }
 
   /**
@@ -326,6 +342,7 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
+    this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
@@ -336,8 +353,9 @@ export class Engine extends EventDispatcher {
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._cameraNeedSorting && scene._sortCameras();
-      scene._componentsManager.callScriptOnStart();
+      const componentsManager = scene._componentsManager;
+      componentsManager.sortCameras();
+      componentsManager.callScriptOnStart();
     }
 
     // Update physics and fire `onPhysicsUpdate`
@@ -428,6 +446,7 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
+    this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation
@@ -477,6 +496,7 @@ export class Engine extends EventDispatcher {
         shaderProgramPools.length = length;
       }
       shaderProgramPools[index] = pool = new ShaderProgramPool();
+      shaderPass._shaderProgramPools.push(pool);
     }
     return pool;
   }
@@ -498,11 +518,15 @@ export class Engine extends EventDispatcher {
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      const cameras = scene._activeCameras;
-      const cameraCount = cameras.length;
-      if (cameraCount > 0) {
-        for (let i = 0; i < cameraCount; i++) {
-          const camera = cameras[i];
+      const cameras = scene._componentsManager._activeCameras;
+
+      if (cameras.length === 0) {
+        Logger.debug("No active camera in scene.");
+        continue;
+      }
+
+      cameras.forEach(
+        (camera: Camera) => {
           const componentsManager = scene._componentsManager;
           componentsManager.callCameraOnBeginRender(camera);
           camera.render();
@@ -512,10 +536,11 @@ export class Engine extends EventDispatcher {
           if (this._hardwareRenderer._options._forceFlush) {
             this._hardwareRenderer.flush();
           }
+        },
+        (camera: Camera, index: number) => {
+          camera._cameraIndex = index;
         }
-      } else {
-        Logger.debug("No active camera in scene.");
-      }
+      );
     }
   }
 
@@ -722,6 +747,8 @@ export class Engine extends EventDispatcher {
 export interface EngineConfiguration {
   /** Physics. */
   physics?: IPhysics;
+  /** XR Device. */
+  xrDevice?: IXRDevice;
   /** Color space. */
   colorSpace?: ColorSpace;
   /** Shader lab */

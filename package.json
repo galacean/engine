@@ -60,7 +60,8 @@
     "fs-extra": "^10.1.0",
     "cypress": "^12.17.1",
     "cypress-recurse": "^1.23.0",
-    "odiff-bin": "^2.5.0"
+    "odiff-bin": "^2.5.0",
+    "@types/webxr": "latest"
   },
   "lint-staged": {
     "*.{ts}": [
