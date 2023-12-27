@@ -252,10 +252,9 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
     return new Promise<PrefabParserContext>((resolve, reject) => {
       this.prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, { resolve, reject });
     }).then((context) => {
-      const { strippedId, strippedPath } = entityConfig;
+      const { strippedId } = entityConfig;
 
-      if (strippedId) return context.entityMap.get(strippedId);
-      else if (strippedPath) return context.entityMap.get(strippedPath);
+      return context.entityMap.get(strippedId);
     });
   }
 
