@@ -472,28 +472,28 @@ export class PrimitiveMesh {
     let previousPositions = PrimitiveMesh._sphereSeedPositions.slice();
     let preCells = PrimitiveMesh._sphereSeedCells.slice();
 
-    for (let m = 0; m < step; m++) {
-      const positionCount = 24 * Math.pow(4, m) + 2;
+    for (let i = 0; i < step; i++) {
+      const positionCount = 24 * Math.pow(4, i) + 2;
       const positions = new Float32Array(3 * positionCount);
       positions.set(previousPositions);
 
       const preCellCount = preCells.length * 0.25;
-      const cells = new Float32Array(24 * Math.pow(4, m + 1));
+      const cells = new Float32Array(24 * Math.pow(4, i + 1));
 
       points.length = 0;
       edges.clear();
       faces.length = 0;
 
       // Get cell faces.
-      for (let i = 0; i < preCellCount; i++) {
-        faces[i] = {
+      for (let j = 0; j < preCellCount; j++) {
+        faces[j] = {
           facePoint: new Vector3(),
           vertices: [],
           adjacentEdges: []
         };
 
-        for (let j = 0; j < 4; j++) {
-          const idx = preCells[4 * i + j];
+        for (let k = 0; k < 4; k++) {
+          const idx = preCells[4 * j + k];
           const offset = 3 * idx;
           const vertex = new Vector3(positions[offset], positions[offset + 1], positions[offset + 2]);
 
@@ -507,18 +507,18 @@ export class PrimitiveMesh {
             points[idx] = point;
           }
 
-          points[idx].facePoint.push(i);
-          faces[i].vertices.push(idx);
-          faces[i].facePoint.add(vertex);
+          points[idx].facePoint.push(j);
+          faces[j].vertices.push(idx);
+          faces[j].facePoint.add(vertex);
         }
 
         // Get cell face's facePoint.
-        faces[i].facePoint.scale(0.25);
+        faces[j].facePoint.scale(0.25);
 
         // Get cell edges.
-        for (let j = 0; j < 4; j++) {
-          const vertexIdxA = preCells[4 * i + j];
-          const vertexIdxB = preCells[4 * i + ((j + 1) % 4)];
+        for (let k = 0; k < 4; k++) {
+          const vertexIdxA = preCells[4 * j + k];
+          const vertexIdxB = preCells[4 * j + ((k + 1) % 4)];
           const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * positionCount + Math.max(vertexIdxA, vertexIdxB);
 
           if (!edges.has(edgeIdxKey)) {
@@ -542,8 +542,8 @@ export class PrimitiveMesh {
             edges.set(edgeIdxKey, edge);
           }
 
-          edges.get(edgeIdxKey).adjacentFaces.push(i);
-          faces[i].adjacentEdges.push(edgeIdxKey);
+          edges.get(edgeIdxKey).adjacentFaces.push(j);
+          faces[j].adjacentEdges.push(edgeIdxKey);
         }
       }
       // Get edges' edgePoint.
@@ -560,8 +560,8 @@ export class PrimitiveMesh {
       }
 
       // Get points' newPosition, and new Position's max length.
-      for (let i = 0; i < points.length; i++) {
-        const curPoint = points[i];
+      for (let j = 0; j < points.length; j++) {
+        const curPoint = points[j];
 
         const n = curPoint.facePoint.length;
         const m1 = (n - 3) / n;
@@ -586,63 +586,63 @@ export class PrimitiveMesh {
         Vector3.add(curPoint.newPosition, tempVec3.scale(m3), curPoint.newPosition);
       }
 
-      const prePointCount = 6 * Math.pow(4, m) + 2;
-      const facePointCount = 6 * Math.pow(4, m);
+      const prePointCount = 6 * Math.pow(4, i) + 2;
+      const facePointCount = 6 * Math.pow(4, i);
       const offset = prePointCount + facePointCount;
 
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
 
       // Get New positions, which consists of updated positions of exising points, face points and edge points.
-      for (let i = 0; i < faces.length; i++) {
+      for (let j = 0; j < faces.length; j++) {
         // Add face point to new positions.
-        const curFace = faces[i];
+        const curFace = faces[j];
 
-        let idx = 3 * (prePointCount + i);
+        let idx = 3 * (prePointCount + j);
         positions[idx] = curFace.facePoint.x;
         positions[idx + 1] = curFace.facePoint.y;
         positions[idx + 2] = curFace.facePoint.z;
 
         // Get the face point index.
-        const ic = prePointCount + i;
+        const ic = prePointCount + j;
 
         let bIdx0 = 0,
           bIdx1 = 0,
           bIdx2 = 0,
           dIdx0 = 0;
 
-        for (let j = 0; j < 4; j++) {
+        for (let k = 0; k < 4; k++) {
           // Get the updated exising point index.
           const ia = preCells[pointIdx++];
 
           let id, ib;
 
-          const edgeB = edges.get(curFace.adjacentEdges[j % 4]);
-          const edgeD = edges.get(curFace.adjacentEdges[(j + 3) % 4]);
+          const edgeB = edges.get(curFace.adjacentEdges[k % 4]);
+          const edgeD = edges.get(curFace.adjacentEdges[(k + 3) % 4]);
 
           // ib and id share four edge points in one cell.
-          if (j === 0) {
-            ib = this._calculateEdgeIndex(cells, positions, edgeB, i, m, offset, 0, 0);
-            id = this._calculateEdgeIndex(cells, positions, edgeD, i, m, offset, 1, 1);
+          if (k === 0) {
+            ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
+            id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
 
             bIdx0 = ib;
             dIdx0 = id;
-          } else if (j === 1) {
-            ib = this._calculateEdgeIndex(cells, positions, edgeB, i, m, offset, 3, 2);
+          } else if (k === 1) {
+            ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 3, 2);
 
             bIdx1 = ib;
             id = bIdx0;
-          } else if (j === 2) {
-            ib = this._calculateEdgeIndex(cells, positions, edgeB, i, m, offset, 2, 3);
+          } else if (k === 2) {
+            ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 2, 3);
 
             bIdx2 = ib;
             id = bIdx1;
-          } else if (j === 3) {
+          } else if (k === 3) {
             id = bIdx2;
             ib = dIdx0;
           }
 
-          idx = 4 * (4 * i + j);
+          idx = 4 * (4 * j + k);
           cells[idx] = ia;
           cells[idx + 1] = ib;
           cells[idx + 2] = ic;
