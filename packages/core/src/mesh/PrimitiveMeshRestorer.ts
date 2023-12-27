@@ -30,7 +30,7 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
         break;
 
       case PrimitiveType.CCSphere:
-        const CCSphereInfo = <CCSphereRestoreInfo>primitiveInfo;
+        const CCSphereInfo = <SubdivisionSurfaceSphereRestoreInfo>primitiveInfo;
         PrimitiveMesh._setSubdivisionSurfaceSphereData(
           this.resource,
           CCSphereInfo.radius,
@@ -163,7 +163,7 @@ export class SphereRestoreInfo extends PrimitiveRestoreInfo {
 /**
  * @internal
  */
-export class CCSphereRestoreInfo extends PrimitiveRestoreInfo {
+export class SubdivisionSurfaceSphereRestoreInfo extends PrimitiveRestoreInfo {
   constructor(
     public radius: number,
     public step: number,

@@ -6,7 +6,7 @@ import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import {
   CapsuleRestoreInfo,
-  CCSphereRestoreInfo,
+  SubdivisionSurfaceSphereRestoreInfo,
   ConeRestoreInfo,
   CuboidRestoreInfo,
   CylinderRestoreInfo,
@@ -84,7 +84,10 @@ export class PrimitiveMesh {
 
     const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
-      new PrimitiveMeshRestorer(sphereMesh, new CCSphereRestoreInfo(radius, step, vertexBuffer, noLongerAccessible))
+      new PrimitiveMeshRestorer(
+        sphereMesh,
+        new SubdivisionSurfaceSphereRestoreInfo(radius, step, vertexBuffer, noLongerAccessible)
+      )
     );
     return sphereMesh;
   }
