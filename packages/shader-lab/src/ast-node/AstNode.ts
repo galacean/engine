@@ -77,7 +77,8 @@ import {
 
 export interface IPosition {
   line: number;
-  character: number;
+  column: number;
+  index: number;
 }
 
 export interface IPositionRange {

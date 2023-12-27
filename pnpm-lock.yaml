@@ -44,6 +44,12 @@ importers:
       '@types/node':
         specifier: ^18.7.16
         version: 18.17.0
+<<<<<<< Updated upstream
+=======
+      '@types/webxr':
+        specifier: latest
+        version: 0.5.10
+>>>>>>> Stashed changes
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6)
