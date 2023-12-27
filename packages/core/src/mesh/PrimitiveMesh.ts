@@ -27,19 +27,19 @@ export class PrimitiveMesh {
   private static _tempVec33: Vector3 = new Vector3();
   private static _tempVec34: Vector3 = new Vector3();
 
-  private static readonly _seedPositions = new Float32Array([
+  private static readonly _sphereSeedPositions = new Float32Array([
     -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1
   ]);
 
-  private static readonly _seedCells = new Float32Array([
+  private static readonly _sphereSeedCells = new Float32Array([
     0, 1, 2, 3, 3, 2, 4, 5, 5, 4, 6, 7, 7, 0, 3, 5, 7, 6, 1, 0, 6, 4, 2, 1
   ]);
 
-  private static readonly _specialIndex = new Float32Array([
+  private static readonly _sphereSpecialIdx = new Float32Array([
     3, 6, -1, 9, 8, -1, -1, 7, 10, 11, -1, -1, 1, -1, 5, -1, -1, 4, 0, 2
   ]);
 
-  private static _edgeIdx: number = 0;
+  private static _sphereEdgeIdx: number = 0;
 
   /**
    * Create a sphere mesh.
@@ -466,8 +466,8 @@ export class PrimitiveMesh {
     const edges: Map<number, IEdge> = new Map();
     const faces: Array<IFace> = [];
 
-    let previousPositions = PrimitiveMesh._seedPositions.slice();
-    let preCells = PrimitiveMesh._seedCells.slice();
+    let previousPositions = PrimitiveMesh._sphereSeedPositions.slice();
+    let preCells = PrimitiveMesh._sphereSeedCells.slice();
 
     for (let m = 0; m < step; m++) {
       const positionCount = 24 * Math.pow(4, m) + 2;
@@ -585,7 +585,7 @@ export class PrimitiveMesh {
       const offset = prePointCount + facePointCount;
 
       let pointIdx = 0;
-      this._edgeIdx = 0;
+      this._sphereEdgeIdx = 0;
 
       // Get New positions, which consists of updated positions of exising points, face points and edge points.
       for (let i = 0; i < faces.length; i++) {
@@ -751,7 +751,7 @@ export class PrimitiveMesh {
   }
   /**
    * @internal
-   * Get edge point index.
+   * Get edge point index for subdivision surface sphere.
    */
   static _calculateEdgeIndex(
     cells: Float32Array,
@@ -769,17 +769,17 @@ export class PrimitiveMesh {
 
     if (currFaceIdx > adjacentFaceIdx) {
       if (currStep === 0) {
-        index = PrimitiveMesh._specialIndex[5 * stepIdx + currFaceIdx - 1] + offset;
+        index = PrimitiveMesh._sphereSpecialIdx[5 * stepIdx + currFaceIdx - 1] + offset;
       } else {
         index = cells[16 * adjacentFaceIdx + 4 * cellIdx + 3];
       }
     } else {
-      positions[3 * (PrimitiveMesh._edgeIdx + offset)] = edgePoint.x;
-      positions[3 * (PrimitiveMesh._edgeIdx + offset) + 1] = edgePoint.y;
-      positions[3 * (PrimitiveMesh._edgeIdx + offset) + 2] = edgePoint.z;
+      positions[3 * (PrimitiveMesh._sphereEdgeIdx + offset)] = edgePoint.x;
+      positions[3 * (PrimitiveMesh._sphereEdgeIdx + offset) + 1] = edgePoint.y;
+      positions[3 * (PrimitiveMesh._sphereEdgeIdx + offset) + 2] = edgePoint.z;
 
-      index = PrimitiveMesh._edgeIdx + offset;
-      PrimitiveMesh._edgeIdx++;
+      index = PrimitiveMesh._sphereEdgeIdx + offset;
+      PrimitiveMesh._sphereEdgeIdx++;
     }
 
     return index;
