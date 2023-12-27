@@ -48,6 +48,8 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 - Clone the Galacean playground repository and write a demo for your change.
 - Write an uint test in the Galacean repository and run `npm run test` to execute the uint test.
 
+- [Write an e2e test](https://github.com/galacean/runtime/wiki/How-to-write-an-e2e-Test-for-runtime) in the Galacean repository and run `npm run e2e` to execute the e2e test.
+
 
 
 ### Submitting a Pull Request

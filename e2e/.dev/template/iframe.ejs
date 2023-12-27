@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <style>
+      ::-webkit-scrollbar {
+        width: 0px; /* For vertical scrollbars */
+        height: 0px; /* For horizontal scrollbars */
+      }
+
+      @font-face {
+        font-family: "AlibabaSans";
+        src: url("../AlibabaSans.ttf");
+      }
+
+      html,
+      body,
+      canvas {
+        width: 1200px;
+        height: 800px;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        background: black;
+        border: none;
+      }
+
+      .dg.main > ul {
+        overflow: initial;
+      }
+      div {
+        font-family: "AlibabaSans";
+        font-size: 20px;
+        color: white;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+    </style>
+    <link rel="preload" href="../AlibabaSans.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+  </head>
+
+  <body>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="<%= url %>"></script>
+    <script>
+      document.oncontextmenu = (e) => {
+        e.preventDefault();
+      };
+    </script>
+  </body>
+</html>

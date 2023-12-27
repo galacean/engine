@@ -18,6 +18,9 @@
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
     "b:all": "npm run b:types && cross-env BUILD_TYPE=ALL rollup -c",
     "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types",
+    "e2e:case": "pnpm -C ./e2e run case",
+    "e2e": "cypress run --browser chrome --headless",
+    "e2e:debug": "cypress open",
     "prepare": "husky install"
   },
   "devDependencies": {
@@ -54,7 +57,11 @@
     "ts-node": "^10",
     "typescript": "^5.1.6",
     "@types/webxr": "latest",
-    "husky": "^8.0.0"
+    "husky": "^8.0.0",
+    "fs-extra": "^10.1.0",
+    "cypress": "^12.17.1",
+    "cypress-recurse": "^1.23.0",
+    "odiff-bin": "^2.5.0"
   },
   "lint-staged": {
     "*.{ts}": [

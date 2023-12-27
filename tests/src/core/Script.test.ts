@@ -287,6 +287,31 @@ describe("Script", () => {
       }, 1000);
     });
 
+    it("Enable Disable components", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      class KKK extends Script {
+        cmdStr = "";
+        onEnable(): void {
+          this.cmdStr += "A";
+        }
+        onDisable(): void {
+          this.cmdStr += "D";
+        }
+      }
+      const root = new Entity(engine);
+      const kkk = root.addComponent(KKK);
+      root.addComponent(
+        class extends Script {
+          onEnable(): void {
+            kkk.enabled = false;
+            kkk.enabled = true;
+          }
+        }
+      );
+      engine.sceneManager.activeScene.addRootEntity(root);
+      expect(kkk.cmdStr[0]).to.eql("A");
+    });
+
     it("Dependent components", async () => {
       @dependentComponents(Camera, DependentMode.CheckOnly)
       class CheckScript extends Script {}
