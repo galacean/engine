@@ -455,11 +455,13 @@ export class Scene extends EngineObject {
    */
   _removeFromEntityList(entity: Entity): void {
     const rootEntities = this._rootEntities;
-    let index = entity._siblingIndex;
-    rootEntities.splice(index, 1);
-    for (let n = rootEntities.length; index < n; index++) {
-      rootEntities[index]._siblingIndex--;
+    const count = rootEntities.length - 1;
+    for (let i = entity._siblingIndex; i < count; i++) {
+      const child = rootEntities[i + 1];
+      rootEntities[i] = child;
+      child._siblingIndex = i;
     }
+    rootEntities.length = count;
     entity._siblingIndex = -1;
   }
 
@@ -489,17 +491,21 @@ export class Scene extends EngineObject {
     const rootEntities = this._rootEntities;
     const rootEntityCount = rootEntities.length;
     if (index === undefined) {
+      rootEntities.length = rootEntityCount + 1;
       rootEntity._siblingIndex = rootEntityCount;
-      rootEntities.push(rootEntity);
+      rootEntities[rootEntityCount] = rootEntity;
     } else {
       if (index < 0 || index > rootEntityCount) {
         throw `The index ${index} is out of child list bounds ${rootEntityCount}`;
       }
-      rootEntity._siblingIndex = index;
-      rootEntities.splice(index, 0, rootEntity);
-      for (let i = index + 1, n = rootEntityCount + 1; i < n; i++) {
-        rootEntities[i]._siblingIndex++;
+      rootEntities.length = rootEntityCount + 1;
+      for (let i = rootEntityCount; i > index; i--) {
+        const swapRoot = rootEntities[i - 1];
+        swapRoot._siblingIndex = i;
+        rootEntities[i] = swapRoot;
       }
+      rootEntity._siblingIndex = index;
+      rootEntities[index] = rootEntity;
     }
   }
 

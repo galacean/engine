@@ -516,11 +516,13 @@ export class Entity extends EngineObject {
     const oldParent = this._parent;
     if (oldParent != null) {
       const oldSibling = oldParent._children;
-      let index = this._siblingIndex;
-      oldSibling.splice(index, 1);
-      for (let n = oldSibling.length; index < n; index++) {
-        oldSibling[index]._siblingIndex--;
+      const count = oldSibling.length - 1;
+      for (let i = this._siblingIndex; i < count; i++) {
+        const child = oldSibling[i + 1];
+        oldSibling[i] = child;
+        child._siblingIndex = i;
       }
+      oldSibling.length = count;
       this._parent = null;
       this._siblingIndex = -1;
     }
@@ -554,17 +556,21 @@ export class Entity extends EngineObject {
     const children = this._children;
     const childCount = children.length;
     if (index === undefined) {
+      children.length = childCount + 1;
       child._siblingIndex = childCount;
-      children.push(child);
+      children[childCount] = child;
     } else {
       if (index < 0 || index > childCount) {
         throw `The index ${index} is out of child list bounds ${childCount}`;
       }
-      child._siblingIndex = index;
-      children.splice(index, 0, child);
-      for (let i = index + 1, n = childCount + 1; i < n; i++) {
-        children[i]._siblingIndex++;
+      children.length = childCount + 1;
+      for (let i = childCount; i > index; i--) {
+        const swapChild = children[i - 1];
+        swapChild._siblingIndex = i;
+        children[i] = swapChild;
       }
+      child._siblingIndex = index;
+      children[index] = child;
     }
   }
 
