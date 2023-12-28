@@ -22,10 +22,6 @@ import { VertexAttribute } from "./enums/VertexAttribute";
  */
 export class PrimitiveMesh {
   private static _tempVec30: Vector3 = new Vector3();
-  private static _tempVec31: Vector3 = new Vector3();
-  private static _tempVec32: Vector3 = new Vector3();
-  private static _tempVec33: Vector3 = new Vector3();
-  private static _tempVec34: Vector3 = new Vector3();
 
   private static readonly _sphereSeedPositions = new Float32Array([
     -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1
@@ -608,15 +604,8 @@ export class PrimitiveMesh {
     currentCount: number
   ): number {
     const flippedVertex: Set<number> = new Set();
-    const {
-      _tempVec30: pointA,
-      _tempVec31: pointB,
-      _tempVec32: pointC,
-      _tempVec33: ab,
-      _tempVec34: ac
-    } = PrimitiveMesh;
-    let count = 0;
 
+    let count = 0;
     const indicesCount = indices.length / 3;
     for (let i = 0; i < indicesCount; i++) {
       let offset = i * 3;
@@ -624,19 +613,13 @@ export class PrimitiveMesh {
       const m2 = indices[offset + 1] * 8;
       const m3 = indices[offset + 2] * 8;
 
-      pointA.set(vertices[m1 + 6], vertices[m1 + 7], 0);
-      pointB.set(vertices[m2 + 6], vertices[m2 + 7], 0);
-      pointC.set(vertices[m3 + 6], vertices[m3 + 7], 0);
+      // This triangle's z value of UV's normal
+      const z =
+        (vertices[m2 + 6] - vertices[m1 + 6]) * (vertices[m3 + 7] - vertices[m1 + 7]) -
+        (vertices[m2 + 7] - vertices[m1 + 7]) * (vertices[m3 + 6] - vertices[m1 + 6]);
 
-      // AB side of this triangle.
-      Vector3.subtract(pointB, pointA, ab);
-      // AC side of this triangle.
-      Vector3.subtract(pointC, pointA, ac);
-      // UV's normal of this triangle.
-      Vector3.cross(ab, ac, ab);
-
-      // Direction reversed triangle.
-      if (ab.z > 0) {
+      // Direction reversed triangle
+      if (z > 0) {
         for (let j = 0; j < 3; j++) {
           const e = indices[i * 3 + j];
           const idx = 8 * e;
