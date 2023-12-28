@@ -7,10 +7,10 @@
     "case": "vite serve .dev --config .dev/vite.config.js",
     "b:types": "echo hi"
   },
-  "files": [
-  ],
+  "files": [],
   "dependencies": {
     "@galacean/engine-toolkit": "^1.0.0-beta.1",
+    "@galacean/engine-shader-lab": "workspace:*",
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",

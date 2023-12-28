@@ -21,7 +21,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -32,7 +32,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("cameraNode");
   cameraEntity.transform.position = new Vector3(0, 0, 5);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl);
 
   const meshEntity = rootEntity.createChild("meshEntity");
@@ -94,5 +94,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   clip.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", blendShapeCurve);
   animator.play("blendShape");
   updateForE2E(engine, 1000);
-  e2eReady();
+  const category = "Animator";
+  const name = "animator-customBlendShape";
+  initScreenshot(category, name, engine, camera);
 });
