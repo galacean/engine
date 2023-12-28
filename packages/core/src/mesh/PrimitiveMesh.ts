@@ -463,7 +463,6 @@ export class PrimitiveMesh {
     cells: Float32Array;
     positions: Float32Array;
   } {
-    const points = new Array<IPoint>();
     const edges = new Map<number, IEdge>();
     const faces = new Array<IFace>();
 
@@ -478,7 +477,6 @@ export class PrimitiveMesh {
       const preCellCount = preCells.length * 0.25;
       const cells = new Float32Array(24 * Math.pow(4, i + 1));
 
-      points.length = 0;
       edges.clear();
       faces.length = 0;
 
@@ -490,25 +488,13 @@ export class PrimitiveMesh {
           adjacentEdges: []
         });
 
-        for (let k = 0; k < 4; k++) {
-          // 里面的每一个点
-          const idx = preCells[4 * j + k];
-          const offset = 3 * idx;
-          const vertex = new Vector3(positions[offset], positions[offset + 1], positions[offset + 2]);
-
-          if (!points[idx]) {
-            const point: IPoint = {
-              position: vertex,
-              facePoint: []
-            };
-            points[idx] = point;
-          }
-
-          points[idx].facePoint.push(j);
-          face.facePoint.add(vertex);
-        }
-
         // Get cell face's facePoint.
+        for (let k = 0; k < 4; k++) {
+          const offset = 3 * preCells[4 * j + k];
+          face.facePoint.x += positions[offset];
+          face.facePoint.y += positions[offset + 1];
+          face.facePoint.z += positions[offset + 2];
+        }
         face.facePoint.scale(0.25);
 
         // Get cell edges.
@@ -543,6 +529,7 @@ export class PrimitiveMesh {
           face.adjacentEdges.push(edges.get(edgeIdxKey));
         }
       }
+
       // Get edges' edgePoint.
       for (let [key, edge] of edges) {
         const { adjacentFaces, edgePoint } = edge;
@@ -1622,11 +1609,6 @@ interface IEdge {
   midPoint: Vector3;
   edgePoint: Vector3;
   adjacentFaces: Array<number>;
-}
-
-interface IPoint {
-  position: Vector3;
-  facePoint: Array<number>;
 }
 
 interface IFace {
