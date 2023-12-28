@@ -494,6 +494,7 @@ export class PrimitiveMesh {
           face.facePoint.y += 0.25 * positions[offset + 1];
           face.facePoint.z += 0.25 * positions[offset + 2];
         }
+
         // Get cell edges
         for (let k = 0; k < 4; k++) {
           const vertexIdxA = preCells[4 * j + k];
@@ -523,9 +524,12 @@ export class PrimitiveMesh {
           edge.adjacentFaces.push(j);
           face.adjacentEdges[k] = edge;
 
-          edge.edgePoint.x += 0.25 * face.facePoint.x;
-          edge.edgePoint.y += 0.25 * face.facePoint.y;
-          edge.edgePoint.z += 0.25 * face.facePoint.z;
+          const edgePoint = edge.edgePoint;
+          const facePoint = face.facePoint;
+
+          edgePoint.x += 0.25 * facePoint.x;
+          edgePoint.y += 0.25 * facePoint.y;
+          edgePoint.z += 0.25 * facePoint.z;
         }
       }
 
