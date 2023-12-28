@@ -551,10 +551,9 @@ export class PrimitiveMesh {
         // Get the face point index
         const ic = prePointCount + j;
 
-        let bIdx0 = 0,
-          bIdx1 = 0,
-          bIdx2 = 0,
-          dIdx0 = 0;
+        let temp = 0,
+          id = 0,
+          ib = 0;
 
         //  ia -- ib -- ia
         //  |     |     |
@@ -566,9 +565,6 @@ export class PrimitiveMesh {
           // Get the updated exising point index
           const ia = preCells[pointIdx++];
 
-          let id = 0,
-            ib = 0;
-
           const edgeB = curFace.adjacentEdges[k % 4];
           const edgeD = curFace.adjacentEdges[(k + 3) % 4];
 
@@ -577,21 +573,16 @@ export class PrimitiveMesh {
             ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
             id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
 
-            bIdx0 = ib;
-            dIdx0 = id;
+            temp = id;
           } else if (k === 1) {
+            id = ib;
             ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 3, 2);
-
-            bIdx1 = ib;
-            id = bIdx0;
           } else if (k === 2) {
+            id = ib;
             ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 2, 3);
-
-            bIdx2 = ib;
-            id = bIdx1;
           } else if (k === 3) {
-            id = bIdx2;
-            ib = dIdx0;
+            id = ib;
+            ib = temp;
           }
 
           idx = 4 * (4 * j + k);
