@@ -697,7 +697,7 @@ export class PrimitiveMesh {
     cells: Float32Array,
     positions: Float32Array,
     edge: IEdge,
-    currFaceIdx: number,
+    faceIdx: number,
     currStep: number,
     offset: number,
     cellIdx: number,
@@ -705,11 +705,11 @@ export class PrimitiveMesh {
   ): number {
     let index = 0;
     const edgePoint = edge.edgePoint;
-    const adjacentFaceIdx = edge.adjacentFaces[0] === currFaceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
+    const adjacentFaceIdx = edge.adjacentFaces[0] === faceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
 
-    if (currFaceIdx > adjacentFaceIdx) {
+    if (faceIdx > adjacentFaceIdx) {
       if (currStep === 0) {
-        index = PrimitiveMesh._sphereSpecialIdx[5 * stepIdx + currFaceIdx - 1] + offset;
+        index = PrimitiveMesh._sphereSpecialIdx[5 * stepIdx + faceIdx - 1] + offset;
       } else {
         index = cells[16 * adjacentFaceIdx + 4 * cellIdx + 3];
       }
