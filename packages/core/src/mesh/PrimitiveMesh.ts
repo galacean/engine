@@ -482,7 +482,6 @@ export class PrimitiveMesh {
 
       // Get cell faces.
       for (let j = 0; j < preCellCount; j++) {
-        // 根据之前的cell建立面face
         const face = (faces[j] = {
           facePoint: new Vector3(),
           adjacentEdges: []
@@ -499,48 +498,45 @@ export class PrimitiveMesh {
 
         // Get cell edges.
         for (let k = 0; k < 4; k++) {
-          // edge的两个点
           const vertexIdxA = preCells[4 * j + k];
           const vertexIdxB = preCells[4 * j + ((k + 1) % 4)];
 
-          // 制造一个edgeMap
           const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * positionCount + Math.max(vertexIdxA, vertexIdxB);
 
           if (!edges.has(edgeIdxKey)) {
             const edge: IEdge = {
-              midPoint: new Vector3(),
               edgePoint: new Vector3(),
               adjacentFaces: []
             };
 
             const offsetA = 3 * vertexIdxA;
             const offsetB = 3 * vertexIdxB;
-            // midPoint这个是中点
-            edge.midPoint.set(
-              0.5 * (positions[offsetA] + positions[offsetB]),
-              0.5 * (positions[offsetA + 1] + positions[offsetB + 1]),
-              0.5 * (positions[offsetA + 2] + positions[offsetB + 2])
+
+            edge.edgePoint.set(
+              0.25 * (positions[offsetA] + positions[offsetB]),
+              0.25 * (positions[offsetA + 1] + positions[offsetB + 1]),
+              0.25 * (positions[offsetA + 2] + positions[offsetB + 2])
             );
 
             edges.set(edgeIdxKey, edge);
           }
+          const edge = edges.get(edgeIdxKey);
 
-          edges.get(edgeIdxKey).adjacentFaces.push(j);
-          face.adjacentEdges.push(edges.get(edgeIdxKey));
+          edge.adjacentFaces.push(j);
+          face.adjacentEdges.push(edge);
         }
       }
 
       // Get edges' edgePoint.
       for (let [key, edge] of edges) {
         const { adjacentFaces, edgePoint } = edge;
-        const faceCount = adjacentFaces.length;
-        for (let j = 0; j < faceCount; j++) {
+        for (let j = 0; j < 2; j++) {
           const curFace = faces[adjacentFaces[j]];
-          edgePoint.add(curFace.facePoint);
+
+          edgePoint.x += 0.25 * curFace.facePoint.x;
+          edgePoint.y += 0.25 * curFace.facePoint.y;
+          edgePoint.z += 0.25 * curFace.facePoint.z;
         }
-        edgePoint.scale(0.5);
-        edgePoint.add(edge.midPoint);
-        edgePoint.scale(0.5);
       }
 
       const prePointCount = 6 * Math.pow(4, i) + 2;
@@ -551,7 +547,7 @@ export class PrimitiveMesh {
       this._sphereEdgeIdx = 0;
 
       // Get New positions, which consists of updated positions of exising points, face points and edge points.
-      for (let j = 0; j < faces.length; j++) {
+      for (let j = 0; j < preCellCount; j++) {
         // Add face point to new positions.
         const curFace = faces[j];
 
@@ -1606,7 +1602,6 @@ export class PrimitiveMesh {
 }
 
 interface IEdge {
-  midPoint: Vector3;
   edgePoint: Vector3;
   adjacentFaces: Array<number>;
 }
