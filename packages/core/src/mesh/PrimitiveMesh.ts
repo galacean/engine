@@ -532,7 +532,7 @@ export class PrimitiveMesh {
 
       const prePointCount = 6 * Math.pow(4, i) + 2;
       const facePointCount = 6 * Math.pow(4, i);
-      const offset = prePointCount + facePointCount;
+      const edgePointoffset = prePointCount + facePointCount;
 
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
@@ -563,17 +563,17 @@ export class PrimitiveMesh {
           // ib and id share four edge points in one cell
           switch (k) {
             case 0:
-              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
-              id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
+              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, edgePointoffset, 0, 0);
+              id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, edgePointoffset, 1, 1);
               temp = id;
               break;
             case 1:
               id = ib;
-              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 3, 2);
+              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, edgePointoffset, 3, 2);
               break;
             case 2:
               id = ib;
-              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 2, 3);
+              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, edgePointoffset, 2, 3);
               break;
             case 3:
               id = ib;
