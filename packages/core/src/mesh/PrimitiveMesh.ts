@@ -463,8 +463,6 @@ export class PrimitiveMesh {
     cells: Float32Array;
     positions: Float32Array;
   } {
-    const { _tempVec31: tempVec1, _tempVec32: tempVec2, _tempVec33: tempVec3 } = PrimitiveMesh;
-
     const points = new Array<IPoint>();
     const edges = new Map<number, IEdge>();
     const faces = new Array<IFace>();
@@ -486,12 +484,14 @@ export class PrimitiveMesh {
 
       // Get cell faces.
       for (let j = 0; j < preCellCount; j++) {
+        // 根据之前的cell建立面face
         const face = (faces[j] = {
           facePoint: new Vector3(),
           adjacentEdges: []
         });
 
         for (let k = 0; k < 4; k++) {
+          // 里面的每一个点
           const idx = preCells[4 * j + k];
           const offset = 3 * idx;
           const vertex = new Vector3(positions[offset], positions[offset + 1], positions[offset + 2]);
@@ -499,8 +499,7 @@ export class PrimitiveMesh {
           if (!points[idx]) {
             const point: IPoint = {
               position: vertex,
-              facePoint: [],
-              edgeMidPoint: []
+              facePoint: []
             };
             points[idx] = point;
           }
@@ -514,8 +513,11 @@ export class PrimitiveMesh {
 
         // Get cell edges.
         for (let k = 0; k < 4; k++) {
+          // edge的两个点
           const vertexIdxA = preCells[4 * j + k];
           const vertexIdxB = preCells[4 * j + ((k + 1) % 4)];
+
+          // 制造一个edgeMap
           const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * positionCount + Math.max(vertexIdxA, vertexIdxB);
 
           if (!edges.has(edgeIdxKey)) {
@@ -527,14 +529,12 @@ export class PrimitiveMesh {
 
             const offsetA = 3 * vertexIdxA;
             const offsetB = 3 * vertexIdxB;
+            // midPoint这个是中点
             edge.midPoint.set(
               0.5 * (positions[offsetA] + positions[offsetB]),
               0.5 * (positions[offsetA + 1] + positions[offsetB + 1]),
               0.5 * (positions[offsetA + 2] + positions[offsetB + 2])
             );
-
-            points[vertexIdxA].edgeMidPoint.push(edgeIdxKey);
-            points[vertexIdxB].edgeMidPoint.push(edgeIdxKey);
 
             edges.set(edgeIdxKey, edge);
           }
@@ -554,25 +554,6 @@ export class PrimitiveMesh {
         edgePoint.scale(0.5);
         edgePoint.add(edge.midPoint);
         edgePoint.scale(0.5);
-      }
-
-      // Get points' newPosition, and new Position's max length.
-      for (let j = 0; j < points.length; j++) {
-        const curPoint = points[j];
-
-        tempVec1.copyFrom(curPoint.position);
-        tempVec2.set(0, 0, 0);
-        tempVec3.set(0, 0, 0);
-
-        curPoint.facePoint.map((value) => {
-          tempVec2.add(faces[value].facePoint);
-        });
-        tempVec2.scale(1 / curPoint.facePoint.length);
-
-        curPoint.edgeMidPoint.map((value) => {
-          tempVec3.add(edges.get(value).midPoint);
-        });
-        tempVec3.scale(1 / curPoint.edgeMidPoint.length);
       }
 
       const prePointCount = 6 * Math.pow(4, i) + 2;
@@ -1646,7 +1627,6 @@ interface IEdge {
 interface IPoint {
   position: Vector3;
   facePoint: Array<number>;
-  edgeMidPoint: Array<number>;
 }
 
 interface IFace {
