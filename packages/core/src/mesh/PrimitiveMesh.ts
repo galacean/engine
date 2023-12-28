@@ -1,7 +1,7 @@
 import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { GLCapabilityType } from "../base/Constant";
-import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
+import { BufferBindFlag, BufferUsage, MeshTopology, VertexElement, VertexElementFormat } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import {
@@ -480,23 +480,14 @@ export class PrimitiveMesh {
       edges.clear();
       faces.length = 0;
 
-      // Get cell faces.
+      // Get cell faces
       for (let j = 0; j < preCellCount; j++) {
         const face = (faces[j] = {
           facePoint: new Vector3(),
-          adjacentEdges: []
+          adjacentEdges: new Array<IEdge>(4)
         });
 
-        // Get cell face's facePoint.
-        for (let k = 0; k < 4; k++) {
-          const offset = 3 * preCells[4 * j + k];
-          face.facePoint.x += positions[offset];
-          face.facePoint.y += positions[offset + 1];
-          face.facePoint.z += positions[offset + 2];
-        }
-        face.facePoint.scale(0.25);
-
-        // Get cell edges.
+        // Get cell edges
         for (let k = 0; k < 4; k++) {
           const vertexIdxA = preCells[4 * j + k];
           const vertexIdxB = preCells[4 * j + ((k + 1) % 4)];
@@ -523,11 +514,19 @@ export class PrimitiveMesh {
           const edge = edges.get(edgeIdxKey);
 
           edge.adjacentFaces.push(j);
-          face.adjacentEdges.push(edge);
+          face.adjacentEdges[k] = edge;
+
+          // Get cell face's facePoint
+          const offset = 3 * vertexIdxA;
+          face.facePoint.x += positions[offset];
+          face.facePoint.y += positions[offset + 1];
+          face.facePoint.z += positions[offset + 2];
         }
+
+        face.facePoint.scale(0.25);
       }
 
-      // Get edges' edgePoint.
+      // Get edges' edgePoint
       for (let [key, edge] of edges) {
         const { adjacentFaces, edgePoint } = edge;
         for (let j = 0; j < 2; j++) {
@@ -546,9 +545,9 @@ export class PrimitiveMesh {
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
 
-      // Get New positions, which consists of updated positions of exising points, face points and edge points.
+      // Get New positions, which consists of updated positions of exising points, face points and edge points
       for (let j = 0; j < preCellCount; j++) {
-        // Add face point to new positions.
+        // Add face point to new positions
         const curFace = faces[j];
 
         let idx = 3 * (prePointCount + j);
@@ -556,7 +555,7 @@ export class PrimitiveMesh {
         positions[idx + 1] = curFace.facePoint.y;
         positions[idx + 2] = curFace.facePoint.z;
 
-        // Get the face point index.
+        // Get the face point index
         const ic = prePointCount + j;
 
         let bIdx0 = 0,
@@ -565,7 +564,7 @@ export class PrimitiveMesh {
           dIdx0 = 0;
 
         for (let k = 0; k < 4; k++) {
-          // Get the updated exising point index.
+          // Get the updated exising point index
           const ia = preCells[pointIdx++];
 
           let id = 0,
@@ -574,7 +573,7 @@ export class PrimitiveMesh {
           const edgeB = curFace.adjacentEdges[k % 4];
           const edgeD = curFace.adjacentEdges[(k + 3) % 4];
 
-          // ib and id share four edge points in one cell.
+          // ib and id share four edge points in one cell
           if (k === 0) {
             ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
             id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
@@ -685,7 +684,6 @@ export class PrimitiveMesh {
   static _computePolesVertex(indices: Uint16Array | Uint32Array, vertices: Float32Array, currentCount: number): void {
     const verticesAtPole = new Set();
     let count = 0;
-
     for (let i = 0; i < currentCount; i++) {
       const uv_y = vertices[8 * i + 7];
       if (uv_y === 0 || uv_y === 1) {
