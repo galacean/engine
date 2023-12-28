@@ -558,6 +558,12 @@ export class PrimitiveMesh {
           bIdx2 = 0,
           dIdx0 = 0;
 
+        //  ia -- ib -- ia
+        //  |     |     |
+        //  id -- ic -- id
+        //  |     |     |
+        //  ia -- ib -- ia
+
         for (let k = 0; k < 4; k++) {
           // Get the updated exising point index
           const ia = preCells[pointIdx++];
