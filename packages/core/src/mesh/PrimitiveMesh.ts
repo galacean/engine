@@ -310,6 +310,7 @@ export class PrimitiveMesh {
     isRestoreMode: boolean,
     restoreVertexBuffer?: Buffer
   ): void {
+    // Max step is limited to 6. Because 7 step will generate a single mesh with over 98306 vertices.
     step = MathUtil.clamp(Math.floor(step), 1, 6);
 
     const { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
