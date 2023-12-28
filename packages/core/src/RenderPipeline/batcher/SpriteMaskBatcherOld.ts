@@ -1,32 +1,66 @@
 import { SpriteMask } from "../../2d/sprite/SpriteMask";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
+import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../../graphic";
+import { VertexElementFormat } from "../../graphic/enums/VertexElementFormat";
+import { BufferMesh } from "../../mesh";
+import { ShaderTagKey } from "../../shader";
 import { StencilOperation } from "../../shader/enums/StencilOperation";
 import { Shader } from "../../shader/Shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
+import { ClassPool } from "../ClassPool";
 import { RenderElement } from "../RenderElement";
 import { SpriteRenderData } from "../SpriteRenderData";
-import { Batcher2D } from "./Batcher2D";
 
-export class SpriteMaskBatcher extends Batcher2D {
-  static override MAX_VERTEX_COUNT: number = 128;
+export class SpriteMaskBatcher {
+  protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
+
+  /** The maximum number of vertex. */
+  static MAX_VERTEX_COUNT: number = 4096;
   static _canUploadSameBuffer: boolean = true;
 
+  /** @internal */
+  _engine: Engine;
+  /** @internal */
+  _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   /** @internal */
   _batchedQueue: RenderElement[] = [];
   /** @internal */
   _stencilOps: StencilOperation[] = [];
   /** @internal */
+  _meshes: BufferMesh[] = [];
+  /** @internal */
+  _meshCount: number = 1;
+  /** @internal */
+  _vertexBuffers: Buffer[] = [];
+  /** @internal */
+  _indiceBuffers: Buffer[] = [];
+  /** @internal */
+  _vertices: Float32Array;
+  /** @internal */
+  _indices: Uint16Array;
+  /** @internal */
+  _flushId: number = 0;
+  /** @internal */
+  _vertexCount: number = 0;
+  /** @internal */
   _elementCount: number = 0;
 
   constructor(engine: Engine) {
-    super(engine);
+    this._engine = engine;
+    this._initMeshes(engine);
+  }
+
+  createVertexElements(vertexElements: VertexElement[]): number {
+    vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
+    vertexElements[1] = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
+    return 20;
   }
 
   drawElement(element: RenderElement, camera: Camera, op: StencilOperation): void {
     const vertexCount = (<SpriteRenderData>element.data).verticesData.vertexCount;
     if (this._vertexCount + vertexCount > SpriteMaskBatcher.MAX_VERTEX_COUNT) {
-      this.uploadAndDraw(camera);
+      this.flush(camera);
     }
 
     this._vertexCount += vertexCount;
@@ -34,7 +68,7 @@ export class SpriteMaskBatcher extends Batcher2D {
     this._stencilOps[this._elementCount++] = op;
   }
 
-  uploadAndDraw(camera: Camera): void {
+  flush(camera: Camera): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {
@@ -54,18 +88,34 @@ export class SpriteMaskBatcher extends Batcher2D {
     this._elementCount = 0;
   }
 
-  override clear(): void {
-    super.clear();
+  clear(): void {
+    this._flushId = 0;
     this._vertexCount = 0;
     this._elementCount = 0;
     this._batchedQueue.length = 0;
     this._stencilOps.length = 0;
   }
 
-  override destroy(): void {
+  destroy(): void {
     this._batchedQueue = null;
     this._stencilOps = null;
-    super.destroy();
+
+    const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
+
+    for (let i = 0, n = meshes.length; i < n; ++i) {
+      meshes[i].destroy();
+    }
+    this._meshes = null;
+
+    for (let i = 0, n = vertexBuffers.length; i < n; ++i) {
+      vertexBuffers[i].destroy();
+    }
+    this._vertexBuffers = null;
+
+    for (let i = 0, n = indiceBuffers.length; i < n; ++i) {
+      indiceBuffers[i].destroy();
+    }
+    this._indiceBuffers = null;
   }
 
   canBatch(
@@ -103,10 +153,6 @@ export class SpriteMaskBatcher extends Batcher2D {
       vertices[vertexIndex++] = curPos.z;
       vertices[vertexIndex++] = curUV.x;
       vertices[vertexIndex++] = curUV.y;
-      vertices[vertexIndex++] = 1;
-      vertices[vertexIndex++] = 1;
-      vertices[vertexIndex++] = 1;
-      vertices[vertexIndex++] = 1;
     }
 
     return vertexIndex;
@@ -164,11 +210,57 @@ export class SpriteMaskBatcher extends Batcher2D {
     }
   }
 
+  /**
+   * @internal
+   * Standalone for canvas 2d renderer plugin.
+   */
+  _initMeshes(engine: Engine) {
+    const { MAX_VERTEX_COUNT } = SpriteMaskBatcher;
+    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 5);
+    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 1.5);
+
+    const { _meshes, _meshCount } = this;
+    for (let i = 0; i < _meshCount; i++) {
+      _meshes[i] = this._createMesh(engine, i);
+    }
+  }
+
+  private _createMesh(engine: Engine, index: number): BufferMesh {
+    const { MAX_VERTEX_COUNT } = SpriteMaskBatcher;
+    const mesh = new BufferMesh(engine, `BufferMesh${index}`);
+    mesh.isGCIgnored = true;
+    const vertexElements: VertexElement[] = [];
+    const vertexStride = this.createVertexElements(vertexElements);
+
+    // vertices
+    const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      MAX_VERTEX_COUNT * vertexStride,
+      BufferUsage.Dynamic
+    ));
+    vertexBuffer.isGCIgnored = true;
+    // indices
+    const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
+      engine,
+      BufferBindFlag.IndexBuffer,
+      MAX_VERTEX_COUNT * 3,
+      BufferUsage.Dynamic
+    ));
+    indiceBuffer.isGCIgnored = true;
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
+    mesh.setVertexElements(vertexElements);
+
+    return mesh;
+  }
+
   private _updateData(engine: Engine): void {
     const { _meshes, _flushId } = this;
 
     if (!SpriteMaskBatcher._canUploadSameBuffer && this._meshCount <= _flushId) {
-      this._createMesh(engine, _flushId);
+      this._meshCount++;
+      _meshes[_flushId] = this._createMesh(engine, _flushId);
     }
 
     const { _batchedQueue: batchedQueue, _stencilOps: stencilOps, _vertices: vertices, _indices: indices } = this;
@@ -222,5 +314,13 @@ export class SpriteMaskBatcher extends Batcher2D {
 
     this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex);
     this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex);
+  }
+
+  private _getSubMeshFromPool(start: number, count: number): SubMesh {
+    const subMesh = this._subMeshPool.getFromPool();
+    subMesh.start = start;
+    subMesh.count = count;
+    subMesh.topology = MeshTopology.Triangles;
+    return subMesh;
   }
 }

@@ -155,6 +155,51 @@ export class Batcher2D implements IBatcher {
     return 36;
   }
 
+  protected _createMesh(engine: Engine, index: number): BufferMesh {
+    const { _meshes } = this;
+    if (_meshes[index]) {
+      return _meshes[index];
+    }
+
+    const { MAX_VERTEX_COUNT } = Batcher2D;
+    const mesh = new BufferMesh(engine, `BufferMesh${index}`);
+    mesh.isGCIgnored = true;
+    const vertexElements: VertexElement[] = [];
+    const vertexStride = this.createVertexElements(vertexElements);
+
+    // vertices
+    const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      MAX_VERTEX_COUNT * vertexStride,
+      BufferUsage.Dynamic
+    ));
+    vertexBuffer.isGCIgnored = true;
+    // indices
+    const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
+      engine,
+      BufferBindFlag.IndexBuffer,
+      MAX_VERTEX_COUNT * 8,
+      BufferUsage.Dynamic
+    ));
+    indiceBuffer.isGCIgnored = true;
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
+    mesh.setVertexElements(vertexElements);
+    index >= this._meshCount && (this._meshCount = index + 1);
+    this._meshes[index] = mesh;
+
+    return mesh;
+  }
+
+  protected _getSubMeshFromPool(start: number, count: number): SubMesh {
+    const subMesh = this._subMeshPool.getFromPool();
+    subMesh.start = start;
+    subMesh.count = count;
+    subMesh.topology = MeshTopology.Triangles;
+    return subMesh;
+  }
+
   private _canBatch(preRenderData: SpriteRenderData, curRenderData: SpriteRenderData): boolean {
     const preRender = <SpriteRenderer>preRenderData.component;
     const curRender = <SpriteRenderer>curRenderData.component;
@@ -230,50 +275,5 @@ export class Batcher2D implements IBatcher {
     this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
     this._indices = new Uint16Array(MAX_VERTEX_COUNT * 4);
     this._createMesh(engine, 0);
-  }
-
-  private _createMesh(engine: Engine, index: number): BufferMesh {
-    const { _meshes } = this;
-    if (_meshes[index]) {
-      return _meshes[index];
-    }
-
-    const { MAX_VERTEX_COUNT } = Batcher2D;
-    const mesh = new BufferMesh(engine, `BufferMesh${index}`);
-    mesh.isGCIgnored = true;
-    const vertexElements: VertexElement[] = [];
-    const vertexStride = this.createVertexElements(vertexElements);
-
-    // vertices
-    const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * vertexStride,
-      BufferUsage.Dynamic
-    ));
-    vertexBuffer.isGCIgnored = true;
-    // indices
-    const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
-      engine,
-      BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 8,
-      BufferUsage.Dynamic
-    ));
-    indiceBuffer.isGCIgnored = true;
-    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
-    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
-    mesh.setVertexElements(vertexElements);
-    index >= this._meshCount && (this._meshCount = index + 1);
-    this._meshes[index] = mesh;
-
-    return mesh;
-  }
-
-  private _getSubMeshFromPool(start: number, count: number): SubMesh {
-    const subMesh = this._subMeshPool.getFromPool();
-    subMesh.start = start;
-    subMesh.count = count;
-    subMesh.topology = MeshTopology.Triangles;
-    return subMesh;
   }
 }
