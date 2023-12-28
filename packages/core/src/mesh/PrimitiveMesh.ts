@@ -480,13 +480,20 @@ export class PrimitiveMesh {
       edges.clear();
       faces.length = 0;
 
-      // Get cell faces
+      // Get cell face's facePoint
       for (let j = 0; j < preCellCount; j++) {
         const face = (faces[j] = {
           facePoint: new Vector3(),
           adjacentEdges: new Array<IEdge>(4)
         });
 
+        // Get cell's edgePoint
+        for (let k = 0; k < 4; k++) {
+          const offset = 3 * preCells[4 * j + k];
+          face.facePoint.x += 0.25 * positions[offset];
+          face.facePoint.y += 0.25 * positions[offset + 1];
+          face.facePoint.z += 0.25 * positions[offset + 2];
+        }
         // Get cell edges
         for (let k = 0; k < 4; k++) {
           const vertexIdxA = preCells[4 * j + k];
@@ -516,25 +523,9 @@ export class PrimitiveMesh {
           edge.adjacentFaces.push(j);
           face.adjacentEdges[k] = edge;
 
-          // Get cell face's facePoint
-          const offset = 3 * vertexIdxA;
-          face.facePoint.x += positions[offset];
-          face.facePoint.y += positions[offset + 1];
-          face.facePoint.z += positions[offset + 2];
-        }
-
-        face.facePoint.scale(0.25);
-      }
-
-      // Get edges' edgePoint
-      for (let [key, edge] of edges) {
-        const { adjacentFaces, edgePoint } = edge;
-        for (let j = 0; j < 2; j++) {
-          const curFace = faces[adjacentFaces[j]];
-
-          edgePoint.x += 0.25 * curFace.facePoint.x;
-          edgePoint.y += 0.25 * curFace.facePoint.y;
-          edgePoint.z += 0.25 * curFace.facePoint.z;
+          edge.edgePoint.x += 0.25 * face.facePoint.x;
+          edge.edgePoint.y += 0.25 * face.facePoint.y;
+          edge.edgePoint.z += 0.25 * face.facePoint.z;
         }
       }
 
