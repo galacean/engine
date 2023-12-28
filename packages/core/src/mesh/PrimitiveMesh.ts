@@ -540,7 +540,7 @@ export class PrimitiveMesh {
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
 
-      // Get New positions, which consists of updated positions of exising points, face points and edge points
+      // Get New positions, which consists of updated positions of existing points, face points and edge points
       for (let j = 0; j < preCellCount; j++) {
         // Add face point to new positions
         const curFace = faces[j];
@@ -560,9 +560,8 @@ export class PrimitiveMesh {
         //  id -- ic -- id
         //  |     |     |
         //  ia -- ib -- ia
-
         for (let k = 0; k < 4; k++) {
-          // Get the updated exising point index
+          // Get the updated existing point index
           const ia = preCells[pointIdx++];
 
           const edgeB = curFace.adjacentEdges[k % 4];
