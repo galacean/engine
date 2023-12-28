@@ -1,7 +1,7 @@
 import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { GLCapabilityType } from "../base/Constant";
-import { BufferBindFlag, BufferUsage, MeshTopology, VertexElement, VertexElementFormat } from "../graphic";
+import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import {
@@ -29,10 +29,6 @@ export class PrimitiveMesh {
 
   private static readonly _sphereSeedCells = new Float32Array([
     0, 1, 2, 3, 3, 2, 4, 5, 5, 4, 6, 7, 7, 0, 3, 5, 7, 6, 1, 0, 6, 4, 2, 1
-  ]);
-
-  private static readonly _sphereSpecialIdx = new Float32Array([
-    3, 6, -1, 9, 8, -1, -1, 7, 10, 11, -1, -1, 1, -1, 5, -1, -1, 4, 0, 2
   ]);
 
   private static _sphereEdgeIdx: number = 0;
@@ -503,7 +499,7 @@ export class PrimitiveMesh {
           if (!edges.has(edgeIdxKey)) {
             const edge: IEdge = {
               edgePoint: new Vector3(),
-              adjacentFaces: []
+              edgePointIndex: undefined
             };
 
             const offsetA = 3 * vertexIdxA;
@@ -519,7 +515,6 @@ export class PrimitiveMesh {
           }
           const edge = edges.get(edgeIdxKey);
 
-          edge.adjacentFaces.push(j);
           face.adjacentEdges[k] = edge;
 
           const edgePoint = edge.edgePoint;
@@ -558,28 +553,33 @@ export class PrimitiveMesh {
           // Get the updated existing point index
           const ia = preCells[pointIdx++];
 
-          const edgeB = face.adjacentEdges[k % 4];
-          const edgeD = face.adjacentEdges[(k + 3) % 4];
-
           // ib and id share four edge points in one cell
           switch (k) {
-            case 0:
-              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, edgePointoffset, 0, 0);
-              id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, edgePointoffset, 1, 1);
+            case 0: {
+              const edgeB = face.adjacentEdges[k % 4];
+              const edgeD = face.adjacentEdges[(k + 3) % 4];
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointoffset);
+              id = this._calculateEdgeIndex(positions, edgeD, edgePointoffset);
               temp = id;
               break;
-            case 1:
+            }
+            case 1: {
+              const edgeB = face.adjacentEdges[k % 4];
               id = ib;
-              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, edgePointoffset, 3, 2);
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointoffset);
               break;
-            case 2:
+            }
+            case 2: {
+              const edgeB = face.adjacentEdges[k % 4];
               id = ib;
-              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, edgePointoffset, 2, 3);
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointoffset);
               break;
-            case 3:
+            }
+            case 3: {
               id = ib;
               ib = temp;
               break;
+            }
           }
 
           const idx = 4 * (4 * j + k);
@@ -695,34 +695,16 @@ export class PrimitiveMesh {
    * @internal
    * Get edge point index for subdivision surface sphere.
    */
-  static _calculateEdgeIndex(
-    cells: Float32Array,
-    positions: Float32Array,
-    edge: IEdge,
-    faceIdx: number,
-    currStep: number,
-    offset: number,
-    cellIdx: number,
-    stepIdx: number
-  ): number {
-    let index = 0;
-    const edgePoint = edge.edgePoint;
-    const adjacentFaceIdx = edge.adjacentFaces[0] === faceIdx ? edge.adjacentFaces[1] : edge.adjacentFaces[0];
-
-    if (faceIdx > adjacentFaceIdx) {
-      if (currStep === 0) {
-        index = PrimitiveMesh._sphereSpecialIdx[5 * stepIdx + faceIdx - 1] + offset;
-      } else {
-        index = cells[16 * adjacentFaceIdx + 4 * cellIdx + 3];
-      }
+  static _calculateEdgeIndex(positions: Float32Array, edge: IEdge, offset: number): number {
+    if (edge.edgePointIndex !== undefined) {
+      return edge.edgePointIndex;
     } else {
-      edgePoint.copyToArray(positions, 3 * (PrimitiveMesh._sphereEdgeIdx + offset));
+      edge.edgePoint.copyToArray(positions, 3 * (offset + PrimitiveMesh._sphereEdgeIdx));
 
-      index = PrimitiveMesh._sphereEdgeIdx + offset;
-      PrimitiveMesh._sphereEdgeIdx++;
+      const index = offset + PrimitiveMesh._sphereEdgeIdx++;
+      edge.edgePointIndex = index;
+      return index;
     }
-
-    return index;
   }
 
   /**
@@ -1572,7 +1554,7 @@ export class PrimitiveMesh {
 
 interface IEdge {
   edgePoint: Vector3;
-  adjacentFaces: Array<number>;
+  edgePointIndex: number;
 }
 
 interface IFace {
