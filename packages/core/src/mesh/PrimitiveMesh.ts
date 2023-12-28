@@ -63,6 +63,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a sphere mesh by implementing Catmull-Clark Surface Subdivision Algorithm.
+   * Max step is limited to 6.
    * @param engine - Engine
    * @param radius - Sphere radius
    * @param step - Number of subdiv steps
@@ -310,7 +311,7 @@ export class PrimitiveMesh {
     isRestoreMode: boolean,
     restoreVertexBuffer?: Buffer
   ): void {
-    // Max step is limited to 6. Because 7 step will generate a single mesh with over 98306 vertices.
+    // Max step is limited to 6. Because 7 step will generate a single mesh with over 98306 vertices
     step = MathUtil.clamp(Math.floor(step), 1, 6);
 
     const { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
@@ -322,7 +323,7 @@ export class PrimitiveMesh {
     const vertices = new Float32Array(vertexCount * 8);
     const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positionCount, cellsCount * 6);
 
-    // Get normals, uvs, and scale to radius.
+    // Get normals, uvs, and scale to radius
     for (let i = 0; i < positionCount; i++) {
       let offset = 3 * i;
 
@@ -348,7 +349,7 @@ export class PrimitiveMesh {
       vertices[offset + 7] = Math.acos(y) / Math.PI;
     }
 
-    // Get indices.
+    // Get indices
     let offset = 0;
     for (let i = 0; i < cellsCount; i++) {
       const idx = 4 * i;
@@ -361,7 +362,7 @@ export class PrimitiveMesh {
       indices[offset++] = cells[idx + 3];
     }
 
-    // Solve texture seam problem caused by vertex sharing.
+    // Solve texture seam problem caused by vertex sharing
     const count = PrimitiveMesh._computeFlippedVertex(indices, vertices, positionCount);
     PrimitiveMesh._computePolesVertex(indices, vertices, positionCount + count);
 
