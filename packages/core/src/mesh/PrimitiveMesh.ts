@@ -543,10 +543,8 @@ export class PrimitiveMesh {
       // Get New positions, which consists of updated positions of existing points, face points and edge points
       for (let j = 0; j < preCellCount; j++) {
         // Add face point to new positions
-        const curFace = faces[j];
-
-        let idx = 3 * (prePointCount + j);
-        curFace.facePoint.copyToArray(positions, idx);
+        const face = faces[j];
+        face.facePoint.copyToArray(positions, 3 * (prePointCount + j));
 
         // Get the face point index
         const ic = prePointCount + j;
@@ -562,8 +560,8 @@ export class PrimitiveMesh {
           // Get the updated existing point index
           const ia = preCells[pointIdx++];
 
-          const edgeB = curFace.adjacentEdges[k % 4];
-          const edgeD = curFace.adjacentEdges[(k + 3) % 4];
+          const edgeB = face.adjacentEdges[k % 4];
+          const edgeD = face.adjacentEdges[(k + 3) % 4];
 
           // ib and id share four edge points in one cell
           switch (k) {
@@ -586,7 +584,7 @@ export class PrimitiveMesh {
               break;
           }
 
-          idx = 4 * (4 * j + k);
+          const idx = 4 * (4 * j + k);
           cells[idx] = ia;
           cells[idx + 1] = ib;
           cells[idx + 2] = ic;
