@@ -546,9 +546,7 @@ export class PrimitiveMesh {
         const curFace = faces[j];
 
         let idx = 3 * (prePointCount + j);
-        positions[idx] = curFace.facePoint.x;
-        positions[idx + 1] = curFace.facePoint.y;
-        positions[idx + 2] = curFace.facePoint.z;
+        curFace.facePoint.copyToArray(positions, idx);
 
         // Get the face point index
         const ic = prePointCount + j;
@@ -743,10 +741,7 @@ export class PrimitiveMesh {
         index = cells[16 * adjacentFaceIdx + 4 * cellIdx + 3];
       }
     } else {
-      const idx = 3 * (PrimitiveMesh._sphereEdgeIdx + offset);
-      positions[idx] = edgePoint.x;
-      positions[idx + 1] = edgePoint.y;
-      positions[idx + 2] = edgePoint.z;
+      edgePoint.copyToArray(positions, 3 * (PrimitiveMesh._sphereEdgeIdx + offset));
 
       index = PrimitiveMesh._sphereEdgeIdx + offset;
       PrimitiveMesh._sphereEdgeIdx++;
