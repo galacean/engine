@@ -551,9 +551,7 @@ export class PrimitiveMesh {
         // Get the face point index
         const ic = prePointCount + j;
 
-        let temp = 0,
-          id = 0,
-          ib = 0;
+        let id: number, ib: number, temp: number;
 
         //  ia -- ib -- ia
         //  |     |     |
@@ -568,20 +566,29 @@ export class PrimitiveMesh {
           const edgeD = curFace.adjacentEdges[(k + 3) % 4];
 
           // ib and id share four edge points in one cell
-          if (k === 0) {
-            ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
-            id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
+          switch (k) {
+            case 0: {
+              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
+              id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
 
-            temp = id;
-          } else if (k === 1) {
-            id = ib;
-            ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 3, 2);
-          } else if (k === 2) {
-            id = ib;
-            ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 2, 3);
-          } else if (k === 3) {
-            id = ib;
-            ib = temp;
+              temp = id;
+              break;
+            }
+            case 1: {
+              id = ib;
+              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 3, 2);
+              break;
+            }
+            case 2: {
+              id = ib;
+              ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 2, 3);
+              break;
+            }
+            case 3: {
+              id = ib;
+              ib = temp;
+              break;
+            }
           }
 
           idx = 4 * (4 * j + k);
