@@ -567,28 +567,23 @@ export class PrimitiveMesh {
 
           // ib and id share four edge points in one cell
           switch (k) {
-            case 0: {
+            case 0:
               ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 0, 0);
               id = this._calculateEdgeIndex(cells, positions, edgeD, j, i, offset, 1, 1);
-
               temp = id;
               break;
-            }
-            case 1: {
+            case 1:
               id = ib;
               ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 3, 2);
               break;
-            }
-            case 2: {
+            case 2:
               id = ib;
               ib = this._calculateEdgeIndex(cells, positions, edgeB, j, i, offset, 2, 3);
               break;
-            }
-            case 3: {
+            case 3:
               id = ib;
               ib = temp;
               break;
-            }
           }
 
           idx = 4 * (4 * j + k);
