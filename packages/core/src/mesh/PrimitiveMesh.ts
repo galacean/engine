@@ -465,9 +465,10 @@ export class PrimitiveMesh {
 
     let preCells = PrimitiveMesh._sphereSeedCells.slice();
     for (let i = 0; i < step; i++) {
-      const positionCount = 24 * Math.pow(4, i) + 2;
       const preCellCount = 6 * Math.pow(4, i);
-      const cells = new Float32Array(24 * Math.pow(4, i + 1));
+      const cells = new Float32Array(16 * preCellCount);
+
+      const positionCount = 4 * preCellCount + 2;
 
       edges.clear();
       faces.length = 0;
@@ -524,9 +525,8 @@ export class PrimitiveMesh {
         }
       }
 
-      const facePointCount = 6 * Math.pow(4, i);
-      const prePointCount = facePointCount + 2;
-      const edgePointOffset = prePointCount + facePointCount;
+      const prePointCount = preCellCount + 2;
+      const edgePointOffset = prePointCount + preCellCount;
 
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
