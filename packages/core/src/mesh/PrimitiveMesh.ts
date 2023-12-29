@@ -381,8 +381,9 @@ export class PrimitiveMesh {
       const floatIndexB = 8 * indexB;
       const floatIndexC = 8 * indexC;
       const floatIndexD = 8 * indexD;
-      const centerZ = vertices[+2] + vertices[floatIndexB + 2] + vertices[floatIndexC + 2];
-      if (centerZ < 0) {
+
+      // If center Z is negative 
+      if (vertices[floatIndexA + 2] + vertices[floatIndexB + 2] + vertices[floatIndexC + 2] < 0) {
         if (vertices[floatIndexA + 6] === 0) {
           indexA = seamVertices[indexA];
         }
