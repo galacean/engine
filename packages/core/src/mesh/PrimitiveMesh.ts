@@ -646,9 +646,8 @@ export class PrimitiveMesh {
     const v = vertices[8 * indices[idx] + 7];
     if (v === 1 || v === 0) {
       const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
-      const index = 8 * indices[idx];
 
-      vertices.set(vertices.slice(index, index + 8), addedOffset);
+      vertices.set(vertices.subarray(8 * indices[idx], 8 * indices[idx] + 8), addedOffset);
       vertices[addedOffset + 6] = u;
 
       indices[idx] = poleOffset + this._spherePoleIdx;
