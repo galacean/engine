@@ -361,8 +361,8 @@ export class PrimitiveMesh {
     }
 
     // Solve texture seam problem caused by vertex sharing
-    const count = PrimitiveMesh._computeFlippedVertex(indices, vertices, positionCount);
-    PrimitiveMesh._computePolesVertex(indices, vertices, positionCount + count);
+    const count = PrimitiveMesh._handleUVSeam(indices, vertices, positionCount);
+    PrimitiveMesh._handleUVPole(indices, vertices, positionCount + count);
 
     if (!isRestoreMode) {
       const { bounds } = sphereMesh;
@@ -585,12 +585,12 @@ export class PrimitiveMesh {
   /**
    * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
    */
-  private static _computeFlippedVertex(
+  private static _handleUVSeam(
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
     currentCount: number
   ): number {
-    const flippedVertex: Set<number> = new Set();
+    const flippedVertex = new Set<number>();
 
     let count = 0;
     const indicesCount = indices.length / 3;
@@ -639,11 +639,7 @@ export class PrimitiveMesh {
   /**
    * Duplicate vertices at the poles and adjust their UV coordinates.
    */
-  private static _computePolesVertex(
-    indices: Uint16Array | Uint32Array,
-    vertices: Float32Array,
-    currentCount: number
-  ): void {
+  private static _handleUVPole(indices: Uint16Array | Uint32Array, vertices: Float32Array, currentCount: number): void {
     const verticesAtPole = new Set();
     let count = 0;
     for (let i = 0; i < currentCount; i++) {
