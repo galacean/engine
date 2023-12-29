@@ -310,7 +310,7 @@ export class PrimitiveMesh {
     // Max step is limited to 6. Because 7 step will generate a single mesh with over 98306 vertices
     step = MathUtil.clamp(Math.floor(step), 1, 6);
 
-    const { positions, cells } = PrimitiveMesh._subdivCatmullClark(step);
+    const { positions, cells } = PrimitiveMesh._subdiveCatmullClark(step);
 
     const positionCount = positions.length / 3;
     const cellsCount = cells.length / 4;
@@ -453,7 +453,7 @@ export class PrimitiveMesh {
   /**
    * @internal
    */
-  static _subdivCatmullClark(step: number): {
+  static _subdiveCatmullClark(step: number): {
     cells: Float32Array;
     positions: Float32Array;
   } {
