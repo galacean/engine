@@ -680,10 +680,9 @@ export class PrimitiveMesh {
     }
   }
   /**
-   * @internal
    * Get edge point index for subdivision surface sphere.
    */
-  static _calculateEdgeIndex(positions: Float32Array, edge: IEdge, offset: number): number {
+  private static _calculateEdgeIndex(positions: Float32Array, edge: IEdge, offset: number): number {
     if (edge.edgePointIndex !== undefined) {
       return edge.edgePointIndex;
     } else {
