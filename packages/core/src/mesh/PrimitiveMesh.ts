@@ -644,17 +644,14 @@ export class PrimitiveMesh {
     const u =
       0.5 *
       (vertices[8 * indices[idx] + 6] + vertices[8 * indices[idx + 1] + 6] + vertices[8 * indices[idx + 2] + 6] - 0.5);
+    const v = vertices[8 * indices[idx] + 7];
 
-    for (let j = 0; j < 3; j++) {
-      const index = indices[idx + j];
-      const v = vertices[8 * index + 7];
-      if (v === 0 || v === 1) {
-        const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
-        vertices.set(vertices.subarray(8 * indices[idx], 8 * indices[idx] + 8), addedOffset);
-        vertices[addedOffset + 6] = u;
+    if (v === 0 || v === 1) {
+      const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
+      vertices.set(vertices.subarray(8 * indices[idx], 8 * indices[idx] + 8), addedOffset);
+      vertices[addedOffset + 6] = u;
 
-        indices[idx] = poleOffset + this._spherePoleIdx++;
-      }
+      indices[idx] = poleOffset + this._spherePoleIdx++;
     }
   }
   /**
