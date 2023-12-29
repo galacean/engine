@@ -460,15 +460,13 @@ export class PrimitiveMesh {
     const edges = new Map<number, IEdge>();
     const faces = new Array<IFace>();
 
-    let previousPositions = PrimitiveMesh._sphereSeedPositions.slice();
-    let preCells = PrimitiveMesh._sphereSeedCells.slice();
+    const positions = new Float32Array(3 * (24 * Math.pow(4, step - 1) + 2));
+    positions.set(PrimitiveMesh._sphereSeedPositions);
 
+    let preCells = PrimitiveMesh._sphereSeedCells.slice();
     for (let i = 0; i < step; i++) {
       const positionCount = 24 * Math.pow(4, i) + 2;
-      const positions = new Float32Array(3 * positionCount);
-      positions.set(previousPositions);
-
-      const preCellCount = preCells.length * 0.25;
+      const preCellCount = 6 * Math.pow(4, i);
       const cells = new Float32Array(24 * Math.pow(4, i + 1));
 
       edges.clear();
@@ -585,10 +583,9 @@ export class PrimitiveMesh {
         }
       }
 
-      previousPositions = positions;
       preCells = cells;
     }
-    return { cells: preCells, positions: previousPositions };
+    return { cells: preCells, positions };
   }
 
   /**
