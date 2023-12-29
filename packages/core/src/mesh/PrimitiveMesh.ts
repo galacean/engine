@@ -324,8 +324,8 @@ export class PrimitiveMesh {
     const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positionCount, cellsCount * 6);
 
     let seamCount = 0;
-    const seamVertex = new Set<number>();
-    const poleVertex = new Set<number>();
+    const seamVertices = <Record<number, number>>{};
+    const poleVertices = new Set<number>();
     // Get normals, uvs, and scale to radius
     for (let i = 0; i < positionCount; i++) {
       let offset = 3 * i;
@@ -359,11 +359,11 @@ export class PrimitiveMesh {
         vertices[seamOffset + 6] = 1.0;
 
         // Cache seam vertex
-        seamVertex[offset / 8] = seamOffset / 8;
+        seamVertices[offset / 8] = seamOffset / 8;
       }
       // Cache pole vertex
       if (vertices[offset + 7] === 1 || vertices[offset + 7] === 0) {
-        poleVertex.add(i);
+        poleVertices.add(i);
       }
     }
 
@@ -377,15 +377,15 @@ export class PrimitiveMesh {
       indices[offset + 1] = cells[idx + 1];
       indices[offset + 2] = cells[idx + 2];
 
-      this._replaceSeamUV(indices, vertices, offset, seamVertex);
-      this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset, poleVertex);
+      this._replaceSeamUV(indices, vertices, offset, seamVertices);
+      this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset, poleVertices);
 
       indices[offset + 3] = cells[idx];
       indices[offset + 4] = cells[idx + 2];
       indices[offset + 5] = cells[idx + 3];
 
-      this._replaceSeamUV(indices, vertices, offset + 3, seamVertex);
-      this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset, poleVertex);
+      this._replaceSeamUV(indices, vertices, offset + 3, seamVertices);
+      this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset, poleVertices);
 
       offset += 6;
     }
@@ -613,7 +613,7 @@ export class PrimitiveMesh {
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
     idx: number,
-    seamVertex: Set<number>
+    seamVertex: Record<number, number>
   ) {
     const vertexA = 8 * indices[idx];
     const vertexB = 8 * indices[idx + 1];
