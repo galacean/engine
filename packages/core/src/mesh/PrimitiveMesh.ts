@@ -325,7 +325,7 @@ export class PrimitiveMesh {
 
     let seamCount = 0;
     const seamVertices = <Record<number, number>>{};
-    const poleVertices = new Set<number>();
+
     // Get normals, uvs, and scale to radius
     for (let i = 0; i < positionCount; i++) {
       let offset = 3 * i;
@@ -361,10 +361,6 @@ export class PrimitiveMesh {
         // Cache seam vertex
         seamVertices[offset / 8] = seamOffset / 8;
       }
-      // Cache pole vertex
-      if (vertices[offset + 7] === 1 || vertices[offset + 7] === 0) {
-        poleVertices.add(i);
-      }
     }
 
     // Get indices
@@ -378,14 +374,14 @@ export class PrimitiveMesh {
       indices[offset + 2] = cells[idx + 2];
 
       this._replaceSeamUV(indices, vertices, offset, seamVertices);
-      this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset, poleVertices);
+      this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset);
 
       indices[offset + 3] = cells[idx];
       indices[offset + 4] = cells[idx + 2];
       indices[offset + 5] = cells[idx + 3];
 
       this._replaceSeamUV(indices, vertices, offset + 3, seamVertices);
-      this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset, poleVertices);
+      this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset);
 
       offset += 6;
     }
@@ -642,14 +638,13 @@ export class PrimitiveMesh {
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
     idx: number,
-    poleOffset: number,
-    verticesAtPole: Set<number>
+    poleOffset: number
   ) {
     const u =
       (vertices[8 * indices[idx] + 6] + vertices[8 * indices[idx + 1] + 6] + vertices[8 * indices[idx + 1] + 6] - 0.5) /
       2;
-
-    if (verticesAtPole.has(indices[idx])) {
+    const v = vertices[8 * indices[idx] + 7];
+    if (v === 1 || v === 0) {
       const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
       const index = 8 * indices[idx];
 
