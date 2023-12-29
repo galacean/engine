@@ -559,11 +559,11 @@ export class PrimitiveMesh {
 
         let id: number, ib: number, temp: number;
 
-        //  ia -- ib -- ia
+        //  ia -- id -- ia
         //  |     |     |
-        //  id -- ic -- id
+        //  ib -- ic -- ib
         //  |     |     |
-        //  ia -- ib -- ia
+        //  ia -- id -- ia
         for (let k = 0; k < 4; k++) {
           // Get the updated existing point index
           const ia = preCells[pointIdx++];
