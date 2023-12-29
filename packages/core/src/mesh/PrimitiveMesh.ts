@@ -526,9 +526,9 @@ export class PrimitiveMesh {
         }
       }
 
-      const prePointCount = 6 * Math.pow(4, i) + 2;
       const facePointCount = 6 * Math.pow(4, i);
-      const edgePointoffset = prePointCount + facePointCount;
+      const prePointCount = facePointCount + 2;
+      const edgePointOffset = prePointCount + facePointCount;
 
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
@@ -558,21 +558,16 @@ export class PrimitiveMesh {
             case 0: {
               const edgeB = face.adjacentEdges[k % 4];
               const edgeD = face.adjacentEdges[(k + 3) % 4];
-              ib = this._calculateEdgeIndex(positions, edgeB, edgePointoffset);
-              id = this._calculateEdgeIndex(positions, edgeD, edgePointoffset);
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointOffset);
+              id = this._calculateEdgeIndex(positions, edgeD, edgePointOffset);
               temp = id;
               break;
             }
-            case 1: {
-              const edgeB = face.adjacentEdges[k % 4];
-              id = ib;
-              ib = this._calculateEdgeIndex(positions, edgeB, edgePointoffset);
-              break;
-            }
+            case 1:
             case 2: {
               const edgeB = face.adjacentEdges[k % 4];
               id = ib;
-              ib = this._calculateEdgeIndex(positions, edgeB, edgePointoffset);
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointOffset);
               break;
             }
             case 3: {
@@ -597,10 +592,9 @@ export class PrimitiveMesh {
   }
 
   /**
-   * @internal
    * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
    */
-  static _computeFlippedVertex(
+  private static _computeFlippedVertex(
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
     currentCount: number
@@ -652,10 +646,13 @@ export class PrimitiveMesh {
   }
 
   /**
-   * @internal
    * Duplicate vertices at the poles and adjust their UV coordinates.
    */
-  static _computePolesVertex(indices: Uint16Array | Uint32Array, vertices: Float32Array, currentCount: number): void {
+  private static _computePolesVertex(
+    indices: Uint16Array | Uint32Array,
+    vertices: Float32Array,
+    currentCount: number
+  ): void {
     const verticesAtPole = new Set();
     let count = 0;
     for (let i = 0; i < currentCount; i++) {
