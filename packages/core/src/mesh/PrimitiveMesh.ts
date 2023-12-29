@@ -310,7 +310,9 @@ export class PrimitiveMesh {
     // Max step is limited to 6. Because 7 step will generate a single mesh with over 98306 vertices
     step = MathUtil.clamp(Math.floor(step), 1, 6);
 
-    const { positions, cells } = PrimitiveMesh._subdiveCatmullClark(step);
+    const positions = new Float32Array(3 * (6 * Math.pow(4, step) + 2));
+    const cells = new Float32Array(24 * Math.pow(4, step));
+    PrimitiveMesh._subdiveCatmullClark(step, positions, cells);
 
     const positionCount = positions.length / 3;
     const cellsCount = cells.length / 4;
@@ -453,16 +455,11 @@ export class PrimitiveMesh {
   /**
    * @internal
    */
-  static _subdiveCatmullClark(step: number): {
-    cells: Float32Array;
-    positions: Float32Array;
-  } {
+  static _subdiveCatmullClark(step: number, positions: Float32Array, cells: Float32Array) {
     const edges = new Map<number, IEdge>();
     const faces = new Array<IFace>();
 
-    const positions = new Float32Array(3 * (6 * Math.pow(4, step) + 2));
     positions.set(PrimitiveMesh._sphereSeedPositions);
-    const cells = new Float32Array(24 * Math.pow(4, step));
     cells.set(PrimitiveMesh._sphereSeedCells);
 
     for (let i = 0; i < step; i++) {
@@ -583,7 +580,6 @@ export class PrimitiveMesh {
         }
       }
     }
-    return { cells, positions };
   }
 
   /**
