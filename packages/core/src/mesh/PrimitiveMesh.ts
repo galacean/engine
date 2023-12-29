@@ -609,7 +609,7 @@ export class PrimitiveMesh {
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
     idx: number,
-    seamVertex: Record<number, number>
+    seamVertices: Record<number, number>
   ) {
     const vertexA = 8 * indices[idx];
     const vertexB = 8 * indices[idx + 1];
@@ -621,13 +621,13 @@ export class PrimitiveMesh {
 
     if (z > 0) {
       if (vertices[vertexA + 6] === 0) {
-        indices[idx] = seamVertex[indices[idx]];
+        indices[idx] = seamVertices[indices[idx]];
       }
       if (vertices[vertexB + 6] === 0) {
-        indices[idx + 1] = seamVertex[indices[idx + 1]];
+        indices[idx + 1] = seamVertices[indices[idx + 1]];
       }
       if (vertices[vertexC + 6] === 0) {
-        indices[idx + 2] = seamVertex[indices[idx + 2]];
+        indices[idx + 2] = seamVertices[indices[idx + 2]];
       }
     }
   }
