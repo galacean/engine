@@ -460,21 +460,20 @@ export class PrimitiveMesh {
     const edges = new Map<number, IEdge>();
     const faces = new Array<IFace>();
 
-    const positions = new Float32Array(3 * (24 * Math.pow(4, step - 1) + 2));
+    const positions = new Float32Array(3 * (6 * Math.pow(4, step) + 2));
     positions.set(PrimitiveMesh._sphereSeedPositions);
+    const cells = new Float32Array(24 * Math.pow(4, step));
+    cells.set(PrimitiveMesh._sphereSeedCells);
 
-    let preCells = PrimitiveMesh._sphereSeedCells.slice();
     for (let i = 0; i < step; i++) {
-      const preCellCount = 6 * Math.pow(4, i);
-      const cells = new Float32Array(16 * preCellCount);
-
-      const positionCount = 4 * preCellCount + 2;
+      const cellCount = 6 * Math.pow(4, i);
+      const positionCount = 4 * cellCount + 2;
 
       edges.clear();
       faces.length = 0;
 
       // Get cell face's facePoint
-      for (let j = 0; j < preCellCount; j++) {
+      for (let j = 0; j < cellCount; j++) {
         const face = (faces[j] = {
           facePoint: new Vector3(),
           adjacentEdges: new Array<IEdge>(4)
@@ -482,7 +481,7 @@ export class PrimitiveMesh {
 
         // Get cell's edgePoint
         for (let k = 0; k < 4; k++) {
-          const offset = 3 * preCells[4 * j + k];
+          const offset = 3 * cells[4 * j + k];
           face.facePoint.x += 0.25 * positions[offset];
           face.facePoint.y += 0.25 * positions[offset + 1];
           face.facePoint.z += 0.25 * positions[offset + 2];
@@ -490,8 +489,8 @@ export class PrimitiveMesh {
 
         // Get cell edges
         for (let k = 0; k < 4; k++) {
-          const vertexIdxA = preCells[4 * j + k];
-          const vertexIdxB = preCells[4 * j + ((k + 1) % 4)];
+          const vertexIdxA = cells[4 * j + k];
+          const vertexIdxB = cells[4 * j + ((k + 1) % 4)];
 
           const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * positionCount + Math.max(vertexIdxA, vertexIdxB);
 
@@ -525,14 +524,15 @@ export class PrimitiveMesh {
         }
       }
 
-      const prePointCount = preCellCount + 2;
-      const edgePointOffset = prePointCount + preCellCount;
+      const prePointCount = cellCount + 2;
+      const edgePointOffset = prePointCount + cellCount;
 
       let pointIdx = 0;
       this._sphereEdgeIdx = 0;
+      const preCells = cells.slice(0, 4 * cellCount);
 
       // Get New positions, which consists of updated positions of existing points, face points and edge points
-      for (let j = 0; j < preCellCount; j++) {
+      for (let j = 0; j < cellCount; j++) {
         // Add face point to new positions
         const face = faces[j];
         face.facePoint.copyToArray(positions, 3 * (prePointCount + j));
@@ -582,10 +582,8 @@ export class PrimitiveMesh {
           cells[idx + 3] = id;
         }
       }
-
-      preCells = cells;
     }
-    return { cells: preCells, positions };
+    return { cells, positions };
   }
 
   /**
