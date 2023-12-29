@@ -69,7 +69,7 @@ export class PrimitiveMesh {
    */
   static createSubdivisionSurfaceSphere(
     engine: Engine,
-    radius: number = 1,
+    radius: number = 0.5,
     step: number = 3,
     noLongerAccessible: boolean = true
   ): ModelMesh {
@@ -353,14 +353,12 @@ export class PrimitiveMesh {
 
       // Generate seam vertex
       if (vertices[offset + 6] === 0) {
-        const seamOffset = 8 * (positionCount + seamCount);
+        const seamOffset = 8 * (positionCount + seamCount++);
 
         vertices.set(vertices.slice(offset, offset + 8), seamOffset);
         vertices[seamOffset + 6] = 1;
 
         seamVertex[offset / 8] = seamOffset / 8;
-
-        seamCount++;
       }
       // Cache pole vertex
       if (vertices[offset + 7] === 1 || vertices[offset + 7] === 0) {
