@@ -32,6 +32,7 @@ export class PrimitiveMesh {
   ]);
 
   private static _sphereEdgeIdx: number = 0;
+  private static _spherePoleIdx: number = 0;
 
   /**
    * Create a sphere mesh.
@@ -316,11 +317,15 @@ export class PrimitiveMesh {
 
     const positionCount = positions.length / 3;
     const cellsCount = cells.length / 4;
-    const vertexCount = positionCount + Math.pow(2, step + 1) + 15;
+    const poleOffset = positionCount + Math.pow(2, step + 1) - 1;
+    const vertexCount = poleOffset + 16;
 
     const vertices = new Float32Array(vertexCount * 8);
     const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positionCount, cellsCount * 6);
 
+    let seamCount = 0;
+    const seamVertex = new Set<number>();
+    const poleVertex = new Set<number>();
     // Get normals, uvs, and scale to radius
     for (let i = 0; i < positionCount; i++) {
       let offset = 3 * i;
@@ -345,31 +350,51 @@ export class PrimitiveMesh {
 
       vertices[offset + 6] = (Math.PI - Math.atan2(z, x)) / (2 * Math.PI);
       vertices[offset + 7] = Math.acos(y) / Math.PI;
+
+      // Generate seam vertex
+      if (vertices[offset + 6] === 0) {
+        const seamOffset = 8 * (positionCount + seamCount);
+
+        vertices.set(vertices.slice(offset, offset + 8), seamOffset);
+        vertices[seamOffset + 6] = 1;
+
+        seamVertex[offset / 8] = seamOffset / 8;
+
+        seamCount++;
+      }
+      // Cache pole vertex
+      if (vertices[offset + 7] === 1 || vertices[offset + 7] === 0) {
+        poleVertex.add(i);
+      }
     }
 
     // Get indices
     let offset = 0;
+    this._spherePoleIdx = 0;
     for (let i = 0; i < cellsCount; i++) {
       const idx = 4 * i;
-      indices[offset++] = cells[idx];
-      indices[offset++] = cells[idx + 1];
-      indices[offset++] = cells[idx + 2];
 
-      indices[offset++] = cells[idx];
-      indices[offset++] = cells[idx + 2];
-      indices[offset++] = cells[idx + 3];
+      indices[offset] = cells[idx];
+      indices[offset + 1] = cells[idx + 1];
+      indices[offset + 2] = cells[idx + 2];
+
+      this._replaceSeamUV(indices, vertices, offset, seamVertex);
+      this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset, poleVertex);
+
+      indices[offset + 3] = cells[idx];
+      indices[offset + 4] = cells[idx + 2];
+      indices[offset + 5] = cells[idx + 3];
+
+      this._replaceSeamUV(indices, vertices, offset + 3, seamVertex);
+      this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset, poleVertex);
+
+      offset += 6;
     }
-
-    // Solve texture seam problem caused by vertex sharing
-    const count = PrimitiveMesh._handleUVSeam(indices, vertices, positionCount);
-    PrimitiveMesh._handleUVPole(indices, vertices, positionCount + count);
-
     if (!isRestoreMode) {
       const { bounds } = sphereMesh;
       bounds.min.set(-radius, -radius, -radius);
       bounds.max.set(radius, radius, radius);
     }
-
     PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
@@ -585,94 +610,56 @@ export class PrimitiveMesh {
   /**
    * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
    */
-  private static _handleUVSeam(
+  private static _replaceSeamUV(
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
-    currentCount: number
-  ): number {
-    const flippedVertex = new Set<number>();
+    a: number,
+    seamVertex: Set<number>
+  ) {
+    const vertexA = 8 * indices[a];
+    const vertexB = 8 * indices[a + 1];
+    const vertexC = 8 * indices[a + 2];
 
-    let count = 0;
-    const indicesCount = indices.length / 3;
-    for (let i = 0; i < indicesCount; i++) {
-      let offset = i * 3;
-      const m1 = indices[offset] * 8;
-      const m2 = indices[offset + 1] * 8;
-      const m3 = indices[offset + 2] * 8;
+    const z =
+      (vertices[vertexB + 6] - vertices[vertexA + 6]) * (vertices[vertexC + 7] - vertices[vertexA + 7]) -
+      (vertices[vertexB + 7] - vertices[vertexA + 7]) * (vertices[vertexC + 6] - vertices[vertexA + 6]);
 
-      // This triangle's z value of UV's normal
-      const z =
-        (vertices[m2 + 6] - vertices[m1 + 6]) * (vertices[m3 + 7] - vertices[m1 + 7]) -
-        (vertices[m2 + 7] - vertices[m1 + 7]) * (vertices[m3 + 6] - vertices[m1 + 6]);
-
-      // Direction reversed triangle
-      if (z > 0) {
-        for (let j = 0; j < 3; j++) {
-          const e = indices[i * 3 + j];
-          const idx = 8 * e;
-          if (vertices[idx + 6] === 0) {
-            if (!flippedVertex[e]) {
-              const offset = 8 * (currentCount + count);
-
-              vertices[offset] = vertices[idx];
-              vertices[offset + 1] = vertices[idx + 1];
-              vertices[offset + 2] = vertices[idx + 2];
-
-              vertices[offset + 3] = vertices[idx + 3];
-              vertices[offset + 4] = vertices[idx + 4];
-              vertices[offset + 5] = vertices[idx + 5];
-
-              vertices[offset + 6] = vertices[idx + 6] + 1;
-              vertices[offset + 7] = vertices[idx + 7];
-
-              flippedVertex[e] = currentCount + count;
-              count++;
-            }
-            indices[i * 3 + j] = flippedVertex[e];
-          }
-        }
+    if (z > 0) {
+      if (vertices[vertexA + 6] === 0) {
+        indices[a] = seamVertex[indices[a]];
+      }
+      if (vertices[vertexB + 6] === 0) {
+        indices[a + 1] = seamVertex[indices[a + 1]];
+      }
+      if (vertices[vertexC + 6] === 0) {
+        indices[a + 2] = seamVertex[indices[a + 2]];
       }
     }
-    return count;
   }
-
   /**
    * Duplicate vertices at the poles and adjust their UV coordinates.
    */
-  private static _handleUVPole(indices: Uint16Array | Uint32Array, vertices: Float32Array, currentCount: number): void {
-    const verticesAtPole = new Set();
-    let count = 0;
-    for (let i = 0; i < currentCount; i++) {
-      const uv_y = vertices[8 * i + 7];
-      if (uv_y === 0 || uv_y === 1) {
-        verticesAtPole.add(i);
-      }
-    }
-    for (let i = 0; i < indices.length; i += 3) {
-      for (let j = 0; j < 3; j++) {
-        const index = indices[i + j];
+  private static _generateAndReplacePoleUV(
+    indices: Uint16Array | Uint32Array,
+    vertices: Float32Array,
+    idx: number,
+    poleOffset: number,
+    verticesAtPole: Set<number>
+  ) {
+    const u =
+      (vertices[8 * indices[idx] + 6] + vertices[8 * indices[idx + 1] + 6] + vertices[8 * indices[idx + 1] + 6] - 0.5) /
+      2;
 
-        if (verticesAtPole.has(index)) {
-          const offset = 8 * (count + currentCount);
-          const idx = 8 * index;
-          vertices[offset] = vertices[idx];
-          vertices[offset + 1] = vertices[idx + 1];
-          vertices[offset + 2] = vertices[idx + 2];
+    if (verticesAtPole.has(indices[idx])) {
+      const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
+      const index = 8 * indices[idx];
 
-          vertices[offset + 3] = vertices[idx + 3];
-          vertices[offset + 4] = vertices[idx + 4];
-          vertices[offset + 5] = vertices[idx + 5];
+      vertices.set(vertices.slice(index, index + 8), addedOffset);
+      vertices[addedOffset + 6] = u;
 
-          vertices[offset + 6] =
-            (vertices[8 * indices[i] + 6] + vertices[8 * indices[i + 1] + 6] + vertices[8 * indices[i + 2] + 6] - 0.5) /
-            2;
-          vertices[offset + 7] = vertices[idx + 7];
+      indices[idx] = poleOffset + this._spherePoleIdx;
 
-          indices[i + j] = count + currentCount;
-
-          count++;
-        }
-      }
+      this._spherePoleIdx++;
     }
   }
   /**
