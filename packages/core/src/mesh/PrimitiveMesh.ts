@@ -608,26 +608,33 @@ export class PrimitiveMesh {
   private static _replaceSeamUV(
     indices: Uint16Array | Uint32Array,
     vertices: Float32Array,
-    idx: number,
+    offset: number,
     seamVertices: Record<number, number>
   ) {
-    const vertexA = 8 * indices[idx];
-    const vertexB = 8 * indices[idx + 1];
-    const vertexC = 8 * indices[idx + 2];
+    const vertexA = 8 * indices[offset];
+    const vertexB = 8 * indices[offset + 1];
+    const vertexC = 8 * indices[offset + 2];
 
-    const z =
-      (vertices[vertexB + 6] - vertices[vertexA + 6]) * (vertices[vertexC + 7] - vertices[vertexA + 7]) -
-      (vertices[vertexB + 7] - vertices[vertexA + 7]) * (vertices[vertexC + 6] - vertices[vertexA + 6]);
+    const vertexAU = vertices[vertexA + 6];
+    const vertexAV = vertices[vertexA + 7];
+
+    const vertexBU = vertices[vertexB + 6];
+    const vertexBV = vertices[vertexB + 7];
+
+    const vertexCU = vertices[vertexC + 6];
+    const vertexCV = vertices[vertexC + 7];
+
+    const z = (vertexBU - vertexAU) * (vertexCV - vertexAV) - (vertexBV - vertexAV) * (vertexCU - vertexAU);
 
     if (z > 0) {
-      if (vertices[vertexA + 6] === 0) {
-        indices[idx] = seamVertices[indices[idx]];
+      if (vertexAU === 0) {
+        indices[offset] = seamVertices[indices[offset]];
       }
-      if (vertices[vertexB + 6] === 0) {
-        indices[idx + 1] = seamVertices[indices[idx + 1]];
+      if (vertexBU === 0) {
+        indices[offset + 1] = seamVertices[indices[offset + 1]];
       }
-      if (vertices[vertexC + 6] === 0) {
-        indices[idx + 2] = seamVertices[indices[idx + 2]];
+      if (vertexCU === 0) {
+        indices[offset + 2] = seamVertices[indices[offset + 2]];
       }
     }
   }
