@@ -622,15 +622,19 @@ export class PrimitiveMesh {
     if (z > 0) {
       if (vertices[vertexA + 6] === 0) {
         indices[idx] = seamVertices[indices[idx]];
+        console.log("0");
       }
       if (vertices[vertexB + 6] === 0) {
         indices[idx + 1] = seamVertices[indices[idx + 1]];
+        console.log("1");
       }
       if (vertices[vertexC + 6] === 0) {
+        console.log("2");
         indices[idx + 2] = seamVertices[indices[idx + 2]];
       }
     }
   }
+
   /**
    * Duplicate vertices at the poles and adjust their UV coordinates.
    */
@@ -640,19 +644,20 @@ export class PrimitiveMesh {
     idx: number,
     poleOffset: number
   ) {
-    const v = vertices[8 * indices[idx] + 7];
+    const u =
+      0.5 *
+      (vertices[8 * indices[idx] + 6] + vertices[8 * indices[idx + 1] + 6] + vertices[8 * indices[idx + 2] + 6] - 0.5);
 
-    if (v === 1 || v === 0) {
-      const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
-      vertices.set(vertices.subarray(8 * indices[idx], 8 * indices[idx] + 8), addedOffset);
-      vertices[addedOffset + 6] =
-        (vertices[8 * indices[idx] + 6] +
-          vertices[8 * indices[idx + 1] + 6] +
-          vertices[8 * indices[idx + 1] + 6] -
-          0.5) /
-        2;
+    for (let j = 0; j < 3; j++) {
+      const index = indices[idx + j];
+      const v = vertices[8 * index + 7];
+      if (v === 0 || v === 1) {
+        const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
+        vertices.set(vertices.subarray(8 * indices[idx], 8 * indices[idx] + 8), addedOffset);
+        vertices[addedOffset + 6] = u;
 
-      indices[idx] = poleOffset + this._spherePoleIdx++;
+        indices[idx] = poleOffset + this._spherePoleIdx++;
+      }
     }
   }
   /**
