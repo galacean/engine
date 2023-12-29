@@ -622,14 +622,11 @@ export class PrimitiveMesh {
     if (z > 0) {
       if (vertices[vertexA + 6] === 0) {
         indices[idx] = seamVertices[indices[idx]];
-        console.log("0");
       }
       if (vertices[vertexB + 6] === 0) {
         indices[idx + 1] = seamVertices[indices[idx + 1]];
-        console.log("1");
       }
       if (vertices[vertexC + 6] === 0) {
-        console.log("2");
         indices[idx + 2] = seamVertices[indices[idx + 2]];
       }
     }
