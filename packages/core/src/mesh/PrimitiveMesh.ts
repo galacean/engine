@@ -351,13 +351,14 @@ export class PrimitiveMesh {
       vertices[offset + 6] = (Math.PI - Math.atan2(z, x)) / (2 * Math.PI);
       vertices[offset + 7] = Math.acos(y) / Math.PI;
 
-      // Generate seam vertex
       if (vertices[offset + 6] === 0) {
+        // Generate seam vertex
         const seamOffset = 8 * (positionCount + seamCount++);
 
         vertices.set(vertices.subarray(offset, offset + 8), seamOffset);
         vertices[seamOffset + 6] = 1.0;
 
+        // Cache seam vertex
         seamVertex[offset / 8] = seamOffset / 8;
       }
       // Cache pole vertex
