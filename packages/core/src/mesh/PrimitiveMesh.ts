@@ -318,6 +318,8 @@ export class PrimitiveMesh {
     const positionCount = positions.length / 3;
     const cellsCount = cells.length / 4;
     const poleOffset = positionCount + Math.pow(2, step + 1) - 1;
+    // 16 extra vertices for pole uv
+    // 2 vertices at each pole are idle
     const vertexCount = poleOffset + 16;
 
     const vertices = new Float32Array(vertexCount * 8);
@@ -651,14 +653,11 @@ export class PrimitiveMesh {
     const v = vertices[8 * indices[idx] + 7];
 
     if (v === 0 || v === 1) {
+      const offset = 8 * indices[idx];
       const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
-      vertices.set(vertices.subarray(8 * indices[idx], 8 * indices[idx] + 8), addedOffset);
+      vertices.set(vertices.subarray(offset, offset + 8), addedOffset);
       vertices[addedOffset + 6] =
-        0.5 *
-        (vertices[8 * indices[idx] + 6] +
-          vertices[8 * indices[idx + 1] + 6] +
-          vertices[8 * indices[idx + 2] + 6] -
-          0.5);
+        0.5 * (vertices[offset + 6] + vertices[8 * indices[idx + 1] + 6] + vertices[8 * indices[idx + 2] + 6] - 0.5);
 
       indices[idx] = poleOffset + this._spherePoleIdx++;
     }
