@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { GLCapabilityType } from "../base/Constant";
 import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
@@ -6,6 +6,7 @@ import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import {
   CapsuleRestoreInfo,
+  SubdivisionSurfaceSphereRestoreInfo,
   ConeRestoreInfo,
   CuboidRestoreInfo,
   CylinderRestoreInfo,
@@ -21,6 +22,17 @@ import { VertexAttribute } from "./enums/VertexAttribute";
  */
 export class PrimitiveMesh {
   private static _tempVec30: Vector3 = new Vector3();
+
+  private static readonly _sphereSeedPositions = new Float32Array([
+    -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1
+  ]);
+
+  private static readonly _sphereSeedCells = new Float32Array([
+    0, 1, 2, 3, 3, 2, 4, 5, 5, 4, 6, 7, 7, 0, 3, 5, 7, 6, 1, 0, 6, 4, 2, 1
+  ]);
+
+  private static _sphereEdgeIdx: number = 0;
+  private static _spherePoleIdx: number = 0;
 
   /**
    * Create a sphere mesh.
@@ -42,6 +54,34 @@ export class PrimitiveMesh {
     const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, vertexBuffer, noLongerAccessible))
+    );
+    return sphereMesh;
+  }
+
+  /**
+   * Create a sphere mesh by implementing Catmull-Clark Surface Subdivision Algorithm.
+   * Max step is limited to 6.
+   * @param engine - Engine
+   * @param radius - Sphere radius
+   * @param step - Number of subdiv steps
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Sphere model mesh
+   */
+  static createSubdivisionSurfaceSphere(
+    engine: Engine,
+    radius: number = 0.5,
+    step: number = 3,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const sphereMesh = new ModelMesh(engine);
+    PrimitiveMesh._setSubdivisionSurfaceSphereData(sphereMesh, radius, step, noLongerAccessible, false);
+
+    const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(
+        sphereMesh,
+        new SubdivisionSurfaceSphereRestoreInfo(radius, step, vertexBuffer, noLongerAccessible)
+      )
     );
     return sphereMesh;
   }
@@ -260,6 +300,104 @@ export class PrimitiveMesh {
   /**
    * @internal
    */
+  static _setSubdivisionSurfaceSphereData(
+    sphereMesh: ModelMesh,
+    radius: number,
+    step: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
+  ): void {
+    // Max step is limited to 6. Because 7 step will generate a single mesh with over 98306 vertices
+    step = MathUtil.clamp(Math.floor(step), 1, 6);
+
+    const positions = new Float32Array(3 * (6 * Math.pow(4, step) + 2));
+    const cells = new Float32Array(24 * Math.pow(4, step));
+    PrimitiveMesh._subdiveCatmullClark(step, positions, cells);
+
+    const positionCount = positions.length / 3;
+    const cellsCount = cells.length / 4;
+    const poleOffset = positionCount + Math.pow(2, step + 1) - 1;
+    // 16 extra vertices for pole uv
+    // 2 vertices at each pole are idle
+    const vertexCount = poleOffset + 16;
+
+    const vertices = new Float32Array(vertexCount * 8);
+    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, positionCount, cellsCount * 6);
+
+    let seamCount = 0;
+    const seamVertices = <Record<number, number>>{};
+
+    // Get normals, uvs, and scale to radius
+    for (let i = 0; i < positionCount; i++) {
+      let offset = 3 * i;
+
+      let x = positions[offset];
+      let y = positions[offset + 1];
+      let z = positions[offset + 2];
+
+      const reciprocalLength = 1 / Math.sqrt(x * x + y * y + z * z);
+      x *= reciprocalLength;
+      y *= reciprocalLength;
+      z *= reciprocalLength;
+
+      offset = 8 * i;
+      vertices[offset] = x * radius;
+      vertices[offset + 1] = y * radius;
+      vertices[offset + 2] = z * radius;
+
+      vertices[offset + 3] = x;
+      vertices[offset + 4] = y;
+      vertices[offset + 5] = z;
+
+      vertices[offset + 6] = (Math.PI - Math.atan2(z, x)) / (2 * Math.PI);
+      vertices[offset + 7] = Math.acos(y) / Math.PI;
+
+      if (vertices[offset + 6] === 0) {
+        // Generate seam vertex
+        const seamOffset = 8 * (positionCount + seamCount++);
+
+        vertices.set(vertices.subarray(offset, offset + 8), seamOffset);
+        vertices[seamOffset + 6] = 1.0;
+
+        // Cache seam vertex
+        seamVertices[offset / 8] = seamOffset / 8;
+      }
+    }
+
+    // Get indices
+    let offset = 0;
+    this._spherePoleIdx = 0;
+    for (let i = 0; i < cellsCount; i++) {
+      const idx = 4 * i;
+
+      indices[offset] = cells[idx];
+      indices[offset + 1] = cells[idx + 1];
+      indices[offset + 2] = cells[idx + 2];
+
+      this._replaceSeamUV(indices, vertices, offset, seamVertices);
+      this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset);
+
+      indices[offset + 3] = cells[idx];
+      indices[offset + 4] = cells[idx + 2];
+      indices[offset + 5] = cells[idx + 3];
+
+      this._replaceSeamUV(indices, vertices, offset + 3, seamVertices);
+      this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset);
+
+      offset += 6;
+    }
+    if (!isRestoreMode) {
+      const { bounds } = sphereMesh;
+      bounds.min.set(-radius, -radius, -radius);
+      bounds.max.set(radius, radius, radius);
+    }
+    PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
+  }
+
+  /**
+   * @internal
+   */
   static _setSphereData(
     sphereMesh: ModelMesh,
     radius: number,
@@ -334,6 +472,209 @@ export class PrimitiveMesh {
     }
 
     PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
+  }
+
+  /**
+   * @internal
+   */
+  static _subdiveCatmullClark(step: number, positions: Float32Array, cells: Float32Array) {
+    const edges = new Map<number, IEdge>();
+    const faces = new Array<IFace>();
+
+    positions.set(PrimitiveMesh._sphereSeedPositions);
+    cells.set(PrimitiveMesh._sphereSeedCells);
+
+    for (let i = 0; i < step; i++) {
+      const cellCount = 6 * Math.pow(4, i);
+      const positionCount = 4 * cellCount + 2;
+
+      edges.clear();
+      faces.length = 0;
+
+      // Get cell face's facePoint
+      for (let j = 0; j < cellCount; j++) {
+        const face = (faces[j] = {
+          facePoint: new Vector3(),
+          adjacentEdges: new Array<IEdge>(4)
+        });
+
+        // Get cell's edgePoint
+        for (let k = 0; k < 4; k++) {
+          const offset = 3 * cells[4 * j + k];
+          face.facePoint.x += 0.25 * positions[offset];
+          face.facePoint.y += 0.25 * positions[offset + 1];
+          face.facePoint.z += 0.25 * positions[offset + 2];
+        }
+
+        // Get cell edges
+        for (let k = 0; k < 4; k++) {
+          const vertexIdxA = cells[4 * j + k];
+          const vertexIdxB = cells[4 * j + ((k + 1) % 4)];
+
+          const edgeIdxKey = Math.min(vertexIdxA, vertexIdxB) * positionCount + Math.max(vertexIdxA, vertexIdxB);
+
+          if (!edges.has(edgeIdxKey)) {
+            const edge: IEdge = {
+              edgePoint: new Vector3(),
+              edgePointIndex: undefined
+            };
+
+            const offsetA = 3 * vertexIdxA;
+            const offsetB = 3 * vertexIdxB;
+
+            edge.edgePoint.set(
+              0.25 * (positions[offsetA] + positions[offsetB]),
+              0.25 * (positions[offsetA + 1] + positions[offsetB + 1]),
+              0.25 * (positions[offsetA + 2] + positions[offsetB + 2])
+            );
+
+            edges.set(edgeIdxKey, edge);
+          }
+          const edge = edges.get(edgeIdxKey);
+
+          face.adjacentEdges[k] = edge;
+
+          const edgePoint = edge.edgePoint;
+          const facePoint = face.facePoint;
+
+          edgePoint.x += 0.25 * facePoint.x;
+          edgePoint.y += 0.25 * facePoint.y;
+          edgePoint.z += 0.25 * facePoint.z;
+        }
+      }
+
+      const prePointCount = cellCount + 2;
+      const edgePointOffset = prePointCount + cellCount;
+
+      let pointIdx = 0;
+      this._sphereEdgeIdx = 0;
+      const preCells = cells.slice(0, 4 * cellCount);
+
+      // Get New positions, which consists of updated positions of existing points, face points and edge points
+      for (let j = 0; j < cellCount; j++) {
+        // Add face point to new positions
+        const face = faces[j];
+        face.facePoint.copyToArray(positions, 3 * (prePointCount + j));
+
+        // Get the face point index
+        const ic = prePointCount + j;
+
+        let id: number, ib: number, temp: number;
+
+        //  ia -- id -- ia
+        //  |     |     |
+        //  ib -- ic -- ib
+        //  |     |     |
+        //  ia -- id -- ia
+        for (let k = 0; k < 4; k++) {
+          // Get the updated existing point index
+          const ia = preCells[pointIdx++];
+
+          // ib and id share four edge points in one cell
+          switch (k) {
+            case 0: {
+              const edgeB = face.adjacentEdges[k % 4];
+              const edgeD = face.adjacentEdges[(k + 3) % 4];
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointOffset);
+              id = this._calculateEdgeIndex(positions, edgeD, edgePointOffset);
+              temp = id;
+              break;
+            }
+            case 1:
+            case 2: {
+              const edgeB = face.adjacentEdges[k % 4];
+              id = ib;
+              ib = this._calculateEdgeIndex(positions, edgeB, edgePointOffset);
+              break;
+            }
+            case 3: {
+              id = ib;
+              ib = temp;
+              break;
+            }
+          }
+
+          const idx = 4 * (4 * j + k);
+          cells[idx] = ia;
+          cells[idx + 1] = ib;
+          cells[idx + 2] = ic;
+          cells[idx + 3] = id;
+        }
+      }
+    }
+  }
+
+  /**
+   * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
+   */
+  private static _replaceSeamUV(
+    indices: Uint16Array | Uint32Array,
+    vertices: Float32Array,
+    offset: number,
+    seamVertices: Record<number, number>
+  ) {
+    const vertexA = 8 * indices[offset];
+    const vertexB = 8 * indices[offset + 1];
+    const vertexC = 8 * indices[offset + 2];
+
+    const vertexAU = vertices[vertexA + 6];
+    const vertexAV = vertices[vertexA + 7];
+
+    const vertexBU = vertices[vertexB + 6];
+    const vertexBV = vertices[vertexB + 7];
+
+    const vertexCU = vertices[vertexC + 6];
+    const vertexCV = vertices[vertexC + 7];
+
+    const z = (vertexBU - vertexAU) * (vertexCV - vertexAV) - (vertexBV - vertexAV) * (vertexCU - vertexAU);
+
+    if (z > 0) {
+      if (vertexAU === 0) {
+        indices[offset] = seamVertices[indices[offset]];
+      }
+      if (vertexBU === 0) {
+        indices[offset + 1] = seamVertices[indices[offset + 1]];
+      }
+      if (vertexCU === 0) {
+        indices[offset + 2] = seamVertices[indices[offset + 2]];
+      }
+    }
+  }
+
+  /**
+   * Duplicate vertices at the poles and adjust their UV coordinates.
+   */
+  private static _generateAndReplacePoleUV(
+    indices: Uint16Array | Uint32Array,
+    vertices: Float32Array,
+    idx: number,
+    poleOffset: number
+  ) {
+    const v = vertices[8 * indices[idx] + 7];
+
+    if (v === 0 || v === 1) {
+      const offset = 8 * indices[idx];
+      const addedOffset = 8 * (poleOffset + this._spherePoleIdx);
+      vertices.set(vertices.subarray(offset, offset + 8), addedOffset);
+      vertices[addedOffset + 6] =
+        0.5 * (vertices[offset + 6] + vertices[8 * indices[idx + 1] + 6] + vertices[8 * indices[idx + 2] + 6] - 0.5);
+
+      indices[idx] = poleOffset + this._spherePoleIdx++;
+    }
+  }
+  /**
+   * Get edge point index for subdivision surface sphere.
+   */
+  private static _calculateEdgeIndex(positions: Float32Array, edge: IEdge, offset: number): number {
+    if (edge.edgePointIndex !== undefined) {
+      return edge.edgePointIndex;
+    } else {
+      edge.edgePoint.copyToArray(positions, 3 * (offset + PrimitiveMesh._sphereEdgeIdx));
+
+      const index = offset + PrimitiveMesh._sphereEdgeIdx++;
+      edge.edgePointIndex = index;
+      return index;
+    }
   }
 
   /**
@@ -1179,4 +1520,14 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = d;
     }
   }
+}
+
+interface IEdge {
+  edgePoint: Vector3;
+  edgePointIndex: number;
+}
+
+interface IFace {
+  facePoint: Vector3;
+  adjacentEdges: Array<IEdge>;
 }

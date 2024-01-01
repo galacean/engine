@@ -28,6 +28,7 @@ api
 yarn.lock
 e2e/videos/*
 e2e/screenshots/*
+e2e/downloads/*
 e2e/diff/*
 e2e/.dev/mpa
 .husky/post-checkout

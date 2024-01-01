@@ -14,7 +14,7 @@ import {
   WebGLEngine,
   GLTFResource
 } from "@galacean/engine";
-import { e2eReady, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -25,7 +25,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
   const lightNode = rootEntity.createChild("light_node");
@@ -44,6 +44,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       skinMeshRenderer.blendShapeWeights[0] = 1.0;
       animator.play("TheWave");
       updateForE2E(engine);
-      e2eReady();
+      const category = "Animator";
+      const name = "animator-blendShape";
+      initScreenshot(category, name, engine, camera);
     });
 });

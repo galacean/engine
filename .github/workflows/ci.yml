@@ -75,8 +75,7 @@ jobs:
       - run: curl -s https://codecov.io/bash
 
   e2e:
-
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     strategy:
       matrix:
@@ -92,15 +91,10 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-        cache: pnpm
-    - name: Install dependencies
-      run: pnpm i
-    - name: Build
-      run: npm run build
-
     - name: Run Cypress Tests
       uses: cypress-io/github-action@v5
       with:
+        build: npm run build
         start: npm run e2e:case
         wait-on: 'http://localhost:5175'
         wait-on-timeout: 120 
@@ -122,4 +116,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cypress-screenshots
-        path: e2e/screenshots/
+        path: e2e/downloads/
