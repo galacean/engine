@@ -23,7 +23,7 @@ export abstract class GLTFParser {
     context: GLTFParserContext,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): Uint8Array | EngineObject | void | Promise<EngineObject | Uint8Array | void> {
+  ): EngineObject | void | Promise<EngineObject | Uint8Array | void> {
     let resource: EngineObject | Promise<EngineObject> = null;
 
     const extensionArray = Object.keys(extensions);

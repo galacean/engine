@@ -14,6 +14,9 @@ import { MeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
+  /**
+   * Destroy meshopt decode workers.
+   */
   static destroyMeshOptWorkers() {
     MeshoptDecoder.destroy();
   }

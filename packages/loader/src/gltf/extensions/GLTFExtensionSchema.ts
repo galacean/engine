@@ -153,6 +153,16 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
+export interface IEXTMeshoptCompressionSchema {
+  buffer: number;
+  byteOffset?: number;
+  byteLength: number;
+  byteStride: number;
+  mode: "ATTRIBUTES" | "TRIANGLES" | "INDICES";
+  count: number;
+  filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
+}
+
 export interface IGalaceanMaterialRemap {
   refId: string;
   key?: string;
