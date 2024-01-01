@@ -42,7 +42,8 @@ import {
   FnVariableDeclareUnitAstNode,
   FnMacroUndefineAstNode,
   FnMacroConditionAstNode,
-  RenderQueueValueAstNode
+  RenderQueueValueAstNode,
+  FnReturnStatementAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -111,6 +112,7 @@ export interface IFnAstContent {
   name: string;
   args: FnArgAstNode[];
   body: AstNode;
+  returnStatement?: FnReturnStatementAstNode;
 }
 
 export interface IFnBodyAstContent {
@@ -160,9 +162,8 @@ export interface IFnConditionStatementAstContent {
 }
 
 export interface IConditionExprAstContent {
-  leftExpr: RelationExprAstNode;
-  rightExpr?: RelationExprAstNode;
-  operator?: RelationOperatorAstNode;
+  expressionList: RelationExprAstNode[];
+  operatorList?: RelationOperatorAstNode[];
 }
 
 export interface IFnRelationExprAstContent {
@@ -224,6 +225,8 @@ export type IArrayIndexAstContent = FnAtomicExprAstNode;
 export type IVariablePropertyAstContent = string;
 
 export type IFnReturnStatementAstContent = ObjectAstNode;
+
+export type IFnCallStatementAstContent = FnCallAstNode;
 
 export interface IFnArgAstContent {
   name: string;

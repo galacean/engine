@@ -289,6 +289,7 @@ export class Animator extends Component {
     layerIndex: number
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
+    let { mask } = this._animatorController.layers[layerIndex];
     const { curveLayerOwner } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
 
@@ -296,18 +297,32 @@ export class Animator extends Component {
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
+      const { relativePath } = curve;
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       if (targetEntity) {
+        const propertyPath = `${curve.typeIndex}.` + curve.property;
+        const component =
+          curve.typeIndex > 0
+            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
+            : targetEntity.getComponent(curve.type);
+
+        if (!component) {
+          continue;
+        }
+
         const { property } = curve;
         const { instanceId } = targetEntity;
-
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
-        const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
+        const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity, component));
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
-        const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
+        const layerOwner = (layerPropertyOwners[propertyPath] ||= curve._createCurveLayerOwner(owner));
+
+        if (mask && mask.pathMasks.length) {
+          layerOwner.isActive = mask.getPathMask(relativePath).active;
+        }
 
         curveLayerOwner[i] = layerOwner;
       } else {
@@ -320,26 +335,30 @@ export class Animator extends Component {
   private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = [];
-    this._entity.getComponents(Script, scripts);
-    const scriptCount = scripts.length;
     const { eventHandlers } = animatorStateData;
-    const { events } = state.clip;
 
-    eventHandlers.length = 0;
-    for (let i = 0, n = events.length; i < n; i++) {
-      const event = events[i];
-      const eventHandler = eventHandlerPool.getFromPool();
-      const funcName = event.functionName;
-      const { handlers } = eventHandler;
+    const clipChangedListener = () => {
+      this._entity.getComponents(Script, scripts);
+      const scriptCount = scripts.length;
+      const { events } = state.clip;
+      eventHandlers.length = 0;
+      for (let i = 0, n = events.length; i < n; i++) {
+        const event = events[i];
+        const eventHandler = eventHandlerPool.getFromPool();
+        const funcName = event.functionName;
+        const { handlers } = eventHandler;
 
-      eventHandler.event = event;
-      handlers.length = 0;
-      for (let j = scriptCount - 1; j >= 0; j--) {
-        const handler = <Function>scripts[j][funcName];
-        handler && handlers.push(handler);
+        eventHandler.event = event;
+        handlers.length = 0;
+        for (let j = scriptCount - 1; j >= 0; j--) {
+          const handler = <Function>scripts[j][funcName];
+          handler && handlers.push(handler);
+        }
+        eventHandlers.push(eventHandler);
       }
-      eventHandlers.push(eventHandler);
-    }
+    };
+    clipChangedListener();
+    state._updateFlagManager.addListener(clipChangedListener);
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
@@ -470,7 +489,7 @@ export class Animator extends Component {
         const layerOwner = curveLayerOwner[i];
         const owner = layerOwner?.curveOwner;
 
-        if (!owner) continue;
+        if (!owner || !layerOwner.isActive) continue;
 
         const curve = curveBindings[i].curve;
         if (curve.keys.length) {

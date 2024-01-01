@@ -1,7 +1,7 @@
 export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { Canvas } from "./Canvas";
+export { Canvas } from "./Canvas";
 
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";
@@ -34,8 +34,10 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
+export { CameraType } from "./enums/CameraType";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { XRManager } from "./xr/XRManager";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./shadow/index";

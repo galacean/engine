@@ -1,10 +1,10 @@
+import { IHardwareRenderer } from "@galacean/engine-design";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
-import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
 import { Scene } from "../Scene";
 import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
@@ -380,10 +380,11 @@ export class ShaderProgram {
         case gl.BOOL_VEC3:
         case gl.INT_VEC3:
           if (isArray) {
+            shaderUniform.applyFunc = shaderUniform.upload3iv;
           } else {
+            shaderUniform.applyFunc = shaderUniform.upload3i;
+            shaderUniform.cacheValue = new Vector3(0, 0, 0);
           }
-          shaderUniform.applyFunc = isArray ? shaderUniform.upload3iv : shaderUniform.upload3i;
-          shaderUniform.cacheValue = new Vector3(0, 0, 0);
           break;
         case gl.BOOL_VEC4:
         case gl.INT_VEC4:

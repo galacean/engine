@@ -20,7 +20,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise<SpriteAtlas>((resolve, reject, _, onCancel) => {
+    return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
       const chainPromises = [];
       onCancel(() => {
         for (let i = 0; i < chainPromises.length; i++) {
@@ -50,7 +50,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 resourceManager
                   .load<Texture2D>({
                     url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
-                    type: AssetType.Texture2D,
+                    type: atlasItem.type ?? AssetType.Texture2D,
                     params: { format, mipmap }
                   })
                   .then((texture: Texture2D) => {

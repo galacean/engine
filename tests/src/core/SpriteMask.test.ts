@@ -1,7 +1,7 @@
-import { Sprite, SpriteMask, Texture2D, SpriteMaskLayer } from "@galacean/engine-core";
+import { Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
+import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
-import { Vector2, Vector4, Rect, Vector3 } from "@galacean/engine-math";
 
 describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");
@@ -156,8 +156,8 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = sprite;
 
     const rootEntityClone = rootEntity.clone();
-    const spriteMaskClone = rootEntityClone.getComponent(SpriteMask);
-    expect(spriteMaskClone.sprite).to.deep.eq(spriteMask.sprite);
+    const spriteMaskClone = rootEntityClone.getComponents(SpriteMask, []);
+    expect(spriteMaskClone[spriteMaskClone.length - 1].sprite).to.deep.eq(spriteMask.sprite);
   });
 
   it("destroy", () => {

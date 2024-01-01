@@ -36,8 +36,13 @@ export class BaseMaterial extends Material {
   }
 
   override set shader(value: Shader) {
-    this._shader = value;
+    const refCount = this._getReferCount();
+    if (refCount > 0) {
+      this._shader?._addReferCount(-refCount);
+      value._addReferCount(refCount);
+    }
 
+    this._shader = value;
     const renderStates = this._renderStates;
     const lastStatesCount = renderStates.length;
 

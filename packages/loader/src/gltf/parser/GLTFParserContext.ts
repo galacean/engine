@@ -35,6 +35,15 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
 
   private _resourceCache = new Map<string, any>();
+  private _progress = {
+    taskDetail: {},
+    taskComplete: { loaded: 0, total: 0 }
+  };
+
+  /** @internal */
+  _setTaskCompleteProgress: (loaded: number, total: number) => void;
+  /** @internal */
+  _setTaskDetailProgress: (url: string, loaded: number, total: number) => void;
 
   /** @internal */
   _bufferViewMap = new WeakMap<IBufferView, Promise<Uint8Array>>();
@@ -112,7 +121,7 @@ export class GLTFParserContext {
   }
 
   parse(): Promise<GLTFResource> {
-    return this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
+    const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
       return Promise.all([
@@ -131,6 +140,31 @@ export class GLTFParserContext {
         this.resourceManager.addContentRestorer(this.contentRestorer);
         return glTFResource;
       });
+    });
+
+    this._addTaskCompletePromise(promise);
+    return promise;
+  }
+
+  /**
+   * @internal
+   */
+  _onTaskDetail = (url: string, loaded: number, total: number) => {
+    const detail = (this._progress.taskDetail[url] ||= {});
+    detail.loaded = loaded;
+    detail.total = total;
+
+    this._setTaskDetailProgress(url, loaded, total);
+  };
+
+  /**
+   * @internal
+   */
+  _addTaskCompletePromise(taskPromise: Promise<any>): void {
+    const task = this._progress.taskComplete;
+    task.total += 1;
+    taskPromise.then(() => {
+      this._setTaskCompleteProgress(++task.loaded, task.total);
     });
   }
 

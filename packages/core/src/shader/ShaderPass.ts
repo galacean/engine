@@ -6,6 +6,7 @@ import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
+import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { RenderState } from "./state/RenderState";
 
@@ -25,6 +26,8 @@ export class ShaderPass extends ShaderPart {
   _renderState: RenderState;
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
+  /** @internal */
+  _shaderProgramPools: ShaderProgramPool[] = [];
 
   private _vertexSource: string;
   private _fragmentSource: string;
@@ -136,5 +139,16 @@ export class ShaderPass extends ShaderPart {
 
     shaderProgramPool.cache(shaderProgram);
     return shaderProgram;
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    const shaderProgramPools = this._shaderProgramPools;
+    for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
+      shaderProgramPools[i]._destroy();
+    }
+    shaderProgramPools.length = 0;
   }
 }

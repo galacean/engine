@@ -88,6 +88,10 @@ export class MeshRenderer extends Renderer {
       Logger.error("mesh is null.");
       return;
     }
+    if (this._mesh.destroyed) {
+      Logger.error("mesh is destroyed.");
+      return;
+    }
     super._prepareRender(context);
   }
 
@@ -152,7 +156,7 @@ export class MeshRenderer extends Renderer {
       if (!material) {
         continue;
       }
-      if (material.destroyed) {
+      if (material.destroyed || material.shader.destroyed) {
         material = this.engine._meshMagentaMaterial;
       }
 

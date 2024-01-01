@@ -35,6 +35,7 @@ import {
   IFnBlockStatementAstContent,
   IFnBodyAstContent,
   IFnCallAstContent,
+  IFnCallStatementAstContent,
   IFnConditionStatementAstContent,
   IFnMacroConditionAstContent,
   IFnMacroConditionElifBranchAstContent,
@@ -76,7 +77,7 @@ import {
 
 export interface IPosition {
   line: number;
-  offset: number;
+  character: number;
 }
 
 export interface IPositionRange {
@@ -88,8 +89,7 @@ export class AstNode<T = any> {
   position: IPositionRange;
   content: T;
 
-  /** @internal */
-  _isAstNode = true;
+  _astType = "unknown";
 
   constructor(position: IPositionRange, content: T) {
     this.position = position;
@@ -168,6 +168,7 @@ export class AstNode<T = any> {
 }
 
 export class ReturnTypeAstNode extends AstNode<IFnReturnTypeAstContent> {
+  override _astType = "ReturnType";
   override _doSerialization(context: RuntimeContext): string {
     return this.content.text;
   }
@@ -177,13 +178,14 @@ export class ObjectAstNode<T = any> extends AstNode<Record<string, AstNode<T>>> 
   override _doSerialization(context: RuntimeContext): string {
     const astList = Object.values(this.content)
       .sort(AstNodeUtils.astSortAsc)
-      .filter((item) => item._isAstNode);
+      .filter((item) => item._astType);
 
     return astList.map((ast) => ast.serialize(context)).join("\n");
   }
 }
 
 export class FnAstNode extends AstNode<IFnAstContent> {
+  override _astType: string = "Function";
   override _doSerialization(context: RuntimeContext): string {
     context.functionAstStack.push({ fnAst: this, localDeclaration: [] });
 
@@ -202,12 +204,25 @@ export class FnAstNode extends AstNode<IFnAstContent> {
     }
     const body = this.content.body.serialize(context);
 
+    if (
+      (this.content.returnType.content.text === "void" && this.content.returnStatement) ||
+      (this.content.returnType.content.text !== "void" && !this.content.returnStatement)
+    ) {
+      context.diagnostics.push({
+        severity: DiagnosticSeverity.Error,
+        message: "Mismatched return type",
+        token: this.position
+      });
+      throw "Mismatched return type";
+    }
+
     context.functionAstStack.pop();
     return `${returnType} ${fnName} (${args}) {\n${body}\n}`;
   }
 }
 
 export class FnBodyAstNode extends AstNode<IFnBodyAstContent> {
+  override _astType: string = "FunctionBody";
   override _doSerialization(context: RuntimeContext): string {
     const statements = [...(this.content.macros ?? []), ...(this.content.statements ?? [])].sort(
       (a, b) => a.position.start.line - b.position.start.line
@@ -217,6 +232,7 @@ export class FnBodyAstNode extends AstNode<IFnBodyAstContent> {
 }
 
 export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
+  override _astType: string = "MacroDefine";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
     return `#define ${this.content.variable.serialize(context)} ${this.content.value?.serialize(context) ?? ""}`;
@@ -236,6 +252,7 @@ export class FnMacroDefineVariableAstNode extends AstNode<IFnMacroDefineVariable
 }
 
 export class FnMacroUndefineAstNode extends AstNode<IFnMacroUndefineAstContent> {
+  override _astType: string = "MacroUndef";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return `#undef ${this.content.variable}`;
   }
@@ -265,18 +282,21 @@ export class FnMacroConditionElseBranchAstNode extends AstNode<IFnMacroCondition
 }
 
 export class DiscardStatementAstNode extends AstNode {
+  override _astType: string = "Discard";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return "discard;";
   }
 }
 
 export class BreakStatementAstNode extends AstNode {
+  override _astType: string = "Break";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return "break;";
   }
 }
 
 export class ContinueStatementAstNode extends AstNode {
+  override _astType: string = "Continue";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return "continue;";
   }
@@ -293,6 +313,7 @@ export class FnParenthesisAtomicAstNode extends AstNode<IParenthesisAtomicAstCon
 }
 
 export class FnCallAstNode extends AstNode<IFnCallAstContent> {
+  override _astType: string = "FunctionCall";
   override _doSerialization(context: RuntimeContext): string {
     if (this.content.isCustom) {
       if (!context.referenceGlobal(this.content.function)) {
@@ -303,7 +324,7 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
         });
       }
     }
-    const args = this.content.args.map((item) => item.serialize(context)).join(", ");
+    const args = this.content.args?.map((item) => item.serialize(context)).join(", ");
     return `${this.content.function}(${args})`;
   }
 
@@ -353,10 +374,13 @@ export class RelationOperatorAstNode extends AstNode<IRelationOperatorAstContent
 
 export class ConditionExprAstNode extends AstNode<IConditionExprAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
-    let ret = this.content.leftExpr.serialize(context);
-    if (this.content.operator) {
-      ret += ` ${this.content.operator?.serialize(context)} ${this.content.rightExpr.serialize(context)}`;
+    const expressionList = this.content.expressionList.map((item) => item.serialize(context));
+    const operatorList = this.content.operatorList?.map((item) => item.serialize(context));
+    let ret = expressionList[0];
+    for (let i = 1; i < expressionList.length; i++) {
+      ret += ` ${operatorList[i - 1]} ${expressionList[i]}`;
     }
+
     return `${ret}`;
   }
 }
@@ -427,6 +451,7 @@ export class FnAtomicExprAstNode extends AstNode<IFnAtomicExprAstContent> {
 }
 
 export class NumberAstNode extends AstNode<INumberAstContent> {
+  override _astType: string = "Number";
   override _doSerialization(context: RuntimeContext): string {
     return this.content.text;
   }
@@ -437,6 +462,7 @@ export class NumberAstNode extends AstNode<INumberAstContent> {
 }
 
 export class BooleanAstNode extends AstNode<IBooleanAstContent> {
+  override _astType: string = "Boolean";
   override _doSerialization(context: RuntimeContext): string {
     return this.content.text;
   }
@@ -447,6 +473,7 @@ export class BooleanAstNode extends AstNode<IBooleanAstContent> {
 }
 
 export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
+  override _astType: string = "Variable";
   override _doSerialization(context: RuntimeContext): string {
     const objName = this.content.variable;
     const propName = this.content.properties?.[0].content;
@@ -486,6 +513,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
 }
 
 export class FnArrayVariableAstNode extends AstNode<IFnArrayVariableAstContent> {
+  override _astType: string = "ArrayVariable";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return this.content.variable;
   }
@@ -493,6 +521,7 @@ export class FnArrayVariableAstNode extends AstNode<IFnArrayVariableAstContent> 
 
 export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstContent> {
   override _doSerialization(context: RuntimeContext): string {
+    context.currentFunctionInfo.fnAst.content.returnStatement = this;
     if (context.currentFunctionInfo.fnAst === context.currentMainFnAst) {
       return "";
     }
@@ -500,7 +529,14 @@ export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstConte
   }
 }
 
+export class FnCallStatementAstNode extends AstNode<IFnCallStatementAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return `${this.content.serialize(context)};`;
+  }
+}
+
 export class FnArgAstNode extends AstNode<IFnArgAstContent> {
+  override _astType: string = "FunctionArgument";
   override _doSerialization(context: RuntimeContext, args?: any): string {
     context.currentFunctionInfo.localDeclaration.push(
       new VariableDeclarationAstNode(this.position, {
@@ -517,6 +553,7 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
 }
 
 export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarationAstContent> {
+  override _astType: string = "RenderState";
   override getContentValue(context?: RuntimeContext): {
     variable: string;
     properties: IShaderPassInfo["renderStates"];
@@ -588,12 +625,14 @@ export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> 
   }
 }
 export class VariableTypeAstNode extends AstNode<IVariableTypeAstContent> {
+  override _astType: string = "VariableType";
   override _doSerialization(context: RuntimeContext): string {
     return this.content.text;
   }
 }
 
 export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAstContent> {
+  override _astType: string = "VariableDeclaration";
   override _doSerialization(context: RuntimeContext, opts?: { global: boolean }): string {
     if (context.currentFunctionInfo) {
       context.currentFunctionInfo.localDeclaration.push(this);
@@ -643,6 +682,7 @@ export class PrecisionAstNode extends AstNode<IPrecisionAstContent> {
 }
 
 export class ShaderPropertyDeclareAstNode extends AstNode<IShaderPropertyDeclareAstContent> {
+  override _astType: string = "ShaderProperty";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return `uniform ${this.content.prefix?.serialize(context) ?? ""} ${this.content.declare.serialize(context)};`;
   }
@@ -658,7 +698,9 @@ export class DeclarationWithoutAssignAstNode extends AstNode<IDeclarationWithout
   }
 }
 
-export class StructAstNode extends AstNode<IStructAstContent> {}
+export class StructAstNode extends AstNode<IStructAstContent> {
+  override _astType: string = "Struct";
+}
 
 export class PassPropertyAssignmentAstNode extends AstNode<IPassPropertyAssignmentAstContent> {}
 
@@ -669,6 +711,7 @@ export class TagAssignmentAstNode extends AstNode<ITagAssignmentAstContent> {
 }
 
 export class TagAstNode extends AstNode<ITagAstContent> {
+  override _astType: string = "Tag";
   override getContentValue(context?: RuntimeContext) {
     const ret = {} as IShaderPassInfo["tags"];
     for (const t of this.content) {
@@ -685,6 +728,7 @@ export class TupleNumber3AstNode extends AstNode<ITupleNumber3> {}
 export class TupleNumber2AstNode extends AstNode<ITupleNumber2> {}
 
 export class CullModeAstNode extends AstNode<ICullModeAstContent> {
+  override _astType: string = "CullMode";
   override getContentValue() {
     const prop = this.content.split(".")[1];
     return CullMode[prop];
@@ -692,6 +736,7 @@ export class CullModeAstNode extends AstNode<ICullModeAstContent> {
 }
 
 export class BlendFactorAstNode extends AstNode<IBlendFactorAstContent> {
+  override _astType: string = "BlendFactor";
   override getContentValue() {
     const prop = this.content.split(".")[1];
     return BlendFactor[prop];
@@ -699,6 +744,7 @@ export class BlendFactorAstNode extends AstNode<IBlendFactorAstContent> {
 }
 
 export class BlendOperationAstNode extends AstNode<IBlendOperationAstContent> {
+  override _astType: string = "BlendOperation";
   override getContentValue() {
     const prop = this.content.split(".")[1];
     return BlendOperation[prop];
@@ -706,6 +752,7 @@ export class BlendOperationAstNode extends AstNode<IBlendOperationAstContent> {
 }
 
 export class StencilOperationAstNode extends AstNode<IStencilOperationAstContent> {
+  override _astType: string = "StencilOperation";
   override getContentValue() {
     const prop = this.content.split(".")[1];
     return StencilOperation[prop];
@@ -713,6 +760,7 @@ export class StencilOperationAstNode extends AstNode<IStencilOperationAstContent
 }
 
 export class CompareFunctionAstNode extends AstNode<ICompareFunctionAstContent> {
+  override _astType: string = "CompareFunction";
   override getContentValue() {
     const prop = this.content.split(".")[1];
     return CompareFunction[prop];
@@ -720,6 +768,7 @@ export class CompareFunctionAstNode extends AstNode<ICompareFunctionAstContent> 
 }
 
 export class RenderQueueValueAstNode extends AstNode<IRenderQueueAstContent> {
+  override _astType: string = "RenderQueue";
   isVariable: boolean;
 
   override getContentValue() {
@@ -732,6 +781,7 @@ export class RenderQueueValueAstNode extends AstNode<IRenderQueueAstContent> {
 export class RenderQueueAssignmentAstNode extends AstNode<IRuleRenderQueueAssignmentAstContent> {}
 
 export class ForLoopAstNode extends AstNode<IForLoopAstContent> {
+  override _astType: string = "ForLoop";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return `for (${this.content.init.serialize(context)} ${this.content.condition.serialize(
       context

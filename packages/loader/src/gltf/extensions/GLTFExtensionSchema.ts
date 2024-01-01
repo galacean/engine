@@ -119,6 +119,15 @@ export interface IKHRMaterialVariants_Variant {
   extras?: any;
 }
 
+/**
+ * Interfaces from the KHR_materials_clearcoat extension
+ */
+export interface IKHRMaterialsAnisotropy {
+  anisotropyStrength: number;
+  anisotropyRotation: number;
+  anisotropyTexture: ITextureInfo;
+}
+
 export interface IKHRMaterialVariants_Variants {
   variants: Array<IKHRMaterialVariants_Variant>;
 }
@@ -190,6 +199,7 @@ export type GLTFExtensionSchema =
   | IKHRMaterialsTranslucency
   | IKHRMaterialVariants_Mapping
   | IKHRMaterialVariants_Variants
+  | IKHRMaterialsAnisotropy
   | IKHRTextureBasisU
   | IKHRTextureTransform
   | IKHRXmp

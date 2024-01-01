@@ -6,7 +6,6 @@ import {
   ColorWriteMask,
   Engine,
   GLCapabilityType,
-  IHardwareRenderer,
   IPlatformBuffer,
   IPlatformRenderTarget,
   IPlatformTexture2D,
@@ -21,7 +20,7 @@ import {
   Texture2DArray,
   TextureCube
 } from "@galacean/engine-core";
-import { IPlatformPrimitive } from "@galacean/engine-design";
+import { IPlatformPrimitive, IHardwareRenderer } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -76,6 +75,12 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
 export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer = null;
+  /** @internal */
+  _mainFrameBuffer: WebGLFramebuffer = null;
+  /** @internal */
+  _mainFrameWidth: number = 0;
+  /** @internal */
+  _mainFrameHeight: number = 0;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
@@ -331,9 +336,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferWidth = renderTarget.width >> mipLevel;
       bufferHeight = renderTarget.height >> mipLevel;
     } else {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      bufferWidth = gl.drawingBufferWidth;
-      bufferHeight = gl.drawingBufferHeight;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
+      bufferWidth = this._mainFrameWidth || gl.drawingBufferWidth;
+      bufferHeight = this._mainFrameHeight || gl.drawingBufferHeight;
     }
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;

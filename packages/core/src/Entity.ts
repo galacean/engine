@@ -193,8 +193,7 @@ export class Entity extends EngineObject {
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
     const components = this._components;
-    // @todo: should inverse traversal
-    for (let i = components.length - 1; i >= 0; i--) {
+    for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       if (component instanceof type) {
         return component;
@@ -646,12 +645,12 @@ export class Entity extends EngineObject {
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = true);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = true);
     const components = this._components;
-    for (let i = components.length - 1; i >= 0; i--) {
+    for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       (component.enabled || !component._awoken) && activeChangedComponents.push(component);
     }
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
+    for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
       child.isActive && child._setActiveInHierarchy(activeChangedComponents, activeChangeFlag);
     }
@@ -661,12 +660,12 @@ export class Entity extends EngineObject {
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;
-    for (let i = components.length - 1; i >= 0; i--) {
+    for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
+    for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
       child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
     }

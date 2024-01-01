@@ -1,0 +1,36 @@
+{
+  "name": "@galacean/engine-xr-webxr",
+  "version": "1.2.0-alpha.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "browser": "dist/browser.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "umd": {
+    "name": "Galacean.WebXR",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "libs/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@galacean/engine-xr": "workspace:*"
+  },
+  "devDependencies": {
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-math": "workspace:*"
+  },
+  "peerDependencies": {}
+}
