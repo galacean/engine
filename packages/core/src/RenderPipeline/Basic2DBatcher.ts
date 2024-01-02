@@ -230,6 +230,8 @@ export abstract class Basic2DBatcher {
     mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
     batchedQueue[curMeshIndex] = preElement;
 
+    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
+    // Device: iphoneX or newer iphone.
     this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex, SetDataOptions.Discard);
     this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex, SetDataOptions.Discard);
   }
