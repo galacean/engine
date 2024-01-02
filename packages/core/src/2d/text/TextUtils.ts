@@ -349,7 +349,8 @@ export class TextUtils {
     // @todo: Text layout may vary from standard and not support emoji.
     const width = Math.max(1, Math.round(context.measureText(measureString).width));
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
-    const height = baseline * TextUtils._heightMultiplier;
+    // The measure text width will be 0 when font size is 0, so make sure the height is at least 1.
+    const height = Math.max(1, baseline * TextUtils._heightMultiplier);
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
 
     canvas.width = width;
