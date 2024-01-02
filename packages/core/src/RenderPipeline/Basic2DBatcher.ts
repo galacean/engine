@@ -1,6 +1,15 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
+import {
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  IndexFormat,
+  MeshTopology,
+  SetDataOptions,
+  SubMesh,
+  VertexElement
+} from "../graphic";
 import { BufferMesh } from "../mesh";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { ClassPool } from "./ClassPool";
@@ -221,8 +230,8 @@ export abstract class Basic2DBatcher {
     mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
     batchedQueue[curMeshIndex] = preElement;
 
-    this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex);
-    this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex);
+    this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex, SetDataOptions.Discard);
+    this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex, SetDataOptions.Discard);
   }
 
   private _getSubMeshFromPool(start: number, count: number): SubMesh {
