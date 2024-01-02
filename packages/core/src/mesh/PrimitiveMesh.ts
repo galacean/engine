@@ -6,13 +6,13 @@ import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import {
   CapsuleRestoreInfo,
-  SubdivisionSurfaceSphereRestoreInfo,
   ConeRestoreInfo,
   CuboidRestoreInfo,
   CylinderRestoreInfo,
   PlaneRestoreInfo,
   PrimitiveMeshRestorer,
   SphereRestoreInfo,
+  SubdivisionSurfaceSphereRestoreInfo,
   TorusRestoreInfo
 } from "./PrimitiveMeshRestorer";
 import { VertexAttribute } from "./enums/VertexAttribute";
@@ -371,18 +371,35 @@ export class PrimitiveMesh {
     for (let i = 0; i < cellsCount; i++) {
       const idx = 4 * i;
 
-      indices[offset] = cells[idx];
-      indices[offset + 1] = cells[idx + 1];
-      indices[offset + 2] = cells[idx + 2];
+      let indexA = cells[idx];
+      let indexB = cells[idx + 1];
+      let indexC = cells[idx + 2];
+      let indexD = cells[idx + 3];
 
-      this._replaceSeamUV(indices, vertices, offset, seamVertices);
+      // Handle seam by replacing vertex index to seam vertex index if necessary
+      const floatIndexA = 8 * indexA;
+      const floatIndexB = 8 * indexB;
+      const floatIndexC = 8 * indexC;
+      const floatIndexD = 8 * indexD;
+
+      // If center Z is negative
+      if (vertices[floatIndexA + 2] + vertices[floatIndexB + 2] + vertices[floatIndexC + 2] < 0) {
+        vertices[floatIndexA + 6] === 0 && (indexA = seamVertices[indexA]);
+        vertices[floatIndexB + 6] === 0 && (indexB = seamVertices[indexB]);
+        vertices[floatIndexC + 6] === 0 && (indexC = seamVertices[indexC]);
+        vertices[floatIndexD + 6] === 0 && (indexD = seamVertices[indexD]);
+      }
+
+      indices[offset] = indexA;
+      indices[offset + 1] = indexB;
+      indices[offset + 2] = indexC;
+
       this._generateAndReplacePoleUV(indices, vertices, offset, poleOffset);
 
-      indices[offset + 3] = cells[idx];
-      indices[offset + 4] = cells[idx + 2];
-      indices[offset + 5] = cells[idx + 3];
+      indices[offset + 3] = indexA;
+      indices[offset + 4] = indexC;
+      indices[offset + 5] = indexD;
 
-      this._replaceSeamUV(indices, vertices, offset + 3, seamVertices);
       this._generateAndReplacePoleUV(indices, vertices, offset + 3, poleOffset);
 
       offset += 6;
@@ -600,43 +617,6 @@ export class PrimitiveMesh {
           cells[idx + 2] = ic;
           cells[idx + 3] = id;
         }
-      }
-    }
-  }
-
-  /**
-   * Duplicate vertices whose uv normal is flipped and adjust their UV coordinates.
-   */
-  private static _replaceSeamUV(
-    indices: Uint16Array | Uint32Array,
-    vertices: Float32Array,
-    offset: number,
-    seamVertices: Record<number, number>
-  ) {
-    const vertexA = 8 * indices[offset];
-    const vertexB = 8 * indices[offset + 1];
-    const vertexC = 8 * indices[offset + 2];
-
-    const vertexAU = vertices[vertexA + 6];
-    const vertexAV = vertices[vertexA + 7];
-
-    const vertexBU = vertices[vertexB + 6];
-    const vertexBV = vertices[vertexB + 7];
-
-    const vertexCU = vertices[vertexC + 6];
-    const vertexCV = vertices[vertexC + 7];
-
-    const z = (vertexBU - vertexAU) * (vertexCV - vertexAV) - (vertexBV - vertexAV) * (vertexCU - vertexAU);
-
-    if (z > 0) {
-      if (vertexAU === 0) {
-        indices[offset] = seamVertices[indices[offset]];
-      }
-      if (vertexBU === 0) {
-        indices[offset + 1] = seamVertices[indices[offset + 1]];
-      }
-      if (vertexCU === 0) {
-        indices[offset + 2] = seamVertices[indices[offset + 2]];
       }
     }
   }
