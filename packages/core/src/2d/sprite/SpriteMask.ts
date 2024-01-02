@@ -27,6 +27,7 @@ export class SpriteMask extends Renderer {
   _maskElement: RenderElement;
 
   /** @internal */
+  @ignoreClone
   _verticesData: VertexData2D;
 
   @ignoreClone
