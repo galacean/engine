@@ -17,18 +17,19 @@ export class RenderQueue {
   static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const priorityOrder = dataA.component.priority - dataB.component.priority;
+    const componentA = dataA.component;
+    const componentB = dataB.component;
+    const priorityOrder = componentA.priority - componentB.priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
     // make suer from the same renderer.
-    if (dataA.component.instanceId === dataB.component.instanceId) {
+    if (componentA.instanceId === componentB.instanceId) {
       return (
-        dataA.material._priority - dataB.material._priority ||
-        dataA.component._distanceForSort - dataB.component._distanceForSort
+        dataA.material._priority - dataB.material._priority || componentA._distanceForSort - componentB._distanceForSort
       );
     } else {
-      return dataA.component._distanceForSort - dataB.component._distanceForSort;
+      return componentA._distanceForSort - componentB._distanceForSort;
     }
   }
 
@@ -38,18 +39,19 @@ export class RenderQueue {
   static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const priorityOrder = dataA.component.priority - dataB.component.priority;
+    const componentA = dataA.component;
+    const componentB = dataB.component;
+    const priorityOrder = componentA.priority - componentB.priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
     // make suer from the same renderer.
-    if (dataA.component.instanceId === dataB.component.instanceId) {
+    if (componentA.instanceId === componentB.instanceId) {
       return (
-        dataA.material._priority - dataB.material._priority ||
-        dataB.component._distanceForSort - dataA.component._distanceForSort
+        dataA.material._priority - dataB.material._priority || componentB._distanceForSort - componentA._distanceForSort
       );
     } else {
-      return dataB.component._distanceForSort - dataA.component._distanceForSort;
+      return componentB._distanceForSort - componentA._distanceForSort;
     }
   }
 
