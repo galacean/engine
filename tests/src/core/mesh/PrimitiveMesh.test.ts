@@ -33,7 +33,18 @@ describe("PrimitiveMesh", () => {
     expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
     expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
     expect(sphereMesh.vertexBufferBindings.length).equal(2);
-  
+  });
+
+  it("createSubdivisionSurfaceSphere", () => {
+    // Test that createSphere works correctly.
+    const radius = 2.333;
+    const steps = 3.2;
+    const sphereMesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine, radius, steps, false);
+
+    expect(sphereMesh.vertexCount).equal(417);
+    expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
+    expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
+    expect(sphereMesh.getIndices().length).equal(2304);
   });
 
   it("createCuboid", () => {
