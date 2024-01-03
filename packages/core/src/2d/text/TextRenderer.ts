@@ -358,12 +358,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   protected override _render(context: RenderContext): void {
-    if (
-      this._text === "" ||
-      this._fontSize === 0 ||
-      (this.enableWrapping && this.width <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
-    ) {
+    if (this._isTextNoVisible()) {
       return;
     }
 
@@ -482,7 +477,7 @@ export class TextRenderer extends Renderer {
 
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
-    if (this._fontSize === 0) {
+    if (this._isTextNoVisible()) {
       min.set(0, 0, 0);
       max.set(0, 0, 0);
       return;
@@ -606,6 +601,15 @@ export class TextRenderer extends Renderer {
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
+  }
+
+  private _isTextNoVisible(): boolean {
+    return (
+      this._text === "" ||
+      this._fontSize === 0 ||
+      (this.enableWrapping && this.width <= 0) ||
+      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
+    );
   }
 }
 
