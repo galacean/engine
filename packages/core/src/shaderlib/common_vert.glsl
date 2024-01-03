@@ -46,6 +46,10 @@ attribute vec3 POSITION;
 
 uniform vec4 material_TilingOffset;
 
+#ifdef MATERIAL_HAS_LIGHTMAP
+    uniform vec4 material_LightmapTilingOffset;
+#endif
+
 
 #ifndef MATERIAL_OMIT_NORMAL
     #ifdef RENDERER_HAS_NORMAL

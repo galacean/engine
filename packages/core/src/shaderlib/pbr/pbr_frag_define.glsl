@@ -63,6 +63,13 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_OcclusionTexture;
 #endif
 
+#ifdef MATERIAL_HAS_LIGHTMAP
+    uniform sampler2D material_Lightmap;
+    #ifdef MATERIAL_HAS_DIRLIGHTMAP
+        uniform sampler2D material_DirLightmap;
+    #endif
+#endif
+
 // Runtime
 struct ReflectedLight {
     vec3 directDiffuse;

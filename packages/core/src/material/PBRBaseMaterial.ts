@@ -20,6 +20,10 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
   private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
 
+  private static _lightmapProp = ShaderProperty.getByName("material_Lightmap");
+  private static _dirLightmapProp = ShaderProperty.getByName("material_DirLightmap");
+  private static _lightmapTilingOffsetProp: ShaderProperty = ShaderProperty.getByName("material_LightmapTilingOffset");
+
   /**
    * Base color.
    */
@@ -244,6 +248,52 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * Tiling and offset of lightmap textures.
+   */
+  get lightmapTilingOffset(): Vector4 {
+    return this.shaderData.getVector4(PBRBaseMaterial._lightmapTilingOffsetProp);
+  }
+
+  set lightmapTilingOffset(value: Vector4) {
+    const tilingOffset = this.shaderData.getVector4(PBRBaseMaterial._lightmapTilingOffsetProp);
+    if (value !== tilingOffset) {
+      tilingOffset.copyFrom(value);
+    }
+  }
+
+  /**
+   * Lightmap.
+   */
+  get lightmap(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._lightmapProp);
+  }
+
+  set lightmap(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._lightmapProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_LIGHTMAP");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_LIGHTMAP");
+    }
+  }
+
+  /**
+   * Directional Lightmap.
+   */
+  get dirLightmap(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._dirLightmapProp);
+  }
+
+  set dirLightmap(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._dirLightmapProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_DIRLIGHTMAP");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_DIRLIGHTMAP");
+    }
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -266,5 +316,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setFloat(PBRBaseMaterial._clearCoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearCoatRoughnessProp, 0);
+
+    shaderData.setVector4(PBRBaseMaterial._lightmapTilingOffsetProp, new Vector4(1, 1, 0, 0));
   }
 }

@@ -9,16 +9,29 @@ initMaterial(material, geometry);
 addTotalDirectRadiance(geometry, material, reflectedLight);
 
 // IBL diffuse
-#ifdef SCENE_USE_SH
-    vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, geometry.normal);
+#ifdef MATERIAL_HAS_LIGHTMAP
+    vec4 lightmapColor= texture2D(material_Lightmap, v_lightmapUV);
+    // @TODO: use RGBM format from editor bake workflow.
+    vec3 irradiance = RGBMToLinear(lightmapColor, 1.0).rgb;
+    #ifdef MATERIAL_HAS_DIRLIGHTMAP
+		vec4 dirLightmapColor = texture2D (material_DirLightmap, v_lightmapUV);
+        irradiance = DecodeDirectionalLightmap (irradiance, dirLightmapColor, geometry.normal);
+    #endif
     #ifdef ENGINE_IS_COLORSPACE_GAMMA
         irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
     #endif
-    irradiance *= scene_EnvMapLight.diffuseIntensity;
 #else
-   vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;
-   irradiance *= PI;
+    #ifdef SCENE_USE_SH
+        vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, geometry.normal);
+        #ifdef ENGINE_IS_COLORSPACE_GAMMA
+            irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
+        #endif
+    #else
+       vec3 irradiance = scene_EnvMapLight.diffuse * PI; // spherical convolution
+    #endif
 #endif
+irradiance *= scene_EnvMapLight.diffuseIntensity;
+
 
 reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
