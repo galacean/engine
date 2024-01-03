@@ -267,9 +267,9 @@ export class TextRenderer extends Renderer {
   override get bounds(): BoundingBox {
     if (this._isTextNoVisible()) {
       if (this._isContainDirtyFlag(DirtyFlag.WorldBounds)) {
-        const { _localBounds } = this;
-        _localBounds.min.set(0, 0, 0);
-        _localBounds.max.set(0, 0, 0);
+        const localBounds = this._localBounds;
+        localBounds.min.set(0, 0, 0);
+        localBounds.max.set(0, 0, 0);
         this._updateBounds(this._bounds);
         this._setDirtyFlagFalse(DirtyFlag.WorldBounds);
       }
