@@ -84,7 +84,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
 
   private _makeSprite(engine: Engine, config: AtlasSprite, texture?: Texture2D): Sprite {
     // Generate a SpriteAtlas object.
-    const { region, atlasRegionOffset, atlasRegion, pivot, border } = config;
+    const { region, atlasRegionOffset, atlasRegion, pivot, border, width, height } = config;
     const sprite = new Sprite(
       engine,
       texture,
@@ -103,6 +103,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       }
       config.atlasRotated && (sprite.atlasRotated = true);
     }
+    isNaN(width) || (sprite.width = width);
+    isNaN(height) || (sprite.height = height);
     return sprite;
   }
 }
