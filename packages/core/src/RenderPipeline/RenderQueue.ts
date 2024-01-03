@@ -21,6 +21,7 @@ export class RenderQueue {
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
+    // make suer from the same renderer.
     if (dataA.component.instanceId === dataB.component.instanceId) {
       return (
         dataA.material._priority - dataB.material._priority ||
@@ -41,6 +42,7 @@ export class RenderQueue {
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
+    // make suer from the same renderer.
     if (dataA.component.instanceId === dataB.component.instanceId) {
       return (
         dataA.material._priority - dataB.material._priority ||
