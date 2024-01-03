@@ -16,7 +16,6 @@ import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./ProjectLoader";
-import "./PrefabLoader";
 import "./ktx2/KTX2Loader";
 
 export type { GLTFParams } from "./GLTFLoader";
