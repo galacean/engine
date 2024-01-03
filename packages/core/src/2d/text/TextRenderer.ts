@@ -265,6 +265,9 @@ export class TextRenderer extends Renderer {
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {
+    if (this._isTextNoVisible()) {
+      return this._bounds;
+    }
     this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
@@ -477,12 +480,6 @@ export class TextRenderer extends Renderer {
 
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
-    if (this._isTextNoVisible()) {
-      min.set(0, 0, 0);
-      max.set(0, 0, 0);
-      return;
-    }
-
     const { color, _charRenderDatas: charRenderDatas, _subFont: charFont } = this;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
