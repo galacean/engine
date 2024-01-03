@@ -11,8 +11,7 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 // IBL diffuse
 #ifdef MATERIAL_HAS_LIGHTMAP
     vec4 lightmapColor= texture2D(material_Lightmap, v_lightmapUV);
-    // @TODO: use RGBM format from editor bake workflow.
-    vec3 irradiance = RGBMToLinear(lightmapColor, 1.0).rgb;
+    vec3 irradiance = RGBMToLinear(lightmapColor, 5.0).rgb;
     #ifdef MATERIAL_HAS_DIRLIGHTMAP
 		vec4 dirLightmapColor = texture2D (material_DirLightmap, v_lightmapUV);
         irradiance = DecodeDirectionalLightmap (irradiance, dirLightmapColor, geometry.normal);
