@@ -136,7 +136,7 @@ export class GLTFUtils {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    return context.getBufferViewData(bufferView).then((bufferViewData) => {
+    return context.get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView).then((bufferViewData) => {
       const bufferIndex = bufferView.buffer;
       const bufferByteOffset = bufferViewData.byteOffset ?? 0;
       const byteOffset = accessor.byteOffset ?? 0;
@@ -287,8 +287,8 @@ export class GLTFUtils {
     const valuesBufferView = bufferViews[values.bufferView];
 
     return Promise.all([
-      context.getBufferViewData(indicesBufferView),
-      context.getBufferViewData(valuesBufferView)
+      context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView),
+      context.get<Uint8Array>(GLTFParserType.BufferView, values.bufferView)
     ]).then(([indicesUint8Array, valuesUin8Array]) => {
       const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesUint8Array.byteOffset ?? 0);
       const indicesByteLength = indicesUint8Array.byteLength;

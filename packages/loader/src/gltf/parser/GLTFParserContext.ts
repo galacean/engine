@@ -45,9 +45,6 @@ export class GLTFParserContext {
   /** @internal */
   _setTaskDetailProgress: (url: string, loaded: number, total: number) => void;
 
-  /** @internal */
-  _bufferViewMap = new WeakMap<IBufferView, Promise<Uint8Array>>();
-
   constructor(
     public glTFResource: GLTFResource,
     public resourceManager: ResourceManager,
@@ -99,25 +96,6 @@ export class GLTFParserContext {
 
     cache.set(cacheKey, resource);
     return resource;
-  }
-
-  getBufferViewData(bufferView: IBufferView): Promise<Uint8Array> {
-    const cachedPromise = this._bufferViewMap.get(bufferView);
-    if (cachedPromise) return cachedPromise;
-
-    const { extensions, byteOffset = 0, byteLength, buffer } = bufferView;
-    let bufferViewDataPromise: Promise<Uint8Array>;
-    if (extensions) {
-      bufferViewDataPromise = <Promise<Uint8Array>>(
-        GLTFParser.executeExtensionsCreateAndParse(extensions, this, bufferView)
-      );
-    } else {
-      bufferViewDataPromise = this.get<ArrayBuffer>(GLTFParserType.Buffer).then(
-        (buffers) => new Uint8Array(buffers[buffer], byteOffset, byteLength)
-      );
-    }
-    this._bufferViewMap.set(bufferView, bufferViewDataPromise);
-    return bufferViewDataPromise;
   }
 
   parse(): Promise<GLTFResource> {
@@ -246,6 +224,7 @@ export enum GLTFParserType {
   Validator,
   Scene,
   Buffer,
+  BufferView,
   Texture,
   Material,
   Mesh,
@@ -262,7 +241,8 @@ const glTFSchemaMap = {
   [GLTFParserType.Mesh]: "meshes",
   [GLTFParserType.Entity]: "nodes",
   [GLTFParserType.Skin]: "skins",
-  [GLTFParserType.Animation]: "animations"
+  [GLTFParserType.Animation]: "animations",
+  [GLTFParserType.BufferView]: "bufferViews"
 };
 
 const glTFResourceMap = {
@@ -272,7 +252,8 @@ const glTFResourceMap = {
   [GLTFParserType.Mesh]: "meshes",
   [GLTFParserType.Entity]: "entities",
   [GLTFParserType.Skin]: "skins",
-  [GLTFParserType.Animation]: "animations"
+  [GLTFParserType.Animation]: "animations",
+  [GLTFParserType.BufferView]: "bufferViews"
 };
 
 export function registerGLTFParser(pipeline: GLTFParserType) {
