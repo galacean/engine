@@ -360,6 +360,7 @@ export class TextRenderer extends Renderer {
   protected override _render(context: RenderContext): void {
     if (
       this._text === "" ||
+      this._fontSize === 0 ||
       (this.enableWrapping && this.width <= 0) ||
       (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
     ) {
@@ -480,8 +481,14 @@ export class TextRenderer extends Renderer {
   }
 
   private _updateLocalData(): void {
-    const { color, _charRenderDatas: charRenderDatas, _subFont: charFont } = this;
     const { min, max } = this._localBounds;
+    if (this._fontSize === 0) {
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
+      return;
+    }
+
+    const { color, _charRenderDatas: charRenderDatas, _subFont: charFont } = this;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
