@@ -191,8 +191,9 @@ const MeshoptDecoder = (function () {
 
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
-    /** meshopt options. */
+    /** glTF loader options. */
     glTF?: {
+      /** Meshopt options. */
       meshOpt?: {
         /** Worker count for transcoder, default is 4. */
         workerCount?: number;
