@@ -52,6 +52,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
   /**
    * Release ktx2 transcoder worker.
+   * @remarks If use loader after releasing, we should release again.
    */
   static release(): void {
     if (this._binomialLLCTranscoder) this._binomialLLCTranscoder.destroy();

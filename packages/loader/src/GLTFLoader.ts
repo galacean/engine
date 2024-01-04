@@ -16,6 +16,7 @@ import { MeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
 export class GLTFLoader extends Loader<GLTFResource> {
   /**
    * Release glTF loader memory(includes meshopt workers).
+   * @remarks If use loader after releasing, we should release again.
    */
   static release(): void {
     MeshoptDecoder.release();
