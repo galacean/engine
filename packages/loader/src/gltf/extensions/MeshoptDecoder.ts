@@ -1,3 +1,4 @@
+// Source: https://github.com/zeux/meshoptimizer/blob/master/js/meshopt_decoder.js
 // This file is part of meshoptimizer library and is distributed under the terms of MIT License.
 // Copyright (C) 2016-2022, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
 
@@ -169,7 +170,7 @@ const MeshoptDecoder = (function () {
     useWorkers: function (count) {
       initWorkers(count);
     },
-    decodeGltfBuffer: function (count: number, stride: number, source: Uint8Array, mode, filter): Promise<Uint8Array> {
+    decodeGltfBuffer: function (count, stride, source, mode, filter): Promise<Uint8Array> {
       if (workers.length > 0) {
         return decodeWorker(count, stride, source, decoders[mode], filters[filter]);
       }
