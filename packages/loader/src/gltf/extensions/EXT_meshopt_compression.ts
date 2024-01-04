@@ -26,7 +26,7 @@ declare module "@galacean/engine-core" {
       /** Meshopt options. */
       meshOpt?: {
         /** Worker count for transcoder, default is 4. */
-        workerCount?: number;
+        workerCount: number;
       };
     };
   }
