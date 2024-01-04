@@ -98,7 +98,7 @@ const MeshoptDecoder = (function () {
     return worker;
   }
 
-  function initWorkers(count: number) {
+  function initWorkers(count) {
     const source =
       "var instance; console.time('init wasm');var ready = WebAssembly.instantiate(new Uint8Array([" +
       new Uint8Array(unpack(wasm)) +
@@ -118,7 +118,7 @@ const MeshoptDecoder = (function () {
     URL.revokeObjectURL(url);
   }
 
-  function decodeWorker(count: number, size: number, source: ArrayBuffer, mode, filter): Promise<Uint8Array> {
+  function decodeWorker(count, size, source, mode, filter): Promise<Uint8Array> {
     let worker = workers[0];
 
     for (let i = 1; i < workers.length; ++i) {
@@ -181,7 +181,7 @@ const MeshoptDecoder = (function () {
         return target;
       });
     },
-    destroy() {
+    release() {
       for (let i = 0; i < workers.length; i++) {
         workers[i].object.terminate();
       }

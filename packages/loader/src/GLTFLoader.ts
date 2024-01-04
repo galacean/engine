@@ -15,10 +15,10 @@ import { MeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   /**
-   * Destroy meshopt decode workers.
+   * Release glTF loader memory(includes meshopt workers).
    */
-  static destroyMeshOptWorkers() {
-    MeshoptDecoder.destroy();
+  static release(): void {
+    MeshoptDecoder.release();
   }
 
   override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
