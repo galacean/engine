@@ -23,8 +23,11 @@ export class GLTFLoader extends Loader<GLTFResource> {
   }
 
   override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
-    const workerCount = configuration.glTF?.meshOpt?.workerCount ?? 4;
-    if (workerCount > 0) MeshoptDecoder.useWorkers(workerCount);
+    const meshOptOptions = configuration.glTF?.meshOpt;
+    if (meshOptOptions) {
+      MeshoptDecoder.workerCount = meshOptOptions.workerCount;
+      MeshoptDecoder.useWorkers();
+    }
     return Promise.resolve();
   }
 

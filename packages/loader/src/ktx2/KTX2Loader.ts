@@ -254,7 +254,7 @@ export enum KTX2Transcoder {
 
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
-    /** KTX2 loader options. */
+    /** KTX2 loader options. If set this option and workCount is great than 0, workers will be created. */
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;

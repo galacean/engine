@@ -100,10 +100,10 @@ const MeshoptDecoder = (function () {
 
   function initWorkers(count) {
     const source =
-      "var instance; console.time('init wasm');var ready = WebAssembly.instantiate(new Uint8Array([" +
+      "var instance; var ready = WebAssembly.instantiate(new Uint8Array([" +
       new Uint8Array(unpack(wasm)) +
       "]), {})" +
-      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();console.timeEnd('init wasm'); });" +
+      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});" +
       "self.onmessage = workerProcess;" +
       decode.toString() +
       workerProcess.toString();
@@ -118,7 +118,7 @@ const MeshoptDecoder = (function () {
     URL.revokeObjectURL(url);
   }
 
-  function decodeWorker(count, size, source, mode, filter): Promise<Uint8Array> {
+  function decodeWorker(count: number, size: number, source: ArrayBuffer, mode, filter): Promise<Uint8Array> {
     let worker = workers[0];
 
     for (let i = 1; i < workers.length; ++i) {
@@ -166,14 +166,15 @@ const MeshoptDecoder = (function () {
   }
 
   return {
+    workerCount: 4,
     ready: ready,
-    useWorkers: function (count) {
-      initWorkers(count);
+    useWorkers: function () {
+      initWorkers(this.workerCount);
     },
     decodeGltfBuffer: function (count, stride, source, mode, filter): Promise<Uint8Array> {
-      if (workers.length > 0) {
-        return decodeWorker(count, stride, source, decoders[mode], filters[filter]);
-      }
+      if (this.workerCount > 0 && workers.length === 0) this.useWorkers();
+
+      if (workers.length > 0) return decodeWorker(count, stride, source, decoders[mode], filters[filter]);
 
       return ready.then(function () {
         const target = new Uint8Array(count * stride);
