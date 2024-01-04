@@ -16,7 +16,7 @@ import {
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFParams } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
-import type { IGLTF } from "../GLTFSchema";
+import type { IBufferView, IGLTF } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 
 /**
@@ -224,6 +224,7 @@ export enum GLTFParserType {
   Validator,
   Scene,
   Buffer,
+  BufferView,
   Texture,
   Material,
   Mesh,
@@ -240,7 +241,8 @@ const glTFSchemaMap = {
   [GLTFParserType.Mesh]: "meshes",
   [GLTFParserType.Entity]: "nodes",
   [GLTFParserType.Skin]: "skins",
-  [GLTFParserType.Animation]: "animations"
+  [GLTFParserType.Animation]: "animations",
+  [GLTFParserType.BufferView]: "bufferViews"
 };
 
 const glTFResourceMap = {

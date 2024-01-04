@@ -23,6 +23,7 @@ export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
 export { parseSingleKTX } from "./compressed-texture";
 export * from "./gltf";
+export { GLTFLoader } from "./GLTFLoader";
 export { KTX2Loader, KTX2Transcoder } from "./ktx2/KTX2Loader";
 export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
 export * from "./resource-deserialize";
