@@ -252,8 +252,7 @@ const glTFResourceMap = {
   [GLTFParserType.Mesh]: "meshes",
   [GLTFParserType.Entity]: "entities",
   [GLTFParserType.Skin]: "skins",
-  [GLTFParserType.Animation]: "animations",
-  [GLTFParserType.BufferView]: "bufferViews"
+  [GLTFParserType.Animation]: "animations"
 };
 
 export function registerGLTFParser(pipeline: GLTFParserType) {
