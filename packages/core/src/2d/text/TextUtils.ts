@@ -23,10 +23,14 @@ export class TextUtils {
     "emoji",
     "fangsong"
   ];
+
+  // _heightMultiplier used to measure the height of text, but in miniprogram performance is different from h5.
+  // so can set _heightMultiplier to adapt miniprogram, the larger the value, the worse the performance.
+  /** @internal */
+  static _heightMultiplier: number = 2.1;
   /** These characters are all tall to help calculate the height required for text. */
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
-  private static _heightMultiplier: number = 2;
   private static _baselineMultiplier: number = 1.4;
   private static _fontSizeInfoCache: Record<string, FontSizeInfo> = {};
   private static _textContext: TextContext = null;

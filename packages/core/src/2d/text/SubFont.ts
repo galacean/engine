@@ -94,7 +94,7 @@ export class SubFont {
     const { _engine: engine } = this;
     const fontAtlas = new FontAtlas(engine);
     const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false);
-    texture.filterMode = TextureFilterMode.Point;
+    texture.filterMode = TextureFilterMode.Bilinear;
     fontAtlas.texture = texture;
     fontAtlas.isGCIgnored = texture.isGCIgnored = true;
     this._fontAtlases.push(fontAtlas);
