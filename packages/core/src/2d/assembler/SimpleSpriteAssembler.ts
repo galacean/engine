@@ -52,18 +52,15 @@ export class SimpleSpriteAssembler {
       const { x, y } = spritePositions[i];
       positions[i].set(wE[0] * x + wE[4] * y + wE[12], wE[1] * x + wE[5] * y + wE[13], wE[2] * x + wE[6] * y + wE[14]);
     }
-
     BoundingBox.transform(sprite._getBounds(), worldMatrix, renderer._bounds);
   }
 
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {
     const spriteUVs = renderer.sprite._getUVs();
     const renderUVs = renderer._verticesData.uvs;
-    const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[3];
-    renderUVs[0].set(left, bottom);
-    renderUVs[1].set(right, bottom);
-    renderUVs[2].set(left, top);
-    renderUVs[3].set(right, top);
+    renderUVs[0].copyFrom(spriteUVs[0]);
+    renderUVs[1].copyFrom(spriteUVs[1]);
+    renderUVs[2].copyFrom(spriteUVs[2]);
+    renderUVs[3].copyFrom(spriteUVs[3]);
   }
 }
