@@ -36,6 +36,9 @@ export class Pointer {
   _upList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  /** @remarks Different from `phase`, `phase` represents the real-time phase, and `_finalPhaseOfThisFrame` represents the final phase of this frame. */
+  _finalPhaseOfThisFrame: PointerPhase = PointerPhase.Leave;
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;

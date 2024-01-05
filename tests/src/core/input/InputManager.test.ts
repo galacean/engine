@@ -164,9 +164,30 @@ describe("InputManager", async () => {
     // @ts-ignore
     inputManager._onFocus();
     canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 4, 0, 0));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerup", 4, 0, 0));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 4, 0, 0));
     engine.update();
     const deltaPosition = engine.inputManager.pointers[0].deltaPosition;
     expect(deltaPosition).deep.equal(new Vector2(0, 0));
+
+    class ErrorScript extends Script {
+      onPointerDown(pointer: Pointer): void {
+        throw "pointer script error";
+      }
+    }
+    boxEntity.addComponent(ErrorScript);
+    // @ts-ignore
+    inputManager._onFocus();
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 10, left + 2, top + 2));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerup", 10, left + 2, top + 2));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 10, left + 2, top + 2));
+    expect(() => {
+      engine.update();
+    }).throw("pointer script error");
+    expect(() => {
+      engine.update();
+    }).not.throw("pointer script error");
+    expect(inputManager.pointers.length).to.eq(0);
   });
 
   it("keyboard", () => {

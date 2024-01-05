@@ -71,8 +71,12 @@ export class PointerManager implements IInput {
 
     // Clean up the pointer released in the previous frame
     for (let i = pointers.length - 1; i >= 0; i--) {
-      if (pointers[i].phase === PointerPhase.Leave) {
+      const pointer = pointers[i];
+      if (pointer._finalPhaseOfThisFrame === PointerPhase.Leave) {
         pointers.splice(i, 1);
+      } else {
+        // Prevent the event list from not being cleared due to user script errors.
+        pointer._events.length = 0;
       }
     }
 
@@ -260,21 +264,21 @@ export class PointerManager implements IInput {
             _downMap[button] = frameCount;
             pointer._downList.add(button);
             pointer._downMap[button] = frameCount;
-            pointer.phase = PointerPhase.Down;
+            pointer.phase = pointer._finalPhaseOfThisFrame = PointerPhase.Down;
             break;
           case "pointerup":
             _upList.add(button);
             _upMap[button] = frameCount;
             pointer._upList.add(button);
             pointer._upMap[button] = frameCount;
-            pointer.phase = PointerPhase.Up;
+            pointer.phase = pointer._finalPhaseOfThisFrame = PointerPhase.Up;
             break;
           case "pointermove":
-            pointer.phase = PointerPhase.Move;
+            pointer.phase = pointer._finalPhaseOfThisFrame = PointerPhase.Move;
             break;
           case "pointerleave":
           case "pointercancel":
-            pointer.phase = PointerPhase.Leave;
+            pointer.phase = pointer._finalPhaseOfThisFrame = PointerPhase.Leave;
           default:
             break;
         }
