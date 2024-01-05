@@ -560,7 +560,7 @@ export class TextRenderer extends Renderer {
               const left = startX * pixelsPerUnitReciprocal;
               const right = (startX + w) * pixelsPerUnitReciprocal;
               const top = (startY + ascent) * pixelsPerUnitReciprocal;
-              const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+              const bottom = (startY - descent) * pixelsPerUnitReciprocal;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);
