@@ -27,7 +27,7 @@ export class TextUtils {
   // _heightMultiplier used to measure the height of text, but in miniprogram performance is different from h5.
   // so can set _heightMultiplier to adapt miniprogram, the larger the value, the worse the performance.
   /** @internal */
-  static _heightMultiplier: number = 2.1;
+  static _heightMultiplier: number = 2;
   /** These characters are all tall to help calculate the height required for text. */
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
