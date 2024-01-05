@@ -51,18 +51,19 @@ export interface IRefEntity extends IBasicEntity {
     methods?: { [methodName: string]: Array<IMethodParams> };
     props?: { [key: string]: IBasicType | IMethodParams };
   }[];
+  removedEntities: IPrefabModifyTarget[];
   removedComponents: IPrefabModifyTarget[];
 }
 
 export interface IPrefabModifyTarget {
-  entityId: string;
-  componentId: string;
+  entityId?: string;
+  componentId?: string;
 }
 
 export interface IStrippedEntity extends IBasicEntity {
-  strippedId?: string;
-  strippedPath?: string;
+  strippedId: string;
   prefabInstanceId: string;
+  prefabSource: { assetId: string; entityId: string };
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;
