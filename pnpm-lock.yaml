@@ -178,12 +178,6 @@ importers:
         specifier: workspace:*
         version: link:../math
 
-  packages/draco:
-    dependencies:
-      '@galacean/engine-core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/galacean:
     dependencies:
       '@galacean/engine-core':
@@ -204,9 +198,6 @@ importers:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
-      '@galacean/engine-draco':
-        specifier: workspace:*
-        version: link:../draco
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
@@ -1443,6 +1434,7 @@ packages:
 
   /@types/node@18.19.3:
     resolution: {integrity: sha512-k5fggr14DwAytoA/t8rPrIz++lXK7/DqckthCmoZOKNsEbJkId4Z//BqgApXBUGrGddrigYa1oqheo/7YmW4rg==}
+    requiresBuild: true
     dependencies:
       undici-types: 5.26.5
     dev: true
@@ -5847,6 +5839,7 @@ packages:
 
   /undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+    requiresBuild: true
     dev: true
     optional: true
 

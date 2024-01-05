@@ -1,4 +1,3 @@
-import "./KHR_draco_mesh_compression";
 import "./KHR_lights_punctual";
 import "./KHR_materials_clearcoat";
 import "./KHR_materials_ior";
