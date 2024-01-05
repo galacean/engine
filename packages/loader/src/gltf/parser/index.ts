@@ -9,5 +9,5 @@ export { GLTFSceneParser } from "./GLTFSceneParser";
 export { GLTFSkinParser } from "./GLTFSkinParser";
 export { GLTFTextureParser } from "./GLTFTextureParser";
 export { GLTFValidator } from "./GLTFValidator";
-export { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
+export { GLTFParserContext, GLTFParserType, registerGLTFParser, BufferInfo } from "./GLTFParserContext";
 export { GLTFBufferViewParser } from "./GLTFBufferViewParser";

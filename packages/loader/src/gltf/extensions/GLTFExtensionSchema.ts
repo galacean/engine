@@ -23,16 +23,6 @@ export interface IKHRLightsPunctual {
 }
 
 /**
- * Interfaces from the KHR_draco_mesh_compression extension
- */
-export interface IKHRDracoMeshCompression {
-  bufferView: number;
-  attributes: {
-    [name: string]: number;
-  };
-}
-
-/**
  * Interfaces from the KHR_materials_clearcoat extension
  */
 export interface IKHRMaterialsClearcoat {
@@ -188,7 +178,6 @@ export interface IGalaceanAnimation {
 
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
-  | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
