@@ -16,22 +16,44 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
-    return (
-      a.data.component.priority - b.data.component.priority ||
-      a.data.material._priority - b.data.material._priority ||
-      a.data.component._distanceForSort - b.data.component._distanceForSort
-    );
+    const dataA = a.data;
+    const dataB = b.data;
+    const componentA = dataA.component;
+    const componentB = dataB.component;
+    const priorityOrder = componentA.priority - componentB.priority;
+    if (priorityOrder !== 0) {
+      return priorityOrder;
+    }
+    // make suer from the same renderer.
+    if (componentA.instanceId === componentB.instanceId) {
+      return (
+        dataA.material._priority - dataB.material._priority || componentA._distanceForSort - componentB._distanceForSort
+      );
+    } else {
+      return componentA._distanceForSort - componentB._distanceForSort;
+    }
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
-    return (
-      a.data.component.priority - b.data.component.priority ||
-      a.data.material._priority - b.data.material._priority ||
-      b.data.component._distanceForSort - a.data.component._distanceForSort
-    );
+    const dataA = a.data;
+    const dataB = b.data;
+    const componentA = dataA.component;
+    const componentB = dataB.component;
+    const priorityOrder = componentA.priority - componentB.priority;
+    if (priorityOrder !== 0) {
+      return priorityOrder;
+    }
+    // make suer from the same renderer.
+    if (componentA.instanceId === componentB.instanceId) {
+      return (
+        dataA.material._priority - dataB.material._priority || componentB._distanceForSort - componentA._distanceForSort
+      );
+    } else {
+      return componentB._distanceForSort - componentA._distanceForSort;
+    }
   }
 
   readonly elements: RenderElement[] = [];

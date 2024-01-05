@@ -41,12 +41,20 @@ class SpriteLoader extends Loader<Sprite> {
           // @ts-ignore
           .getResourceByRef(data.texture)
           .then((texture: Texture2D) => {
-            return new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border);
+            const sprite = new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border);
+            const { width, height } = data;
+            isNaN(width) || (sprite.width = width);
+            isNaN(height) || (sprite.height = height);
+            return sprite;
           })
       );
     } else {
       return new AssetPromise((resolve) => {
-        resolve(new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border));
+        const sprite = new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border);
+        const { width, height } = data;
+        isNaN(width) || (sprite.width = width);
+        isNaN(height) || (sprite.height = height);
+        resolve(sprite);
       });
     }
   }
