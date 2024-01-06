@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine",
-  "version": "0.0.0-experimental-renderSort.0",
+  "version": "0.0.0-experimental-renderSort.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

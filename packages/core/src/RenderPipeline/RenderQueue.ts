@@ -246,45 +246,38 @@ export class RenderQueue {
       let v0 = a[from];
       let v1 = a[to - 1];
       let v2 = a[third_index];
-      let swapFlag = false;
       const c01 = compareFunc(v0, v1);
       if (c01 > 0) {
         // v1 < v0, so swap them.
         const tmp = v0;
         v0 = v1;
         v1 = tmp;
-        swapFlag = true;
       } // v0 <= v1.
       const c02 = compareFunc(v0, v2);
-      if (c02 > 0) {
-        // v2 < v0.
+      if (c02 >= 0) {
+        // v2 <= v0 <= v1.
         const tmp = v0;
         v0 = v2;
         v2 = v1;
         v1 = tmp;
-        swapFlag = true;
       } else {
-        // v2 >= v0
+        // v0 <= v1 && v0 < v2
         const c12 = compareFunc(v1, v2);
         if (c12 > 0) {
           // v0 <= v2 < v1
           const tmp = v1;
           v1 = v2;
           v2 = tmp;
-          swapFlag = true;
         }
       }
       // v0 <= v1 <= v2
+      a[from] = v0;
+      a[to - 1] = v2;
+      const pivot = v1;
       let low_end = from + 1; // Upper bound of elements lower than pivot.
       let high_start = to - 1; // Lower bound of elements greater than pivot.
-      let pivot = v2;
-      if (swapFlag) {
-        a[from] = v0;
-        a[to - 1] = v2;
-        pivot = v1;
-        a[third_index] = a[low_end];
-        a[low_end] = pivot;
-      }
+      a[third_index] = a[low_end];
+      a[low_end] = pivot;
 
       // From low_end to i are elements equal to pivot.
       // From i to high_start are elements that haven't been compared yet.
