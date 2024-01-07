@@ -10,6 +10,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   isGCIgnored: boolean = false;
 
   private _refCount: number = 0;
+  private _superResources: ReferResource[] = null;
 
   /**
    * Counted by valid references.
@@ -25,15 +26,54 @@ export abstract class ReferResource extends EngineObject implements IReferable {
 
   /**
    * Destroy self.
-   * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully.
-   * @returns Whether the release was successful.
+   * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully
+   * @returns Whether the release was successful
    */
-  override destroy(force: boolean = false): boolean {
-    if (!force && this._refCount !== 0) {
-      return false;
+  override destroy(force?: boolean): boolean;
+
+  /**
+   * @internal
+   */
+  override destroy(force: boolean, isGC: boolean): boolean;
+
+  override destroy(force: boolean = false, isGC?: boolean): boolean {
+    if (!force) {
+      if (this._refCount !== 0) {
+        return false;
+      }
+
+      const superResources = this._superResources;
+      if (superResources?.length) {
+        if (isGC) {
+          for (let i = 0, n = superResources.length; i < n; i++) {
+            if (superResources[i].refCount > 0) {
+              return false;
+            }
+          }
+        } else {
+          return false;
+        }
+      }
     }
+
     super.destroy();
     return true;
+  }
+
+  /**
+   * @internal
+   */
+  _associationSuperResource(superResource: ReferResource): void {
+    (this._superResources ||= []).push(superResource);
+  }
+
+  /**
+   * @internal
+   */
+  _disassociationSuperResource(superResource: ReferResource): void {
+    const superResources = this._superResources;
+    const index = superResources.indexOf(superResource);
+    superResources.splice(index, 1);
   }
 
   /**

@@ -16,7 +16,7 @@ import {
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFParams } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
-import type { IGLTF } from "../GLTFSchema";
+import type { IBufferView, IGLTF } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 
 /**
@@ -35,6 +35,15 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
 
   private _resourceCache = new Map<string, any>();
+  private _progress = {
+    taskDetail: {},
+    taskComplete: { loaded: 0, total: 0 }
+  };
+
+  /** @internal */
+  _setTaskCompleteProgress: (loaded: number, total: number) => void;
+  /** @internal */
+  _setTaskDetailProgress: (url: string, loaded: number, total: number) => void;
 
   constructor(
     public glTFResource: GLTFResource,
@@ -90,7 +99,7 @@ export class GLTFParserContext {
   }
 
   parse(): Promise<GLTFResource> {
-    return this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
+    const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
       return Promise.all([
@@ -109,6 +118,31 @@ export class GLTFParserContext {
         this.resourceManager.addContentRestorer(this.contentRestorer);
         return glTFResource;
       });
+    });
+
+    this._addTaskCompletePromise(promise);
+    return promise;
+  }
+
+  /**
+   * @internal
+   */
+  _onTaskDetail = (url: string, loaded: number, total: number) => {
+    const detail = (this._progress.taskDetail[url] ||= {});
+    detail.loaded = loaded;
+    detail.total = total;
+
+    this._setTaskDetailProgress(url, loaded, total);
+  };
+
+  /**
+   * @internal
+   */
+  _addTaskCompletePromise(taskPromise: Promise<any>): void {
+    const task = this._progress.taskComplete;
+    task.total += 1;
+    taskPromise.then(() => {
+      this._setTaskCompleteProgress(++task.loaded, task.total);
     });
   }
 
@@ -190,6 +224,7 @@ export enum GLTFParserType {
   Validator,
   Scene,
   Buffer,
+  BufferView,
   Texture,
   Material,
   Mesh,
@@ -206,11 +241,12 @@ const glTFSchemaMap = {
   [GLTFParserType.Mesh]: "meshes",
   [GLTFParserType.Entity]: "nodes",
   [GLTFParserType.Skin]: "skins",
-  [GLTFParserType.Animation]: "animations"
+  [GLTFParserType.Animation]: "animations",
+  [GLTFParserType.BufferView]: "bufferViews"
 };
 
 const glTFResourceMap = {
-  [GLTFParserType.Scene]: "sceneRoots",
+  [GLTFParserType.Scene]: "_sceneRoots",
   [GLTFParserType.Texture]: "textures",
   [GLTFParserType.Material]: "materials",
   [GLTFParserType.Mesh]: "meshes",

@@ -20,7 +20,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise<SpriteAtlas>((resolve, reject, _, onCancel) => {
+    return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
       const chainPromises = [];
       onCancel(() => {
         for (let i = 0; i < chainPromises.length; i++) {
@@ -84,7 +84,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
 
   private _makeSprite(engine: Engine, config: AtlasSprite, texture?: Texture2D): Sprite {
     // Generate a SpriteAtlas object.
-    const { region, atlasRegionOffset, atlasRegion, pivot, border } = config;
+    const { region, atlasRegionOffset, atlasRegion, pivot, border, width, height } = config;
     const sprite = new Sprite(
       engine,
       texture,
@@ -103,6 +103,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       }
       sprite.atlasRotated = config.atlasRotated ?? false;
     }
+    isNaN(width) || (sprite.width = width);
+    isNaN(height) || (sprite.height = height);
     return sprite;
   }
 }

@@ -40,13 +40,8 @@ export class GLTFSceneParser extends GLTFParser {
       }
     }
 
-    // @ts-ignore
-    sceneRoot._hookResource = glTFResource;
-    // @ts-ignore
-    glTFResource._addReferCount(1);
-
     if (isDefaultScene) {
-      glTFResource.defaultSceneRoot = sceneRoot;
+      glTFResource._defaultSceneRoot = sceneRoot;
     }
 
     const promises = new Array<Promise<void[]>>();

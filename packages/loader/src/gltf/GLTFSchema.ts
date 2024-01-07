@@ -443,7 +443,7 @@ export interface IBufferView extends IChildRootProperty {
    */
   byteOffset?: number;
   /**
-   * The lenth of the bufferView in bytes
+   * The length of the bufferView in bytes
    */
   byteLength: number;
   /**

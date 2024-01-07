@@ -9,6 +9,10 @@ import { Animator } from "./animation";
  * The manager of the components.
  */
 export class ComponentsManager {
+  /* @internal */
+  _cameraNeedSorting: boolean = false;
+  /** @internal */
+  _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
 
@@ -29,6 +33,30 @@ export class ComponentsManager {
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
+
+  addCamera(camera: Camera) {
+    camera._cameraIndex = this._activeCameras.length;
+    this._activeCameras.add(camera);
+    this._cameraNeedSorting = true;
+  }
+
+  removeCamera(camera: Camera) {
+    const replaced = this._activeCameras.deleteByIndex(camera._cameraIndex);
+    replaced && (replaced._cameraIndex = camera._cameraIndex);
+    camera._cameraIndex = -1;
+    this._cameraNeedSorting = true;
+  }
+
+  sortCameras(): void {
+    if (this._cameraNeedSorting) {
+      const activeCameras = this._activeCameras;
+      activeCameras.sort((a, b) => a.priority - b.priority);
+      for (let i = 0, n = activeCameras.length; i < n; i++) {
+        activeCameras.get(i)._cameraIndex = i;
+      }
+      this._cameraNeedSorting = false;
+    }
+  }
 
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
@@ -233,5 +261,6 @@ export class ComponentsManager {
     this._onPhysicsUpdateScripts.garbageCollection();
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
+    this._activeCameras.garbageCollection();
   }
 }

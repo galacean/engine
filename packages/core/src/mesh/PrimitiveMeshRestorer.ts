@@ -28,6 +28,19 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           sphereInfo.vertexBuffer
         );
         break;
+
+      case PrimitiveType.CCSphere:
+        const CCSphereInfo = <SubdivisionSurfaceSphereRestoreInfo>primitiveInfo;
+        PrimitiveMesh._setSubdivisionSurfaceSphereData(
+          this.resource,
+          CCSphereInfo.radius,
+          CCSphereInfo.step,
+          CCSphereInfo.noLongerAccessible,
+          true,
+          CCSphereInfo.vertexBuffer
+        );
+        break;
+
       case PrimitiveType.Cuboid:
         const cuboidInfo = <CuboidRestoreInfo>primitiveInfo;
         PrimitiveMesh._setCuboidData(
@@ -118,7 +131,8 @@ enum PrimitiveType {
   Cylinder,
   Torus,
   Cone,
-  Capsule
+  Capsule,
+  CCSphere
 }
 
 /**
@@ -143,6 +157,20 @@ export class SphereRestoreInfo extends PrimitiveRestoreInfo {
     noLongerAccessible: boolean
   ) {
     super(PrimitiveType.Sphere, vertexBuffer, noLongerAccessible);
+  }
+}
+
+/**
+ * @internal
+ */
+export class SubdivisionSurfaceSphereRestoreInfo extends PrimitiveRestoreInfo {
+  constructor(
+    public radius: number,
+    public step: number,
+    vertexBuffer: Buffer,
+    noLongerAccessible: boolean
+  ) {
+    super(PrimitiveType.CCSphere, vertexBuffer, noLongerAccessible);
   }
 }
 

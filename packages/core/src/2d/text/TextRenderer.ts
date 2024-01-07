@@ -131,8 +131,8 @@ export class TextRenderer extends Renderer {
   set font(value: Font) {
     const lastFont = this._font;
     if (lastFont !== value) {
-      lastFont && lastFont._addReferCount(-1);
-      value && value._addReferCount(1);
+      lastFont && this._addResourceReferCount(lastFont, -1);
+      value && this._addResourceReferCount(value, 1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -265,6 +265,16 @@ export class TextRenderer extends Renderer {
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {
+    if (this._isTextNoVisible()) {
+      if (this._isContainDirtyFlag(DirtyFlag.WorldBounds)) {
+        const localBounds = this._localBounds;
+        localBounds.min.set(0, 0, 0);
+        localBounds.max.set(0, 0, 0);
+        this._updateBounds(this._bounds);
+        this._setDirtyFlagFalse(DirtyFlag.WorldBounds);
+      }
+      return this._bounds;
+    }
     this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
@@ -286,7 +296,7 @@ export class TextRenderer extends Renderer {
   _init(): void {
     const { engine } = this;
     this._font = engine._textDefaultFont;
-    this._font._addReferCount(1);
+    this._addResourceReferCount(this._font, 1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
@@ -294,6 +304,11 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
+    if (this._font) {
+      this._addResourceReferCount(this._font, -1);
+      this._font = null;
+    }
+
     super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
@@ -302,10 +317,6 @@ export class TextRenderer extends Renderer {
     }
     charRenderDatas.length = 0;
 
-    if (this._font) {
-      this._font._addReferCount(-1);
-      this._font = null;
-    }
     this._subFont && (this._subFont = null);
   }
 
@@ -358,11 +369,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   protected override _render(context: RenderContext): void {
-    if (
-      this._text === "" ||
-      (this.enableWrapping && this.width <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
-    ) {
+    if (this._isTextNoVisible()) {
       return;
     }
 
@@ -480,8 +487,8 @@ export class TextRenderer extends Renderer {
   }
 
   private _updateLocalData(): void {
-    const { color, _charRenderDatas: charRenderDatas, _subFont: charFont } = this;
     const { min, max } = this._localBounds;
+    const { color, _charRenderDatas: charRenderDatas, _subFont: charFont } = this;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
@@ -554,7 +561,7 @@ export class TextRenderer extends Renderer {
               const left = startX * pixelsPerUnitReciprocal;
               const right = (startX + w) * pixelsPerUnitReciprocal;
               const top = (startY + ascent) * pixelsPerUnitReciprocal;
-              const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+              const bottom = (startY - descent) * pixelsPerUnitReciprocal;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);
@@ -599,6 +606,15 @@ export class TextRenderer extends Renderer {
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
+  }
+
+  private _isTextNoVisible(): boolean {
+    return (
+      this._text === "" ||
+      this._fontSize === 0 ||
+      (this.enableWrapping && this.width <= 0) ||
+      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
+    );
   }
 }
 
