@@ -94,20 +94,14 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       config.name
     );
     if (texture) {
-      const atlasRotated = config.atlasRotated ?? false;
-      // const atlasRotated = false;
       const invW = 1 / texture.width;
       const invH = 1 / texture.height;
-      if (atlasRotated) {
-        sprite.atlasRegion.set(atlasRegion.x * invW, atlasRegion.y * invH, atlasRegion.h * invW, atlasRegion.w * invH);
-      } else {
-        sprite.atlasRegion.set(atlasRegion.x * invW, atlasRegion.y * invH, atlasRegion.w * invW, atlasRegion.h * invH);
-      }
+      sprite.atlasRegion.set(atlasRegion.x * invW, atlasRegion.y * invH, atlasRegion.w * invW, atlasRegion.h * invH);
       if (atlasRegionOffset) {
         const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
         sprite.atlasRegionOffset.set(offsetLeft * invW, offsetTop * invH, offsetRight * invW, offsetBottom * invH);
       }
-      sprite.atlasRotated = atlasRotated;
+      sprite.atlasRotated = config.atlasRotated ?? false;
     }
     return sprite;
   }

@@ -3,8 +3,8 @@ import { Engine } from "../../Engine";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
 import { Texture2D } from "../../texture/Texture2D";
-import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteAtlas } from "../atlas/SpriteAtlas";
+import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 
 /**
  * 2D sprite.
@@ -19,8 +19,24 @@ export class Sprite extends ReferResource {
   private _customHeight: number = undefined;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _boundUVs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  private _uvs: Vector2[] = [
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2(),
+    new Vector2()
+  ];
   private _bounds: BoundingBox = new BoundingBox();
 
   private _texture: Texture2D = null;
@@ -177,7 +193,7 @@ export class Sprite extends ReferResource {
    *  x      y       z     w
    *  |      |       |     |
    * Left, bottom, right, top.
-   * @remarks only use in sliced mode.
+   * @remarks only use in sliced or tiled mode.
    */
   get border(): Vector4 {
     return this._border;
@@ -288,25 +304,14 @@ export class Sprite extends ReferResource {
 
   private _calDefaultSize(): void {
     if (this._texture) {
-      const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
+      const { _texture, _atlasRegion, _atlasRegionOffset, _region, _atlasRotated } = this;
       const ppuReciprocal = 1.0 / Engine._pixelsPerUnit;
-      const rotated = this._atlasRotated;
-      let regionWidth: number, regionHeight: number;
-      if (this._atlasRotated) {
-        this._automaticWidth =
-          ((_texture.width * _atlasRegion.height) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
-          _region.width *
-          ppuReciprocal;
-        regionHeight = _texture.height * _atlasRegion.width;
-      } else {
-        regionWidth = _texture.width * _atlasRegion.width;
-        regionHeight = _texture.height * _atlasRegion.height;
-      }
-
+      const originWidth = _texture.width * (_atlasRotated ? _atlasRegion.height : _atlasRegion.width);
+      const originHeight = _texture.height * (_atlasRotated ? _atlasRegion.width : _atlasRegion.height);
       this._automaticWidth =
-        (regionWidth / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width * ppuReciprocal;
+        (originWidth / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width * ppuReciprocal;
       this._automaticHeight =
-        (regionHeight / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height * ppuReciprocal;
+        (originHeight / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height * ppuReciprocal;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
@@ -342,57 +347,77 @@ export class Sprite extends ReferResource {
   }
 
   private _updateUVs(): void {
-    const { _uvs: uv, _atlasRegionOffset: atlasRegionOffset } = this;
-    const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
-    const regionRight = 1 - regionX - regionW;
-    const regionBottom = 1 - regionY - regionH;
+    const { _uvs: uvs, _atlasRotated: atlasRotated } = this;
+    const { x: regionLeft, y: regionTop, width: regionW, height: regionH } = this._region;
+    const regionRight = 1 - regionLeft - regionW;
+    const regionBottom = 1 - regionTop - regionH;
+
     const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
-    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = this._atlasRegionOffset;
     const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
     const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
-    // Coordinates of the four boundaries.
-    const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
-    const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
-    const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
-    const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
+
     const { x: borderLeft, y: borderBottom, z: borderRight, w: borderTop } = this._border;
-    if (this._atlasRotated) {
-      // Left-Bottom
-      uv[0].set(left, top);
-      // Right-Bottom
-      uv[1].set(left, bottom);
-      // Left-Top
-      uv[2].set(right, top);
-      // Right-Top
-      uv[3].set(right, bottom);
-      // uv[1].set(
-      //   (regionX - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX,
-      //   (regionBottom - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
-      // );
-      // uv[2].set(
-      //   atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
-      //   atlasRegionH + atlasRegionY - (regionY - offsetBottom + borderBottom * regionH) * realHeight
-      // );
-      // uv[3].set(right, bottom);
+
+    // Coordinates of the four boundaries.
+    let left: number, top: number, right: number, bottom: number;
+    let borderL: number, borderT: number, borderR: number, borderB: number;
+    if (atlasRotated) {
+      left = Math.max(regionBottom - offsetLeft, 0) * realWidth + atlasRegionX;
+      top = Math.max(regionLeft - offsetTop, 0) * realHeight + atlasRegionY;
+      right = atlasRegionW + atlasRegionX - Math.max(regionTop - offsetRight, 0) * realWidth;
+      bottom = atlasRegionH + atlasRegionY - Math.max(regionRight - offsetBottom, 0) * realHeight;
+
+      borderL = (regionBottom - offsetLeft + borderBottom * regionH) * realWidth + atlasRegionX;
+      borderT = (regionLeft - offsetTop + borderLeft * regionW) * realHeight + atlasRegionY;
+      borderR = atlasRegionW + atlasRegionX - (regionTop - offsetRight + borderTop * regionH) * realWidth;
+      borderB = atlasRegionH + atlasRegionY - (regionRight - offsetBottom + borderRight * regionW) * realHeight;
     } else {
-      // Left-Bottom
-      uv[0].set(left, bottom);
-      // Right-Bottom
-      uv[1].set(right, bottom);
-      // Left-Top
-      uv[2].set(left, top);
-      // Right-Top
-      uv[3].set(right, top);
-      // // Border ( Left-Bottom )
-      // uv[1].set(
-      //   (regionX - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX,
-      //   atlasRegionH + atlasRegionY - (regionY - offsetBottom + borderBottom * regionH) * realHeight
-      // );
-      // // Border ( Right-Top )
-      // uv[2].set(
-      //   atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
-      //   (regionBottom - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
-      // );
+      left = Math.max(regionLeft - offsetLeft, 0) * realWidth + atlasRegionX;
+      top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
+      right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
+      bottom = atlasRegionH + atlasRegionY - Math.max(regionTop - offsetBottom, 0) * realHeight;
+
+      borderL = (regionLeft - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX;
+      borderT = (regionBottom - offsetTop + borderTop * regionH) * realHeight + atlasRegionY;
+      borderR = atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth;
+      borderB = atlasRegionH + atlasRegionY - (regionTop - offsetBottom + borderBottom * regionH) * realHeight;
+    }
+
+    if (atlasRotated) {
+      uvs[0].set(left, top);
+      uvs[1].set(left, borderT);
+      uvs[2].set(left, borderB);
+      uvs[3].set(left, bottom);
+      uvs[4].set(borderL, top);
+      uvs[5].set(borderL, borderT);
+      uvs[6].set(borderL, borderB);
+      uvs[7].set(borderL, bottom);
+      uvs[8].set(borderR, top);
+      uvs[9].set(borderR, borderT);
+      uvs[10].set(borderR, borderB);
+      uvs[11].set(borderR, bottom);
+      uvs[12].set(right, top);
+      uvs[13].set(right, borderT);
+      uvs[14].set(right, borderB);
+      uvs[15].set(right, bottom);
+    } else {
+      uvs[0].set(left, bottom);
+      uvs[1].set(borderL, bottom);
+      uvs[2].set(borderR, bottom);
+      uvs[3].set(right, bottom);
+      uvs[4].set(left, borderB);
+      uvs[5].set(borderL, borderB);
+      uvs[6].set(borderR, borderB);
+      uvs[7].set(right, borderB);
+      uvs[8].set(left, borderT);
+      uvs[9].set(borderL, borderT);
+      uvs[10].set(borderR, borderT);
+      uvs[11].set(right, borderT);
+      uvs[12].set(left, top);
+      uvs[13].set(borderL, top);
+      uvs[14].set(borderR, top);
+      uvs[15].set(right, top);
     }
     this._dirtyUpdateFlag &= ~SpriteUpdateFlags.uvs;
   }

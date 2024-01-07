@@ -1,13 +1,12 @@
 import { MathUtil, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
-import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { DisorderedArray } from "../../DisorderedArray";
-import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Basic2DBatcher } from "../../RenderPipeline/Basic2DBatcher";
+import { Logger } from "../../base";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { Logger } from "../../base";
-import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
  * @internal
@@ -17,8 +16,8 @@ export class TiledSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static _posRow: DisorderedArray<number> = new DisorderedArray<number>();
   static _posColumn: DisorderedArray<number> = new DisorderedArray<number>();
-  static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
-  static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
+  static _uvRowInfo: DisorderedArray<number> = new DisorderedArray<number>();
+  static _uvColumnInfo: DisorderedArray<number> = new DisorderedArray<number>();
 
   static resetData(renderer: SpriteRenderer): void {
     renderer._verticesData.triangles = [];
@@ -28,15 +27,16 @@ export class TiledSpriteAssembler {
     const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     const { positions, uvs, triangles } = renderer._verticesData;
     // Calculate row and column
-    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
-    posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
+    const { _posRow: posRow, _posColumn: posColumn, _uvRowInfo: uvRowInfo, _uvColumnInfo: uvColumnInfo } = this;
+    posRow.length = posColumn.length = uvRowInfo.length = uvColumnInfo.length = 0;
     tileMode === SpriteTileMode.Adaptive
-      ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
-      : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+      ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRowInfo, uvColumnInfo)
+      : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRowInfo, uvColumnInfo);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
+    const spriteUVs = sprite._getUVs();
     // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = TiledSpriteAssembler;
     const { elements: wE } = worldMatrix;
@@ -60,11 +60,11 @@ export class TiledSpriteAssembler {
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
-        const uvL = uvRow.get(2 * i);
-        const uvB = uvColumn.get(doubleJ);
-        const uvR = uvRow.get(2 * i + 1);
-        const uvT = uvColumn.get(doubleJ + 1);
-        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
+        const rowForm = uvRowInfo.get(2 * i);
+        const rowTo = uvRowInfo.get(2 * i + 1);
+        const colFrom = uvColumnInfo.get(doubleJ);
+        const colTo = uvColumnInfo.get(doubleJ + 1);
+        if (isNaN(rowForm) || isNaN(rowTo) || isNaN(colFrom) || isNaN(colTo)) {
           continue;
         }
         triangles[trianglesOffset++] = count;
@@ -78,8 +78,17 @@ export class TiledSpriteAssembler {
         const r = posRow.get(i + 1);
         const t = posColumn.get(j + 1);
 
-        // left and bottom
-        uvs[count] ? uvs[count].set(uvL, uvB) : (uvs[count] = new Vector2(uvL, uvB));
+        TiledSpriteAssembler._getCorners(
+          spriteUVs,
+          rowForm,
+          rowTo,
+          colFrom,
+          colTo,
+          (uvs[count] ||= new Vector2()),
+          (uvs[count + 1] ||= new Vector2()),
+          (uvs[count + 2] ||= new Vector2()),
+          (uvs[count + 3] ||= new Vector2())
+        );
         let pos = positions[count];
         if (pos) {
           pos.set(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
@@ -89,7 +98,6 @@ export class TiledSpriteAssembler {
         count++;
 
         // right and bottom
-        uvs[count] ? uvs[count].set(uvR, uvB) : (uvs[count] = new Vector2(uvR, uvB));
         pos = positions[count];
         if (pos) {
           pos.set(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
@@ -99,7 +107,6 @@ export class TiledSpriteAssembler {
         count++;
 
         // left and top
-        uvs[count] ? uvs[count].set(uvL, uvT) : (uvs[count] = new Vector2(uvL, uvT));
         pos = positions[count];
         if (pos) {
           pos.set(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
@@ -109,7 +116,6 @@ export class TiledSpriteAssembler {
         count++;
 
         // right and top
-        uvs[count] ? uvs[count].set(uvR, uvT) : (uvs[count] = new Vector2(uvR, uvT));
         pos = positions[count];
         if (pos) {
           pos.set(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
@@ -192,8 +198,8 @@ export class TiledSpriteAssembler {
     if ((rVertCount - 1) * (cVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
-      uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
-      uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
+      uvRow.add(0), uvRow.add(3);
+      uvColumn.add(0), uvColumn.add(3);
       Logger.warn(`The number of vertices exceeds the upper limit(${Basic2DBatcher.MAX_VERTEX_COUNT}).`);
       return;
     }
@@ -203,24 +209,23 @@ export class TiledSpriteAssembler {
         scale = width / fixedLR;
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
         posRow.add(width - expectWidth * (1 - right) * scale);
-        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        uvRow.add(0), uvRow.add(1), uvRow.add(2), uvRow.add(3);
         break;
       case TiledType.WithoutTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL), posRow.add(width - fixedR);
         posRow.add(width - expectWidth * (1 - right));
-        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(NaN), uvRow.add(NaN);
-        uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        uvRow.add(0), uvRow.add(1), uvRow.add(NaN), uvRow.add(NaN), uvRow.add(2), uvRow.add(3);
         break;
       case TiledType.WithTiled:
         scale = width / (fixedLR + rRepeatCount * fixedCW);
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
-        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
+        uvRow.add(0), uvRow.add(1), uvRow.add(1);
         for (let i = 0, l = rRepeatCount - 1; i < l; i++) {
           posRow.add(fixedL + (i + 1) * fixedCW * scale);
-          uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
+          uvRow.add(2), uvRow.add(1);
         }
         posRow.add(width - fixedR * scale), posRow.add(width - expectWidth * (1 - right) * scale);
-        uvRow.add(spriteUV2.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        uvRow.add(2), uvRow.add(2), uvRow.add(3);
         break;
       default:
         break;
@@ -231,24 +236,23 @@ export class TiledSpriteAssembler {
         scale = height / fixedTB;
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
         posColumn.add(height - expectHeight * (1 - top) * scale);
-        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        uvColumn.add(0), uvColumn.add(1), uvColumn.add(2), uvColumn.add(3);
         break;
       case TiledType.WithoutTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB), posColumn.add(height - fixedT);
         posColumn.add(height - expectHeight * (1 - top));
-        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(NaN), uvColumn.add(NaN);
-        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        uvColumn.add(0), uvColumn.add(1), uvColumn.add(NaN), uvColumn.add(NaN), uvColumn.add(2), uvColumn.add(3);
         break;
       case TiledType.WithTiled:
         scale = height / (fixedTB + cRepeatCount * fixedCH);
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
-        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
+        uvColumn.add(0), uvColumn.add(1), uvColumn.add(1);
         for (let i = 0, l = cRepeatCount - 1; i < l; i++) {
           posColumn.add(fixedB + (i + 1) * fixedCH * scale);
-          uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
+          uvColumn.add(2), uvColumn.add(1);
         }
         posColumn.add(height - fixedT * scale), posColumn.add(height - expectHeight * (1 - top) * scale);
-        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        uvColumn.add(2), uvColumn.add(2), uvColumn.add(3);
         break;
       default:
         break;
@@ -312,8 +316,8 @@ export class TiledSpriteAssembler {
     if ((rVertCount - 1) * (cVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
-      uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
-      uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
+      uvRow.add(0), uvRow.add(3);
+      uvColumn.add(0), uvColumn.add(3);
       Logger.warn(`The number of vertices exceeds the upper limit(${Basic2DBatcher.MAX_VERTEX_COUNT}).`);
       return;
     }
@@ -323,25 +327,25 @@ export class TiledSpriteAssembler {
         const scale = width / fixedLR;
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
         posRow.add(width - expectWidth * (1 - right) * scale);
-        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        uvRow.add(0), uvRow.add(1), uvRow.add(2), uvRow.add(3);
         break;
       case TiledType.WithoutTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL), posRow.add(width - fixedR);
         posRow.add(width - expectWidth * (1 - right));
-        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(NaN), uvRow.add(NaN);
-        uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        uvRow.add(0), uvRow.add(1), uvRow.add(NaN), uvRow.add(NaN), uvRow.add(2), uvRow.add(3);
         break;
       case TiledType.WithTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL);
-        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
+        uvRow.add(0), uvRow.add(1), uvRow.add(1);
         const countInteger = rRepeatCount | 0;
         for (let i = 0; i < countInteger; i++) {
           posRow.add(fixedL + (i + 1) * fixedCW);
-          uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
+          uvRow.add(2), uvRow.add(1);
         }
         posRow.add(width - fixedR), posRow.add(width - expectWidth * (1 - right));
-        uvRow.add((spriteUV2.x - spriteUV1.x) * (rRepeatCount - countInteger) + spriteUV1.x);
-        uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        // uvRow.add((spriteUV2.x - spriteUV1.x) * (rRepeatCount - countInteger) + spriteUV1.x);
+        uvRow.add(2);
+        uvRow.add(2), uvRow.add(3);
         break;
       default:
         break;
@@ -352,29 +356,46 @@ export class TiledSpriteAssembler {
         const scale = height / fixedTB;
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
         posColumn.add(height - expectHeight * (1 - top) * scale);
-        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        uvColumn.add(0), uvColumn.add(1), uvColumn.add(2), uvColumn.add(3);
         break;
       case TiledType.WithoutTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB), posColumn.add(height - fixedT);
         posColumn.add(height - expectHeight * (1 - top));
-        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(NaN), uvColumn.add(NaN);
-        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        uvColumn.add(0), uvColumn.add(1), uvColumn.add(NaN), uvColumn.add(NaN), uvColumn.add(2), uvColumn.add(3);
         break;
       case TiledType.WithTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB);
-        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
+        uvColumn.add(0), uvColumn.add(1), uvColumn.add(1);
         const countInteger = cRepeatCount | 0;
         for (let i = 0; i < countInteger; i++) {
           posColumn.add(fixedB + (i + 1) * fixedCH);
-          uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
+          uvColumn.add(2), uvColumn.add(1);
         }
         posColumn.add(height - fixedT), posColumn.add(height - expectHeight * (1 - top));
-        uvColumn.add((spriteUV2.y - spriteUV1.y) * (cRepeatCount - countInteger) + spriteUV1.y);
-        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        // uvColumn.add((spriteUV2.y - spriteUV1.y) * (cRepeatCount - countInteger) + spriteUV1.y);
+        uvColumn.add(2);
+        uvColumn.add(2), uvColumn.add(3);
         break;
       default:
         break;
     }
+  }
+
+  private static _getCorners(
+    uvs: Vector2[],
+    rowFrom: number,
+    rowTo: number,
+    colFrom: number,
+    colTo: number,
+    leftBottom: Vector2,
+    rightBottom: Vector2,
+    leftTop: Vector2,
+    rightTop: Vector2
+  ): void {
+    leftBottom.copyFrom(uvs[rowFrom + colFrom * 4]);
+    rightBottom.copyFrom(uvs[rowTo + colFrom * 4]);
+    leftTop.copyFrom(uvs[rowFrom + colTo * 4]);
+    rightTop.copyFrom(uvs[rowTo + colTo * 4]);
   }
 }
 

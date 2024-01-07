@@ -59,8 +59,8 @@ export class SimpleSpriteAssembler {
     const spriteUVs = renderer.sprite._getUVs();
     const renderUVs = renderer._verticesData.uvs;
     renderUVs[0].copyFrom(spriteUVs[0]);
-    renderUVs[1].copyFrom(spriteUVs[1]);
-    renderUVs[2].copyFrom(spriteUVs[2]);
-    renderUVs[3].copyFrom(spriteUVs[3]);
+    renderUVs[1].copyFrom(spriteUVs[3]);
+    renderUVs[2].copyFrom(spriteUVs[12]);
+    renderUVs[3].copyFrom(spriteUVs[15]);
   }
 }
