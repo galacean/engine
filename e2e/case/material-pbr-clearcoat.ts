@@ -64,7 +64,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         skyMaterial.textureDecodeRGBM = true;
       })
   ]).then(() => {
-    engine.run();
     updateForE2E(engine);
     const category = "Material";
     const name = "material-pbr-clearcoat";
