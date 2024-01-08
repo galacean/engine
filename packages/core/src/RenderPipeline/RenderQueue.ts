@@ -248,7 +248,7 @@ export class RenderQueue {
   private _quickSort<T>(a: T[], from: number, to: number, compareFunc: Function): void {
     while (true) {
       // Insertion sort is faster for short arrays.
-      if (to - from <= 10000000) {
+      if (to - from <= 10) {
         this._insertionSort(a, from, to, compareFunc);
         return;
       }
