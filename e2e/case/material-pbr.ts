@@ -57,5 +57,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     const category = "Material";
     const name = "material-pbr";
     initScreenshot(category, name, engine, camera);
+    const a = document.createElement("a");
+    a.id = "test2";
+    document.body.appendChild(a);
   });
+
+  const a = document.createElement("a");
+  a.id = "test1";
+  document.body.appendChild(a);
 });
