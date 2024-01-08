@@ -104,7 +104,7 @@ export class GLTFParserContext {
     const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
-      if (performance.now() - this.startTime > 20000) {
+      if (performance.now() - this.startTime > 10000) {
         this.startTime = performance.now();
         throw "glTF timeout";
       }
@@ -117,9 +117,9 @@ export class GLTFParserContext {
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
-        if (performance.now() - this.startTime > 20000) {
+        if (performance.now() - this.startTime > 10000) {
           this.startTime = performance.now();
-          throw "all timeout";
+          throw "glTF timeout";
         }
         const glTFResource = this.glTFResource;
         if (glTFResource.skins || glTFResource.animations) {

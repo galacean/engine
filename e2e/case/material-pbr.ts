@@ -37,6 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   console.time("load glTF");
   console.time("load HDR");
   console.time("start");
+  const startTime = performance.now();
   Promise.all([
     engine.resourceManager
       .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf")
@@ -47,6 +48,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         defaultSceneRoot.transform.setScale(100, 100, 100);
       })
   ]).then(() => {
+    const timeout = performance.now() - startTime;
+    if (timeout > 5000) {
+      throw `glTF 2 timeout ${timeout}`;
+    }
     console.timeEnd("start");
     updateForE2E(engine);
     const category = "Material";

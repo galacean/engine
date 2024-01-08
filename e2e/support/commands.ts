@@ -42,16 +42,23 @@ Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) 
   cy.visit(`/mpa/${name}.html`);
   const imageName = `${category}_${name}.jpg`;
   const filePath = path.join(downloadsFolder, imageName);
-  const startTime = +new Date();
+  const startTime = performance.now();
   cy.get("#screenshot")
     .click({ force: true })
     .then(() => {
-      console.log("await time!!!:", +new Date() - startTime);
+      const timeout = performance.now() - startTime;
+      if (timeout > 10000) {
+        throw `cy.get errror:${timeout}`;
+      }
       return new Promise((resolve) => {
         cy.log(`Reading file ${filePath}`);
         resolve(
           recurse(
             () => {
+              const timeout = performance.now() - startTime;
+              if (timeout > 10000) {
+                throw `recurse errror:${timeout}`;
+              }
               return cy.readFile(filePath).then(() => {
                 cy.log(`Comparing ${imageName} with threshold ${threshold}`);
                 return cy.task("compare", {
