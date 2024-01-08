@@ -151,7 +151,6 @@ export class TiledSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const [spriteUV0, spriteUV1, spriteUV2, spriteUV3] = sprite._getUVs();
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedL = expectWidth * border.x;
     const fixedR = expectWidth * border.z;
@@ -272,7 +271,6 @@ export class TiledSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const [spriteUV0, spriteUV1, spriteUV2, spriteUV3] = sprite._getUVs();
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedL = expectWidth * border.x;
     const fixedR = expectWidth * border.z;
@@ -343,8 +341,7 @@ export class TiledSpriteAssembler {
           uvRow.add(2), uvRow.add(1);
         }
         posRow.add(width - fixedR), posRow.add(width - expectWidth * (1 - right));
-        uvRow.add(2 + rRepeatCount - countInteger);
-        uvRow.add(2), uvRow.add(3);
+        uvRow.add(2 + rRepeatCount - countInteger), uvRow.add(2), uvRow.add(3);
         break;
       default:
         break;
@@ -371,8 +368,7 @@ export class TiledSpriteAssembler {
           uvColumn.add(2), uvColumn.add(1);
         }
         posColumn.add(height - fixedT), posColumn.add(height - expectHeight * (1 - top));
-        uvRow.add(2 + rRepeatCount - countInteger);
-        uvColumn.add(2), uvColumn.add(3);
+        uvColumn.add(2 + rRepeatCount - countInteger), uvColumn.add(2), uvColumn.add(3);
         break;
       default:
         break;
