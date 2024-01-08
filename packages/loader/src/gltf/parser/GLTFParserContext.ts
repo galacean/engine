@@ -33,6 +33,7 @@ export class GLTFParserContext {
   accessorBufferCache: Record<string, BufferInfo> = {};
   contentRestorer: GLTFContentRestorer;
   buffers?: ArrayBuffer[];
+  startTime: number;
 
   private _resourceCache = new Map<string, any>();
   private _progress = {
@@ -99,9 +100,14 @@ export class GLTFParserContext {
   }
 
   parse(): Promise<GLTFResource> {
+    this.startTime = performance.now();
     const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
+      if (performance.now() - this.startTime > 20000) {
+        this.startTime = performance.now();
+        throw "glTF timeout";
+      }
       return Promise.all([
         this.get<void>(GLTFParserType.Validator),
         this.get<Texture2D>(GLTFParserType.Texture),
@@ -111,6 +117,10 @@ export class GLTFParserContext {
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
+        if (performance.now() - this.startTime > 20000) {
+          this.startTime = performance.now();
+          throw "all timeout";
+        }
         const glTFResource = this.glTFResource;
         if (glTFResource.skins || glTFResource.animations) {
           this._createAnimator(this, glTFResource.animations);

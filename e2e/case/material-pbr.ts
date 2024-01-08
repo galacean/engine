@@ -34,37 +34,20 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraNode.transform.position = new Vector3(0.25, 0.25, 1.5);
   const camera = cameraNode.addComponent(Camera);
 
-  // Create sky
-  const sky = scene.background.sky;
-  const skyMaterial = new SkyBoxMaterial(engine);
-  scene.background.mode = BackgroundMode.Sky;
-  sky.material = skyMaterial;
-  sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-
-  console.time("load glTF")
-  console.time("load HDR")
-  console.time("start")
+  console.time("load glTF");
+  console.time("load HDR");
+  console.time("start");
   Promise.all([
     engine.resourceManager
-      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/8d36415b-5905-461f-9336-68a23d41518e.gltf")
+      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf")
       .then((gltf) => {
-        console.timeEnd("load glTF")
+        console.timeEnd("load glTF");
         const { defaultSceneRoot } = gltf;
         rootEntity.addChild(defaultSceneRoot);
-      }),
-    engine.resourceManager
-      .load<AmbientLight>({
-        type: AssetType.Env,
-        url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
-      })
-      .then((ambientLight) => {
-        console.timeEnd("load HDR")
-        scene.ambientLight = ambientLight;
-        skyMaterial.texture = ambientLight.specularTexture;
-        skyMaterial.textureDecodeRGBM = true;
+        defaultSceneRoot.transform.setScale(100, 100, 100);
       })
   ]).then(() => {
-    console.timeEnd("start")
+    console.timeEnd("start");
     updateForE2E(engine);
     const category = "Material";
     const name = "material-pbr";
