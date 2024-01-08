@@ -93,7 +93,9 @@
         #if SCENE_SHADOW_TYPE == 3
             attenuation = sampleShadowMapFiltered9(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
-            attenuation = mix(1.0, attenuation, scene_ShadowInfo.x);
+
+        attenuation = mix(1.0, attenuation, scene_ShadowInfo.x);
+        
         }
         return attenuation;
     }

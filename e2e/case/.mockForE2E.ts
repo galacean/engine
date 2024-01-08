@@ -27,6 +27,7 @@ export function initScreenshot(
   isPNG = false,
   jpgQuality = 1
 ) {
+  console.time("screenshot!")
   const imageName = `${category}_${name}.jpg`;
 
   if (!screenshotCanvas) {
@@ -84,6 +85,7 @@ export function initScreenshot(
   // download
   canvas.toBlob(
     (blob) => {
+      console.timeEnd("screenshot!")
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
 
