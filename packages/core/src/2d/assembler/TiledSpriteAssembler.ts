@@ -393,9 +393,12 @@ export class TiledSpriteAssembler {
     rightTop: Vector2
   ): void {
     leftBottom.copyFrom(uvs[rowFrom + colFrom * 4]);
-    rightBottom.copyFrom(uvs[rowTo + colFrom * 4]);
-    leftTop.copyFrom(uvs[rowFrom + colTo * 4]);
-    rightTop.copyFrom(uvs[rowTo + colTo * 4]);
+    const rowToInteger = rowTo | 0;
+    const colToInteger = colTo | 0;
+    Vector2.lerp(uvs[Math.floor(rowTo) + colFrom * 4], uvs[Math.ceil(rowTo) + colFrom * 4], rowToInteger, rightBottom);
+    Vector2.lerp(uvs[rowFrom + Math.floor(colTo) * 4], uvs[rowFrom + Math.ceil(colTo) * 4], colToInteger, leftTop);
+    Vector2.add(rightBottom, leftTop, rightTop);
+    rightTop.subtract(leftBottom);
   }
 }
 
