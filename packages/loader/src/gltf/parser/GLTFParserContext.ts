@@ -109,9 +109,9 @@ export class GLTFParserContext {
         this.get<void>(GLTFParserType.Validator),
         this.get<Texture2D>(GLTFParserType.Texture),
         this.get<Material>(GLTFParserType.Material),
-        this.get<ModelMesh[]>(GLTFParserType.Mesh),
+        // this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
-        this.get<AnimationClip>(GLTFParserType.Animation),
+        // this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
         const glTFResource = this.glTFResource;
