@@ -161,25 +161,22 @@ export class GLTFMaterialParser extends GLTFParser {
     const glTFResource = context.glTFResource;
     const engine = glTFResource.engine;
 
-    const material = new PBRMaterial(engine);
-    material.name = "test";
-    return Promise.resolve(material);
-    // let material = <Material | Promise<Material>>(
-    //   GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
-    // );
+    let material = <Material | Promise<Material>>(
+      GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
+    );
 
-    // if (!material) {
-    //   material = new PBRMaterial(engine);
-    //   material.name = materialInfo.name;
-    //   GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
-    // }
+    if (!material) {
+      material = new PBRMaterial(engine);
+      material.name = materialInfo.name;
+      GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
+    }
 
-    // return Promise.resolve(material).then((material) => {
-    //   material ||= GLTFMaterialParser._getDefaultMaterial(engine);
-    //   GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
-    //   // @ts-ignore
-    //   material._associationSuperResource(glTFResource);
-    //   return material;
-    // });
+    return Promise.resolve(material).then((material) => {
+      material ||= GLTFMaterialParser._getDefaultMaterial(engine);
+      GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
+      // @ts-ignore
+      material._associationSuperResource(glTFResource);
+      return material;
+    });
   }
 }

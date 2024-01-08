@@ -68,7 +68,7 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     if (meshID !== undefined) {
-      // promise = this._createRenderer(context, entityInfo, entity);
+      promise = this._createRenderer(context, entityInfo, entity);
     }
 
     return Promise.resolve(promise).then(() => {
@@ -136,7 +136,9 @@ export class GLTFSceneParser extends GLTFParser {
     for (let i = 0; i < glTFMeshPrimitives.length; i++) {
       const glTFPrimitive = glTFMeshPrimitives[i];
       const materialIndex = glTFPrimitive.material;
-
+      if(meshID>10){
+        continue;
+      }
       promises.push(
         Promise.all([
           context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),
@@ -150,7 +152,7 @@ export class GLTFSceneParser extends GLTFParser {
 
           if (skin || blendShapeWeights) {
             const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
-            // skinRenderer.mesh = mesh;
+            skinRenderer.mesh = mesh;
             if (skin) {
               skinRenderer.rootBone = skin._rootBone;
               skinRenderer.bones = skin._bones;
@@ -164,7 +166,7 @@ export class GLTFSceneParser extends GLTFParser {
             renderer = skinRenderer;
           } else {
             renderer = entity.addComponent(MeshRenderer);
-            // renderer.mesh = mesh;
+            renderer.mesh = mesh;
           }
 
           renderer.setMaterial(material);

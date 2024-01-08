@@ -51,7 +51,6 @@ export default defineConfig({
             const baseImage = path.join(baseFolder, fileName);
             const newImage = path.join(newFolder, fileName);
             const diffImage = path.join(diffFolder, fileName);
-            console.log(`compare start!!:${performance.now()}`)
             console.log("comparing base image %s to the new image %s", baseImage, newImage);
             if (options) {
               console.log("odiff options %o", options);

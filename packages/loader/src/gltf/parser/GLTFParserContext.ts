@@ -5,7 +5,6 @@ import {
   AnimatorControllerLayer,
   AnimatorStateMachine,
   Buffer,
-  Engine,
   Entity,
   Material,
   ModelMesh,
@@ -34,7 +33,6 @@ export class GLTFParserContext {
   accessorBufferCache: Record<string, BufferInfo> = {};
   contentRestorer: GLTFContentRestorer;
   buffers?: ArrayBuffer[];
-  startTime: number;
 
   private _resourceCache = new Map<string, any>();
   private _progress = {
@@ -101,7 +99,6 @@ export class GLTFParserContext {
   }
 
   parse(): Promise<GLTFResource> {
-    this.startTime = performance.now();
     const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
@@ -109,9 +106,9 @@ export class GLTFParserContext {
         this.get<void>(GLTFParserType.Validator),
         this.get<Texture2D>(GLTFParserType.Texture),
         this.get<Material>(GLTFParserType.Material),
-        // this.get<ModelMesh[]>(GLTFParserType.Mesh),
+        this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
-        // this.get<AnimationClip>(GLTFParserType.Animation),
+        this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
         const glTFResource = this.glTFResource;

@@ -27,8 +27,6 @@ export function initScreenshot(
   isPNG = false,
   jpgQuality = 1
 ) {
-  console.time("screenshot!");
-  const startTime = performance.now();
   const imageName = `${category}_${name}.jpg`;
 
   if (!screenshotCanvas) {
@@ -46,7 +44,14 @@ export function initScreenshot(
   const originalTarget = camera.renderTarget;
   const renderColorTexture = new Texture2D(engine, width, height);
   const renderTargetData = new Uint8Array(width * height * 4);
-  const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 1);
+  const renderTarget = new RenderTarget(
+    engine,
+    width,
+    height,
+    renderColorTexture,
+    undefined,
+    1
+  );
 
   // render to off-screen
   camera.renderTarget = renderTarget;
@@ -79,11 +84,6 @@ export function initScreenshot(
   // download
   canvas.toBlob(
     (blob) => {
-      const timeout = performance.now() - startTime;
-      if (timeout > 10000) {
-        throw `screenshot timeout: ${timeout}`;
-      }
-      console.timeEnd("screenshot!");
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
 
