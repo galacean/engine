@@ -117,7 +117,7 @@ export class Buffer extends GraphicsResource {
       if (readable) {
         const buffer =
           data.constructor === ArrayBuffer
-            ? data
+            ? data.slice(0)
             : (<ArrayBufferView>data).buffer.slice(
                 (<ArrayBufferView>data).byteOffset,
                 (<ArrayBufferView>data).byteOffset + byteLength
