@@ -115,10 +115,13 @@ export class Buffer extends GraphicsResource {
       this._byteLength = byteLength;
       this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLength, bufferUsage, data);
       if (readable) {
-        const buffer = (data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer).slice(
-          (<ArrayBufferView>data).byteOffset,
-          (<ArrayBufferView>data).byteOffset + byteLength
-        );
+        const buffer =
+          data.constructor === ArrayBuffer
+            ? data
+            : (<ArrayBufferView>data).buffer.slice(
+                (<ArrayBufferView>data).byteOffset,
+                (<ArrayBufferView>data).byteOffset + byteLength
+              );
         this._data = new Uint8Array(buffer);
       }
     }
