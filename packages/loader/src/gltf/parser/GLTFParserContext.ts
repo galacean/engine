@@ -5,6 +5,7 @@ import {
   AnimatorControllerLayer,
   AnimatorStateMachine,
   Buffer,
+  Engine,
   Entity,
   Material,
   ModelMesh,
@@ -104,10 +105,6 @@ export class GLTFParserContext {
     const promise = this.get<IGLTF>(GLTFParserType.Schema).then((json) => {
       this.glTF = json;
 
-      if (performance.now() - this.startTime > 10000) {
-        this.startTime = performance.now();
-        throw "glTF timeout";
-      }
       return Promise.all([
         this.get<void>(GLTFParserType.Validator),
         this.get<Texture2D>(GLTFParserType.Texture),
@@ -115,16 +112,13 @@ export class GLTFParserContext {
         this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
-        this.get<Entity>(GLTFParserType.Scene)
+        // this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
-        if (performance.now() - this.startTime > 10000) {
-          this.startTime = performance.now();
-          throw "glTF timeout";
-        }
         const glTFResource = this.glTFResource;
         if (glTFResource.skins || glTFResource.animations) {
           this._createAnimator(this, glTFResource.animations);
         }
+        glTFResource._defaultSceneRoot = new Entity(this.resourceManager.engine);
         this.resourceManager.addContentRestorer(this.contentRestorer);
         return glTFResource;
       });
