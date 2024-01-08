@@ -90,9 +90,6 @@ async function main() {
         material.shaderData.setTexture("u_UVCheckTexture", uvCheckTexture);
       }
 
-      // Run engine
-      engine.run();
-
       camera.setReplacementShader(Shader.find("UVCheckShader"));
       updateForE2E(engine);
       const category = "Material";
