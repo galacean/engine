@@ -16,8 +16,8 @@ export class TiledSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static _posRow: DisorderedArray<number> = new DisorderedArray<number>();
   static _posColumn: DisorderedArray<number> = new DisorderedArray<number>();
-  static _uvRowInfo: DisorderedArray<number> = new DisorderedArray<number>();
-  static _uvColumnInfo: DisorderedArray<number> = new DisorderedArray<number>();
+  static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
+  static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
 
   static resetData(renderer: SpriteRenderer): void {
     renderer._verticesData.triangles = [];
@@ -27,11 +27,11 @@ export class TiledSpriteAssembler {
     const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     const { positions, uvs, triangles } = renderer._verticesData;
     // Calculate row and column
-    const { _posRow: posRow, _posColumn: posColumn, _uvRowInfo: uvRowInfo, _uvColumnInfo: uvColumnInfo } = this;
-    posRow.length = posColumn.length = uvRowInfo.length = uvColumnInfo.length = 0;
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     tileMode === SpriteTileMode.Adaptive
-      ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRowInfo, uvColumnInfo)
-      : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRowInfo, uvColumnInfo);
+      ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
+      : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
@@ -60,10 +60,10 @@ export class TiledSpriteAssembler {
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
-        const rowForm = uvRowInfo.get(2 * i);
-        const rowTo = uvRowInfo.get(2 * i + 1);
-        const colFrom = uvColumnInfo.get(doubleJ);
-        const colTo = uvColumnInfo.get(doubleJ + 1);
+        const rowForm = uvRow.get(2 * i);
+        const rowTo = uvRow.get(2 * i + 1);
+        const colFrom = uvColumn.get(doubleJ);
+        const colTo = uvColumn.get(doubleJ + 1);
         if (isNaN(rowForm) || isNaN(rowTo) || isNaN(colFrom) || isNaN(colTo)) {
           continue;
         }
@@ -343,8 +343,7 @@ export class TiledSpriteAssembler {
           uvRow.add(2), uvRow.add(1);
         }
         posRow.add(width - fixedR), posRow.add(width - expectWidth * (1 - right));
-        // uvRow.add((spriteUV2.x - spriteUV1.x) * (rRepeatCount - countInteger) + spriteUV1.x);
-        uvRow.add(2);
+        uvRow.add(2 + rRepeatCount - countInteger);
         uvRow.add(2), uvRow.add(3);
         break;
       default:
@@ -372,8 +371,7 @@ export class TiledSpriteAssembler {
           uvColumn.add(2), uvColumn.add(1);
         }
         posColumn.add(height - fixedT), posColumn.add(height - expectHeight * (1 - top));
-        // uvColumn.add((spriteUV2.y - spriteUV1.y) * (cRepeatCount - countInteger) + spriteUV1.y);
-        uvColumn.add(2);
+        uvRow.add(2 + rRepeatCount - countInteger);
         uvColumn.add(2), uvColumn.add(3);
         break;
       default:
