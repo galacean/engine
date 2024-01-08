@@ -44,18 +44,6 @@ Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) 
   const filePath = path.join(downloadsFolder, imageName);
   const startTime = performance.now();
   cy.log(`start time !!:${startTime}`);
-  cy.get("#test1").then(() => {
-    const timeout = performance.now() - startTime;
-    if (timeout > 10000) {
-      throw `test1 timeout!!!${timeout}`;
-    }
-  });
-  cy.get("#test2").then(() => {
-    const timeout = performance.now() - startTime;
-    if (timeout > 10000) {
-      throw `test2 timeout!!!${timeout}`;
-    }
-  });
   cy.get("#screenshot")
     .click({ force: true })
     .then(() => {
