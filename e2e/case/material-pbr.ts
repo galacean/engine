@@ -52,7 +52,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     engine.resourceManager
       .load<AmbientLight>({
         type: AssetType.Env,
-        url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
+        url: "https://gw.alipayobjects.com/os/bmw-prod/f369110c-0e33-47eb-8296-756e9c80f254.bin"
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
