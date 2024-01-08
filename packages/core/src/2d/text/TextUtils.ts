@@ -27,7 +27,7 @@ export class TextUtils {
   // _extendHeight used to extend the height of canvas, because in miniprogram performance is different from h5.
   /** @internal */
   static _extendHeight: number = 0;
-  /** These characters are all tall to dhelp calculate the height required for text. */
+  /** These characters are all tall to help calculate the height required for text. */
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
   private static _heightMultiplier: number = 2;
