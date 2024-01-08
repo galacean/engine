@@ -1,5 +1,5 @@
 describe("Material", () => {
-  it.only("PBR", () => {
+  it("PBR", () => {
     cy.screenshotWithThreshold("Material", "material-pbr", 0.2);
   });
 
