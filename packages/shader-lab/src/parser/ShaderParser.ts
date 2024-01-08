@@ -15,7 +15,7 @@ export class ShaderParser extends CstParser {
   }
 
   parse(text: string) {
-    const source = ShaderFactory.parseIncludes(text);
+    const source = ShaderFactory.parseIncludes(text, /^[ \t]*#include +"([\w\d.]+)"/gm);
 
     const lexingResult = this.lexer.tokenize(source);
     this.input = lexingResult.tokens;

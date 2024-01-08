@@ -18,9 +18,7 @@ export class ShaderFactory {
     ShaderLib[includeName] = includeSource;
   }
 
-  static parseIncludes(src: string) {
-    const regex = /^[ \t]*#include +<([\w\d.]+)>/gm;
-
+  static parseIncludes(src: string, regex = /^[ \t]*#include +<([\w\d.]+)>/gm) {
     function replace(match, slice) {
       var replace = ShaderLib[slice];
 
