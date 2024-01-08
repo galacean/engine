@@ -400,7 +400,7 @@ export class TextUtils {
 
     if (top !== -1 && bottom !== -1) {
       ascent = baseline - top;
-      // baseline belong to descent.
+      // Baseline belong to descent
       descent = bottom - baseline + 1;
       size = ascent + descent;
     }
