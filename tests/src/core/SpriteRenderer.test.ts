@@ -336,7 +336,6 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updatePositions(spriteRenderer);
     // @ts-ignore
     spriteRenderer._assembler.updateUVs(spriteRenderer);
-    console.log('renderData.positions', renderData.positions);
     expect(Vector3.equals(renderData.positions[0], new Vector3(0, 0, 0))).to.eq(true);
     expect(Vector3.equals(renderData.positions[1], new Vector3(1, 0, 0))).to.eq(true);
     expect(Vector3.equals(renderData.positions[2], new Vector3(0, 0.8999999999999999, 0))).to.eq(true);
@@ -417,7 +416,6 @@ describe("SpriteRenderer", async () => {
     expect(Vector2.equals(renderData.uvs[37], new Vector2(1, 0.3))).to.eq(true);
     expect(Vector2.equals(renderData.uvs[38], new Vector2(0.5, 0))).to.eq(true);
     expect(Vector2.equals(renderData.uvs[39], new Vector2(1, 0))).to.eq(true);
-    return;
 
     spriteRenderer.tileMode = SpriteTileMode.Adaptive;
     // @ts-ignore

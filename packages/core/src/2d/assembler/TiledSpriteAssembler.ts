@@ -341,7 +341,7 @@ export class TiledSpriteAssembler {
           uvRow.add(2), uvRow.add(1);
         }
         posRow.add(width - fixedR), posRow.add(width - expectWidth * (1 - right));
-        uvRow.add(2 + rRepeatCount - countInteger), uvRow.add(2), uvRow.add(3);
+        uvRow.add(1 + rRepeatCount - countInteger), uvRow.add(2), uvRow.add(3);
         break;
       default:
         break;
@@ -368,7 +368,7 @@ export class TiledSpriteAssembler {
           uvColumn.add(2), uvColumn.add(1);
         }
         posColumn.add(height - fixedT), posColumn.add(height - expectHeight * (1 - top));
-        uvColumn.add(2 + rRepeatCount - countInteger), uvColumn.add(2), uvColumn.add(3);
+        uvColumn.add(1 + cRepeatCount - countInteger), uvColumn.add(2), uvColumn.add(3);
         break;
       default:
         break;
@@ -387,8 +387,8 @@ export class TiledSpriteAssembler {
     rightTop: Vector2
   ): void {
     leftBottom.copyFrom(uvs[rowFrom + colFrom * 4]);
-    const rowToInteger = rowTo | 0;
-    const colToInteger = colTo | 0;
+    const rowToInteger = rowTo % 1;
+    const colToInteger = colTo % 1;
     Vector2.lerp(uvs[Math.floor(rowTo) + colFrom * 4], uvs[Math.ceil(rowTo) + colFrom * 4], rowToInteger, rightBottom);
     Vector2.lerp(uvs[rowFrom + Math.floor(colTo) * 4], uvs[rowFrom + Math.ceil(colTo) * 4], colToInteger, leftTop);
     Vector2.add(rightBottom, leftTop, rightTop);
