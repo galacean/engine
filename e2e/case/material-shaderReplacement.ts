@@ -5,14 +5,11 @@
 import {
   AmbientLight,
   AssetType,
-  BackgroundMode,
   Camera,
   DirectLight,
   GLTFResource,
   Logger,
-  PrimitiveMesh,
   Shader,
-  SkyBoxMaterial,
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
@@ -48,15 +45,6 @@ async function main() {
   cameraEntity.transform.setPosition(0, 0, 5);
   const camera = cameraEntity.addComponent(Camera);
 
-  // Create sky
-  const background = scene.background;
-  background.mode = BackgroundMode.Sky;
-
-  const sky = background.sky;
-  const skyMaterial = new SkyBoxMaterial(engine);
-  sky.material = skyMaterial;
-  sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-
   engine.resourceManager
     .load([
       {
@@ -80,8 +68,6 @@ async function main() {
       // Add ambient light
       const ambientLight = <AmbientLight>resources[0];
       scene.ambientLight = ambientLight;
-      skyMaterial.texture = ambientLight.specularTexture;
-      skyMaterial.textureDecodeRGBM = true;
 
       // Add helmet model
       const glTFResourceHelmet = <GLTFResource>resources[1];
