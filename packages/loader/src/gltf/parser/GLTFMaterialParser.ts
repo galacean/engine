@@ -160,7 +160,7 @@ export class GLTFMaterialParser extends GLTFParser {
     const materialInfo = context.glTF.materials[index];
     const glTFResource = context.glTFResource;
     const engine = glTFResource.engine;
-
+    return Promise.resolve(new PBRMaterial(engine));
     let material = <Material | Promise<Material>>(
       GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
     );

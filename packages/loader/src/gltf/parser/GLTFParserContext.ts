@@ -112,13 +112,12 @@ export class GLTFParserContext {
         this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
-        // this.get<Entity>(GLTFParserType.Scene)
+        this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
         const glTFResource = this.glTFResource;
         if (glTFResource.skins || glTFResource.animations) {
           this._createAnimator(this, glTFResource.animations);
         }
-        glTFResource._defaultSceneRoot = new Entity(this.resourceManager.engine);
         this.resourceManager.addContentRestorer(this.contentRestorer);
         return glTFResource;
       });
