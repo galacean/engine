@@ -1,4 +1,5 @@
 import { Utils } from "@galacean/engine-core";
+import { expect } from "chai"
 
 describe("Transform test", function () {
   it("is absolute", () => {
