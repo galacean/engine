@@ -136,9 +136,9 @@ export class GLTFSceneParser extends GLTFParser {
     for (let i = 0; i < glTFMeshPrimitives.length; i++) {
       const glTFPrimitive = glTFMeshPrimitives[i];
       const materialIndex = glTFPrimitive.material;
-      if(meshID>10){
-        continue;
-      }
+      // if(meshID>10){
+      //   continue;
+      // }
       promises.push(
         Promise.all([
           context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),

@@ -45,7 +45,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     engine.resourceManager
       .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf")
       .then((gltf) => {
-        const { defaultSceneRoot } = gltf;
+        const { defaultSceneRoot, entities } = gltf;
+        entities.forEach((entity, i) => {
+          if (i > 10) {
+            entity.isActive = false;
+          }
+        });
         rootEntity.addChild(defaultSceneRoot);
         defaultSceneRoot.transform.setScale(100, 100, 100);
       }),
