@@ -46,12 +46,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   console.time("start")
   Promise.all([
     engine.resourceManager
-      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf")
+      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/8d36415b-5905-461f-9336-68a23d41518e.gltf")
       .then((gltf) => {
         console.timeEnd("load glTF")
         const { defaultSceneRoot } = gltf;
         rootEntity.addChild(defaultSceneRoot);
-        defaultSceneRoot.transform.setScale(100, 100, 100);
       }),
     engine.resourceManager
       .load<AmbientLight>({
