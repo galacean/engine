@@ -11,5 +11,13 @@ describe("Transform test", function () {
     expect(Utils.resolveAbsoluteUrl("https://www.galacean.com", "test.png")).to.equal(
       "https://www.galacean.com/test.png"
     );
+
+    expect(Utils.resolveAbsoluteUrl("https://www.galacean.com/", "/test.png")).to.equal(
+      "https://www.galacean.com/test.png"
+    );
+
+    expect(Utils.resolveAbsoluteUrl("https://www.galacean.com", "/test.png")).to.equal(
+      "https://www.galacean.com/test.png"
+    );
   });
 });
