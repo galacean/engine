@@ -87,7 +87,7 @@ describe("camera test", function () {
   it("static void function", () => {
     // Test that restore the automatic calculation of projection matrix.
     camera.resetProjectionMatrix();
-    expect(camera["_isProjMatSetting"]).to.eq(false);
+    expect(camera["_isCustomProjectionMatrix"]).to.eq(false);
 
     // Test that restore the automatic calculation of the aspect ratio.
     camera.resetAspectRatio();
