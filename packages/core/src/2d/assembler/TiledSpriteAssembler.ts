@@ -36,7 +36,7 @@ export class TiledSpriteAssembler {
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
-    const spriteUVs = sprite._getUVs();
+    const spUVs = sprite._getUVs();
     // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = TiledSpriteAssembler;
     const { elements: wE } = worldMatrix;
@@ -60,11 +60,11 @@ export class TiledSpriteAssembler {
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
-        const rowForm = uvRow.get(2 * i);
-        const rowTo = uvRow.get(2 * i + 1);
-        const colFrom = uvColumn.get(doubleJ);
-        const colTo = uvColumn.get(doubleJ + 1);
-        if (isNaN(rowForm) || isNaN(rowTo) || isNaN(colFrom) || isNaN(colTo)) {
+        const rFrom = uvRow.get(2 * i);
+        const rTo = uvRow.get(2 * i + 1);
+        const cFrom = uvColumn.get(doubleJ);
+        const cTo = uvColumn.get(doubleJ + 1);
+        if (isNaN(rFrom) || isNaN(rTo) || isNaN(cFrom) || isNaN(cTo)) {
           continue;
         }
         triangles[trianglesOffset++] = count;
@@ -73,56 +73,50 @@ export class TiledSpriteAssembler {
         triangles[trianglesOffset++] = count + 2;
         triangles[trianglesOffset++] = count + 1;
         triangles[trianglesOffset++] = count + 3;
+
+        // left and bottom
+        const LBPos = (positions[count] ||= new Vector3());
+        const LBUV = (uvs[count] ||= new Vector2());
+        count++;
+        // right and bottom
+        const RBPos = (positions[count] ||= new Vector3());
+        const RBUV = (uvs[count] ||= new Vector2());
+        count++;
+        // left and top
+        const LTPos = (positions[count] ||= new Vector3());
+        const LTUV = (uvs[count] ||= new Vector2());
+        count++;
+        // right and top
+        const RTPos = (positions[count] ||= new Vector3());
+        const RTUV = (uvs[count] ||= new Vector2());
+        count++;
+
+        // update position
         const l = posRow.get(i);
         const b = posColumn.get(j);
         const r = posRow.get(i + 1);
         const t = posColumn.get(j + 1);
+        LBPos.set(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
+        RBPos.set(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
+        LTPos.set(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
+        RTPos.set(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
 
-        TiledSpriteAssembler._getCorners(
-          spriteUVs,
-          rowForm,
-          rowTo,
-          colFrom,
-          colTo,
-          (uvs[count] ||= new Vector2()),
-          (uvs[count + 1] ||= new Vector2()),
-          (uvs[count + 2] ||= new Vector2()),
-          (uvs[count + 3] ||= new Vector2())
-        );
-        let pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
+        // update uv
+        LBUV.copyFrom(spUVs[rFrom + cFrom * 4]);
+        const rowToInteger = rTo % 1;
+        const colToInteger = cTo % 1;
+        if (rowToInteger) {
+          Vector2.lerp(spUVs[Math.floor(rTo) + cFrom * 4], spUVs[Math.ceil(rTo) + cFrom * 4], rowToInteger, RBUV);
         } else {
-          positions[count] = new Vector3(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
+          RBUV.copyFrom(spUVs[rTo + cFrom * 4]);
         }
-        count++;
-
-        // right and bottom
-        pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
+        if (colToInteger) {
+          Vector2.lerp(spUVs[rFrom + Math.floor(cTo) * 4], spUVs[rFrom + Math.ceil(cTo) * 4], colToInteger, LTUV);
         } else {
-          positions[count] = new Vector3(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
+          LTUV.copyFrom(spUVs[rFrom + cTo * 4]);
         }
-        count++;
-
-        // left and top
-        pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
-        } else {
-          positions[count] = new Vector3(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
-        }
-        count++;
-
-        // right and top
-        pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
-        } else {
-          positions[count] = new Vector3(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
-        }
-        count++;
+        Vector2.add(RBUV, LTUV, RTUV);
+        RTUV.subtract(LBUV);
       }
     }
 
@@ -373,26 +367,6 @@ export class TiledSpriteAssembler {
       default:
         break;
     }
-  }
-
-  private static _getCorners(
-    uvs: Vector2[],
-    rowFrom: number,
-    rowTo: number,
-    colFrom: number,
-    colTo: number,
-    leftBottom: Vector2,
-    rightBottom: Vector2,
-    leftTop: Vector2,
-    rightTop: Vector2
-  ): void {
-    leftBottom.copyFrom(uvs[rowFrom + colFrom * 4]);
-    const rowToInteger = rowTo % 1;
-    const colToInteger = colTo % 1;
-    Vector2.lerp(uvs[Math.floor(rowTo) + colFrom * 4], uvs[Math.ceil(rowTo) + colFrom * 4], rowToInteger, rightBottom);
-    Vector2.lerp(uvs[rowFrom + Math.floor(colTo) * 4], uvs[rowFrom + Math.ceil(colTo) * 4], colToInteger, leftTop);
-    Vector2.add(rightBottom, leftTop, rightTop);
-    rightTop.subtract(leftBottom);
   }
 }
 
