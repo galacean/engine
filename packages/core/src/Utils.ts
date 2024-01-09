@@ -44,7 +44,7 @@ export class Utils {
    * @returns Whether the url is absolute url.
    */
   static isAbsoluteUrl(url: string): boolean {
-    return /^(?:http|blob|data:|\/)/.test(url);
+    return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
   }
 
   /**
@@ -65,7 +65,7 @@ export class Utils {
       return relativeUrl;
     }
 
-    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + this._formatRelativePath(relativeUrl);
+    return relativeUrl ? baseUrl.replace(/\/+$/, '') + '/' + relativeUrl.replace(/^\/+/, '') : baseUrl
   }
 
   /**
