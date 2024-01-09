@@ -48,6 +48,15 @@ export class Utils {
   }
 
   /**
+   * Judge whether the url is base64 url.
+   * @param url - The url to be judged.
+   * @returns Whether the url is base64 url.
+   */
+  static isBase64Url(url: string): boolean {
+    return /^data:.*,.*$/i.test(url);
+  }
+
+  /**
    * Get the values of an object.
    */
   static objectValues(obj: any) {
@@ -62,6 +71,10 @@ export class Utils {
    */
   static resolveAbsoluteUrl(baseUrl: string, relativeUrl: string): string {
     if (Utils.isAbsoluteUrl(relativeUrl)) {
+      return relativeUrl;
+    }
+
+    if (Utils.isBase64Url(relativeUrl)) {
       return relativeUrl;
     }
 

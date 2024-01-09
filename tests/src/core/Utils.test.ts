@@ -1,5 +1,5 @@
 import { Utils } from "@galacean/engine-core";
-import { expect } from "chai"
+import { expect } from "chai";
 
 describe("Transform test", function () {
   it("is absolute", () => {
@@ -19,5 +19,8 @@ describe("Transform test", function () {
     expect(Utils.resolveAbsoluteUrl("https://www.galacean.com", "/test.png")).to.equal(
       "https://www.galacean.com/test.png"
     );
+
+    const base64Url = "data:application/octet-stream;base64,AAAAAImICD2JiIg9zczMPYmICD6rqio";
+    expect(Utils.resolveAbsoluteUrl("https://www.galacean.com", base64Url)).to.equal(base64Url);
   });
 });
