@@ -223,6 +223,12 @@ describe("InputManager", async () => {
     expect(inputManager._wheelManager._hadListener).to.eq(true);
     // @ts-ignore
     expect(inputManager._keyboardManager._hadListener).to.eq(true);
+
+    engine.update();
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    window.dispatchEvent(new Event("blur"));
+    engine.update();
+    expect(inputManager.pointers.length).to.eq(0);
   });
 
   it("destroy", () => {
