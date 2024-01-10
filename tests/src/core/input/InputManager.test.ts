@@ -226,9 +226,13 @@ describe("InputManager", async () => {
 
     engine.update();
     canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    canvasDOM.dispatchEvent(generateWheelEvent(1, 1, 1));
     window.dispatchEvent(new Event("blur"));
     engine.update();
     expect(inputManager.pointers.length).to.eq(0);
+    expect(inputManager.isKeyDown()).to.eq(false);
+    expect(inputManager.wheelDelta).to.deep.eq(new Vector3(0, 0, 0));
   });
 
   it("destroy", () => {
