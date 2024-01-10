@@ -17,7 +17,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
     }).then((data) => {
       switch (data.type) {
         case PrimitiveMeshType.Sphere:
-          return PrimitiveMesh.createSphere(engine, data.sphereRadius, data.sphereSegments);
+          return PrimitiveMesh.createSubdivisionSurfaceSphere(engine, data.sphereRadius, data.sphereStep);
         case PrimitiveMeshType.Capsule:
           return PrimitiveMesh.createCapsule(
             engine,
@@ -82,7 +82,7 @@ enum PrimitiveMeshType {
 type IPrimitiveMesh = {
   type: PrimitiveMeshType;
   sphereRadius: number;
-  sphereSegments: number;
+  sphereStep: number;
   capsuleRadius: number;
   capsuleHeight: number;
   capsuleRadialSegments: number;
