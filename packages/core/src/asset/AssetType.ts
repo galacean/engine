@@ -39,6 +39,8 @@ export enum AssetType {
   KTX2 = "KTX2",
   /** Sprite. */
   Sprite = "Sprite",
+  /** PrimitiveMesh. */
+  PrimitiveMesh = "PrimitiveMesh",
   /** Sprite Atlas. */
   SpriteAtlas = "SpriteAtlas",
   /** Ambient light. */
