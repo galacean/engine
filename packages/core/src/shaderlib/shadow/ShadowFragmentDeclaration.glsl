@@ -73,6 +73,13 @@
         }
     #endif
 
+
+    #ifdef SCENE_SHADOW_FADE
+        uniform vec4 scene_ShadowFadeCenterAndType;
+        uniform vec4 scene_ShadowFadeInfo;
+    #endif
+   
+
     float sampleShadowMap() {
         #if SCENE_SHADOW_CASCADED_COUNT == 1
             vec3 shadowCoord = v_shadowCoord;
@@ -93,7 +100,14 @@
         #if SCENE_SHADOW_TYPE == 3
             attenuation = sampleShadowMapFiltered9(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
-            attenuation = mix(1.0, attenuation, scene_ShadowInfo.x);
+
+        float shadowFade = 0.0;
+        #ifdef SCENE_SHADOW_FADE
+            float fadeDistance = distance(v_pos, scene_ShadowFadeCenterAndType.xyz);
+            shadowFade = saturate(fadeDistance * scene_ShadowFadeInfo.x + scene_ShadowFadeInfo.y);
+        #endif
+
+        attenuation = mix(1.0, saturate(attenuation + shadowFade), scene_ShadowInfo.x);
         }
         return attenuation;
     }
