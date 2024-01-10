@@ -67,6 +67,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
   }
 }
 
+/** @internal */
 enum PrimitiveMeshType {
   Sphere = "sphere",
   Cuboid = "cuboid",
@@ -77,6 +78,7 @@ enum PrimitiveMeshType {
   Capsule = "capsule"
 }
 
+/** @internal */
 type IPrimitiveMesh = {
   type: PrimitiveMeshType;
   sphereRadius: number;
