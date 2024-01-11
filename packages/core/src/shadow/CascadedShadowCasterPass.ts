@@ -117,9 +117,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     if (light) {
       const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
       this._getCascadesSplitDistance(shadowFar);
-      if (scene.shadowFade) {
-        this._updateShadowFadeInfo(camera, shadowFar, this._shadowFadeCenterAndType, this._shadowFadeInfo);
-      }
 
       // Prepare render target
       const { z: width, w: height } = this._shadowMapSize;
@@ -250,6 +247,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
           alphaTestQueue.render(camera, Layer.Everything, PipelineStage.ShadowCaster);
           rhi.setGlobalDepthBias(0, 0);
         }
+      }
+      if (scene.shadowFade) {
+        const shadowFar = shadowSliceData.sphereCenterZ + shadowSliceData.splitBoundSphere.radius;
+        this._updateShadowFadeInfo(camera, shadowFar, this._shadowFadeCenterAndType, this._shadowFadeInfo);
       }
       this._existShadowMap = true;
     }
@@ -418,10 +419,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
     const shadowFadeSphereStart = scene.shadowFadeSphereStart;
     const fadeSphereRadius = shadowFar - fadeCenterOffset;
-    // (x = fadeCenterOffset + fadeSphereRadius * shadowFadeSphereStart, y = 0),  (x = far, y = 1)
-    const fadeStartFromCamera = fadeCenterOffset + fadeSphereRadius * shadowFadeSphereStart;
-    const slope = 1 / (shadowFar - fadeStartFromCamera);
-    const delta = -fadeStartFromCamera * slope;
+    // (x = fadeSphereRadius * shadowFadeSphereStart, y = 0),  (x = far, y = 1)
+    const fadeStartFromCenter = fadeSphereRadius * shadowFadeSphereStart;
+    const slope = 1 / (fadeSphereRadius - fadeStartFromCenter);
+    const delta = -fadeStartFromCenter * slope;
     outFadeInfo.x = slope;
     outFadeInfo.y = delta;
   }
