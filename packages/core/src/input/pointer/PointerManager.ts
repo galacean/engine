@@ -132,6 +132,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
+      this._nativeEvents.length = 0;
       this._downList.length = 0;
       this._upList.length = 0;
       const { _pointers: pointers } = this;
