@@ -23,16 +23,6 @@ export interface IKHRLightsPunctual {
 }
 
 /**
- * Interfaces from the KHR_draco_mesh_compression extension
- */
-export interface IKHRDracoMeshCompression {
-  bufferView: number;
-  attributes: {
-    [name: string]: number;
-  };
-}
-
-/**
  * Interfaces from the KHR_materials_clearcoat extension
  */
 export interface IKHRMaterialsClearcoat {
@@ -162,6 +152,16 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
+export interface IEXTMeshoptCompressionSchema {
+  buffer: number;
+  byteOffset?: number;
+  byteLength: number;
+  byteStride: number;
+  mode: "ATTRIBUTES" | "TRIANGLES" | "INDICES";
+  count: number;
+  filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
+}
+
 export interface IGalaceanMaterialRemap {
   refId: string;
   key?: string;
@@ -178,7 +178,6 @@ export interface IGalaceanAnimation {
 
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
-  | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit

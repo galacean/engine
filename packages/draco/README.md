@@ -1,1 +1,0 @@
-A subpackage of `@galacean/engine`.

@@ -1,9 +1,36 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  AssetType,
+  Engine,
+  EngineConfiguration,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager
+} from "@galacean/engine-core";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
+import { MeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
+  /**
+   * Release glTF loader memory(includes meshopt workers).
+   * @remarks If use loader after releasing, we should release again.
+   */
+  static release(): void {
+    MeshoptDecoder.release();
+  }
+
+  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
+    const meshOptOptions = configuration.glTF?.meshOpt;
+    if (meshOptOptions) {
+      MeshoptDecoder.workerCount = meshOptOptions.workerCount;
+      MeshoptDecoder.useWorkers();
+    }
+    return Promise.resolve();
+  }
+
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
     const params = <GLTFParams>item.params;

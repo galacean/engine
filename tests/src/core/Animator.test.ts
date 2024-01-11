@@ -1,15 +1,17 @@
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import {
+  AnimationEvent,
   Animator,
   AnimatorControllerLayer,
   AnimatorLayerBlendingMode,
   AnimatorLayerMask,
   AnimatorStateMachine,
   AnimatorStateTransition,
-  Camera
+  Camera,
+  Script
 } from "@galacean/engine-core";
-import { Quaternion } from "@galacean/engine-math";
 import { GLTFResource } from "@galacean/engine-loader";
+import { Quaternion } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 import { glbResource } from "./model/fox";
@@ -271,5 +273,24 @@ describe("Animator test", function () {
     expect(layerCurveOwner.isActive).to.eq(false);
     expect(parentLayerCurveOwner.isActive).to.eq(true);
     expect(childLayerCurveOwner.isActive).to.eq(false);
+  });
+  it("animation event", () => {
+    animator.play("Walk");
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+    TestScript.prototype.event0 = chai.spy(TestScript.prototype.event0);
+
+    animator.entity.addComponent(TestScript);
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+
+    const state = animator.findAnimatorState("Walk");
+    state.clip.addEvent(event0);
+    animator.update(10);
+    expect(TestScript.prototype.event0).to.have.been.called.exactly(1);
   });
 });

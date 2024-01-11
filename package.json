@@ -56,12 +56,12 @@
     "rollup-plugin-swc3": "^0.10.1",
     "ts-node": "^10",
     "typescript": "^5.1.6",
+    "@types/webxr": "latest",
     "husky": "^8.0.0",
     "fs-extra": "^10.1.0",
     "cypress": "^12.17.1",
     "cypress-recurse": "^1.23.0",
-    "odiff-bin": "^2.5.0",
-    "@types/webxr": "latest"
+    "odiff-bin": "^2.5.0"
   },
   "lint-staged": {
     "*.{ts}": [
