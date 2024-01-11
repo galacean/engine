@@ -243,7 +243,7 @@ describe("TextRenderer", () => {
     textRenderer.verticalAlignment = TextVerticalAlignment.Top;
     textRenderer.horizontalAlignment = TextHorizontalAlignment.Left;
     BoundingBox.transform(
-      new BoundingBox(new Vector3(-1.5, 1.28, 0), new Vector3(1.39, 1.5, 0)),
+      new BoundingBox(new Vector3(-1.5, 1.27, 0), new Vector3(1.39, 1.5, 0)),
       textRendererEntity.transform.worldMatrix,
       box
     );

@@ -10,6 +10,7 @@ import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
+import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -63,6 +64,8 @@ export class Camera extends Component {
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
 
   /** @internal */
+  _cameraType: CameraType = CameraType.Normal;
+  /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   @deepClone
@@ -83,20 +86,20 @@ export class Camera extends Component {
 
   private _priority: number = 0;
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
-  private _isProjMatSetting = false;
+  private _isCustomViewMatrix = false;
+  private _isCustomProjectionMatrix = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
   private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
   private _isProjectionDirty = true;
   private _isInvProjMatDirty: boolean = true;
-  private _isFrustumProjectDirty: boolean = true;
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
 
   @ignoreClone
-  private _frustumViewChangeFlag: BoolUpdateFlag;
+  private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
   private _transform: Transform;
   @ignoreClone
@@ -128,7 +131,7 @@ export class Camera extends Component {
 
   set nearClipPlane(value: number) {
     this._nearClipPlane = value;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -140,7 +143,7 @@ export class Camera extends Component {
 
   set farClipPlane(value: number) {
     this._farClipPlane = value;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -152,7 +155,7 @@ export class Camera extends Component {
 
   set fieldOfView(value: number) {
     this._fieldOfView = value;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -166,7 +169,7 @@ export class Camera extends Component {
 
   set aspectRatio(value: number) {
     this._customAspectRatio = value;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -217,7 +220,7 @@ export class Camera extends Component {
 
   set isOrthographic(value: boolean) {
     this._virtualCamera.isOrthographic = value;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -229,7 +232,7 @@ export class Camera extends Component {
 
   set orthographicSize(value: number) {
     this._orthographicSize = value;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -237,34 +240,38 @@ export class Camera extends Component {
    */
   get viewMatrix(): Readonly<Matrix> {
     const viewMatrix = this._virtualCamera.viewMatrix;
-    if (this._isViewMatrixDirty.flag) {
-      this._isViewMatrixDirty.flag = false;
-      // Ignore scale.
-      const transform = this._transform;
-      Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
-      viewMatrix.invert();
+
+    if (!this._isViewMatrixDirty.flag || this._isCustomViewMatrix) {
+      return viewMatrix;
     }
+    this._isViewMatrixDirty.flag = false;
+
+    // Ignore scale
+    const transform = this._transform;
+    Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
+    viewMatrix.invert();
     return viewMatrix;
+  }
+
+  set viewMatrix(value: Matrix) {
+    this._virtualCamera.viewMatrix.copyFrom(value);
+    this._isCustomViewMatrix = true;
+    this._viewMatrixChange();
   }
 
   /**
    * The projection matrix is ​​calculated by the relevant parameters of the camera by default.
    * If it is manually set, the manual value will be maintained. Call resetProjectionMatrix() to restore it.
    */
-  set projectionMatrix(value: Matrix) {
-    this._virtualCamera.projectionMatrix.copyFrom(value);
-    this._isProjMatSetting = true;
-    this._projMatChange();
-  }
-
-  get projectionMatrix(): Matrix {
+  get projectionMatrix(): Readonly<Matrix> {
     const virtualCamera = this._virtualCamera;
     const projectionMatrix = virtualCamera.projectionMatrix;
 
-    if (!this._isProjectionDirty || this._isProjMatSetting) {
+    if (!this._isProjectionDirty || this._isCustomProjectionMatrix) {
       return projectionMatrix;
     }
     this._isProjectionDirty = false;
+
     const aspectRatio = this.aspectRatio;
     if (!virtualCamera.isOrthographic) {
       Matrix.perspective(
@@ -280,6 +287,12 @@ export class Camera extends Component {
       Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, projectionMatrix);
     }
     return projectionMatrix;
+  }
+
+  set projectionMatrix(value: Matrix) {
+    this._virtualCamera.projectionMatrix.copyFrom(value);
+    this._isCustomProjectionMatrix = true;
+    this._projectionMatrixChange();
   }
 
   /**
@@ -321,7 +334,7 @@ export class Camera extends Component {
     this._transform = transform;
     this._isViewMatrixDirty = transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = transform.registerWorldChangeFlag();
-    this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
+    this._frustumChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
     this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
@@ -333,11 +346,19 @@ export class Camera extends Component {
   }
 
   /**
+   * Restore the view matrix to the world matrix of the entity.
+   */
+  resetViewMatrix(): void {
+    this._isCustomViewMatrix = false;
+    this._viewMatrixChange();
+  }
+
+  /**
    * Restore the automatic calculation of projection matrix through fieldOfView, nearClipPlane and farClipPlane.
    */
   resetProjectionMatrix(): void {
-    this._isProjMatSetting = false;
-    this._projMatChange();
+    this._isCustomProjectionMatrix = false;
+    this._projectionMatrixChange();
   }
 
   /**
@@ -345,7 +366,7 @@ export class Camera extends Component {
    */
   resetAspectRatio(): void {
     this._customAspectRatio = undefined;
-    this._projMatChange();
+    this._projectionMatrixChange();
   }
 
   /**
@@ -505,10 +526,9 @@ export class Camera extends Component {
     context.replacementTag = this._replacementSubShaderTag;
 
     // compute cull frustum.
-    if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
+    if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
       this._frustum.calculateFromMatrix(virtualCamera.viewProjectionMatrix);
-      this._frustumViewChangeFlag.flag = false;
-      this._isFrustumProjectDirty = false;
+      this._frustumChangeFlag.flag = false;
     }
 
     this._updateShaderData();
@@ -524,7 +544,11 @@ export class Camera extends Component {
       mipLevel = 0;
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel);
+    let clearMask: CameraClearFlags;
+    if (this._cameraType !== CameraType.Normal) {
+      clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
+    }
+    this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);
     this._engine._renderCount++;
   }
 
@@ -599,7 +623,7 @@ export class Camera extends Component {
     this._renderPipeline = null;
     this._virtualCamera = null;
     this._shaderData = null;
-    this._frustumViewChangeFlag = null;
+    this._frustumChangeFlag = null;
     this._transform = null;
     this._isViewMatrixDirty = null;
     this._isInvViewProjDirty = null;
@@ -625,11 +649,17 @@ export class Camera extends Component {
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
   }
 
-  private _projMatChange(): void {
-    this._isFrustumProjectDirty = true;
+  private _viewMatrixChange(): void {
+    this._isViewMatrixDirty.flag = true;
+    this._isInvViewProjDirty.flag = true;
+    this._frustumChangeFlag.flag = true;
+  }
+
+  private _projectionMatrixChange(): void {
     this._isProjectionDirty = true;
     this._isInvProjMatDirty = true;
     this._isInvViewProjDirty.flag = true;
+    this._frustumChangeFlag.flag = true;
   }
 
   private _innerViewportToWorldPoint(x: number, y: number, z: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
@@ -681,6 +711,6 @@ export class Camera extends Component {
   @ignoreClone
   private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
-    this._customAspectRatio ?? this._projMatChange();
+    this._customAspectRatio ?? this._projectionMatrixChange();
   }
 }

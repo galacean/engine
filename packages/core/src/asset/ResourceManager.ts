@@ -34,6 +34,8 @@ export class ResourceManager {
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
+  /** Base url for loading assets. */
+  baseUrl: string | null = null;
 
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
@@ -313,7 +315,10 @@ export class ResourceManager {
 
     // Check url mapping
     const itemURL = item.url;
-    const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
+    let url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
+
+    // Not absolute and base url is set
+    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
 
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);

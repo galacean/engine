@@ -1,3 +1,5 @@
+import { Layer } from "@galacean/engine-core";
+
 export interface IVector3 {
   x: number;
   y: number;
@@ -38,6 +40,7 @@ export interface IBasicEntity {
   scale?: IVector3;
   children?: Array<string>;
   parent?: string;
+  layer?: Layer;
 }
 
 export type IEntity = IBasicEntity | IRefEntity | IStrippedEntity;

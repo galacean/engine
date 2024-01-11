@@ -85,10 +85,6 @@ describe("camera test", function () {
   });
 
   it("static void function", () => {
-    // Test that restore the automatic calculation of projection matrix.
-    camera.resetProjectionMatrix();
-    expect(camera["_isProjMatSetting"]).to.eq(false);
-
     // Test that restore the automatic calculation of the aspect ratio.
     camera.resetAspectRatio();
     expect(camera["_customAspectRatio"]).to.be.undefined;
@@ -265,6 +261,69 @@ describe("camera test", function () {
     // Test reset projection matrix
     camera.projectionMatrix = camera.viewMatrix;
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
+  });
+
+  it("Custom view matrix", () => {
+    const customViewMatrix = new Matrix(0.1, 0.2, 0.3, 0, 0, 0, 1, 0, 1, 0, 0.5, 0, 0, 0, 0, 1);
+    camera.viewMatrix = customViewMatrix;
+    expect(camera.viewMatrix).to.deep.eq(customViewMatrix);
+
+    camera.entity.transform.position = new Vector3(-1, 2, 3);
+    camera.entity.transform.rotation = new Vector3(-20, -40, 0);
+
+    camera.resetViewMatrix();
+    expect(camera.viewMatrix).to.deep.eq(
+      new Matrix(
+        0.7660444378852844,
+        0.21984632313251495,
+        -0.6040228009223938,
+        0,
+        1.2836363083579272e-9,
+        0.9396926164627075,
+        0.3420201241970062,
+        -0,
+        0.6427876353263855,
+        -0.2620026171207428,
+        0.7198463082313538,
+        0,
+        -1.162318468093872,
+        -0.8735310435295105,
+        -3.447601795196533,
+        1
+      )
+    );
+  });
+
+  it("Custom projection matrix", () => {
+    const customProjectionMatrix = new Matrix(0.1, 0.2, 0.3, 0, 0, 0, 1, 0, 1, 0, 0.5, 0, 0, 0, 0, 1);
+    camera.projectionMatrix = customProjectionMatrix;
+    expect(camera.projectionMatrix).to.deep.eq(customProjectionMatrix);
+
+    camera.fieldOfView = 60;
+    camera.nearClipPlane = 0.3;
+    camera.farClipPlane = 1000;
+
+    camera.resetProjectionMatrix();
+    expect(camera.projectionMatrix).to.deep.eq(
+      new Matrix(
+        0.8660253882408142,
+        0,
+        0,
+        0,
+        0,
+        1.7320507764816284,
+        0,
+        0,
+        0,
+        0,
+        -1.0006002187728882,
+        -1,
+        0,
+        0,
+        -0.6001800298690796,
+        0
+      )
+    );
   });
 
   it("destroy test", () => {

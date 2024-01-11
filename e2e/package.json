@@ -1,0 +1,25 @@
+{
+  "name": "@galacean/engine-e2e",
+  "private": true,
+  "version": "1.0.0-alpha.6",
+  "license": "MIT",
+  "scripts": {
+    "case": "vite serve .dev --config .dev/vite.config.js",
+    "b:types": "echo hi"
+  },
+  "files": [],
+  "dependencies": {
+    "@galacean/engine-toolkit": "^1.0.0-beta.1",
+    "@galacean/engine-shader-lab": "workspace:*",
+    "@galacean/engine": "workspace:*",
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*",
+    "@galacean/engine-physics-lite": "workspace:*",
+    "dat.gui": "^0.7.9",
+    "vite": "^3.1.6",
+    "sass": "^1.55.0"
+  }
+}

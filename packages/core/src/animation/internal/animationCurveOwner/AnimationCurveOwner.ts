@@ -27,11 +27,12 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     const assemblerType = subMap ? subMap[property] : undefined;
-    return assemblerType ?? UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
+    return assemblerType ?? UniversalAnimationCurveOwnerAssembler;
   }
 
   readonly target: Entity;
   readonly property: string;
+  readonly getProperty?: string;
   readonly component: Component;
 
   defaultValue: V;
@@ -49,10 +50,12 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     type: new (entity: Entity) => Component,
     component: Component,
     property: string,
+    getProperty: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
     this.property = property;
+    this.getProperty = getProperty;
     this.component = component;
     this.cureType = cureType;
 
@@ -165,7 +168,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       const assembler = this._assembler;
 
       if (cureType._isCopyMode) {
-        const additiveValue = cureType._additiveValue(value, weight, this.referenceTargetValue);
+        cureType._additiveValue(value, weight, this.referenceTargetValue);
       } else {
         const originValue = assembler.getTargetValue();
         const additiveValue = cureType._additiveValue(value, weight, originValue);
