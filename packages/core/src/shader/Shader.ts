@@ -383,11 +383,4 @@ export class Shader implements IReferable {
   static getPropertyByName(name: string): ShaderProperty {
     return ShaderProperty.getByName(name);
   }
-
-  /**
-   * remove from shaderMap
-   */
-  destroy() {
-    delete Shader._shaderMap[this.name];
-  }
 }
