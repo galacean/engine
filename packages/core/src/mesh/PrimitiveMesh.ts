@@ -1180,7 +1180,7 @@ export class PrimitiveMesh {
       const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
-      const curRadius = radius - y * radius;
+      const curRadius = radius - v * radius;
 
       let posX = curRadius * sinTheta;
       let posY = y * unitHeight - halfHeight;
@@ -1360,6 +1360,7 @@ export class PrimitiveMesh {
       radius,
       height,
       radialSegments,
+      thetaStart,
       thetaRange,
       torsoVertexCount,
       1,
@@ -1372,6 +1373,7 @@ export class PrimitiveMesh {
       radius,
       height,
       radialSegments,
+      thetaStart,
       -thetaRange,
       torsoVertexCount + capVertexCount,
       -1,
@@ -1439,7 +1441,8 @@ export class PrimitiveMesh {
     radius: number,
     height: number,
     radialSegments: number,
-    capAlphaRange: number,
+    thetaStart: number,
+    thetaRange: number,
     offset: number,
     posIndex: number,
     vertices: Float32Array,
@@ -1459,13 +1462,13 @@ export class PrimitiveMesh {
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
       const v = y * radialSegmentsReciprocal;
-      const alphaDelta = u * capAlphaRange;
-      const thetaDelta = (v * Math.PI) / 2;
-      const sinTheta = Math.sin(thetaDelta);
+      const theta = thetaStart + u * thetaRange;
+      const alpha = v * Math.PI * 0.5;
+      const sinAlpha = Math.sin(alpha);
 
-      const posX = -radius * Math.cos(alphaDelta) * sinTheta;
-      const posY = radius * Math.cos(thetaDelta) * posIndex + halfHeight;
-      const posZ = radius * Math.sin(alphaDelta) * sinTheta;
+      const posX = radius * Math.sin(theta) * sinAlpha;
+      const posY = radius * Math.cos(alpha) * posIndex + halfHeight;
+      const posZ = radius * Math.cos(theta) * sinAlpha;
 
       let index = (i + offset) * vertexFloatCount;
       // Position
