@@ -38,7 +38,7 @@ export class AstNodeUtils {
     return undefined;
   }
 
-  static defaultVisit(this: ICstVisitor<any, AstNode>, ctx: CstChildrenDictionary, lineOffset: number): ObjectAstNode {
+  static defaultVisit(this: ICstVisitor<any, AstNode>, ctx: CstChildrenDictionary): ObjectAstNode {
     const content = {} as Record<string, AstNode>;
     let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1, index: -1 },
       end: IPosition = { line: 0, character: -1, index: -1 };
