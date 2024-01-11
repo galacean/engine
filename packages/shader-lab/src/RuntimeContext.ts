@@ -24,6 +24,7 @@ import {
 } from "./ast-node";
 import { AstNodeUtils } from "./AstNodeUtils";
 import { RenderStateDataKey } from "@galacean/engine";
+import ParsingContext from "./ParsingContext";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -94,11 +95,17 @@ export default class RuntimeContext {
   private _passGlobalMap: GlobalMap = new Map();
   /** The main function */
   private _currentMainFnAst?: FnAstNode;
+  private _parsingContext: ParsingContext;
+
+  set parsingContext(context: ParsingContext) {
+    this._parsingContext = context;
+  }
 
   addDiagnostic(diagnostic: IDiagnostic) {
-    if (AstNodeUtils.positionOffset && diagnostic.token.start.index >= AstNodeUtils.positionOffset.line) {
-      diagnostic.token.start.line += AstNodeUtils.positionOffset.line;
-      diagnostic.token.end.line += AstNodeUtils.positionOffset.line;
+    let offset = this._parsingContext.getTextLineOffsetAt(diagnostic.token.start.index);
+    if (offset) {
+      diagnostic.token.start.line += offset;
+      diagnostic.token.end.line += offset;
     }
     this._diagnostics.push(diagnostic);
   }

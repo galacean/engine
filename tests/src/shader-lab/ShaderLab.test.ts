@@ -134,10 +134,6 @@ describe("ShaderLab", () => {
     expect(usePass).to.equal("pbr/Default/Forward");
   });
 
-  it("position offset", () => {
-    expect((shaderLab as any).positionOffset).to.eql({ index: 20, line: 8 });
-  });
-
   it("render state", () => {
     expect(pass.renderStates).not.be.null;
 
@@ -233,5 +229,21 @@ describe("ShaderLab", () => {
     shaderInstance.destroy();
     const sameNameShader = Shader.create(demoShader);
     expect(sameNameShader).instanceOf(Shader);
+  });
+
+  it("template shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("diagnostic position", () => {
+    const invalidShader = fs.readFileSync(path.join(__dirname, "shaders/invalid.shader")).toString();
+    try {
+      shaderLab.parseShader(invalidShader);
+    } catch (err) {
+      expect(err).to.have.lengthOf(1);
+      expect(err[0]).to.have.property("token");
+      expect(err[0].token.startLine).to.eql(25);
+    }
   });
 });

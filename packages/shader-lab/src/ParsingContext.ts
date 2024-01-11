@@ -7,9 +7,6 @@ export interface IPositionOffset {
 }
 
 export default class ParsingContext {
-  static editorPropertiesRegex = /EditorProperties\s+\{[^}]*?\}\s*/;
-  static editorMacrosRegex = /EditorMacros\s+\{[^}]*?\}\s*/;
-
   private _parseString: string;
   get parseString(): string {
     return this._parseString;
@@ -24,24 +21,40 @@ export default class ParsingContext {
     return this._positionOffsetList;
   }
 
-  filterString(regex: RegExp) {
-    const matched = this._parseString.match(regex);
-    if (matched) {
-      const index = matched.index;
-      const content = matched[0];
-      let line = 0;
-      for (let i = 0; i < content.length; i++) {
-        if (content.charAt(i) === "\n") line++;
+  balanceGroups(title: string) {
+    let balance = 0;
+    let start = -1;
+    let end = -1;
+    let line = 0;
+    for (let i = 0; i < this._parseString.length; i++) {
+      if (this._parseString.substring(i, i + title.length) === title) {
+        start = i;
       }
-      const curOffset = { index, line };
-      this._positionOffsetList.push(curOffset);
+      if (start < 0) continue;
 
-      this._parseString =
-        this._parseString.slice(0, curOffset.index) + this._parseString.slice(curOffset.index + matched[0].length);
+      if (this._parseString[i] === "{") {
+        balance++;
+      } else if (this._parseString[i] === "}") {
+        if (--balance === 0) {
+          end = i + 1;
+          break;
+        }
+      } else if (this._parseString[i] === "\n") {
+        line++;
+      }
+    }
+    if (start >= 0) return { start, end, line };
+  }
+
+  filterString(title: string) {
+    let range = this.balanceGroups(title);
+    if (range) {
+      this._parseString = this._parseString.slice(0, range.start) + this._parseString.slice(range.end);
+      this._positionOffsetList.push({ index: range.start, line: range.line });
     }
   }
 
-  getTextLinenOffsetAt(index: number) {
+  getTextLineOffsetAt(index: number) {
     let offset = 0;
     for (const item of this._positionOffsetList) {
       if (index >= item.index) {

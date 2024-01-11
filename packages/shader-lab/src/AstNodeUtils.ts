@@ -11,7 +11,7 @@ export interface IPositionOffset {
 
 export class AstNodeUtils {
   /** EditorProperties offset */
-  static positionOffset: IPositionOffset | undefined;
+  static positionOffset: IPositionOffset[] | undefined;
 
   static isCstNode(node: any) {
     return !!node.children;
@@ -69,18 +69,14 @@ export class AstNodeUtils {
   }
 
   static getTokenPosition(token: IToken): IPositionRange {
-    let lineOffset = 0;
-    if (this.positionOffset && token.startOffset >= this.positionOffset.index) {
-      lineOffset = this.positionOffset.line;
-    }
     return {
       start: {
-        line: token.startLine + lineOffset,
+        line: token.startLine,
         character: token.startColumn,
         index: token.startOffset
       },
       end: {
-        line: token.endLine + lineOffset,
+        line: token.endLine,
         character: token.endColumn,
         index: token.endOffset
       }
