@@ -3,6 +3,7 @@ import type { IEntity, IPrefabFile, IRefEntity, IStrippedEntity } from "../schem
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
 import { PrefabParserContext } from "../prefab/PrefabParserContext";
+import { GLTFResource } from "../../../gltf";
 
 /** @Internal */
 export default abstract class HierarchyParser<T extends Scene | Entity, V extends ParserContext<IPrefabFile, T>> {
@@ -88,12 +89,7 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
       for (let i = 0; i < entityConfig.components.length; i++) {
         const componentConfig = entityConfig.components[i];
         const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
-        let component;
-        // TODO: remove hack code when support additional edit
-        if (key === "Animator") {
-          component = entity.getComponent(Loader.getClass(key));
-        }
-        component = component || entity.addComponent(Loader.getClass(key));
+        const component = entity.addComponent(Loader.getClass(key));
         components.set(componentConfig.id, component);
         const promise = this._reflectionParser.parsePropsAndMethods(component, componentConfig);
         promises.push(promise);
@@ -235,11 +231,10 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
       engine.resourceManager
         // @ts-ignore
         .getResourceByRef<Entity>({
-          refId: assetRefId,
-          key: entityConfig.key,
-          isClone: entityConfig.isClone
+          refId: assetRefId
         })
-        .then((entity) => {
+        .then((glTFResource: GLTFResource) => {
+          const entity = glTFResource.instantiateSceneRoot();
           if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
           this._traverseAddEntityToMap(entity, context, "");
