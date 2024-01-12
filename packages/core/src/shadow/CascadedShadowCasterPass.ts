@@ -103,9 +103,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const lightUp = this._lightUp;
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
-    const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
-
-    this._getCascadesSplitDistance(shadowFar);
 
     // Prepare render target
     const { z: width, w: height } = this._shadowMapSize;
@@ -306,16 +303,16 @@ export class CascadedShadowCasterPass extends PipelinePass {
   }
 
   private _updateShadowSettings(light: DirectLight): void {
-    const scene = this._camera.scene;
+    const camera = this._camera;
+    const scene = camera.scene;
     const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
     const shadowResolution = ShadowUtils.shadowResolution(scene.shadowResolution);
     const shadowCascades = scene.shadowCascades;
+    const shadowFar = Math.min(scene.shadowDistance, camera.farClipPlane);
 
-    ShadowUtils.getScaleAndBiasForLinearDistanceFade(
-      Math.pow(scene.shadowDistance, 2),
-      scene.shadowFadeBorder,
-      this._shadowInfos
-    );
+    this._getCascadesSplitDistance(shadowFar);
+
+    ShadowUtils.getScaleAndBiasForLinearDistanceFade(Math.pow(shadowFar, 2), scene.shadowFadeBorder, this._shadowInfos);
     this._shadowInfos.x = light.shadowStrength;
 
     if (
