@@ -45,7 +45,7 @@ describe("ktx2 Loader test", function () {
     // @ts-ignore
     const transcoder = KTX2Loader._khronosTranscoder ?? KTX2Loader._binomialLLCTranscoder;
     expect(transcoder).not.to.be.null;
-    KTX2Loader.destroy();
+    KTX2Loader.release();
     // @ts-ignore
     expect(KTX2Loader._khronosTranscoder).to.be.null;
     // @ts-ignore
