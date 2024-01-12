@@ -24,6 +24,8 @@ export class Pointer {
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
+  /** The current target element of the pointer. */
+  currentTarget: EventTarget;
   /** @internal */
   _events: PointerEvent[] = [];
   /** @internal */
