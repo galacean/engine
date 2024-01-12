@@ -1,4 +1,11 @@
-import { IHardwareRenderer, IPhysics, IPhysicsManager, IShaderLab, IXRDevice } from "@galacean/engine-design";
+import {
+  IHardwareRenderer,
+  IInputOptions,
+  IPhysics,
+  IPhysicsManager,
+  IShaderLab,
+  IXRDevice
+} from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
 import { Font } from "./2d/text/Font";
@@ -256,7 +263,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
-    this.inputManager = new InputManager(this);
+    this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
     if (xrDevice) {
@@ -752,6 +759,8 @@ export interface EngineConfiguration {
   xrDevice?: IXRDevice;
   /** Color space. */
   colorSpace?: ColorSpace;
-  /** Shader lab */
+  /** Shader lab. */
   shaderLab?: IShaderLab;
+  /** Input options. */
+  input?: IInputOptions;
 }
