@@ -46,7 +46,7 @@ export class Scene extends EngineObject {
    * Last shadow fade distance in percentage, range [0,1].
    * @remarks Value 0 is used for no shadow fade.
    */
-  shadowFadeBorder: number = 0;
+  shadowFadeBorder: number = 0.1;
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
@@ -257,7 +257,6 @@ export class Scene extends EngineObject {
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
     shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
-    shaderData.enableMacro("SCENE_SHADOW_FADE");
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
 

@@ -462,6 +462,5 @@ export class ShadowUtils {
     const fadeRange = fadeDistance - distanceFadeNear;
     outInfo.z = 1.0 / fadeRange;
     outInfo.w = -distanceFadeNear / fadeRange;
-    debugger;
   }
 }
