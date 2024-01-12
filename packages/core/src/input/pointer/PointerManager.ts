@@ -133,7 +133,6 @@ export class PointerManager implements IInput {
       if (length > 0) {
         for (let i = 0; i < length; i++) {
           const event = events[i];
-          pointer.currentTarget = event.currentTarget;
           switch (event.type) {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
@@ -202,7 +201,6 @@ export class PointerManager implements IInput {
         const { button } = event;
         pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
         pointer.pressedButtons = event.buttons;
-        pointer.currentTarget = event.currentTarget;
         switch (event.type) {
           case "pointerdown":
             _downList.add(button);
