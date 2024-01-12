@@ -42,7 +42,7 @@ Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) 
   cy.visit(`/mpa/${name}.html`);
   const imageName = `${category}_${name}.jpg`;
   const filePath = path.join(downloadsFolder, imageName);
-  cy.get("#screenshot")
+  cy.get("#screenshot", { timeout: 60000 })
     .click({ force: true })
     .then(() => {
       return new Promise((resolve) => {

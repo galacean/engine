@@ -1,10 +1,10 @@
 describe("Material", () => {
-  it("PBR", () => {
-    cy.screenshotWithThreshold("Material", "material-pbr", 0.2);
-  });
-
   it("PBR Clearcoat", () => {
     cy.screenshotWithThreshold("Material", "material-pbr-clearcoat", 0.2);
+  });
+
+  it("PBR", () => {
+    cy.screenshotWithThreshold("Material", "material-pbr", 0.2);
   });
 
   it("Unlit", () => {
