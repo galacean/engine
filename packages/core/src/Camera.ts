@@ -221,6 +221,12 @@ export class Camera extends Component {
   set isOrthographic(value: boolean) {
     this._virtualCamera.isOrthographic = value;
     this._projectionMatrixChange();
+
+    if (value) {
+      this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
+    } else {
+      this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
+    }
   }
 
   /**
