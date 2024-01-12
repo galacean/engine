@@ -181,6 +181,7 @@ export class PointerManager implements IInput {
       this._pointers.length = 0;
       this._downList.length = 0;
       this._upList.length = 0;
+      this._nativeEvents.length = 0;
     }
   }
 
