@@ -160,6 +160,8 @@ describe("InputManager", async () => {
     engine.update();
     const deltaPosition = engine.inputManager.pointers[0].deltaPosition;
     expect(deltaPosition).deep.equal(new Vector2(0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 4, 0, 0));
+    engine.update();
   });
 
   it("keyboard", () => {
@@ -207,6 +209,36 @@ describe("InputManager", async () => {
     expect(inputManager.isKeyDown(Keys.KeyA)).to.eq(true);
     target.dispatchEvent(new Event("blur"));
     expect(inputManager.isKeyDown()).to.eq(false);
+  });
+
+  it("change listener target", () => {
+    try {
+      WebGLEngine.create({ canvas: canvasDOM, input: { pointerTarget: window } });
+    } catch (error) {
+      expect(error).to.eq("Do not set window as target because window cannot listen to pointer leave event.");
+    }
+    window.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    engine.update();
+    expect(inputManager.pointers.length).to.eq(0);
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    engine.update();
+    expect(inputManager.pointers.length).to.eq(1);
+    window.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1));
+
+    canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    engine.update();
+    expect(inputManager.isKeyDown()).to.eq(false);
+    window.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    engine.update();
+    expect(inputManager.isKeyDown()).to.eq(true);
+
+    window.dispatchEvent(generateWheelEvent(1, 2, 3));
+    engine.update();
+    expect(inputManager.wheelDelta).to.deep.eq(new Vector3(0, 0, 0));
+    canvasDOM.dispatchEvent(generateWheelEvent(1, 2, 3));
+    engine.update();
+    expect(inputManager.wheelDelta).to.deep.eq(new Vector3(1, 2, 3));
   });
 
   it("destroy", () => {
