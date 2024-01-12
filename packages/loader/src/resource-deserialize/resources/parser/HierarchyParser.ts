@@ -24,7 +24,7 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
     {
       resolve: (context: PrefabParserContext) => void;
       reject: (reason: any) => void;
-    }
+    }[]
   >();
 
   constructor(public readonly context: V) {
@@ -60,17 +60,17 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
   private _parseEntities(): Promise<Entity[]> {
     const entitiesConfig = this.context.originalData.entities;
     const entityConfigMap = this.context.entityConfigMap;
-    const entitiesMap = this.context.entityMap;
+    const entityMap = this.context.entityMap;
     const engine = this._engine;
     const promises = entitiesConfig.map((entityConfig) => {
-      entityConfigMap.set(entityConfig.id, entityConfig);
-
+      const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
+      entityConfig.id = id;
+      entityConfigMap.set(id, entityConfig);
       return this._getEntityByConfig(entityConfig, engine);
     });
-
     return Promise.all(promises).then((entities) => {
       for (let i = 0, l = entities.length; i < l; i++) {
-        entitiesMap.set(entitiesConfig[i].id, entities[i]);
+        entityMap.set(entitiesConfig[i].id, entities[i]);
       }
 
       return entities;
@@ -240,7 +240,11 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
           this._traverseAddEntityToMap(entity, context, "");
 
           this.prefabContextMap.set(entity, context);
-          this.prefabPromiseMap.get(entityConfig.id)?.resolve(context);
+          const cbArray = this.prefabPromiseMap.get(entityConfig.id);
+          cbArray &&
+            cbArray.forEach((cb) => {
+              cb.resolve(context);
+            });
           return entity;
         })
     );
@@ -250,7 +254,9 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
     this.context.strippedIds.push(entityConfig.id);
 
     return new Promise<PrefabParserContext>((resolve, reject) => {
-      this.prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, { resolve, reject });
+      const cbArray = this.prefabPromiseMap.get((<IStrippedEntity>entityConfig).prefabInstanceId) ?? [];
+      cbArray.push({ resolve, reject });
+      this.prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, cbArray);
     }).then((context) => {
       const { entityId } = entityConfig.prefabSource;
 
