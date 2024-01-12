@@ -2,18 +2,7 @@
  * @title PBR Base
  * @category Material
  */
-import {
-  AmbientLight,
-  AssetType,
-  BackgroundMode,
-  Camera,
-  DirectLight,
-  GLTFResource,
-  PrimitiveMesh,
-  SkyBoxMaterial,
-  Vector3,
-  WebGLEngine
-} from "@galacean/engine";
+import { AmbientLight, AssetType, Camera, DirectLight, GLTFResource, Vector3, WebGLEngine } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
@@ -31,23 +20,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   //Create camera
   const cameraNode = rootEntity.createChild("camera_node");
-  cameraNode.transform.position = new Vector3(0.25, 0.25, 1.5);
+  cameraNode.transform.position = new Vector3(0, 5, 20);
   const camera = cameraNode.addComponent(Camera);
-
-  // Create sky
-  const sky = scene.background.sky;
-  const skyMaterial = new SkyBoxMaterial(engine);
-  scene.background.mode = BackgroundMode.Sky;
-  sky.material = skyMaterial;
-  sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   Promise.all([
     engine.resourceManager
-      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf")
+      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/7c7b887c-05d6-43dd-b354-216e738e81ed.gltf")
       .then((gltf) => {
         const { defaultSceneRoot } = gltf;
         rootEntity.addChild(defaultSceneRoot);
-        defaultSceneRoot.transform.setScale(100, 100, 100);
       }),
     engine.resourceManager
       .load<AmbientLight>({
@@ -56,8 +37,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
-        skyMaterial.texture = ambientLight.specularTexture;
-        skyMaterial.textureDecodeRGBM = true;
       })
   ]).then(() => {
     updateForE2E(engine);

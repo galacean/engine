@@ -157,21 +157,25 @@ export class XRInputManager {
         }
         break;
       case XRTargetRayMode.Screen:
+        const { _engine: engine } = this;
         // @ts-ignore
-        const canvas = <HTMLCanvasElement>this._engine.canvas._webCanvas;
+        const target: EventTarget = engine.inputManager._pointerManager._target;
+        // @ts-ignore
+        const canvas = <HTMLCanvasElement>engine.canvas._webCanvas;
         const { clientWidth, clientHeight } = canvas;
         const clientX = clientWidth * (event.x + 1) * 0.5;
         const clientY = clientHeight * (event.y + 1) * 0.5;
+        // @ts-ignore
         switch (event.type) {
           case XRInputEventType.SelectStart:
-            canvas.dispatchEvent(this._makeUpPointerEvent("pointerdown", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointerdown", event.id, clientX, clientY));
             break;
           case XRInputEventType.Select:
-            canvas.dispatchEvent(this._makeUpPointerEvent("pointermove", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointermove", event.id, clientX, clientY));
             break;
           case XRInputEventType.SelectEnd:
-            canvas.dispatchEvent(this._makeUpPointerEvent("pointerup", event.id, clientX, clientY));
-            canvas.dispatchEvent(this._makeUpPointerEvent("pointerleave", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointerup", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointerleave", event.id, clientX, clientY));
             break;
           default:
             break;
