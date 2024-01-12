@@ -18,7 +18,6 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
-import { ShadowFadeCenterType } from "./shadow/enum/ShadowFadeCenter";
 
 /**
  * Scene.
@@ -43,8 +42,6 @@ export class Scene extends EngineObject {
   shadowFourCascadeSplits: Vector3 = new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   /** Max Shadow distance. */
   shadowDistance: number = 50;
-  /** Set shadow fade center if shadowFade enabled. */
-  shadowFadeCenterType: ShadowFadeCenterType = ShadowFadeCenterType.Offset;
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
@@ -63,7 +60,6 @@ export class Scene extends EngineObject {
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _shadowFade: boolean = true;
-  private _shadowFadeSphereStart: number = 4 / 5;
   private _ambientLight: AmbientLight;
   private _fogMode: FogMode = FogMode.None;
   private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
@@ -134,17 +130,6 @@ export class Scene extends EngineObject {
     } else {
       this.shaderData.disableMacro("SCENE_SHADOW_FADE");
     }
-  }
-
-  /**
-   * The shadow starts to fade from the fade center of percentage radius, range [0,1].
-   */
-  get shadowFadeSphereStart(): number {
-    return this._shadowFadeSphereStart;
-  }
-
-  set shadowFadeSphereStart(value: number) {
-    this._shadowFadeSphereStart = Math.min(Math.max(value, 0), 1);
   }
 
   /**

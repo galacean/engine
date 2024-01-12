@@ -75,7 +75,7 @@
 
 
     #ifdef SCENE_SHADOW_FADE
-        uniform vec4 scene_ShadowFadeCenterAndType;
+        uniform vec3 scene_ShadowFadeCenter;
         uniform vec4 scene_ShadowFadeInfo;
     #endif
    
@@ -103,7 +103,7 @@
 
         float shadowFade = 0.0;
         #ifdef SCENE_SHADOW_FADE
-            float fadeDistance = distance(v_pos, scene_ShadowFadeCenterAndType.xyz);
+            float fadeDistance = distance(v_pos, scene_ShadowFadeCenter.xyz);
             shadowFade = saturate(fadeDistance * scene_ShadowFadeInfo.x + scene_ShadowFadeInfo.y);
         #endif
 

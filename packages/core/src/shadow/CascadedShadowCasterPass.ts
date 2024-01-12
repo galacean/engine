@@ -18,7 +18,6 @@ import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
-import { ShadowFadeCenterType } from "./enum/ShadowFadeCenter";
 
 /**
  * Cascade shadow caster pass.
@@ -32,7 +31,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private static _shadowInfosProperty = ShaderProperty.getByName("scene_ShadowInfo");
   private static _shadowMapsProperty = ShaderProperty.getByName("scene_ShadowMap");
   private static _shadowSplitSpheresProperty = ShaderProperty.getByName("scene_ShadowSplitSpheres");
-  private static _shadowFadeCenterAndTypeProperty = ShaderProperty.getByName("scene_ShadowFadeCenterAndType");
+  private static _shadowFadeCenterProperty = ShaderProperty.getByName("scene_ShadowFadeCenter");
   private static _shadowFadeInfoProperty = ShaderProperty.getByName("scene_ShadowFadeInfo");
 
   private static _maxCascades: number = 4;
@@ -65,7 +64,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _depthTexture: Texture2D;
   private _renderTarget: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _shadowFadeCenterAndType = new Vector4();
+  private _shadowFadeCenter = new Vector3();
   private _shadowFadeInfo = new Vector4();
 
   constructor(camera: Camera) {
@@ -117,7 +116,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
     if (light) {
       const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
       this._getCascadesSplitDistance(shadowFar);
-
+      if (scene.shadowFade) {
+        this._updateShadowFadeInfo(camera, shadowFar, this._shadowFadeCenter, this._shadowFadeInfo);
+      }
       // Prepare render target
       const { z: width, w: height } = this._shadowMapSize;
       const format = this._shadowMapFormat;
@@ -248,10 +249,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
           rhi.setGlobalDepthBias(0, 0);
         }
       }
-      if (scene.shadowFade) {
-        const shadowFar = shadowSliceData.sphereCenterZ + shadowSliceData.splitBoundSphere.radius;
-        this._updateShadowFadeInfo(camera, shadowFar, this._shadowFadeCenterAndType, this._shadowFadeInfo);
-      }
+
       this._existShadowMap = true;
     }
   }
@@ -282,7 +280,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     shaderData.setVector4(CascadedShadowCasterPass._shadowMapSize, this._shadowMapSize);
 
     if (scene.shadowFade) {
-      shaderData.setVector4(CascadedShadowCasterPass._shadowFadeCenterAndTypeProperty, this._shadowFadeCenterAndType);
+      shaderData.setVector3(CascadedShadowCasterPass._shadowFadeCenterProperty, this._shadowFadeCenter);
       shaderData.setVector4(CascadedShadowCasterPass._shadowFadeInfoProperty, this._shadowFadeInfo);
     }
   }
@@ -396,33 +394,18 @@ export class CascadedShadowCasterPass extends PipelinePass {
     context.applyVirtualCamera(virtualCamera);
   }
 
-  private _updateShadowFadeInfo(
-    camera: Camera,
-    shadowFar: number,
-    outFadeCenterAndType: Vector4,
-    outFadeInfo: Vector4
-  ): void {
-    const scene = camera.scene;
+  private _updateShadowFadeInfo(camera: Camera, shadowFar: number, outFadeCenter: Vector3, outFadeInfo: Vector4): void {
     const cameraPosition = camera.entity.transform.worldPosition;
     const cameraForward = camera.entity.transform.worldForward;
-    const temp = CascadedShadowCasterPass._tempVector;
-    const isCenter = scene.shadowFadeCenterType === ShadowFadeCenterType.Center;
-    const fadeCenterOffset = isCenter ? 0 : shadowFar / 3.75;
+    const slope = 5 / shadowFar;
+    const delta = -(2 + (camera.isOrthographic ? 0 : camera.fieldOfView) / 90);
+    // slope * fadeSphereRadius + delta = 1
+    const fadeSphereRadius = (1 - delta) / slope;
+    const fadeStartFromCenter = shadowFar - fadeSphereRadius;
 
-    Vector3.scale(cameraForward, fadeCenterOffset, temp);
-    Vector3.add(cameraPosition, temp, temp);
+    Vector3.scale(cameraForward, fadeStartFromCenter, outFadeCenter);
+    Vector3.add(cameraPosition, outFadeCenter, outFadeCenter);
 
-    outFadeCenterAndType.x = temp.x;
-    outFadeCenterAndType.y = temp.y;
-    outFadeCenterAndType.z = temp.z;
-    outFadeCenterAndType.w = scene.shadowFadeCenterType;
-
-    const shadowFadeSphereStart = scene.shadowFadeSphereStart;
-    const fadeSphereRadius = shadowFar - fadeCenterOffset;
-    // (x = fadeSphereRadius * shadowFadeSphereStart, y = 0),  (x = far, y = 1)
-    const fadeStartFromCenter = fadeSphereRadius * shadowFadeSphereStart;
-    const slope = 1 / (fadeSphereRadius - fadeStartFromCenter);
-    const delta = -fadeStartFromCenter * slope;
     outFadeInfo.x = slope;
     outFadeInfo.y = delta;
   }
