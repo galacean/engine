@@ -8,6 +8,17 @@ import { BaseMaterial } from "./BaseMaterial";
  * Unlit Material.
  */
 export class UnlitMaterial extends BaseMaterial {
+  private _fog: boolean = true;
+
+  get fog() {
+    return this._fog;
+  }
+
+  set fog(enableFog: boolean) {
+    this._fog = enableFog;
+    this.shaderData.enableMacro("ENABLE_FOG", `${+enableFog}`);
+  }
+
   /**
    * Base color.
    */
@@ -63,6 +74,7 @@ export class UnlitMaterial extends BaseMaterial {
 
     shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
     shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
+    shaderData.enableMacro("ENABLE_FOG", "1");
 
     shaderData.setColor(UnlitMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setVector4(UnlitMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));

@@ -16,6 +16,16 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   private static _specularGlossinessTextureMacro: ShaderMacro = ShaderMacro.getByName(
     "MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE"
   );
+  private _fog: boolean = true;
+
+  get fog() {
+    return this._fog;
+  }
+
+  set fog(enableFog: boolean) {
+    this._fog = enableFog;
+    this.shaderData.enableMacro("ENABLE_FOG", `${+enableFog}`);
+  }
 
   /**
    * Specular color.
@@ -68,6 +78,7 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
 
     this.shaderData.setColor(PBRSpecularMaterial._specularColorProp, new Color(1, 1, 1, 1));
     this.shaderData.setFloat(PBRSpecularMaterial._glossinessProp, 1.0);
+    this.shaderData.enableMacro("ENABLE_FOG", "1");
   }
 
   /**
