@@ -12,7 +12,7 @@ export class Ast2GLSLUtils {
       (fn) => fn.content.name === vertexFnProperty.content.value.content.variable
     );
     if (!vertFnAst) {
-      context.diagnostics.push({
+      context.addDiagnostic({
         severity: DiagnosticSeverity.Error,
         message: `Not found vertex shader definition: ${vertexFnProperty.content.value}`,
         token: vertexFnProperty.position
@@ -39,7 +39,7 @@ export class Ast2GLSLUtils {
       if (type.isCustom) {
         const structAstNode = context.findGlobal(type.text).ast as StructAstNode;
         if (!structAstNode) {
-          context.diagnostics.push({
+          context.addDiagnostic({
             severity: DiagnosticSeverity.Error,
             message: "no attribute struct definition",
             token: arg.position
@@ -86,7 +86,7 @@ export class Ast2GLSLUtils {
       (fn) => fn.content.name === fragmentFnProperty.content.value.content.variable
     );
     if (!fragFnAst) {
-      context.diagnostics.push({
+      context.addDiagnostic({
         severity: DiagnosticSeverity.Error,
         message: `Not found fragment shader definition: ${fragmentFnProperty.content.value}`,
         token: fragmentFnProperty.position
