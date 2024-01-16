@@ -1,6 +1,7 @@
 import { SpriteMask } from "../../2d/sprite/SpriteMask";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
+import { SetDataOptions } from "../../graphic";
 import { StencilOperation } from "../../shader/enums/StencilOperation";
 import { Shader } from "../../shader/Shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
@@ -220,7 +221,9 @@ export class SpriteMaskBatcher extends Batcher2D {
     mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
     batchedQueue[curMeshIndex] = preElement;
 
-    this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex);
-    this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex);
+    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
+    // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
+    this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex, SetDataOptions.Discard);
+    this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex, SetDataOptions.Discard);
   }
 }

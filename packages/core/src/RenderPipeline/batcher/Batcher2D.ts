@@ -6,6 +6,7 @@ import {
   BufferUsage,
   IndexFormat,
   MeshTopology,
+  SetDataOptions,
   SubMesh,
   VertexElement,
   VertexElementFormat
@@ -135,8 +136,10 @@ export class Batcher2D implements IBatcher {
 
   uploadBuffer(): void {
     const { _flushId } = this;
-    this._vertexBuffers[_flushId].setData(this._vertices, 0, 0, this._vStartIndex);
-    this._indiceBuffers[_flushId].setData(this._indices, 0, 0, this._iStartIndex);
+    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
+    // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
+    this._vertexBuffers[_flushId].setData(this._vertices, 0, 0, this._vStartIndex, SetDataOptions.Discard);
+    this._indiceBuffers[_flushId].setData(this._indices, 0, 0, this._iStartIndex, SetDataOptions.Discard);
   }
 
   clear() {
