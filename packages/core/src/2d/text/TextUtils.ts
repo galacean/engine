@@ -23,6 +23,10 @@ export class TextUtils {
     "emoji",
     "fangsong"
   ];
+
+  // _extendHeight used to extend the height of canvas, because in miniprogram performance is different from h5.
+  /** @internal */
+  static _extendHeight: number = 0;
   /** These characters are all tall to help calculate the height required for text. */
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
@@ -349,8 +353,11 @@ export class TextUtils {
     // @todo: Text layout may vary from standard and not support emoji.
     const width = Math.max(1, Math.round(context.measureText(measureString).width));
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
-    const height = baseline * TextUtils._heightMultiplier;
+    let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
+    const { _extendHeight } = TextUtils;
+    height += _extendHeight;
+    baseline += _extendHeight * 0.5;
 
     canvas.width = width;
     canvas.height = height;
@@ -393,6 +400,7 @@ export class TextUtils {
 
     if (top !== -1 && bottom !== -1) {
       ascent = baseline - top;
+      // Baseline belong to descent
       descent = bottom - baseline + 1;
       size = ascent + descent;
     }
