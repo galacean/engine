@@ -69,7 +69,7 @@ export class RenderQueue {
 
   private readonly _renderQueueType: RenderQueueType;
 
-  constructor(engine: Engine, renderQueueType: RenderQueueType) {
+  constructor(renderQueueType: RenderQueueType) {
     this._renderQueueType = renderQueueType;
   }
 

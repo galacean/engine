@@ -11,10 +11,10 @@ export class CullingResults {
   readonly transparentQueue: RenderQueue;
   readonly alphaTestQueue: RenderQueue;
 
-  constructor(engine: Engine) {
-    this.opaqueQueue = new RenderQueue(engine, RenderQueueType.Opaque);
-    this.transparentQueue = new RenderQueue(engine, RenderQueueType.Transparent);
-    this.alphaTestQueue = new RenderQueue(engine, RenderQueueType.AlphaTest);
+  constructor() {
+    this.opaqueQueue = new RenderQueue(RenderQueueType.Opaque);
+    this.transparentQueue = new RenderQueue(RenderQueueType.Transparent);
+    this.alphaTestQueue = new RenderQueue(RenderQueueType.AlphaTest);
   }
 
   reset(): void {
