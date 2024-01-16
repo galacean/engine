@@ -56,7 +56,7 @@ export class AnimatorState {
 
     this._onClipChanged();
 
-    clip._updateFlagManager.addListener(this._onClipChanged);
+    clip && clip._updateFlagManager.addListener(this._onClipChanged);
   }
 
   /**

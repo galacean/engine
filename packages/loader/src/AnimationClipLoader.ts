@@ -50,7 +50,7 @@ class AnimationClipLoader extends Loader<AnimationClip> {
           .getResourceByRef<ReferResource>(value as any)
           .then((asset: ReferResource) => {
             keyframe.value = asset;
-            resolve(keyframe);
+            resolve(keyframe.value);
           });
       });
     } else {
