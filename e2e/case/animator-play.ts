@@ -43,7 +43,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
       updateForE2E(engine);
 
-      const { category, caseFileName } = E2E_CONFIG.Animator["play"];
-      initScreenshot(category, caseFileName, engine, camera);
+      initScreenshot(engine, camera);
     });
 });

@@ -65,7 +65,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("sad_pose", 1);
       updateForE2E(engine);
 
-      const { category, caseFileName } = E2E_CONFIG.Animator["additive"];
-      initScreenshot(category, caseFileName, engine, camera);
+      initScreenshot(engine, camera);
     });
 });

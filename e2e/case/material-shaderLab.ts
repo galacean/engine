@@ -93,6 +93,5 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
 
   updateForE2E(engine);
 
-  const { category, caseFileName } = E2E_CONFIG.Material["shaderLab"];
-  initScreenshot(category, caseFileName, engine, camera);
+  initScreenshot(engine, camera);
 });

@@ -94,8 +94,7 @@ async function main() {
       camera.setReplacementShader(Shader.find("UVCheckShader"));
       updateForE2E(engine);
 
-      const { category, caseFileName } = E2E_CONFIG.Material["shaderReplacement"];
-      initScreenshot(category, caseFileName, engine, camera);
+      initScreenshot(engine, camera);
     });
 }
 main();
