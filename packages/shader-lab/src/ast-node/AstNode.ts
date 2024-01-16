@@ -78,6 +78,8 @@ import {
 export interface IPosition {
   line: number;
   character: number;
+  // offset from first character
+  index: number;
 }
 
 export interface IPositionRange {
@@ -208,7 +210,7 @@ export class FnAstNode extends AstNode<IFnAstContent> {
       (this.content.returnType.content.text === "void" && this.content.returnStatement) ||
       (this.content.returnType.content.text !== "void" && !this.content.returnStatement)
     ) {
-      context.diagnostics.push({
+      context.addDiagnostic({
         severity: DiagnosticSeverity.Error,
         message: "Mismatched return type",
         token: this.position
@@ -317,7 +319,7 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     if (this.content.isCustom) {
       if (!context.referenceGlobal(this.content.function)) {
-        context.diagnostics.push({
+        context.addDiagnostic({
           severity: DiagnosticSeverity.Warning,
           message: `Not found function definition: ${this.content.function}`,
           token: this.position
@@ -497,7 +499,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
     }
     if (!context.findLocal(objName)) {
       if (!context.referenceGlobal(objName)) {
-        context.diagnostics.push({
+        context.addDiagnostic({
           severity: DiagnosticSeverity.Error,
           message: `Not found variable definition: ${objName}`,
           token: this.position
@@ -571,7 +573,7 @@ export class RenderStateDeclarationAstNode extends AstNode<IRenderStateDeclarati
       }
       const renderStateKey = RenderStateDataKey[_propertyKey];
       if (renderStateKey === undefined) {
-        context?.diagnostics.push({
+        context?.addDiagnostic({
           severity: DiagnosticSeverity.Error,
           message: "invalid render state key",
           token: prop.position
@@ -603,7 +605,7 @@ export class RenderStatePropertyItemAstNode extends AstNode<IRenderStateProperty
     if (isVariable && context) {
       const global = context.findGlobal(this.content.value.content);
       if (!global) {
-        context.diagnostics.push({
+        context.addDiagnostic({
           severity: DiagnosticSeverity.Warning,
           message: "not found variable definition",
           token: this.content.value.position
@@ -645,7 +647,7 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
     }
     if (typeNode.content.isCustom) {
       if (!context.referenceGlobal(typeNode.content.text)) {
-        context.diagnostics.push({
+        context.addDiagnostic({
           severity: DiagnosticSeverity.Error,
           message: `Undefined type ${typeNode.content.text}`,
           token: this.position
