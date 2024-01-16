@@ -101,15 +101,6 @@ export default class RuntimeContext {
     this._parsingContext = context;
   }
 
-  addDiagnostic(diagnostic: IDiagnostic) {
-    let offset = this._parsingContext.getTextLineOffsetAt(diagnostic.token.start.index);
-    if (offset) {
-      diagnostic.token.start.line += offset;
-      diagnostic.token.end.line += offset;
-    }
-    this._diagnostics.push(diagnostic);
-  }
-
   /** Current position */
   get serializingAstNode() {
     return this._serializingNodeStack[this._serializingNodeStack.length - 1];
@@ -121,6 +112,15 @@ export default class RuntimeContext {
 
   get currentMainFnAst() {
     return this._currentMainFnAst;
+  }
+
+  addDiagnostic(diagnostic: IDiagnostic) {
+    let offset = this._parsingContext.getTextLineOffsetAt(diagnostic.token.start.index);
+    if (offset) {
+      diagnostic.token.start.line += offset;
+      diagnostic.token.end.line += offset;
+    }
+    this._diagnostics.push(diagnostic);
   }
 
   setSerializingNode(node: AstNode) {

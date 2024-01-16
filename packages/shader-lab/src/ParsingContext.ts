@@ -12,13 +12,13 @@ export default class ParsingContext {
     return this._parseString;
   }
 
-  constructor(input: string) {
-    this._parseString = input;
-  }
-
   private _positionOffsetList: IPositionOffset[] = [];
   get positionOffsetList() {
     return this._positionOffsetList;
+  }
+
+  constructor(input: string) {
+    this._parseString = input;
   }
 
   balanceGroups(title: string) {
