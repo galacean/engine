@@ -14,6 +14,7 @@ import {
   GLTFResource
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -42,8 +43,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       updateForE2E(engine, 30);
       animator.crossFade("walk", 0.5, 0, 0);
       updateForE2E(engine, 30);
-      const category = "Animator";
-      const name = "animator-crossfade";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["animator-crossfade"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

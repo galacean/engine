@@ -1,5 +1,8 @@
+import { E2E_CONFIG } from "../config";
+
 describe("glTF", () => {
   it("meshopt", () => {
-    cy.screenshotWithThreshold("GLTF", "gltf-meshopt", 0.3);
+    const { category, caseFileName } = E2E_CONFIG["meshopt"];
+    cy.screenshotWithThreshold(category, caseFileName, 0.3);
   });
 });

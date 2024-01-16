@@ -4,6 +4,7 @@
  */
 import { Camera, GLTFResource, Vector3, WebGLEngine, Logger } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 Logger.enable();
 
 // Create engine
@@ -25,8 +26,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .then((gltf) => {
       rootEntity.addChild(gltf.defaultSceneRoot);
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-unlit";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["material-unlit"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

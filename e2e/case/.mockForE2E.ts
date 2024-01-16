@@ -18,7 +18,7 @@ let flipYCanvas: HTMLCanvasElement = null;
 
 export function initScreenshot(
   category: string,
-  name: string,
+  caseFileName: string,
   engine: Engine,
   camera: Camera,
   width: number = 1200,
@@ -27,7 +27,7 @@ export function initScreenshot(
   isPNG = false,
   jpgQuality = 1
 ) {
-  const imageName = `${category}_${name}.jpg`;
+  const imageName = `${category}_${caseFileName}.jpg`;
 
   if (!screenshotCanvas) {
     screenshotCanvas = document.createElement("canvas");

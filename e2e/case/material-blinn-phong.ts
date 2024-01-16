@@ -15,6 +15,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -75,8 +76,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         materials.push(material);
       });
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-blinn-phong";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["material-blinn-phong"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

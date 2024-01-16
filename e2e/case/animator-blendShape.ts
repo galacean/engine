@@ -15,6 +15,7 @@ import {
   GLTFResource
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -44,8 +45,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       skinMeshRenderer.blendShapeWeights[0] = 1.0;
       animator.play("TheWave");
       updateForE2E(engine);
-      const category = "Animator";
-      const name = "animator-blendShape";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["animator-blendShape"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

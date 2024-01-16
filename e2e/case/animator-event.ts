@@ -17,6 +17,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.canvas.resizeByClientSize(2);
@@ -76,8 +77,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("walk", 0);
 
       updateForE2E(engine, 500);
-      const category = "Animator";
-      const name = "animator-event";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["animator-event"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

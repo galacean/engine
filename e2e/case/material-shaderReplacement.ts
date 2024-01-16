@@ -17,6 +17,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 /**
  * Main function.
@@ -109,9 +110,9 @@ async function main() {
 
       camera.setReplacementShader(Shader.find("UVCheckShader"));
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-shaderReplacement";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["material-shaderReplacement"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 }
 main();

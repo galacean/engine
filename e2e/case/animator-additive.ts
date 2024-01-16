@@ -17,6 +17,7 @@ import {
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 Logger.enable();
 
@@ -63,8 +64,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("walk", 0);
       animator.play("sad_pose", 1);
       updateForE2E(engine);
-      const category = "Animator";
-      const name = "animator-additive";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["animator-additive"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

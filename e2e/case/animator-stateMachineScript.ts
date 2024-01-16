@@ -17,6 +17,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -75,8 +76,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       updateForE2E(engine, 30);
       animator.crossFade("run", 0.5, 0, 0);
       updateForE2E(engine, 100);
-      const category = "Animator";
-      const name = "animator-stateMachineScript";
-      initScreenshot(category, name, engine, camera);
+
+      const { category, caseFileName } = E2E_CONFIG["animator-stateMachineScript"];
+      initScreenshot(category, caseFileName, engine, camera);
     });
 });

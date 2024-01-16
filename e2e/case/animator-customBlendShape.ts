@@ -22,6 +22,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { E2E_CONFIG } from "../config";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -94,7 +95,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   clip.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", blendShapeCurve);
   animator.play("blendShape");
   updateForE2E(engine, 1000);
-  const category = "Animator";
-  const name = "animator-customBlendShape";
-  initScreenshot(category, name, engine, camera);
+
+  const { category, caseFileName } = E2E_CONFIG["animator-customBlendShape"];
+  initScreenshot(category, caseFileName, engine, camera);
 });
