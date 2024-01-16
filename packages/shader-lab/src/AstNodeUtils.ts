@@ -3,16 +3,7 @@ import { CstChildrenDictionary, CstNode, ICstVisitor, IToken } from "chevrotain"
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";
 
-export interface IPositionOffset {
-  /** Offset of the first character of the Token. 0-indexed. */
-  index: number;
-  line: number;
-}
-
 export class AstNodeUtils {
-  /** EditorProperties offset */
-  static positionOffset: IPositionOffset[] | undefined;
-
   static isCstNode(node: any) {
     return !!node.children;
   }
