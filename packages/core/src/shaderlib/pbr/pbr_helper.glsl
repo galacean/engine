@@ -33,8 +33,11 @@ float getAARoughnessFactor(vec3 normal) {
 
 void initGeometry(out Geometry geometry, bool isFrontFacing){
     geometry.position = v_pos;
-    geometry.viewDir =  normalize(camera_Position - v_pos);
-
+    #ifdef CAMERA_ORTHOGRAPHIC
+        geometry.viewDir =  -camera_Forward;
+    #else
+        geometry.viewDir =  normalize(camera_Position - v_pos);
+    #endif
     #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
         mat3 tbn = getTBN(isFrontFacing);
     #endif

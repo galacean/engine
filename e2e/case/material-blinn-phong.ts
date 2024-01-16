@@ -37,8 +37,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   light1.addComponent(DirectLight);
   light2.addComponent(DirectLight);
 
-  engine.run();
-
   engine.resourceManager
     .load([
       {

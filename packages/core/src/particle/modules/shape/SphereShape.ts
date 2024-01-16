@@ -7,13 +7,10 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Particle shape that emits particles from a sphere.
  */
 export class SphereShape extends BaseShape {
+  readonly shapeType = ParticleShapeType.Sphere;
+
   /** Radius of the shape to emit particles from. */
   radius = 1.0;
-
-  constructor() {
-    super();
-    this.shapeType = ParticleShapeType.Sphere;
-  }
 
   /**
    * @internal

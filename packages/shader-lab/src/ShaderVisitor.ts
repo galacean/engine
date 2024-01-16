@@ -302,8 +302,8 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleFnBody(ctx: _ruleFnBodyCstChildren) {
-    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1 },
-      end: IPosition = { line: 0, character: -1 };
+    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1, index: -1 },
+      end: IPosition = { line: 0, character: -1, index: -1 };
 
     const iterate = (item: CstNode) => {
       const astInfo = this.visit(item);
@@ -749,8 +749,16 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleBlendStatePropertyDeclaration(children: _ruleBlendStatePropertyDeclarationCstChildren, param?: any) {
     const position: IPositionRange = {
-      start: { line: children.BlendState[0].startLine, character: children.BlendState[0].startOffset },
-      end: { line: children.RCurly[0].endLine, character: children.RCurly[0].endOffset }
+      start: {
+        line: children.BlendState[0].startLine,
+        character: children.BlendState[0].startColumn,
+        index: children.BlendState[0].startOffset
+      },
+      end: {
+        line: children.RCurly[0].endLine,
+        character: children.RCurly[0].endColumn,
+        index: children.RCurly[0].endOffset
+      }
     };
 
     const variable = children.Identifier?.[0].image;
@@ -817,8 +825,16 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleRasterStatePropertyDeclaration(children: _ruleRasterStatePropertyDeclarationCstChildren, param?: any) {
     const position: IPositionRange = {
-      start: { line: children.RasterState[0].startLine, character: children.RasterState[0].startOffset },
-      end: { line: children.RCurly[0].startLine, character: children.RCurly[0].startOffset }
+      start: {
+        line: children.RasterState[0].startLine,
+        character: children.RasterState[0].startColumn,
+        index: children.RasterState[0].startOffset
+      },
+      end: {
+        line: children.RCurly[0].startLine,
+        character: children.RCurly[0].endColumn,
+        index: children.RasterState[0].endOffset
+      }
     };
 
     const variable = children.Identifier?.[0].image;
@@ -831,8 +847,16 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleDepthSatePropertyDeclaration(children: _ruleDepthSatePropertyDeclarationCstChildren, param?: any) {
     const position: IPositionRange = {
-      start: { line: children.DepthState[0].startLine, character: children.DepthState[0].startOffset },
-      end: { line: children.RCurly[0].startLine, character: children.RCurly[0].startOffset }
+      start: {
+        line: children.DepthState[0].startLine,
+        character: children.DepthState[0].startOffset,
+        index: children.DepthState[0].startOffset
+      },
+      end: {
+        line: children.RCurly[0].endLine,
+        character: children.RCurly[0].endColumn,
+        index: children.RCurly[0].endOffset
+      }
     };
 
     const variable = children.Identifier?.[0].image;
@@ -887,8 +911,16 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleStencilStatePropertyDeclaration(children: _ruleStencilStatePropertyDeclarationCstChildren, param?: any) {
     const position: IPositionRange = {
-      start: { line: children.StencilState[0].startLine, character: children.StencilState[0].startOffset },
-      end: { line: children.RCurly[0].startLine, character: children.RCurly[0].startOffset }
+      start: {
+        line: children.StencilState[0].startLine,
+        character: children.StencilState[0].startColumn,
+        index: children.StencilState[0].startOffset
+      },
+      end: {
+        line: children.RCurly[0].endLine,
+        character: children.RCurly[0].endColumn,
+        index: children.RCurly[0].endOffset
+      }
     };
 
     const variable = children.Identifier?.[0].image;

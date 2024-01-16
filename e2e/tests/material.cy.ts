@@ -1,14 +1,14 @@
 import { E2E_CONFIG } from "../config";
 
 describe("Material", () => {
-  it("PBR", () => {
-    const { category, caseFileName } = E2E_CONFIG["material-pbr"];
-    cy.screenshotWithThreshold(category, caseFileName, 0.2);
-  });
-
   it("PBR Clearcoat", () => {
     const { category, caseFileName } = E2E_CONFIG["material-pbr-clearcoat"];
     cy.screenshotWithThreshold(category, caseFileName, 0.2);
+  });
+
+  it("PBR", () => {
+    const { category, caseFileName } = E2E_CONFIG["material-pbr"];
+    cy.screenshotWithThreshold("category", caseFileName, 0.2);
   });
 
   it("Unlit", () => {

@@ -59,8 +59,8 @@ Shader "Water" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include <test_common>
-      #include <brdf>
+      #include "test_common"
+      #include "brdf"
 
       BlendState = blendState;
 
