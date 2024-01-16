@@ -27,6 +27,7 @@ import {
   FnCallStatementAstNode,
   FnConditionStatementAstNode,
   FnMacroConditionAstNode,
+  FnMacroConditionBodyAstNode,
   FnMacroConditionElifBranchAstNode,
   FnMacroConditionElseBranchAstNode,
   FnMacroDefineAstNode,
@@ -101,6 +102,7 @@ import {
   _ruleFnConditionStatementCstChildren,
   _ruleFnCstChildren,
   _ruleFnExpressionCstChildren,
+  _ruleFnMacroConditionBodyCstChildren,
   _ruleFnMacroConditionCstChildren,
   _ruleFnMacroConditionElseBranchCstChildren,
   _ruleFnMacroCstChildren,
@@ -370,7 +372,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     return new FnMacroConditionAstNode(position, {
       command: AstNodeUtils.extractCstToken(children._ruleFnMacroConditionDeclare[0]),
       condition: this.visit(children._ruleConditionExpr),
-      body: this.visit(children._ruleFnBody),
+      body: this.visit(children._ruleFnMacroConditionBody),
       elifBranch: children._ruleMacroConditionElifBranch
         ? this.visit(children._ruleMacroConditionElifBranch)
         : undefined,
@@ -378,6 +380,14 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
         ? this.visit(children._ruleFnMacroConditionElseBranch)
         : undefined
     });
+  }
+
+  _ruleFnMacroConditionBody(children: _ruleFnMacroConditionBodyCstChildren, param?: any) {
+    const fnBodyList = (children._ruleFnBody?.map((item) => this.visit(item)) as FnBodyAstNode[]) ?? [];
+    const structList = (children._ruleStruct?.map((item) => this.visit(item)) as StructAstNode[]) ?? [];
+    const list = [...fnBodyList, ...structList].sort((a, b) => a.position.start.index - b.position.start.index);
+    const position: IPositionRange = { start: list[0].position.start, end: list[list.length - 1].position.end };
+    return new FnMacroConditionBodyAstNode(position, list);
   }
 
   _ruleMacroConditionElifBranch(children: _ruleMacroConditionElifBranchCstChildren, param?: any) {
@@ -692,7 +702,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
       end: AstNodeUtils.getTokenPosition(ctx.Semicolon[0]).end
     };
 
-    return new FnReturnStatementAstNode(position, this.visit(ctx._ruleReturnBody));
+    const prefix = ctx.Negative?.map((item) => item.image).join("");
+
+    return new FnReturnStatementAstNode(position, { prefix, body: this.visit(ctx._ruleReturnBody) });
   }
 
   _ruleFnCallStatement(children: _ruleFnCallStatementCstChildren, param?: any): FnCallStatementAstNode {

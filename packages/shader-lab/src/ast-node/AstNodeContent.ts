@@ -134,10 +134,12 @@ export interface IFnMacroUndefineAstContent {
 export interface IFnMacroConditionAstContent {
   command: string;
   condition: RelationExprAstNode;
-  body: FnBodyAstNode;
+  body: FnBodyAstNode | StructAstNode;
   elifBranch?: FnMacroConditionElifBranchAstNode;
   elseBranch?: FnMacroConditionElseBranchAstNode;
 }
+
+export type IFnMacroConditionBodyAstContent = Array<FnBodyAstNode | StructAstNode>;
 
 export interface IFnMacroConditionElifBranchAstContent {
   condition: RelationExprAstNode;
@@ -224,7 +226,10 @@ export type IArrayIndexAstContent = FnAtomicExprAstNode;
 
 export type IVariablePropertyAstContent = string;
 
-export type IFnReturnStatementAstContent = ObjectAstNode;
+export interface IFnReturnStatementAstContent {
+  prefix: string;
+  body: ObjectAstNode;
+}
 
 export type IFnCallStatementAstContent = FnCallAstNode;
 

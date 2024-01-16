@@ -177,10 +177,17 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
+  private _ruleFnMacroConditionBody = this.RULE("_ruleFnMacroConditionBody", () => {
+    this.MANY(() => {
+      this.OR([{ ALT: () => this.SUBRULE(this._ruleStruct) }, { ALT: () => this.SUBRULE(this._ruleFnBody) }]);
+    });
+  });
+
   private _ruleFnMacroCondition = this.RULE("_ruleFnMacroCondition", () => {
     this.SUBRULE(this._ruleFnMacroConditionDeclare);
     this.SUBRULE(this._ruleConditionExpr);
-    this.SUBRULE(this._ruleFnBody);
+    this.SUBRULE(this._ruleFnMacroConditionBody);
+
     this.OPTION(() => {
       this.SUBRULE(this._ruleMacroConditionElifBranch);
     });
@@ -382,6 +389,9 @@ export class ShaderParser extends CstParser {
 
   private _ruleFnReturnStatement = this.RULE("_ruleFnReturnStatement", () => {
     this.CONSUME(GLKeywords.Return);
+    this.OPTION(() => {
+      this.MANY(() => this.CONSUME(Symbols.Negative));
+    });
     this.SUBRULE(this._ruleReturnBody);
 
     this.CONSUME(Symbols.Semicolon);
@@ -389,7 +399,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleReturnBody = this.RULE("_ruleReturnBody", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this._ruleFnExpression) },
+      { ALT: () => this.SUBRULE(this._ruleConditionExpr) },
       { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) }
     ]);

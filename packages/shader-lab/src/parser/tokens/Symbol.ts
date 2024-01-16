@@ -51,6 +51,7 @@ export const SelfAdd = createToken({ name: "SelfAdd", pattern: /\+\+/, label: "+
 export const SelfMinus = createToken({ name: "SelfMinus", pattern: /\-\-/, label: "--" });
 
 export const Exp = createToken({ name: "Expo", pattern: /e[-+]?\d+/, label: "exp" });
+export const Negative = createToken({ name: "Negative", pattern: /\!/, label: "!" });
 
 export const tokenList = [
   SelfAdd,
@@ -74,7 +75,8 @@ export const tokenList = [
   Multiply,
   Divide,
   Dot,
-  Exp
+  Exp,
+  Negative
 ];
 
 const GreaterThan = createToken({
@@ -93,4 +95,17 @@ const EqualThan = createToken({ name: "SymbolEqualThan", pattern: /==/, label: "
 const NotEqual = createToken({ name: "SymbolNotEqual", pattern: /\!=/, label: "!=" });
 const AND = createToken({ name: "AND", pattern: /\&\&/, label: "&&" });
 const OR = createToken({ name: "OR", pattern: /\|\|/, label: "||" });
-export const RelationTokenList = [GreaterEqual, GreaterThan, LessEqual, LessThan, EqualThan, NotEqual, AND, OR];
+const BitwiseOR = createToken({ name: "BitwiseOR", pattern: /\|/, label: "|" });
+const BitwiseAND = createToken({ name: "BitwiseAND", pattern: /\&/, label: "&" });
+export const RelationTokenList = [
+  GreaterEqual,
+  GreaterThan,
+  LessEqual,
+  LessThan,
+  EqualThan,
+  NotEqual,
+  AND,
+  OR,
+  BitwiseAND,
+  BitwiseOR
+];

@@ -38,6 +38,7 @@ import {
   IFnCallStatementAstContent,
   IFnConditionStatementAstContent,
   IFnMacroConditionAstContent,
+  IFnMacroConditionBodyAstContent,
   IFnMacroConditionElifBranchAstContent,
   IFnMacroConditionElseBranchAstContent,
   IFnMacroDefineAstContent,
@@ -268,6 +269,12 @@ export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent
     return `${this.content.command} ${this.content.condition.serialize(context)}\n ${[body, elifBranch, elseBranch]
       .filter((item) => item)
       .join("\n")}\n#endif`;
+  }
+}
+
+export class FnMacroConditionBodyAstNode extends AstNode<IFnMacroConditionBodyAstContent> {
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    return this.content.map((item) => item.serialize(context)).join("\n");
   }
 }
 
@@ -527,7 +534,7 @@ export class FnReturnStatementAstNode extends AstNode<IFnReturnStatementAstConte
     if (context.currentFunctionInfo.fnAst === context.currentMainFnAst) {
       return "";
     }
-    return `return ${this.content.serialize(context)};`;
+    return `return ${this.content.prefix ?? ""}${this.content.body.serialize(context)};`;
   }
 }
 
@@ -702,6 +709,13 @@ export class DeclarationWithoutAssignAstNode extends AstNode<IDeclarationWithout
 
 export class StructAstNode extends AstNode<IStructAstContent> {
   override _astType: string = "Struct";
+
+  override _doSerialization(context?: RuntimeContext, args?: any): string {
+    const variables = this.content.variables.map((item) => item.serialize(context) + ";").join("\n");
+    return `struct ${this.content.name} {
+      ${variables}
+    };`;
+  }
 }
 
 export class PassPropertyAssignmentAstNode extends AstNode<IPassPropertyAssignmentAstContent> {}
