@@ -26,7 +26,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(glTF.defaultSceneRoot);
       updateForE2E(engine);
 
-      const { category, caseFileName } = E2E_CONFIG["material-blendMode"];
+      const { category, caseFileName } = E2E_CONFIG.Material["blendMode"];
       initScreenshot(category, caseFileName, engine, camera);
     });
 });

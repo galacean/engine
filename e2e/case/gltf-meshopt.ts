@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       // animator.crossFade("run", 0.5, 0, 0);
       updateForE2E(engine, 100);
 
-      const { category, caseFileName } = E2E_CONFIG["meshopt"];
+      const { category, caseFileName } = E2E_CONFIG.GLTF["meshopt"];
       initScreenshot(category, caseFileName, engine, camera);
     });
 });

@@ -44,7 +44,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.crossFade("walk", 0.5, 0, 0);
       updateForE2E(engine, 30);
 
-      const { category, caseFileName } = E2E_CONFIG["animator-crossfade"];
+      const { category, caseFileName } = E2E_CONFIG.Animator["crossfade"];
       initScreenshot(category, caseFileName, engine, camera);
     });
 });

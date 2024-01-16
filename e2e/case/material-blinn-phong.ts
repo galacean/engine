@@ -75,7 +75,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       });
       updateForE2E(engine);
 
-      const { category, caseFileName } = E2E_CONFIG["material-blinn-phong"];
+      const { category, caseFileName } = E2E_CONFIG.Material["blinn-phong"];
       initScreenshot(category, caseFileName, engine, camera);
     });
 });

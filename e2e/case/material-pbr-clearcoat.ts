@@ -54,7 +54,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   ]).then(() => {
     updateForE2E(engine);
 
-    const { category, caseFileName } = E2E_CONFIG["material-pbr-clearcoat"];
+    const { category, caseFileName } = E2E_CONFIG.Material["pbr-clearcoat"];
     initScreenshot(category, caseFileName, engine, camera);
   });
 });

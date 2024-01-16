@@ -66,7 +66,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     animationNames.push("dance");
     updateForE2E(engine);
 
-    const { category, caseFileName } = E2E_CONFIG["animator-reuse"];
+    const { category, caseFileName } = E2E_CONFIG.Animator["reuse"];
     initScreenshot(category, caseFileName, engine, camera);
   });
 });
