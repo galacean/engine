@@ -53,6 +53,8 @@ export const SelfMinus = createToken({ name: "SelfMinus", pattern: /\-\-/, label
 export const Exp = createToken({ name: "Expo", pattern: /e[-+]?\d+/, label: "exp" });
 export const Negative = createToken({ name: "Negative", pattern: /\!/, label: "!" });
 
+export const Query = createToken({ name: "Query", pattern: /\?/, label: "?" });
+
 export const tokenList = [
   SelfAdd,
   SelfMinus,
@@ -76,7 +78,8 @@ export const tokenList = [
   Divide,
   Dot,
   Exp,
-  Negative
+  Negative,
+  Query
 ];
 
 const GreaterThan = createToken({

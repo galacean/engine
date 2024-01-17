@@ -16,6 +16,6 @@ export const CommentLine = createToken({
 
 export const CommentMultiLine = createToken({
   name: "CommentMultiLine",
-  pattern: /\/\*.*?\*\//,
+  pattern: /\/\*\*(.|\s)*?\*\//,
   group: Lexer.SKIPPED
 });

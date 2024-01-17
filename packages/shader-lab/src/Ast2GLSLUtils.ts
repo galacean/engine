@@ -1,6 +1,13 @@
-import { AstNode, IPassAstContent, PassPropertyAssignmentAstNode, StructAstNode } from "./ast-node";
+import {
+  AstNode,
+  DeclarationWithoutAssignAstNode,
+  IPassAstContent,
+  PassPropertyAssignmentAstNode,
+  StructAstNode,
+  StructMacroConditionalFieldAstNode
+} from "./ast-node";
 import { DiagnosticSeverity } from "./Constants";
-import RuntimeContext from "./RuntimeContext";
+import RuntimeContext, { IReferenceStructInfo } from "./RuntimeContext";
 
 export class Ast2GLSLUtils {
   static stringifyVertexFunction(
@@ -26,11 +33,24 @@ export class Ast2GLSLUtils {
     const varyingStructAstNode = context.findGlobal(vertFnAst.content.returnType.content.text)?.ast as StructAstNode;
     if (varyingStructAstNode) {
       context.varyingStructInfo.structAstNode = varyingStructAstNode;
-      context.varyingStructInfo.reference = varyingStructAstNode.content.variables.map((v) => ({
-        referenced: false,
-        property: v,
-        text: `varying ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
-      }));
+      context.varyingStructInfo.reference = [];
+      for (const v of varyingStructAstNode.content.variables) {
+        if (v instanceof DeclarationWithoutAssignAstNode) {
+          context.varyingStructInfo.reference.push({
+            referenced: false,
+            property: v,
+            text: `varying ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
+          });
+        } else if (v instanceof StructMacroConditionalFieldAstNode) {
+          for (const field of v.fields) {
+            context.varyingStructInfo.reference.push({
+              referenced: false,
+              property: field,
+              text: `varying ${field.content.type.serialize(context)} ${field.content.variableNode.serialize(context)}`
+            });
+          }
+        }
+      }
     }
 
     // parsing attribute variables
@@ -46,11 +66,27 @@ export class Ast2GLSLUtils {
           });
           return;
         } else {
-          const reference = structAstNode.content.variables.map((v) => ({
-            referenced: false,
-            property: v,
-            text: `attribute ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
-          }));
+          const reference: IReferenceStructInfo["reference"] = [];
+          for (const v of structAstNode.content.variables) {
+            if (v instanceof DeclarationWithoutAssignAstNode) {
+              reference.push({
+                referenced: false,
+                property: v,
+                text: `attribute ${v.content.type.serialize(context)} ${v.content.variableNode.serialize(context)}`
+              });
+            } else if (v instanceof StructMacroConditionalFieldAstNode) {
+              for (const field of v.fields) {
+                reference.push({
+                  referenced: false,
+                  property: field,
+                  text: `varying ${field.content.type.serialize(context)} ${field.content.variableNode.serialize(
+                    context
+                  )}`
+                });
+              }
+            }
+          }
+
           context.attributeStructListInfo.push({ objectName: arg.content.name, structAstNode, reference });
         }
       } else {

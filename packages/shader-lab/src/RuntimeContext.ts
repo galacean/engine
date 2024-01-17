@@ -50,7 +50,7 @@ export enum EGlobalLevel {
 
 type GlobalMap = Map<string, IGlobal>;
 
-interface IReferenceStructInfo {
+export interface IReferenceStructInfo {
   /** varying or attribute object name */
   objectName?: string;
   structAstNode?: StructAstNode;

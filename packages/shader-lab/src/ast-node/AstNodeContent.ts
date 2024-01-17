@@ -43,7 +43,13 @@ import {
   FnMacroUndefineAstNode,
   FnMacroConditionAstNode,
   RenderQueueValueAstNode,
-  FnReturnStatementAstNode
+  FnReturnStatementAstNode,
+  StructMacroConditionElifBranchAstNode,
+  StructMacroConditionalFieldAstNode,
+  StructMacroConditionBodyAstNode,
+  FnMacroConditionBodyAstNode,
+  FnArgDecoratorAstNode,
+  TernaryExpressionSuffixAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -108,12 +114,15 @@ export interface IFnReturnTypeAstContent {
 }
 
 export interface IFnAstContent {
+  precision?: PrecisionAstNode;
   returnType: ReturnTypeAstNode;
   name: string;
   args: FnArgAstNode[];
   body: AstNode;
   returnStatement?: FnReturnStatementAstNode;
 }
+
+export type IUseMacroAstContent = string | FnCallAstNode;
 
 export interface IFnBodyAstContent {
   statements: AstNode[];
@@ -135,19 +144,40 @@ export interface IFnMacroConditionAstContent {
   command: string;
   condition: RelationExprAstNode;
   body: FnBodyAstNode | StructAstNode;
-  elifBranch?: FnMacroConditionElifBranchAstNode;
+  elifBranch?: FnMacroConditionElifBranchAstNode[];
   elseBranch?: FnMacroConditionElseBranchAstNode;
+}
+
+export interface IStructMacroConditionalFieldAstContent {
+  command: string;
+  condition: RelationExprAstNode;
+  body: StructMacroConditionBodyAstNode;
+  elifBranch?: StructMacroConditionElifBranchAstNode;
+  elseBranch?: AstNode;
 }
 
 export type IFnMacroConditionBodyAstContent = Array<FnBodyAstNode | StructAstNode>;
 
+export type IStructMacroConditionBodyAstContent = Array<
+  DeclarationWithoutAssignAstNode | StructMacroConditionalFieldAstNode
+>;
+
 export interface IFnMacroConditionElifBranchAstContent {
   condition: RelationExprAstNode;
-  body: FnBodyAstNode;
+  body: FnMacroConditionBodyAstNode;
+}
+
+export interface IStructMacroConditionElifBranchAstContent {
+  condition: RelationExprAstNode;
+  body: StructMacroConditionBodyAstNode;
 }
 
 export interface IFnMacroConditionElseBranchAstContent {
-  body: FnBodyAstNode;
+  body: FnMacroConditionBodyAstNode;
+}
+
+export interface IStructMacroConditionElseBranchAstContent {
+  body: StructMacroConditionBodyAstNode;
 }
 
 export interface IFnCallAstContent {
@@ -166,6 +196,7 @@ export interface IFnConditionStatementAstContent {
 export interface IConditionExprAstContent {
   expressionList: RelationExprAstNode[];
   operatorList?: RelationOperatorAstNode[];
+  ternarySuffix?: TernaryExpressionSuffixAstNode;
 }
 
 export interface IFnRelationExprAstContent {
@@ -175,6 +206,8 @@ export interface IFnRelationExprAstContent {
 }
 
 export type IFnBlockStatementAstContent = FnBodyAstNode;
+
+export type IFnVariableDeclarationStatementAstContent = VariableDeclarationAstNode;
 
 export type IRelationOperatorAstContent = string;
 
@@ -186,7 +219,15 @@ export interface IFnAssignExprAstContent {
 
 export type IFnAssignStatementAstContent = FnAssignExprAstNode;
 
-export type IFnExpressionAstContent = AstNode<IFnAddExprAstContent>;
+export interface IFnExpressionAstContent {
+  expr: AddExprAstNode;
+  ternaryExprSuffix?: AstNode;
+}
+
+export interface ITernaryExpressionSuffixAstContent {
+  positiveExpr: AddExprAstNode;
+  negativeExpr: AddExprAstNode;
+}
 
 export type IFnAddExprAstContent = {
   operators: AddOperatorAstNode[];
@@ -222,7 +263,7 @@ export type IFnVariableAstContent = {
   properties?: VariablePropertyAstNode[];
 };
 
-export type IArrayIndexAstContent = FnAtomicExprAstNode;
+export type IArrayIndexAstContent = AddExprAstNode | undefined;
 
 export type IVariablePropertyAstContent = string;
 
@@ -234,12 +275,16 @@ export interface IFnReturnStatementAstContent {
 export type IFnCallStatementAstContent = FnCallAstNode;
 
 export interface IFnArgAstContent {
+  decorator?: FnArgDecoratorAstNode;
   name: string;
   type: {
     isCustom: boolean;
     text: string;
   };
+  arrayIndex?: ArrayIndexAstNode;
 }
+
+export type IFnArgDecoratorAstContent = string;
 
 export interface IRenderStateDeclarationAstContent {
   variable: string;
@@ -276,6 +321,7 @@ export interface IFnVariableDeclarationAstContent {
   precision?: PrecisionAstNode;
   type: VariableTypeAstNode;
   variableList: FnVariableDeclareUnitAstNode[];
+  typeQualifier?: string;
 }
 
 export interface IShaderPropertyDeclareAstContent {
@@ -302,7 +348,8 @@ export interface IDeclarationWithoutAssignAstContent {
 
 export interface IStructAstContent {
   name: string;
-  variables: DeclarationWithoutAssignAstNode[];
+  // TODO:
+  variables: (DeclarationWithoutAssignAstNode | StructMacroConditionalFieldAstNode)[];
 }
 
 export interface IPassPropertyAssignmentAstContent {

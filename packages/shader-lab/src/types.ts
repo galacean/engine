@@ -75,7 +75,6 @@ export interface _ruleShaderPropertyDeclareCstNode extends CstNode {
 export type _ruleShaderPropertyDeclareCstChildren = {
   _rulePrecisionPrefix?: _rulePrecisionPrefixCstNode[];
   _ruleDeclarationWithoutAssign: _ruleDeclarationWithoutAssignCstNode[];
-  Semicolon: IToken[];
 };
 
 export interface _rulePrecisionPrefixCstNode extends CstNode {
@@ -99,7 +98,7 @@ export type _ruleStructCstChildren = {
   Identifier: IToken[];
   LCurly: IToken[];
   _ruleDeclarationWithoutAssign?: _ruleDeclarationWithoutAssignCstNode[];
-  Semicolon?: IToken[];
+  _ruleStructMacroConditionalField?: _ruleStructMacroConditionalFieldCstNode[];
   RCurly: IToken[];
 };
 
@@ -111,6 +110,7 @@ export interface _ruleDeclarationWithoutAssignCstNode extends CstNode {
 export type _ruleDeclarationWithoutAssignCstChildren = {
   _ruleVariableType: _ruleVariableTypeCstNode[];
   _ruleFnVariable: _ruleFnVariableCstNode[];
+  Semicolon: IToken[];
 };
 
 export interface _ruleVariableTypeCstNode extends CstNode {
@@ -176,6 +176,7 @@ export interface _ruleFnCstNode extends CstNode {
 }
 
 export type _ruleFnCstChildren = {
+  _rulePrecisionPrefix?: _rulePrecisionPrefixCstNode[];
   _ruleFnReturnType: _ruleFnReturnTypeCstNode[];
   Identifier: IToken[];
   LBracket: IToken[];
@@ -197,14 +198,38 @@ export type _ruleFnReturnTypeCstChildren = {
   void?: IToken[];
 };
 
+export interface _ruleFnArgDecoratorCstNode extends CstNode {
+  name: "_ruleFnArgDecorator";
+  children: _ruleFnArgDecoratorCstChildren;
+}
+
+export type _ruleFnArgDecoratorCstChildren = {
+  inout?: IToken[];
+  in?: IToken[];
+  out?: IToken[];
+};
+
 export interface _ruleFnArgCstNode extends CstNode {
   name: "_ruleFnArg";
   children: _ruleFnArgCstChildren;
 }
 
 export type _ruleFnArgCstChildren = {
-  _ruleVariableType: _ruleVariableTypeCstNode[];
-  Identifier: IToken[];
+  _ruleFnArgDecorator?: _ruleFnArgDecoratorCstNode[];
+  _ruleVariableType?: _ruleVariableTypeCstNode[];
+  Identifier?: IToken[];
+  _ruleArrayIndex?: _ruleArrayIndexCstNode[];
+  _ruleUseMacro?: _ruleUseMacroCstNode[];
+};
+
+export interface _ruleUseMacroCstNode extends CstNode {
+  name: "_ruleUseMacro";
+  children: _ruleUseMacroCstChildren;
+}
+
+export type _ruleUseMacroCstChildren = {
+  _ruleFnCall?: _ruleFnCallCstNode[];
+  Identifier?: IToken[];
 };
 
 export interface _ruleFnBodyCstNode extends CstNode {
@@ -238,6 +263,30 @@ export type _ruleFnMacroConditionBodyCstChildren = {
   _ruleFnBody?: _ruleFnBodyCstNode[];
 };
 
+export interface _ruleStructMacroConditionBodyCstNode extends CstNode {
+  name: "_ruleStructMacroConditionBody";
+  children: _ruleStructMacroConditionBodyCstChildren;
+}
+
+export type _ruleStructMacroConditionBodyCstChildren = {
+  _ruleDeclarationWithoutAssign?: _ruleDeclarationWithoutAssignCstNode[];
+  _ruleStructMacroConditionalField?: _ruleStructMacroConditionalFieldCstNode[];
+};
+
+export interface _ruleStructMacroConditionalFieldCstNode extends CstNode {
+  name: "_ruleStructMacroConditionalField";
+  children: _ruleStructMacroConditionalFieldCstChildren;
+}
+
+export type _ruleStructMacroConditionalFieldCstChildren = {
+  _ruleFnMacroConditionDeclare: _ruleFnMacroConditionDeclareCstNode[];
+  _ruleConditionExpr: _ruleConditionExprCstNode[];
+  _ruleStructMacroConditionBody: _ruleStructMacroConditionBodyCstNode[];
+  _ruleStructMacroElifBranch?: _ruleStructMacroElifBranchCstNode[];
+  _ruleStructMacroConditionElseBranch?: _ruleStructMacroConditionElseBranchCstNode[];
+  m_endif: IToken[];
+};
+
 export interface _ruleFnMacroConditionCstNode extends CstNode {
   name: "_ruleFnMacroCondition";
   children: _ruleFnMacroConditionCstChildren;
@@ -263,6 +312,16 @@ export type _ruleFnMacroConditionDeclareCstChildren = {
   m_if?: IToken[];
 };
 
+export interface _ruleStructMacroConditionElseBranchCstNode extends CstNode {
+  name: "_ruleStructMacroConditionElseBranch";
+  children: _ruleStructMacroConditionElseBranchCstChildren;
+}
+
+export type _ruleStructMacroConditionElseBranchCstChildren = {
+  m_else: IToken[];
+  _ruleStructMacroConditionBody: _ruleStructMacroConditionBodyCstNode[];
+};
+
 export interface _ruleFnMacroConditionElseBranchCstNode extends CstNode {
   name: "_ruleFnMacroConditionElseBranch";
   children: _ruleFnMacroConditionElseBranchCstChildren;
@@ -270,7 +329,18 @@ export interface _ruleFnMacroConditionElseBranchCstNode extends CstNode {
 
 export type _ruleFnMacroConditionElseBranchCstChildren = {
   m_else: IToken[];
-  _ruleFnBody: _ruleFnBodyCstNode[];
+  _ruleFnMacroConditionBody: _ruleFnMacroConditionBodyCstNode[];
+};
+
+export interface _ruleStructMacroElifBranchCstNode extends CstNode {
+  name: "_ruleStructMacroElifBranch";
+  children: _ruleStructMacroElifBranchCstChildren;
+}
+
+export type _ruleStructMacroElifBranchCstChildren = {
+  m_elif: IToken[];
+  _ruleConditionExpr: _ruleConditionExprCstNode[];
+  _ruleStructMacroConditionBody: _ruleStructMacroConditionBodyCstNode[];
 };
 
 export interface _ruleMacroConditionElifBranchCstNode extends CstNode {
@@ -281,7 +351,7 @@ export interface _ruleMacroConditionElifBranchCstNode extends CstNode {
 export type _ruleMacroConditionElifBranchCstChildren = {
   m_elif: IToken[];
   _ruleConditionExpr: _ruleConditionExprCstNode[];
-  _ruleFnBody: _ruleFnBodyCstNode[];
+  _ruleFnMacroConditionBody: _ruleFnMacroConditionBodyCstNode[];
 };
 
 export interface _ruleFnMacroDefineCstNode extends CstNode {
@@ -292,7 +362,7 @@ export interface _ruleFnMacroDefineCstNode extends CstNode {
 export type _ruleFnMacroDefineCstChildren = {
   m_define: IToken[];
   _ruleMacroDefineVariable: _ruleMacroDefineVariableCstNode[];
-  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
+  _ruleMacroDefineValue?: _ruleMacroDefineValueCstNode[];
 };
 
 export interface _ruleMacroDefineVariableCstNode extends CstNode {
@@ -303,6 +373,16 @@ export interface _ruleMacroDefineVariableCstNode extends CstNode {
 export type _ruleMacroDefineVariableCstChildren = {
   _ruleFnCall?: _ruleFnCallCstNode[];
   Identifier?: IToken[];
+};
+
+export interface _ruleMacroDefineValueCstNode extends CstNode {
+  name: "_ruleMacroDefineValue";
+  children: _ruleMacroDefineValueCstChildren;
+}
+
+export type _ruleMacroDefineValueCstChildren = {
+  _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
+  _ruleAssignableValue?: _ruleAssignableValueCstNode[];
 };
 
 export interface _ruleFnMacroUndefineCstNode extends CstNode {
@@ -323,7 +403,7 @@ export interface _ruleAssignableValueCstNode extends CstNode {
 export type _ruleAssignableValueCstChildren = {
   _ruleBoolean?: _ruleBooleanCstNode[];
   ValueString?: IToken[];
-  _ruleFnAddExpr?: _ruleFnAddExprCstNode[];
+  _ruleFnExpression?: _ruleFnExpressionCstNode[];
 };
 
 export interface _ruleFnAddExprCstNode extends CstNode {
@@ -466,7 +546,7 @@ export interface _ruleArrayIndexCstNode extends CstNode {
 
 export type _ruleArrayIndexCstChildren = {
   LSquareBracket: IToken[];
-  _ruleFnAtomicExpr: _ruleFnAtomicExprCstNode[];
+  _ruleFnAddExpr: _ruleFnAddExprCstNode[];
   RSquareBracket: IToken[];
 };
 
@@ -529,7 +609,7 @@ export type _ruleFnStatementCstChildren = {
   _ruleFnCallStatement?: _ruleFnCallStatementCstNode[];
   _ruleFnReturnStatement?: _ruleFnReturnStatementCstNode[];
   _ruleFnAssignStatement?: _ruleFnAssignStatementCstNode[];
-  _ruleFnVariableDeclaration?: _ruleFnVariableDeclarationCstNode[];
+  _ruleFnVariableDeclarationStatement?: _ruleFnVariableDeclarationStatementCstNode[];
   _ruleFnConditionStatement?: _ruleFnConditionStatementCstNode[];
   _ruleDiscardStatement?: _ruleDiscardStatementCstNode[];
   _ruleBreakStatement?: _ruleBreakStatementCstNode[];
@@ -537,6 +617,16 @@ export type _ruleFnStatementCstChildren = {
   _ruleForLoopStatement?: _ruleForLoopStatementCstNode[];
   _ruleFn?: _ruleFnCstNode[];
   _ruleFnBlockStatement?: _ruleFnBlockStatementCstNode[];
+};
+
+export interface _ruleFnVariableDeclarationStatementCstNode extends CstNode {
+  name: "_ruleFnVariableDeclarationStatement";
+  children: _ruleFnVariableDeclarationStatementCstChildren;
+}
+
+export type _ruleFnVariableDeclarationStatementCstChildren = {
+  _ruleFnVariableDeclaration: _ruleFnVariableDeclarationCstNode[];
+  Semicolon: IToken[];
 };
 
 export interface _ruleFnAssignStatementCstNode extends CstNode {
@@ -558,8 +648,8 @@ export type _ruleForLoopStatementCstChildren = {
   for: IToken[];
   LBracket: IToken[];
   _ruleFnVariableDeclaration: _ruleFnVariableDeclarationCstNode[];
-  _ruleConditionExpr: _ruleConditionExprCstNode[];
   Semicolon: IToken[];
+  _ruleConditionExpr: _ruleConditionExprCstNode[];
   _ruleFnAssignExpr: _ruleFnAssignExprCstNode[];
   RBracket: IToken[];
   _ruleFnBlockStatement: _ruleFnBlockStatementCstNode[];
@@ -588,6 +678,17 @@ export type _ruleReturnBodyCstChildren = {
   ValueString?: IToken[];
 };
 
+export interface _ruleTernaryExpressionSuffixCstNode extends CstNode {
+  name: "_ruleTernaryExpressionSuffix";
+  children: _ruleTernaryExpressionSuffixCstChildren;
+}
+
+export type _ruleTernaryExpressionSuffixCstChildren = {
+  Query: IToken[];
+  _ruleFnAddExpr: _ruleFnAddExprCstNode[];
+  Colon: IToken[];
+};
+
 export interface _ruleFnExpressionCstNode extends CstNode {
   name: "_ruleFnExpression";
   children: _ruleFnExpressionCstChildren;
@@ -595,6 +696,7 @@ export interface _ruleFnExpressionCstNode extends CstNode {
 
 export type _ruleFnExpressionCstChildren = {
   _ruleFnAddExpr: _ruleFnAddExprCstNode[];
+  _ruleTernaryExpressionSuffix?: _ruleTernaryExpressionSuffixCstNode[];
 };
 
 export interface _ruleBooleanCstNode extends CstNode {
@@ -614,10 +716,19 @@ export interface _ruleFnVariableDeclarationCstNode extends CstNode {
 
 export type _ruleFnVariableDeclarationCstChildren = {
   _rulePrecisionPrefix?: _rulePrecisionPrefixCstNode[];
+  _ruleFnVariableTypeQualifier?: _ruleFnVariableTypeQualifierCstNode[];
   _ruleVariableType: _ruleVariableTypeCstNode[];
   _ruleFnVariableDeclareUnit: _ruleFnVariableDeclareUnitCstNode[];
   Comma?: IToken[];
-  Semicolon: IToken[];
+};
+
+export interface _ruleFnVariableTypeQualifierCstNode extends CstNode {
+  name: "_ruleFnVariableTypeQualifier";
+  children: _ruleFnVariableTypeQualifierCstChildren;
+}
+
+export type _ruleFnVariableTypeQualifierCstChildren = {
+  const?: IToken[];
 };
 
 export interface _ruleFnVariableDeclareUnitCstNode extends CstNode {
@@ -654,6 +765,7 @@ export interface _ruleConditionExprCstNode extends CstNode {
 export type _ruleConditionExprCstChildren = {
   _ruleFnRelationExpr: _ruleFnRelationExprCstNode[];
   _ruleRelationOperator?: _ruleRelationOperatorCstNode[];
+  _ruleTernaryExpressionSuffix?: _ruleTernaryExpressionSuffixCstNode[];
 };
 
 export interface _ruleFnRelationExprCstNode extends CstNode {
@@ -1187,16 +1299,23 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleTagAssignableValue(children: _ruleTagAssignableValueCstChildren, param?: IN): OUT;
   _ruleFn(children: _ruleFnCstChildren, param?: IN): OUT;
   _ruleFnReturnType(children: _ruleFnReturnTypeCstChildren, param?: IN): OUT;
+  _ruleFnArgDecorator(children: _ruleFnArgDecoratorCstChildren, param?: IN): OUT;
   _ruleFnArg(children: _ruleFnArgCstChildren, param?: IN): OUT;
+  _ruleUseMacro(children: _ruleUseMacroCstChildren, param?: IN): OUT;
   _ruleFnBody(children: _ruleFnBodyCstChildren, param?: IN): OUT;
   _ruleFnMacro(children: _ruleFnMacroCstChildren, param?: IN): OUT;
   _ruleFnMacroConditionBody(children: _ruleFnMacroConditionBodyCstChildren, param?: IN): OUT;
+  _ruleStructMacroConditionBody(children: _ruleStructMacroConditionBodyCstChildren, param?: IN): OUT;
+  _ruleStructMacroConditionalField(children: _ruleStructMacroConditionalFieldCstChildren, param?: IN): OUT;
   _ruleFnMacroCondition(children: _ruleFnMacroConditionCstChildren, param?: IN): OUT;
   _ruleFnMacroConditionDeclare(children: _ruleFnMacroConditionDeclareCstChildren, param?: IN): OUT;
+  _ruleStructMacroConditionElseBranch(children: _ruleStructMacroConditionElseBranchCstChildren, param?: IN): OUT;
   _ruleFnMacroConditionElseBranch(children: _ruleFnMacroConditionElseBranchCstChildren, param?: IN): OUT;
+  _ruleStructMacroElifBranch(children: _ruleStructMacroElifBranchCstChildren, param?: IN): OUT;
   _ruleMacroConditionElifBranch(children: _ruleMacroConditionElifBranchCstChildren, param?: IN): OUT;
   _ruleFnMacroDefine(children: _ruleFnMacroDefineCstChildren, param?: IN): OUT;
   _ruleMacroDefineVariable(children: _ruleMacroDefineVariableCstChildren, param?: IN): OUT;
+  _ruleMacroDefineValue(children: _ruleMacroDefineValueCstChildren, param?: IN): OUT;
   _ruleFnMacroUndefine(children: _ruleFnMacroUndefineCstChildren, param?: IN): OUT;
   _ruleAssignableValue(children: _ruleAssignableValueCstChildren, param?: IN): OUT;
   _ruleFnAddExpr(children: _ruleFnAddExprCstChildren, param?: IN): OUT;
@@ -1217,13 +1336,16 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   _ruleContinueStatement(children: _ruleContinueStatementCstChildren, param?: IN): OUT;
   _ruleFnCallStatement(children: _ruleFnCallStatementCstChildren, param?: IN): OUT;
   _ruleFnStatement(children: _ruleFnStatementCstChildren, param?: IN): OUT;
+  _ruleFnVariableDeclarationStatement(children: _ruleFnVariableDeclarationStatementCstChildren, param?: IN): OUT;
   _ruleFnAssignStatement(children: _ruleFnAssignStatementCstChildren, param?: IN): OUT;
   _ruleForLoopStatement(children: _ruleForLoopStatementCstChildren, param?: IN): OUT;
   _ruleFnReturnStatement(children: _ruleFnReturnStatementCstChildren, param?: IN): OUT;
   _ruleReturnBody(children: _ruleReturnBodyCstChildren, param?: IN): OUT;
+  _ruleTernaryExpressionSuffix(children: _ruleTernaryExpressionSuffixCstChildren, param?: IN): OUT;
   _ruleFnExpression(children: _ruleFnExpressionCstChildren, param?: IN): OUT;
   _ruleBoolean(children: _ruleBooleanCstChildren, param?: IN): OUT;
   _ruleFnVariableDeclaration(children: _ruleFnVariableDeclarationCstChildren, param?: IN): OUT;
+  _ruleFnVariableTypeQualifier(children: _ruleFnVariableTypeQualifierCstChildren, param?: IN): OUT;
   _ruleFnVariableDeclareUnit(children: _ruleFnVariableDeclareUnitCstChildren, param?: IN): OUT;
   _ruleFnConditionStatement(children: _ruleFnConditionStatementCstChildren, param?: IN): OUT;
   _ruleConditionExpr(children: _ruleConditionExprCstChildren, param?: IN): OUT;

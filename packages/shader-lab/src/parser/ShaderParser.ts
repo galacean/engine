@@ -3,12 +3,15 @@ import { Others, Symbols, Types, Keywords, Values, GLKeywords, RenderState, _all
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/Value";
 import { Identifier } from "./tokens/Other";
 import { ShaderFactory } from "@galacean/engine";
+import { ALL } from "dns";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;
+  // TODO: delete
+  extendedSource: string;
 
   constructor() {
-    super(_allTokens, { maxLookahead: 8 });
+    super(_allTokens, { maxLookahead: 7 });
     this.lexer = new Lexer(_allTokens, { ensureOptimizations: true });
 
     this.performSelfAnalysis();
@@ -16,6 +19,7 @@ export class ShaderParser extends CstParser {
 
   parse(text: string) {
     const source = ShaderFactory.parseIncludes(text, /^[ \t]*#include +"([\w\d.]+)"/gm);
+    this.extendedSource = source;
 
     const lexingResult = this.lexer.tokenize(source);
     this.input = lexingResult.tokens;
@@ -83,7 +87,6 @@ export class ShaderParser extends CstParser {
   private _ruleShaderPropertyDeclare = this.RULE("_ruleShaderPropertyDeclare", () => {
     this.OPTION(() => this.SUBRULE(this._rulePrecisionPrefix));
     this.SUBRULE(this._ruleDeclarationWithoutAssign);
-    this.CONSUME(Symbols.Semicolon);
   });
 
   private _rulePrecisionPrefix = this.RULE("_rulePrecisionPrefix", () => {
@@ -95,8 +98,12 @@ export class ShaderParser extends CstParser {
     this.CONSUME(Others.Identifier);
     this.CONSUME(Symbols.LCurly);
     this.MANY(() => {
-      this.SUBRULE(this._ruleDeclarationWithoutAssign);
-      this.CONSUME(Symbols.Semicolon);
+      this.OR([
+        {
+          ALT: () => this.SUBRULE(this._ruleDeclarationWithoutAssign)
+        },
+        { ALT: () => this.SUBRULE(this._ruleStructMacroConditionalField) }
+      ]);
     });
     this.CONSUME(Symbols.RCurly);
   });
@@ -104,6 +111,7 @@ export class ShaderParser extends CstParser {
   private _ruleDeclarationWithoutAssign = this.RULE("_ruleDeclarationWithoutAssign", () => {
     this.SUBRULE(this._ruleVariableType);
     this.SUBRULE(this._ruleFnVariable);
+    this.CONSUME(Symbols.Semicolon);
   });
 
   private _ruleVariableType = this.RULE("_ruleVariableType", () => {
@@ -141,6 +149,7 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleFn = this.RULE("_ruleFn", () => {
+    this.OPTION(() => this.SUBRULE(this._rulePrecisionPrefix));
     this.SUBRULE(this._ruleFnReturnType);
     this.CONSUME1(Others.Identifier);
     this.CONSUME1(Symbols.LBracket);
@@ -158,9 +167,30 @@ export class ShaderParser extends CstParser {
     this.OR([{ ALT: () => this.SUBRULE(this._ruleVariableType) }, { ALT: () => this.CONSUME(GLKeywords.Void) }]);
   });
 
+  private _ruleFnArgDecorator = this.RULE("_ruleFnArgDecorator", () => {
+    this.OR([
+      { ALT: () => this.CONSUME(Keywords.ArgDecoInOut) },
+      { ALT: () => this.CONSUME(Keywords.ArgDecoIn) },
+      { ALT: () => this.CONSUME(Keywords.ArgDecoOut) }
+    ]);
+  });
+
   private _ruleFnArg = this.RULE("_ruleFnArg", () => {
-    this.SUBRULE(this._ruleVariableType);
-    this.CONSUME2(Others.Identifier);
+    this.OR([
+      {
+        ALT: () => {
+          this.OPTION(() => this.SUBRULE(this._ruleFnArgDecorator));
+          this.SUBRULE(this._ruleVariableType);
+          this.CONSUME2(Others.Identifier);
+          this.OPTION1(() => this.SUBRULE(this._ruleArrayIndex));
+        }
+      },
+      { ALT: () => this.SUBRULE(this._ruleUseMacro) }
+    ]);
+  });
+
+  private _ruleUseMacro = this.RULE("_ruleUseMacro", () => {
+    this.OR([{ ALT: () => this.SUBRULE(this._ruleFnCall) }, { ALT: () => this.CONSUME(Others.Identifier) }]);
   });
 
   private _ruleFnBody = this.RULE("_ruleFnBody", () => {
@@ -183,12 +213,35 @@ export class ShaderParser extends CstParser {
     });
   });
 
+  private _ruleStructMacroConditionBody = this.RULE("_ruleStructMacroConditionBody", () => {
+    this.MANY(() => {
+      this.OR([
+        { ALT: () => this.SUBRULE(this._ruleDeclarationWithoutAssign) },
+        { ALT: () => this.SUBRULE(this._ruleStructMacroConditionalField) }
+      ]);
+    });
+  });
+
+  private _ruleStructMacroConditionalField = this.RULE("_ruleStructMacroConditionalField", () => {
+    this.SUBRULE(this._ruleFnMacroConditionDeclare);
+    this.SUBRULE(this._ruleConditionExpr);
+    this.SUBRULE(this._ruleStructMacroConditionBody);
+
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleStructMacroElifBranch);
+    });
+    this.OPTION1(() => {
+      this.SUBRULE(this._ruleStructMacroConditionElseBranch);
+    });
+    this.CONSUME(GLKeywords.M_ENDIF);
+  });
+
   private _ruleFnMacroCondition = this.RULE("_ruleFnMacroCondition", () => {
     this.SUBRULE(this._ruleFnMacroConditionDeclare);
     this.SUBRULE(this._ruleConditionExpr);
     this.SUBRULE(this._ruleFnMacroConditionBody);
 
-    this.OPTION(() => {
+    this.MANY(() => {
       this.SUBRULE(this._ruleMacroConditionElifBranch);
     });
     this.OPTION1(() => {
@@ -205,27 +258,45 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
+  private _ruleStructMacroConditionElseBranch = this.RULE("_ruleStructMacroConditionElseBranch", () => {
+    this.CONSUME(GLKeywords.M_ELSE);
+    this.SUBRULE(this._ruleStructMacroConditionBody);
+  });
+
   private _ruleFnMacroConditionElseBranch = this.RULE("_ruleFnMacroConditionElseBranch", () => {
     this.CONSUME(GLKeywords.M_ELSE);
-    this.SUBRULE(this._ruleFnBody);
+    this.SUBRULE(this._ruleFnMacroConditionBody);
+  });
+
+  private _ruleStructMacroElifBranch = this.RULE("_ruleStructMacroElifBranch", () => {
+    this.CONSUME(GLKeywords.M_ELIF);
+    this.SUBRULE(this._ruleConditionExpr);
+    this.SUBRULE(this._ruleStructMacroConditionBody);
   });
 
   private _ruleMacroConditionElifBranch = this.RULE("_ruleMacroConditionElifBranch", () => {
     this.CONSUME(GLKeywords.M_ELIF);
     this.SUBRULE(this._ruleConditionExpr);
-    this.SUBRULE(this._ruleFnBody);
+    this.SUBRULE(this._ruleFnMacroConditionBody);
   });
 
   private _ruleFnMacroDefine = this.RULE("_ruleFnMacroDefine", () => {
     this.CONSUME(GLKeywords.M_DEFINE);
     this.SUBRULE(this._ruleMacroDefineVariable);
     this.OPTION(() => {
-      this.SUBRULE(this._ruleAssignableValue);
+      this.SUBRULE(this._ruleMacroDefineValue);
     });
   });
 
   private _ruleMacroDefineVariable = this.RULE("_ruleMacroDefineVariable", () => {
     this.OR([{ ALT: () => this.SUBRULE(this._ruleFnCall) }, { ALT: () => this.CONSUME(Others.Identifier) }]);
+  });
+
+  private _ruleMacroDefineValue = this.RULE("_ruleMacroDefineValue", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleAssignableValue) }
+    ]);
   });
 
   private _ruleFnMacroUndefine = this.RULE("_ruleFnMacroUndefine", () => {
@@ -237,7 +308,7 @@ export class ShaderParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this._ruleBoolean) },
       { ALT: () => this.CONSUME(Values.ValueString) },
-      { ALT: () => this.SUBRULE(this._ruleFnAddExpr) }
+      { ALT: () => this.SUBRULE(this._ruleFnExpression) }
     ]);
   });
 
@@ -268,7 +339,11 @@ export class ShaderParser extends CstParser {
   });
 
   private _ruleAddOperator = this.RULE("_ruleAddOperator", () => {
-    this.OR([{ ALT: () => this.CONSUME(Symbols.Add) }, { ALT: () => this.CONSUME(Symbols.Minus) }]);
+    this.OR([
+      { ALT: () => this.CONSUME(Symbols.Add) },
+      { ALT: () => this.CONSUME(Symbols.Minus) },
+      { ALT: () => this.CONSUME(Symbols.Negative) }
+    ]);
   });
 
   private _ruleFnParenthesisExpr = this.RULE("_ruleFnParenthesisExpr", () => {
@@ -327,7 +402,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleArrayIndex = this.RULE("_ruleArrayIndex", () => {
     this.CONSUME(Symbols.LSquareBracket);
-    this.SUBRULE(this._ruleFnAtomicExpr);
+    this.OPTION(() => this.SUBRULE(this._ruleFnAddExpr));
     this.CONSUME(Symbols.RSquareBracket);
   });
 
@@ -360,7 +435,7 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleFnCallStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnReturnStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnAssignStatement) },
-      { ALT: () => this.SUBRULE(this._ruleFnVariableDeclaration) },
+      { ALT: () => this.SUBRULE(this._ruleFnVariableDeclarationStatement) },
       { ALT: () => this.SUBRULE(this._ruleFnConditionStatement) },
       { ALT: () => this.SUBRULE(this._ruleDiscardStatement) },
       { ALT: () => this.SUBRULE(this._ruleBreakStatement) },
@@ -369,6 +444,11 @@ export class ShaderParser extends CstParser {
       { ALT: () => this.SUBRULE(this._ruleFn) },
       { ALT: () => this.SUBRULE(this._ruleFnBlockStatement) }
     ]);
+  });
+
+  private _ruleFnVariableDeclarationStatement = this.RULE("_ruleFnVariableDeclarationStatement", () => {
+    this.SUBRULE(this._ruleFnVariableDeclaration);
+    this.CONSUME(Symbols.Semicolon);
   });
 
   private _ruleFnAssignStatement = this.RULE("_ruleFnAssignStatement", () => {
@@ -380,8 +460,9 @@ export class ShaderParser extends CstParser {
     this.CONSUME(GLKeywords.For);
     this.CONSUME(Symbols.LBracket);
     this.SUBRULE(this._ruleFnVariableDeclaration);
-    this.SUBRULE(this._ruleConditionExpr);
     this.CONSUME1(Symbols.Semicolon);
+    this.SUBRULE(this._ruleConditionExpr);
+    this.CONSUME2(Symbols.Semicolon);
     this.SUBRULE(this._ruleFnAssignExpr);
     this.CONSUME(Symbols.RBracket);
     this.SUBRULE(this._ruleFnBlockStatement);
@@ -405,8 +486,18 @@ export class ShaderParser extends CstParser {
     ]);
   });
 
+  private _ruleTernaryExpressionSuffix = this.RULE("_ruleTernaryExpressionSuffix", () => {
+    this.CONSUME(Symbols.Query);
+    this.SUBRULE1(this._ruleFnAddExpr);
+    this.CONSUME(Symbols.Colon);
+    this.SUBRULE2(this._ruleFnAddExpr);
+  });
+
   private _ruleFnExpression = this.RULE("_ruleFnExpression", () => {
     this.SUBRULE(this._ruleFnAddExpr);
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleTernaryExpressionSuffix);
+    });
   });
 
   private _ruleBoolean = this.RULE("_ruleBoolean", () => {
@@ -415,13 +506,17 @@ export class ShaderParser extends CstParser {
 
   private _ruleFnVariableDeclaration = this.RULE("_ruleFnVariableDeclaration", () => {
     this.OPTION(() => this.SUBRULE(this._rulePrecisionPrefix));
+    this.OPTION1(() => this.SUBRULE(this._ruleFnVariableTypeQualifier));
     this.SUBRULE(this._ruleVariableType);
     this.SUBRULE(this._ruleFnVariableDeclareUnit);
     this.MANY(() => {
       this.CONSUME(Symbols.Comma);
       this.SUBRULE1(this._ruleFnVariableDeclareUnit);
     });
-    this.CONSUME(Symbols.Semicolon);
+  });
+
+  private _ruleFnVariableTypeQualifier = this.RULE("_ruleFnVariableTypeQualifier", () => {
+    this.OR([{ ALT: () => this.CONSUME(Keywords.ConstQualifier) }]);
   });
 
   private _ruleFnVariableDeclareUnit = this.RULE("_ruleFnVariableDeclareUnit", () => {
@@ -454,6 +549,9 @@ export class ShaderParser extends CstParser {
       this.SUBRULE(this._ruleRelationOperator);
       this.SUBRULE1(this._ruleFnRelationExpr);
     });
+    this.OPTION(() => {
+      this.SUBRULE(this._ruleTernaryExpressionSuffix);
+    });
   });
 
   private _ruleFnRelationExpr = this.RULE("_ruleFnRelationExpr", () => {
@@ -476,7 +574,7 @@ export class ShaderParser extends CstParser {
 
   private _ruleFnAssignExpr = this.RULE("_ruleFnAssignExpr", () => {
     this.SUBRULE(this._ruleFnSelfAssignExpr);
-    this.OPTION(() => {
+    this.MANY(() => {
       this.SUBRULE(this._ruleFnAssignmentOperator);
       this.SUBRULE(this._ruleFnExpression);
     });
