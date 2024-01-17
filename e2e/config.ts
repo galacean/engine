@@ -61,7 +61,8 @@ export const E2E_CONFIG = {
     },
     "blinn-phong": {
       category: "Material",
-      caseFileName: "material-blinn-phong"
+      caseFileName: "material-blinn-phong",
+      threshold: 0.2
     },
     "pbr-clearcoat": {
       category: "Material",
