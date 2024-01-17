@@ -12,6 +12,8 @@ export class ConeShape extends BaseShape {
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
 
+  readonly shapeType = ParticleShapeType.Cone;
+
   /** Angle of the cone to emit particles from. */
   angle = 25.0;
   /** Radius of the shape to emit particles from. */
@@ -20,11 +22,6 @@ export class ConeShape extends BaseShape {
   length = 5.0;
   /** Cone emitter type. */
   emitType = ConeEmitType.Base;
-
-  constructor() {
-    super();
-    this.shapeType = ParticleShapeType.Cone;
-  }
 
   /**
    * @internal

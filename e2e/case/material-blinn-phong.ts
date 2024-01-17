@@ -73,8 +73,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         materials.push(material);
       });
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-blinn-phong";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });
