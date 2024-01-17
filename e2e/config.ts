@@ -89,5 +89,12 @@ export const E2E_CONFIG = {
       caseFileName: "material-unlit",
       threshold: 0.2
     }
+  },
+  Shadow: {
+    basic: {
+      category: "Shadow",
+      caseFileName: "shadow-basic",
+      threshold: 0.2
+    }
   }
 };
