@@ -1,5 +1,13 @@
 Shader "Water" {
 
+  EditorProperties {
+    u_color( "Main Color", Color ) = ( 0, 1, 0, 1 );
+    u_range( "Test Range", Range( 1, 100, 3 ) ) = 10;
+    u_mode( "Mode Toggle", Boolean ) = true;
+    u_texture( "Texture", Texture2D );
+    u_texture2( "TextureCube", TextureCube );
+  }
+
   DepthState depthState {
     Enabled = true;
     WriteEnabled = false;

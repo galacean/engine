@@ -68,5 +68,6 @@
       "eslint --fix",
       "git add"
     ]
-  }
+  },
+  "repository": "git@github.com:galacean/runtime.git"
 }

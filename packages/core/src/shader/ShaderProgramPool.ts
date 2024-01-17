@@ -71,8 +71,9 @@ export class ShaderProgramPool {
       }
       return;
     }
+    ++hierarchy;
     for (let k in cacheMap) {
-      this._recursiveDestroy(++hierarchy, <Tree<ShaderProgram>>cacheMap[k]);
+      this._recursiveDestroy(hierarchy, <Tree<ShaderProgram>>cacheMap[k]);
     }
   }
 

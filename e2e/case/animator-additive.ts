@@ -11,7 +11,6 @@ import {
   DirectLight,
   GLTFResource,
   Logger,
-  SystemInfo,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -63,8 +62,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("walk", 0);
       animator.play("sad_pose", 1);
       updateForE2E(engine);
-      const category = "Animator";
-      const name = "animator-additive";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

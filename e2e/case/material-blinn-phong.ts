@@ -36,8 +36,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   light1.addComponent(DirectLight);
   light2.addComponent(DirectLight);
 
-  engine.run();
-
   engine.resourceManager
     .load([
       {
@@ -75,8 +73,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         materials.push(material);
       });
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-blinn-phong";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

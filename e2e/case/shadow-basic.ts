@@ -51,8 +51,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play(asset.animations[0].name);
 
       updateForE2E(engine, 500);
-      const category = "Shadow";
-      const name = "shadow-basic";
-      initScreenshot(category, name, engine, camera);
+      initScreenshot(engine, camera);
     });
 });

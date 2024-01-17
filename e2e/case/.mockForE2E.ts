@@ -17,8 +17,6 @@ let screenshotCanvas: HTMLCanvasElement = null;
 let flipYCanvas: HTMLCanvasElement = null;
 
 export function initScreenshot(
-  category: string,
-  name: string,
   engine: Engine,
   camera: Camera,
   width: number = 1200,
@@ -27,8 +25,6 @@ export function initScreenshot(
   isPNG = false,
   jpgQuality = 1
 ) {
-  const imageName = `${category}_${name}.jpg`;
-
   if (!screenshotCanvas) {
     screenshotCanvas = document.createElement("canvas");
   }
@@ -44,14 +40,7 @@ export function initScreenshot(
   const originalTarget = camera.renderTarget;
   const renderColorTexture = new Texture2D(engine, width, height);
   const renderTargetData = new Uint8Array(width * height * 4);
-  const renderTarget = new RenderTarget(
-    engine,
-    width,
-    height,
-    renderColorTexture,
-    undefined,
-    1
-  );
+  const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 1);
 
   // render to off-screen
   camera.renderTarget = renderTarget;
@@ -86,7 +75,10 @@ export function initScreenshot(
     (blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-
+      const search = new URLSearchParams(window.location.search);
+      const category = search.get("category");
+      const caseFileName = search.get("case");
+      const imageName = `${category}_${caseFileName}.jpg`;
       a.href = url;
       a.download = imageName;
       a.id = "screenshot";

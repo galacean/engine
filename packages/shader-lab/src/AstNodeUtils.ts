@@ -31,8 +31,8 @@ export class AstNodeUtils {
 
   static defaultVisit(this: ICstVisitor<any, AstNode>, ctx: CstChildrenDictionary): ObjectAstNode {
     const content = {} as Record<string, AstNode>;
-    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1 },
-      end: IPosition = { line: 0, character: -1 };
+    let start: IPosition = { line: Number.MAX_SAFE_INTEGER, character: -1, index: -1 },
+      end: IPosition = { line: 0, character: -1, index: -1 };
 
     for (const k in ctx) {
       if (AstNodeUtils.isCstNode(ctx[k][0])) {
@@ -63,11 +63,13 @@ export class AstNodeUtils {
     return {
       start: {
         line: token.startLine,
-        character: token.startColumn
+        character: token.startColumn,
+        index: token.startOffset
       },
       end: {
         line: token.endLine,
-        character: token.endColumn
+        character: token.endColumn,
+        index: token.endOffset
       }
     };
   }

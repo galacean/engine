@@ -99,6 +99,9 @@ export class MainModule implements ICustomClone {
   readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
 
   @ignoreClone
+  readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
+
+  @ignoreClone
   private _generator: ParticleGenerator;
   @ignoreClone
   private _gravity = new Vector3();
@@ -196,7 +199,7 @@ export class MainModule implements ICustomClone {
     }
 
     const particleGravity = this._gravity;
-    const gravityModifierValue = this.gravityModifier.evaluate(undefined, undefined);
+    const gravityModifierValue = this.gravityModifier.evaluate(undefined, this._gravityModifierRand.random());
     Vector3.scale(renderer.scene.physics.gravity, gravityModifierValue, particleGravity);
 
     shaderData.setVector3(MainModule._gravity, particleGravity);

@@ -24,6 +24,7 @@ import {
 } from "./ast-node";
 import { AstNodeUtils } from "./AstNodeUtils";
 import { RenderStateDataKey } from "@galacean/engine";
+import ParsingContext from "./ParsingContext";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -66,7 +67,7 @@ export default class RuntimeContext {
 
   functionAstStack: { fnAst: FnAstNode; localDeclaration: VariableDeclarationAstNode[] }[] = [];
   /** Diagnostic for linting service. */
-  diagnostics: IDiagnostic[] = [];
+  private _diagnostics: IDiagnostic[] = [];
   /** Varying info. */
   varyingTypeAstNode?: ReturnTypeAstNode;
   /** Varying. */
@@ -94,6 +95,11 @@ export default class RuntimeContext {
   private _passGlobalMap: GlobalMap = new Map();
   /** The main function */
   private _currentMainFnAst?: FnAstNode;
+  private _parsingContext: ParsingContext;
+
+  set parsingContext(context: ParsingContext) {
+    this._parsingContext = context;
+  }
 
   /** Current position */
   get serializingAstNode() {
@@ -106,6 +112,15 @@ export default class RuntimeContext {
 
   get currentMainFnAst() {
     return this._currentMainFnAst;
+  }
+
+  addDiagnostic(diagnostic: IDiagnostic) {
+    let offset = this._parsingContext.getTextLineOffsetAt(diagnostic.token.start.index);
+    if (offset) {
+      diagnostic.token.start.line += offset;
+      diagnostic.token.end.line += offset;
+    }
+    this._diagnostics.push(diagnostic);
   }
 
   setSerializingNode(node: AstNode) {
@@ -166,7 +181,7 @@ export default class RuntimeContext {
     switch (prop.content.type) {
       case VERT_FN_NAME:
         if (ret.vertexSource) {
-          this.diagnostics.push({
+          this.addDiagnostic({
             severity: DiagnosticSeverity.Error,
             message: "multiple vertex main function found",
             token: prop.position
@@ -178,7 +193,7 @@ export default class RuntimeContext {
         break;
       case FRAG_FN_NAME:
         if (ret.fragmentSource) {
-          this.diagnostics.push({
+          this.addDiagnostic({
             severity: DiagnosticSeverity.Error,
             message: "multiple fragment main function found",
             token: prop.position
@@ -193,7 +208,7 @@ export default class RuntimeContext {
         const variable = prop.content.value;
         const astNode = this.findGlobal(variable.content.variable)?.ast;
         if (!astNode) {
-          this.diagnostics.push({
+          this.addDiagnostic({
             severity: DiagnosticSeverity.Error,
             message: "variable definition not found",
             token: prop.position

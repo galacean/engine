@@ -5,13 +5,10 @@
 import {
   AmbientLight,
   AssetType,
-  BackgroundMode,
   Camera,
   DirectLight,
   GLTFResource,
   Logger,
-  PrimitiveMesh,
-  SkyBoxMaterial,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -37,14 +34,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraNode.transform.lookAt(new Vector3());
   const camera = cameraNode.addComponent(Camera);
 
-  // Create sky
-  const sky = background.sky;
-  const skyMaterial = new SkyBoxMaterial(engine);
-  background.mode = BackgroundMode.Sky;
-
-  sky.material = skyMaterial;
-  sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-
   Promise.all([
     engine.resourceManager
       .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/16875768-21cf-481f-b05f-454c17866ba0.glb")
@@ -60,14 +49,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
-        skyMaterial.texture = ambientLight.specularTexture;
-        skyMaterial.textureDecodeRGBM = true;
       })
   ]).then(() => {
-    engine.run();
     updateForE2E(engine);
-    const category = "Material";
-    const name = "material-pbr-clearcoat";
-    initScreenshot(category, name, engine, camera);
+
+    initScreenshot(engine, camera);
   });
 });

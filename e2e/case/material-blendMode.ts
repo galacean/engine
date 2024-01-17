@@ -24,8 +24,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .then((glTF) => {
       rootEntity.addChild(glTF.defaultSceneRoot);
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-blendMode";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });
