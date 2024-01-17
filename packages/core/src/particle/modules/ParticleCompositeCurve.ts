@@ -40,47 +40,6 @@ export class ParticleCompositeCurve {
   set curve(value: ParticleCurve) {
     this.curveMax = value;
   }
-  /**
-   * The max positive value of the curve. Would be 0 if no positive value exists.
-   */
-  get maxValue(): number {
-    switch (this.mode) {
-      case ParticleCurveMode.Constant:
-        return Math.max(0, this.constantMax);
-      case ParticleCurveMode.TwoConstants:
-        return Math.max(0, this.constantMin, this.constantMax);
-      case ParticleCurveMode.Curve:
-        const values = this.curveMax && this.curveMax.keys ? this.curveMax.keys.map((key) => key.value) : [0];
-        return Math.max(0, ...values);
-      case ParticleCurveMode.TwoCurves:
-        const maxValues = this.curveMax && this.curveMax.keys ? this.curveMax.keys.map((key) => key.value) : [0];
-        const minValues = this.curveMin && this.curveMin.keys ? this.curveMin.keys.map((key) => key.value) : [0];
-        return Math.max(0, ...maxValues, ...minValues);
-      default:
-        return 0;
-    }
-  }
-
-  /**
-   * The max negative value of the curve. Would be 0 if no negative value exists.
-   */
-  get minValue(): number {
-    switch (this.mode) {
-      case ParticleCurveMode.Constant:
-        return Math.min(0, this.constantMax);
-      case ParticleCurveMode.TwoConstants:
-        return Math.min(0, this.constantMin, this.constantMax);
-      case ParticleCurveMode.Curve:
-        const values = this.curveMax && this.curveMax.keys ? this.curveMax.keys.map((key) => key.value) : [0];
-        return Math.min(0, ...values);
-      case ParticleCurveMode.TwoCurves:
-        const maxValues = this.curveMax && this.curveMax.keys ? this.curveMax.keys.map((key) => key.value) : [0];
-        const minValues = this.curveMin && this.curveMin.keys ? this.curveMin.keys.map((key) => key.value) : [0];
-        return Math.min(0, ...maxValues, ...minValues);
-      default:
-        return 0;
-    }
-  }
 
   /**
    * Create a particle curve that generates a constant value.
@@ -146,5 +105,40 @@ export class ParticleCompositeCurve {
       default:
         break;
     }
+  }
+
+  /**
+   * @internal
+   * @param out - The max negative value and the max positive value of the curve.
+   */
+  _getMinMaxValue(out: { min: number; max: number }): { min: number; max: number } {
+    out.min = out.max = 0;
+    switch (this.mode) {
+      case ParticleCurveMode.Constant:
+        out.max = Math.max(0, this.constantMax);
+        out.min = Math.min(0, this.constantMax);
+        break;
+      case ParticleCurveMode.TwoConstants:
+        out.max = Math.max(0, this.constantMin, this.constantMax);
+        out.min = Math.min(0, this.constantMin, this.constantMax);
+        break;
+      case ParticleCurveMode.Curve:
+        for (let i = 0; i < this.curveMax?.keys.length; i++) {
+          out.max = Math.max(out.max, this.curveMax.keys[i].value);
+          out.min = Math.min(out.min, this.curveMax.keys[i].value);
+        }
+        break;
+      case ParticleCurveMode.TwoCurves:
+        for (let i = 0; i < this.curveMax?.keys.length; i++) {
+          out.max = Math.max(out.max, this.curveMax.keys[i].value);
+          out.min = Math.min(out.min, this.curveMax.keys[i].value);
+        }
+        for (let i = 0; i < this.curveMin?.keys.length; i++) {
+          out.max = Math.max(out.max, this.curveMin.keys[i].value);
+          out.min = Math.min(out.min, this.curveMin.keys[i].value);
+        }
+        break;
+    }
+    return out;
   }
 }

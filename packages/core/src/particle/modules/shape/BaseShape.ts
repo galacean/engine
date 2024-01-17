@@ -18,4 +18,18 @@ export abstract class BaseShape {
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     throw new Error("BaseShape: must override it.");
   }
+
+  /**
+   * @internal
+   */
+  _getDirectionRange(out: { min: Vector3; max: Vector3 }): void {
+    throw new Error("BaseShape: must override it.");
+  }
+
+  /**
+   * @internal
+   */
+  _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
+    throw new Error("BaseShape: must override it.");
+  }
 }

@@ -62,6 +62,49 @@ export class ConeShape extends BaseShape {
         break;
     }
   }
+
+  /**
+   * @internal
+   */
+  override _getDirectionRange(out: { min: Vector3; max: Vector3 }) {
+    const radian = MathUtil.degreeToRadian(this.angle);
+    const dirSinA = Math.sin(radian);
+
+    if (this.randomDirectionAmount > 0) {
+      switch (this.emitType) {
+        case ConeEmitType.Base:
+          out.min.set(-dirSinA, -dirSinA, -1);
+          out.max.set(dirSinA, dirSinA, 0);
+          break;
+        case ConeEmitType.Volume:
+          out.min.set(-1, -1, -1);
+          out.max.set(1, 1, 1);
+          break;
+      }
+    } else {
+      out.min.set(-dirSinA, -dirSinA, -1);
+      out.max.set(dirSinA, dirSinA, 0);
+    }
+  }
+  /**
+   * @internal
+   */
+  override _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
+    const radian = MathUtil.degreeToRadian(this.angle);
+    const dirSinA = Math.sin(radian);
+    const { radius, length } = this;
+
+    switch (this.emitType) {
+      case ConeEmitType.Base:
+        out.min.set(-radius, -radius, -radius);
+        out.max.set(radius, radius, 0);
+        break;
+      case ConeEmitType.Volume:
+        out.min.set(-radius - dirSinA * length, -radius - dirSinA * length, -length);
+        out.max.set(radius + dirSinA * length, radius + dirSinA * length, 0);
+        break;
+    }
+  }
 }
 
 /**

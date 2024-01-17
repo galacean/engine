@@ -27,33 +27,17 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ParticleShapeType } from "./modules/shape/enums/ParticleShapeType";
-import {
-  BoxShape,
-  CircleShape,
-  ConeEmitType,
-  ConeShape,
-  HemisphereShape,
-  ParticleCompositeCurve,
-  SphereShape
-} from "..";
-import { BaseShape } from "./modules/shape/BaseShape";
+import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 
 /**
  * Particle Generator.
  */
 export class ParticleGenerator {
-  /** @internal */
   private static _tempVector30 = new Vector3();
-  /** @internal */
   private static _tempVector31 = new Vector3();
-  /** @internal */
   private static _tempVector32 = new Vector3();
-  /** @internal */
   private static _tempColor0 = new Color();
-  /** @internal */
   private static _tempQuat0 = new Quaternion();
-  /** @internal */
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
   private static readonly _particleIncreaseCount = 128;
 
@@ -256,7 +240,6 @@ export class ParticleGenerator {
         }
         this._addNewParticle(position, direction, transform, time);
       }
-      this._calculateBoundingBox();
     }
   }
 
@@ -281,8 +264,8 @@ export class ParticleGenerator {
           this._resizeInstanceBuffer(false);
         }
       }
-
       emission._emit(lastPlayTime, this._playTime);
+      this._calculateBoundingBox();
 
       if (!main.isLoop && this._playTime > duration) {
         this._isPlaying = false;
@@ -791,12 +774,12 @@ export class ParticleGenerator {
   private _calculateBoundingBox(): void {
     const { min, max } = this._renderer._bounds;
     const { _directionMax: directionMax, _directionMin: directionMin } = this;
-
-    const lifetime = this.main.startLifetime.maxValue;
+    const lifetime = this.main.startLifetime._getMinMaxValue({ min: 0, max: 0 }).max;
 
     // StartSpeed's impact
     if (this.emission.shape) {
-      this._calculateShapeBasedBoundingBoxAndStartDirection(this.emission.shape);
+      this.emission.shape._getStartPositionRange({ min, max });
+      this.emission.shape._getDirectionRange({ min: directionMin, max: directionMax });
     } else {
       min.set(0, 0, 0);
       max.set(0, 0, 0);
@@ -821,8 +804,12 @@ export class ParticleGenerator {
 
     // StartSize's impact
     const maxSize = this.main.startSize3D
-      ? Math.max(this.main.startSizeX.maxValue, this.main.startSizeY.maxValue, this.main.startSizeZ.maxValue)
-      : this.main.startSize.maxValue;
+      ? Math.max(
+          this.main.startSizeX._getMinMaxValue({ min: 0, max: 0 }).max,
+          this.main.startSizeY._getMinMaxValue({ min: 0, max: 0 }).max,
+          this.main.startSizeZ._getMinMaxValue({ min: 0, max: 0 }).max
+        )
+      : this.main.startSize._getMinMaxValue({ min: 0, max: 0 }).max;
 
     min.x -= maxSize;
     max.x += maxSize;
@@ -836,8 +823,16 @@ export class ParticleGenerator {
     // VelocityOverLifetime Module's impact
     if (this.velocityOverLifetime.enabled) {
       const { velocityX, velocityY, velocityZ } = this.velocityOverLifetime;
-      directionMin.set(velocityX.minValue, velocityY.minValue, velocityZ.minValue);
-      directionMax.set(velocityX.maxValue, velocityY.maxValue, velocityZ.maxValue);
+      directionMin.set(
+        velocityX._getMinMaxValue({ min: 0, max: 0 }).min,
+        velocityY._getMinMaxValue({ min: 0, max: 0 }).min,
+        velocityZ._getMinMaxValue({ min: 0, max: 0 }).min
+      );
+      directionMax.set(
+        velocityX._getMinMaxValue({ min: 0, max: 0 }).max,
+        velocityY._getMinMaxValue({ min: 0, max: 0 }).max,
+        velocityZ._getMinMaxValue({ min: 0, max: 0 }).max
+      );
 
       if ((this.velocityOverLifetime.space = ParticleSimulationSpace.World)) {
         Vector3.transformByQuat(directionMin, worldInvQuat, directionMin);
@@ -861,133 +856,6 @@ export class ParticleGenerator {
     }
   }
 
-  private _calculateShapeBasedBoundingBoxAndStartDirection(shape: BaseShape): void {
-    const { min, max } = this._renderer._bounds;
-    const { _directionMax: directionMax, _directionMin: directionMin } = this;
-
-    if (shape.randomDirectionAmount > 0) {
-      directionMin.set(-1, -1, -1);
-      directionMax.set(1, 1, 1);
-
-      switch (shape.shapeType) {
-        case ParticleShapeType.Box: {
-          const size = (shape as BoxShape).size;
-          min.set(-size.x / 2, -size.y / 2, -size.z / 2);
-          max.set(size.x / 2, size.y / 2, size.z / 2);
-          break;
-        }
-        case ParticleShapeType.Sphere:
-        case ParticleShapeType.Hemisphere:
-        case ParticleShapeType.Circle: {
-          const radius = (shape as SphereShape | HemisphereShape | CircleShape).radius;
-
-          min.set(-radius, -radius, -radius);
-          max.set(radius, radius, radius);
-          break;
-        }
-        case ParticleShapeType.Cone: {
-          const radian = MathUtil.degreeToRadian((shape as ConeShape).angle);
-          const radius = (shape as ConeShape).radius;
-          const length = (shape as ConeShape).length;
-          const dirSinA = Math.sin(radian);
-
-          switch ((shape as ConeShape).emitType) {
-            case ConeEmitType.Base:
-              directionMin.set(-dirSinA, -dirSinA, -1);
-              directionMax.set(dirSinA, dirSinA, 0);
-
-              min.set(-radius, -radius, -radius);
-              max.set(radius, radius, 0);
-              break;
-            case ConeEmitType.Volume:
-              min.set(-radius - dirSinA * length, -radius - dirSinA * length, -length);
-              max.set(radius + dirSinA * length, radius + dirSinA * length, 0);
-              break;
-          }
-          break;
-        }
-      }
-    } else {
-      switch (shape.shapeType) {
-        case ParticleShapeType.Box: {
-          const size = (shape as BoxShape).size;
-
-          directionMin.set(0, 0, -1);
-          directionMax.set(0, 0, 0);
-
-          min.set(-size.x / 2, -size.y / 2, -size.z / 2);
-          max.set(size.x / 2, size.y / 2, size.z / 2);
-          break;
-        }
-        case ParticleShapeType.Sphere:
-          {
-            const radius = (shape as SphereShape).radius;
-            directionMin.set(-1, -1, -1);
-            directionMax.set(1, 1, 1);
-
-            min.set(-radius, -radius, -radius);
-            max.set(radius, radius, radius);
-          }
-          break;
-        case ParticleShapeType.Hemisphere: {
-          const radius = (shape as HemisphereShape).radius;
-          directionMin.set(-1, -1, -1);
-          directionMax.set(1, 1, 0);
-
-          min.set(-radius, -radius, -radius);
-          max.set(radius, radius, 0);
-          break;
-        }
-        case ParticleShapeType.Circle: {
-          const radius = (shape as CircleShape).radius;
-          const arc = (shape as CircleShape).arc;
-          const radian = MathUtil.degreeToRadian(arc);
-          const dirSinA = Math.sin(radian);
-          const dirCosA = Math.cos(radian);
-
-          if (arc < 90) {
-            directionMin.set(0, 0, 0);
-            directionMax.set(1, dirSinA, 0);
-          } else if (arc <= 180) {
-            directionMin.set(dirCosA, 0, 0);
-            directionMax.set(1, 1, 0);
-          } else if (arc <= 270) {
-            directionMin.set(-1, dirSinA, 0);
-            directionMax.set(1, 1, 0);
-          } else if (arc <= 360) {
-            directionMin.set(-1, -1, 0);
-            directionMax.set(1, 1, 0);
-          }
-          min.set(-radius, -radius, -radius);
-          max.set(radius, radius, radius);
-          break;
-        }
-        case ParticleShapeType.Cone: {
-          const radian = MathUtil.degreeToRadian((shape as ConeShape).angle);
-          const dirSinA = Math.sin(radian);
-          const radius = (shape as ConeShape).radius;
-          const length = (shape as ConeShape).length;
-
-          directionMin.set(-dirSinA, -dirSinA, -1);
-          directionMax.set(dirSinA, dirSinA, 0);
-
-          switch ((shape as ConeShape).emitType) {
-            case ConeEmitType.Base:
-              min.set(-radius, -radius, -radius);
-              max.set(radius, radius, 0);
-              break;
-            case ConeEmitType.Volume: {
-              min.set(-radius - dirSinA * length, -radius - dirSinA * length, -length);
-              max.set(radius + dirSinA * length, radius + dirSinA * length, 0);
-              break;
-            }
-          }
-          break;
-        }
-      }
-    }
-  }
-
   private _adjustBoundingBoxFromDirectionalVelocity(
     directionMax: Vector3,
     directionMin: Vector3,
@@ -996,8 +864,11 @@ export class ParticleGenerator {
   ): void {
     const { min, max } = this._renderer._bounds;
 
-    const velocityMin = velocity ? factor * velocity.minValue : factor;
-    const velocityMax = velocity ? factor * velocity.maxValue : factor;
+    const val = { max: 0, min: 0 };
+    velocity._getMinMaxValue(val);
+
+    const velocityMin = velocity ? factor * val.min : factor;
+    const velocityMax = velocity ? factor * val.max : factor;
 
     min.x += Math.min(
       0,

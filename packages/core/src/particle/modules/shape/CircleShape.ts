@@ -48,4 +48,40 @@ export class CircleShape extends BaseShape {
     ShapeUtils._randomPointUnitSphere(direction, rand);
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
+
+  /**
+   * @internal
+   */
+  override _getDirectionRange(out: { min: Vector3; max: Vector3 }) {
+    if (this.randomDirectionAmount > 0) {
+      out.min.set(-1, -1, -1);
+      out.max.set(1, 1, 1);
+    } else {
+      const radian = MathUtil.degreeToRadian(this.arc);
+      const dirSinA = Math.sin(radian);
+      const dirCosA = Math.cos(radian);
+
+      if (this.arc < 90) {
+        out.min.set(0, 0, 0);
+        out.max.set(1, dirSinA, 0);
+      } else if (this.arc <= 180) {
+        out.min.set(dirCosA, 0, 0);
+        out.max.set(1, 1, 0);
+      } else if (this.arc <= 270) {
+        out.min.set(-1, dirSinA, 0);
+        out.max.set(1, 1, 0);
+      } else if (this.arc <= 360) {
+        out.min.set(-1, -1, 0);
+        out.max.set(1, 1, 0);
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  override _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
+    out.min.set(-this.radius, -this.radius, -this.radius);
+    out.max.set(this.radius, this.radius, this.radius);
+  }
 }
