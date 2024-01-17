@@ -444,7 +444,7 @@ export class ShadowUtils {
   /**
    * Extract scale and bias from a fade distance to achieve a linear fading of the fade distance.
    */
-  static getScaleAndBiasForLinearDistanceFade(fadeDistance: number, border: number, outInfo: Vector4) {
+  static getScaleAndBiasForLinearDistanceFade(fadeDistance: number, border: number, outInfo: Vector4): void {
     // To avoid division from zero
     // This values ensure that fade within cascade will be 0 and outside 1
     if (border < 0.0001) {

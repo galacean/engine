@@ -75,9 +75,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
    */
   override onRender(context: RenderContext): void {
     const light = this._camera.scene._lightManager._sunlight;
-    this._updateShadowSettings(light);
+    this._updateShadowSettings();
     this._renderDirectShadowMap(context, light);
-    this._updateReceiversShaderData();
+    this._updateReceiversShaderData(light);
   }
 
   private _renderDirectShadowMap(context: RenderContext, light: DirectLight): void {
@@ -234,11 +234,16 @@ export class CascadedShadowCasterPass extends PipelinePass {
     }
   }
 
-  private _updateReceiversShaderData(): void {
-    const scene = this._camera.scene;
+  private _updateReceiversShaderData(light: DirectLight): void {
+    const camera = this._camera;
+    const scene = camera.scene;
     const splitBoundSpheres = this._splitBoundSpheres;
     const shadowMatrices = this._shadowMatrices;
     const shadowCascades = scene.shadowCascades;
+
+    const shadowFar = Math.min(scene.shadowDistance, camera.farClipPlane);
+    ShadowUtils.getScaleAndBiasForLinearDistanceFade(Math.pow(shadowFar, 2), scene.shadowFadeBorder, this._shadowInfos);
+    this._shadowInfos.x = light.shadowStrength;
 
     // set zero matrix to project the index out of max cascade
     if (shadowCascades > 1) {
@@ -302,7 +307,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     return Math.sqrt((radius * radius) / denominator);
   }
 
-  private _updateShadowSettings(light: DirectLight): void {
+  private _updateShadowSettings(): void {
     const camera = this._camera;
     const scene = camera.scene;
     const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
@@ -311,9 +316,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const shadowFar = Math.min(scene.shadowDistance, camera.farClipPlane);
 
     this._getCascadesSplitDistance(shadowFar);
-
-    ShadowUtils.getScaleAndBiasForLinearDistanceFade(Math.pow(shadowFar, 2), scene.shadowFadeBorder, this._shadowInfos);
-    this._shadowInfos.x = light.shadowStrength;
 
     if (
       shadowFormat !== this._shadowMapFormat ||
