@@ -4,7 +4,6 @@
  */
 import { AmbientLight, AssetType, Camera, DirectLight, GLTFResource, Vector3, WebGLEngine } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-import { E2E_CONFIG } from "../config";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {

@@ -4,7 +4,6 @@
  */
 import { Camera, GLTFResource, Vector3, WebGLEngine, Logger } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-import { E2E_CONFIG } from "../config";
 Logger.enable();
 
 // Create engine

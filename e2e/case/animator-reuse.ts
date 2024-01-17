@@ -9,13 +9,11 @@ import {
   DirectLight,
   GLTFResource,
   Logger,
-  SystemInfo,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-import { E2E_CONFIG } from "../config";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {

@@ -20,7 +20,6 @@ import {
 } from "@galacean/engine";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-import { E2E_CONFIG } from "../config";
 
 const shaderLab = new ShaderLab();
 

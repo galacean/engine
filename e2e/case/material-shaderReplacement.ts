@@ -14,7 +14,6 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-import { E2E_CONFIG } from "../config";
 
 /**
  * Main function.
