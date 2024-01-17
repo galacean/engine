@@ -16,7 +16,6 @@ import {
   Logger,
   ModelMesh,
   SkinnedMeshRenderer,
-  SystemInfo,
   UnlitMaterial,
   Vector3,
   WebGLEngine
@@ -94,7 +93,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   clip.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", blendShapeCurve);
   animator.play("blendShape");
   updateForE2E(engine, 1000);
-  const category = "Animator";
-  const name = "animator-customBlendShape";
-  initScreenshot(category, name, engine, camera);
+
+  initScreenshot(engine, camera);
 });

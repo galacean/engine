@@ -29,11 +29,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     )
     .then((gltfResource) => {
       const { defaultSceneRoot } = gltfResource;
+
       rootEntity.addChild(defaultSceneRoot);
 
       updateForE2E(engine, 30);
       // animator.crossFade("run", 0.5, 0, 0);
       updateForE2E(engine, 100);
-      initScreenshot("GLTF", "gltf-meshopt", engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });
