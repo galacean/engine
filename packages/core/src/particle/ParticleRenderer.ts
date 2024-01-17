@@ -1,15 +1,15 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
-import { Entity } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Renderer } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
-import { deepClone, shallowClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { Entity } from "../Entity";
 import { ModelMesh } from "../mesh/ModelMesh";
+import { Renderer } from "../Renderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleGenerator } from "./ParticleGenerator";
 
 /**
  * Particle Renderer Component.
@@ -37,6 +37,9 @@ export class ParticleRenderer extends Renderer {
   @shallowClone
   pivot = new Vector3();
 
+  /** @internal */
+  @ignoreClone
+  _localBounds: BoundingBox = new BoundingBox();
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
@@ -107,6 +110,19 @@ export class ParticleRenderer extends Renderer {
       if (this.renderMode === ParticleRenderMode.Mesh) {
         this.generator._reorganizeGeometryBuffers();
       }
+    }
+  }
+
+  /**
+   * Local bounds.
+   */
+  get localBounds(): BoundingBox {
+    return this._localBounds;
+  }
+
+  set localBounds(value: BoundingBox) {
+    if (this._localBounds !== value) {
+      this._localBounds.copyFrom(value);
     }
   }
 
@@ -186,6 +202,18 @@ export class ParticleRenderer extends Renderer {
     const renderData = this._engine._renderDataPool.getFromPool();
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, worldBounds);
+  }
+
+  override get bounds(): BoundingBox {
+    BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, this._bounds);
+    return this._bounds;
   }
 
   protected override _onDestroy(): void {

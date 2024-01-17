@@ -265,7 +265,7 @@ export class ParticleGenerator {
         }
       }
       emission._emit(lastPlayTime, this._playTime);
-      this._calculateBoundingBox();
+      this._calculateLocalBoundingBox();
 
       if (!main.isLoop && this._playTime > duration) {
         this._isPlaying = false;
@@ -278,8 +278,8 @@ export class ParticleGenerator {
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
 
-      this._renderer._bounds.max.set(0, 0, 0);
-      this._renderer._bounds.min.set(0, 0, 0);
+      this._renderer._localBounds.max.set(0, 0, 0);
+      this._renderer._localBounds.min.set(0, 0, 0);
     }
 
     // Add new particles to vertex buffer when has wait process retired element or new particle
@@ -771,8 +771,9 @@ export class ParticleGenerator {
     return index;
   }
 
-  private _calculateBoundingBox(): void {
-    const { min, max } = this._renderer._bounds;
+  /** @internal */
+  _calculateLocalBoundingBox(): void {
+    const { min, max } = this._renderer._localBounds;
     const { _directionMax: directionMax, _directionMin: directionMin } = this;
     const lifetime = this.main.startLifetime._getMinMaxValue({ min: 0, max: 0 }).max;
 
@@ -862,7 +863,7 @@ export class ParticleGenerator {
     factor: number,
     velocity?: ParticleCompositeCurve
   ): void {
-    const { min, max } = this._renderer._bounds;
+    const { min, max } = this._renderer._localBounds;
 
     const val = { max: 0, min: 0 };
     velocity._getMinMaxValue(val);
