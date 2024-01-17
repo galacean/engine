@@ -22,10 +22,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  scene.shadowResolution = ShadowResolution.VeryHigh;
-  scene.shadowDistance = 10;
+  scene.shadowResolution = ShadowResolution.Medium;
+  scene.shadowDistance = 5;
   const cameraEntity = rootEntity.createChild("camera_node");
-  cameraEntity.transform.setPosition(0, 5, 7);
+  cameraEntity.transform.setPosition(0, 2, 3);
   cameraEntity.transform.lookAt(new Vector3(0));
   const camera = cameraEntity.addComponent(Camera);
   const lightEntity = rootEntity.createChild("light_node");

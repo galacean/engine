@@ -74,8 +74,8 @@
     #endif
 
 
-    float getShadowFade(){
-        vec3 camToPixel = v_pos - camera_Position;
+    float getShadowFade(vec3 positionWS){
+        vec3 camToPixel = positionWS - camera_Position;
         float distanceCamToPixel2 = dot(camToPixel, camToPixel);
         return saturate( distanceCamToPixel2 * scene_ShadowInfo.z + scene_ShadowInfo.w );
     }
@@ -101,8 +101,8 @@
             attenuation = sampleShadowMapFiltered9(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
 
-        float shadowFade = getShadowFade();
-        attenuation = mix(1.0, saturate(attenuation + shadowFade), scene_ShadowInfo.x);
+        float shadowFade = getShadowFade(v_pos);
+        attenuation = mix(1.0, mix(attenuation, 1.0, shadowFade), scene_ShadowInfo.x);
         }
         return attenuation;
     }
