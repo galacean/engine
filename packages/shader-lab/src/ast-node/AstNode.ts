@@ -646,11 +646,13 @@ export class FnArgAstNode extends AstNode<IFnArgAstContent> {
             variable: new FnArrayVariableAstNode(this.position, { variable: this.content.name })
           })
         ],
-        type: new VariableTypeAstNode(this.position, this.content.type)
+        type: this.content.type
       })
     );
     const arrayIndex = this.content.arrayIndex ? this.content.arrayIndex.serialize(context) : "";
-    return `${this.content.decorator?.content ?? ""} ${this.content.type.text} ${this.content.name}${arrayIndex}`;
+    return `${this.content.decorator?.content ?? ""} ${this.content.type.serialize(context)} ${
+      this.content.name
+    }${arrayIndex}`;
   }
 }
 
@@ -729,6 +731,7 @@ export class AssignableValueAstNode extends AstNode<IAssignableValueAstContent> 
 export class VariableTypeAstNode extends AstNode<IVariableTypeAstContent> {
   override _astType: string = "VariableType";
   override _doSerialization(context: RuntimeContext): string {
+    context.referenceGlobal(this.content.text);
     return this.content.text;
   }
 }

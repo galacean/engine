@@ -277,10 +277,7 @@ export type IFnCallStatementAstContent = FnCallAstNode;
 export interface IFnArgAstContent {
   decorator?: FnArgDecoratorAstNode;
   name: string;
-  type: {
-    isCustom: boolean;
-    text: string;
-  };
+  type: VariableTypeAstNode;
   arrayIndex?: ArrayIndexAstNode;
 }
 

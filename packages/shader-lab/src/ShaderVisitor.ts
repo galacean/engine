@@ -846,14 +846,12 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
     };
     const decorator = ctx._ruleFnArgDecorator ? this.visit(ctx._ruleFnArgDecorator) : undefined;
     const arrayIndex = ctx._ruleArrayIndex ? this.visit(ctx._ruleArrayIndex) : undefined;
+    const type = this.visit(ctx._ruleVariableType);
 
     return new FnArgAstNode(position, {
       decorator,
       name: ctx.Identifier[0].image,
-      type: {
-        isCustom: !!ctx._ruleVariableType[0].children.Identifier,
-        text: AstNodeUtils.extractCstToken(ctx._ruleVariableType[0])
-      },
+      type,
       arrayIndex
     });
   }

@@ -56,8 +56,8 @@ export class Ast2GLSLUtils {
     // parsing attribute variables
     vertFnAst.content.args.forEach((arg) => {
       const type = arg.content.type;
-      if (type.isCustom) {
-        const structAstNode = context.findGlobal(type.text).ast as StructAstNode;
+      if (type.content.isCustom) {
+        const structAstNode = context.findGlobal(type.content.text).ast as StructAstNode;
         if (!structAstNode) {
           context.addDiagnostic({
             severity: DiagnosticSeverity.Error,
@@ -94,7 +94,7 @@ export class Ast2GLSLUtils {
           name: arg.content.name,
           astNode: arg,
           referenced: false,
-          text: `attribute ${type.text} ${arg.content.name}`
+          text: `attribute ${type.content.text} ${arg.content.name}`
         });
       }
     });
