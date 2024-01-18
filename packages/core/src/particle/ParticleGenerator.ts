@@ -109,10 +109,6 @@ export class ParticleGenerator {
   private _instanceVertices: Float32Array;
   private _randomSeed = 0;
 
-  @ignoreClone
-  private _directionMin = new Vector3();
-  @ignoreClone
-  private _directionMax = new Vector3();
   /**
    * Whether the particle generator is contain alive or is still creating particles.
    */
@@ -774,7 +770,7 @@ export class ParticleGenerator {
   /** @internal */
   _calculateLocalBoundingBox(): void {
     const { min, max } = this._renderer._localBounds;
-    const { _directionMax: directionMax, _directionMin: directionMin } = this;
+    const { _tempVector30: directionMax, _tempVector31: directionMin } = ParticleGenerator;
     const lifetime = this.main.startLifetime._getMinMaxValue({ min: 0, max: 0 }).max;
 
     // StartSpeed's impact
