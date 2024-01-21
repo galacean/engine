@@ -47,10 +47,16 @@ async function main() {
     console.log(pbrShader);
     const pbrMaterial = new Material(engine, pbrShader);
     const shaderData = pbrMaterial.shaderData;
+
+    shaderData.setFloat("material_Metal", 1);
+    shaderData.setFloat("material_Roughness", 1);
+    shaderData.setFloat("material_IOR", 1.5);
+    shaderData.setVector3("material_AnisotropyInfo", new Vector3(1, 0, 0));
+
     shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
     shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
 
-    shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    shaderData.setColor("material_BaseColor", new Color(1, 1, 1, 1));
     shaderData.setColor("material_EmissiveColor", new Color(0, 0, 0, 1));
     shaderData.setVector4("material_TilingOffset", new Vector4(1, 1, 0, 0));
 
@@ -60,6 +66,8 @@ async function main() {
 
     shaderData.setFloat("material_ClearCoat", 0);
     shaderData.setFloat("material_ClearCoatRoughness", 0);
+
+    shaderData.setFloat("material_AlphaCutoff", 0);
 
     return pbrMaterial;
   }
