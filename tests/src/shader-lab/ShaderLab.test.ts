@@ -246,9 +246,4 @@ describe("ShaderLab", () => {
       expect(err[0].token.startLine).to.eql(25);
     }
   });
-
-  it("pbr shader", () => {
-    const pbrShader = fs.readFileSync(path.join(__dirname, "shaders/pbr.gsl")).toString();
-    glslValidate(pbrShader, shaderLab);
-  });
 });

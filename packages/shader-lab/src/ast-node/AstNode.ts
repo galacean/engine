@@ -102,6 +102,7 @@ export class AstNode<T = any> {
   content: T;
 
   _astType = "unknown";
+  _inMacro = false;
 
   constructor(position: IPositionRange, content: T) {
     this.position = position;
@@ -234,6 +235,17 @@ export class FnAstNode extends AstNode<IFnAstContent> {
     if (precision) {
       ret = precision + " " + ret;
     }
+
+    // All functions in glsl syntax are global functions
+    if (context._parsingMacro) {
+      context.setPassGlobal(this.content.name, {
+        name: this.content.name,
+        ast: this,
+        referenced: false,
+        inMacro: true
+      });
+    }
+
     return ret;
   }
 }
@@ -261,6 +273,14 @@ export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
     if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
     return `#define ${this.content.variable.serialize(context)} ${this.content.value?.serialize(context) ?? ""}`;
   }
+
+  override _beforeSerialization(context?: RuntimeContext, args?: any): void {
+    context._parsingMacro = true;
+  }
+
+  override _afterSerialization(context?: RuntimeContext, args?: any): void {
+    context._parsingMacro = false;
+  }
 }
 
 export class FnMacroDefineVariableAstNode extends AstNode<IFnMacroDefineVariableAstContent> {
@@ -279,6 +299,14 @@ export class FnMacroUndefineAstNode extends AstNode<IFnMacroUndefineAstContent> 
   override _astType: string = "MacroUndef";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return `#undef ${this.content.variable}`;
+  }
+
+  override _beforeSerialization(context?: RuntimeContext, args?: any): void {
+    context._parsingMacro = true;
+  }
+
+  override _afterSerialization(context?: RuntimeContext, args?: any): void {
+    context._parsingMacro = false;
   }
 }
 
@@ -316,6 +344,14 @@ export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent
     return `${this.content.command} ${this.content.condition.serialize(context)}\n ${[body, elifBranch, elseBranch]
       .filter((item) => item)
       .join("\n")}\n#endif`;
+  }
+
+  override _beforeSerialization(context?: RuntimeContext, args?: any): void {
+    context._parsingMacro = true;
+  }
+
+  override _afterSerialization(context?: RuntimeContext, args?: any): void {
+    context._parsingMacro = false;
   }
 }
 

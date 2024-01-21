@@ -40,6 +40,14 @@ interface IReference {
 interface IGlobal extends IReference {
   ast: AstNode;
   name: string;
+  inspected?: boolean;
+  inMacro?: boolean;
+  text?: string;
+}
+
+export interface ISourceFragment {
+  text: string;
+  position: IPositionRange;
 }
 
 export enum EGlobalLevel {
@@ -84,6 +92,8 @@ export default class RuntimeContext {
 
   /** Custom payload */
   payload?: any;
+
+  _parsingMacro = false;
 
   /** serialize token stack */
   private _serializingNodeStack: AstNode[] = [];
@@ -169,6 +179,7 @@ export default class RuntimeContext {
   private _resetPassScopeGlobalReference() {
     for (const [_, g] of this._passGlobalMap) {
       g.referenced = false;
+      g.inspected = false;
     }
   }
 
@@ -279,30 +290,29 @@ export default class RuntimeContext {
     );
   }
 
-  getAttribText(): string {
-    return this.attributeStructListInfo
-      .map((struct) =>
-        struct.reference
-          .filter((item) => item.referenced)
-          .map((item) => `${item.text};`)
-          .join("\n")
-      )
-      .join("\n");
+  getAttribText(): ISourceFragment[] {
+    const ret: ISourceFragment[] = [];
+    for (const attrStruct of this.attributeStructListInfo) {
+      for (const field of attrStruct.reference) {
+        if (field.referenced) ret.push({ text: `${field.text};`, position: field.property.position });
+      }
+    }
+    return ret;
   }
 
-  getVaryingText(): string {
-    return this.varyingStructInfo.reference
-      ?.filter((item) => item.referenced)
-      .map((item) => `${item.text};`)
-      .join("\n");
+  getVaryingText(): ISourceFragment[] {
+    return (
+      this.varyingStructInfo.reference
+        ?.filter((item) => item.referenced)
+        .map((item) => ({ text: `${item.text};`, position: item.property.position })) ?? []
+    );
   }
 
-  getMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[], needSort = false): string {
-    const list = needSort ? macros.sort(AstNodeUtils.astSortAsc) : macros;
-    return list?.map((item) => item.serialize(this)).join("\n");
+  getMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[]): ISourceFragment[] {
+    return macros?.map((item) => ({ text: item.serialize(this), position: item.position })) ?? [];
   }
 
-  getGlobalText(): string {
+  getGlobalText(): ISourceFragment[] {
     let ret: (IGlobal & { str: string })[] = [];
     let cur: (IGlobal & { str: string })[];
     const allGlobals = [
@@ -311,23 +321,25 @@ export default class RuntimeContext {
       ...Array.from(this._shaderGlobalMap.values())
     ];
     const getCurList = () => {
-      cur = allGlobals.filter((item) => item.referenced) as any;
+      // @ts-ignore
+      cur = allGlobals.filter((item) => item.referenced && !item.inspected) as any;
 
       cur.forEach((item) => {
-        // @ts-ignore
-        !item.str && (item.str = item.ast.serialize(this, { global: true }));
+        item.str = item.ast.serialize(this, { global: true });
+        item.inspected = true;
       });
     };
 
     getCurList();
-    while (cur.length !== ret.length) {
-      ret = cur;
+    while (cur.length > 0) {
+      ret.push(...cur);
       getCurList();
     }
-    return ret
-      .sort((a, b) => a.ast.position.start.line - b.ast.position.start.line)
-      .map((item) => item.str)
-      .join("\n");
+    return ret.filter((item) => !item.inMacro).map((item) => ({ text: item.str, position: item.ast.position }));
+  }
+
+  setPassGlobal(variable: string, global: IGlobal) {
+    this._passGlobalMap.set(variable, global);
   }
 
   private _shaderReset() {

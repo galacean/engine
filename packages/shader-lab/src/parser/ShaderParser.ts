@@ -3,7 +3,6 @@ import { Others, Symbols, Types, Keywords, Values, GLKeywords, RenderState, _all
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/Value";
 import { Identifier } from "./tokens/Other";
 import { ShaderFactory } from "@galacean/engine";
-import { ALL } from "dns";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;

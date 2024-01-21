@@ -3,6 +3,10 @@ import { CstChildrenDictionary, CstNode, ICstVisitor, IToken } from "chevrotain"
 import { AstNode, ObjectAstNode } from "./ast-node";
 import { IPosition, IPositionRange } from "./ast-node/";
 
+interface IWithPosition {
+  position: IPositionRange;
+}
+
 export class AstNodeUtils {
   static isCstNode(node: any) {
     return !!node.children;
@@ -88,14 +92,14 @@ export class AstNodeUtils {
     }
   }
 
-  static astSortAsc(a: AstNode, b: AstNode) {
+  static astSortAsc(a: IWithPosition, b: IWithPosition) {
     return a.position.start.line > b.position.start.line ||
       (a.position.start.line === b.position.start.line && a.position.start.character >= b.position.start.character)
       ? 1
       : -1;
   }
 
-  static astSortDesc(a: AstNode, b: AstNode) {
+  static astSortDesc(a: IWithPosition, b: IWithPosition) {
     return -AstNodeUtils.astSortAsc(a, b);
   }
 }

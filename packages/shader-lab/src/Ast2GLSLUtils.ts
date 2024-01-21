@@ -6,6 +6,7 @@ import {
   StructAstNode,
   StructMacroConditionalFieldAstNode
 } from "./ast-node";
+import { AstNodeUtils } from "./AstNodeUtils";
 import { DiagnosticSeverity } from "./Constants";
 import RuntimeContext, { IReferenceStructInfo } from "./RuntimeContext";
 
@@ -101,16 +102,20 @@ export class Ast2GLSLUtils {
 
     // There may be global variable references in conditional macro statement, so it needs to be serialized first.
     const conditionalMacroText = context.getMacroText(passAst.content.conditionalMacros);
-
     const vertexFnStr = vertFnAst.serialize(context);
-    return [
-      context.getMacroText(passAst.content.macros),
-      context.getAttribText(),
-      context.getVaryingText(),
-      context.getGlobalText(),
-      conditionalMacroText,
-      vertexFnStr
-    ].join("\n");
+
+    const globalFragmentSource = [
+      ...context.getMacroText(passAst.content.macros),
+      ...context.getAttribText(),
+      ...context.getVaryingText(),
+      ...context.getGlobalText(),
+      ...conditionalMacroText
+    ]
+      .sort(AstNodeUtils.astSortAsc)
+      .map((item) => item.text)
+      .join("\n");
+
+    return [globalFragmentSource, vertexFnStr].join("\n");
   }
 
   static stringifyFragmentFunction(
@@ -132,17 +137,21 @@ export class Ast2GLSLUtils {
     context.setMainFnAst(fragFnAst);
 
     context.varyingStructInfo.objectName = fragFnAst.content.args?.[0].content.name;
-    const fragmentFnStr = fragFnAst.serialize(context);
 
     // There may be global variable references in conditional macro statement, so it needs to be serialized first.
     const conditionalMacroText = context.getMacroText(passAst.content.conditionalMacros);
+    const fragmentFnStr = fragFnAst.serialize(context);
 
-    return [
-      context.getMacroText(passAst.content.macros),
-      context.getVaryingText(),
-      context.getGlobalText(),
-      conditionalMacroText,
-      fragmentFnStr
-    ].join("\n");
+    const globalFragmentSource = [
+      ...context.getMacroText(passAst.content.macros),
+      ...context.getVaryingText(),
+      ...context.getGlobalText(),
+      ...conditionalMacroText
+    ]
+      .sort(AstNodeUtils.astSortAsc)
+      .map((item) => item.text)
+      .join("\n");
+
+    return [globalFragmentSource, fragmentFnStr].join("\n");
   }
 }
