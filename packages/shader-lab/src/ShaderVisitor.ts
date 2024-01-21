@@ -613,15 +613,16 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
   _ruleFnAssignExpr(children: _ruleFnAssignExprCstChildren, param?: any) {
     const assignee = this.visit(children._ruleFnSelfAssignExpr);
-    const value = this.visit(children._ruleFnExpression);
+    const value = children._ruleFnExpression?.map((item) => this.visit(item));
+    const operator = children._ruleFnAssignmentOperator?.map((item) => AstNodeUtils.extractCstToken(item));
 
     const position: IPositionRange = {
       start: assignee.position.start,
-      end: value?.position.end ?? assignee.position.end
+      end: value?.[value.length - 1].position.end ?? assignee.position.end
     };
 
     return new FnAssignExprAstNode(position, {
-      operator: AstNodeUtils.extractCstToken(children._ruleFnAssignmentOperator?.[0]),
+      operator,
       assignee,
       value
     });

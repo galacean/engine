@@ -80,7 +80,7 @@ export class Ast2GLSLUtils {
                 reference.push({
                   referenced: false,
                   property: field,
-                  text: `varying ${field.content.type.serialize(context)} ${field.content.variableNode.serialize(
+                  text: `attribute ${field.content.type.serialize(context)} ${field.content.variableNode.serialize(
                     context
                   )}`
                 });
@@ -101,11 +101,11 @@ export class Ast2GLSLUtils {
     });
 
     // There may be global variable references in conditional macro statement, so it needs to be serialized first.
-    const conditionalMacroText = context.getMacroText(passAst.content.conditionalMacros);
+    const conditionalMacroText = context.getGlobalMacroText(passAst.content.conditionalMacros);
     const vertexFnStr = vertFnAst.serialize(context);
 
     const globalFragmentSource = [
-      ...context.getMacroText(passAst.content.macros),
+      ...context.getGlobalMacroText(passAst.content.macros),
       ...context.getAttribText(),
       ...context.getVaryingText(),
       ...context.getGlobalText(),
@@ -139,11 +139,11 @@ export class Ast2GLSLUtils {
     context.varyingStructInfo.objectName = fragFnAst.content.args?.[0].content.name;
 
     // There may be global variable references in conditional macro statement, so it needs to be serialized first.
-    const conditionalMacroText = context.getMacroText(passAst.content.conditionalMacros);
+    const conditionalMacroText = context.getGlobalMacroText(passAst.content.conditionalMacros);
     const fragmentFnStr = fragFnAst.serialize(context);
 
     const globalFragmentSource = [
-      ...context.getMacroText(passAst.content.macros),
+      ...context.getGlobalMacroText(passAst.content.macros),
       ...context.getVaryingText(),
       ...context.getGlobalText(),
       ...conditionalMacroText

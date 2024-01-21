@@ -49,7 +49,8 @@ import {
   StructMacroConditionBodyAstNode,
   FnMacroConditionBodyAstNode,
   FnArgDecoratorAstNode,
-  TernaryExpressionSuffixAstNode
+  TernaryExpressionSuffixAstNode,
+  FnExpressionAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -213,8 +214,8 @@ export type IRelationOperatorAstContent = string;
 
 export interface IFnAssignExprAstContent {
   assignee: SelfAssignAstNode;
-  value: AstNode;
-  operator: string;
+  value: FnExpressionAstNode[];
+  operator: string[];
 }
 
 export type IFnAssignStatementAstContent = FnAssignExprAstNode;

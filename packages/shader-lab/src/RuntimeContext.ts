@@ -176,6 +176,10 @@ export default class RuntimeContext {
     return ret;
   }
 
+  isParsingGlobal() {
+    return this.functionAstStack.length === 0;
+  }
+
   private _resetPassScopeGlobalReference() {
     for (const [_, g] of this._passGlobalMap) {
       g.referenced = false;
@@ -308,7 +312,7 @@ export default class RuntimeContext {
     );
   }
 
-  getMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[]): ISourceFragment[] {
+  getGlobalMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[]): ISourceFragment[] {
     return macros?.map((item) => ({ text: item.serialize(this), position: item.position })) ?? [];
   }
 

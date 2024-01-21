@@ -199,9 +199,12 @@ export class ObjectAstNode<T = any> extends AstNode<Record<string, AstNode<T>>> 
 
 export class FnAstNode extends AstNode<IFnAstContent> {
   override _astType: string = "Function";
-  override _doSerialization(context: RuntimeContext): string {
-    context.functionAstStack.push({ fnAst: this, localDeclaration: [] });
 
+  override _beforeSerialization(context?: RuntimeContext, args?: any): void {
+    context.functionAstStack.push({ fnAst: this, localDeclaration: [] });
+  }
+
+  override _doSerialization(context: RuntimeContext): string {
     let returnType: string;
     let args: string;
     let fnName: string;
@@ -229,7 +232,6 @@ export class FnAstNode extends AstNode<IFnAstContent> {
       throw "Mismatched return type";
     }
 
-    context.functionAstStack.pop();
     let ret = `${returnType} ${fnName} (${args}) {\n${body}\n}`;
     const precision = this.content.precision?.serialize(context);
     if (precision) {
@@ -247,6 +249,10 @@ export class FnAstNode extends AstNode<IFnAstContent> {
     }
 
     return ret;
+  }
+
+  override _afterSerialization(context?: RuntimeContext, args?: any): void {
+    context.functionAstStack.pop();
   }
 }
 
@@ -271,7 +277,9 @@ export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
   override _astType: string = "MacroDefine";
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
-    return `#define ${this.content.variable.serialize(context)} ${this.content.value?.serialize(context) ?? ""}`;
+    return `#define ${this.content.variable.serialize(context)} ${
+      this.content.value?.serialize(context, { skipUniform: true }) ?? ""
+    }`;
   }
 
   override _beforeSerialization(context?: RuntimeContext, args?: any): void {
@@ -357,7 +365,15 @@ export class FnMacroConditionAstNode extends AstNode<IFnMacroConditionAstContent
 
 export class StructMacroConditionBodyAstNode extends AstNode<IStructMacroConditionBodyAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
-    return this.content.map((item) => item.serialize(context)).join("\n");
+    return this.content
+      .map((item) => {
+        const ret = item.serialize(context);
+        if (item instanceof DeclarationWithoutAssignAstNode) {
+          return `${ret};`;
+        }
+        return ret;
+      })
+      .join("\n");
   }
 }
 
@@ -523,8 +539,15 @@ export class FnAssignStatementAstNode extends AstNode<IFnAssignStatementAstConte
 export class FnAssignExprAstNode extends AstNode<IFnAssignExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const { value } = this.content;
-    const valueStr = value?.serialize(context);
-    return `${this.content.assignee.serialize(context)} ${this.content.operator ?? ""} ${valueStr ?? ""}`.trimEnd();
+    let valueStr = "";
+    if (value) {
+      for (let i = 0; i < value.length; i++) {
+        const op = this.content.operator[i];
+        const v = this.content.value[i];
+        valueStr += ` ${op} ${v.serialize(context)}`;
+      }
+    }
+    return `${this.content.assignee.serialize(context)} ${valueStr}`.trimEnd();
   }
 }
 
@@ -774,7 +797,7 @@ export class VariableTypeAstNode extends AstNode<IVariableTypeAstContent> {
 
 export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAstContent> {
   override _astType: string = "VariableDeclaration";
-  override _doSerialization(context: RuntimeContext, opts?: { global: boolean }): string {
+  override _doSerialization(context: RuntimeContext, opts?: { skipUniform: boolean }): string {
     if (context.currentFunctionInfo) {
       context.currentFunctionInfo.localDeclaration.push(this);
     }
@@ -800,6 +823,9 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
     }
     if (this.content.precision) {
       ret = `${this.content.precision.serialize(context)} ${ret}`;
+    }
+    if (context.isParsingGlobal() && !opts?.skipUniform) {
+      ret = "uniform " + ret;
     }
 
     return ret + ";";
