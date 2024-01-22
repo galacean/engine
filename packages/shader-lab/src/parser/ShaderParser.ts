@@ -6,7 +6,6 @@ import { ShaderFactory } from "@galacean/engine";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;
-  // TODO: delete
   extendedSource: string;
 
   constructor() {

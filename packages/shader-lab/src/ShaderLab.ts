@@ -39,8 +39,6 @@ export class ShaderLab implements IShaderLab {
           err.token.endLine += offset;
         }
       }
-      // TODO: delete
-      console.log(this._parser.errors);
       throw this._parser.errors;
     }
 
