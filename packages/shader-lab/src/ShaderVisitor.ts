@@ -218,7 +218,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
 
     const usePass = ctx._ruleUsePass?.map((item) => this.visit(item)) ?? [];
 
-    const passList = [...shaderPass, ...usePass].sort(AstNodeUtils.astSortAsc);
+    const passList = [...shaderPass, ...usePass].sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position));
 
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(ctx.SubShader[0]).start,
@@ -425,7 +425,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleStructMacroConditionBody(children: _ruleStructMacroConditionBodyCstChildren, param?: any) {
     const fields = children._ruleDeclarationWithoutAssign?.map((item) => this.visit(item)) ?? [];
     const macros = children._ruleStructMacroConditionalField?.map((item) => this.visit(item)) ?? [];
-    const list = [...fields, ...macros].sort(AstNodeUtils.astSortAsc);
+    const list = [...fields, ...macros].sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position));
     const position: IPositionRange = { start: list[0].position.start, end: list[list.length - 1].position.end };
 
     return new StructMacroConditionBodyAstNode(position, list);
@@ -434,7 +434,7 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleFnMacroConditionBody(children: _ruleFnMacroConditionBodyCstChildren, param?: any) {
     const fnBodyList = (children._ruleFnBody?.map((item) => this.visit(item)) as FnBodyAstNode[]) ?? [];
     const structList = (children._ruleStruct?.map((item) => this.visit(item)) as StructAstNode[]) ?? [];
-    const list = [...fnBodyList, ...structList].sort(AstNodeUtils.astSortAsc);
+    const list = [...fnBodyList, ...structList].sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position));
     const position: IPositionRange = { start: list[0].position.start, end: list[list.length - 1].position.end };
     return new FnMacroConditionBodyAstNode(position, list);
   }
@@ -559,8 +559,12 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   }
 
   _ruleConditionExpr(children: _ruleConditionExprCstChildren, param?: any) {
-    const expressionList = children._ruleFnRelationExpr.map((item) => this.visit(item)).sort(AstNodeUtils.astSortAsc);
-    const operatorList = children._ruleRelationOperator?.map((item) => this.visit(item)).sort(AstNodeUtils.astSortAsc);
+    const expressionList = children._ruleFnRelationExpr
+      .map((item) => this.visit(item))
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position));
+    const operatorList = children._ruleRelationOperator
+      ?.map((item) => this.visit(item))
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position));
     const ternarySuffix = children._ruleTernaryExpressionSuffix
       ? this.visit(children._ruleTernaryExpressionSuffix)
       : undefined;
@@ -1112,7 +1116,9 @@ export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<I
   _ruleStruct(ctx: _ruleStructCstChildren) {
     const fields = ctx._ruleDeclarationWithoutAssign?.map((item) => this.visit(item));
     const macroFields = ctx._ruleStructMacroConditionalField?.map((item) => this.visit(item));
-    const variables = [...(fields ?? []), ...(macroFields ?? [])].sort(AstNodeUtils.astSortAsc);
+    const variables = [...(fields ?? []), ...(macroFields ?? [])].sort((a, b) =>
+      AstNodeUtils.astSortAsc(a.position, b.position)
+    );
 
     const position: IPositionRange = {
       start: AstNodeUtils.getTokenPosition(ctx.struct[0]).start,

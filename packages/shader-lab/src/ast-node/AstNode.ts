@@ -190,7 +190,7 @@ export class ReturnTypeAstNode extends AstNode<IFnReturnTypeAstContent> {
 export class ObjectAstNode<T = any> extends AstNode<Record<string, AstNode<T>>> {
   override _doSerialization(context: RuntimeContext): string {
     const astList = Object.values(this.content)
-      .sort(AstNodeUtils.astSortAsc)
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
       .filter((item) => item._astType);
 
     return astList.map((ast) => ast.serialize(context)).join("\n");
@@ -581,14 +581,18 @@ export class TernaryExpressionSuffixAstNode extends AstNode<ITernaryExpressionSu
 
 export class AddExprAstNode extends AstNode<IFnAddExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    const orderItemList = [...this.content.operands, ...this.content.operators].sort(AstNodeUtils.astSortAsc);
+    const orderItemList = [...this.content.operands, ...this.content.operators].sort((a, b) =>
+      AstNodeUtils.astSortAsc(a.position, b.position)
+    );
     return orderItemList.map((item) => item.serialize(context)).join(" ");
   }
 }
 
 export class MultiplicationExprAstNode extends AstNode<IFnMultiplicationExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
-    const orderItemList = [...this.content.operands, ...this.content.operators].sort(AstNodeUtils.astSortAsc);
+    const orderItemList = [...this.content.operands, ...this.content.operators].sort((a, b) =>
+      AstNodeUtils.astSortAsc(a.position, b.position)
+    );
     return orderItemList.map((item) => item.serialize(context)).join(" ");
   }
 }
@@ -663,7 +667,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
       }
     }
     const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])]
-      .sort(AstNodeUtils.astSortAsc)
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
       .map((item) => item.serialize(context))
       .join("");
     return objName + propList;
@@ -991,7 +995,7 @@ export class SelfAssignAstNode extends AstNode<ISelfAssignAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     return [this.content.operator, this.content.variable]
       .filter((item) => !!item)
-      .sort(AstNodeUtils.astSortAsc)
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
       .map((item) => item.serialize(context))
       .join("");
   }

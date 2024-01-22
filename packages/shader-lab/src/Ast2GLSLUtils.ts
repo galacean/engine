@@ -111,7 +111,7 @@ export class Ast2GLSLUtils {
       ...context.getGlobalText(),
       ...conditionalMacroText
     ]
-      .sort(AstNodeUtils.astSortAsc)
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
       .map((item) => item.text)
       .join("\n");
 
@@ -148,7 +148,7 @@ export class Ast2GLSLUtils {
       ...context.getGlobalText(),
       ...conditionalMacroText
     ]
-      .sort(AstNodeUtils.astSortAsc)
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
       .map((item) => item.text)
       .join("\n");
 
