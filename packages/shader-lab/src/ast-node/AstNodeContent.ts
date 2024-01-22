@@ -346,7 +346,6 @@ export interface IDeclarationWithoutAssignAstContent {
 
 export interface IStructAstContent {
   name: string;
-  // TODO:
   variables: (DeclarationWithoutAssignAstNode | StructMacroConditionalFieldAstNode)[];
 }
 
