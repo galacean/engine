@@ -1,8 +1,0 @@
-struct _galacean_v2f {
-  #include "vary_color_share.gsl"
-  #include "vary_FogVertexDeclaration.gsl"
-  #include "vary_normal_share.gsl"
-  #include "vary_ShadowVertexDeclaration.gsl"
-  #include "vary_uv_share.gsl"
-  #include "vary_worldpos_share.gsl"
-}
