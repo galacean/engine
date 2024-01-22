@@ -41,8 +41,10 @@ export class WebCanvas extends Canvas {
   resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
     const webCanvas = this._webCanvas;
     if (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas)) {
-      this.width = webCanvas.clientWidth * pixelRatio;
-      this.height = webCanvas.clientHeight * pixelRatio;
+      const exportWidth = webCanvas.clientWidth * pixelRatio;
+      const exportHeight = webCanvas.clientHeight * pixelRatio;
+      this.width = exportWidth;
+      this.height = exportHeight;
     }
   }
 
@@ -69,8 +71,11 @@ export class WebCanvas extends Canvas {
     this.scale = this._scale;
   }
 
-  protected override _onSizeChanged(width: number, height: number): void {
-    this._webCanvas.width = width;
-    this._webCanvas.height = height;
+  protected override _onWidthChanged(value: number): void {
+    this._webCanvas.width = value;
+  }
+
+  protected override _onHeightChange(value: number): void {
+    this._webCanvas.height = value;
   }
 }
