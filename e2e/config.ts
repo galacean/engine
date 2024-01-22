@@ -96,5 +96,12 @@ export const E2E_CONFIG = {
       caseFileName: "shadow-basic",
       threshold: 0.2
     }
+  },
+  ShaderLab: {
+    pbr: {
+      category: "ShaderLab",
+      caseFileName: "shaderLab-pbr",
+      threshold: 0.2
+    }
   }
 };

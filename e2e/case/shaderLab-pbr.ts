@@ -130,7 +130,7 @@ async function main() {
   }
 
   updateForE2E(engine);
-  initScreenshot("ShaderLab", "shaderLab-pbr", engine, camera);
+  initScreenshot(engine, camera);
 }
 
 /**
