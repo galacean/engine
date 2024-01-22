@@ -9,30 +9,27 @@ import {
   Shader,
   Material,
   MeshRenderer,
-  GLTFResource,
-  UnlitMaterial,
-  Animator,
-  Texture2D,
-  AssetType,
   Entity,
   ModelMesh,
   Script,
-  BlinnPhongMaterial,
-  RenderFace,
   PBRMaterial,
-  PBRBaseMaterial,
   Vector4,
-  TextureCoordinate
+  TextureCoordinate,
+  ShaderFactory
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 
 import pbrShaderSource from "./shaders/pbr.gsl?raw";
-import { updateForE2E } from "./.mockForE2E";
+import { pbr_include_fragment_list } from "./shaders";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
 main();
+for (const [n, c] of Object.entries(pbr_include_fragment_list)) {
+  ShaderFactory.registerInclude(`${n}.gsl`, c);
+}
 
 async function main() {
   // Create engine
@@ -82,7 +79,7 @@ async function main() {
   // Create camera
   const cameraEntity = rootEntity.createChild("Camera");
   cameraEntity.transform.setPosition(0, 0, 20);
-  cameraEntity.addComponent(Camera);
+  const camera = cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl);
 
   // Create direct light
@@ -90,63 +87,50 @@ async function main() {
   const light = lightEntity.addComponent(DirectLight);
   light.intensity = 0.6;
 
-  engine.resourceManager
-    .load<Texture2D>({
-      url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ArCHTbfVPXUAAAAAAAAAAAAAARQnAQ",
-      type: AssetType.Texture2D
-    })
-    .then((texture) => {
-      const distanceX = 2.5;
-      const distanceY = 2.4;
-      const position = new Vector3();
+  const distanceX = 2.5;
+  const distanceY = 2.4;
+  const position = new Vector3();
 
-      // Create material
-      const material = new BlinnPhongMaterial(engine);
-      material.renderFace = RenderFace.Double;
-      material.baseTexture = texture;
-      // const material = pbrMaterial;
+  for (let i = 0; i < 3; i++) {
+    const posX = (i - 1) * distanceX;
 
-      for (let i = 0; i < 3; i++) {
-        const posX = (i - 1) * distanceX;
+    // Create cuboid
+    position.set(posX, distanceY * 3, 0);
+    generatePrimitiveEntity(rootEntity, "cuboid", position, pbrMaterial, PrimitiveMesh.createCuboid(engine));
 
-        // Create cuboid
-        position.set(posX, distanceY * 3, 0);
-        generatePrimitiveEntity(rootEntity, "cuboid", position, pbrMaterial, PrimitiveMesh.createCuboid(engine));
+    // Create sphere
+    position.set(posX, distanceY * 2, 0);
+    generatePrimitiveEntity(rootEntity, "sphere", position, originPbrMaterial, PrimitiveMesh.createSphere(engine));
 
-        // Create sphere
-        // position.set(posX, distanceY * 2, 0);
-        // generatePrimitiveEntity(rootEntity, "sphere", position, material, PrimitiveMesh.createSphere(engine));
+    // Create plane
+    position.set(posX, distanceY * 1, 0);
+    generatePrimitiveEntity(rootEntity, "plane", position, pbrMaterial, PrimitiveMesh.createPlane(engine));
 
-        // Create plane
-        position.set(posX, distanceY * 1, 0);
-        generatePrimitiveEntity(rootEntity, "plane", position, pbrMaterial, PrimitiveMesh.createPlane(engine));
+    // Create cylinder
+    position.set(posX, -distanceY * 0, 0);
+    generatePrimitiveEntity(rootEntity, "cylinder", position, originPbrMaterial, PrimitiveMesh.createCylinder(engine));
 
-        // Create cylinder
-        // position.set(posX, -distanceY * 0, 0);
-        // generatePrimitiveEntity(rootEntity, "cylinder", position, material, PrimitiveMesh.createCylinder(engine));
+    // Create cone
+    position.set(posX, -distanceY * 1, 0);
+    generatePrimitiveEntity(rootEntity, "cone", position, pbrMaterial, PrimitiveMesh.createCone(engine));
 
-        // Create cone
-        position.set(posX, -distanceY * 1, 0);
-        generatePrimitiveEntity(rootEntity, "cone", position, originPbrMaterial, PrimitiveMesh.createCone(engine));
+    // Create turos
+    position.set(posX, -distanceY * 2, 0);
+    generatePrimitiveEntity(rootEntity, "torus", position, originPbrMaterial, PrimitiveMesh.createTorus(engine));
 
-        // Create turos
-        // position.set(posX, -distanceY * 2, 0);
-        // generatePrimitiveEntity(rootEntity, "torus", position, material, PrimitiveMesh.createTorus(engine));
+    // // Create capsule
+    position.set(posX, -distanceY * 3, 0);
+    generatePrimitiveEntity(
+      rootEntity,
+      "capsule",
+      position,
+      pbrMaterial,
+      PrimitiveMesh.createCapsule(engine, 0.5, 1, 24, 1)
+    );
+  }
 
-        // // Create capsule
-        // position.set(posX, -distanceY * 3, 0);
-        // generatePrimitiveEntity(
-        //   rootEntity,
-        //   "capsule",
-        //   position,
-        //   material,
-        //   PrimitiveMesh.createCapsule(engine, 0.5, 1, 24, 1)
-        // );
-      }
-    });
-
-  // Run engine
-  engine.run();
+  updateForE2E(engine);
+  initScreenshot("ShaderLab", "shaderLab-pbr", engine, camera);
 }
 
 /**

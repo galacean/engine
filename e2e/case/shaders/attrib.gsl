@@ -1,0 +1,4 @@
+struct _galacean_a2v {
+  #include "attr_blendShape_input.gsl"
+  #include "attr_common_vert.gsl"
+}
