@@ -92,9 +92,8 @@ async function main() {
 
       camera.setReplacementShader(Shader.find("UVCheckShader"));
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-shaderReplacement";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 }
 main();

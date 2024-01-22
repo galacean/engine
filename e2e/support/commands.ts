@@ -39,7 +39,7 @@ declare global {
 Cypress.Commands.add("screenshotWithThreshold", (category, name, threshold = 0) => {
   const downloadsFolder = Cypress.config("downloadsFolder");
 
-  cy.visit(`/mpa/${name}.html`);
+  cy.visit(`/mpa/${name}.html?category=${category}&case=${name}`);
   const imageName = `${category}_${name}.jpg`;
   const filePath = path.join(downloadsFolder, imageName);
   cy.get("#screenshot", { timeout: 60000 })

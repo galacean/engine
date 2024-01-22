@@ -16,14 +16,12 @@ import {
   KeyframeValueType,
   ReferResource,
   AnimationStringCurve,
-  AnimationBoolCurve
+  AnimationBoolCurve,
+  Loader
 } from "@galacean/engine-core";
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
-import { ComponentMap } from "./ComponentMap";
-
-export { ComponentMap } from "./ComponentMap";
 
 export enum InterpolableValueType {
   Float,
@@ -58,7 +56,7 @@ export class AnimationClipDecoder {
       for (let i = 0; i < curveBindingsLen; ++i) {
         const relativePath = bufferReader.nextStr();
         const componentStr = bufferReader.nextStr();
-        const componentType = ComponentMap[componentStr];
+        const componentType = Loader.getClass(componentStr);
         const property = bufferReader.nextStr();
         const getProperty = bufferReader.nextStr();
         let curve: AnimationCurve<KeyframeValueType>;

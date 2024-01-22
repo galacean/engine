@@ -79,7 +79,6 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         shadowAttenuation = 1.0;
         #ifdef SCENE_IS_CALCULATE_SHADOWS
             shadowAttenuation *= sampleShadowMap();
-            // int sunIndex = int(scene_ShadowInfo.z);
         #endif
 
         DirectLight directionalLight;

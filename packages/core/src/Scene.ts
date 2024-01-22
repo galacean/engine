@@ -42,6 +42,11 @@ export class Scene extends EngineObject {
   shadowFourCascadeSplits: Vector3 = new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   /** Max Shadow distance. */
   shadowDistance: number = 50;
+  /**
+   * Last shadow fade distance in percentage, range [0,1].
+   * @remarks Value 0 is used for no shadow fade.
+   */
+  shadowFadeBorder: number = 0.1;
 
   /* @internal */
   _lightManager: LightManager = new LightManager();

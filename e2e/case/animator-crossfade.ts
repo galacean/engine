@@ -3,16 +3,7 @@
  * @category Animation
  */
 import { OrbitControl } from "@galacean/engine-toolkit";
-import {
-  Animator,
-  Camera,
-  DirectLight,
-  Logger,
-  SystemInfo,
-  Vector3,
-  WebGLEngine,
-  GLTFResource
-} from "@galacean/engine";
+import { Animator, Camera, DirectLight, Logger, Vector3, WebGLEngine, GLTFResource } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
@@ -42,8 +33,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       updateForE2E(engine, 30);
       animator.crossFade("walk", 0.5, 0, 0);
       updateForE2E(engine, 30);
-      const category = "Animator";
-      const name = "animator-crossfade";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

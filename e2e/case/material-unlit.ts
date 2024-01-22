@@ -25,8 +25,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .then((gltf) => {
       rootEntity.addChild(gltf.defaultSceneRoot);
       updateForE2E(engine);
-      const category = "Material";
-      const name = "material-unlit";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });
