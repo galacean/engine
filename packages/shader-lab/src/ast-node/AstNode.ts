@@ -101,7 +101,9 @@ export class AstNode<T = any> {
   position: IPositionRange;
   content: T;
 
+  /** @internal */
   _astType = "unknown";
+  /** @internal */
   _inMacro = false;
 
   constructor(position: IPositionRange, content: T) {
@@ -160,6 +162,7 @@ export class AstNode<T = any> {
     return ret;
   }
 
+  /** @internal */
   toJson(includePos = false, withClass = false) {
     let res: any;
     if (Array.isArray(this.content)) {
