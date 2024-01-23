@@ -175,6 +175,7 @@ const parser = new CstParser([createToken({ name: "_", pattern: /_/ })]);
 
 const ShaderVisitorConstructor = parser.getBaseCstVisitorConstructorWithDefaults<any, AstNode>();
 
+/** @internal */
 export class ShaderVisitor extends ShaderVisitorConstructor implements Partial<ICstNodeVisitor<any, AstNode>> {
   constructor() {
     super();

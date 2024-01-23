@@ -85,6 +85,7 @@ import {
   IVariableTypeAstContent
 } from "./AstNodeContent";
 
+/** @internal */
 export interface IPosition {
   line: number;
   character: number;
@@ -92,18 +93,18 @@ export interface IPosition {
   index: number;
 }
 
+/** @internal */
 export interface IPositionRange {
   start: IPosition;
   end: IPosition;
 }
 
+/** @internal */
 export class AstNode<T = any> {
   position: IPositionRange;
   content: T;
 
-  /** @internal */
   _astType = "unknown";
-  /** @internal */
   _inMacro = false;
 
   constructor(position: IPositionRange, content: T) {
@@ -111,7 +112,6 @@ export class AstNode<T = any> {
     this.content = content;
   }
 
-  /** @internal */
   getContentValue(context?: RuntimeContext): any {
     if (typeof this.content === "string") return this.content.replace(/"(.*)"/, "$1");
     if (typeof this.content !== "object") return this.content;
@@ -125,17 +125,14 @@ export class AstNode<T = any> {
     return ret;
   }
 
-  /** @internal */
   _doSerialization(context?: RuntimeContext, args?: any): string {
     return this.content as string;
   }
 
-  /** @internal */
   _beforeSerialization(context?: RuntimeContext, args?: any) {
     context?.setSerializingNode(this);
   }
 
-  /** @internal */
   _afterSerialization(context?: RuntimeContext, args?: any) {
     context?.unsetSerializingNode();
   }

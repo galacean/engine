@@ -10,6 +10,7 @@ import { AstNodeUtils } from "./AstNodeUtils";
 import { DiagnosticSeverity } from "./Constants";
 import RuntimeContext, { IReferenceStructInfo } from "./RuntimeContext";
 
+/** @internal */
 export class Ast2GLSLUtils {
   static stringifyVertexFunction(
     passAst: AstNode<IPassAstContent>,
