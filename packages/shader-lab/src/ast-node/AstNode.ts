@@ -125,15 +125,15 @@ export class AstNode<T = any> {
     return ret;
   }
 
-  _doSerialization(context?: RuntimeContext, args?: any): string {
+  protected _doSerialization(context?: RuntimeContext, args?: any): string {
     return this.content as string;
   }
 
-  _beforeSerialization(context?: RuntimeContext, args?: any) {
+  protected _beforeSerialization(context?: RuntimeContext, args?: any) {
     context?.setSerializingNode(this);
   }
 
-  _afterSerialization(context?: RuntimeContext, args?: any) {
+  protected _afterSerialization(context?: RuntimeContext, args?: any) {
     context?.unsetSerializingNode();
   }
 

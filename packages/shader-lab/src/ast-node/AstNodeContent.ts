@@ -50,7 +50,8 @@ import {
   FnMacroConditionBodyAstNode,
   FnArgDecoratorAstNode,
   TernaryExpressionSuffixAstNode,
-  FnExpressionAstNode
+  FnExpressionAstNode,
+  StructMacroConditionElseBranchAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -154,7 +155,7 @@ export interface IStructMacroConditionalFieldAstContent {
   condition: RelationExprAstNode;
   body: StructMacroConditionBodyAstNode;
   elifBranch?: StructMacroConditionElifBranchAstNode;
-  elseBranch?: AstNode;
+  elseBranch?: StructMacroConditionElseBranchAstNode;
 }
 
 export type IFnMacroConditionBodyAstContent = Array<FnBodyAstNode | StructAstNode>;
