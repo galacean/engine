@@ -41,10 +41,8 @@ export class WebCanvas extends Canvas {
   resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
     const webCanvas = this._webCanvas;
     if (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas)) {
-      const exportWidth = webCanvas.clientWidth * pixelRatio;
-      const exportHeight = webCanvas.clientHeight * pixelRatio;
-      this.width = exportWidth;
-      this.height = exportHeight;
+      this.width = webCanvas.clientWidth * pixelRatio;
+      this.height = webCanvas.clientHeight * pixelRatio;
     }
   }
 
