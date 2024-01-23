@@ -69,8 +69,11 @@ export class WebCanvas extends Canvas {
     this.scale = this._scale;
   }
 
-  protected override _onSizeChanged(width: number, height: number): void {
-    this._webCanvas.width = width;
-    this._webCanvas.height = height;
+  protected override _onWidthChanged(value: number): void {
+    this._webCanvas.width = value;
+  }
+
+  protected override _onHeightChange(value: number): void {
+    this._webCanvas.height = value;
   }
 }
