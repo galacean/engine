@@ -20,8 +20,8 @@ export abstract class Canvas {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
+      this._onWidthChanged(value);
       this._sizeUpdateFlagManager.dispatch();
-      this._onSizeChanged(value, this._width);
     }
   }
 
@@ -35,10 +35,12 @@ export abstract class Canvas {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
+      this._onHeightChange(value);
       this._sizeUpdateFlagManager.dispatch();
-      this._onSizeChanged(this._width, value);
     }
   }
 
-  protected abstract _onSizeChanged(width: number, height: number): void;
+  protected abstract _onWidthChanged(value: number): void;
+
+  protected abstract _onHeightChange(value: number): void;
 }
