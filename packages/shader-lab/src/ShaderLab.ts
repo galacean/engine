@@ -3,6 +3,7 @@ import { ShaderParser } from "./parser/ShaderParser";
 import { ShaderVisitor } from "./ShaderVisitor";
 import RuntimeContext from "./RuntimeContext";
 import ParsingContext from "./ParsingContext";
+import { Logger } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
   /** @internal */
@@ -39,6 +40,7 @@ export class ShaderLab implements IShaderLab {
           err.token.endLine += offset;
         }
       }
+      Logger.error(`error shaderlab source:`, shaderSource);
       throw this._parser.errors;
     }
 

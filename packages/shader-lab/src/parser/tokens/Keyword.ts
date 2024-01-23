@@ -15,4 +15,22 @@ export const FragmentShader = TokenUtils.createKeywordToken("FragmentShader");
 
 export const UsePass = TokenUtils.createKeywordToken("UsePass");
 
-export const tokenList = [Shader, SubShader, Pass, Tags, VertexShader, FragmentShader, UsePass];
+export const ArgDecoIn = TokenUtils.createKeywordToken("in ");
+export const ArgDecoOut = TokenUtils.createKeywordToken("out ");
+export const ArgDecoInOut = TokenUtils.createKeywordToken("inout ");
+
+export const ConstQualifier = TokenUtils.createKeywordToken("const ");
+
+export const tokenList = [
+  Shader,
+  SubShader,
+  Pass,
+  Tags,
+  VertexShader,
+  FragmentShader,
+  UsePass,
+  ArgDecoIn,
+  ArgDecoOut,
+  ArgDecoInOut,
+  ConstQualifier
+];

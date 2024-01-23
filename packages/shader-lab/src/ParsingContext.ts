@@ -1,11 +1,11 @@
-import { IPosition } from "./ast-node";
-
+/** @internal */
 export interface IPositionOffset {
   /** Offset of the first character of the Token. 0-indexed. */
   index: number;
   line: number;
 }
 
+/** @internal */
 export default class ParsingContext {
   private _parseString: string;
   get parseString(): string {
