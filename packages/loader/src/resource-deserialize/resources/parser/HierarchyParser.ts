@@ -278,7 +278,7 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
     }
   }
 
-  private _applyEntityData(entity: Entity, entityConfig: IEntity): Entity {
+  private _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
     entity.isActive = entityConfig.isActive ?? entity.isActive;
     entity.name = entityConfig.name ?? entity.name;
     const { position, rotation, scale } = entityConfig;
