@@ -90,8 +90,6 @@ export class AstNodeUtils {
   }
 
   static astSortAsc(a: IPositionRange, b: IPositionRange) {
-    return a.start.line > b.start.line || (a.start.line === b.start.line && a.start.character >= b.start.character)
-      ? 1
-      : -1;
+    return a.start.index > b.start.index ? 1 : -1;
   }
 }
