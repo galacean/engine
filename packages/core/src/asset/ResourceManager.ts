@@ -430,17 +430,20 @@ export class ResourceManager {
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
     const [baseUrl, searchStr] = path.split("?");
-    const params = searchStr.split("&");
     let queryPath = undefined;
-    for (let i = 0; i < params.length; i++) {
-      const param = params[i];
-      if (param.startsWith(`q=`)) {
-        queryPath = decodeURIComponent(param.split("=")[1]);
-        params.splice(i, 1);
-        break;
+    let assetBaseURL = baseUrl;
+    if (searchStr) {
+      const params = searchStr.split("&");
+      for (let i = 0; i < params.length; i++) {
+        const param = params[i];
+        if (param.startsWith(`q=`)) {
+          queryPath = decodeURIComponent(param.split("=")[1]);
+          params.splice(i, 1);
+          break;
+        }
       }
+      assetBaseURL = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
     }
-    const assetBaseURL = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
     return { assetBaseURL, queryPath };
   }
 
