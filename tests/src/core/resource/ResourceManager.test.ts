@@ -36,7 +36,7 @@ describe("ResourceManager", () => {
     });
   });
 
-  describe.only("queryPath", () => {
+  describe("queryPath", () => {
     it("no encode", () => {
       // @ts-ignore
       const { assetBaseURL } = engine.resourceManager._parseURL(
