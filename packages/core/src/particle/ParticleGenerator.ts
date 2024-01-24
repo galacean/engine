@@ -226,7 +226,7 @@ export class ParticleGenerator {
       const transform = this._renderer.entity.transform;
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
-        if (shape) {
+        if (shape?.enabled) {
           shape._generatePositionAndDirection(this.emission._shapeRand, time, position, direction);
           const positionScale = this.main._getPositionScale();
           position.multiply(positionScale);

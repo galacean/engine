@@ -31,7 +31,7 @@ export class ShaderFactory {
         return "";
       }
 
-      return ShaderFactory.parseIncludes(replace);
+      return ShaderFactory.parseIncludes(replace, regex);
     }
 
     return src.replace(regex, replace);

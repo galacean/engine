@@ -17,9 +17,18 @@ export const enum DiagnosticSeverity {
   Hint = 4
 }
 
-/** The shader pass property name which reference the fragment shader main function */
+/**
+ * The shader pass property name which reference the fragment shader main function
+ * @internal
+ */
 export const FRAG_FN_NAME = "FragmentShader";
-/** The shader pass property name which reference the vertex shader main function */
+/**
+ * The shader pass property name which reference the vertex shader main function
+ * @internal
+ */
 export const VERT_FN_NAME = "VertexShader";
-/** Render queue */
+/**
+ * Render queue
+ * @internal
+ */
 export const RENDER_QUEUE = "RenderQueueType";
