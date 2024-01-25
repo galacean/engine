@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-xr",
-  "version": "1.2.0-alpha.5",
+  "version": "1.2.0-alpha.6",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
