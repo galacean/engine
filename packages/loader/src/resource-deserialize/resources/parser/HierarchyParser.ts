@@ -278,7 +278,7 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
     }
   }
 
-  private _applyEntityData(entity: Entity, entityConfig: IEntity): Entity {
+  private _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
     entity.isActive = entityConfig.isActive ?? entity.isActive;
     entity.name = entityConfig.name ?? entity.name;
     const { position, rotation, scale } = entityConfig;
@@ -290,12 +290,19 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
 
   private _traverseAddEntityToMap(entity: Entity, context: ParserContext<IPrefabFile, Entity>, path: string) {
     const { entityMap, components } = context;
+    const componentsMap = {};
+    const componentIndexMap = {};
+
     entityMap.set(path, entity);
     // @ts-ignore
     entity._components.forEach((component) => {
       // @ts-ignore
       const name = Loader.getClassName(component.constructor);
-      components.set(`${path}:${name}`, component);
+      if (!componentsMap[name]) {
+        componentsMap[name] = entity.getComponents(component.constructor, []);
+        componentIndexMap[name] = 0;
+      }
+      components.set(`${path}:${name}/${componentIndexMap[name]++}`, component);
     });
     for (let i = 0; i < entity.children.length; i++) {
       const child = entity.children[i];
