@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-loader",
-  "version": "1.1.0-beta.45",
+  "version": "1.1.0-beta.46",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
