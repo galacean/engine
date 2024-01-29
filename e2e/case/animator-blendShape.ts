@@ -9,7 +9,6 @@ import {
   DirectLight,
   Logger,
   SkinnedMeshRenderer,
-  SystemInfo,
   Vector3,
   WebGLEngine,
   GLTFResource
@@ -44,8 +43,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       skinMeshRenderer.blendShapeWeights[0] = 1.0;
       animator.play("TheWave");
       updateForE2E(engine);
-      const category = "Animator";
-      const name = "animator-blendShape";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

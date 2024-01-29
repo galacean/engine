@@ -112,6 +112,7 @@ describe("ShaderLab", () => {
   let passList: ISubShaderInfo["passes"];
   let pass: IShaderPassInfo;
   let usePass: string;
+  let context: any;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
@@ -119,6 +120,7 @@ describe("ShaderLab", () => {
     passList = subShader.passes;
     usePass = <string>passList[0];
     pass = <IShaderPassInfo>passList[1];
+    context = (shader as any)._context;
   });
 
   it("create shaderLab", async () => {
@@ -227,5 +229,21 @@ describe("ShaderLab", () => {
     shaderInstance.destroy();
     const sameNameShader = Shader.create(demoShader);
     expect(sameNameShader).instanceOf(Shader);
+  });
+
+  it("template shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("diagnostic position", () => {
+    const invalidShader = fs.readFileSync(path.join(__dirname, "shaders/invalid.shader")).toString();
+    try {
+      shaderLab.parseShader(invalidShader);
+    } catch (err) {
+      expect(err).to.have.lengthOf(1);
+      expect(err[0]).to.have.property("token");
+      expect(err[0].token.startLine).to.eql(25);
+    }
   });
 });

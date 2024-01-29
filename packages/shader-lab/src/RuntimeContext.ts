@@ -22,8 +22,9 @@ import {
   ISubShaderAstContent,
   IUsePassAstContent
 } from "./ast-node";
-import { AstNodeUtils } from "./AstNodeUtils";
+
 import { RenderStateDataKey } from "@galacean/engine";
+import ParsingContext from "./ParsingContext";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -32,24 +33,38 @@ export interface IDiagnostic {
   token: IPositionRange;
 }
 
+/** @internal */
 interface IReference {
   referenced: boolean;
 }
 
+/** @internal */
 interface IGlobal extends IReference {
   ast: AstNode;
   name: string;
+  inspected?: boolean;
+  inMacro?: boolean;
+  text?: string;
 }
 
+/** @internal */
+export interface ISourceFragment {
+  text: string;
+  position: IPositionRange;
+}
+
+/** @internal */
 export enum EGlobalLevel {
   Pass = 0,
   SubShader = 1,
   Shader = 2
 }
 
+/** @internal */
 type GlobalMap = Map<string, IGlobal>;
 
-interface IReferenceStructInfo {
+/** @internal */
+export interface IReferenceStructInfo {
   /** varying or attribute object name */
   objectName?: string;
   structAstNode?: StructAstNode;
@@ -57,6 +72,7 @@ interface IReferenceStructInfo {
   reference?: { property: DeclarationWithoutAssignAstNode; referenced: boolean; text: string }[];
 }
 
+/** @internal */
 export default class RuntimeContext {
   private _shaderAst: AstNode<IShaderAstContent>;
 
@@ -66,7 +82,7 @@ export default class RuntimeContext {
 
   functionAstStack: { fnAst: FnAstNode; localDeclaration: VariableDeclarationAstNode[] }[] = [];
   /** Diagnostic for linting service. */
-  diagnostics: IDiagnostic[] = [];
+  private _diagnostics: IDiagnostic[] = [];
   /** Varying info. */
   varyingTypeAstNode?: ReturnTypeAstNode;
   /** Varying. */
@@ -84,6 +100,8 @@ export default class RuntimeContext {
   /** Custom payload */
   payload?: any;
 
+  _parsingMacro = false;
+
   /** serialize token stack */
   private _serializingNodeStack: AstNode[] = [];
   /** Global variables within scope of shader, e.g. Uniforms, RenderState, Struct. */
@@ -94,6 +112,11 @@ export default class RuntimeContext {
   private _passGlobalMap: GlobalMap = new Map();
   /** The main function */
   private _currentMainFnAst?: FnAstNode;
+  private _parsingContext: ParsingContext;
+
+  set parsingContext(context: ParsingContext) {
+    this._parsingContext = context;
+  }
 
   /** Current position */
   get serializingAstNode() {
@@ -106,6 +129,15 @@ export default class RuntimeContext {
 
   get currentMainFnAst() {
     return this._currentMainFnAst;
+  }
+
+  addDiagnostic(diagnostic: IDiagnostic) {
+    let offset = this._parsingContext.getTextLineOffsetAt(diagnostic.token.start.index);
+    if (offset) {
+      diagnostic.token.start.line += offset;
+      diagnostic.token.end.line += offset;
+    }
+    this._diagnostics.push(diagnostic);
   }
 
   setSerializingNode(node: AstNode) {
@@ -151,57 +183,8 @@ export default class RuntimeContext {
     return ret;
   }
 
-  private _resetPassScopeGlobalReference() {
-    for (const [_, g] of this._passGlobalMap) {
-      g.referenced = false;
-    }
-  }
-
-  private _parsePassProperty(
-    passAst: AstNode<IPassAstContent>,
-    prop: PassPropertyAssignmentAstNode,
-    ret: IShaderPassInfo,
-    renderStates: RenderStateDeclarationAstNode[]
-  ) {
-    switch (prop.content.type) {
-      case VERT_FN_NAME:
-        if (ret.vertexSource) {
-          this.diagnostics.push({
-            severity: DiagnosticSeverity.Error,
-            message: "multiple vertex main function found",
-            token: prop.position
-          });
-          return;
-        }
-        this._resetPassScopeGlobalReference();
-        ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(passAst, prop, this);
-        break;
-      case FRAG_FN_NAME:
-        if (ret.fragmentSource) {
-          this.diagnostics.push({
-            severity: DiagnosticSeverity.Error,
-            message: "multiple fragment main function found",
-            token: prop.position
-          });
-          return;
-        }
-        this._resetPassScopeGlobalReference();
-        ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(passAst, prop, this);
-        break;
-      default:
-        // Render State
-        const variable = prop.content.value;
-        const astNode = this.findGlobal(variable.content.variable)?.ast;
-        if (!astNode) {
-          this.diagnostics.push({
-            severity: DiagnosticSeverity.Error,
-            message: "variable definition not found",
-            token: prop.position
-          });
-        } else {
-          renderStates.push(astNode);
-        }
-    }
+  isParsingGlobal() {
+    return this.functionAstStack.length === 0;
   }
 
   parsePassInfo(ast: AstNode<IPassAstContent | IUsePassAstContent>): IShaderPassInfo | string {
@@ -264,30 +247,29 @@ export default class RuntimeContext {
     );
   }
 
-  getAttribText(): string {
-    return this.attributeStructListInfo
-      .map((struct) =>
-        struct.reference
-          .filter((item) => item.referenced)
-          .map((item) => `${item.text};`)
-          .join("\n")
-      )
-      .join("\n");
+  getAttribText(): ISourceFragment[] {
+    const ret: ISourceFragment[] = [];
+    for (const attrStruct of this.attributeStructListInfo) {
+      for (const field of attrStruct.reference) {
+        if (field.referenced) ret.push({ text: `${field.text};`, position: field.property.position });
+      }
+    }
+    return ret;
   }
 
-  getVaryingText(): string {
-    return this.varyingStructInfo.reference
-      ?.filter((item) => item.referenced)
-      .map((item) => `${item.text};`)
-      .join("\n");
+  getVaryingText(): ISourceFragment[] {
+    return (
+      this.varyingStructInfo.reference
+        ?.filter((item) => item.referenced)
+        .map((item) => ({ text: `${item.text};`, position: item.property.position })) ?? []
+    );
   }
 
-  getMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[], needSort = false): string {
-    const list = needSort ? macros.sort(AstNodeUtils.astSortAsc) : macros;
-    return list?.map((item) => item.serialize(this)).join("\n");
+  getGlobalMacroText(macros: (FnMacroAstNode | FnMacroConditionAstNode)[]): ISourceFragment[] {
+    return macros?.map((item) => ({ text: item.serialize(this), position: item.position })) ?? [];
   }
 
-  getGlobalText(): string {
+  getGlobalText(): ISourceFragment[] {
     let ret: (IGlobal & { str: string })[] = [];
     let cur: (IGlobal & { str: string })[];
     const allGlobals = [
@@ -296,23 +278,25 @@ export default class RuntimeContext {
       ...Array.from(this._shaderGlobalMap.values())
     ];
     const getCurList = () => {
-      cur = allGlobals.filter((item) => item.referenced) as any;
+      // @ts-ignore
+      cur = allGlobals.filter((item) => item.referenced && !item.inspected) as any;
 
       cur.forEach((item) => {
-        // @ts-ignore
-        !item.str && (item.str = item.ast.serialize(this, { global: true }));
+        item.str = item.ast.serialize(this, { global: true });
+        item.inspected = true;
       });
     };
 
     getCurList();
-    while (cur.length !== ret.length) {
-      ret = cur;
+    while (cur.length > 0) {
+      ret.push(...cur);
       getCurList();
     }
-    return ret
-      .sort((a, b) => a.ast.position.start.line - b.ast.position.start.line)
-      .map((item) => item.str)
-      .join("\n");
+    return ret.filter((item) => !item.inMacro).map((item) => ({ text: item.str, position: item.ast.position }));
+  }
+
+  setPassGlobal(variable: string, global: IGlobal) {
+    this._passGlobalMap.set(variable, global);
   }
 
   private _shaderReset() {
@@ -407,5 +391,59 @@ export default class RuntimeContext {
 
   private _findPassGlobal(variable: string) {
     return this._passGlobalMap.get(variable);
+  }
+
+  private _resetPassScopeGlobalReference() {
+    for (const [_, g] of this._passGlobalMap) {
+      g.referenced = false;
+      g.inspected = false;
+    }
+  }
+
+  private _parsePassProperty(
+    passAst: AstNode<IPassAstContent>,
+    prop: PassPropertyAssignmentAstNode,
+    ret: IShaderPassInfo,
+    renderStates: RenderStateDeclarationAstNode[]
+  ) {
+    switch (prop.content.type) {
+      case VERT_FN_NAME:
+        if (ret.vertexSource) {
+          this.addDiagnostic({
+            severity: DiagnosticSeverity.Error,
+            message: "multiple vertex main function found",
+            token: prop.position
+          });
+          return;
+        }
+        this._resetPassScopeGlobalReference();
+        ret.vertexSource = Ast2GLSLUtils.stringifyVertexFunction(passAst, prop, this);
+        break;
+      case FRAG_FN_NAME:
+        if (ret.fragmentSource) {
+          this.addDiagnostic({
+            severity: DiagnosticSeverity.Error,
+            message: "multiple fragment main function found",
+            token: prop.position
+          });
+          return;
+        }
+        this._resetPassScopeGlobalReference();
+        ret.fragmentSource = Ast2GLSLUtils.stringifyFragmentFunction(passAst, prop, this);
+        break;
+      default:
+        // Render State
+        const variable = prop.content.value;
+        const astNode = this.findGlobal(variable.content.variable)?.ast;
+        if (!astNode) {
+          this.addDiagnostic({
+            severity: DiagnosticSeverity.Error,
+            message: "variable definition not found",
+            token: prop.position
+          });
+        } else {
+          renderStates.push(astNode);
+        }
+    }
   }
 }

@@ -10,6 +10,8 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class CircleShape extends BaseShape {
   private static _tempPositionPoint: Vector2 = new Vector2();
 
+  readonly shapeType = ParticleShapeType.Circle;
+
   /** Radius of the shape to emit particles from. */
   radius = 1.0;
   /** Angle of the circle arc to emit particles from. */
@@ -18,11 +20,6 @@ export class CircleShape extends BaseShape {
   arcMode = ParticleShapeArcMode.Random;
   /** The speed of complete 360 degree rotation. */
   arcSpeed = 1.0;
-
-  constructor() {
-    super();
-    this.shapeType = ParticleShapeType.Circle;
-  }
 
   /**
    * @internal

@@ -24,13 +24,13 @@ export class TextUtils {
     "fangsong"
   ];
 
-  // _heightMultiplier used to measure the height of text, but in miniprogram performance is different from h5.
-  // so can set _heightMultiplier to adapt miniprogram, the larger the value, the worse the performance.
+  // _extendHeight used to extend the height of canvas, because in miniprogram performance is different from h5.
   /** @internal */
-  static _heightMultiplier: number = 2;
+  static _extendHeight: number = 0;
   /** These characters are all tall to help calculate the height required for text. */
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
+  private static _heightMultiplier: number = 2;
   private static _baselineMultiplier: number = 1.4;
   private static _fontSizeInfoCache: Record<string, FontSizeInfo> = {};
   private static _textContext: TextContext = null;
@@ -353,8 +353,11 @@ export class TextUtils {
     // @todo: Text layout may vary from standard and not support emoji.
     const width = Math.max(1, Math.round(context.measureText(measureString).width));
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
-    const height = baseline * TextUtils._heightMultiplier;
+    let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
+    const { _extendHeight } = TextUtils;
+    height += _extendHeight;
+    baseline += _extendHeight * 0.5;
 
     canvas.width = width;
     canvas.height = height;
@@ -397,6 +400,7 @@ export class TextUtils {
 
     if (top !== -1 && bottom !== -1) {
       ascent = baseline - top;
+      // Baseline belong to descent
       descent = bottom - baseline + 1;
       size = ascent + descent;
     }

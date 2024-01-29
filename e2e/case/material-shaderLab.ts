@@ -91,7 +91,6 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   renderer.setMaterial(material);
 
   updateForE2E(engine);
-  const category = "Material";
-  const name = "material-shaderLab";
-  initScreenshot(category, name, engine, camera);
+
+  initScreenshot(engine, camera);
 });

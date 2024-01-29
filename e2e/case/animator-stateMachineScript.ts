@@ -75,8 +75,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       updateForE2E(engine, 30);
       animator.crossFade("run", 0.5, 0, 0);
       updateForE2E(engine, 100);
-      const category = "Animator";
-      const name = "animator-stateMachineScript";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

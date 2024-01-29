@@ -2,16 +2,7 @@
  * @title Animation Play
  * @category Animation
  */
-import {
-  Animator,
-  Camera,
-  DirectLight,
-  GLTFResource,
-  Logger,
-  SystemInfo,
-  Vector3,
-  WebGLEngine
-} from "@galacean/engine";
+import { Animator, Camera, DirectLight, GLTFResource, Logger, Vector3, WebGLEngine } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -41,8 +32,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("agree");
 
       updateForE2E(engine);
-      const category = "Animator";
-      const name = "animator-play";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

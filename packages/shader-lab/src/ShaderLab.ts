@@ -2,6 +2,8 @@ import { IShaderLab } from "@galacean/engine-design";
 import { ShaderParser } from "./parser/ShaderParser";
 import { ShaderVisitor } from "./ShaderVisitor";
 import RuntimeContext from "./RuntimeContext";
+import ParsingContext from "./ParsingContext";
+import { Logger } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
   /** @internal */
@@ -23,21 +25,27 @@ export class ShaderLab implements IShaderLab {
   }
 
   parseShader(shaderSource: string) {
-    const editorPropertiesRegex = /EditorProperties\s+\{[^}]*?\}/;
+    const parsingContext = new ParsingContext(shaderSource);
+    this._context.parsingContext = parsingContext;
+    parsingContext.filterString("EditorProperties");
+    parsingContext.filterString("EditorMacros");
 
-    const input = shaderSource.replace(editorPropertiesRegex, "");
-
-    this._parser.parse(input);
+    this._parser.parse(parsingContext.parseString);
     const cst = this._parser.ruleShader();
     if (this._parser.errors.length > 0) {
-      console.log(this._parser.errors);
+      for (const err of this._parser.errors) {
+        const offset = parsingContext.getTextLineOffsetAt(err.token.startOffset);
+        if (offset) {
+          err.token.startLine += offset;
+          err.token.endLine += offset;
+        }
+      }
+      Logger.error(`error shaderlab source:`, shaderSource);
       throw this._parser.errors;
     }
 
     const ast = this._visitor.visit(cst);
-
     const shaderInfo = this._context.parse(ast);
-
     return shaderInfo;
   }
 }

@@ -30,7 +30,12 @@ export class RenderQueue {
         dataA.material._priority - dataB.material._priority || componentA._distanceForSort - componentB._distanceForSort
       );
     } else {
-      return componentA._distanceForSort - componentB._distanceForSort;
+      const distanceDiff = componentA._distanceForSort - componentB._distanceForSort;
+      if (distanceDiff === 0) {
+        return componentA.instanceId - componentB.instanceId;
+      } else {
+        return distanceDiff;
+      }
     }
   }
 
@@ -52,7 +57,12 @@ export class RenderQueue {
         dataA.material._priority - dataB.material._priority || componentB._distanceForSort - componentA._distanceForSort
       );
     } else {
-      return componentB._distanceForSort - componentA._distanceForSort;
+      const distanceDiff = componentB._distanceForSort - componentA._distanceForSort;
+      if (distanceDiff === 0) {
+        return componentA.instanceId - componentB.instanceId;
+      } else {
+        return distanceDiff;
+      }
     }
   }
 
