@@ -33,13 +33,8 @@ export class BoxShape extends BaseShape {
    * @internal
    */
   override _getDirectionRange(out: { min: Vector3; max: Vector3 }) {
-    if (this.randomDirectionAmount > 0) {
-      out.min.set(-1, -1, -1);
-      out.max.set(1, 1, 1);
-    } else {
-      out.min.set(0, 0, -1);
-      out.max.set(0, 0, 0);
-    }
+    out.min.set(-this.randomDirectionAmount, -this.randomDirectionAmount, -1);
+    out.max.set(this.randomDirectionAmount, this.randomDirectionAmount, this.randomDirectionAmount);
   }
 
   /**

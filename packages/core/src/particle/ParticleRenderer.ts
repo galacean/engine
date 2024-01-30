@@ -114,19 +114,6 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
-   * Local bounds.
-   */
-  get localBounds(): BoundingBox {
-    return this._localBounds;
-  }
-
-  set localBounds(value: BoundingBox) {
-    if (this._localBounds !== value) {
-      this._localBounds.copyFrom(value);
-    }
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {

@@ -1,4 +1,4 @@
-import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
+import { Color, MathUtil, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
@@ -27,12 +27,15 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 
 /**
  * Particle Generator.
  */
 export class ParticleGenerator {
+  private static _tempVector20 = new Vector2();
+  private static _tempVector21 = new Vector2();
+  private static _tempVector22 = new Vector2();
+  private static _tempVector23 = new Vector2();
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
   private static _tempVector32 = new Vector3();
@@ -274,8 +277,9 @@ export class ParticleGenerator {
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
 
-      this._renderer._localBounds.max.set(0, 0, 0);
-      this._renderer._localBounds.min.set(0, 0, 0);
+      const localBounds = this._renderer._localBounds;
+      localBounds.min.set(0, 0, 0);
+      localBounds.max.set(0, 0, 0);
     }
 
     // Add new particles to vertex buffer when has wait process retired element or new particle
@@ -767,46 +771,80 @@ export class ParticleGenerator {
     return index;
   }
 
-  /** @internal */
-  _calculateLocalBoundingBox(): void {
+  private _calculateLocalBoundingBox(): void {
     const { min, max } = this._renderer._localBounds;
-    const { _tempVector30: directionMax, _tempVector31: directionMin } = ParticleGenerator;
-    const lifetime = this.main.startLifetime._getMinMaxValue({ min: 0, max: 0 }).max;
+    const {
+      _tempVector30: directionMax,
+      _tempVector31: directionMin,
+      _tempVector20: minmax,
+      _tempVector21: minmaxX,
+      _tempVector22: minmaxY,
+      _tempVector23: minmaxZ
+    } = ParticleGenerator;
+
+    this.main.startLifetime._getMinMaxValue(minmax);
+    const maxLifetime = minmax.y;
 
     // StartSpeed's impact
-    if (this.emission.shape) {
-      this.emission.shape._getStartPositionRange({ min, max });
-      this.emission.shape._getDirectionRange({ min: directionMin, max: directionMax });
+    const shape = this.emission.shape;
+    if (shape?.enabled) {
+      shape._getStartPositionRange({ min, max });
+      shape._getDirectionRange({ min: directionMin, max: directionMax });
     } else {
       min.set(0, 0, 0);
       max.set(0, 0, 0);
       directionMin.set(0, 0, -1);
       directionMax.set(0, 0, 0);
     }
-    this._adjustBoundingBoxFromDirectionalVelocity(directionMax, directionMin, lifetime, this.main.startSpeed);
+    this.main.startSpeed._getMinMaxValue(minmax);
+    this._adjustBoundingBoxFromDirectionalVelocity(
+      directionMin,
+      directionMax,
+      minmax.x * maxLifetime,
+      minmax.y * maxLifetime
+    );
 
     // GravityModifier's impact
     const { _tempQuat0: worldInvQuat, _tempVector32: direction } = ParticleGenerator;
-    Quaternion.invert(this._renderer.entity.transform.worldRotationQuaternion, worldInvQuat);
     // Transform gravity direction into local space
-    direction.copyFrom(this._renderer.scene.physics.gravity);
-    Vector3.transformByQuat(direction, worldInvQuat, direction);
+    Quaternion.invert(this._renderer.entity.transform.worldRotationQuaternion, worldInvQuat);
+    Vector3.transformByQuat(this._renderer.scene.physics.gravity, worldInvQuat, direction);
 
-    this._adjustBoundingBoxFromDirectionalVelocity(
-      direction,
-      direction,
-      0.5 * lifetime * lifetime,
-      this.main.gravityModifier
-    );
+    this.main.gravityModifier._getMinMaxValue(minmax);
+
+    const gravityDisplacement = 0.5 * maxLifetime * maxLifetime;
+    const gravityMinVelocity = minmax.x * gravityDisplacement;
+    const gravityMaxVelocity = minmax.y * gravityDisplacement;
+
+    min.x += direction.x * gravityMinVelocity;
+    max.x += direction.x * gravityMaxVelocity;
+
+    min.y += direction.y * gravityMinVelocity;
+    max.y += direction.y * gravityMaxVelocity;
+
+    min.z += direction.z * gravityMinVelocity;
+    max.z += direction.z * gravityMaxVelocity;
 
     // StartSize's impact
-    const maxSize = this.main.startSize3D
-      ? Math.max(
-          this.main.startSizeX._getMinMaxValue({ min: 0, max: 0 }).max,
-          this.main.startSizeY._getMinMaxValue({ min: 0, max: 0 }).max,
-          this.main.startSizeZ._getMinMaxValue({ min: 0, max: 0 }).max
-        )
-      : this.main.startSize._getMinMaxValue({ min: 0, max: 0 }).max;
+    let maxSize = 0;
+
+    this.main.startSizeX._getMinMaxValue(minmaxX);
+    this.main.startSizeY._getMinMaxValue(minmaxY);
+    this.main.startSize._getMinMaxValue(minmax);
+
+    if (
+      this._renderer.renderMode === ParticleRenderMode.Billboard ||
+      ParticleRenderMode.StretchBillboard ||
+      ParticleRenderMode.HorizontalBillboard
+    ) {
+      maxSize = this.main.startSize3D ? Math.max(minmaxX.y, minmaxY.y) : minmax.y;
+    } else {
+      this.main.startSizeZ._getMinMaxValue(minmaxZ);
+      maxSize = this.main.startSize3D ? Math.max(minmaxX.y, minmaxY.y, minmaxZ.y) : minmax.y;
+    }
+
+    // Use diagonal for potential rotation
+    maxSize *= 1.414;
 
     min.x -= maxSize;
     max.x += maxSize;
@@ -820,23 +858,27 @@ export class ParticleGenerator {
     // VelocityOverLifetime Module's impact
     if (this.velocityOverLifetime.enabled) {
       const { velocityX, velocityY, velocityZ } = this.velocityOverLifetime;
-      directionMin.set(
-        velocityX._getMinMaxValue({ min: 0, max: 0 }).min,
-        velocityY._getMinMaxValue({ min: 0, max: 0 }).min,
-        velocityZ._getMinMaxValue({ min: 0, max: 0 }).min
-      );
-      directionMax.set(
-        velocityX._getMinMaxValue({ min: 0, max: 0 }).max,
-        velocityY._getMinMaxValue({ min: 0, max: 0 }).max,
-        velocityZ._getMinMaxValue({ min: 0, max: 0 }).max
-      );
+
+      velocityX._getMinMaxValue(minmaxX);
+      velocityY._getMinMaxValue(minmaxY);
+      velocityZ._getMinMaxValue(minmaxZ);
+
+      directionMin.set(minmaxX.x, minmaxY.x, minmaxZ.x);
+      directionMax.set(minmaxX.y, minmaxY.y, minmaxZ.y);
 
       if ((this.velocityOverLifetime.space = ParticleSimulationSpace.World)) {
         Vector3.transformByQuat(directionMin, worldInvQuat, directionMin);
         Vector3.transformByQuat(directionMax, worldInvQuat, directionMax);
       }
 
-      this._adjustBoundingBoxFromDirectionalVelocity(directionMin, directionMax, lifetime);
+      min.x += directionMin.x * maxLifetime;
+      max.x += directionMax.x * maxLifetime;
+
+      min.y += directionMin.y * maxLifetime;
+      max.y += directionMax.y * maxLifetime;
+
+      min.z += directionMin.z * maxLifetime;
+      max.z += directionMax.z * maxLifetime;
     }
 
     // SimulationSpace's Impact
@@ -854,62 +896,20 @@ export class ParticleGenerator {
   }
 
   private _adjustBoundingBoxFromDirectionalVelocity(
-    directionMax: Vector3,
     directionMin: Vector3,
-    factor: number,
-    velocity?: ParticleCompositeCurve
+    directionMax: Vector3,
+    velocityMin: number,
+    velocityMax: number
   ): void {
     const { min, max } = this._renderer._localBounds;
 
-    const val = { max: 0, min: 0 };
-    velocity._getMinMaxValue(val);
+    min.x += Math.min(directionMin.x * velocityMax, directionMax.x * velocityMin);
+    max.x += Math.max(directionMin.x * velocityMin, directionMax.x * velocityMax);
 
-    const velocityMin = velocity ? factor * val.min : factor;
-    const velocityMax = velocity ? factor * val.max : factor;
+    min.y += Math.min(directionMin.y * velocityMax, directionMax.y * velocityMin);
+    max.y += Math.max(directionMin.y * velocityMin, directionMax.y * velocityMax);
 
-    min.x += Math.min(
-      0,
-      directionMin.x * velocityMin,
-      directionMin.x * velocityMax,
-      directionMax.x * velocityMin,
-      directionMax.x * velocityMax
-    );
-    max.x += Math.max(
-      0,
-      directionMin.x * velocityMin,
-      directionMin.x * velocityMax,
-      directionMax.x * velocityMin,
-      directionMax.x * velocityMax
-    );
-
-    min.y += Math.min(
-      0,
-      directionMin.y * velocityMin,
-      directionMin.y * velocityMax,
-      directionMax.y * velocityMin,
-      directionMax.y * velocityMax
-    );
-    max.y += Math.max(
-      0,
-      directionMin.y * velocityMin,
-      directionMin.y * velocityMax,
-      directionMax.y * velocityMin,
-      directionMax.y * velocityMax
-    );
-
-    min.z += Math.min(
-      0,
-      directionMin.z * velocityMin,
-      directionMin.z * velocityMax,
-      directionMax.z * velocityMin,
-      directionMax.z * velocityMax
-    );
-    max.z += Math.max(
-      0,
-      directionMin.z * velocityMin,
-      directionMin.z * velocityMax,
-      directionMax.z * velocityMin,
-      directionMax.z * velocityMax
-    );
+    min.z += Math.min(directionMin.z * velocityMax, directionMax.z * velocityMin);
+    max.z += Math.max(directionMin.z * velocityMin, directionMax.z * velocityMax);
   }
 }

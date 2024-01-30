@@ -67,20 +67,12 @@ export class ConeShape extends BaseShape {
     const radian = MathUtil.degreeToRadian(this.angle);
     const dirSinA = Math.sin(radian);
 
-    if (this.randomDirectionAmount > 0) {
-      switch (this.emitType) {
-        case ConeEmitType.Base:
-          out.min.set(-dirSinA, -dirSinA, -1);
-          out.max.set(dirSinA, dirSinA, 0);
-          break;
-        case ConeEmitType.Volume:
-          out.min.set(-1, -1, -1);
-          out.max.set(1, 1, 1);
-          break;
-      }
-    } else {
-      out.min.set(-dirSinA, -dirSinA, -1);
-      out.max.set(dirSinA, dirSinA, 0);
+    out.min.set(-dirSinA, -dirSinA, -1);
+    out.max.set(dirSinA, dirSinA, 0);
+
+    if (this.emitType === ConeEmitType.Volume && this.randomDirectionAmount > 0) {
+      out.min.set(-1, -1, -1);
+      out.max.set(1, 1, 1);
     }
   }
   /**
