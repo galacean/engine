@@ -27,6 +27,7 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import internal from "stream";
 
 /**
  * Particle Generator.
@@ -771,7 +772,8 @@ export class ParticleGenerator {
     return index;
   }
 
-  private _calculateLocalBoundingBox(): void {
+  /** @internal */
+  _calculateLocalBoundingBox(): void {
     const { min, max } = this._renderer._localBounds;
     const {
       _tempVector30: directionMax,

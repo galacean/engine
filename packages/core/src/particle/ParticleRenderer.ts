@@ -199,6 +199,7 @@ export class ParticleRenderer extends Renderer {
   }
 
   override get bounds(): BoundingBox {
+    this.generator._calculateLocalBoundingBox();
     BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, this._bounds);
     return this._bounds;
   }
