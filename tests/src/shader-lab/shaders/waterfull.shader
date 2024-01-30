@@ -180,7 +180,6 @@ Shader "Waterfull" {
         return out;
       }
       VertexShader = vert;
-      vec4 scene_ElapsedTime;
       sampler2D camera_DepthTexture;
       vec3 _ShallowColor;
       vec3 _DeepColor;
