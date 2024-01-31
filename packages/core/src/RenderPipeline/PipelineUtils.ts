@@ -1,4 +1,4 @@
-import { Color } from "@galacean/engine-math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Shader } from "../shader/Shader";
@@ -112,10 +112,8 @@ export class PipelineUtils {
       bufferHeight = rhi.getMainFrameBufferHeight();
     }
 
-    rhi.activeRenderTargetX(destination);
+    rhi.activeRenderTarget(destination, new Vector4(0, 0, 1, 1), 0);
     rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._blitClearColor);
-    rhi.viewport(0, 0, bufferWidth, bufferHeight);
-    rhi.scissor(0, 0, bufferWidth, bufferHeight);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;
     const pass = blitMaterial.shader.subShaders[0].passes[0];

@@ -356,16 +356,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this.scissor(x, y, width, height);
   }
 
-  activeRenderTargetX(renderTarget: RenderTarget) {
-    if (renderTarget) {
-      /** @ts-ignore */
-      (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
-    } else {
-      const gl = this._gl;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
-    }
-  }
-
   activeTexture(textureID: number): void {
     if (this._activeTextureID !== textureID) {
       this._gl.activeTexture(textureID);
