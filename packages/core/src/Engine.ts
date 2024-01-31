@@ -9,6 +9,7 @@ import {
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
 import { Font } from "./2d/text/Font";
+import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
@@ -91,6 +92,8 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
 
+  /* @internal */
+  _basicResources: BasicResources;
   /* @internal */
   _spriteDefaultMaterial: Material;
   /** @internal */
@@ -296,6 +299,7 @@ export class Engine extends EventDispatcher {
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
 
+    this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
   }
 

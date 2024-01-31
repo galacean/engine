@@ -1,4 +1,6 @@
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import blitScreenFs from "../shaderlib/extra/BlitScreen.fs.glsl";
+import blitScreenVs from "../shaderlib/extra/BlitScreen.vs.glsl";
 import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
 import skyProceduralVs from "../shaderlib/extra/SkyProcedural.vs.glsl";
 import backgroundTextureFs from "../shaderlib/extra/background-texture.fs.glsl";
@@ -51,6 +53,7 @@ export class ShaderPool {
     Shader.create("pbr-specular", [new ShaderPass("Forward", pbrVs, pbrSpecularFs, forwardPassTags), ...basePasses]);
     Shader.create("unlit", [new ShaderPass("Forward", unlitVs, unlitFs, forwardPassTags), ...basePasses]);
 
+    Shader.create("blit", [new ShaderPass("Forward", blitScreenVs, blitScreenFs, forwardPassTags)]);
     Shader.create("skybox", [new ShaderPass("Forward", skyboxVs, skyboxFs, forwardPassTags)]);
     Shader.create("SkyProcedural", [new ShaderPass("Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)]);
 

@@ -250,7 +250,7 @@ export class BasicRenderPipeline {
       colorTarget?.generateMipmaps();
 
       if (internalColorTarget) {
-        PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, null, 0);
+        PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null);
       }
     }
 
