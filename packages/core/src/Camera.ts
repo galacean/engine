@@ -49,6 +49,7 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
+   * 
    * @defaultValue `CameraClearFlags.All`
    */
   clearFlags: CameraClearFlags = CameraClearFlags.All;
