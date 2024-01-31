@@ -49,7 +49,7 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
-   * 
+   *
    * @defaultValue `CameraClearFlags.All`
    */
   clearFlags: CameraClearFlags = CameraClearFlags.All;
@@ -63,7 +63,7 @@ export class Camera extends Component {
   /**
    * Depth texture mode.
    * If `DepthTextureMode.PrePass is` used, the depth texture can be accessed in the shader using camera_DepthTexture.
-   * 
+   *
    * @defaultValue `DepthTextureMode.None`
    */
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
@@ -71,7 +71,7 @@ export class Camera extends Component {
   /**
    * Whether to enable opaque texture.
    * If enabled, the opaque texture can be accessed in the shader using camera_OpaqueTexture.
-   * 
+   *
    * @defaultValue `false`
    */
   enabledOpaqueTexture: boolean = false;

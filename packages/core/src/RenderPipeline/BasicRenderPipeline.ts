@@ -41,7 +41,7 @@ export class BasicRenderPipeline {
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
 
-  private _cameraColorTexture: Texture2D;
+  private _internalColorTarget: RenderTarget;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _colorCopyPass: CopyColorPass;
@@ -144,8 +144,7 @@ export class BasicRenderPipeline {
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
     const camera = this._camera;
-    const scene = camera.scene;
-    const engine = camera.engine;
+    const { scene, engine } = camera;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     camera.engine._spriteMaskManager.clear();
@@ -170,23 +169,23 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
     }
 
+    // Maintain internal color texture
     if (camera.enabledOpaqueTexture) {
-      const cameraTarget = camera.renderTarget;
-      if (cameraTarget) {
-        // @todo: maybe texture cube
-        this._cameraColorTexture = <Texture2D>cameraTarget?.getColorTexture(0);
-      } else {
-        // @todo: switch target or enable opaque texture won't destroy the texture
-        const pixelViewport = camera.pixelViewport;
-        this._cameraColorTexture = PipelineUtils.recreateTextureIfNeeded(
+      if (!camera.renderTarget) {
+        const viewport = camera.pixelViewport;
+        this._internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
           engine,
-          this._cameraColorTexture,
-          pixelViewport.width,
-          pixelViewport.height,
+          this._internalColorTarget,
+          viewport.width,
+          viewport.height,
           TextureFormat.R8G8B8A8,
+          TextureFormat.Depth24Stencil8,
           false
         );
       }
+    } else {
+      this._internalColorTarget?.destroy();
+      this._internalColorTarget = null;
     }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
@@ -209,10 +208,12 @@ export class BasicRenderPipeline {
     if (pass.enabled) {
       const { engine, scene } = camera;
       const { background } = scene;
+
+      const internalColorTarget = this._internalColorTarget;
       const rhi = engine._hardwareRenderer;
-      const renderTarget = camera.renderTarget || pass.renderTarget;
-      rhi.activeRenderTarget(renderTarget, camera.viewport, mipLevel);
-      renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
+      const colorTarget = camera.renderTarget || internalColorTarget || pass.renderTarget;
+      rhi.activeRenderTarget(colorTarget, camera.viewport, mipLevel);
+      colorTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = (pass.clearFlags ?? camera.clearFlags) & ~(ignoreClear ?? CameraClearFlags.None);
       const color = pass.clearColor ?? background.solidColor;
       if (clearFlags !== CameraClearFlags.None) {
@@ -233,15 +234,21 @@ export class BasicRenderPipeline {
         }
 
         // Copy opaque texture
-        const colorCopyPass = this._colorCopyPass;
-        colorCopyPass.onConfig(camera, this._cameraColorTexture);
-        colorCopyPass.onRender(context, cullingResults);
+        if (camera.enabledOpaqueTexture) {
+          const colorCopyPass = this._colorCopyPass;
+          colorCopyPass.onConfig(camera, colorTarget.getColorTexture(0));
+          colorCopyPass.onRender(context, cullingResults);
+        }
 
         cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);
       }
 
-      renderTarget?._blitRenderTarget();
-      renderTarget?.generateMipmaps();
+      colorTarget?._blitRenderTarget();
+      colorTarget?.generateMipmaps();
+
+      if (internalColorTarget) {
+        PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, null, 0);
+      }
     }
 
     pass.postRender(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);

@@ -1,7 +1,7 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { Texture2D } from "../texture";
+import { Texture, Texture2D } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
@@ -23,7 +23,7 @@ export class CopyColorPass extends PipelinePass {
     super(engine);
   }
 
-  onConfig(camera: Camera, cameraColorTexture: Texture2D): void {
+  onConfig(camera: Camera, cameraColorTexture: Texture): void {
     const engine = this._engine;
     const { width, height } = camera.pixelViewport;
 
@@ -41,7 +41,8 @@ export class CopyColorPass extends PipelinePass {
     colorTexture.filterMode = TextureFilterMode.Bilinear;
 
     this._renderTarget = renderTarget;
-    this._cameraColorTexture = cameraColorTexture;
+    // @todo: maybe texturecube
+    this._cameraColorTexture = <Texture2D>cameraColorTexture;
   }
 
   onRender(context: RenderContext, cullingResults: CullingResults): void {
@@ -57,13 +58,7 @@ export class CopyColorPass extends PipelinePass {
     rhi.scissor(0, 0, renderTarget.width, renderTarget.height);
 
     // @todo: material
-    PipelineUtils.blitTexture(
-      engine,
-      <Texture2D>camera.renderTarget.getColorTexture(0),
-      renderTarget,
-      null,
-      0
-    );
+    PipelineUtils.blitTexture(engine, <Texture2D>camera.renderTarget.getColorTexture(0), renderTarget, null, 0);
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this._renderTarget.depthTexture);
   }
