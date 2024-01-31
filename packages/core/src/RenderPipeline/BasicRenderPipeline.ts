@@ -16,8 +16,8 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
-import { RenderTarget, Texture2D, TextureCubeFace, TextureFormat } from "../texture";
-import { CopyColorPass } from "./CopyColorPass";
+import { RenderTarget, Texture2D, TextureCubeFace, TextureFormat, TextureWrapMode } from "../texture";
+import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { PipelineUtils } from "./PipelineUtils";
@@ -44,7 +44,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
-  private _colorCopyPass: CopyColorPass;
+  private _colorCopyPass: OpaqueTexturePass;
 
   /**
    * Create a basic render pipeline.
@@ -56,7 +56,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults(engine);
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._colorCopyPass = new CopyColorPass(engine);
+    this._colorCopyPass = new OpaqueTexturePass(engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -173,7 +173,7 @@ export class BasicRenderPipeline {
     if (camera.enabledOpaqueTexture) {
       if (!camera.renderTarget) {
         const viewport = camera.pixelViewport;
-        this._internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+        const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
           engine,
           this._internalColorTarget,
           viewport.width,
@@ -182,6 +182,9 @@ export class BasicRenderPipeline {
           TextureFormat.Depth24Stencil8,
           false
         );
+        const colorTexture = internalColorTarget.getColorTexture(0);
+        colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
+        this._internalColorTarget = internalColorTarget;
       }
     } else {
       this._internalColorTarget?.destroy();
