@@ -21,7 +21,7 @@ export class RenderTarget extends GraphicsResource {
   private _width: number;
   private _height: number;
   private _colorTextures: Texture[];
-  private _depthTexture: Texture | null;
+  private _depthTexture: Texture | null = null;
 
   /**
    * Whether to automatically generate multi-level textures.
