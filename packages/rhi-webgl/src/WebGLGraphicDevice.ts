@@ -327,6 +327,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
+  getMainFrameBufferWidth(): number {
+    return this._mainFrameWidth || this._gl.drawingBufferWidth;
+  }
+
+  getMainFrameBufferHeight(): number {
+    return this._mainFrameHeight || this._gl.drawingBufferHeight;
+  }
+
   activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
@@ -337,8 +345,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
-      bufferWidth = this._mainFrameWidth || gl.drawingBufferWidth;
-      bufferHeight = this._mainFrameHeight || gl.drawingBufferHeight;
+      bufferWidth = this.getMainFrameBufferWidth();
+      bufferHeight = this.getMainFrameBufferHeight();
     }
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;

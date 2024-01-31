@@ -1,3 +1,4 @@
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Shader } from "../shader/Shader";
@@ -9,6 +10,7 @@ import { RenderTarget, Texture2D, TextureFormat } from "../texture";
  * @internal
  */
 export class PipelineUtils {
+  private static _blitClearColor = new Color(0, 0, 0, 1);
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
 
   /**
@@ -101,10 +103,19 @@ export class PipelineUtils {
     const { blitMesh, blitMaterial } = engine._basicResources;
     const rhi = engine._hardwareRenderer;
 
+    let bufferWidth: number, bufferHeight: number;
+    if (destination) {
+      bufferWidth = destination.width;
+      bufferHeight = destination.height;
+    } else {
+      bufferWidth = rhi.getMainFrameBufferWidth();
+      bufferHeight = rhi.getMainFrameBufferHeight();
+    }
+
     rhi.activeRenderTargetX(destination);
-    rhi.clearRenderTarget(engine, CameraClearFlags.Color, null);
-    rhi.viewport(0, 0, destination.width, destination.height);
-    rhi.scissor(0, 0, destination.width, destination.height);
+    rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._blitClearColor);
+    rhi.viewport(0, 0, bufferWidth, bufferHeight);
+    rhi.scissor(0, 0, bufferWidth, bufferHeight);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;
     const pass = blitMaterial.shader.subShaders[0].passes[0];
