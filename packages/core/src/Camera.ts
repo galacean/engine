@@ -35,6 +35,8 @@ class MathTemp {
 export class Camera extends Component {
   /** @internal */
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
+  /** @internal */
+  static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
@@ -59,9 +61,17 @@ export class Camera extends Component {
 
   /**
    * Depth texture mode.
+   * If `DepthTextureMode.PrePass is` used, the depth texture can be accessed in the shader using camera_DepthTexture.
    * @defaultValue `DepthTextureMode.None`
    */
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
+
+  /**
+   * Whether to enable opaque texture.
+   * If enabled, the opaque texture can be accessed in the shader using camera_OpaqueTexture.
+   * @defaultValue `false`
+   */
+  enabledOpaqueTexture: boolean = false;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;

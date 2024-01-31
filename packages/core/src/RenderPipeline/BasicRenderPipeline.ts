@@ -16,9 +16,11 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
-import { RenderTarget, TextureCubeFace } from "../texture";
+import { RenderTarget, Texture2D, TextureCubeFace, TextureFormat } from "../texture";
+import { CopyColorPass } from "./CopyColorPass";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
+import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
@@ -38,8 +40,11 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
-  private _cascadedShadowCaster: CascadedShadowCasterPass;
+
+  private _cameraColorTexture: Texture2D;
+  private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
+  private _colorCopyPass: CopyColorPass;
 
   /**
    * Create a basic render pipeline.
@@ -49,8 +54,9 @@ export class BasicRenderPipeline {
     this._camera = camera;
     const { engine } = camera;
     this._cullingResults = new CullingResults(engine);
-    this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
+    this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
+    this._colorCopyPass = new CopyColorPass(engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -139,12 +145,13 @@ export class BasicRenderPipeline {
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
     const camera = this._camera;
     const scene = camera.scene;
+    const engine = camera.engine;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     camera.engine._spriteMaskManager.clear();
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
-      this._cascadedShadowCaster.onRender(context);
+      this._cascadedShadowCasterPass.onRender(context);
     }
 
     cullingResults.reset();
@@ -160,7 +167,26 @@ export class BasicRenderPipeline {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
     } else {
-      camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, camera.engine._whiteTexture2D);
+      camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
+    }
+
+    if (camera.enabledOpaqueTexture) {
+      const cameraTarget = camera.renderTarget;
+      if (cameraTarget) {
+        // @todo: maybe texture cube
+        this._cameraColorTexture = <Texture2D>cameraTarget?.getColorTexture(0);
+      } else {
+        // @todo: switch target or enable opaque texture won't destroy the texture
+        const pixelViewport = camera.pixelViewport;
+        this._cameraColorTexture = PipelineUtils.recreateTextureIfNeeded(
+          engine,
+          this._cameraColorTexture,
+          pixelViewport.width,
+          pixelViewport.height,
+          TextureFormat.R8G8B8A8,
+          false
+        );
+      }
     }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
@@ -205,6 +231,12 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
+
+        // Copy opaque texture
+        const colorCopyPass = this._colorCopyPass;
+        colorCopyPass.onConfig(camera, this._cameraColorTexture);
+        colorCopyPass.onRender(context, cullingResults);
+
         cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);
       }
 

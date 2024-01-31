@@ -20,7 +20,7 @@ import {
   Texture2DArray,
   TextureCube
 } from "@galacean/engine-core";
-import { IPlatformPrimitive, IHardwareRenderer } from "@galacean/engine-design";
+import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -328,7 +328,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
-    const gl = this._gl;
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
@@ -336,6 +335,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferWidth = renderTarget.width >> mipLevel;
       bufferHeight = renderTarget.height >> mipLevel;
     } else {
+      const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
       bufferWidth = this._mainFrameWidth || gl.drawingBufferWidth;
       bufferHeight = this._mainFrameHeight || gl.drawingBufferHeight;
@@ -346,6 +346,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const y = bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
+  }
+
+  activeRenderTargetX(renderTarget: RenderTarget) {
+    if (renderTarget) {
+      /** @ts-ignore */
+      (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
+    } else {
+      const gl = this._gl;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
+    }
   }
 
   activeTexture(textureID: number): void {
