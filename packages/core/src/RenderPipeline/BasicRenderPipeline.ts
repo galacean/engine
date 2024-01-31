@@ -241,6 +241,10 @@ export class BasicRenderPipeline {
           const colorCopyPass = this._colorCopyPass;
           colorCopyPass.onConfig(camera, colorTarget.getColorTexture(0));
           colorCopyPass.onRender(context, cullingResults);
+
+          // Should revert to original render target
+          rhi.activeRenderTarget(colorTarget, camera.viewport, mipLevel);
+          colorTarget?._setRenderTargetInfo(cubeFace, mipLevel);
         }
 
         cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);

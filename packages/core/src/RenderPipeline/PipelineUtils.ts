@@ -122,6 +122,7 @@ export class PipelineUtils {
     rendererShaderData.setTexture("renderer_BlitTexture", source);
 
     program.bind();
+    program.groupingOtherUniformBlock();
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();

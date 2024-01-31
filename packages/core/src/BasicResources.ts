@@ -19,10 +19,10 @@ export class BasicResources {
   constructor(engine: Engine) {
     // prettier-ignore
     const vertices = new Float32Array([
-        1, 1, 1, 1, 
-        1, -1, 1, 0, 
-        -1, 1, 0, 1, 
-        -1, -1, 0, 0]);
+      -1, -1, 0, 0, // left-bottom
+      1, -1, 1, 0,  // right-bottom
+      -1, 1, 0, 1,  // left-top
+      1, 1, 1, 1]); // right-top
 
     const mesh = new ModelMesh(engine);
     mesh._addReferCount(1);
