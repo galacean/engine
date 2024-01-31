@@ -11,7 +11,7 @@ import { RenderContext } from "./RenderContext";
 
 /**
  * @internal
- * Color copy pass.
+ * Opaque texture pass.
  */
 export class OpaqueTexturePass extends PipelinePass {
   private _cameraColorTexture: Texture;
