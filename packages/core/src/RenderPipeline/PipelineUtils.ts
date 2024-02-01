@@ -92,12 +92,10 @@ export class PipelineUtils {
   }
 
   /**
-   * Blit texture
-   * @param engine
-   * @param source
-   * @param destination
-   * @param material
-   * @param passIndex
+   * Blit texture to destination render target.
+   * @param engine - Engine
+   * @param source - Source texture
+   * @param destination - Destination render target
    */
   static blitTexture(engine: Engine, source: Texture2D, destination: RenderTarget | null): void {
     const { blitMesh, blitMaterial } = engine._basicResources;
