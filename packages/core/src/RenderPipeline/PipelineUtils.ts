@@ -13,6 +13,8 @@ export class PipelineUtils {
   private static _blitClearColor = new Color(0, 0, 0, 1);
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
 
+  static readonly defaultViewport = new Vector4(0, 0, 1, 1);
+
   /**
    * Recreate texture if needed.
    * @param engine - Engine
@@ -96,21 +98,13 @@ export class PipelineUtils {
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target
+   * @param viewport - Viewport
    */
-  static blitTexture(engine: Engine, source: Texture2D, destination: RenderTarget | null): void {
+  static blitTexture(engine: Engine, source: Texture2D, destination: RenderTarget | null, viewport?: Vector4): void {
     const { blitMesh, blitMaterial } = engine._basicResources;
     const rhi = engine._hardwareRenderer;
 
-    let bufferWidth: number, bufferHeight: number;
-    if (destination) {
-      bufferWidth = destination.width;
-      bufferHeight = destination.height;
-    } else {
-      bufferWidth = rhi.getMainFrameBufferWidth();
-      bufferHeight = rhi.getMainFrameBufferHeight();
-    }
-
-    rhi.activeRenderTarget(destination, new Vector4(0, 0, 1, 1), 0);
+    rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, 0);
     rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._blitClearColor);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;

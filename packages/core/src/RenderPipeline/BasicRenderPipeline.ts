@@ -17,9 +17,9 @@ import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, Texture2D, TextureCubeFace, TextureFormat, TextureWrapMode } from "../texture";
-import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
+import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
@@ -215,7 +215,9 @@ export class BasicRenderPipeline {
       const internalColorTarget = this._internalColorTarget;
       const rhi = engine._hardwareRenderer;
       const colorTarget = camera.renderTarget || internalColorTarget || pass.renderTarget;
-      rhi.activeRenderTarget(colorTarget, camera.viewport, mipLevel);
+      const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
+
+      rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel);
       colorTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = (pass.clearFlags ?? camera.clearFlags) & ~(ignoreClear ?? CameraClearFlags.None);
       const color = pass.clearColor ?? background.solidColor;
@@ -243,7 +245,7 @@ export class BasicRenderPipeline {
           colorCopyPass.onRender(context, cullingResults);
 
           // Should revert to original render target
-          rhi.activeRenderTarget(colorTarget, camera.viewport, mipLevel);
+          rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel);
           colorTarget?._setRenderTargetInfo(cubeFace, mipLevel);
         }
 
@@ -254,7 +256,7 @@ export class BasicRenderPipeline {
       colorTarget?.generateMipmaps();
 
       if (internalColorTarget) {
-        PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null);
+        PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, camera.viewport);
       }
     }
 
