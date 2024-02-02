@@ -27,7 +27,6 @@ export class GLTFSchemaParser extends GLTFParser {
         } else {
           contentRestorer.isGLB = false;
           const gltf = JSON.parse(Utils.decodeText(new Uint8Array(result.originBuffer)));
-          console.log(gltf);
           return gltf;
         }
       });
