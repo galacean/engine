@@ -63,6 +63,7 @@ export class PipelineUtils {
    * @param colorFormat - Need render target color format
    * @param depthFormat - Need render target depth format
    * @param mipmap - Need render target mipmap
+   * @param antiAliasing - Need render target anti aliasing
    * @returns Render target
    */
   static recreateRenderTargetIfNeeded(
@@ -72,7 +73,8 @@ export class PipelineUtils {
     height: number,
     colorFormat: TextureFormat | null,
     depthFormat: TextureFormat | null,
-    mipmap: boolean
+    mipmap: boolean,
+    antiAliasing: number
   ): RenderTarget {
     const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
     const currentDepthTexture = <Texture2D>currentRenderTarget?.depthTexture;
@@ -86,7 +88,7 @@ export class PipelineUtils {
 
     if (currentColorTexture !== colorTexture || currentDepthTexture !== depthTexture) {
       currentRenderTarget?.destroy();
-      currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthTexture);
+      currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthTexture, antiAliasing);
       currentRenderTarget.isGCIgnored = true;
     }
 

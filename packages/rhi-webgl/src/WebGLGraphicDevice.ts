@@ -48,9 +48,42 @@ export enum WebGLMode {
 }
 
 /**
+ * Defines the modes for enabling Multisample Anti-Aliasing (MSAA).
+ */
+export enum MSAAMode {
+  /**
+   * Enables MSAA globally on the main rendering canvas.
+   *
+   * @remarks When `enabledOpaqueTexture` is turned on for a camera, anti-aliasing within that camera's viewport will be bypassed, regardless of the global MSAA setting, please use `PerCamera` mode instead.
+   */
+  GlobalCanvas,
+
+  /**
+   * Enables MSAA on a per-camera basis, providing fine-grained control over anti-aliasing.
+   * This mode is only supported on devices with WebGL2 capabilities.
+   */
+  PerCamera,
+
+  /**
+   * Disables MSAA, turning off anti-aliasing.
+   */
+  Disabled
+}
+
+/**
  * WebGL graphic device options.
  */
-export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
+export interface WebGLGraphicDeviceOptions {
+  alpha?: boolean;
+  antialiasMode?: MSAAMode;
+  depth?: boolean;
+  desynchronized?: boolean;
+  failIfMajorPerformanceCaveat?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  premultipliedAlpha?: boolean;
+  preserveDrawingBuffer?: boolean;
+  stencil?: boolean;
+
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
 
@@ -67,6 +100,11 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
    * @remarks large count maybe cause performance issue.
    */
   _maxAllowSkinUniformVectorCount?: number;
+
+  /**
+   * @deprecated Please use `antialiasMode` instead.
+   */
+  antialias?: boolean;
 }
 
 /**
@@ -136,6 +174,12 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = {
+      antialiasMode:
+        initializeOptions.antialiasMode ?? initializeOptions.antialias !== undefined
+          ? initializeOptions.antialias
+            ? MSAAMode.GlobalCanvas
+            : MSAAMode.Disabled
+          : MSAAMode.GlobalCanvas,
       webGLMode: WebGLMode.Auto,
       stencil: true,
       _forceFlush: false,
@@ -160,6 +204,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const options = this._options;
+    options.antialias = options.antialiasMode === MSAAMode.GlobalCanvas;
     const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = options.webGLMode;
 

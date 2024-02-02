@@ -36,7 +36,8 @@ export class DepthOnlyPass extends PipelinePass {
       height,
       null,
       TextureFormat.Depth16,
-      false
+      false,
+      1
     );
     const { depthTexture } = renderTarget;
     depthTexture.wrapModeU = depthTexture.wrapModeV = TextureWrapMode.Clamp;

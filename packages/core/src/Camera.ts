@@ -76,6 +76,11 @@ export class Camera extends Component {
    */
   enabledOpaqueTexture: boolean = false;
 
+  /**
+   * Whether to enable MSAA.
+   */
+  enabledMSAA: boolean = false;
+
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
   /** @internal */

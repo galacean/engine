@@ -32,7 +32,8 @@ export class OpaqueTexturePass extends PipelinePass {
       viewport.height,
       TextureFormat.R8G8B8A8,
       null,
-      false
+      false,
+      1
     );
 
     const colorTexture = opaqueRenderTarget.getColorTexture(0);

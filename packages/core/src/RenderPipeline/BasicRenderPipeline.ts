@@ -180,7 +180,8 @@ export class BasicRenderPipeline {
           viewport.height,
           TextureFormat.R8G8B8A8,
           TextureFormat.Depth24Stencil8,
-          false
+          false,
+          camera.enabledMSAA ? 4 : 1
         );
         const colorTexture = internalColorTarget.getColorTexture(0);
         colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
@@ -240,13 +241,16 @@ export class BasicRenderPipeline {
 
         // Copy opaque texture
         if (camera.enabledOpaqueTexture) {
+          // Should blit to resolve the MSAA
+          colorTarget._blitRenderTarget();
+
           const colorCopyPass = this._colorCopyPass;
           colorCopyPass.onConfig(camera, colorTarget.getColorTexture(0));
           colorCopyPass.onRender(context, cullingResults);
 
           // Should revert to original render target
           rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel);
-          colorTarget?._setRenderTargetInfo(cubeFace, mipLevel);
+          colorTarget._setRenderTargetInfo(cubeFace, mipLevel);
         }
 
         cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);
