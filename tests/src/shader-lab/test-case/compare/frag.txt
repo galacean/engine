@@ -1,0 +1,19 @@
+#if defined(SCENE_SHADOW_TYPE ) && defined( RENDERER_IS_RECEIVE_SHADOWS )
+#define SCENE_IS_CALCULATE_SHADOWS
+#endif
+
+// comments
+
+vec4 a = vec4(1.0,1.0,3.0,4.0);
+
+
+
+#ifdef SCENE_IS_CALCULATE_SHADOWS
+#if SCENE_SHADOW_CASCADED_COUNT == 1
+    varying vec3 v_shadowCoord;
+#else
+    #include <ShadowCoord>
+#endif
+float a = 1.0;
+float b = 2.0;
+((a) < ( b) ? (1.0) : ( b));

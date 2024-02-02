@@ -17,7 +17,6 @@ import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 import {
   FnMacroAstNode,
   IPassAstContent,
-  IPositionRange,
   IShaderAstContent,
   ISubShaderAstContent,
   IUsePassAstContent

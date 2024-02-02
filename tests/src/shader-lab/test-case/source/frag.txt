@@ -1,0 +1,20 @@
+#if defined(SCENE_SHADOW_TYPE ) && defined( RENDERER_IS_RECEIVE_SHADOWS )
+#define SCENE_IS_CALCULATE_SHADOWS
+#endif
+
+#define TT 1.0 // comments
+#define QQ
+
+vec4 a = vec4(TT,1.0,3.0,4.0);
+
+#define min(X, Y)  ((X) < (Y) ? (TT) : (Y))
+
+#ifdef SCENE_IS_CALCULATE_SHADOWS
+#if SCENE_SHADOW_CASCADED_COUNT == 1
+    varying vec3 v_shadowCoord;
+#else
+    #include <ShadowCoord>
+#endif
+float a = 1.0;
+float b = 2.0;
+min(a, b);
