@@ -108,7 +108,7 @@ export abstract class Texture extends GraphicsResource {
 
     if (value !== TextureFilterMode.Point && this._isIntFormat()) {
       value = TextureFilterMode.Point;
-      Logger.warn(`TextureFilterMode of int or uint format only support TextureFilterMode.Point`);
+      Logger.warn(`Int or UInt format texture only support TextureFilterMode.Point`);
       return;
     }
 
