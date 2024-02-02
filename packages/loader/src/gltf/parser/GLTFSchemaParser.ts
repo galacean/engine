@@ -1,11 +1,10 @@
-import { AssetPromise, Utils, request } from "@galacean/engine-core";
+import { Utils, request } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import { IGLTF } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
-import { GLTFValidator } from "./GLTFValidator";
 
 @registerGLTFParser(GLTFParserType.Schema)
 export class GLTFSchemaParser extends GLTFParser {
