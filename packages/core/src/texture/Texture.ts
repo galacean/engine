@@ -106,7 +106,8 @@ export abstract class Texture extends GraphicsResource {
   set filterMode(value: TextureFilterMode) {
     if (value === this._filterMode) return;
 
-    if (this._isIntFormat() && value !== TextureFilterMode.Point) {
+    if (value !== TextureFilterMode.Point && this._isIntFormat()) {
+      value = TextureFilterMode.Point;
       Logger.warn(`TextureFilterMode of int or uint format only support TextureFilterMode.Point`);
       return;
     }

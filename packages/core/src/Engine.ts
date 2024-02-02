@@ -46,7 +46,7 @@ import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFilterMode, TextureFormat } from "./texture";
+import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { XRManager } from "./xr/XRManager";
 
 ShaderPool.init();
@@ -607,6 +607,16 @@ export class Engine extends EventDispatcher {
       const uintMagentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R32G32B32A32_UInt, false);
       uintMagentaTexture2D.setPixelBuffer(magentaPixel32);
       uintMagentaTexture2D.isGCIgnored = true;
+      this.resourceManager.addContentRestorer(
+        new (class extends ContentRestorer<Texture2D> {
+          constructor() {
+            super(uintMagentaTexture2D);
+          }
+          restoreContent() {
+            this.resource.setPixelBuffer(magentaPixel32);
+          }
+        })()
+      );
 
       const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
       magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
