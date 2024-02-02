@@ -107,6 +107,8 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _magentaTexture2D: Texture2D;
   /* @internal */
+  _uintMagentaTexture2D: Texture2D;
+  /* @internal */
   _magentaTextureCube: TextureCube;
   /* @internal */
   _magentaTexture2DArray: Texture2DArray;
@@ -601,6 +603,21 @@ export class Engine extends EventDispatcher {
     this._magentaTextureCube = magentaTextureCube;
 
     if (hardwareRenderer.isWebGL2) {
+      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
+      const uintMagentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R32G32B32A32_UInt, false);
+      uintMagentaTexture2D.setPixelBuffer(magentaPixel32);
+      uintMagentaTexture2D.isGCIgnored = true;
+      this.resourceManager.addContentRestorer(
+        new (class extends ContentRestorer<Texture2D> {
+          constructor() {
+            super(uintMagentaTexture2D);
+          }
+          restoreContent() {
+            this.resource.setPixelBuffer(magentaPixel32);
+          }
+        })()
+      );
+
       const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
       magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
       magentaTexture2DArray.isGCIgnored = true;
@@ -614,6 +631,8 @@ export class Engine extends EventDispatcher {
           }
         })()
       );
+
+      this._uintMagentaTexture2D = uintMagentaTexture2D;
       this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }
