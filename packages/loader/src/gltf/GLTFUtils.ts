@@ -419,17 +419,18 @@ export class GLTFUtils {
    */
   static parseGLB(
     context: GLTFParserContext,
-    glb: ArrayBuffer
+    originBuffer: ArrayBuffer
   ): {
-    glTF: IGLTF;
-    buffers: ArrayBuffer[];
+    glTF?: IGLTF;
+    buffers?: ArrayBuffer[];
+    originBuffer?: ArrayBuffer;
   } {
     const UINT32_LENGTH = 4;
     const GLB_HEADER_MAGIC = 0x46546c67; // 'glTF'
     const GLB_HEADER_LENGTH = 12;
     const GLB_CHUNK_TYPES = { JSON: 0x4e4f534a, BIN: 0x004e4942 };
 
-    const dataView = new DataView(glb);
+    const dataView = new DataView(originBuffer);
 
     // read header
     const header = {
@@ -439,8 +440,7 @@ export class GLTFUtils {
     };
 
     if (header.magic !== GLB_HEADER_MAGIC) {
-      console.error("Invalid glb magic number. Expected 0x46546C67, found 0x" + header.magic.toString(16));
-      return null;
+      return { originBuffer };
     }
 
     // read main data
@@ -453,7 +453,7 @@ export class GLTFUtils {
       return null;
     }
 
-    const glTFData = new Uint8Array(glb, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
+    const glTFData = new Uint8Array(originBuffer, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
     const glTF: IGLTF = JSON.parse(Utils.decodeText(glTFData));
 
     // read all buffers
@@ -471,7 +471,7 @@ export class GLTFUtils {
       }
 
       const currentOffset = byteOffset + 2 * UINT32_LENGTH;
-      const buffer = glb.slice(currentOffset, currentOffset + chunkLength);
+      const buffer = originBuffer.slice(currentOffset, currentOffset + chunkLength);
       buffers.push(buffer);
       restoreGLBBufferSlice.push(new Vector2(currentOffset, chunkLength));
 
