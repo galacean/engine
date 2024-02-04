@@ -322,8 +322,6 @@ export class Camera extends Component {
   }
 
   set renderTarget(value: RenderTarget | null) {
-    this.engine._renderContext.flipY = !!value;
-
     if (this._renderTarget !== value) {
       this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
       value && this._addResourceReferCount(value, 1);
@@ -532,6 +530,7 @@ export class Camera extends Component {
     context.virtualCamera = virtualCamera;
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
+    context.flipY = !!this._renderTarget;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
