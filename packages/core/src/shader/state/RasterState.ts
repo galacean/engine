@@ -20,6 +20,8 @@ export class RasterState {
   _cullFaceEnable: boolean = true;
   /** @internal */
   _frontFaceInvert: boolean = false;
+  /** @internal */
+  _flipY: boolean = false;
 
   /**
    * @internal
@@ -44,11 +46,21 @@ export class RasterState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState, frontFaceInvert: boolean): void {
-    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert);
+  _apply(
+    hardwareRenderer: IHardwareRenderer,
+    lastRenderState: RenderState,
+    frontFaceInvert: boolean,
+    flipY: boolean
+  ): void {
+    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert, flipY);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: RasterState, frontFaceInvert: boolean): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: RasterState,
+    frontFaceInvert: boolean,
+    flipY: boolean
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const { cullMode, depthBias, slopeScaledDepthBias } = this;
 
@@ -74,13 +86,14 @@ export class RasterState {
       }
     }
 
-    if (frontFaceInvert !== lastState._frontFaceInvert) {
+    if (frontFaceInvert !== lastState._frontFaceInvert || flipY !== lastState._flipY) {
       if (frontFaceInvert) {
-        gl.frontFace(gl.CW);
+        flipY ? gl.frontFace(gl.CCW) : gl.frontFace(gl.CW);
       } else {
-        gl.frontFace(gl.CCW);
+        flipY ? gl.frontFace(gl.CW) : gl.frontFace(gl.CCW);
       }
       lastState._frontFaceInvert = frontFaceInvert;
+      lastState._flipY = flipY;
     }
 
     // apply polygonOffset.

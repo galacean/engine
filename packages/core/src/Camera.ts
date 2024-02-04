@@ -322,6 +322,8 @@ export class Camera extends Component {
   }
 
   set renderTarget(value: RenderTarget | null) {
+    this.engine._renderContext.flipY = !!value;
+
     if (this._renderTarget !== value) {
       this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
       value && this._addResourceReferCount(value, 1);
