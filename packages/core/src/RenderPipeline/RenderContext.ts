@@ -1,3 +1,4 @@
+import { Matrix } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { VirtualCamera } from "../VirtualCamera";
 import { Shader, ShaderProperty } from "../shader";
@@ -14,20 +15,28 @@ export class RenderContext {
   private static _viewMatrixProperty = ShaderProperty.getByName("camera_ViewMat");
   private static _projectionMatrixProperty = ShaderProperty.getByName("camera_ProjMat");
   private static _flipYProperty = ShaderProperty.getByName("camera_FlipY");
+  private static _flipYProjectionMatrix = new Matrix();
+  private static _flipYViewProjectionMatrix = new Matrix();
 
   camera: Camera;
   virtualCamera: VirtualCamera;
 
   replacementShader: Shader;
   replacementTag: ShaderTagKey;
+
   flipY = false;
+  viewMatrix: Matrix;
+  projectionMatrix: Matrix;
+  viewProjectionMatrix: Matrix;
 
   applyVirtualCamera(virtualCamera: VirtualCamera): void {
     this.virtualCamera = virtualCamera;
     const shaderData = this.camera.shaderData;
-    const { viewMatrix, projectionMatrix, viewProjectionMatrix } = virtualCamera;
+    let { viewMatrix, projectionMatrix, viewProjectionMatrix } = virtualCamera;
 
     if (this.flipY) {
+      projectionMatrix = RenderContext._flipYProjectionMatrix.copyFrom(projectionMatrix);
+      viewProjectionMatrix = RenderContext._flipYViewProjectionMatrix.copyFrom(viewProjectionMatrix);
       projectionMatrix.elements[5] *= -1;
       const e = viewProjectionMatrix.elements;
       e[1] *= -1;
@@ -35,6 +44,10 @@ export class RenderContext {
       e[9] *= -1;
       e[13] *= -1;
     }
+
+    this.viewMatrix = viewMatrix;
+    this.projectionMatrix = projectionMatrix;
+    this.viewProjectionMatrix = viewProjectionMatrix;
 
     shaderData.setMatrix(RenderContext._viewMatrixProperty, viewMatrix);
     shaderData.setMatrix(RenderContext._projectionMatrixProperty, projectionMatrix);

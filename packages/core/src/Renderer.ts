@@ -389,15 +389,13 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
-    const virtualCamera = context.virtualCamera;
-
     const mvMatrix = this._mvMatrix;
     const mvpMatrix = this._mvpMatrix;
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(virtualCamera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(virtualCamera.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();
