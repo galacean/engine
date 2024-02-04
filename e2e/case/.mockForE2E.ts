@@ -21,7 +21,7 @@ export function initScreenshot(
   camera: Camera,
   width: number = 1200,
   height: number = 800,
-  flipY = true,
+  flipY = false,
   isPNG = false,
   jpgQuality = 1
 ) {
