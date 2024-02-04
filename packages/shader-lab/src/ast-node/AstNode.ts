@@ -458,7 +458,7 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
         });
       }
     }
-    const args = this.content.args?.map((item) => item.serialize(context)).join(", ");
+    const args = this.content.args?.map((item) => item.serialize(context)).join(", ") ?? "";
     return `${this.content.function}(${args})`;
   }
 
