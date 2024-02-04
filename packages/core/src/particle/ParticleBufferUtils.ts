@@ -47,6 +47,8 @@ export class ParticleBufferUtils {
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;
 
+  readonly instanceBoundsFloatStride = 6;
+
   constructor(engine: Engine) {
     const stride = 16;
     const billboardGeometryBuffer = new Buffer(

@@ -1,6 +1,6 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { GLCapabilityType } from "../base/Constant";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { deepClone, shallowClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Renderer } from "../Renderer";
@@ -37,9 +37,6 @@ export class ParticleRenderer extends Renderer {
   @shallowClone
   pivot = new Vector3();
 
-  /** @internal */
-  @ignoreClone
-  _localBounds: BoundingBox = new BoundingBox();
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
@@ -189,19 +186,6 @@ export class ParticleRenderer extends Renderer {
     const renderData = this._engine._renderDataPool.getFromPool();
     renderData.setX(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
-  }
-
-  /**
-   * @internal
-   */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, worldBounds);
-  }
-
-  override get bounds(): BoundingBox {
-    this.generator._calculateLocalBoundingBox();
-    BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, this._bounds);
-    return this._bounds;
   }
 
   protected override _onDestroy(): void {
