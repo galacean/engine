@@ -244,11 +244,16 @@ export class GLCapability {
       textureFilterAnisotropic,
       textureHalfFloat,
       colorBufferHalfFloat,
-      WEBGL_colorBufferFloat
+      WEBGL_colorBufferFloat,
+      blendMinMax
     } = GLCapabilityType;
     const { isWebGL2 } = this.rhi;
 
     if (!isWebGL2) {
+      this._compatibleInterface(blendMinMax, {
+        MIN: "MIN_EXT",
+        MAX: "MAX_EXT"
+      });
       this._compatibleInterface(depthTexture, {
         UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
       });

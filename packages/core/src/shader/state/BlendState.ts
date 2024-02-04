@@ -49,7 +49,7 @@ export class BlendState {
   }
 
   private static _getGLBlendOperation(rhi: IHardwareRenderer, blendOperation: BlendOperation): number {
-    const { isWebGL2, gl, requireExtension } = rhi;
+    const gl = rhi.gl;
 
     switch (blendOperation) {
       case BlendOperation.Add:
@@ -62,12 +62,12 @@ export class BlendState {
         if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
           throw new Error("BlendOperation.Min is not supported in this context");
         }
-        return isWebGL2 ? gl.MIN : requireExtension(GLCapabilityType.blendMinMax).MIN_EXT; // in webgl1.0 is an extension
+        return gl.MIN; // in webgl1.0 is an extension
       case BlendOperation.Max:
         if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
           throw new Error("BlendOperation.Max is not supported in this context");
         }
-        return isWebGL2 ? gl.MAX : requireExtension(GLCapabilityType.blendMinMax).MAX_EXT; // in webgl1.0 is an extension
+        return gl.MAX; // in webgl1.0 is an extension
     }
   }
 
