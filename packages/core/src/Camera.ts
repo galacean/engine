@@ -530,7 +530,7 @@ export class Camera extends Component {
     context.virtualCamera = virtualCamera;
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
-    context.flipY = !!this._renderTarget;
+    cubeFace ?? (context.flipY = !!this._renderTarget);
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
