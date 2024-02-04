@@ -93,6 +93,8 @@ export enum GLCapabilityType {
   shaderTextureLod = "EXT_shader_texture_lod",
   elementIndexUint = "OES_element_index_uint",
   depthTexture = "WEBGL_depth_texture",
+  depthTexture_webkit = "WEBKIT_WEBGL_depth_texture",
+  depthTexture_moz = "MOZ_WEBGL_depth_texture",
   drawBuffers = "WEBGL_draw_buffers",
   vertexArrayObject = "OES_vertex_array_object",
   instancedArrays = "ANGLE_instanced_arrays",
@@ -105,6 +107,8 @@ export enum GLCapabilityType {
   colorBufferFloat = "EXT_color_buffer_float",
   colorBufferHalfFloat = "EXT_color_buffer_half_float",
   textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
+  textureFilterAnisotropic_webkit = "WEBKIT_EXT_texture_filter_anisotropic",
+  textureFilterAnisotropic_moz = "MOZ_EXT_texture_filter_anisotropic",
   blendMinMax = "EXT_blend_minmax",
 
   astc = "WEBGL_compressed_texture_astc",
@@ -117,6 +121,7 @@ export enum GLCapabilityType {
   pvrtc_webkit = "WEBKIT_WEBGL_compressed_texture_pvrtc",
   s3tc = "WEBGL_compressed_texture_s3tc",
   s3tc_webkit = "WEBKIT_WEBGL_compressed_texture_s3tc",
+  s3tc_moz = "MOZ_WEBGL_compressed_texture_s3tc",
   // atc = "WEBGL_compressed_texture_atc",
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
 

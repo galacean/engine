@@ -150,6 +150,8 @@ export class GLCapability {
       shaderTextureLod,
       elementIndexUint,
       depthTexture,
+      depthTexture_webkit,
+      depthTexture_moz,
       vertexArrayObject,
       instancedArrays,
       multipleSample,
@@ -165,6 +167,7 @@ export class GLCapability {
       pvrtc_webkit,
       s3tc,
       s3tc_webkit,
+      s3tc_moz,
       bptc,
 
       textureFloat,
@@ -174,16 +177,24 @@ export class GLCapability {
       WEBGL_colorBufferFloat,
       colorBufferFloat,
       colorBufferHalfFloat,
-      textureFilterAnisotropic
+      textureFilterAnisotropic,
+      textureFilterAnisotropic_webkit,
+      textureFilterAnisotropic_moz
     } = GLCapabilityType;
     cap.set(shaderVertexID, isWebGL2);
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
     cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));
-    cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
+    cap.set(
+      depthTexture,
+      isWebGL2 ||
+        !!requireExtension(depthTexture) ||
+        !!requireExtension(depthTexture_webkit) ||
+        !!requireExtension(depthTexture_moz)
+    );
     cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
     cap.set(instancedArrays, isWebGL2 || !!requireExtension(instancedArrays));
-    cap.set(multipleSample, isWebGL2);
+    cap.set(multipleSample, isWebGL2 || !!requireExtension(multipleSample));
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
     cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
@@ -197,13 +208,18 @@ export class GLCapability {
       colorBufferHalfFloat,
       (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
     );
-    cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
+    cap.set(
+      textureFilterAnisotropic,
+      !!requireExtension(textureFilterAnisotropic) ||
+        !!requireExtension(textureFilterAnisotropic_webkit) ||
+        !!requireExtension(textureFilterAnisotropic_moz)
+    );
 
-    cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
-    cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
-    cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
-    cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
-    cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
+    cap.set(astc, !!(requireExtension(astc) || !!requireExtension(astc_webkit)));
+    cap.set(etc, !!(requireExtension(etc) || !!requireExtension(etc_webkit)));
+    cap.set(etc1, !!(requireExtension(etc1) || !!requireExtension(etc1_webkit)));
+    cap.set(pvrtc, !!(requireExtension(pvrtc) || !!requireExtension(pvrtc_webkit)));
+    cap.set(s3tc, !!(requireExtension(s3tc) || !!requireExtension(s3tc_webkit) || !!requireExtension(s3tc_moz)));
     cap.set(bptc, !!requireExtension(bptc));
   }
 

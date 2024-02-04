@@ -84,7 +84,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _options: WebGLGraphicDeviceOptions;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
-  private _extensions;
+  private _extensions: GLExtensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
   private _renderer: string;
@@ -155,7 +155,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const options = this._options;
-    const webCanvas = (canvas as WebCanvas)._webCanvas;
+    const webCanvas = (canvas as unknown as WebCanvas)._webCanvas;
     const webGLMode = options.webGLMode;
 
     this._onDeviceLost = onDeviceLost;
