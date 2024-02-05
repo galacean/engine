@@ -141,6 +141,9 @@ export class BasicRenderPipeline {
     const scene = camera.scene;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
+    const depthOnlyPass = this._depthOnlyPass;
+    const depthPassON = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const rtt2DON = camera.renderTarget && cubeFace == undefined;
     camera.engine._spriteMaskManager.clear();
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
@@ -150,15 +153,18 @@ export class BasicRenderPipeline {
     cullingResults.reset();
     this._allSpriteMasks.length = 0;
 
-    context.applyVirtualCamera(camera._virtualCamera);
-
+    context.applyVirtualCamera(camera._virtualCamera, depthPassON || rtt2DON);
     this._callRender(context);
+
     cullingResults.sort();
 
-    const depthOnlyPass = this._depthOnlyPass;
-    if (camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture) {
+    if (depthPassON) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
+      if (!rtt2DON) {
+        context.applyVirtualCamera(camera._virtualCamera, rtt2DON);
+        this._callRender(context);
+      }
     } else {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, camera.engine._whiteTexture2D);
     }

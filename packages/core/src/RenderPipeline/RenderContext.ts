@@ -29,12 +29,14 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
-  applyVirtualCamera(virtualCamera: VirtualCamera): void {
+  applyVirtualCamera(virtualCamera: VirtualCamera, flipY = false): void {
     this.virtualCamera = virtualCamera;
+    this.flipY = flipY;
+
     const shaderData = this.camera.shaderData;
     let { viewMatrix, projectionMatrix, viewProjectionMatrix } = virtualCamera;
 
-    if (this.flipY) {
+    if (flipY) {
       projectionMatrix = RenderContext._flipYProjectionMatrix.copyFrom(projectionMatrix);
       viewProjectionMatrix = RenderContext._flipYViewProjectionMatrix.copyFrom(viewProjectionMatrix);
       projectionMatrix.elements[5] *= -1;
