@@ -153,7 +153,7 @@ export class BasicRenderPipeline {
     cullingResults.reset();
     this._allSpriteMasks.length = 0;
 
-    context.applyVirtualCamera(camera._virtualCamera, depthPassON || rtt2DON);
+    context.applyVirtualCamera(camera._virtualCamera, rtt2DON || depthPassON);
     this._callRender(context);
 
     cullingResults.sort();
@@ -163,6 +163,7 @@ export class BasicRenderPipeline {
       depthOnlyPass.onRender(context, cullingResults);
       if (!rtt2DON) {
         context.applyVirtualCamera(camera._virtualCamera, rtt2DON);
+        // @todo: Just need to recalculate mvp related, there is waste here
         this._callRender(context);
       }
     } else {
