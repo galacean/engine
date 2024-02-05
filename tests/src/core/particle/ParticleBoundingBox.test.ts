@@ -49,6 +49,8 @@ function testParticleRendererBounds(
   expectedMaxBounds: { x: number; y: number; z: number },
   delta: number
 ) {
+  render.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+  render.generator.play();
   updateEngine(engine);
   expectObjectToBeCloseTo(render.bounds.min, expectedMinBounds, delta);
   expectObjectToBeCloseTo(render.bounds.max, expectedMaxBounds, delta);
@@ -93,7 +95,6 @@ describe("ParticleBoundingBox", function () {
     particleRenderer.generator.velocityOverLifetime.enabled = false;
 
     particleRenderer.generator.emission.shape = null;
-    particleRenderer.generator.play();
     updateEngine(engine);
   });
 
