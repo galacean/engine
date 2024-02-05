@@ -54,12 +54,13 @@ function testParticleRendererBounds(
   expectObjectToBeCloseTo(render.bounds.max, expectedMaxBounds, delta);
 }
 
-describe("ParticleBoundingBox", () => {
+describe("ParticleBoundingBox", function () {
   let engine: Engine;
   let particleRenderer: ParticleRenderer;
   let entity: Entity;
 
-  before(async () => {
+  before(async function () {
+    this.timeout(10000);
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new LitePhysics() });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
@@ -78,7 +79,7 @@ describe("ParticleBoundingBox", () => {
     engine.run();
   });
 
-  beforeEach(() => {
+  beforeEach(function () {
     particleRenderer.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     entity.transform.position.set(0, 0, 0);
     entity.transform.rotation.set(0, 0, 0);
@@ -97,7 +98,7 @@ describe("ParticleBoundingBox", () => {
     updateEngine(engine);
   });
 
-  it("EmptyShape", () => {
+  it("EmptyShape", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
@@ -107,7 +108,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("BoxShape", () => {
+  it("BoxShape", function () {
     const shape = new BoxShape();
     particleRenderer.generator.emission.shape = shape;
 
@@ -141,7 +142,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("SphereShape", () => {
+  it("SphereShape", function () {
     const shape = new SphereShape();
     particleRenderer.generator.emission.shape = shape;
 
@@ -175,7 +176,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("HemisphereShape", () => {
+  it("HemisphereShape", function () {
     const shape = new HemisphereShape();
     particleRenderer.generator.emission.shape = shape;
 
@@ -209,7 +210,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("CircleShape", () => {
+  it("CircleShape", function () {
     const shape = new CircleShape();
     particleRenderer.generator.emission.shape = shape;
 
@@ -290,7 +291,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("ConeShape", () => {
+  it("ConeShape", function () {
     const shape = new ConeShape();
     particleRenderer.generator.emission.shape = shape;
 
@@ -354,7 +355,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("StartSpeed", () => {
+  it("StartSpeed", function () {
     particleRenderer.generator.main.startSpeed.mode = ParticleCurveMode.TwoConstants;
     particleRenderer.generator.main.startSpeed.constantMin = -10;
     particleRenderer.generator.main.startSpeed.constantMax = 2;
@@ -368,7 +369,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("VelocityOverLifetime", () => {
+  it("VelocityOverLifetime", function () {
     const velocityOverLifetime = particleRenderer.generator.velocityOverLifetime;
     const { velocityX, velocityY, velocityZ } = velocityOverLifetime;
     velocityOverLifetime.enabled = true;
@@ -387,7 +388,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("Gravity", () => {
+  it("Gravity", function () {
     particleRenderer.generator.main.gravityModifier.mode = ParticleCurveMode.TwoConstants;
     particleRenderer.generator.main.gravityModifier.constantMin = -1;
     particleRenderer.generator.main.gravityModifier.constantMax = 0.2;
@@ -401,7 +402,7 @@ describe("ParticleBoundingBox", () => {
     );
   });
 
-  it("Transform", () => {
+  it("Transform", function () {
     entity.transform.position.set(1, 2, 3);
     testParticleRendererBounds(
       engine,
