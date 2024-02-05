@@ -154,6 +154,7 @@ export class GLCapability {
       instancedArrays,
       multipleSample,
       drawBuffers,
+      blendMinMax,
 
       astc,
       astc_webkit,
@@ -185,6 +186,7 @@ export class GLCapability {
     cap.set(instancedArrays, isWebGL2 || !!requireExtension(instancedArrays));
     cap.set(multipleSample, isWebGL2);
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
+    cap.set(blendMinMax, isWebGL2 || !!requireExtension(blendMinMax));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
     cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
     cap.set(textureFloatLinear, !!requireExtension(textureFloatLinear));
