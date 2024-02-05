@@ -60,7 +60,6 @@ describe("ParticleBoundingBox", function () {
   let entity: Entity;
 
   before(async function () {
-    this.timeout(10000);
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new LitePhysics() });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
@@ -370,6 +369,7 @@ describe("ParticleBoundingBox", function () {
   });
 
   it("VelocityOverLifetime", function () {
+    this.timeout(10000);
     particleRenderer.generator.main.startSpeed.constant = 0;
     const velocityOverLifetime = particleRenderer.generator.velocityOverLifetime;
     const { velocityX, velocityY, velocityZ } = velocityOverLifetime;
