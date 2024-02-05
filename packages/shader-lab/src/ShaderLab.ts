@@ -36,11 +36,15 @@ export class ShaderLab implements IShaderLab {
       for (const err of this._parser.errors) {
         const offset = parsingContext.getTextLineOffsetAt(err.token.startOffset);
         if (offset) {
+          // @ts-ignore
+          err.token.originStartLine = err.token.startLine;
+          // @ts-ignore
+          err.token.originEndLine = err.token.endLine;
           err.token.startLine += offset;
           err.token.endLine += offset;
         }
       }
-      Logger.error(`error shaderlab source:`, shaderSource);
+      Logger.error(`error shaderlab source:`, this._parser.extendedSource);
       throw this._parser.errors;
     }
 
