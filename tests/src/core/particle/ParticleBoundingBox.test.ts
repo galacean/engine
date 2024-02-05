@@ -370,20 +370,21 @@ describe("ParticleBoundingBox", function () {
   });
 
   it("VelocityOverLifetime", function () {
+    particleRenderer.generator.main.startSpeed.constant = 0;
     const velocityOverLifetime = particleRenderer.generator.velocityOverLifetime;
     const { velocityX, velocityY, velocityZ } = velocityOverLifetime;
     velocityOverLifetime.enabled = true;
-    velocityX.constant = 10;
-    velocityY.constant = 10;
+    velocityX.constant = 1;
+    velocityY.constant = 1;
     velocityZ.mode = ParticleCurveMode.TwoConstants;
-    velocityZ.constantMin = -10;
-    velocityZ.constantMax = 2;
+    velocityZ.constantMin = -1;
+    velocityZ.constantMax = 0.5;
 
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -1.414, y: -1.414, z: -76.414 },
-      { x: 51.414, y: 51.414, z: 11.414 },
+      { x: -1.414, y: -1.414, z: -6.414 },
+      { x: 6.414, y: 6.414, z: 3.914 },
       delta
     );
   });
