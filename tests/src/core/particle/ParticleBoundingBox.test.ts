@@ -368,9 +368,26 @@ describe("ParticleBoundingBox", function () {
     );
   });
 
+  it("Gravity", function () {
+    particleRenderer.generator.main.gravityModifier.mode = ParticleCurveMode.TwoConstants;
+    particleRenderer.generator.main.gravityModifier.constantMin = -1;
+    particleRenderer.generator.main.gravityModifier.constantMax = 0.2;
+
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: -1.414, y: -25.939, z: -26.414 },
+      { x: 1.414, y: 124.039, z: 1.414 },
+      delta
+    );
+  });
+
   it("VelocityOverLifetime", function () {
     this.timeout(10000);
+
+    particleRenderer.generator.main.startSpeed.mode = ParticleCurveMode.Constant;
     particleRenderer.generator.main.startSpeed.constant = 0;
+
     const velocityOverLifetime = particleRenderer.generator.velocityOverLifetime;
     const { velocityX, velocityY, velocityZ } = velocityOverLifetime;
     velocityOverLifetime.enabled = true;
@@ -385,20 +402,6 @@ describe("ParticleBoundingBox", function () {
       particleRenderer,
       { x: -1.414, y: -1.414, z: -6.414 },
       { x: 6.414, y: 6.414, z: 3.914 },
-      delta
-    );
-  });
-
-  it("Gravity", function () {
-    particleRenderer.generator.main.gravityModifier.mode = ParticleCurveMode.TwoConstants;
-    particleRenderer.generator.main.gravityModifier.constantMin = -1;
-    particleRenderer.generator.main.gravityModifier.constantMax = 0.2;
-
-    testParticleRendererBounds(
-      engine,
-      particleRenderer,
-      { x: -1.414, y: -25.939, z: -26.414 },
-      { x: 1.414, y: 124.039, z: 1.414 },
       delta
     );
   });
