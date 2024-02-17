@@ -3,7 +3,7 @@ import { SpriteMask } from "../2d";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
-import { Engine } from "../Engine";
+import { Engine, MSAAMode } from "../Engine";
 import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
@@ -170,7 +170,7 @@ export class BasicRenderPipeline {
     }
 
     // Maintain internal color texture
-    if (camera.enabledOpaqueTexture) {
+    if (camera.enableOpaqueTexture) {
       if (!camera.renderTarget) {
         const viewport = camera.pixelViewport;
         const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -181,7 +181,7 @@ export class BasicRenderPipeline {
           TextureFormat.R8G8B8A8,
           TextureFormat.Depth24Stencil8,
           false,
-          camera.enabledMSAA ? 4 : 1
+          engine._hardwareRenderer._options.msaaMode !== MSAAMode.PerCamera ? 1 : camera.msaaSamples
         );
         const colorTexture = internalColorTarget.getColorTexture(0);
         colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
@@ -240,7 +240,7 @@ export class BasicRenderPipeline {
         }
 
         // Copy opaque texture
-        if (camera.enabledOpaqueTexture) {
+        if (camera.enableOpaqueTexture) {
           // Should blit to resolve the MSAA
           colorTarget._blitRenderTarget();
 

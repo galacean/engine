@@ -70,16 +70,20 @@ export class Camera extends Component {
 
   /**
    * Whether to enable opaque texture.
-   * If enabled, the opaque texture can be accessed in the shader using camera_OpaqueTexture.
+   * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
    *
    * @defaultValue `false`
+   *
+   * @remarks If enabled, `msaaMode` must be set to `MSAAMode.PerCamera` when creating the engine, otherwise anti-aliasing within that camera's viewport will be invalid.
    */
-  enabledOpaqueTexture: boolean = false;
+  enableOpaqueTexture: boolean = false;
 
   /**
-   * Whether to enable MSAA.
+   * Multi-sample anti-aliasing mode.
+   *
+   * @remarks When creating the engine, `msaaMode` must be set to `MSAAMode.PerCamera`, otherwise it will be invalid.
    */
-  enabledMSAA: boolean = false;
+  msaaSamples: MSAASamples = MSAASamples.None;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
@@ -737,4 +741,18 @@ export class Camera extends Component {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
   }
+}
+
+/**
+ * Multi-sample anti-aliasing samples.
+ */
+export enum MSAASamples {
+  /** No multi-sample anti-aliasing. */
+  None = 1,
+  /** Multi-sample anti-aliasing with 2 samples. */
+  MSAA2X = 2,
+  /** Multi-sample anti-aliasing with 4 samples. */
+  MSAA4X = 4,
+  /** Multi-sample anti-aliasing with 8 samples. */
+  MSAA8X = 8
 }

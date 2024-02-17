@@ -1,5 +1,5 @@
 export { Platform } from "./Platform";
-export { Engine } from "./Engine";
+export { Engine, MSAAMode } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
 
@@ -11,7 +11,7 @@ export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
 export { dependentComponents, DependentMode } from "./ComponentsDependencies";
-export { Camera } from "./Camera";
+export { Camera, MSAASamples } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";

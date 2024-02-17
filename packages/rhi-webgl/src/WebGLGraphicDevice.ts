@@ -18,7 +18,8 @@ import {
   SystemInfo,
   Texture2D,
   Texture2DArray,
-  TextureCube
+  TextureCube,
+  MSAAMode
 } from "@galacean/engine-core";
 import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
@@ -48,34 +49,11 @@ export enum WebGLMode {
 }
 
 /**
- * Defines the modes for enabling Multisample Anti-Aliasing (MSAA).
- */
-export enum MSAAMode {
-  /**
-   * Enables MSAA globally on the main rendering canvas.
-   *
-   * @remarks When `enabledOpaqueTexture` is turned on for a camera, anti-aliasing within that camera's viewport will be bypassed, regardless of the global MSAA setting, please use `PerCamera` mode instead.
-   */
-  GlobalCanvas,
-
-  /**
-   * Enables MSAA on a per-camera basis, providing fine-grained control over anti-aliasing.
-   * This mode is only supported on devices with WebGL2 capabilities.
-   */
-  PerCamera,
-
-  /**
-   * Disables MSAA, turning off anti-aliasing.
-   */
-  Disabled
-}
-
-/**
  * WebGL graphic device options.
  */
 export interface WebGLGraphicDeviceOptions {
   alpha?: boolean;
-  antialiasMode?: MSAAMode;
+  msaaMode?: MSAAMode;
   depth?: boolean;
   desynchronized?: boolean;
   failIfMajorPerformanceCaveat?: boolean;
@@ -102,7 +80,7 @@ export interface WebGLGraphicDeviceOptions {
   _maxAllowSkinUniformVectorCount?: number;
 
   /**
-   * @deprecated Please use `antialiasMode` instead.
+   * @deprecated Please use `msaaMode` instead.
    */
   antialias?: boolean;
 }
@@ -174,12 +152,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = {
-      antialiasMode:
-        initializeOptions.antialiasMode ?? initializeOptions.antialias !== undefined
-          ? initializeOptions.antialias
-            ? MSAAMode.GlobalCanvas
-            : MSAAMode.Disabled
-          : MSAAMode.GlobalCanvas,
+      msaaMode:
+        initializeOptions.msaaMode ?? initializeOptions.antialias === false ? MSAAMode.Disabled : MSAAMode.GlobalCanvas,
       webGLMode: WebGLMode.Auto,
       stencil: true,
       _forceFlush: false,
@@ -204,9 +178,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const options = this._options;
-    options.antialias = options.antialiasMode === MSAAMode.GlobalCanvas;
     const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = options.webGLMode;
+    options.antialias = options.msaaMode === MSAAMode.GlobalCanvas;
 
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
