@@ -11,6 +11,7 @@ import {
   IPlatformTexture2D,
   IPlatformTextureCube,
   Logger,
+  MSAAMode,
   Mesh,
   Platform,
   RenderTarget,
@@ -19,7 +20,7 @@ import {
   Texture2D,
   Texture2DArray,
   TextureCube,
-  MSAAMode
+  TextureCubeFace
 } from "@galacean/engine-core";
 import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
@@ -354,11 +355,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this._mainFrameHeight || this._gl.drawingBufferHeight;
   }
 
-  activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
+  activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number, faceIndex?: TextureCubeFace) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
-      (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
+      renderTarget._isContentLost = false;
+
+      /** @ts-ignore */
+      const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
+      platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
+
       bufferWidth = renderTarget.width >> mipLevel;
       bufferHeight = renderTarget.height >> mipLevel;
     } else {

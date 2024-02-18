@@ -2,7 +2,6 @@ import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
-import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { Texture } from "./Texture";
 
 /**
@@ -222,14 +221,6 @@ export class RenderTarget extends GraphicsResource {
     this._depthTexture?._addReferCount(-1);
     this._depthTexture = null;
     this._depth = null;
-  }
-
-  /**
-   * @internal
-   */
-  _setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
-    this._platformRenderTarget.setRenderTargetInfo(faceIndex, mipLevel);
-    this._isContentLost = false;
   }
 
   /**

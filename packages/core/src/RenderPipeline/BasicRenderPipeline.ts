@@ -218,8 +218,7 @@ export class BasicRenderPipeline {
       const colorTarget = camera.renderTarget || internalColorTarget || pass.renderTarget;
       const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
 
-      rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel);
-      colorTarget?._setRenderTargetInfo(cubeFace, mipLevel);
+      rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
       const clearFlags = (pass.clearFlags ?? camera.clearFlags) & ~(ignoreClear ?? CameraClearFlags.None);
       const color = pass.clearColor ?? background.solidColor;
       if (clearFlags !== CameraClearFlags.None) {
@@ -249,8 +248,7 @@ export class BasicRenderPipeline {
           colorCopyPass.onRender(context, cullingResults);
 
           // Should revert to original render target
-          rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel);
-          colorTarget._setRenderTargetInfo(cubeFace, mipLevel);
+          rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
         }
 
         cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);
