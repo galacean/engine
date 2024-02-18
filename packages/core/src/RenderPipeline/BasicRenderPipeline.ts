@@ -4,12 +4,10 @@ import { Background } from "../Background";
 import { Camera, MSAASamples } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine, MSAAMode } from "../Engine";
-import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
-import { Material } from "../material";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
@@ -23,7 +21,6 @@ import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
-import { RenderPass } from "./RenderPass";
 import { PipelineStage } from "./enums/PipelineStage";
 
 /**
@@ -37,8 +34,6 @@ export class BasicRenderPipeline {
   _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
   private _camera: Camera;
-  private _defaultPass: RenderPass;
-  private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
 
   private _internalColorTarget: RenderTarget;
@@ -57,71 +52,6 @@ export class BasicRenderPipeline {
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._colorCopyPass = new OpaqueTexturePass(engine);
-
-    this._renderPassArray = [];
-    this._defaultPass = new RenderPass("default", 0, null, null, 0);
-    this.addRenderPass(this._defaultPass);
-  }
-
-  /**
-   * Default render pass.
-   */
-  get defaultRenderPass() {
-    return this._defaultPass;
-  }
-
-  /**
-   * Add render pass.
-   * @param nameOrPass - The name of this Pass or RenderPass object. When it is a name, the following parameters need to be provided
-   * @param priority - Priority, less than 0 before the default pass, greater than 0 after the default pass
-   * @param renderTarget - The specified Render Target
-   * @param replaceMaterial -  Replaced material
-   * @param mask - Perform bit and operations with Entity.Layer to filter the objects that this Pass needs to render
-   */
-  addRenderPass(
-    nameOrPass: string | RenderPass,
-    priority: number = null,
-    renderTarget: RenderTarget = null,
-    replaceMaterial: Material = null,
-    mask: Layer = null
-  ) {
-    if (typeof nameOrPass === "string") {
-      const renderPass = new RenderPass(nameOrPass, priority, renderTarget, replaceMaterial, mask);
-      this._renderPassArray.push(renderPass);
-    } else if (nameOrPass instanceof RenderPass) {
-      this._renderPassArray.push(nameOrPass);
-    }
-
-    this._renderPassArray.sort(function (p1, p2) {
-      return p1.priority - p2.priority;
-    });
-  }
-
-  /**
-   * Remove render pass by name or render pass object.
-   * @param nameOrPass - Render pass name or render pass object
-   */
-  removeRenderPass(nameOrPass: string | RenderPass): void {
-    let pass: RenderPass;
-    if (typeof nameOrPass === "string") pass = this.getRenderPass(nameOrPass);
-    else if (nameOrPass instanceof RenderPass) pass = nameOrPass;
-    if (pass) {
-      const idx = this._renderPassArray.indexOf(pass);
-      this._renderPassArray.splice(idx, 1);
-    }
-  }
-
-  /**
-   * Get render pass by name.
-   * @param  name - Render pass name
-   */
-  getRenderPass(name: string) {
-    for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
-      const pass = this._renderPassArray[i];
-      if (pass.name === name) return pass;
-    }
-
-    return null;
   }
 
   /**
@@ -130,8 +60,6 @@ export class BasicRenderPipeline {
   destroy(): void {
     this._cullingResults.destroy();
     this._allSpriteMasks = null;
-    this._renderPassArray = null;
-    this._defaultPass = null;
     this._camera = null;
   }
 
@@ -199,14 +127,11 @@ export class BasicRenderPipeline {
       }
     }
 
-    for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
-      this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel, ignoreClear);
-    }
+    this._drawRenderPass(context, camera, cubeFace, mipLevel, ignoreClear);
   }
 
   private _drawRenderPass(
     context: RenderContext,
-    pass: RenderPass,
     camera: Camera,
     cubeFace?: TextureCubeFace,
     mipLevel?: number,
@@ -214,62 +139,53 @@ export class BasicRenderPipeline {
   ) {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
-    pass.preRender(camera, opaqueQueue, alphaTestQueue, transparentQueue);
 
-    if (pass.enabled) {
-      const { engine, scene } = camera;
-      const { background } = scene;
+    const { engine, scene } = camera;
+    const { background } = scene;
 
-      const internalColorTarget = this._internalColorTarget;
-      const rhi = engine._hardwareRenderer;
-      const colorTarget = camera.renderTarget || internalColorTarget || pass.renderTarget;
-      const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
+    const internalColorTarget = this._internalColorTarget;
+    const rhi = engine._hardwareRenderer;
+    const colorTarget = camera.renderTarget || internalColorTarget;
+    const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
 
-      rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-      const clearFlags = (pass.clearFlags ?? camera.clearFlags) & ~(ignoreClear ?? CameraClearFlags.None);
-      const color = pass.clearColor ?? background.solidColor;
-      if (clearFlags !== CameraClearFlags.None) {
-        rhi.clearRenderTarget(camera.engine, clearFlags, color);
-      }
+    rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
+    const color = background.solidColor;
+    if (clearFlags !== CameraClearFlags.None) {
+      rhi.clearRenderTarget(camera.engine, clearFlags, color);
+    }
 
-      if (pass.renderOverride) {
-        pass.render(camera, opaqueQueue, alphaTestQueue, transparentQueue);
-      } else {
-        opaqueQueue.render(camera, pass.mask, PipelineStage.Forward);
-        alphaTestQueue.render(camera, pass.mask, PipelineStage.Forward);
-        if (clearFlags & CameraClearFlags.Color) {
-          if (background.mode === BackgroundMode.Sky) {
-            background.sky._render(context);
-          } else if (background.mode === BackgroundMode.Texture && background.texture) {
-            this._drawBackgroundTexture(engine, background);
-          }
-        }
-
-        // Copy opaque texture
-        if (camera.opaqueTextureEnabled) {
-          // Should blit to resolve the MSAA
-          colorTarget._blitRenderTarget();
-
-          const colorCopyPass = this._colorCopyPass;
-          colorCopyPass.onConfig(camera, colorTarget.getColorTexture(0));
-          colorCopyPass.onRender(context, cullingResults);
-
-          // Should revert to original render target
-          rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-        }
-
-        cullingResults.transparentQueue.render(camera, pass.mask, PipelineStage.Forward);
-      }
-
-      colorTarget?._blitRenderTarget();
-      colorTarget?.generateMipmaps();
-
-      if (internalColorTarget) {
-        PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, camera.viewport);
+    opaqueQueue.render(camera, PipelineStage.Forward);
+    alphaTestQueue.render(camera, PipelineStage.Forward);
+    if (clearFlags & CameraClearFlags.Color) {
+      if (background.mode === BackgroundMode.Sky) {
+        background.sky._render(context);
+      } else if (background.mode === BackgroundMode.Texture && background.texture) {
+        this._drawBackgroundTexture(engine, background);
       }
     }
 
-    pass.postRender(camera, cullingResults.opaqueQueue, cullingResults.alphaTestQueue, cullingResults.transparentQueue);
+    // Copy opaque texture
+    if (camera.opaqueTextureEnabled) {
+      // Should blit to resolve the MSAA
+      colorTarget._blitRenderTarget();
+
+      const colorCopyPass = this._colorCopyPass;
+      colorCopyPass.onConfig(camera, colorTarget.getColorTexture(0));
+      colorCopyPass.onRender(context, cullingResults);
+
+      // Should revert to original render target
+      rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    }
+
+    cullingResults.transparentQueue.render(camera, PipelineStage.Forward);
+
+    colorTarget?._blitRenderTarget();
+    colorTarget?.generateMipmaps();
+
+    if (internalColorTarget) {
+      PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, camera.viewport);
+    }
   }
 
   /**
