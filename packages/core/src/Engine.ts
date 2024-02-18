@@ -774,19 +774,19 @@ export interface EngineConfiguration {
  */
 export enum MSAAMode {
   /**
-   * Enable MSAA globally on the rendering canvas.
+   * Enable MSAA globally when render to main canvas.
    *
-   * @remarks When `enableOpaqueTexture` is turned on for a camera, anti-aliasing within that camera's viewport will be invalid, please use `PerCamera` mode if you need to enable MSAA.
+   * @remarks When `opaqueTextureEnabled` is turned on for a camera, anti-aliasing within that camera's viewport will be invalid, please use `PerCamera` mode if you need to enable MSAA.
    */
   GlobalCanvas,
 
   /**
-   * MSAA can be turned on and off independently in each camera, please configure `msaaSamples` in `Camera` to enable it.
+   * MSAA can be turned on and off independently in each camera when render to main canvas, please configure `msaaSamples` in `Camera` to enable it.
    */
   PerCamera,
 
   /**
-   * Disables MSAA, turning off anti-aliasing.
+   * Disable MSAA when render to main canvas.
    */
   Disabled
 }

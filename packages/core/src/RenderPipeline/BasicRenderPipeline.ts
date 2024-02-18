@@ -170,7 +170,7 @@ export class BasicRenderPipeline {
     }
 
     // Maintain internal color texture
-    if (camera.enableOpaqueTexture) {
+    if (camera.opaqueTextureEnabled) {
       if (!camera.renderTarget) {
         const viewport = camera.pixelViewport;
         const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -240,7 +240,7 @@ export class BasicRenderPipeline {
         }
 
         // Copy opaque texture
-        if (camera.enableOpaqueTexture) {
+        if (camera.opaqueTextureEnabled) {
           // Should blit to resolve the MSAA
           colorTarget._blitRenderTarget();
 

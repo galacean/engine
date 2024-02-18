@@ -74,12 +74,12 @@ export class Camera extends Component {
    *
    * @defaultValue `false`
    *
-   * @remarks If enabled, `msaaMode` must be set to `MSAAMode.PerCamera` when creating the engine, otherwise anti-aliasing within that camera's viewport will be invalid.
+   * @remarks If enabled, multi-sample anti-aliasing within that camera's viewport will be invalid, `msaaMode` must be set to `MSAAMode.PerCamera` when creating the engine if needed.
    */
-  enableOpaqueTexture: boolean = false;
+  opaqueTextureEnabled: boolean = false;
 
   /**
-   * Multi-sample anti-aliasing mode.
+   * Multi-sample anti-aliasing samples.
    *
    * @remarks When creating the engine, `msaaMode` must be set to `MSAAMode.PerCamera`, otherwise it will be invalid.
    */
