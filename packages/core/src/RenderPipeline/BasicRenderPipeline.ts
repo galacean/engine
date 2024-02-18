@@ -1,7 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { SpriteMask } from "../2d";
 import { Background } from "../Background";
-import { Camera } from "../Camera";
+import { Camera, MSAASamples } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine, MSAAMode } from "../Engine";
 import { Layer } from "../Layer";
@@ -169,27 +169,34 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
     }
 
-    // Maintain internal color texture
-    if (camera.opaqueTextureEnabled) {
-      if (!camera.renderTarget) {
-        const viewport = camera.pixelViewport;
-        const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-          engine,
-          this._internalColorTarget,
-          viewport.width,
-          viewport.height,
-          TextureFormat.R8G8B8A8,
-          TextureFormat.Depth24Stencil8,
-          false,
-          engine._hardwareRenderer._options.msaaMode !== MSAAMode.PerCamera ? 1 : camera.msaaSamples
-        );
-        const colorTexture = internalColorTarget.getColorTexture(0);
-        colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
-        this._internalColorTarget = internalColorTarget;
-      }
+    // Check if need to create internal color texture
+    // 1. MSAA mode is per camera and camera has MSAA samples
+    // 2. Camera has opaque texture enabled and no render target
+    const needInternalColorTexture =
+      (engine._hardwareRenderer._options.msaaMode === MSAAMode.PerCamera && camera.msaaSamples !== MSAASamples.None) ||
+      (camera.opaqueTextureEnabled && !camera.renderTarget);
+
+    if (needInternalColorTexture) {
+      const viewport = camera.pixelViewport;
+      const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+        engine,
+        this._internalColorTarget,
+        viewport.width,
+        viewport.height,
+        TextureFormat.R8G8B8A8,
+        TextureFormat.Depth24Stencil8,
+        false,
+        camera.msaaSamples
+      );
+      const colorTexture = internalColorTarget.getColorTexture(0);
+      colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
+      this._internalColorTarget = internalColorTarget;
     } else {
-      this._internalColorTarget?.destroy();
-      this._internalColorTarget = null;
+      const internalColorTarget = this._internalColorTarget;
+      if (internalColorTarget) {
+        internalColorTarget.destroy();
+        this._internalColorTarget = null;
+      }
     }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
