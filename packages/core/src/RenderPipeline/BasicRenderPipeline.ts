@@ -1,9 +1,9 @@
-import { Vector2 } from "@galacean/engine-math";
+import { Vector2, Vector4 } from "@galacean/engine-math";
 import { SpriteMask } from "../2d";
 import { Background } from "../Background";
-import { Camera, MSAASamples } from "../Camera";
+import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
-import { Engine, MSAAMode } from "../Engine";
+import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -98,13 +98,13 @@ export class BasicRenderPipeline {
     }
 
     // Check if need to create internal color texture
-    // 1. MSAA mode is per camera and camera has MSAA samples
-    // 2. Camera has opaque texture enabled and no render target
-    const needInternalColorTexture =
-      (engine._hardwareRenderer._options.msaaMode === MSAAMode.PerCamera && camera.msaaSamples !== MSAASamples.None) ||
-      (camera.opaqueTextureEnabled && !camera.renderTarget);
-
-    if (needInternalColorTexture) {
+    const independentCanvasEnabled = camera.independentCanvasEnabled;
+    if (independentCanvasEnabled && Vector4.equals(camera.viewport, PipelineUtils.defaultViewport)) {
+      console.warn(
+        "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
+      );
+    }
+    if (independentCanvasEnabled) {
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         engine,
@@ -178,7 +178,7 @@ export class BasicRenderPipeline {
       rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
-    cullingResults.transparentQueue.render(camera, PipelineStage.Forward);
+    transparentQueue.render(camera, PipelineStage.Forward);
 
     colorTarget?._blitRenderTarget();
     colorTarget?.generateMipmaps();

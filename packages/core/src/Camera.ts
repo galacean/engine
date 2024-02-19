@@ -74,14 +74,14 @@ export class Camera extends Component {
    *
    * @defaultValue `false`
    *
-   * @remarks If enabled, multi-sample anti-aliasing within that camera's viewport will be invalid, `msaaMode` must be set to `MSAAMode.PerCamera` when creating the engine if needed.
+   * @remarks If enabled, the independentCanvas property will be forced to be true, should config the `msaaSamples` property to enable multi-sample anti-aliasing if needed.
    */
   opaqueTextureEnabled: boolean = false;
 
   /**
    * Multi-sample anti-aliasing samples.
    *
-   * @remarks When creating the engine, `msaaMode` must be set to `MSAAMode.PerCamera`, otherwise it will be invalid.
+   * @remarks Must set the `opaqueTextureEnabled` property to true to take effect, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
 
@@ -119,6 +119,7 @@ export class Camera extends Component {
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
+  private _customIndependentCanvas: boolean = false;
 
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
@@ -136,6 +137,27 @@ export class Camera extends Component {
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
+
+  /**
+   * Whether to use an independent canvas in viewport area, if true, the msaa in viewport can turn or off independently.
+   *
+   * @remarks enable opaque texture will cause the independent canvas to be forced to be used.
+   */
+  get independentCanvasEnabled(): boolean {
+    const forceIndependent = this._forceUseInternalCanvas();
+    return forceIndependent || this._customIndependentCanvas;
+  }
+
+  set independentCanvasEnabled(value: boolean) {
+    const forceIndependent = this._forceUseInternalCanvas();
+    if (forceIndependent && !value) {
+      console.warn(
+        "The camera is forced to use the independent canvas, and the independentCanvas property cannot be set to false."
+      );
+      return;
+    }
+    this._customIndependentCanvas = value;
+  }
 
   /**
    * Shader data.
@@ -734,6 +756,10 @@ export class Camera extends Component {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
+  }
+
+  private _forceUseInternalCanvas(): boolean {
+    return !this._renderTarget && this.opaqueTextureEnabled;
   }
 
   @ignoreClone

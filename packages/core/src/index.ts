@@ -1,5 +1,5 @@
 export { Platform } from "./Platform";
-export { Engine, MSAAMode } from "./Engine";
+export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
 

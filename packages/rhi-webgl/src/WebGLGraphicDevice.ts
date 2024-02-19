@@ -11,7 +11,6 @@ import {
   IPlatformTexture2D,
   IPlatformTextureCube,
   Logger,
-  MSAAMode,
   Mesh,
   Platform,
   RenderTarget,
@@ -54,7 +53,7 @@ export enum WebGLMode {
  */
 export interface WebGLGraphicDeviceOptions {
   alpha?: boolean;
-  msaaMode?: MSAAMode;
+  antialias?: boolean;
   depth?: boolean;
   desynchronized?: boolean;
   failIfMajorPerformanceCaveat?: boolean;
@@ -79,11 +78,6 @@ export interface WebGLGraphicDeviceOptions {
    * @remarks large count maybe cause performance issue.
    */
   _maxAllowSkinUniformVectorCount?: number;
-
-  /**
-   * @deprecated Please use `msaaMode` instead.
-   */
-  antialias?: boolean;
 }
 
 /**
@@ -153,8 +147,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = {
-      msaaMode:
-        initializeOptions.msaaMode ?? initializeOptions.antialias === false ? MSAAMode.Disabled : MSAAMode.GlobalCanvas,
       webGLMode: WebGLMode.Auto,
       stencil: true,
       _forceFlush: false,
@@ -181,7 +173,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const options = this._options;
     const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = options.webGLMode;
-    options.antialias = options.msaaMode === MSAAMode.GlobalCanvas;
 
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
