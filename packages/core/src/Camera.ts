@@ -74,7 +74,7 @@ export class Camera extends Component {
    *
    * @defaultValue `false`
    *
-   * @remarks If enabled, the independentCanvas property will be forced to be true, should config the `msaaSamples` property to enable multi-sample anti-aliasing if needed.
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   opaqueTextureEnabled: boolean = false;
 
@@ -139,9 +139,9 @@ export class Camera extends Component {
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
-   * Whether to use an independent canvas in viewport area, if true, the msaa in viewport can turn or off independently.
+   * Whether to use an independent canvas in viewport area.
    *
-   * @remarks enable opaque texture will cause the independent canvas to be forced to be used.
+   * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
     const forceIndependent = this._forceUseInternalCanvas();
