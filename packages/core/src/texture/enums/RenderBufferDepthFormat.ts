@@ -1,6 +1,6 @@
 /**
  * @deprecated Please use `TextureFormat` instead.
- * 
+ *
  * Render buffer depth format enumeration.
  */
 export enum RenderBufferDepthFormat {
