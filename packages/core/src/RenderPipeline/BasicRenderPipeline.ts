@@ -114,6 +114,7 @@ export class BasicRenderPipeline {
         TextureFormat.R8G8B8A8,
         TextureFormat.Depth24Stencil8,
         false,
+        false,
         camera.msaaSamples
       );
       const colorTexture = internalColorTarget.getColorTexture(0);

@@ -1,9 +1,8 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { Layer } from "../Layer";
+import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { CullingResults } from "./CullingResults";
@@ -36,6 +35,7 @@ export class DepthOnlyPass extends PipelinePass {
       height,
       null,
       TextureFormat.Depth16,
+      true,
       false,
       1
     );

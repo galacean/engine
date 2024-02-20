@@ -1,6 +1,5 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
-import { Layer } from "../Layer";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -117,6 +116,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         height,
         null,
         format,
+        true,
         false,
         1
       );
@@ -129,6 +129,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         height,
         format,
         null,
+        false,
         false,
         1
       );

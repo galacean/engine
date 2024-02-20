@@ -73,23 +73,34 @@ export class PipelineUtils {
     height: number,
     colorFormat: TextureFormat | null,
     depthFormat: TextureFormat | null,
+    needDepthTexture: boolean,
     mipmap: boolean,
     antiAliasing: number
   ): RenderTarget {
     const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
-    const currentDepthTexture = <Texture2D>currentRenderTarget?.depthTexture;
     const colorTexture = colorFormat
       ? PipelineUtils.recreateTextureIfNeeded(engine, currentColorTexture, width, height, colorFormat, mipmap)
       : null;
 
-    const depthTexture = depthFormat
-      ? PipelineUtils.recreateTextureIfNeeded(engine, currentDepthTexture, width, height, depthFormat, mipmap)
-      : null;
+    if (needDepthTexture) {
+      const currentDepthTexture = <Texture2D>currentRenderTarget?.depthTexture;
+      const needDepthTexture = depthFormat
+        ? PipelineUtils.recreateTextureIfNeeded(engine, currentDepthTexture, width, height, depthFormat, mipmap)
+        : null;
 
-    if (currentColorTexture !== colorTexture || currentDepthTexture !== depthTexture) {
-      currentRenderTarget?.destroy();
-      currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthTexture, antiAliasing);
-      currentRenderTarget.isGCIgnored = true;
+      if (currentColorTexture !== colorTexture || currentDepthTexture !== needDepthTexture) {
+        currentRenderTarget?.destroy();
+        currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, needDepthTexture, antiAliasing);
+        currentRenderTarget.isGCIgnored = true;
+      }
+    } else {
+      const needDepthFormat = depthFormat;
+
+      if (currentColorTexture !== colorTexture || currentRenderTarget?._depthFormat !== needDepthFormat) {
+        currentRenderTarget?.destroy();
+        currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, needDepthFormat, antiAliasing);
+        currentRenderTarget.isGCIgnored = true;
+      }
     }
 
     return currentRenderTarget;

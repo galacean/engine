@@ -33,6 +33,7 @@ export class OpaqueTexturePass extends PipelinePass {
       TextureFormat.R8G8B8A8,
       null,
       false,
+      false,
       1
     );
 
