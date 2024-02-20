@@ -96,6 +96,13 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.FLOAT,
           isCompressed: false
         };
+      case TextureFormat.R32G32B32A32_UInt:
+        return {
+          internalFormat: isWebGL2 ? gl.RGBA32UI : gl.NONE,
+          baseFormat: gl.RGBA_INTEGER,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false
+        };
       case TextureFormat.BC1:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
@@ -347,6 +354,7 @@ export class GLTexture implements IPlatformTexture {
           return false;
         }
         break;
+      case TextureFormat.R32G32B32A32_UInt:
       case TextureFormat.Depth24:
       case TextureFormat.Depth32:
       case TextureFormat.Depth32Stencil8:
