@@ -162,7 +162,7 @@ export class MeshRenderer extends Renderer {
 
       const renderData = meshRenderDataPool.getFromPool();
       renderData.usage = RenderDataUsage.Mesh;
-      renderData.setX(this, material, mesh._primitive, subMeshes[i]);
+      renderData.set(this, material, mesh._primitive, subMeshes[i]);
       batcherManager.commitRenderData(context, renderData);
     }
   }

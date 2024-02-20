@@ -15,7 +15,7 @@ export class SpriteRenderData extends RenderData implements IPoolElement {
     this.usage = RenderDataUsage.Sprite;
   }
 
-  set(component: Renderer, material: Material, verticesData: VertexData2D, texture: Texture2D): void {
+  setX(component: Renderer, material: Material, verticesData: VertexData2D, texture: Texture2D): void {
     this.component = component;
     this.material = material;
     this.verticesData = verticesData;

@@ -404,7 +404,7 @@ export class TextRenderer extends Renderer {
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
       const renderData = spriteRenderDataPool.getFromPool();
-      renderData.set(this, material, charRenderData.renderData, charRenderData.texture);
+      renderData.setX(this, material, charRenderData.renderData, charRenderData.texture);
       renderData.usage = RenderDataUsage.Sprite;
       spriteRenderDatas.push(renderData);
     }

@@ -325,7 +325,7 @@ export class SpriteRenderer extends Renderer {
     const { engine } = context.camera;
     const material = this.getMaterial();
     const renderData = engine._spriteRenderDataPool.getFromPool();
-    renderData.set(this, material, this._verticesData, this.sprite.texture);
+    renderData.setX(this, material, this._verticesData, this.sprite.texture);
     renderData.usage = RenderDataUsage.Sprite;
     engine._batcherManager.commitRenderData(context, renderData);
   }

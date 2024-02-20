@@ -192,7 +192,7 @@ export class ParticleRenderer extends Renderer {
     }
 
     const renderData = this._engine._renderDataPool.getFromPool();
-    renderData.setX(this, material, generator._primitive, generator._subPrimitive);
+    renderData.set(this, material, generator._primitive, generator._subPrimitive);
     context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 

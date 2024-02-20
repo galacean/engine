@@ -12,7 +12,7 @@ export class RenderData implements IPoolElement {
   subPrimitive: SubMesh;
   usage: RenderDataUsage = RenderDataUsage.Mesh;
 
-  setX(component: Renderer, material: Material, primitive: Primitive, subPrimitive: SubMesh): void {
+  set(component: Renderer, material: Material, primitive: Primitive, subPrimitive: SubMesh): void {
     this.component = component;
     this.material = material;
 
