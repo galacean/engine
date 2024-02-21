@@ -46,7 +46,7 @@ export class Texture2D extends Texture {
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
 
-    this.filterMode = TextureFilterMode.Bilinear;
+    this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
   }
 

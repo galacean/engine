@@ -89,6 +89,7 @@ import {
 export class AstNode<T = any> {
   position: IPositionRange;
   content: T;
+  id: string;
 
   _astType = "unknown";
   _inMacro = false;
@@ -96,6 +97,7 @@ export class AstNode<T = any> {
   constructor(position: IPositionRange, content: T) {
     this.position = position;
     this.content = content;
+    this.id = `${position.start.index}_${position.end.index}`;
   }
 
   getContentValue(context?: RuntimeContext): any {
@@ -442,7 +444,7 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
         });
       }
     }
-    const args = this.content.args?.map((item) => item.serialize(context)).join(", ");
+    const args = this.content.args?.map((item) => item.serialize(context)).join(", ") ?? "";
     return `${this.content.function}(${args})`;
   }
 
@@ -627,7 +629,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
     const propName = this.content.properties?.[0].content;
     if (propName) {
       if (objName === context.varyingStructInfo.objectName) {
-        const ref = context.varyingStructInfo.reference.find(
+        const ref = context.varyingStructInfo.reference?.find(
           (ref) => ref.property.content.variableNode.content.variable === propName
         );
         ref && (ref.referenced = true);
