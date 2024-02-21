@@ -315,7 +315,9 @@ export class PhysicsScene {
 
     if (hitResult != undefined) {
       const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
-        hitResult.entity = this._scene.engine._physicalObjectsMap[idx]._collider.entity;
+        const hitShape = this._scene.engine._physicalObjectsMap[idx];
+        hitResult.entity = hitShape._collider.entity;
+        hitResult.shape = hitShape;
         hitResult.distance = distance;
         hitResult.normal.copyFrom(normal);
         hitResult.point.copyFrom(position);
