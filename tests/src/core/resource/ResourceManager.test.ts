@@ -35,4 +35,29 @@ describe("ResourceManager", () => {
       expect(textures.length).equal(5);
     });
   });
+
+  describe("queryPath", () => {
+    it("no encode", () => {
+      // @ts-ignore
+      const { assetBaseURL } = engine.resourceManager._parseURL(
+        "https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024"
+      );
+      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024");
+    });
+
+    it("encode", () => {
+      // @ts-ignore
+      const { assetBaseURL } = engine.resourceManager._parseURL(
+        "https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024"
+      );
+      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024");
+    });
+
+    it("query path", () => {
+      // @ts-ignore
+      const { assetBaseURL, queryPath } = engine.resourceManager._parseURL("https://cdn.ali.com/inner.jpg?q=abc");
+      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg");
+      expect(queryPath).equal("abc");
+    });
+  });
 });

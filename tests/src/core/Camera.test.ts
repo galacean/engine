@@ -6,12 +6,13 @@ import { expect } from "chai";
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
   let rootEntity: Entity;
+  let engine: WebGLEngine;
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
   before(async function () {
     this.timeout(10000);
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
+    engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();
     camera = rootEntity.addComponent(Camera);
   });
@@ -143,6 +144,15 @@ describe("camera test", function () {
     const worldPoint = camera.viewportToWorldPoint(viewportPoint, new Vector3());
     const expectedviewportPoint = camera.worldToViewportPoint(worldPoint, new Vector3());
     expect(viewportPoint.z).to.be.closeTo(expectedviewportPoint.z, 0.1, "Result z should match expected value");
+
+    const webCanvas = engine.canvas;
+    webCanvas.width = 100;
+    webCanvas.height = 1000;
+    camera.viewportToWorldPoint(viewportPoint, worldPoint);
+    expect(worldPoint.x).to.be.closeTo(-1.73, 0.1, "Result x should match expected value");
+    expect(worldPoint.y).to.be.closeTo(17.32, 0.1, "Result y should match expected value");
+    expect(worldPoint.z).to.be.closeTo(-30, 0.1, "Result z should match expected value");
+    webCanvas.width = webCanvas.height = 256;
   });
 
   it("viewport to world point, while isOrthographic = true", () => {

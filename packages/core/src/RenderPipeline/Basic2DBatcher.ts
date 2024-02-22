@@ -121,7 +121,9 @@ export abstract class Basic2DBatcher {
     const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
 
     for (let i = 0, n = meshes.length; i < n; ++i) {
-      meshes[i].destroy();
+      const mesh = meshes[i];
+      mesh._addReferCount(-1);
+      mesh.destroy();
     }
     this._meshes = null;
 
@@ -149,7 +151,7 @@ export abstract class Basic2DBatcher {
   private _createMesh(engine: Engine, index: number): BufferMesh {
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;
     const mesh = new BufferMesh(engine, `BufferMesh${index}`);
-    mesh.isGCIgnored = true;
+    mesh._addReferCount(1);
     const vertexElements: VertexElement[] = [];
     const vertexStride = this.createVertexElements(vertexElements);
 
