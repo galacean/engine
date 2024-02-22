@@ -54,8 +54,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       meshRenderer.setMaterial(material);
 
       updateForE2E(engine);
-      const category = "Primitive";
-      const name = "primitive-torus";
-      initScreenshot(category, name, engine, camera);
+      initScreenshot(engine, camera);
     });
 });

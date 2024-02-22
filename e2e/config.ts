@@ -96,5 +96,42 @@ export const E2E_CONFIG = {
       caseFileName: "shadow-basic",
       threshold: 0.2
     }
+  },
+  Primitive: {
+    capsule: {
+      category: "Primitive",
+      caseFileName: "primitive-capsule",
+      threshold: 0.1
+    },
+    cone: {
+      category: "Primitive",
+      caseFileName: "primitive-cone",
+      threshold: 0.1
+    },
+    cuboid: {
+      category: "Primitive",
+      caseFileName: "primitive-cuboid",
+      threshold: 0.1
+    },
+    cylinder: {
+      category: "Primitive",
+      caseFileName: "primitive-cylinder",
+      threshold: 0.1
+    },
+    plane: {
+      category: "Primitive",
+      caseFileName: "primitive-plane",
+      threshold: 0.1
+    },
+    sphere: {
+      category: "Primitive",
+      caseFileName: "primitive-sphere",
+      threshold: 0.1
+    },
+    torus: {
+      category: "Primitive",
+      caseFileName: "primitive-torus",
+      threshold: 0.1
+    }
   }
 };
