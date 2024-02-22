@@ -327,6 +327,7 @@ export class PhysicsScene {
         return true;
       } else {
         hitResult.entity = null;
+        hitResult.shape = null;
         hitResult.distance = 0;
         hitResult.point.set(0, 0, 0);
         hitResult.normal.set(0, 0, 0);
