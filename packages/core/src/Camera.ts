@@ -80,8 +80,10 @@ export class Camera extends Component {
 
   /**
    * Opacity texture down sampling.
+   *
+   * @defaultValue `Downsampling.TwoX`
    */
-  opaqueTextureDownsampling: Downsampling = Downsampling.None;
+  opaqueTextureDownsampling: Downsampling = Downsampling.TwoX;
 
   /**
    * Multi-sample anti-aliasing samples.
