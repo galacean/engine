@@ -79,6 +79,11 @@ export class Camera extends Component {
   opaqueTextureEnabled: boolean = false;
 
   /**
+   * Opacity texture down sampling.
+   */
+  opaqueTextureDownsampling: Downsampling = Downsampling.None;
+
+  /**
    * Multi-sample anti-aliasing samples.
    *
    * @remarks Must set the `opaqueTextureEnabled` property to true to take effect, otherwise it will be invalid.
@@ -776,9 +781,21 @@ export enum MSAASamples {
   /** No multi-sample anti-aliasing. */
   None = 1,
   /** Multi-sample anti-aliasing with 2 samples. */
-  MSAA2X = 2,
+  TwoX = 2,
   /** Multi-sample anti-aliasing with 4 samples. */
-  MSAA4X = 4,
+  FourX = 4,
   /** Multi-sample anti-aliasing with 8 samples. */
-  MSAA8X = 8
+  EightX = 8
+}
+
+/**
+ * Down sampling.
+ */
+export enum Downsampling {
+  /** No down sampling. */
+  None = 1,
+  /** Half resolution down sampling. */
+  TwoX = 2,
+  /** Quarter resolution down sampling. */
+  FourX = 4
 }
