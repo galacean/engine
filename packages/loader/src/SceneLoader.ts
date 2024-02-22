@@ -3,7 +3,6 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
-  Engine,
   Font,
   Loader,
   LoadItem,
@@ -13,7 +12,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser } from "./resource-deserialize";
+import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -27,7 +26,7 @@ class SceneLoader extends Loader<Scene> {
             // parse ambient light
             const ambient = data.scene.ambient;
             if (ambient) {
-              const useCustomAmbient = ambient.specularMode === "Custom";
+              const useCustomAmbient = ambient.specularMode === SpecularMode.Custom;
               const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
 
               scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
@@ -105,6 +104,7 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
               scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
               shadow.shadowFourCascadeSplits && scene.shadowFourCascadeSplits.copyFrom(shadow.shadowFourCascadeSplits);
+              scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;
             }
 
             return Promise.all(promises).then(() => {
