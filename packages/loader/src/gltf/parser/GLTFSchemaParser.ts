@@ -13,7 +13,8 @@ export class GLTFSchemaParser extends GLTFParser {
     const url = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
-    return request<ArrayBuffer>(url, requestConfig).onProgress(undefined, context._onTaskDetail)
+    return request<ArrayBuffer>(url, requestConfig)
+      .onProgress(undefined, context._onTaskDetail)
       .then((buffer) => {
         restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
         return GLTFUtils.parseGLB(context, buffer);
