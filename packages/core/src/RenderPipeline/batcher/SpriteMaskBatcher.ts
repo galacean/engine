@@ -1,7 +1,6 @@
 import { SpriteMask } from "../../2d/sprite/SpriteMask";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
-import { SetDataOptions } from "../../graphic";
 import { StencilOperation } from "../../shader/enums/StencilOperation";
 import { Shader } from "../../shader/Shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
@@ -115,7 +114,7 @@ export class SpriteMaskBatcher extends Batcher2D {
 
   drawBatches(camera: Camera): void {
     const { _engine: engine, _batchedQueue: batchedQueue, _stencilOps: stencilOps } = this;
-    const mesh = this._meshes[this._flushId];
+    const mesh = this._meshBuffers[this._flushId]._mesh;
     const subMeshes = mesh.subMeshes;
     const sceneData = camera.scene.shaderData;
     const cameraData = camera.shaderData;
@@ -166,14 +165,15 @@ export class SpriteMaskBatcher extends Batcher2D {
   }
 
   private _updateData(engine: Engine): void {
-    const { _meshes, _flushId } = this;
+    const { _meshBuffers, _flushId } = this;
 
-    if (!SpriteMaskBatcher._canUploadSameBuffer && this._meshCount <= _flushId) {
-      this._createMesh(engine, _flushId);
+    if (!SpriteMaskBatcher._canUploadSameBuffer && _meshBuffers.length <= _flushId) {
+      this._createMeshBuffer(engine, _flushId);
     }
 
-    const { _batchedQueue: batchedQueue, _stencilOps: stencilOps, _vertices: vertices, _indices: indices } = this;
-    const mesh = _meshes[_flushId];
+    const { _batchedQueue: batchedQueue, _stencilOps: stencilOps } = this;
+    const meshBuffer = _meshBuffers[_flushId];
+    const { _vertices: vertices, _indices: indices, _mesh: mesh } = meshBuffer;
     mesh.clearSubMesh();
 
     let vertexIndex = 0;
@@ -220,10 +220,6 @@ export class SpriteMaskBatcher extends Batcher2D {
 
     mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
     batchedQueue[curMeshIndex] = preElement;
-
-    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
-    // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
-    this._vertexBuffers[_flushId].setData(vertices, 0, 0, vertexIndex, SetDataOptions.Discard);
-    this._indiceBuffers[_flushId].setData(indices, 0, 0, indiceIndex, SetDataOptions.Discard);
+    meshBuffer.uploadBuffer(vertexIndex, indiceIndex);
   }
 }

@@ -1,23 +1,13 @@
 import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
 import { Engine } from "../../Engine";
-import {
-  Buffer,
-  BufferBindFlag,
-  BufferUsage,
-  IndexFormat,
-  MeshTopology,
-  SetDataOptions,
-  SubMesh,
-  VertexElement,
-  VertexElementFormat
-} from "../../graphic";
-import { BufferMesh } from "../../mesh";
+import { MeshTopology, SetDataOptions, SubMesh } from "../../graphic";
 import { ShaderProperty, ShaderTagKey } from "../../shader";
 import { ClassPool } from "../ClassPool";
 import { RenderContext } from "../RenderContext";
 import { SpriteRenderData } from "../SpriteRenderData";
 import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { IBatcher } from "./IBatcher";
+import { MeshBuffer } from "./MeshBuffer";
 
 /**
  * @internal
@@ -32,21 +22,13 @@ export class Batcher2D implements IBatcher {
   /** @internal */
   _engine: Engine;
   /** @internal */
-  _meshes: BufferMesh[] = [];
-  /** @internal */
-  _meshCount: number = 1;
-  /** @internal */
   _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
+
   /** @internal */
-  _vertexBuffers: Buffer[] = [];
-  /** @internal */
-  _indiceBuffers: Buffer[] = [];
-  /** @internal */
-  _vertices: Float32Array;
-  /** @internal */
-  _indices: Uint16Array;
+  _meshBuffers: MeshBuffer[] = [];
   /** @internal */
   _flushId: number = 0;
+
   /** @internal */
   _vStartIndex: number = 0;
   /** @internal */
@@ -66,29 +48,19 @@ export class Batcher2D implements IBatcher {
 
   constructor(engine: Engine) {
     this._engine = engine;
-    this._initMeshes(engine);
+    this._createMeshBuffer(engine, 0);
   }
 
   /**
    * Destroy internal resources.
    */
   destroy(): void {
-    const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
-
-    for (let i = 0, n = meshes.length; i < n; ++i) {
-      meshes[i].destroy();
+    const { _meshBuffers } = this;
+    for (let i = 0, l = _meshBuffers.length; i < l; ++i) {
+      _meshBuffers[i].destroy();
     }
-    this._meshes = null;
-
-    for (let i = 0, n = vertexBuffers.length; i < n; ++i) {
-      vertexBuffers[i].destroy();
-    }
-    this._vertexBuffers = null;
-
-    for (let i = 0, n = indiceBuffers.length; i < n; ++i) {
-      indiceBuffers[i].destroy();
-    }
-    this._indiceBuffers = null;
+    _meshBuffers.length = 0;
+    this._meshBuffers = null;
   }
 
   commitRenderData(context: RenderContext, data: SpriteRenderData): void {
@@ -97,7 +69,7 @@ export class Batcher2D implements IBatcher {
         this.flush();
         this.uploadBuffer();
         const newFlushId = this._flushId + 1;
-        this._createMesh(this._engine, newFlushId);
+        this._createMeshBuffer(this._engine, newFlushId);
         this._reset();
         this._flushId = newFlushId;
       } else {
@@ -118,7 +90,7 @@ export class Batcher2D implements IBatcher {
     }
 
     const { _preSpriteRenderData, _iStartIndex, _iIndex } = this;
-    const mesh = this._meshes[this._flushId];
+    const mesh = this._meshBuffers[this._flushId]._mesh;
     const iCount = _iIndex - _iStartIndex;
     const subMesh = this._getSubMeshFromPool(_iStartIndex, iCount);
     mesh.addSubMesh(subMesh);
@@ -135,64 +107,30 @@ export class Batcher2D implements IBatcher {
   }
 
   uploadBuffer(): void {
-    const { _flushId } = this;
-    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
-    // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
-    this._vertexBuffers[_flushId].setData(this._vertices, 0, 0, this._vStartIndex, SetDataOptions.Discard);
-    this._indiceBuffers[_flushId].setData(this._indices, 0, 0, this._iStartIndex, SetDataOptions.Discard);
+    this._meshBuffers[this._flushId].uploadBuffer(this._vStartIndex, this._iStartIndex);
   }
 
   clear() {
     this._reset();
     this._subMeshPool.resetPool();
-    const { _meshes, _meshCount } = this;
-    for (let i = 0; i < _meshCount; ++i) {
-      _meshes[i].clearSubMesh();
+    const { _meshBuffers } = this;
+    for (let i = 0, l = _meshBuffers.length; i < l; ++i) {
+      _meshBuffers[i]._mesh.clearSubMesh();
     }
   }
 
-  createVertexElements(vertexElements: VertexElement[]): number {
-    vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
-    vertexElements[1] = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
-    vertexElements[2] = new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0);
-    return 36;
+  getInfo(vertexCount, indiceCount) {
+    // TODO
   }
 
-  protected _createMesh(engine: Engine, index: number): BufferMesh {
-    const { _meshes } = this;
-    if (_meshes[index]) {
-      return _meshes[index];
+  protected _createMeshBuffer(engine: Engine, index: number): MeshBuffer {
+    const { _meshBuffers } = this;
+    if (_meshBuffers[index]) {
+      return _meshBuffers[index];
     }
 
-    const { MAX_VERTEX_COUNT } = Batcher2D;
-    const mesh = new BufferMesh(engine, `BufferMesh${index}`);
-    mesh.isGCIgnored = true;
-    const vertexElements: VertexElement[] = [];
-    const vertexStride = this.createVertexElements(vertexElements);
-
-    // vertices
-    const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * vertexStride,
-      BufferUsage.Dynamic
-    ));
-    vertexBuffer.isGCIgnored = true;
-    // indices
-    const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
-      engine,
-      BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 8,
-      BufferUsage.Dynamic
-    ));
-    indiceBuffer.isGCIgnored = true;
-    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
-    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
-    mesh.setVertexElements(vertexElements);
-    index >= this._meshCount && (this._meshCount = index + 1);
-    this._meshes[index] = mesh;
-
-    return mesh;
+    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(engine));
+    return meshBuffer;
   }
 
   protected _getSubMeshFromPool(start: number, count: number): SubMesh {
@@ -234,10 +172,12 @@ export class Batcher2D implements IBatcher {
   }
 
   private _fillRenderData(data: SpriteRenderData): void {
-    const { _vertices, _indices, _vertexCount } = this;
+    const { _flushId, _vertexCount } = this;
     const { positions, uvs, color, vertexCount, triangles } = data.verticesData;
 
     let index = this._vIndex;
+    const _vertices = this._meshBuffers[_flushId]._vertices;
+    const _indices = this._meshBuffers[_flushId]._indices;
     for (let i = 0; i < vertexCount; ++i) {
       const curPos = positions[i];
       const curUV = uvs[i];
@@ -271,12 +211,5 @@ export class Batcher2D implements IBatcher {
     this._vertexCount = 0;
     this._preContext = null;
     this._preSpriteRenderData = null;
-  }
-
-  private _initMeshes(engine: Engine) {
-    const { MAX_VERTEX_COUNT } = Batcher2D;
-    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
-    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 4);
-    this._createMesh(engine, 0);
   }
 }
