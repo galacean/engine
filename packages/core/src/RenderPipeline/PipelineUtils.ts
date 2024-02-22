@@ -111,9 +111,16 @@ export class PipelineUtils {
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target
+   * @param mipLevel - Mip level to blit
    * @param viewport - Viewport
    */
-  static blitTexture(engine: Engine, source: Texture2D, destination: RenderTarget | null, viewport?: Vector4): void {
+  static blitTexture(
+    engine: Engine,
+    source: Texture2D,
+    destination: RenderTarget | null,
+    mipLevel: number = 0,
+    viewport?: Vector4
+  ): void {
     const { blitMesh, blitMaterial } = engine._basicResources;
     const rhi = engine._hardwareRenderer;
 
@@ -125,6 +132,7 @@ export class PipelineUtils {
     const program = pass._getShaderProgram(engine, Shader._compileMacros);
 
     rendererShaderData.setTexture("renderer_BlitTexture", source);
+    rendererShaderData.setFloat("renderer_BlitMipLevel", mipLevel);
 
     program.bind();
     program.groupingOtherUniformBlock();
