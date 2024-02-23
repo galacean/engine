@@ -39,7 +39,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
-  private _colorCopyPass: OpaqueTexturePass;
+  private _opaqueTexturePass: OpaqueTexturePass;
 
   /**
    * Create a basic render pipeline.
@@ -51,7 +51,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults(engine);
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._colorCopyPass = new OpaqueTexturePass(engine);
+    this._opaqueTexturePass = new OpaqueTexturePass(engine);
   }
 
   /**
@@ -104,6 +104,7 @@ export class BasicRenderPipeline {
         "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
       );
     }
+
     if (independentCanvasEnabled) {
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -171,9 +172,9 @@ export class BasicRenderPipeline {
       // Should blit to resolve the MSAA
       colorTarget._blitRenderTarget();
 
-      const colorCopyPass = this._colorCopyPass;
-      colorCopyPass.onConfig(camera, colorTarget.getColorTexture(0));
-      colorCopyPass.onRender(context, cullingResults);
+      const opaqueTexturePass = this._opaqueTexturePass;
+      opaqueTexturePass.onConfig(camera, colorTarget.getColorTexture(0));
+      opaqueTexturePass.onRender(context, cullingResults);
 
       // Should revert to original render target
       rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
@@ -185,7 +186,7 @@ export class BasicRenderPipeline {
     colorTarget?.generateMipmaps();
 
     if (internalColorTarget) {
-      PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null,0, camera.viewport);
+      PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, 0, camera.viewport);
     }
   }
 
