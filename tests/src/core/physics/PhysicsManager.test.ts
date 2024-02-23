@@ -166,6 +166,8 @@ describe("Physics Test", () => {
           }
         }
       );
+      // @ts-ignore
+      engineLite.physicsManager._update(8);
       // Remove collider shape.
       removeShapeRoot2.isActive = false;
       const removeShapeRoot3 = root.createChild("root");
