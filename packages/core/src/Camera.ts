@@ -12,6 +12,8 @@ import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
+import { Downsampling } from "./enums/Downsampling";
+import { MSAASamples } from "./enums/MSAASamples";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -62,7 +64,7 @@ export class Camera extends Component {
 
   /**
    * Depth texture mode.
-   * If `DepthTextureMode.PrePass is` used, the depth texture can be accessed in the shader using camera_DepthTexture.
+   * If `DepthTextureMode.PrePass` is used, the depth texture can be accessed in the shader using `camera_DepthTexture`.
    *
    * @defaultValue `DepthTextureMode.None`
    */
@@ -88,7 +90,7 @@ export class Camera extends Component {
   /**
    * Multi-sample anti-aliasing samples.
    *
-   * @remarks Must set the `opaqueTextureEnabled` property to true to take effect, otherwise it will be invalid.
+   * @remarks The `opaqueTextureEnabled` property should be `true` to take effect, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
 
@@ -159,9 +161,8 @@ export class Camera extends Component {
     const forceIndependent = this._forceUseInternalCanvas();
     if (forceIndependent && !value) {
       console.warn(
-        "The camera is forced to use the independent canvas, and the independentCanvas property cannot be set to false."
+        "The camera is forced to use the independent canvas because the opaqueTextureEnabled property is enabled."
       );
-      return;
     }
     this._customIndependentCanvas = value;
   }
@@ -774,30 +775,4 @@ export class Camera extends Component {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
   }
-}
-
-/**
- * Multi-sample anti-aliasing samples.
- */
-export enum MSAASamples {
-  /** No multi-sample anti-aliasing. */
-  None = 1,
-  /** Multi-sample anti-aliasing with 2 samples. */
-  TwoX = 2,
-  /** Multi-sample anti-aliasing with 4 samples. */
-  FourX = 4,
-  /** Multi-sample anti-aliasing with 8 samples. */
-  EightX = 8
-}
-
-/**
- * Down sampling.
- */
-export enum Downsampling {
-  /** No down sampling. */
-  None = 1,
-  /** Half resolution down sampling. */
-  TwoX = 2,
-  /** Quarter resolution down sampling. */
-  FourX = 4
 }

@@ -1,5 +1,6 @@
-import { Camera, Downsampling } from "../Camera";
+import { Camera } from "../Camera";
 import { Engine } from "../Engine";
+import { Downsampling } from "../enums/Downsampling";
 import { Texture, Texture2D, TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { TextureFormat } from "../texture/enums/TextureFormat";
