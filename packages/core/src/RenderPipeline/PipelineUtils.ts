@@ -1,6 +1,7 @@
 import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
@@ -10,6 +11,9 @@ import { RenderTarget, Texture2D, TextureFormat } from "../texture";
  * @internal
  */
 export class PipelineUtils {
+  private static _blitTextureProperty = ShaderProperty.getByName("renderer_BlitTexture");
+  private static _blitMipLevelProperty = ShaderProperty.getByName("renderer_BlitMipLevel");
+
   private static _blitClearColor = new Color(0, 0, 0, 1);
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
 
@@ -131,8 +135,8 @@ export class PipelineUtils {
     const pass = blitMaterial.shader.subShaders[0].passes[0];
     const program = pass._getShaderProgram(engine, Shader._compileMacros);
 
-    rendererShaderData.setTexture("renderer_BlitTexture", source);
-    rendererShaderData.setFloat("renderer_BlitMipLevel", mipLevel);
+    rendererShaderData.setTexture(PipelineUtils._blitTextureProperty, source);
+    rendererShaderData.setFloat(PipelineUtils._blitMipLevelProperty, mipLevel);
 
     program.bind();
     program.groupingOtherUniformBlock();
