@@ -6,5 +6,6 @@ export enum EGSMacro {
   ifndef = "#ifndef",
   else = "#else",
   elif = "#elif",
-  endif = "#endif"
+  endif = "#endif",
+  include = "#include"
 }

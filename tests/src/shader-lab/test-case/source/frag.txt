@@ -13,7 +13,7 @@ vec4 a = vec4(TT,1.0,3.0,4.0);
 #if SCENE_SHADOW_CASCADED_COUNT == 1
     varying vec3 v_shadowCoord;
 #else
-    #include <ShadowCoord>
+    #include "ShadowCoord"
 #endif
 float a = 1.0;
 float b = 2.0;

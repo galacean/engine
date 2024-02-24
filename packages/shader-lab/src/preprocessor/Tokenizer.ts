@@ -90,23 +90,47 @@ export class Tokenizer {
     return { res, end: this._posTicker.isEnd() };
   }
 
-  scanChunkBetweenPair(leftChar: string, rightChar: string): IScanningResult<string> {
+  scanChunkBetweenPair(leftChar: string, rightChar: string): IScanningResult<TextToken> {
     while (this.curChar !== leftChar) {
       if (!/\s/.test(this.curChar))
         throw `Unexpected character "${this.curChar}" at line ${this._posTicker.line}, column ${this._posTicker.character}`;
       this.scanTick();
     }
+    const start = this._posTicker.toPosition();
     let level = 1;
     const res: string[] = [];
 
     while (true) {
       if (!this.scanTick()) return { end: true };
-      if (this.curChar === leftChar) level++;
-      else if (this.curChar === rightChar) level--;
+      if (this.curChar === leftChar) {
+        if (leftChar === rightChar) level--;
+        else level++;
+      } else if (this.curChar === rightChar) level--;
       if (level === 0) break;
       res.push(this.curChar);
     }
-    return { res: res.join(""), end: this._posTicker.isEnd() };
+    const end = this._posTicker.toPosition(1);
+    return { res: new TextToken(res.join(""), start, end), end: this._posTicker.isEnd() };
+  }
+
+  splitBy(separator: string) {
+    const ret: TextToken[] = [];
+    this._scanningChars.length = 0;
+    let lvl = 0;
+    while (this.scanTick()) {
+      if (this.curChar === "(") lvl++;
+      else if (this.curChar === ")") lvl--;
+
+      if (this.curChar === separator && lvl === 0) {
+        ret.push(this.getToken());
+      } else {
+        this._scanningChars.push(this.curChar);
+      }
+    }
+    const remain = this.getToken();
+    if (remain) ret.push(remain);
+
+    return ret;
   }
 
   private getToken(): TextToken | undefined {

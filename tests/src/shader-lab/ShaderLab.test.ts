@@ -112,7 +112,6 @@ describe("ShaderLab", () => {
   let passList: ISubShaderInfo["passes"];
   let pass: IShaderPassInfo;
   let usePass: string;
-  let context: any;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);

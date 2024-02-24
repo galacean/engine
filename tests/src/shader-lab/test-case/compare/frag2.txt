@@ -10,11 +10,13 @@
 
 
 void function() {
-  clamp( 9.9999 + 1e-6, 0.0, 1.0 );
+  clamp( 9.9999 + EPSILON, 0.0, 1.0 );
   mat4 m;
   inverseMat(mat);
   float t = 0.416666666667 + 1.0 * 0.8 / (mix(0.0, 0.0025, pow(material_AtmosphereThickness,2.5))) ; 
   float t2 = 0.416666666667 + 1.0 *0.8 /(mix(0.0, 0.0025, pow(material_AtmosphereThickness,2.5))); 
+
+  return clamp(  pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion , 0.0, 1.0 );
 
   float t3 = (mix(0.0, 0.0025, pow(material_AtmosphereThickness,2.5)));
   (vec3(1.0)*vec3(1.0); inverseMat(m));;

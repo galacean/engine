@@ -16,6 +16,8 @@ void function() {
   float t = Kzo + jitter * jitter1 / RAYLEIGH ; 
   float t2 = Kzo + jitter *jitter1 /RAYLEIGH; 
 
+  return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
+
   float t3 = RAYLEIGH;
   RECURSIVE_MACRO(m);
 }

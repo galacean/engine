@@ -2,7 +2,7 @@
 export class PositionTicker {
   private _line: number;
   get line() {
-    return this.line;
+    return this._line;
   }
   private _character: number;
   get character() {

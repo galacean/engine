@@ -1,4 +1,6 @@
 import { TextToken } from "./TextToken";
+/** @ts-ignore */
+import { Logger, ShaderLib } from "@galacean/engine";
 import { Tokenizer } from "./Tokenizer";
 import { Util } from "./Util";
 import { EGSMacro } from "./constants";
@@ -14,7 +16,11 @@ export class Preprocessor {
   private _source: string;
   private _curMacroToken: TextToken;
 
-  private _definePairs: Map<string, { isFunction: boolean; replacer: TextReplacer }> = new Map();
+  /** @internal */
+  _definePairs: Map<string, { isFunction: boolean; replacer: TextReplacer }> = new Map();
+  private set definePairs(pairs: Map<string, { isFunction: boolean; replacer: TextReplacer }>) {
+    this._definePairs = pairs;
+  }
   private _replacers: IReplaceSegment[] = [];
 
   constructor(source: string) {
@@ -27,7 +33,7 @@ export class Preprocessor {
    */
   process() {
     while (true) {
-      const { res: token, end } = this.consumeToken();
+      const { res: token, end } = this.consumeToken(this._tokenizer);
       if (token) {
         this.onToken(token);
       }
@@ -36,7 +42,6 @@ export class Preprocessor {
 
     const ret = Util.replaceSegments(this._source, this._replacers);
 
-    this.reset();
     return ret;
   }
 
@@ -56,32 +61,37 @@ export class Preprocessor {
       case EGSMacro.if:
       case EGSMacro.ifdef:
       case EGSMacro.ifndef:
+      case EGSMacro.undef:
         this._curMacroToken = token;
         break;
       case EGSMacro.endif:
         this._curMacroToken = undefined;
+        break;
+      case EGSMacro.include:
+        this.handleInclude(token);
         break;
       default:
         break;
     }
   }
 
-  private consumeToken() {
+  private consumeToken(tokenizer: Tokenizer) {
     while (true) {
-      const result = this._tokenizer.scanToken();
+      const result = tokenizer.scanToken();
       const { end, res: token } = result;
       if (token) {
         // DELETE
         this._tokenList.push(token);
 
         const defineMacro = this._definePairs.get(token.text);
-        if (defineMacro) {
+        if (defineMacro && !this._curMacroToken) {
           const { isFunction, replacer } = defineMacro;
           if (isFunction) {
-            const { res: chunk } = this._tokenizer.scanChunkBetweenPair("(", ")");
-            const args = chunk.split(",").map((item) => this.extendMacro(item));
+            const { res: chunk } = tokenizer.scanChunkBetweenPair("(", ")");
+            const splitTokenizer = new Tokenizer(chunk.text);
+            const args = splitTokenizer.splitBy(",").map((item) => item.text);
 
-            const endIdx = this._tokenizer.curIndex + 1;
+            const endIdx = tokenizer.curIndex + 1;
             const replace = (<ReplaceFn>replacer)(...args);
             this._replacers.push({ startIdx: token.start.index, endIdx, replace });
           } else {
@@ -94,14 +104,29 @@ export class Preprocessor {
     }
   }
 
+  private handleInclude(macroToken: TextToken) {
+    const { res: includeKey } = this._tokenizer.scanChunkBetweenPair('"', '"');
+    let code = ShaderLib[includeKey.text];
+    if (!code) {
+      Logger.error(`Shader slice "${includeKey.text}" not founded.`);
+    } else {
+      const preprocessor = new Preprocessor(code);
+      preprocessor.definePairs = this._definePairs;
+      code = preprocessor.process();
+    }
+
+    this._replacers.push({ startIdx: macroToken.start.index, endIdx: includeKey.end.index, replace: code ?? "" });
+  }
+
   private handleDefine(macroToken: TextToken) {
     // Ignore processing when under other macro
     if (this._curMacroToken) return;
     this._curMacroToken = macroToken;
     const tokenizer = this._tokenizer;
 
-    const variable = this.consumeToken();
+    const variable = this.consumeToken(this._tokenizer);
     if (!variable.res || variable.end) throw "No defined variable";
+    if (this._definePairs.get(variable.res.text)) throw `redefined macro: ${variable.res.text}`;
 
     let macroArgs: string[];
     const isMacroFunction = tokenizer.curChar === "(";
@@ -111,8 +136,7 @@ export class Preprocessor {
     }
 
     let { res: chunk } = tokenizer.scanChunk("\n", { skipHeadingSpace: true });
-    // extend recursive macro
-    chunk = this.extendMacro(chunk).trimEnd();
+    chunk = this.extendDefineMacro(chunk).trimEnd();
 
     if (isMacroFunction) {
       const replaceRegex = new RegExp(`\\b(${macroArgs.join("|")})\\b`, "g");
@@ -130,7 +154,10 @@ export class Preprocessor {
     this._curMacroToken = undefined;
   }
 
-  private extendMacro(line: string) {
+  /**
+   * extend recursive define macro
+   */
+  private extendDefineMacro(line: string) {
     const tokenizer = new Tokenizer(line);
     const replacers: IReplaceSegment[] = [];
 
@@ -142,7 +169,7 @@ export class Preprocessor {
           const { isFunction, replacer } = defineMacro;
           if (isFunction) {
             const { res: chunk } = tokenizer.scanChunkBetweenPair("(", ")");
-            const args = chunk.split(",").map((item) => this.extendMacro(item));
+            const args = chunk.text.split(",").map((item) => this.extendDefineMacro(item));
 
             const endIdx = tokenizer.curIndex + 1;
             const replace = (<ReplaceFn>replacer)(...args);
