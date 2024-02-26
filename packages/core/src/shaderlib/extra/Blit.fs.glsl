@@ -2,6 +2,7 @@ uniform mediump sampler2D renderer_BlitTexture;
 #ifdef HAS_TEX_LOD
 	uniform float renderer_BlitMipLevel;
 #endif
+
 varying vec2 v_uv;
 
 void main() {

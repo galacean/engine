@@ -51,17 +51,7 @@ export enum WebGLMode {
 /**
  * WebGL graphic device options.
  */
-export interface WebGLGraphicDeviceOptions {
-  alpha?: boolean;
-  antialias?: boolean;
-  depth?: boolean;
-  desynchronized?: boolean;
-  failIfMajorPerformanceCaveat?: boolean;
-  powerPreference?: WebGLPowerPreference;
-  premultipliedAlpha?: boolean;
-  preserveDrawingBuffer?: boolean;
-  stencil?: boolean;
-
+export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
 

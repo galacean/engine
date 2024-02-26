@@ -1,5 +1,5 @@
 /**
- * Defines various pixel formats.
+ * Texture format enumeration.
  */
 export enum TextureFormat {
   /** RGB format, 8 bits per channel. */
