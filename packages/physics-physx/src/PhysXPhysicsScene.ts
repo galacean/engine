@@ -116,17 +116,21 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   removeColliderShape(colliderShape: PhysXColliderShape) {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    const { _id: shapeID } = colliderShape;
+    const { _id: id } = colliderShape;
     const { _eventMap: eventMap } = this._physXManager;
     for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
-      if (event.index1 == shapeID || event.index2 == shapeID) {
+      if (event.index1 == id) {
         currentEvents.deleteByIndex(i);
-        eventMap[event.index1][event.index2] = undefined;
         eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
       }
     }
-    delete eventMap[shapeID];
+    delete eventMap[id];
   }
 
   /**
