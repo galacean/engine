@@ -78,7 +78,7 @@ import {
   VariablePropertyAstNode,
   VariableTypeAstNode
 } from "./ast-node";
-import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
+import { IPassAstContent, IShaderAstContent, ISubShaderAstContent } from "./ast-node/";
 import {
   ICstNodeVisitor,
   _ruleAddOperatorCstChildren,

@@ -190,6 +190,7 @@ describe("Physics Test", () => {
       expect(outHitResult.point.z).to.be.closeTo(0.5, 0.01);
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast with outHitResult works correctly.
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(true);
@@ -199,6 +200,7 @@ describe("Physics Test", () => {
       expect(outHitResult.point.z).to.be.closeTo(0.5, 0.01);
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast nothing if layer is not match.
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Layer1, outHitResult)).to.eq(false);
@@ -206,6 +208,7 @@ describe("Physics Test", () => {
       expect(outHitResult.point).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.null;
+      expect(outHitResult.shape).to.be.null;
 
       // Test that return origin point if origin is inside collider.
       ray = new Ray(new Vector3(0.25, -0.5, 0.5), new Vector3(0, -1, 0));
@@ -213,6 +216,7 @@ describe("Physics Test", () => {
       expect(outHitResult.distance).to.be.eq(0);
       expect(outHitResult.point).to.be.deep.include({ x: 0.25, y: -0.5, z: 0.5 });
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast nothing if distance is less than distance of origin to detected collider.
       expect(engineLite.physicsManager.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(true);

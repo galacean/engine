@@ -26,9 +26,7 @@ export class RenderQueue {
     }
     // make suer from the same renderer.
     if (componentA.instanceId === componentB.instanceId) {
-      return (
-        dataA.material._priority - dataB.material._priority || componentA._distanceForSort - componentB._distanceForSort
-      );
+      return dataA.material._priority - dataB.material._priority;
     } else {
       const distanceDiff = componentA._distanceForSort - componentB._distanceForSort;
       if (distanceDiff === 0) {
@@ -53,9 +51,7 @@ export class RenderQueue {
     }
     // make suer from the same renderer.
     if (componentA.instanceId === componentB.instanceId) {
-      return (
-        dataA.material._priority - dataB.material._priority || componentB._distanceForSort - componentA._distanceForSort
-      );
+      return dataA.material._priority - dataB.material._priority;
     } else {
       const distanceDiff = componentB._distanceForSort - componentA._distanceForSort;
       if (distanceDiff === 0) {
