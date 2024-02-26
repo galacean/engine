@@ -30,7 +30,11 @@ export class BasicResources {
     mesh.setVertexBufferBinding(new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static), 16);
     mesh.addSubMesh(0, 4, MeshTopology.TriangleStrip);
 
+    const blitMaterial = new Material(engine, Shader.find("blit"));
+    blitMaterial.renderState.depthState.enabled = false;
+    blitMaterial.renderState.depthState.writeEnabled = false;
+
     this.blitMesh = mesh;
-    this.blitMaterial = new Material(engine, Shader.find("blit"));
+    this.blitMaterial = blitMaterial;
   }
 }

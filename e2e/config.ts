@@ -133,5 +133,12 @@ export const E2E_CONFIG = {
       caseFileName: "primitive-torus",
       threshold: 0.1
     }
+  },
+  Camera: {
+    opaqueTexture: {
+      category: "Camera",
+      caseFileName: "camera-opaque-texture",
+      threshold: 0.1
+    }
   }
 };
