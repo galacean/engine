@@ -86,20 +86,6 @@ import {
 } from "./AstNodeContent";
 
 /** @internal */
-export interface IPosition {
-  line: number;
-  character: number;
-  // offset from first character
-  index: number;
-}
-
-/** @internal */
-export interface IPositionRange {
-  start: IPosition;
-  end: IPosition;
-}
-
-/** @internal */
 export class AstNode<T = any> {
   position: IPositionRange;
   content: T;

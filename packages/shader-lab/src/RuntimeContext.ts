@@ -17,7 +17,6 @@ import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./Constants";
 import {
   FnMacroAstNode,
   IPassAstContent,
-  IPositionRange,
   IShaderAstContent,
   ISubShaderAstContent,
   IUsePassAstContent
@@ -25,6 +24,7 @@ import {
 
 import { RenderStateDataKey } from "@galacean/engine";
 import ParsingContext from "./ParsingContext";
+import { Preprocessor } from "./preprocessor";
 
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -116,6 +116,11 @@ export default class RuntimeContext {
 
   set parsingContext(context: ParsingContext) {
     this._parsingContext = context;
+  }
+
+  private _preprocessor: Preprocessor;
+  set preprocessor(preprocessor: Preprocessor) {
+    this._preprocessor = preprocessor;
   }
 
   /** Current position */
@@ -305,6 +310,19 @@ export default class RuntimeContext {
     }
   }
 
+  // If be aware of the complete input macro list when parsing, the snippets below is not required.
+  getExtendedDefineMacros() {
+    return Array.from(this._preprocessor._definePairs.entries())
+      .map(([k, v]) => {
+        let ret = `#define ${k}`;
+        if (!v.isFunction) {
+          ret += ` ${v.replacer}`;
+        }
+        return ret;
+      })
+      .join("\n");
+  }
+
   private _shaderReset() {
     this._shaderGlobalMap.clear();
     this._serializingNodeStack.length = 0;
@@ -375,7 +393,6 @@ export default class RuntimeContext {
   }
 
   private _initPassGlobalList(passAst: AstNode<IPassAstContent>) {
-    const passGlobalMap = this._passGlobalMap;
     const content = passAst.content;
 
     content.functions?.forEach((item) => {

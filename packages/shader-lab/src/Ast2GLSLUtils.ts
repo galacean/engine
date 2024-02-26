@@ -117,7 +117,7 @@ export class Ast2GLSLUtils {
       .map((item) => item.text)
       .join("\n");
 
-    return [globalFragmentSource, vertexFnStr].join("\n");
+    return [context.getExtendedDefineMacros(), globalFragmentSource, vertexFnStr].join("\n");
   }
 
   static stringifyFragmentFunction(
@@ -154,6 +154,6 @@ export class Ast2GLSLUtils {
       .map((item) => item.text)
       .join("\n");
 
-    return [globalFragmentSource, fragmentFnStr].join("\n");
+    return [context.getExtendedDefineMacros(), globalFragmentSource, fragmentFnStr].join("\n");
   }
 }
