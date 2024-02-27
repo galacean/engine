@@ -44,21 +44,11 @@ export class RasterState {
   /**
    * @internal
    */
-  _apply(
-    hardwareRenderer: IHardwareRenderer,
-    lastRenderState: RenderState,
-    frontFaceInvert: boolean,
-    flipY: boolean
-  ): void {
-    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert, flipY);
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState, frontFaceInvert: boolean): void {
+    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert);
   }
 
-  private _platformApply(
-    rhi: IHardwareRenderer,
-    lastState: RasterState,
-    frontFaceInvert: boolean,
-    flipY: boolean
-  ): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: RasterState, frontFaceInvert: boolean): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const { cullMode, depthBias, slopeScaledDepthBias } = this;
 
@@ -84,7 +74,6 @@ export class RasterState {
       }
     }
 
-    flipY && (frontFaceInvert = !frontFaceInvert);
     if (frontFaceInvert !== lastState._frontFaceInvert) {
       if (frontFaceInvert) {
         gl.frontFace(gl.CW);

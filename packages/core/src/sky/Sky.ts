@@ -101,7 +101,7 @@ export class Sky {
     Matrix.multiply(projectionMatrix, viewProjMatrix, viewProjMatrix);
     const originViewProjMatrix = cameraShaderData.getMatrix(RenderContext.vpMatrixProperty);
 
-    if (context.flipY) {
+    if (context.flipProjection) {
       Matrix.multiply(RenderContext._flipYMatrix, viewProjMatrix, viewProjMatrix);
     }
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, viewProjMatrix);
