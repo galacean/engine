@@ -89,6 +89,13 @@ export function initScreenshot(
           a.parentElement.removeChild(a);
         }
       });
+
+      window.URL.revokeObjectURL(url);
+
+      // revert
+      camera.renderTarget = originalTarget;
+      camera.resetAspectRatio();
+      !isPaused && engine.resume();
     },
     isPNG ? "image/png" : "image/jpeg",
     !isPNG && jpgQuality
