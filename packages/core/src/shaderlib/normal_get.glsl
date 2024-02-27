@@ -1,5 +1,3 @@
-uniform float camera_FlipY;
-
 // gl_FrontFacing has random value on Adreno GPUs
 // the Adreno bug is only when gl_FrontFacing is inside a function
 // https://bugs.chromium.org/p/chromium/issues/detail?id=1154842
@@ -10,7 +8,7 @@ vec3 getNormal(bool isFrontFacing){
         vec3 pos_dx = dFdx(v_pos);
         vec3 pos_dy = dFdy(v_pos);
         vec3 normal = normalize( cross(pos_dx, pos_dy) );
-        normal *= camera_FlipY;
+        normal *= camera_ProjectionParams.x;
     #else
         vec3 normal = vec3(0, 0, 1);
     #endif
@@ -51,7 +49,7 @@ mat3 getTBN(bool isFrontFacing){
 
 	        // construct a scale-invariant frame 
             float denom = max( dot(tangent, tangent), dot(bitangent, bitangent) );
-            float invmax = (denom == 0.0) ? 0.0 : camera_FlipY / sqrt( denom );
+            float invmax = (denom == 0.0) ? 0.0 : camera_ProjectionParams.x / sqrt( denom );
 	        mat3 tbn = mat3(tangent * invmax, bitangent * invmax, normal);
         #else
             mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);

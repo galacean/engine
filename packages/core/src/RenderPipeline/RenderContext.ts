@@ -1,4 +1,4 @@
-import { Matrix } from "@galacean/engine-math";
+import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { VirtualCamera } from "../VirtualCamera";
 import { Shader, ShaderProperty } from "../shader";
@@ -15,11 +15,13 @@ export class RenderContext {
   /** @internal */
   static _flipYMatrix = new Matrix(1, 0, 0, 0, 0, -1);
 
+  private static _cameraProjectionProperty = ShaderProperty.getByName("camera_ProjectionParams");
   private static _viewMatrixProperty = ShaderProperty.getByName("camera_ViewMat");
   private static _projectionMatrixProperty = ShaderProperty.getByName("camera_ProjMat");
-  private static _flipYProperty = ShaderProperty.getByName("camera_FlipY");
   private static _flipYProjectionMatrix = new Matrix();
   private static _flipYViewProjectionMatrix = new Matrix();
+
+  private _projectionParams: Vector4 = new Vector4();
 
   camera: Camera;
   virtualCamera: VirtualCamera;
@@ -54,6 +56,10 @@ export class RenderContext {
     shaderData.setMatrix(RenderContext._viewMatrixProperty, viewMatrix);
     shaderData.setMatrix(RenderContext._projectionMatrixProperty, projectionMatrix);
     shaderData.setMatrix(RenderContext.vpMatrixProperty, viewProjectionMatrix);
-    shaderData.setFloat(RenderContext._flipYProperty, flipProjection ? -1 : 1);
+
+    const camera = this.virtualCamera;
+    const projectionParams = this._projectionParams;
+    projectionParams.set(flipProjection ? -1 : 1, camera.nearClipPlane, camera.farClipPlane, 1);
+    shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 }
