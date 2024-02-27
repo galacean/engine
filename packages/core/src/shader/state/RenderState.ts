@@ -60,6 +60,10 @@ export class RenderState {
     this.blendState._apply(hardwareRenderer, lastRenderState);
     this.depthState._apply(hardwareRenderer, lastRenderState);
     this.stencilState._apply(hardwareRenderer, lastRenderState);
-    this.rasterState._apply(hardwareRenderer, lastRenderState, context.flipProjection ? !frontFaceInvert : frontFaceInvert);
+    this.rasterState._apply(
+      hardwareRenderer,
+      lastRenderState,
+      context.flipProjection ? !frontFaceInvert : frontFaceInvert
+    );
   }
 }
