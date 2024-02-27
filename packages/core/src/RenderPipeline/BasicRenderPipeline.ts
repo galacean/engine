@@ -310,8 +310,8 @@ export class BasicRenderPipeline {
   }
 
   private _prepareRender(context: RenderContext): void {
-    const engine = context.camera.engine;
     const camera = context.camera;
+    const engine = camera.engine;
     const renderers = camera.scene._componentsManager._renderers;
 
     const elements = renderers._elements;
@@ -335,7 +335,6 @@ export class BasicRenderPipeline {
   }
 
   private _updateMVPShaderData(context: RenderContext) {
-    const engine = context.camera.engine;
     const camera = context.camera;
     const renderers = camera.scene._componentsManager._renderers;
 

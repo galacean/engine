@@ -34,7 +34,7 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
-  applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection = false): void {
+  applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean): void {
     this.virtualCamera = virtualCamera;
     this.flipProjection = flipProjection;
 
@@ -57,9 +57,8 @@ export class RenderContext {
     shaderData.setMatrix(RenderContext._projectionMatrixProperty, projectionMatrix);
     shaderData.setMatrix(RenderContext.vpMatrixProperty, viewProjectionMatrix);
 
-    const camera = this.virtualCamera;
     const projectionParams = this._projectionParams;
-    projectionParams.set(flipProjection ? -1 : 1, camera.nearClipPlane, camera.farClipPlane, 1);
+    projectionParams.set(flipProjection ? -1 : 1, virtualCamera.nearClipPlane, virtualCamera.farClipPlane, 0);
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 }
