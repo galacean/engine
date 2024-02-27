@@ -45,7 +45,7 @@ export class ShadowUtils {
   /** @internal */
   private static _shadowMapCoordMatrix: Matrix = new Matrix(
     0.5, 0.0, 0.0, 0.0,
-    0.0, 0.5, 0.0, 0.0,
+    0.0, -0.5, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
     0.5, 0.5, 0.5, 1.0
   );

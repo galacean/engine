@@ -389,15 +389,11 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
-    const virtualCamera = context.virtualCamera;
-
     const mvMatrix = this._mvMatrix;
-    const mvpMatrix = this._mvpMatrix;
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(virtualCamera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(virtualCamera.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();
@@ -405,9 +401,19 @@ export class Renderer extends Component implements IComponentCustomClone {
     shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
     shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
     shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+    this._updateMVPShaderData(context, worldMatrix);
+  }
+
+  /**
+   * @internal
+   */
+  _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix): void {
+    const mvpMatrix = this._mvpMatrix;
+
+    Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
   }
 
   /**
