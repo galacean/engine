@@ -20,8 +20,6 @@ export class RasterState {
   _cullFaceEnable: boolean = true;
   /** @internal */
   _frontFaceInvert: boolean = false;
-  /** @internal */
-  _flipY: boolean = false;
 
   /**
    * @internal
@@ -86,14 +84,14 @@ export class RasterState {
       }
     }
 
-    if (frontFaceInvert !== lastState._frontFaceInvert || flipY !== lastState._flipY) {
+    flipY && (frontFaceInvert = !frontFaceInvert);
+    if (frontFaceInvert !== lastState._frontFaceInvert) {
       if (frontFaceInvert) {
-        flipY ? gl.frontFace(gl.CCW) : gl.frontFace(gl.CW);
+        gl.frontFace(gl.CW);
       } else {
-        flipY ? gl.frontFace(gl.CW) : gl.frontFace(gl.CCW);
+        gl.frontFace(gl.CCW);
       }
       lastState._frontFaceInvert = frontFaceInvert;
-      lastState._flipY = flipY;
     }
 
     // apply polygonOffset.
