@@ -95,7 +95,7 @@ export function initScreenshot(
       // revert
       camera.renderTarget = originalTarget;
       camera.resetAspectRatio();
-      !isPaused && engine.resume();
+      // !isPaused && engine.resume();
     },
     isPNG ? "image/png" : "image/jpeg",
     !isPNG && jpgQuality
