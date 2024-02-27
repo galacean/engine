@@ -134,7 +134,7 @@ export class GLTFUtils {
     accessor: IAccessor
   ): Promise<BufferInfo> {
     const componentType = accessor.componentType;
-    const bufferView = bufferViews[accessor.bufferView];
+    const bufferView = bufferViews[accessor.bufferView ?? 0];
 
     return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
       const bufferIndex = bufferView.buffer;
