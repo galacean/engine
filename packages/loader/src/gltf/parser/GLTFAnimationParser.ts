@@ -84,13 +84,13 @@ export class GLTFAnimationParser extends GLTFParser {
           duration = maxTime;
         }
 
-        sampleDataCollection.push({
+        sampleDataCollection[j] = {
           type: outputAccessor.type,
           interpolation: samplerInterpolation,
           input,
           output,
           outputSize: outputStride
-        });
+        };
       });
       promises.push(promise);
     }
