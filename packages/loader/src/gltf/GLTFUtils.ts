@@ -134,7 +134,8 @@ export class GLTFUtils {
     accessor: IAccessor
   ): Promise<BufferInfo> {
     const componentType = accessor.componentType;
-    const bufferView = bufferViews[accessor.bufferView];
+    const bufferViewIndex = accessor.bufferView ?? 0;
+    const bufferView = bufferViews[bufferViewIndex];
 
     return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
       const bufferIndex = bufferView.buffer;
@@ -153,7 +154,7 @@ export class GLTFUtils {
       // According to the glTF official documentation only byteStride not undefined is allowed
       if (bufferStride !== undefined && bufferStride !== elementStride) {
         const bufferSlice = Math.floor(byteOffset / bufferStride);
-        const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+        const bufferCacheKey = bufferViewIndex + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
         const accessorBufferCache = context.accessorBufferCache;
         bufferInfo = accessorBufferCache[bufferCacheKey];
         if (!bufferInfo) {
@@ -206,7 +207,7 @@ export class GLTFUtils {
    */
   static getAccessorData(glTF: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
     const bufferViews = glTF.bufferViews;
-    const bufferView = bufferViews[accessor.bufferView];
+    const bufferView = bufferViews[accessor.bufferView ?? 0];
     const arrayBuffer = buffers[bufferView.buffer];
     const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
     const bufferViewByteOffset = bufferView.hasOwnProperty("byteOffset") ? bufferView.byteOffset : 0;
