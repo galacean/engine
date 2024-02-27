@@ -67,10 +67,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._camera = camera;
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
-    const virtualCamera = this._shadowSliceData.virtualCamera;
-    virtualCamera.isOrthographic = true;
-    virtualCamera.nearClipPlane = camera.nearClipPlane;
-    virtualCamera.farClipPlane = camera.farClipPlane;
+    this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
 
   /**
