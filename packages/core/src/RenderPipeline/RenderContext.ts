@@ -12,6 +12,9 @@ export class RenderContext {
   static vpMatrixProperty = ShaderProperty.getByName("camera_VPMat");
   static pipelineStageKey: ShaderTagKey = ShaderTagKey.getByName("pipelineStage");
 
+  /** @internal */
+  static _flipYMatrix = new Matrix(1, 0, 0, 0, 0, -1);
+  
   private static _viewMatrixProperty = ShaderProperty.getByName("camera_ViewMat");
   private static _projectionMatrixProperty = ShaderProperty.getByName("camera_ProjMat");
   private static _flipYProperty = ShaderProperty.getByName("camera_FlipY");
@@ -37,14 +40,11 @@ export class RenderContext {
     let { viewMatrix, projectionMatrix, viewProjectionMatrix } = virtualCamera;
 
     if (flipY) {
-      projectionMatrix = RenderContext._flipYProjectionMatrix.copyFrom(projectionMatrix);
-      viewProjectionMatrix = RenderContext._flipYViewProjectionMatrix.copyFrom(viewProjectionMatrix);
-      projectionMatrix.elements[5] *= -1;
-      const e = viewProjectionMatrix.elements;
-      e[1] *= -1;
-      e[5] *= -1;
-      e[9] *= -1;
-      e[13] *= -1;
+      Matrix.multiply(RenderContext._flipYMatrix, projectionMatrix, RenderContext._flipYProjectionMatrix);
+      Matrix.multiply(RenderContext._flipYProjectionMatrix, viewMatrix, RenderContext._flipYViewProjectionMatrix);
+
+      projectionMatrix = RenderContext._flipYProjectionMatrix;
+      viewProjectionMatrix = RenderContext._flipYViewProjectionMatrix;
     }
 
     this.viewMatrix = viewMatrix;
@@ -54,6 +54,6 @@ export class RenderContext {
     shaderData.setMatrix(RenderContext._viewMatrixProperty, viewMatrix);
     shaderData.setMatrix(RenderContext._projectionMatrixProperty, projectionMatrix);
     shaderData.setMatrix(RenderContext.vpMatrixProperty, viewProjectionMatrix);
-    shaderData.setFloat(RenderContext._flipYProperty, this.flipY ? -1 : 1);
+    shaderData.setFloat(RenderContext._flipYProperty, flipY ? -1 : 1);
   }
 }
