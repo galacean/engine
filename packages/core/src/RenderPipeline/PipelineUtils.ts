@@ -123,8 +123,13 @@ export class PipelineUtils {
     mipLevel: number = 0,
     viewport?: Vector4
   ): void {
-    const { blitMesh, blitMaterial } = engine._basicResources;
+    const basicResources = engine._basicResources;
+    const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
+    const blitMaterial = basicResources.blitMaterial;
     const rhi = engine._hardwareRenderer;
+
+    // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
+    engine._renderContext.flipProjection = destination ? true : false;
 
     rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, 0);
 

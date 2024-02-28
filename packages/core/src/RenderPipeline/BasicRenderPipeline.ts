@@ -77,7 +77,6 @@ export class BasicRenderPipeline {
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
-    const rt2DEnabled = camera.renderTarget && cubeFace == undefined;
     camera.engine._spriteMaskManager.clear();
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
@@ -87,7 +86,7 @@ export class BasicRenderPipeline {
     cullingResults.reset();
     this._allSpriteMasks.length = 0;
 
-    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled || rt2DEnabled);
+    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
     cullingResults.sort();
@@ -95,10 +94,6 @@ export class BasicRenderPipeline {
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
-      if (!rt2DEnabled) {
-        context.applyVirtualCamera(camera._virtualCamera, false);
-        this._updateMVPShaderData(context);
-      }
     } else {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
     }
@@ -153,8 +148,16 @@ export class BasicRenderPipeline {
 
     const internalColorTarget = this._internalColorTarget;
     const rhi = engine._hardwareRenderer;
-    const colorTarget = camera.renderTarget || internalColorTarget;
+    const colorTarget = camera.renderTarget ?? internalColorTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
+    const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget != undefined;
+
+    if (context.flipProjection !== needFlipProjection) {
+      context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
+      this._updateMVPShaderData(context);
+      // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
+      engine._renderCount++;
+    }
 
     rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
@@ -316,7 +319,7 @@ export class BasicRenderPipeline {
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
-      renderer._updateMVPShaderData(context, renderer.entity.transform.worldMatrix);
+      renderer._updateShaderData(context, true);
     }
   }
 }
