@@ -21,7 +21,7 @@ export function initScreenshot(
   camera: Camera,
   width: number = 1200,
   height: number = 800,
-  flipY = true,
+  flipY = false,
   isPNG = false,
   jpgQuality = 1
 ) {
@@ -89,6 +89,13 @@ export function initScreenshot(
           a.parentElement.removeChild(a);
         }
       });
+
+      // window.URL.revokeObjectURL(url);
+
+      // revert
+      camera.renderTarget = originalTarget;
+      camera.resetAspectRatio();
+      !isPaused && engine.resume();
     },
     isPNG ? "image/png" : "image/jpeg",
     !isPNG && jpgQuality

@@ -228,6 +228,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
         // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
         rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
+        // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
         engine._renderCount++;
 
         opaqueQueue.render(camera, PipelineStage.ShadowCaster);
@@ -378,6 +379,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
-    context.applyVirtualCamera(virtualCamera);
+    context.applyVirtualCamera(virtualCamera, true);
   }
 }

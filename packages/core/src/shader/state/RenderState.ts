@@ -56,9 +56,14 @@ export class RenderState {
     renderStateDataMap && this._applyShaderDataValue(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
+    const context = engine._renderContext;
     this.blendState._apply(hardwareRenderer, lastRenderState);
     this.depthState._apply(hardwareRenderer, lastRenderState);
     this.stencilState._apply(hardwareRenderer, lastRenderState);
-    this.rasterState._apply(hardwareRenderer, lastRenderState, frontFaceInvert);
+    this.rasterState._apply(
+      hardwareRenderer,
+      lastRenderState,
+      context.flipProjection ? !frontFaceInvert : frontFaceInvert
+    );
   }
 }

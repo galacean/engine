@@ -119,8 +119,6 @@ export class Camera extends Component {
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   private _isCustomViewMatrix = false;
   private _isCustomProjectionMatrix = false;
-  private _nearClipPlane: number = 0.1;
-  private _farClipPlane: number = 100;
   private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
   private _isProjectionDirty = true;
@@ -178,11 +176,11 @@ export class Camera extends Component {
    * Near clip plane - the closest point to the camera when rendering occurs.
    */
   get nearClipPlane(): number {
-    return this._nearClipPlane;
+    return this._virtualCamera.nearClipPlane;
   }
 
   set nearClipPlane(value: number) {
-    this._nearClipPlane = value;
+    this._virtualCamera.nearClipPlane = value;
     this._projectionMatrixChange();
   }
 
@@ -190,11 +188,11 @@ export class Camera extends Component {
    * Far clip plane - the furthest point to the camera when rendering occurs.
    */
   get farClipPlane(): number {
-    return this._farClipPlane;
+    return this._virtualCamera.farClipPlane;
   }
 
   set farClipPlane(value: number) {
-    this._farClipPlane = value;
+    this._virtualCamera.farClipPlane = value;
     this._projectionMatrixChange();
   }
 
@@ -335,14 +333,14 @@ export class Camera extends Component {
       Matrix.perspective(
         MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
-        this._nearClipPlane,
-        this._farClipPlane,
+        this.nearClipPlane,
+        this.farClipPlane,
         projectionMatrix
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
       const height = this._orthographicSize;
-      Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, projectionMatrix);
+      Matrix.ortho(-width, width, -height, height, this.nearClipPlane, this.farClipPlane, projectionMatrix);
     }
     return projectionMatrix;
   }
@@ -743,7 +741,7 @@ export class Camera extends Component {
     shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
 
     const depthBufferParams = this._depthBufferParams;
-    const farDivideNear = this._farClipPlane / this._nearClipPlane;
+    const farDivideNear = this.farClipPlane / this.nearClipPlane;
     depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
