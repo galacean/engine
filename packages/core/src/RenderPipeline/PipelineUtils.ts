@@ -1,6 +1,5 @@
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -14,7 +13,6 @@ export class PipelineUtils {
   private static _blitTextureProperty = ShaderProperty.getByName("renderer_BlitTexture");
   private static _blitMipLevelProperty = ShaderProperty.getByName("renderer_BlitMipLevel");
 
-  private static _blitClearColor = new Color(0, 0, 0, 1);
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
 
   static readonly defaultViewport = new Vector4(0, 0, 1, 1);
@@ -129,7 +127,6 @@ export class PipelineUtils {
     const rhi = engine._hardwareRenderer;
 
     rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, 0);
-    rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._blitClearColor);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;
     const pass = blitMaterial.shader.subShaders[0].passes[0];
