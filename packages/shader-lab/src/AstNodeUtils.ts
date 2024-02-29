@@ -1,7 +1,6 @@
 import { CstChildrenDictionary, CstNode, ICstVisitor, IToken } from "chevrotain";
 
 import { AstNode, ObjectAstNode } from "./ast-node";
-import { IPosition, IPositionRange } from "./ast-node/";
 
 /** @internal */
 export class AstNodeUtils {

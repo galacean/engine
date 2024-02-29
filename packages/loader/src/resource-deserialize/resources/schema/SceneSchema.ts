@@ -34,6 +34,7 @@ export interface IScene extends IPrefabFile {
       shadowCascades: ShadowCascadesMode;
       shadowTwoCascadeSplits: number;
       shadowFourCascadeSplits: IVector3;
+      shadowFadeBorder: number;
     };
   };
   files: Array<{ id: string; type: string; virtualPath: string; path: string }>;

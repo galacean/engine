@@ -141,6 +141,9 @@ export class BasicRenderPipeline {
     const scene = camera.scene;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
+    const depthOnlyPass = this._depthOnlyPass;
+    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const rt2DEnabled = camera.renderTarget && cubeFace == undefined;
     camera.engine._spriteMaskManager.clear();
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
@@ -150,15 +153,18 @@ export class BasicRenderPipeline {
     cullingResults.reset();
     this._allSpriteMasks.length = 0;
 
-    context.applyVirtualCamera(camera._virtualCamera);
+    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled || rt2DEnabled);
+    this._prepareRender(context);
 
-    this._callRender(context);
     cullingResults.sort();
 
-    const depthOnlyPass = this._depthOnlyPass;
-    if (camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture) {
+    if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
+      if (!rt2DEnabled) {
+        context.applyVirtualCamera(camera._virtualCamera, false);
+        this._updateMVPShaderData(context);
+      }
     } else {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, camera.engine._whiteTexture2D);
     }
@@ -303,9 +309,9 @@ export class BasicRenderPipeline {
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 
-  private _callRender(context: RenderContext): void {
-    const engine = context.camera.engine;
+  private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
+    const engine = camera.engine;
     const renderers = camera.scene._componentsManager._renderers;
 
     const elements = renderers._elements;
@@ -325,6 +331,17 @@ export class BasicRenderPipeline {
       }
       renderer._renderFrameCount = engine.time.frameCount;
       renderer._prepareRender(context);
+    }
+  }
+
+  private _updateMVPShaderData(context: RenderContext) {
+    const camera = context.camera;
+    const renderers = camera.scene._componentsManager._renderers;
+
+    const elements = renderers._elements;
+    for (let i = renderers.length - 1; i >= 0; --i) {
+      const renderer = elements[i];
+      renderer._updateMVPShaderData(context, renderer.entity.transform.worldMatrix);
     }
   }
 }

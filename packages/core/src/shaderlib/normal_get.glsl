@@ -8,6 +8,7 @@ vec3 getNormal(bool isFrontFacing){
         vec3 pos_dx = dFdx(v_pos);
         vec3 pos_dy = dFdy(v_pos);
         vec3 normal = normalize( cross(pos_dx, pos_dy) );
+        normal *= camera_ProjectionParams.x;
     #else
         vec3 normal = vec3(0, 0, 1);
     #endif
@@ -47,7 +48,8 @@ mat3 getTBN(bool isFrontFacing){
 	        vec3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
 
 	        // construct a scale-invariant frame 
-	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(bitangent, bitangent)));
+            float denom = max( dot(tangent, tangent), dot(bitangent, bitangent) );
+            float invmax = (denom == 0.0) ? 0.0 : camera_ProjectionParams.x / sqrt( denom );
 	        mat3 tbn = mat3(tangent * invmax, bitangent * invmax, normal);
         #else
             mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);

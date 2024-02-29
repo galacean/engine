@@ -2,11 +2,9 @@ import { CstParser, Lexer, TokenType } from "chevrotain";
 import { Others, Symbols, Types, Keywords, Values, GLKeywords, RenderState, _allTokens } from "./tokens";
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "./tokens/Value";
 import { Identifier } from "./tokens/Other";
-import { ShaderFactory } from "@galacean/engine";
 
 export class ShaderParser extends CstParser {
   lexer: Lexer;
-  extendedSource: string;
 
   constructor() {
     super(_allTokens, { maxLookahead: 7 });
@@ -16,10 +14,7 @@ export class ShaderParser extends CstParser {
   }
 
   parse(text: string) {
-    const source = ShaderFactory.parseIncludes(text, /^[ \t]*#include +"([\w\d.]+)"/gm);
-    this.extendedSource = source;
-
-    const lexingResult = this.lexer.tokenize(source);
+    const lexingResult = this.lexer.tokenize(text);
     this.input = lexingResult.tokens;
   }
 

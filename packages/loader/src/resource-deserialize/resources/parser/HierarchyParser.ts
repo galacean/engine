@@ -304,10 +304,9 @@ export default abstract class HierarchyParser<T extends Scene | Entity, V extend
       }
       components.set(`${path}:${name}/${componentIndexMap[name]++}`, component);
     });
-    for (let i = 0; i < entity.children.length; i++) {
+    for (let i = 0, n = entity.children.length; i < n; i++) {
       const child = entity.children[i];
-      const childPath = path ? `${path}/${child.name}` : child.name;
-
+      const childPath = path ? `${path}/${i}` : `${i}`;
       this._traverseAddEntityToMap(child, context, childPath);
     }
   }

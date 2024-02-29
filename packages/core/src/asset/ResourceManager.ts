@@ -433,10 +433,20 @@ export class ResourceManager {
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
     const [baseUrl, searchStr] = path.split("?");
-    const searchParams = new URLSearchParams(searchStr);
-    const queryPath = searchParams.get("q");
-    searchParams.delete("q");
-    const assetBaseURL = searchParams.size > 0 ? baseUrl + "?" + searchParams.toString() : baseUrl;
+    let queryPath = undefined;
+    let assetBaseURL = baseUrl;
+    if (searchStr) {
+      const params = searchStr.split("&");
+      for (let i = 0; i < params.length; i++) {
+        const param = params[i];
+        if (param.startsWith(`q=`)) {
+          queryPath = decodeURIComponent(param.split("=")[1]);
+          params.splice(i, 1);
+          break;
+        }
+      }
+      assetBaseURL = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
+    }
     return { assetBaseURL, queryPath };
   }
 
