@@ -21,7 +21,25 @@ export default class ParsingContext {
     this._parseString = input;
   }
 
-  balanceGroups(title: string) {
+  filterString(title: string) {
+    let range = this.balanceGroups(title);
+    if (range) {
+      this._parseString = this._parseString.slice(0, range.start) + this._parseString.slice(range.end);
+      this._positionOffsetList.push({ index: range.start, line: range.line });
+    }
+  }
+
+  getTextLineOffsetAt(index: number) {
+    let offset = 0;
+    for (const item of this._positionOffsetList) {
+      if (index >= item.index) {
+        offset += item.line;
+      }
+    }
+    return offset;
+  }
+
+  private balanceGroups(title: string) {
     let balance = 0;
     let start = -1;
     let end = -1;
@@ -44,23 +62,5 @@ export default class ParsingContext {
       }
     }
     if (start >= 0) return { start, end, line };
-  }
-
-  filterString(title: string) {
-    let range = this.balanceGroups(title);
-    if (range) {
-      this._parseString = this._parseString.slice(0, range.start) + this._parseString.slice(range.end);
-      this._positionOffsetList.push({ index: range.start, line: range.line });
-    }
-  }
-
-  getTextLineOffsetAt(index: number) {
-    let offset = 0;
-    for (const item of this._positionOffsetList) {
-      if (index >= item.index) {
-        offset += item.line;
-      }
-    }
-    return offset;
   }
 }

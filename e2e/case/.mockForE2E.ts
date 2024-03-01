@@ -90,12 +90,12 @@ export function initScreenshot(
         }
       });
 
-      window.URL.revokeObjectURL(url);
+      // window.URL.revokeObjectURL(url);
 
       // revert
       camera.renderTarget = originalTarget;
       camera.resetAspectRatio();
-      // !isPaused && engine.resume();
+      !isPaused && engine.resume();
     },
     isPNG ? "image/png" : "image/jpeg",
     !isPNG && jpgQuality

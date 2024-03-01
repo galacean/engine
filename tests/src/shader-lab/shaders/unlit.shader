@@ -51,8 +51,6 @@ Shader "Water" {
       highp float u_fogDensity;
       vec4 material_BaseColor;
       float material_AlphaCutoff;
-      vec4 material_BaseColor;
-      float material_AlphaCutoff;
       ivec3 renderer_BlendShapeTextureInfo;
       vec2 renderer_BlendShapeWeights[RENDERER_BLENDSHAPE_COUNT];
       

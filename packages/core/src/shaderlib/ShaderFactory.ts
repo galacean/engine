@@ -18,6 +18,10 @@ export class ShaderFactory {
     ShaderLib[includeName] = includeSource;
   }
 
+  static unRegisterInclude(includeName: string) {
+    delete ShaderLib[includeName];
+  }
+
   /**
    * @param regex The default regex is for engine's builtin glsl `#include` syntax,
    * since `ShaderLab` use the same parsing function but different syntax for `#include` --- `/^[ \t]*#include +"([\w\d.]+)"/gm`
