@@ -321,7 +321,7 @@ export class Animator extends Component {
         const layerOwner = (layerPropertyOwners[propertyPath] ||= curve._createCurveLayerOwner(owner));
 
         if (mask && mask.pathMasks.length) {
-          layerOwner.isActive = mask.getPathMask(relativePath).active;
+          layerOwner.isActive = mask.getPathMask(relativePath)?.active ?? true;
         }
 
         curveLayerOwner[i] = layerOwner;
