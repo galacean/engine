@@ -52,10 +52,10 @@ export class DepthOnlyPass extends PipelinePass {
     const camera = context.camera;
     const rhi = engine._hardwareRenderer;
     rhi.activeRenderTarget(renderTarget, camera.viewport, 0);
-    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     rhi.viewport(0, 0, renderTarget.width, renderTarget.height);
     rhi.scissor(0, 0, renderTarget.width, renderTarget.height);
+    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     cullingResults.opaqueQueue.render(camera, PipelineStage.DepthOnly);
     cullingResults.alphaTestQueue.render(camera, PipelineStage.DepthOnly);

@@ -88,9 +88,9 @@ export class Camera extends Component {
   opaqueTextureDownsampling: Downsampling = Downsampling.TwoX;
 
   /**
-   * Multi-sample anti-aliasing samples.
+   * Multi-sample anti-aliasing samples when use independent canvas mode.
    *
-   * @remarks The `opaqueTextureEnabled` property should be `true` to take effect, otherwise it will be invalid.
+   * @remarks The `independentCanvasEnabled` property should be `true` to take effect, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
 

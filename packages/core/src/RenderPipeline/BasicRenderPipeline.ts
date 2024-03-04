@@ -4,6 +4,7 @@ import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
+import { Logger } from "../base/Logger";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -36,7 +37,7 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _lastCanvasSize = new Vector2();
 
-  private _internalColorTarget: RenderTarget;
+  private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
@@ -101,7 +102,7 @@ export class BasicRenderPipeline {
     // Check if need to create internal color texture
     const independentCanvasEnabled = camera.independentCanvasEnabled;
     if (independentCanvasEnabled && Vector4.equals(camera.viewport, PipelineUtils.defaultViewport)) {
-      console.warn(
+      Logger.warn(
         "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
       );
     }
@@ -150,7 +151,7 @@ export class BasicRenderPipeline {
     const rhi = engine._hardwareRenderer;
     const colorTarget = camera.renderTarget ?? internalColorTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget != undefined;
+    const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget !== null;
 
     if (context.flipProjection !== needFlipProjection) {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);

@@ -47,7 +47,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const animator = defaultSceneRoot.getComponent(Animator);
       animator.play("agree");
 
-      showDepthPlane(engine, cameraEntity);
+      showOpaquePlane(engine, cameraEntity);
 
 
       updateForE2E(engine);
@@ -56,16 +56,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     });
 });
 
-function showDepthPlane(engine: Engine, camera: Entity): void {
+function showOpaquePlane(engine: Engine, camera: Entity): void {
   const entity = camera.createChild("Plane");
   entity.transform.setPosition(0, 0, -1);
-  entity.transform.rotate(new Vector3(-90, 0, 0));
+  entity.transform.rotate(new Vector3(90, 0, 0));
   const renderer = entity.addComponent(MeshRenderer);
   renderer.mesh = PrimitiveMesh.createPlane(engine, 0.5, 0.5);
 
   // Create material
   const material = new BaseMaterial(engine, Shader.find("RenderOpaqueTexture"));
-  material.renderFace = RenderFace.Double;
   material.isTransparent = true;
   renderer.setMaterial(material);
 }
