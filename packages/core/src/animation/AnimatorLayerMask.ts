@@ -60,10 +60,10 @@ export class AnimatorLayerMask {
    * Removes a path mask from the AnimatorLayerMask.
    * @param path - The path of the mask to remove
    */
-  removePathMask(path): void {
+  removePathMask(path: string): void {
     const { _pathMasks: pathMasks } = this;
     for (let i = 0, n = this._pathMasks.length; i < n; ++i) {
-      if (pathMasks[i] === path) {
+      if (pathMasks[i].path === path) {
         pathMasks.splice(i, 1);
         delete this._pathMaskMap[path];
         break;
