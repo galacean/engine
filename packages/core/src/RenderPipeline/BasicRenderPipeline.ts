@@ -160,7 +160,7 @@ export class BasicRenderPipeline {
       engine._renderCount++;
     }
 
-    rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const color = background.solidColor;
     if (clearFlags !== CameraClearFlags.None) {
@@ -187,7 +187,7 @@ export class BasicRenderPipeline {
       opaqueTexturePass.onRender(context, cullingResults);
 
       // Should revert to original render target
-      rhi.activeRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     }
 
     transparentQueue.render(camera, PipelineStage.Forward);

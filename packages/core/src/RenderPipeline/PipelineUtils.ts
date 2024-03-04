@@ -128,10 +128,11 @@ export class PipelineUtils {
     const blitMaterial = basicResources.blitMaterial;
     const rhi = engine._hardwareRenderer;
 
+    const context = engine._renderContext;
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
-    engine._renderContext.flipProjection = destination ? true : false;
+    context.flipProjection = destination ? true : false;
 
-    rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, 0);
+    rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, context.flipProjection, 0);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;
     const pass = blitMaterial.shader.subShaders[0].passes[0];

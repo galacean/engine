@@ -336,7 +336,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this._mainFrameHeight || this._gl.drawingBufferHeight;
   }
 
-  activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number, faceIndex?: TextureCubeFace) {
+  activeRenderTarget(
+    renderTarget: RenderTarget,
+    viewport: Vector4,
+    isFlipProjection: boolean,
+    mipLevel: number,
+    faceIndex?: TextureCubeFace
+  ) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
@@ -354,10 +360,11 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferWidth = this.getMainFrameBufferWidth();
       bufferHeight = this.getMainFrameBufferHeight();
     }
+
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;
     const x = viewport.x * bufferWidth;
-    const y = bufferHeight - viewport.y * bufferHeight - height;
+    const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
   }

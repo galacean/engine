@@ -145,7 +145,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._depthTexture = shadowTexture;
 
     // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
+    rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, context.flipProjection, 0);
     if (this._supportDepthTexture) {
       rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
     } else {
