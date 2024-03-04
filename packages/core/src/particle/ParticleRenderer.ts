@@ -1,7 +1,7 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Renderer } from "../Renderer";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
 import { deepClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
@@ -120,6 +120,7 @@ export class ParticleRenderer extends Renderer {
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
