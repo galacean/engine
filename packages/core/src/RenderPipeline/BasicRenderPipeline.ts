@@ -151,7 +151,7 @@ export class BasicRenderPipeline {
     const rhi = engine._hardwareRenderer;
     const colorTarget = camera.renderTarget ?? internalColorTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget !== null;
+    const needFlipProjection = colorTarget != null;
 
     if (context.flipProjection !== needFlipProjection) {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
