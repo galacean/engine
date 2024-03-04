@@ -286,6 +286,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
+  protected override _unRegisterEntityTransformListener(): void {
+    (this._rootBone ?? this._entity).transform._updateFlagManager.removeListener(this._onTransformChanged);
+  }
+
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this._rootBone) {
       const localBounds = this._localBounds;
@@ -334,10 +341,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       searchEntity = parent;
     }
     return true;
-  }
-
-  private _unRegisterEntityTransformListener(): void {
-    (this._rootBone ?? this._entity).transform._updateFlagManager.removeListener(this._onTransformChanged);
   }
 
   /**
