@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { ShaderProperty } from "../shader";
+import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
@@ -13,7 +13,16 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
 
   private static _iorProp = Shader.getPropertyByName("material_IOR");
+  private _fog: boolean = true;
 
+  get fog() {
+    return this._fog;
+  }
+
+  set fog(enableFog: boolean) {
+    this._fog = enableFog;
+    this.shaderData.enableMacro("ENABLE_FOG", `${+enableFog}`);
+  }
   /**
    * Index Of Refraction.
    * @defaultValue `1.5`
@@ -76,6 +85,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
     this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     this.shaderData.setFloat(PBRMaterial._iorProp, 1.5);
+    this.shaderData.enableMacro("ENABLE_FOG", "1");
   }
 
   /**

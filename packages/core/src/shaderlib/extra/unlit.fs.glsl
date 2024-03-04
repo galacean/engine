@@ -32,7 +32,9 @@ void main() {
         gl_FragColor.a = 1.0;
     #endif
 
-    #include <FogFragment>
+    #if ENABLE_FOG == 1
+        #include <FogFragment>
+    #endif    
 
      #ifndef ENGINE_IS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);

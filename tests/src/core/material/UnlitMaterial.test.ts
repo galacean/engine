@@ -16,14 +16,17 @@ describe("UnlitMaterial", () => {
     expect(material.baseColor).to.deep.eq(new Color(1, 1, 1, 1));
     expect(material.tilingOffset).to.deep.eq(new Vector4(1, 1, 0, 0));
     expect(material.baseTexture).to.be.undefined;
+    expect(material.fog).to.eq(true);
 
     material.baseColor.set(1, 0, 0, 1);
     material.tilingOffset.set(1, 1, 1, 1);
     material.baseTexture = texture;
+    material.fog = false;
 
     expect(material.baseColor).to.deep.eq(new Color(1, 0, 0, 1));
     expect(material.tilingOffset).to.deep.eq(new Vector4(1, 1, 1, 1));
     expect(material.baseTexture).to.eq(texture);
+    expect(material.fog).to.eq(false);
 
     material.baseTexture = null;
     expect(material.baseTexture).to.be.null;

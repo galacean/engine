@@ -3,7 +3,7 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { BlinnPhongMaterial, Texture2D } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe("BlinnPhongMaterial",  () => {
+describe("BlinnPhongMaterial", () => {
   let engine: WebGLEngine;
   before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
@@ -23,6 +23,7 @@ describe("BlinnPhongMaterial",  () => {
     expect(material.normalIntensity).to.eq(1);
     expect(material.shininess).to.eq(16);
     expect(material.tilingOffset).to.deep.eq(new Vector4(1, 1, 0, 0));
+    expect(material.fog).to.eq(true);
 
     material.baseColor.set(1, 0, 0, 1);
     material.specularColor.set(1, 0, 0, 1);
@@ -34,6 +35,7 @@ describe("BlinnPhongMaterial",  () => {
     material.normalIntensity = 2;
     material.shininess = 32;
     material.tilingOffset.set(1, 1, 1, 1);
+    material.fog = false;
 
     expect(material.baseColor).to.deep.eq(new Color(1, 0, 0, 1));
     expect(material.specularColor).to.deep.eq(new Color(1, 0, 0, 1));
@@ -45,6 +47,7 @@ describe("BlinnPhongMaterial",  () => {
     expect(material.normalIntensity).to.eq(2);
     expect(material.shininess).to.eq(32);
     expect(material.tilingOffset).to.deep.eq(new Vector4(1, 1, 1, 1));
+    expect(material.fog).to.eq(false);
 
     material.baseTexture = null;
     material.specularTexture = null;

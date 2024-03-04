@@ -2,7 +2,7 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Texture2D, PBRMaterial } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe("PBRMaterial",  () => {
+describe("PBRMaterial", () => {
   let engine: WebGLEngine;
   before(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
@@ -15,14 +15,17 @@ describe("PBRMaterial",  () => {
     expect(material.metallic).to.eq(1);
     expect(material.roughness).to.eq(1);
     expect(material.roughnessMetallicTexture).to.be.undefined;
+    expect(material.fog).to.eq(true);
 
     material.metallic = 2;
     material.roughness = 2;
     material.roughnessMetallicTexture = texture;
+    material.fog = false;
 
     expect(material.metallic).to.eq(2);
     expect(material.roughness).to.eq(2);
     expect(material.roughnessMetallicTexture).to.eq(texture);
+    expect(material.fog).to.eq(false);
 
     material.roughnessMetallicTexture = null;
 

@@ -12,6 +12,16 @@ export class BlinnPhongMaterial extends BaseMaterial {
   private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
   private static _shininessProp = ShaderProperty.getByName("material_Shininess");
   private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
+  private _fog: boolean = true;
+
+  get fog() {
+    return this._fog;
+  }
+
+  set fog(enableFog: boolean) {
+    this._fog = enableFog;
+    this.shaderData.enableMacro("ENABLE_FOG", `${+enableFog}`);
+  }
 
   /**
    * Base color.
@@ -166,6 +176,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
 
     shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
     shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
+    shaderData.enableMacro("ENABLE_FOG", "1");
 
     shaderData.setColor(BlinnPhongMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(BlinnPhongMaterial._specularColorProp, new Color(1, 1, 1, 1));

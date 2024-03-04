@@ -16,7 +16,10 @@
 
 void main() {
     #include <pbr_frag>
-    #include <FogFragment>
+
+    #if ENABLE_FOG == 1
+        #include <FogFragment>
+    #endif    
 
     #ifndef ENGINE_IS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
