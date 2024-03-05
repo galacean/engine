@@ -162,19 +162,34 @@ export class Camera extends Component {
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    const forceIndependent = this._forceUseInternalCanvas();
-    return forceIndependent || this._customIndependentCanvas;
+    if (this._renderTarget) {
+      return false;
+    }
+
+    if (this._forceUseInternalCanvas()) {
+      return true;
+    }
+
+    return this._customIndependentCanvas;
   }
 
   set independentCanvasEnabled(value: boolean) {
-    const forceIndependent = this._forceUseInternalCanvas();
-    if (forceIndependent && !value) {
-      console.warn(
-        "The camera is forced to use the independent canvas because the opaqueTextureEnabled property is enabled."
-      );
+    if (value) {
+      if (this._renderTarget) {
+        console.warn(
+          "The camera is forced to disable the independent canvas because the renderTarget property is set."
+        );
+      } else {
+        if (this._forceUseInternalCanvas()) {
+          console.warn(
+            "The camera is forced to enable the independent canvas because the opaqueTextureEnabled property is enabled."
+          );
+        }
+      }
+
+      this._customIndependentCanvas = value;
+      this._checkMainCanvasAntialiasWaste();
     }
-    this._customIndependentCanvas = value;
-    this._checkMainCanvasAntialiasWaste();
   }
 
   /**
@@ -778,7 +793,7 @@ export class Camera extends Component {
   }
 
   private _forceUseInternalCanvas(): boolean {
-    return !this._renderTarget && this.opaqueTextureEnabled;
+    return this.opaqueTextureEnabled;
   }
 
   @ignoreClone
