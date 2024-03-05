@@ -183,6 +183,8 @@ export class BasicRenderPipeline {
 
       // Should revert to original render target
       rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
+    } else {
+      camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
     }
 
     transparentQueue.render(camera, PipelineStage.Forward);
