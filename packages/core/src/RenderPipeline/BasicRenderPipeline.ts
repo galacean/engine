@@ -119,7 +119,9 @@ export class BasicRenderPipeline {
     } else {
       const internalColorTarget = this._internalColorTarget;
       if (internalColorTarget) {
-        internalColorTarget.destroy();
+        internalColorTarget.getColorTexture(0)?.destroy(true);
+        internalColorTarget.depthTexture?.destroy(true);
+        internalColorTarget.destroy(true);
         this._internalColorTarget = null;
       }
     }

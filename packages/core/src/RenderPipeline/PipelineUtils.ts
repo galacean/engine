@@ -42,7 +42,7 @@ export class PipelineUtils {
         currentTexture.format !== format ||
         currentTexture.mipmapCount > 1 !== mipmap
       ) {
-        currentTexture.destroy();
+        currentTexture.destroy(true);
         const texture = new Texture2D(engine, width, height, format, mipmap);
         texture.isGCIgnored = true;
         return texture;
@@ -91,7 +91,7 @@ export class PipelineUtils {
         : null;
 
       if (currentColorTexture !== colorTexture || currentDepthTexture !== needDepthTexture) {
-        currentRenderTarget?.destroy();
+        currentRenderTarget?.destroy(true);
         currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, needDepthTexture, antiAliasing);
         currentRenderTarget.isGCIgnored = true;
       }
@@ -99,7 +99,7 @@ export class PipelineUtils {
       const needDepthFormat = depthFormat;
 
       if (currentColorTexture !== colorTexture || currentRenderTarget?._depthFormat !== needDepthFormat) {
-        currentRenderTarget?.destroy();
+        currentRenderTarget?.destroy(true);
         currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, needDepthFormat, antiAliasing);
         currentRenderTarget.isGCIgnored = true;
       }
