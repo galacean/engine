@@ -9,57 +9,51 @@ import { SpriteRenderData } from "../SpriteRenderData";
 import { Batcher2D } from "./Batcher2D";
 
 export class SpriteMaskBatcher extends Batcher2D {
-  static override MAX_VERTEX_COUNT: number = 128;
-  static _canUploadSameBuffer: boolean = true;
-
   /** @internal */
   _batchedQueue: RenderElement[] = [];
   /** @internal */
   _stencilOps: StencilOperation[] = [];
   /** @internal */
-  _elementCount: number = 0;
+  _preRenderElement: RenderElement = null;
+  /** @internal */
+  _preOp: StencilOperation = null;
 
   constructor(engine: Engine) {
     super(engine);
   }
 
   drawElement(element: RenderElement, camera: Camera, op: StencilOperation): void {
-    const vertexCount = (<SpriteRenderData>element.data).verticesData.vertexCount;
-    if (this._vertexCount + vertexCount > SpriteMaskBatcher.MAX_VERTEX_COUNT) {
-      this.uploadAndDraw(camera);
+    const { _preRenderElement: preRenderElement } = this;
+    if (preRenderElement) {
+      if (this.canBatch(preRenderElement, element, this._preOp, op)) {
+        this._updateRenderElement(preRenderElement, element, true, op);
+      } else {
+        this._batchedQueue.push(preRenderElement);
+        this._stencilOps.push(this._preOp);
+        this._updateRenderElement(preRenderElement, element, false, op);
+      }
+    } else {
+      this._updateRenderElement(preRenderElement, element, false, op);
     }
-
-    this._vertexCount += vertexCount;
-    this._batchedQueue[this._elementCount] = element;
-    this._stencilOps[this._elementCount++] = op;
   }
 
   uploadAndDraw(camera: Camera): void {
-    const batchedQueue = this._batchedQueue;
-
-    if (batchedQueue.length === 0) {
-      return;
+    const { _batchedQueue: batchedQueue, _stencilOps: stencilOps } = this;
+    if (this._preRenderElement) {
+      batchedQueue.push(this._preRenderElement);
+      stencilOps.push(this._preOp);
     }
-    this._updateData(this._engine);
+
+    this.uploadBuffer();
     this.drawBatches(camera);
-
-    if (!SpriteMaskBatcher._canUploadSameBuffer) {
-      this._flushId++;
-    }
-
-    batchedQueue.length = 0;
-    this._stencilOps.length = 0;
-    this._subMeshPool.resetPool();
-    this._vertexCount = 0;
-    this._elementCount = 0;
   }
 
   override clear(): void {
     super.clear();
-    this._vertexCount = 0;
-    this._elementCount = 0;
     this._batchedQueue.length = 0;
     this._stencilOps.length = 0;
+    this._preRenderElement = null;
+    this._preOp = null;
   }
 
   override destroy(): void {
@@ -77,6 +71,10 @@ export class SpriteMaskBatcher extends Batcher2D {
     const preSpriteData = <SpriteRenderData>preElement.data;
     const curSpriteData = <SpriteRenderData>curElement.data;
 
+    if (preSpriteData.chunk._meshBuffer !== curSpriteData.chunk._meshBuffer) {
+      return false;
+    }
+
     if (preStencilOp !== curStencilOp) {
       return false;
     }
@@ -93,39 +91,19 @@ export class SpriteMaskBatcher extends Batcher2D {
     );
   }
 
-  updateVertices(element: SpriteRenderData, vertices: Float32Array, vertexIndex: number): number {
-    const { positions, uvs, vertexCount } = element.verticesData;
-    for (let i = 0; i < vertexCount; i++) {
-      const curPos = positions[i];
-      const curUV = uvs[i];
-      vertices[vertexIndex++] = curPos.x;
-      vertices[vertexIndex++] = curPos.y;
-      vertices[vertexIndex++] = curPos.z;
-      vertices[vertexIndex++] = curUV.x;
-      vertices[vertexIndex++] = curUV.y;
-      vertices[vertexIndex++] = 1;
-      vertices[vertexIndex++] = 1;
-      vertices[vertexIndex++] = 1;
-      vertices[vertexIndex++] = 1;
-    }
-
-    return vertexIndex;
-  }
-
   drawBatches(camera: Camera): void {
     const { _engine: engine, _batchedQueue: batchedQueue, _stencilOps: stencilOps } = this;
-    const mesh = this._meshBuffers[this._flushId]._mesh;
-    const subMeshes = mesh.subMeshes;
     const sceneData = camera.scene.shaderData;
     const cameraData = camera.shaderData;
 
-    for (let i = 0, len = subMeshes.length; i < len; i++) {
-      const subMesh = subMeshes[i];
+    for (let i = 0, len = batchedQueue.length; i < len; i++) {
+      // const subMesh = subMeshes[i];
       const spriteMaskElement = batchedQueue[i];
       const stencilOp = stencilOps[i];
       const renderData = <SpriteRenderData>spriteMaskElement.data;
+      const mesh = renderData.chunk._meshBuffer._mesh;
 
-      if (!subMesh || !spriteMaskElement) {
+      if (!spriteMaskElement) {
         return;
       }
 
@@ -160,66 +138,41 @@ export class SpriteMaskBatcher extends Batcher2D {
 
       material.renderState._apply(engine, false, pass._renderStateDataMap, material.shaderData);
 
-      engine._hardwareRenderer.drawPrimitive(mesh._primitive, subMesh, program);
+      engine._hardwareRenderer.drawPrimitive(mesh._primitive, renderData.chunk._subMesh, program);
     }
   }
 
-  private _updateData(engine: Engine): void {
-    const { _meshBuffers, _flushId } = this;
-
-    if (!SpriteMaskBatcher._canUploadSameBuffer && _meshBuffers.length <= _flushId) {
-      this._createMeshBuffer(engine, _flushId);
+  private _updateRenderElement(
+    preRenderElement: RenderElement,
+    curRenderElement: RenderElement,
+    canBatch: boolean,
+    op: StencilOperation
+  ): void {
+    const curRenderData = <SpriteRenderData>curRenderElement.data;
+    const { chunk } = curRenderData;
+    const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const { _indices: indices } = meshBuffer;
+    const vertexStartIndex = vEntry.start / 9;
+    const len = tempIndices.length;
+    let startIndex = meshBuffer._iLen;
+    if (canBatch) {
+      const preRenderData = <SpriteRenderData>preRenderElement.data;
+      const { _subMesh } = preRenderData.chunk;
+      _subMesh.count += len;
+    } else {
+      const { _subMesh } = chunk;
+      _subMesh.start = startIndex;
+      _subMesh.count = len;
+      meshBuffer._mesh.addSubMesh(_subMesh);
     }
-
-    const { _batchedQueue: batchedQueue, _stencilOps: stencilOps } = this;
-    const meshBuffer = _meshBuffers[_flushId];
-    const { _vertices: vertices, _indices: indices, _mesh: mesh } = meshBuffer;
-    mesh.clearSubMesh();
-
-    let vertexIndex = 0;
-    let indiceIndex = 0;
-    let vertexStartIndex = 0;
-    let vertexCount = 0;
-    let curIndiceStartIndex = 0;
-    let curMeshIndex = 0;
-    let preElement: RenderElement = null;
-    let preStencilOp: StencilOperation = null;
-    for (let i = 0, len = batchedQueue.length; i < len; i++) {
-      const curElement = batchedQueue[i];
-      const curStencilOp = stencilOps[i];
-      const curData = <SpriteRenderData>curElement.data;
-
-      // Batch vertex
-      vertexIndex = this.updateVertices(curData, vertices, vertexIndex);
-
-      // Batch indice
-      const { triangles } = curData.verticesData;
-      const triangleNum = triangles.length;
-      for (let j = 0; j < triangleNum; j++) {
-        indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
-      }
-
-      curIndiceStartIndex += curData.verticesData.vertexCount;
-
-      if (preElement === null) {
-        vertexCount += triangleNum;
-      } else {
-        if (this.canBatch(preElement, curElement, preStencilOp, curStencilOp)) {
-          vertexCount += triangleNum;
-        } else {
-          mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
-          vertexStartIndex += vertexCount;
-          vertexCount = triangleNum;
-          batchedQueue[curMeshIndex++] = preElement;
-        }
-      }
-
-      preElement = curElement;
-      preStencilOp = curStencilOp;
+    for (let i = 0; i < len; ++i) {
+      indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-
-    mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
-    batchedQueue[curMeshIndex] = preElement;
-    meshBuffer.uploadBuffer(vertexIndex, indiceIndex);
+    meshBuffer._iLen += len;
+    meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
+    if (!canBatch) {
+      this._preRenderElement = curRenderElement;
+      this._preOp = op;
+    }
   }
 }

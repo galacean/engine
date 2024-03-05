@@ -1,14 +1,10 @@
-import { Color, Vector2, Vector3 } from "@galacean/engine-math";
+import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
 
 /**
  * @internal
  */
 export class VertexData2D {
-  constructor(
-    public vertexCount: number,
-    public positions: Vector3[],
-    public uvs: Vector2[],
-    public triangles: number[] = null,
-    public color: Color = null
-  ) {}
+  public mbChunk: MBChunk = null;
+
+  constructor(public vertexCount: number) {}
 }

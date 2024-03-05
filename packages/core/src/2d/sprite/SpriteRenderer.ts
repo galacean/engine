@@ -158,6 +158,7 @@ export class SpriteRenderer extends Renderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     }
   }
 
@@ -265,8 +266,9 @@ export class SpriteRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._verticesData = new VertexData2D(4, [], [], null, this._color);
+    this._verticesData = new VertexData2D(4);
     this.drawMode = SpriteDrawMode.Simple;
+    this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
@@ -321,11 +323,18 @@ export class SpriteRenderer extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
     }
 
+    // Update color
+    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.Color) {
+      this._assembler.updateColor(this);
+      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.Color;
+    }
+
     // Push primitive
     const { engine } = context.camera;
     const material = this.getMaterial();
     const renderData = engine._spriteRenderDataPool.getFromPool();
-    renderData.setX(this, material, this._verticesData, this.sprite.texture);
+    const { mbChunk: chunk } = this._verticesData;
+    renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;
     engine._batcherManager.commitRenderData(context, renderData);
   }
@@ -432,5 +441,7 @@ enum SpriteRendererUpdateFlags {
   /** Automatic Size. */
   AutomaticSize = 0x4,
   /** All. */
-  All = 0x7
+  All = 0x7,
+  /** Color. */
+  Color = 0x8
 }

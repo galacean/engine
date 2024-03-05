@@ -169,7 +169,7 @@ export class SpriteMask extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._verticesData = new VertexData2D(4, [], []);
+    this._verticesData = new VertexData2D(4);
     SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
@@ -221,7 +221,8 @@ export class SpriteMask extends Renderer {
     engine._spriteMaskManager.addMask(this);
     const renderData = engine._spriteRenderDataPool.getFromPool();
     const material = this.getMaterial();
-    renderData.setX(this, material, this._verticesData, this.sprite.texture);
+    const { mbChunk: chunk } = this._verticesData;
+    renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
 
     const renderElement = engine._renderElementPool.getFromPool();

@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
@@ -13,14 +13,19 @@ export class SimpleSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
+    const batcher =
+      renderer instanceof SpriteRenderer
+        ? renderer.engine._batcherManager._batcher2D
+        : renderer.engine._spriteMaskManager._batcher;
     const { _verticesData: verticesData } = renderer;
-    const { positions, uvs } = verticesData;
-    verticesData.vertexCount = positions.length = uvs.length = 4;
-    for (let i = 0; i < 4; i++) {
-      positions[i] ||= new Vector3();
-      uvs[i] ||= new Vector2();
+    verticesData.vertexCount = 4;
+    if (verticesData.mbChunk) {
+      batcher.freeChunk(verticesData.mbChunk);
+      verticesData.mbChunk = batcher.allocateChunk(4, 6);
+    } else {
+      verticesData.mbChunk = batcher.allocateChunk(4, 6);
     }
-    verticesData.triangles = SimpleSpriteAssembler._rectangleTriangles;
+    verticesData.mbChunk._indices = SimpleSpriteAssembler._rectangleTriangles;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
@@ -47,10 +52,15 @@ export class SimpleSpriteAssembler {
     // ---------------
     // Update positions.
     const spritePositions = sprite._getPositions();
-    const { positions } = renderer._verticesData;
-    for (let i = 0; i < 4; i++) {
+    const { mbChunk: chunk } = renderer._verticesData;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start;
+    for (let i = 0; i < 4; ++i) {
       const { x, y } = spritePositions[i];
-      positions[i].set(wE[0] * x + wE[4] * y + wE[12], wE[1] * x + wE[5] * y + wE[13], wE[2] * x + wE[6] * y + wE[14]);
+      vertices[index] = wE[0] * x + wE[4] * y + wE[12];
+      vertices[index + 1] = wE[1] * x + wE[5] * y + wE[13];
+      vertices[index + 2] = wE[2] * x + wE[6] * y + wE[14];
+      index += 9;
     }
 
     BoundingBox.transform(sprite._getBounds(), worldMatrix, renderer._bounds);
@@ -58,12 +68,35 @@ export class SimpleSpriteAssembler {
 
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {
     const spriteUVs = renderer.sprite._getUVs();
-    const renderUVs = renderer._verticesData.uvs;
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
-    renderUVs[0].set(left, bottom);
-    renderUVs[1].set(right, bottom);
-    renderUVs[2].set(left, top);
-    renderUVs[3].set(right, top);
+    const { mbChunk: chunk } = renderer._verticesData;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start + 3;
+    vertices[index] = left;
+    vertices[index + 1] = bottom;
+    index += 9;
+    vertices[index] = right;
+    vertices[index + 1] = bottom;
+    index += 9;
+    vertices[index] = left;
+    vertices[index + 1] = top;
+    index += 9;
+    vertices[index] = right;
+    vertices[index + 1] = top;
+  }
+
+  static updateColor(renderer: SpriteRenderer): void {
+    const { mbChunk: chunk } = renderer._verticesData;
+    const { color } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start + 5;
+    for (let i = 0; i < 4; ++i) {
+      vertices[index] = color.r;
+      vertices[index + 1] = color.g;
+      vertices[index + 2] = color.b;
+      vertices[index + 3] = color.a;
+      index += 9;
+    }
   }
 }

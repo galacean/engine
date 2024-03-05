@@ -1,13 +1,12 @@
 import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
 import { Engine } from "../../Engine";
-import { MeshTopology, SetDataOptions, SubMesh } from "../../graphic";
+import { MeshTopology, SubMesh } from "../../graphic";
 import { ShaderProperty, ShaderTagKey } from "../../shader";
 import { ClassPool } from "../ClassPool";
 import { RenderContext } from "../RenderContext";
 import { SpriteRenderData } from "../SpriteRenderData";
-import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { IBatcher } from "./IBatcher";
-import { MeshBuffer } from "./MeshBuffer";
+import { MBChunk, MeshBuffer } from "./MeshBuffer";
 
 /**
  * @internal
@@ -27,28 +26,13 @@ export class Batcher2D implements IBatcher {
   /** @internal */
   _meshBuffers: MeshBuffer[] = [];
   /** @internal */
-  _flushId: number = 0;
-
-  /** @internal */
-  _vStartIndex: number = 0;
-  /** @internal */
-  _vIndex: number = 0;
-  /** @internal */
-  _iStartIndex: number = 0;
-  /** @internal */
-  _iIndex: number = 0;
-  /** @internal */
-  _vertexStartIndex: number = 0;
-  /** @internal */
-  _vertexCount: number = 0;
-  /** @internal */
   _preContext: RenderContext = null;
   /** @internal */
-  _preSpriteRenderData: SpriteRenderData = null;
+  _preRenderData: SpriteRenderData = null;
 
   constructor(engine: Engine) {
     this._engine = engine;
-    this._createMeshBuffer(engine, 0);
+    this._createMeshBuffer(0);
   }
 
   /**
@@ -64,72 +48,76 @@ export class Batcher2D implements IBatcher {
   }
 
   commitRenderData(context: RenderContext, data: SpriteRenderData): void {
-    if (this._preSpriteRenderData) {
-      if (this._vertexCount + data.verticesData.vertexCount > Batcher2D.MAX_VERTEX_COUNT) {
-        this.flush();
-        this.uploadBuffer();
-        const newFlushId = this._flushId + 1;
-        this._createMeshBuffer(this._engine, newFlushId);
-        this._reset();
-        this._flushId = newFlushId;
+    const { _preRenderData: preRenderData } = this;
+    if (preRenderData) {
+      if (this._canBatch(preRenderData, data)) {
+        this._udpateRenderData(context, preRenderData, data, true);
       } else {
-        if (!this._canBatch(this._preSpriteRenderData, data)) {
-          this.flush();
-        }
+        this.flush();
+        this._udpateRenderData(context, preRenderData, data, false);
       }
+    } else {
+      this._udpateRenderData(context, preRenderData, data, false);
     }
-
-    this._preContext = context;
-    this._preSpriteRenderData = data;
-    this._fillRenderData(data);
   }
 
   flush(): void {
-    if (!this._preSpriteRenderData) {
-      return;
+    const { _preRenderData: preRenderData } = this;
+    if (preRenderData) {
+      preRenderData.component.shaderData.setTexture(Batcher2D._textureProperty, preRenderData.texture);
+      this._preContext.camera._renderPipeline.pushRenderData(this._preContext, preRenderData);
     }
-
-    const { _preSpriteRenderData, _iStartIndex, _iIndex } = this;
-    const mesh = this._meshBuffers[this._flushId]._mesh;
-    const iCount = _iIndex - _iStartIndex;
-    const subMesh = this._getSubMeshFromPool(_iStartIndex, iCount);
-    mesh.addSubMesh(subMesh);
-
-    this._vertexStartIndex += this._vertexCount;
-    this._vStartIndex = this._vIndex;
-    this._iStartIndex = _iIndex;
-
-    const renderData = this._engine._renderDataPool.getFromPool();
-    renderData.usage = RenderDataUsage.Sprite;
-    renderData.set(_preSpriteRenderData.component, _preSpriteRenderData.material, mesh._primitive, subMesh);
-    renderData.component.shaderData.setTexture(Batcher2D._textureProperty, _preSpriteRenderData.texture);
-    this._preContext.camera._renderPipeline.pushRenderData(this._preContext, renderData);
   }
 
   uploadBuffer(): void {
-    this._meshBuffers[this._flushId].uploadBuffer(this._vStartIndex, this._iStartIndex);
+    const { _meshBuffers: meshBuffers } = this;
+    for (let i = 0, l = meshBuffers.length; i < l; ++i) {
+      meshBuffers[i].uploadBuffer();
+    }
   }
 
   clear() {
     this._reset();
-    this._subMeshPool.resetPool();
-    const { _meshBuffers } = this;
-    for (let i = 0, l = _meshBuffers.length; i < l; ++i) {
-      _meshBuffers[i]._mesh.clearSubMesh();
+    const { _meshBuffers: meshBuffers } = this;
+    for (let i = 0, l = meshBuffers.length; i < l; ++i) {
+      meshBuffers[i].clear();
     }
   }
 
-  getInfo(vertexCount, indiceCount) {
-    // TODO
+  allocateChunk(vertexCount, indiceCount): MBChunk | null {
+    const { _meshBuffers } = this;
+    let chunk: MBChunk = null;
+    let i = 0;
+    const len = _meshBuffers.length;
+    for (; i < len; ++i) {
+      chunk = _meshBuffers[i].allocateChunk(vertexCount, indiceCount);
+      if (chunk) {
+        chunk._mbId = i;
+        return chunk;
+      }
+    }
+
+    const meshBuffer = this._createMeshBuffer(len);
+    chunk = meshBuffer.allocateChunk(vertexCount, indiceCount);
+    if (chunk) {
+      chunk._mbId = len;
+      return chunk;
+    }
+    return null;
   }
 
-  protected _createMeshBuffer(engine: Engine, index: number): MeshBuffer {
+  freeChunk(chunk: MBChunk): void {
+    const meshBuffer = this._meshBuffers[chunk._mbId];
+    meshBuffer && meshBuffer.freeChunk(chunk);
+  }
+
+  protected _createMeshBuffer(index: number): MeshBuffer {
     const { _meshBuffers } = this;
     if (_meshBuffers[index]) {
       return _meshBuffers[index];
     }
 
-    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(engine));
+    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(this._engine));
     return meshBuffer;
   }
 
@@ -142,6 +130,10 @@ export class Batcher2D implements IBatcher {
   }
 
   private _canBatch(preRenderData: SpriteRenderData, curRenderData: SpriteRenderData): boolean {
+    if (preRenderData.chunk._meshBuffer !== curRenderData.chunk._meshBuffer) {
+      return false;
+    }
+
     const preRender = <SpriteRenderer>preRenderData.component;
     const curRender = <SpriteRenderer>curRenderData.component;
 
@@ -171,45 +163,40 @@ export class Batcher2D implements IBatcher {
     return left.maskLayer === right.maskLayer;
   }
 
-  private _fillRenderData(data: SpriteRenderData): void {
-    const { _flushId, _vertexCount } = this;
-    const { positions, uvs, color, vertexCount, triangles } = data.verticesData;
-
-    let index = this._vIndex;
-    const _vertices = this._meshBuffers[_flushId]._vertices;
-    const _indices = this._meshBuffers[_flushId]._indices;
-    for (let i = 0; i < vertexCount; ++i) {
-      const curPos = positions[i];
-      const curUV = uvs[i];
-      _vertices[index++] = curPos.x;
-      _vertices[index++] = curPos.y;
-      _vertices[index++] = curPos.z;
-      _vertices[index++] = curUV.x;
-      _vertices[index++] = curUV.y;
-      _vertices[index++] = color.r;
-      _vertices[index++] = color.g;
-      _vertices[index++] = color.b;
-      _vertices[index++] = color.a;
+  private _udpateRenderData(
+    context: RenderContext,
+    preRenderData: SpriteRenderData,
+    curRenderData: SpriteRenderData,
+    canBatch: boolean
+  ): void {
+    const { chunk } = curRenderData;
+    const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const { _indices: indices } = meshBuffer;
+    const vertexStartIndex = vEntry.start / 9;
+    const len = tempIndices.length;
+    let startIndex = meshBuffer._iLen;
+    if (canBatch) {
+      const { _subMesh } = preRenderData.chunk;
+      _subMesh.count += len;
+    } else {
+      const { _subMesh } = chunk;
+      _subMesh.start = startIndex;
+      _subMesh.count = len;
+      meshBuffer._mesh.addSubMesh(_subMesh);
     }
-    this._vIndex = index;
-
-    index = this._iIndex;
-    for (let i = 0, len = triangles.length; i < len; ++i) {
-      _indices[index++] = triangles[i] + _vertexCount;
+    for (let i = 0; i < len; ++i) {
+      indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-    this._iIndex = index;
-    this._vertexCount += vertexCount;
+    meshBuffer._iLen += len;
+    meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
+    if (!canBatch) {
+      this._preContext = context;
+      this._preRenderData = curRenderData;
+    }
   }
 
   private _reset(): void {
-    this._flushId = 0;
-    this._vIndex = 0;
-    this._iIndex = 0;
-    this._vStartIndex = 0;
-    this._iStartIndex = 0;
-    this._vertexStartIndex = 0;
-    this._vertexCount = 0;
     this._preContext = null;
-    this._preSpriteRenderData = null;
+    this._preRenderData = null;
   }
 }
