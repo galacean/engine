@@ -1,6 +1,7 @@
 import { Vector3, Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
-import { VertexData2D } from "../data/VertexData2D";
+import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
+import { Engine } from "../../Engine";
 
 /**
  * @internal
@@ -11,10 +12,12 @@ export class CharRenderData {
   texture: Texture2D;
   /** x:Top y:Left z:Bottom w:Right */
   localPositions: Vector4 = new Vector4();
-  renderData: VertexData2D;
+  chunk: MBChunk;
 
-  constructor() {
-    const positions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-    this.renderData = new VertexData2D(4, positions, null, CharRenderData.triangles, null);
+  init(engine: Engine) {
+    if (!this.chunk) {
+      this.chunk = engine._batcherManager._batcher2D.allocateChunk(4, 6);
+      this.chunk._indices = CharRenderData.triangles;
+    }
   }
 }
