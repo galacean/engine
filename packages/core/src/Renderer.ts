@@ -323,7 +323,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
     }
 
-    this._updateShaderData(context);
+    this._updateShaderData(context, false);
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -375,18 +375,19 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
+  _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
     const entity = this.entity;
     const worldMatrix = entity.transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateMVPShaderData(context, worldMatrix);
+      return;
+    }
     this._updateTransformShaderData(context, worldMatrix);
 
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  /**
-   * @internal
-   */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
     const mvMatrix = this._mvMatrix;
@@ -406,10 +407,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._updateMVPShaderData(context, worldMatrix);
   }
 
-  /**
-   * @internal
-   */
-  _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix): void {
+  protected _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const mvpMatrix = this._mvpMatrix;
 
     Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);

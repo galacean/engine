@@ -255,12 +255,12 @@ export class GLTexture implements IPlatformTexture {
    * @internal
    */
   static _getRenderBufferDepthFormatDetail(
-    format: RenderBufferDepthFormat,
+    format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
     switch (format) {
-      case RenderBufferDepthFormat.Depth:
+      case TextureFormat.Depth:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -268,7 +268,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case RenderBufferDepthFormat.DepthStencil:
+      case TextureFormat.DepthStencil:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH32F_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
@@ -276,7 +276,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Stencil:
+      case TextureFormat.Stencil:
         return {
           internalFormat: gl.STENCIL_INDEX8,
           baseFormat: gl.STENCIL_ATTACHMENT,
@@ -284,7 +284,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.STENCIL_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth16:
+      case TextureFormat.Depth16:
         return {
           internalFormat: gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -292,7 +292,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth24Stencil8:
+      case TextureFormat.Depth24Stencil8:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
@@ -300,7 +300,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth24:
+      case TextureFormat.Depth24:
         return {
           internalFormat: gl.DEPTH_COMPONENT24,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -308,7 +308,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth32:
+      case TextureFormat.Depth32:
         return {
           internalFormat: gl.DEPTH_COMPONENT32F,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -317,7 +317,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_ATTACHMENT
         };
 
-      case RenderBufferDepthFormat.Depth32Stencil8:
+      case TextureFormat.Depth32Stencil8:
         return {
           internalFormat: gl.DEPTH32F_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
@@ -392,12 +392,12 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLGraphicDevice): boolean {
+  static _supportRenderBufferDepthFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     if (!rhi.isWebGL2) {
       switch (format) {
-        case RenderBufferDepthFormat.Depth24:
-        case RenderBufferDepthFormat.Depth32:
-        case RenderBufferDepthFormat.Depth32Stencil8:
+        case TextureFormat.Depth24:
+        case TextureFormat.Depth32:
+        case TextureFormat.Depth32Stencil8:
           return false;
       }
     }

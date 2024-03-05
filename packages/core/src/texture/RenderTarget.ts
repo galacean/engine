@@ -2,7 +2,7 @@ import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
-import { TextureCubeFace } from "./enums/TextureCubeFace";
+import { TextureFormat } from "./enums/TextureFormat";
 import { Texture } from "./Texture";
 
 /**
@@ -13,15 +13,17 @@ export class RenderTarget extends GraphicsResource {
   _platformRenderTarget: IPlatformRenderTarget;
 
   /** @internal */
-  _depth: Texture | RenderBufferDepthFormat | null;
+  _depth: Texture | TextureFormat | null;
   /** @internal */
   _antiAliasing: number;
+  /** @internal */
+  _depthFormat: TextureFormat | null = null;
 
   private _autoGenerateMipmaps: boolean = true;
   private _width: number;
   private _height: number;
   private _colorTextures: Texture[];
-  private _depthTexture: Texture | null;
+  private _depthTexture: Texture | null = null;
 
   /**
    * Whether to automatically generate multi-level textures.
@@ -76,7 +78,7 @@ export class RenderTarget extends GraphicsResource {
    * @param width - Render target width
    * @param height - Render target height
    * @param colorTexture - Render color texture
-   * @param depthFormat - Depth format. default RenderBufferDepthFormat.Depth, engine will automatically select the supported precision
+   * @param depthFormat - Depth format. default TextureFormat.Depth, engine will automatically select the supported precision
    * @param antiAliasing - Anti-aliasing level, default is 1
    */
   constructor(
@@ -84,7 +86,7 @@ export class RenderTarget extends GraphicsResource {
     width: number,
     height: number,
     colorTexture: Texture,
-    depthFormat?: RenderBufferDepthFormat | null,
+    depthFormat?: TextureFormat | null | RenderBufferDepthFormat,
     antiAliasing?: number
   );
 
@@ -113,7 +115,7 @@ export class RenderTarget extends GraphicsResource {
    * @param width - Render target width
    * @param height - Render target height
    * @param colorTextures - Render color texture array
-   * @param depthFormat - Depth format. default RenderBufferDepthFormat.Depth,engine will automatically select the supported precision
+   * @param depthFormat - Depth format. default TextureFormat.Depth,engine will automatically select the supported precision
    * @param antiAliasing - Anti-aliasing level, default is 1
    */
   constructor(
@@ -121,7 +123,7 @@ export class RenderTarget extends GraphicsResource {
     width: number,
     height: number,
     colorTextures: Texture[],
-    depthFormat?: RenderBufferDepthFormat | null,
+    depthFormat?: TextureFormat | null | RenderBufferDepthFormat,
     antiAliasing?: number
   );
 
@@ -151,7 +153,7 @@ export class RenderTarget extends GraphicsResource {
     width: number,
     height: number,
     renderTexture: Texture | Texture[] | null,
-    depth: Texture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
+    depth: Texture | null | TextureFormat | RenderBufferDepthFormat = TextureFormat.Depth,
     antiAliasing: number = 1
   ) {
     super(engine);
@@ -159,7 +161,7 @@ export class RenderTarget extends GraphicsResource {
     this._width = width;
     this._height = height;
     this._antiAliasing = antiAliasing;
-    this._depth = depth;
+    this._depth = <Texture | null | TextureFormat>depth;
 
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
@@ -181,6 +183,9 @@ export class RenderTarget extends GraphicsResource {
       }
       this._depthTexture = depth;
       this._depthTexture._addReferCount(1);
+      this._depthFormat = depth.format;
+    } else if (typeof depth === "number") {
+      this._depthFormat = <TextureFormat>depth;
     }
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
@@ -222,14 +227,6 @@ export class RenderTarget extends GraphicsResource {
     this._depthTexture?._addReferCount(-1);
     this._depthTexture = null;
     this._depth = null;
-  }
-
-  /**
-   * @internal
-   */
-  _setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
-    this._platformRenderTarget.setRenderTargetInfo(faceIndex, mipLevel);
-    this._isContentLost = false;
   }
 
   /**

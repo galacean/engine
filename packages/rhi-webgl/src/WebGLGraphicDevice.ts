@@ -18,9 +18,10 @@ import {
   SystemInfo,
   Texture2D,
   Texture2DArray,
-  TextureCube
+  TextureCube,
+  TextureCubeFace
 } from "@galacean/engine-core";
-import { IPlatformPrimitive, IHardwareRenderer } from "@galacean/engine-design";
+import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -327,23 +328,43 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
-  activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
-    const gl = this._gl;
+  getMainFrameBufferWidth(): number {
+    return this._mainFrameWidth || this._gl.drawingBufferWidth;
+  }
+
+  getMainFrameBufferHeight(): number {
+    return this._mainFrameHeight || this._gl.drawingBufferHeight;
+  }
+
+  activeRenderTarget(
+    renderTarget: RenderTarget,
+    viewport: Vector4,
+    isFlipProjection: boolean,
+    mipLevel: number,
+    faceIndex?: TextureCubeFace
+  ) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
-      (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
+      renderTarget._isContentLost = false;
+
+      /** @ts-ignore */
+      const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
+      platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
+
       bufferWidth = renderTarget.width >> mipLevel;
       bufferHeight = renderTarget.height >> mipLevel;
     } else {
+      const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
-      bufferWidth = this._mainFrameWidth || gl.drawingBufferWidth;
-      bufferHeight = this._mainFrameHeight || gl.drawingBufferHeight;
+      bufferWidth = this.getMainFrameBufferWidth();
+      bufferHeight = this.getMainFrameBufferHeight();
     }
+
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;
     const x = viewport.x * bufferWidth;
-    const y = bufferHeight - viewport.y * bufferHeight - height;
+    const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
   }
