@@ -342,6 +342,23 @@ export default class RuntimeContext {
     this.varyingTypeAstNode = undefined;
     this._currentMainFnAst = undefined;
     this.varyingStructInfo = {};
+    this._globalMapReset();
+  }
+
+  private _globalMapReset() {
+    for (const [_, globals] of this._shaderGlobalMap) {
+      for (const gv of globals) {
+        gv.inspected = false;
+        gv.referenced = false;
+      }
+    }
+
+    for (const [_, globals] of this._subShaderGlobalMap) {
+      for (const gv of globals) {
+        gv.inspected = false;
+        gv.referenced = false;
+      }
+    }
   }
 
   private _initShaderGlobalList(shaderAst: AstNode<IShaderAstContent>) {
