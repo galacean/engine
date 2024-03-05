@@ -34,10 +34,10 @@ export class DepthState {
 
   /** Whether to enable the depth test. */
   enabled: boolean = true;
-  /** Whether the depth value can be written.*/
-  writeEnabled: boolean = true;
   /** Depth comparison function. */
   compareFunction: CompareFunction = CompareFunction.Less;
+  /** Whether the depth value can be written.*/
+  writeEnabled: boolean = true;
 
   /**
    * @internal
@@ -83,17 +83,17 @@ export class DepthState {
     }
 
     if (enabled) {
-      // apply compare func.
+      // Apply compare func
       if (compareFunction != lastState.compareFunction) {
         gl.depthFunc(DepthState._getGLCompareFunction(rhi, compareFunction));
         lastState.compareFunction = compareFunction;
       }
+    }
 
-      // apply write enabled.
-      if (writeEnabled != lastState.writeEnabled) {
-        gl.depthMask(writeEnabled);
-        lastState.writeEnabled = writeEnabled;
-      }
+    // Apply write enabled
+    if (writeEnabled != lastState.writeEnabled) {
+      gl.depthMask(writeEnabled);
+      lastState.writeEnabled = writeEnabled;
     }
   }
 }

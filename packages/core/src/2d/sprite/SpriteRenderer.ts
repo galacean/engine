@@ -283,7 +283,12 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateShaderData(context: RenderContext): void {
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
+    if (onlyMVP) {
+      // @ts-ignore
+      this._updateMVPShaderData(context, Matrix._identity);
+      return;
+    }
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
