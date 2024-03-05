@@ -1,10 +1,9 @@
-import { Vector2, Vector4 } from "@galacean/engine-math";
+import { Vector2 } from "@galacean/engine-math";
 import { SpriteMask } from "../2d";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
-import { Logger } from "../base/Logger";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -101,12 +100,6 @@ export class BasicRenderPipeline {
 
     // Check if need to create internal color texture
     const independentCanvasEnabled = camera.independentCanvasEnabled;
-    if (independentCanvasEnabled && Vector4.equals(camera.viewport, PipelineUtils.defaultViewport)) {
-      Logger.warn(
-        "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
-      );
-    }
-
     if (independentCanvasEnabled) {
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -151,7 +144,7 @@ export class BasicRenderPipeline {
     const rhi = engine._hardwareRenderer;
     const colorTarget = camera.renderTarget ?? internalColorTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = colorTarget != null;
+    const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget !== null;
 
     if (context.flipProjection !== needFlipProjection) {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);

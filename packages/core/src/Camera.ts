@@ -5,6 +5,7 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
 import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
@@ -71,16 +72,6 @@ export class Camera extends Component {
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
 
   /**
-   * Whether to enable opaque texture.
-   * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
-   *
-   * @defaultValue `false`
-   *
-   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
-   */
-  opaqueTextureEnabled: boolean = false;
-
-  /**
    * Opacity texture down sampling.
    *
    * @defaultValue `Downsampling.TwoX`
@@ -127,6 +118,7 @@ export class Camera extends Component {
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
   private _customIndependentCanvas: boolean = false;
+  private _opaqueTextureEnabled: boolean = false;
 
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
@@ -146,6 +138,25 @@ export class Camera extends Component {
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
+   * Whether to enable opaque texture.
+   * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
+   *
+   * @defaultValue `false`
+   *
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
+   */
+  get opaqueTextureEnabled(): boolean {
+    return this._opaqueTextureEnabled;
+  }
+
+  set opaqueTextureEnabled(value: boolean) {
+    if (this._opaqueTextureEnabled !== value) {
+      this._opaqueTextureEnabled = value;
+      this._checkMainCanvasAntialiasWaste();
+    }
+  }
+
+  /**
    * Whether to use an independent canvas in viewport area.
    *
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
@@ -163,6 +174,7 @@ export class Camera extends Component {
       );
     }
     this._customIndependentCanvas = value;
+    this._checkMainCanvasAntialiasWaste();
   }
 
   /**
@@ -377,6 +389,7 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
+      this._checkMainCanvasAntialiasWaste();
     }
   }
 
@@ -776,5 +789,14 @@ export class Camera extends Component {
   private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
+    this._checkMainCanvasAntialiasWaste();
+  }
+
+  private _checkMainCanvasAntialiasWaste(): void {
+    if (this.independentCanvasEnabled && Vector4.equals(this._viewport, PipelineUtils.defaultViewport)) {
+      Logger.warn(
+        "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
+      );
+    }
   }
 }
