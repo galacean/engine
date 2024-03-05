@@ -179,17 +179,17 @@ export class Camera extends Component {
         console.warn(
           "The camera is forced to disable the independent canvas because the renderTarget property is set."
         );
-      } else {
-        if (this._forceUseInternalCanvas()) {
-          console.warn(
-            "The camera is forced to enable the independent canvas because the opaqueTextureEnabled property is enabled."
-          );
-        }
       }
-
-      this._customIndependentCanvas = value;
-      this._checkMainCanvasAntialiasWaste();
+    } else {
+      if (this._forceUseInternalCanvas()) {
+        console.warn(
+          "The camera is forced to enable the independent canvas because the opaqueTextureEnabled property is enabled."
+        );
+      }
     }
+
+    this._customIndependentCanvas = value;
+    this._checkMainCanvasAntialiasWaste();
   }
 
   /**
