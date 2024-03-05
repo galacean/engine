@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Matrix } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { DisorderedArray } from "../../DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
@@ -19,13 +19,25 @@ export class TiledSpriteAssembler {
   static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
   static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer): void {
-    renderer._verticesData.triangles = [];
+  static resetData(renderer: SpriteRenderer, vCount: number, iCount: number): void {
+    if (vCount && iCount) {
+      const batcher = renderer.engine._batcherManager._batcher2D;
+      const { _chunk: chunk } = renderer;
+      if (chunk) {
+        if (chunk._vEntry.len !== vCount * 9) {
+          batcher.freeChunk(chunk);
+          renderer._chunk = batcher.allocateChunk(vCount, iCount);
+          renderer._chunk._indices = [];
+        }
+      } else {
+        renderer._chunk = batcher.allocateChunk(vCount, iCount);
+        renderer._chunk._indices = [];
+      }
+    }
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
-    const { positions, uvs, triangles } = renderer._verticesData;
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
@@ -54,6 +66,30 @@ export class TiledSpriteAssembler {
     // Assemble position and uv
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
+
+    // Calculate total vertex count and indices count, to be optimized.
+    let vertexCount = 0;
+    let indicesCount = 0;
+    for (let j = 0; j < columnLength; j++) {
+      const doubleJ = 2 * j;
+      for (let i = 0; i < rowLength; i++) {
+        const uvL = uvRow.get(2 * i);
+        const uvR = uvRow.get(2 * i + 1);
+        const uvT = uvColumn.get(doubleJ + 1);
+        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
+          continue;
+        }
+        vertexCount += 4;
+        indicesCount += 6;
+      }
+    }
+    this.resetData(renderer, vertexCount, indicesCount);
+
+    const { r: colorR, g: colorG, b: colorB, a: colorA } = renderer.color;
+    const { _chunk: chunk } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    const indices = chunk._indices;
+    let index = chunk._vEntry.start;
     let count = 0;
     let trianglesOffset = 0;
     for (let j = 0; j < columnLength; j++) {
@@ -66,61 +102,64 @@ export class TiledSpriteAssembler {
         if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
           continue;
         }
-        triangles[trianglesOffset++] = count;
-        triangles[trianglesOffset++] = count + 1;
-        triangles[trianglesOffset++] = count + 2;
-        triangles[trianglesOffset++] = count + 2;
-        triangles[trianglesOffset++] = count + 1;
-        triangles[trianglesOffset++] = count + 3;
+
+        indices[trianglesOffset++] = count;
+        indices[trianglesOffset++] = count + 1;
+        indices[trianglesOffset++] = count + 2;
+        indices[trianglesOffset++] = count + 2;
+        indices[trianglesOffset++] = count + 1;
+        indices[trianglesOffset++] = count + 3;
+        count += 4;
         const l = posRow.get(i);
         const b = posColumn.get(j);
         const r = posRow.get(i + 1);
         const t = posColumn.get(j + 1);
 
         // left and bottom
-        uvs[count] ? uvs[count].set(uvL, uvB) : (uvs[count] = new Vector2(uvL, uvB));
-        let pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
-        } else {
-          positions[count] = new Vector3(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
-        }
-        count++;
+        vertices[index++] = wE0 * l + wE4 * b + wE12;
+        vertices[index++] = wE1 * l + wE5 * b + wE13;
+        vertices[index++] = wE2 * l + wE6 * b + wE14;
+        vertices[index++] = uvL;
+        vertices[index++] = uvB;
+        vertices[index++] = colorR;
+        vertices[index++] = colorG;
+        vertices[index++] = colorB;
+        vertices[index++] = colorA;
 
         // right and bottom
-        uvs[count] ? uvs[count].set(uvR, uvB) : (uvs[count] = new Vector2(uvR, uvB));
-        pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
-        } else {
-          positions[count] = new Vector3(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
-        }
-        count++;
+        vertices[index++] = wE0 * r + wE4 * b + wE12;
+        vertices[index++] = wE1 * r + wE5 * b + wE13;
+        vertices[index++] = wE2 * r + wE6 * b + wE14;
+        vertices[index++] = uvR;
+        vertices[index++] = uvB;
+        vertices[index++] = colorR;
+        vertices[index++] = colorG;
+        vertices[index++] = colorB;
+        vertices[index++] = colorA;
 
         // left and top
-        uvs[count] ? uvs[count].set(uvL, uvT) : (uvs[count] = new Vector2(uvL, uvT));
-        pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
-        } else {
-          positions[count] = new Vector3(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
-        }
-        count++;
+        vertices[index++] = wE0 * l + wE4 * t + wE12;
+        vertices[index++] = wE1 * l + wE5 * t + wE13;
+        vertices[index++] = wE2 * l + wE6 * t + wE14;
+        vertices[index++] = uvL;
+        vertices[index++] = uvT;
+        vertices[index++] = colorR;
+        vertices[index++] = colorG;
+        vertices[index++] = colorB;
+        vertices[index++] = colorA;
 
         // right and top
-        uvs[count] ? uvs[count].set(uvR, uvT) : (uvs[count] = new Vector2(uvR, uvT));
-        pos = positions[count];
-        if (pos) {
-          pos.set(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
-        } else {
-          positions[count] = new Vector3(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
-        }
-        count++;
+        vertices[index++] = wE0 * r + wE4 * t + wE12;
+        vertices[index++] = wE1 * r + wE5 * t + wE13;
+        vertices[index++] = wE2 * r + wE6 * t + wE14;
+        vertices[index++] = uvR;
+        vertices[index++] = uvT;
+        vertices[index++] = colorR;
+        vertices[index++] = colorG;
+        vertices[index++] = colorB;
+        vertices[index++] = colorA;
       }
     }
-
-    renderer._verticesData.vertexCount = count;
-    triangles.length = trianglesOffset;
 
     const { min, max } = renderer._bounds;
     min.set(posRow.get(0), posColumn.get(0), 0);
@@ -129,6 +168,20 @@ export class TiledSpriteAssembler {
   }
 
   static updateUVs(renderer: SpriteRenderer): void {}
+
+  static updateColor(renderer: SpriteRenderer): void {
+    const { _chunk: chunk } = renderer;
+    const { color } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start + 5;
+    for (let i = 0, l = chunk._vEntry.len / 9; i < l; ++i) {
+      vertices[index] = color.r;
+      vertices[index + 1] = color.g;
+      vertices[index + 2] = color.b;
+      vertices[index + 3] = color.a;
+      index += 9;
+    }
+  }
 
   private static _calculateAdaptiveDividing(
     sprite: Sprite,

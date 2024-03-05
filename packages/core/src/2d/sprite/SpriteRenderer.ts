@@ -9,7 +9,6 @@ import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
-import { VertexData2D } from "../data/VertexData2D";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -17,6 +16,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
+import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -27,7 +27,7 @@ export class SpriteRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _verticesData: VertexData2D;
+  _chunk: MBChunk;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
@@ -266,7 +266,6 @@ export class SpriteRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._verticesData = new VertexData2D(4);
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);
@@ -333,7 +332,7 @@ export class SpriteRenderer extends Renderer {
     const { engine } = context.camera;
     const material = this.getMaterial();
     const renderData = engine._spriteRenderDataPool.getFromPool();
-    const { mbChunk: chunk } = this._verticesData;
+    const { _chunk: chunk } = this;
     renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;
     engine._batcherManager.commitRenderData(context, renderData);
@@ -353,7 +352,10 @@ export class SpriteRenderer extends Renderer {
     this._color = null;
     this._sprite = null;
     this._assembler = null;
-    this._verticesData = null;
+    if (this._chunk) {
+      this.engine._batcherManager._batcher2D.freeChunk(this._chunk);
+      this._chunk = null;
+    }
   }
 
   private _calDefaultSize(): void {

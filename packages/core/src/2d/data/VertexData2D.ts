@@ -6,5 +6,5 @@ import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
 export class VertexData2D {
   public mbChunk: MBChunk = null;
 
-  constructor(public vertexCount: number) {}
+  constructor() {}
 }

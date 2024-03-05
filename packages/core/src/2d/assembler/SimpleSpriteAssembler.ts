@@ -17,22 +17,20 @@ export class SimpleSpriteAssembler {
       renderer instanceof SpriteRenderer
         ? renderer.engine._batcherManager._batcher2D
         : renderer.engine._spriteMaskManager._batcher;
-    const { _verticesData: verticesData } = renderer;
-    verticesData.vertexCount = 4;
-    if (verticesData.mbChunk) {
-      batcher.freeChunk(verticesData.mbChunk);
-      verticesData.mbChunk = batcher.allocateChunk(4, 6);
+    if (renderer._chunk) {
+      batcher.freeChunk(renderer._chunk);
+      renderer._chunk = batcher.allocateChunk(4, 6);
     } else {
-      verticesData.mbChunk = batcher.allocateChunk(4, 6);
+      renderer._chunk = batcher.allocateChunk(4, 6);
     }
-    verticesData.mbChunk._indices = SimpleSpriteAssembler._rectangleTriangles;
+    renderer._chunk._indices = this._rectangleTriangles;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
     const { width, height, sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
     // Renderer's worldMatrix;
-    const { _worldMatrix: worldMatrix } = SimpleSpriteAssembler;
+    const { _worldMatrix: worldMatrix } = this;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix.
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
@@ -52,7 +50,7 @@ export class SimpleSpriteAssembler {
     // ---------------
     // Update positions.
     const spritePositions = sprite._getPositions();
-    const { mbChunk: chunk } = renderer._verticesData;
+    const { _chunk: chunk } = renderer;
     const vertices = chunk._meshBuffer._vertices;
     let index = chunk._vEntry.start;
     for (let i = 0; i < 4; ++i) {
@@ -70,7 +68,7 @@ export class SimpleSpriteAssembler {
     const spriteUVs = renderer.sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
-    const { mbChunk: chunk } = renderer._verticesData;
+    const { _chunk: chunk } = renderer;
     const vertices = chunk._meshBuffer._vertices;
     let index = chunk._vEntry.start + 3;
     vertices[index] = left;
@@ -87,7 +85,7 @@ export class SimpleSpriteAssembler {
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const { mbChunk: chunk } = renderer._verticesData;
+    const { _chunk: chunk } = renderer;
     const { color } = renderer;
     const vertices = chunk._meshBuffer._vertices;
     let index = chunk._vEntry.start + 5;

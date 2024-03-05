@@ -2,7 +2,6 @@ import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
  * @internal
@@ -14,22 +13,21 @@ export class SlicedSpriteAssembler {
     9, 12, 9, 13, 12, 9, 10, 13, 10, 14, 13, 10, 11, 14, 11, 15, 14
   ];
   static _worldMatrix: Matrix = new Matrix();
+
   static resetData(renderer: SpriteRenderer): void {
-    const { _verticesData: verticesData } = renderer;
-    const { positions, uvs } = verticesData;
-    verticesData.vertexCount = positions.length = uvs.length = 16;
-    for (let i = 0; i < 16; i++) {
-      positions[i] ||= new Vector3();
-      uvs[i] ||= new Vector2();
+    const batcher = renderer.engine._batcherManager._batcher2D;
+    if (renderer._chunk) {
+      batcher.freeChunk(renderer._chunk);
+      renderer._chunk = batcher.allocateChunk(16, 54);
+    } else {
+      renderer._chunk = batcher.allocateChunk(16, 54);
     }
-    verticesData.triangles = SlicedSpriteAssembler._rectangleTriangles;
+    renderer._chunk._indices = this._rectangleTriangles;
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite } = renderer;
-    const { positions, uvs } = renderer._verticesData;
     const { border } = sprite;
-    const spriteUVs = sprite._getUVs();
     // Update local positions.
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
@@ -81,7 +79,7 @@ export class SlicedSpriteAssembler {
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
     // Renderer's worldMatrix.
-    const { _worldMatrix: worldMatrix } = SlicedSpriteAssembler;
+    const { _worldMatrix: worldMatrix } = this;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix.
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
@@ -104,18 +102,17 @@ export class SlicedSpriteAssembler {
     //  0 - 4 - 8  - 12
     // ------------------------
     // Assemble position and uv.
+    const { _chunk: chunk } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start;
     for (let i = 0; i < 4; i++) {
       const rowValue = row[i];
-      const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++) {
         const columnValue = column[j];
-        const idx = i * 4 + j;
-        positions[idx].set(
-          wE[0] * rowValue + wE[4] * columnValue + wE[12],
-          wE[1] * rowValue + wE[5] * columnValue + wE[13],
-          wE[2] * rowValue + wE[6] * columnValue + wE[14]
-        );
-        uvs[idx].set(rowU, spriteUVs[j].y);
+        vertices[index] = wE[0] * rowValue + wE[4] * columnValue + wE[12];
+        vertices[index + 1] = wE[1] * rowValue + wE[5] * columnValue + wE[13];
+        vertices[index + 2] = wE[2] * rowValue + wE[6] * columnValue + wE[14];
+        index += 9;
       }
     }
 
@@ -125,5 +122,32 @@ export class SlicedSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {}
+  static updateUVs(renderer: SpriteRenderer): void {
+    const { _chunk: chunk } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    const spriteUVs = renderer.sprite._getUVs();
+    let index = chunk._vEntry.start + 3;
+    for (let i = 0; i < 4; i++) {
+      const rowU = spriteUVs[i].x;
+      for (let j = 0; j < 4; j++) {
+        vertices[index] = rowU;
+        vertices[index + 1] = spriteUVs[j].y;
+        index += 9;
+      }
+    }
+  }
+
+  static updateColor(renderer: SpriteRenderer): void {
+    const { _chunk: chunk } = renderer;
+    const { color } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start + 5;
+    for (let i = 0; i < 16; ++i) {
+      vertices[index] = color.r;
+      vertices[index + 1] = color.g;
+      vertices[index + 2] = color.b;
+      vertices[index + 3] = color.a;
+      index += 9;
+    }
+  }
 }
