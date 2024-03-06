@@ -117,7 +117,7 @@ export class Camera extends Component {
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
-  private _customIndependentCanvas: boolean = false;
+  private _preferIndependentCanvas: boolean = false;
   private _opaqueTextureEnabled: boolean = false;
 
   @ignoreClone
@@ -157,24 +157,44 @@ export class Camera extends Component {
   }
 
   /**
-   * Whether to use an independent canvas in viewport area.
+   * Whether prefer to use an independent canvas in viewport area when camera rendering to main canvas.
+   *
+   * @remarks If success, the `independentCanvasEnabled` property will be true and the msaa in viewport can turn or off independently by `msaaSamples` property.
+   */
+  get preferIndependentCanvas(): boolean {
+    return this._preferIndependentCanvas;
+  }
+
+  set preferIndependentCanvas(value: boolean) {
+    if (value) {
+      if (this._renderTarget) {
+        console.warn("The independent canvas can't be enabled when the renderTarget property is set.");
+      }
+    } else {
+      if (this._forceUseInternalCanvas()) {
+        console.warn("The independent canvas force to be enabled when opaqueTextureEnabled is true.");
+      }
+    }
+
+    this._preferIndependentCanvas = value;
+    this._checkMainCanvasAntialiasWaste();
+  }
+
+  /**
+   * Whether independent canvas is enabled.
    *
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    const forceIndependent = this._forceUseInternalCanvas();
-    return forceIndependent || this._customIndependentCanvas;
-  }
-
-  set independentCanvasEnabled(value: boolean) {
-    const forceIndependent = this._forceUseInternalCanvas();
-    if (forceIndependent && !value) {
-      console.warn(
-        "The camera is forced to use the independent canvas because the opaqueTextureEnabled property is enabled."
-      );
+    if (this._renderTarget) {
+      return false;
     }
-    this._customIndependentCanvas = value;
-    this._checkMainCanvasAntialiasWaste();
+
+    if (this._forceUseInternalCanvas()) {
+      return true;
+    }
+
+    return this._preferIndependentCanvas;
   }
 
   /**
@@ -778,7 +798,7 @@ export class Camera extends Component {
   }
 
   private _forceUseInternalCanvas(): boolean {
-    return !this._renderTarget && this.opaqueTextureEnabled;
+    return this.opaqueTextureEnabled;
   }
 
   @ignoreClone
