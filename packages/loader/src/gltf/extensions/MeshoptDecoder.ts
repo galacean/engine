@@ -163,7 +163,6 @@ const MeshoptDecoder = (function () {
     });
   }
 
-
   return {
     workerCount: 4,
     ready: ready,
