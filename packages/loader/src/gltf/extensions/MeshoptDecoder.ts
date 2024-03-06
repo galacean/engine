@@ -106,7 +106,23 @@ const MeshoptDecoder = (function () {
       ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});" +
       "self.onmessage = workerProcess;" +
       decode.toString() +
-      workerProcess.toString();
+      `function workerProcess(event) {
+        ready.then(function () {
+          const data = event.data;
+          try {
+            const target = new Uint8Array(data.count * data.size);
+            decode(instance.exports[data.mode], target, data.count, data.size, data.source, instance.exports[data.filter]);
+            self.postMessage({ id: data.id, count: data.count, action: "resolve", value: target }, [target.buffer]);
+          } catch (error) {
+            self.postMessage({
+              id: data.id,
+              count: data.count,
+              action: "reject",
+              value: error
+            });
+          }
+        });
+      }`;
 
     const blob = new Blob([source], { type: "text/javascript" });
     const url = URL.createObjectURL(blob);
@@ -147,23 +163,6 @@ const MeshoptDecoder = (function () {
     });
   }
 
-  function workerProcess(event) {
-    ready.then(function () {
-      const data = event.data;
-      try {
-        const target = new Uint8Array(data.count * data.size);
-        decode(instance.exports[data.mode], target, data.count, data.size, data.source, instance.exports[data.filter]);
-        self.postMessage({ id: data.id, count: data.count, action: "resolve", value: target }, [target.buffer] as any);
-      } catch (error) {
-        self.postMessage({
-          id: data.id,
-          count: data.count,
-          action: "reject",
-          value: error
-        });
-      }
-    });
-  }
 
   return {
     workerCount: 4,
