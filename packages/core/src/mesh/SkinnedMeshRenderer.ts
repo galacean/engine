@@ -235,7 +235,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   override _onDestroy(): void {
     super._onDestroy();
-    this._unRegisterEntityTransformListener();
     this._rootBone = null;
     this._jointDataCreateCache = null;
     this._skin = null;
