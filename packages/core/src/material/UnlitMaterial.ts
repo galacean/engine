@@ -1,6 +1,8 @@
 import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
+import { uniform } from "../shader/ShaderUniformDecorator";
+import { ShaderUniformType } from "../shader/ShaderUniformType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 
@@ -11,46 +13,29 @@ export class UnlitMaterial extends BaseMaterial {
   /**
    * Base color.
    */
-  get baseColor(): Color {
-    return this.shaderData.getColor(UnlitMaterial._baseColorProp);
-  }
-
-  set baseColor(value: Color) {
-    const baseColor = this.shaderData.getColor(UnlitMaterial._baseColorProp);
-    if (value !== baseColor) {
-      baseColor.copyFrom(value);
-    }
-  }
+  @uniform(ShaderUniformType.Color, {
+    varName: "material_BaseColor",
+    keepRef: true
+  })
+  baseColor: Color = new Color(1, 1, 1, 1);
 
   /**
    * Base texture.
    */
-  get baseTexture(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture(UnlitMaterial._baseTextureProp);
-  }
-
-  set baseTexture(value: Texture2D) {
-    this.shaderData.setTexture(UnlitMaterial._baseTextureProp, value);
-    if (value) {
-      this.shaderData.enableMacro(UnlitMaterial._baseTextureMacro);
-    } else {
-      this.shaderData.disableMacro(UnlitMaterial._baseTextureMacro);
-    }
-  }
+  @uniform(ShaderUniformType.Texture, {
+    varName: "material_BaseTexture",
+    macroName: "MATERIAL_HAS_BASETEXTURE"
+  })
+  baseTexture: Texture2D;
 
   /**
    * Tiling and offset of main textures.
    */
-  get tilingOffset(): Vector4 {
-    return this.shaderData.getVector4(UnlitMaterial._tilingOffsetProp);
-  }
-
-  set tilingOffset(value: Vector4) {
-    const tilingOffset = this.shaderData.getVector4(UnlitMaterial._tilingOffsetProp);
-    if (value !== tilingOffset) {
-      tilingOffset.copyFrom(value);
-    }
-  }
+  @uniform(ShaderUniformType.Vector4, {
+    varName: "material_TilingOffset",
+    keepRef: true
+  })
+  tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
   /**
    * Create a unlit material instance.
@@ -63,9 +48,6 @@ export class UnlitMaterial extends BaseMaterial {
 
     shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
     shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
-
-    shaderData.setColor(UnlitMaterial._baseColorProp, new Color(1, 1, 1, 1));
-    shaderData.setVector4(UnlitMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
   }
 
   /**

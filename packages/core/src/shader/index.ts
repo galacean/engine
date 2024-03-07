@@ -13,5 +13,7 @@ export { ShaderMacro } from "./ShaderMacro";
 export { ShaderPass } from "./ShaderPass";
 export { ShaderProperty } from "./ShaderProperty";
 export { ShaderTagKey } from "./ShaderTagKey";
+export { ShaderUniformType } from "./ShaderUniformType";
 export { SubShader } from "./SubShader";
+export { uniform } from "./ShaderUniformDecorator";
 export * from "./state";
