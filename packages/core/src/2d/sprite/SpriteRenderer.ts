@@ -308,10 +308,13 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
-    // @todo: Check if `Renderer` is renderable before culling
-    const material = this.getMaterial();
+    let material = this.getMaterial();
     if (!material) {
       return;
+    }
+    // @todo: This question needs to be raised rather than hidden.
+    if (material.destroyed) {
+      material = this._engine._spriteDefaultMaterials[this._maskInteraction];
     }
 
     // Update position
