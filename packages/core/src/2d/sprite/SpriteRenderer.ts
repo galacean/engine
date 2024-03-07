@@ -308,6 +308,12 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
+    // @todo: Check if `Renderer` is renderable before culling
+    const material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(this);
@@ -321,7 +327,6 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Push primitive
-    const material = this.getMaterial();
     const texture = this.sprite.texture;
     const renderData = this._engine._spriteRenderDataPool.getFromPool();
     renderData.set(this, material, this._verticesData, texture);
