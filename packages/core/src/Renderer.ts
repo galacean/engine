@@ -349,8 +349,8 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
+    this._unRegisterEntityTransformListener();
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -419,6 +419,13 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected _registerEntityTransformListener(): void {
     this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  protected _unRegisterEntityTransformListener(): void {
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
   }
 
   /**

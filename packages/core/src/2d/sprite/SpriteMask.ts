@@ -204,6 +204,16 @@ export class SpriteMask extends Renderer {
       return;
     }
 
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+    const { _engine: engine } = this;
+    // @todo: This question needs to be raised rather than hidden.
+    if (material.destroyed) {
+      material = engine._spriteMaskDefaultMaterial;
+    }
+
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(this);
@@ -218,11 +228,10 @@ export class SpriteMask extends Renderer {
 
     context.camera._renderPipeline._allSpriteMasks.add(this);
 
-    const renderData = this._engine._spriteMaskRenderDataPool.getFromPool();
-    const material = this.getMaterial();
+    const renderData = engine._spriteMaskRenderDataPool.getFromPool();
     renderData.set(this, material, this._verticesData);
 
-    const renderElement = this._engine._renderElementPool.getFromPool();
+    const renderElement = engine._renderElementPool.getFromPool();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }

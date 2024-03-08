@@ -86,9 +86,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     if (this._rootBone !== value) {
-      this._rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
-      value.transform._updateFlagManager.addListener(this._onTransformChanged);
+      this._unRegisterEntityTransformListener();
       this._rootBone = value;
+      this._registerEntityTransformListener();
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -170,11 +170,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
     const entity = this.entity;
-    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
+    const worldMatrix = (this._rootBone ?? entity).transform.worldMatrix;
+
     if (onlyMVP) {
       this._updateMVPShaderData(context, worldMatrix);
       return;
     }
+
     this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
@@ -236,7 +238,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   override _onDestroy(): void {
     super._onDestroy();
-    this._rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
     this._rootBone = null;
     this._jointDataCreateCache = null;
     this._skin = null;
@@ -281,7 +282,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   protected override _registerEntityTransformListener(): void {
-    // Cancel register listener to entity transform.
+    (this._rootBone ?? this._entity).transform._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _unRegisterEntityTransformListener(): void {
+    (this._rootBone ?? this._entity).transform._updateFlagManager.removeListener(this._onTransformChanged);
   }
 
   /**
