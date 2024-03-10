@@ -117,7 +117,6 @@ export class Camera extends Component {
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
-  private _preferIndependentCanvas: boolean = false;
   private _opaqueTextureEnabled: boolean = false;
 
   @ignoreClone
@@ -157,30 +156,6 @@ export class Camera extends Component {
   }
 
   /**
-   * Whether prefer to use an independent canvas in viewport area when camera rendering to main canvas.
-   *
-   * @remarks If success, the `independentCanvasEnabled` property will be true and the msaa in viewport can turn or off independently by `msaaSamples` property.
-   */
-  get preferIndependentCanvas(): boolean {
-    return this._preferIndependentCanvas;
-  }
-
-  set preferIndependentCanvas(value: boolean) {
-    if (value) {
-      if (this._renderTarget) {
-        console.warn("The independent canvas can't be enabled when the renderTarget property is set.");
-      }
-    } else {
-      if (this._forceUseInternalCanvas()) {
-        console.warn("The independent canvas force to be enabled when opaqueTextureEnabled is true.");
-      }
-    }
-
-    this._preferIndependentCanvas = value;
-    this._checkMainCanvasAntialiasWaste();
-  }
-
-  /**
    * Whether independent canvas is enabled.
    *
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
@@ -194,7 +169,7 @@ export class Camera extends Component {
       return true;
     }
 
-    return this._preferIndependentCanvas;
+    return false;
   }
 
   /**
