@@ -165,11 +165,7 @@ export class Camera extends Component {
       return false;
     }
 
-    if (this._forceUseInternalCanvas()) {
-      return true;
-    }
-
-    return false;
+    return this._forceUseInternalCanvas();
   }
 
   /**
