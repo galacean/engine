@@ -346,19 +346,14 @@ export default class RuntimeContext {
   }
 
   private _globalMapReset() {
-    for (const [_, globals] of this._shaderGlobalMap) {
+    const resetProp = (globals: IGlobal[]) => {
       for (const gv of globals) {
         gv.inspected = false;
         gv.referenced = false;
       }
-    }
-
-    for (const [_, globals] of this._subShaderGlobalMap) {
-      for (const gv of globals) {
-        gv.inspected = false;
-        gv.referenced = false;
-      }
-    }
+    };
+    this._shaderGlobalMap.forEach(resetProp);
+    this._subShaderGlobalMap.forEach(resetProp);
   }
 
   private _initShaderGlobalList(shaderAst: AstNode<IShaderAstContent>) {
