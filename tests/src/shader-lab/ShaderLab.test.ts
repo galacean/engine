@@ -245,4 +245,9 @@ describe("ShaderLab", () => {
       expect(err[0].token.startLine).to.eql(25);
     }
   });
+
+  it("multi-pass", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
+  });
 });
