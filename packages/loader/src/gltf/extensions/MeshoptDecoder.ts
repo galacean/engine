@@ -105,7 +105,7 @@ const MeshoptDecoder = (function () {
       "]), {})" +
       ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});\n" +
       "self.onmessage = workerProcess;\n" +
-      `function decode(fun, target, count, size, source, filter?) {
+      `function decode(fun, target, count, size, source, filter) {
         const sbrk = instance.exports.sbrk;
         const count4 = (count + 3) & ~3;
         const tp = sbrk(count4 * size);
