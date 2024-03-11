@@ -92,3 +92,5 @@ export type IBasicType =
 export type IAssetRef = { key?: string; refId: string };
 
 export type IEntityRef = { entityId: string };
+
+export type IShaderRef = { refId: string };
