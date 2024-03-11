@@ -103,9 +103,25 @@ const MeshoptDecoder = (function () {
       "var instance; var ready = WebAssembly.instantiate(new Uint8Array([" +
       new Uint8Array(unpack(wasm)) +
       "]), {})" +
-      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});" +
-      "self.onmessage = workerProcess;" +
-      decode.toString() +
+      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});\n" +
+      "self.onmessage = workerProcess;\n" +
+      `function decode(fun, target, count, size, source, filter?) {
+        const sbrk = instance.exports.sbrk;
+        const count4 = (count + 3) & ~3;
+        const tp = sbrk(count4 * size);
+        const sp = sbrk(source.length);
+        const heap = new Uint8Array(instance.exports.memory.buffer);
+        heap.set(source, sp);
+        const res = fun(tp, count, size, sp, source.length);
+        if (res == 0 && filter) {
+          filter(tp, count4, size);
+        }
+        target.set(heap.subarray(tp, tp + count * size));
+        sbrk(tp - sbrk(0));
+        if (res != 0) {
+          throw new Error("Malformed buffer data: " + res);
+        }
+      }\n` +
       `function workerProcess(event) {
         ready.then(function () {
           const data = event.data;
