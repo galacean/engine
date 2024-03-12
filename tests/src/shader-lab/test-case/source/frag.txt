@@ -2,6 +2,8 @@
 #define SCENE_IS_CALCULATE_SHADOWS
 #endif
 
+// #include "ShadowCoord"
+
 #define TT 1.0 // comments
 #define QQ
 

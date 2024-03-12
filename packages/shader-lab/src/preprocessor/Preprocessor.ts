@@ -77,6 +77,11 @@ export class Preprocessor {
     while (true) {
       const result = tokenizer.scanToken();
       const { end, res: token } = result;
+      if (tokenizer.curChar === "/" && tokenizer.peek === "/") {
+        // ignore comments
+        tokenizer.scanChunk("\n");
+        continue;
+      }
       if (token) {
         const defineMacro = this._definePairs.get(token.text);
         if (defineMacro && this._curMacroLvl === 0) {
