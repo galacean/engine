@@ -19,7 +19,7 @@ import {
   TextureMagFilter,
   TextureMinFilter
 } from "./GLTFSchema";
-import { GLTFParser, GLTFTextureParser } from "./parser";
+import { GLTFTextureParser } from "./parser";
 import { BufferInfo, GLTFParserContext, GLTFParserType } from "./parser/GLTFParserContext";
 
 /**
@@ -182,87 +182,29 @@ export class GLTFUtils {
     });
   }
 
-  public static bufferToVector3Array(
-    data: TypedArray,
-    byteStride: number,
-    accessorByteOffset: number,
-    count: number
+  static bufferToVector3Array(
+    buffer: TypedArray,
+    byteOffset: number,
+    count: number,
+    normalized: boolean,
+    componentType: AccessorComponentType
   ): Vector3[] {
-    const bytesPerElement = data.BYTES_PER_ELEMENT;
-    const offset = (accessorByteOffset % byteStride) / bytesPerElement;
-    const stride = byteStride / bytesPerElement;
-
-    const vector3s = new Array<Vector3>(count);
-    for (let i = 0; i < count; i++) {
-      const index = offset + i * stride;
-      vector3s[i] = new Vector3(data[index], data[index + 1], data[index + 2]);
-    }
-    return vector3s;
-  }
-
-  /**
-   * @deprecated
-   * Get accessor data.
-   */
-  static getAccessorData(glTF: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
-    const bufferViews = glTF.bufferViews;
-    const bufferView = bufferViews[accessor.bufferView ?? 0];
-    const arrayBuffer = buffers[bufferView.buffer];
-    const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
-    const bufferViewByteOffset = bufferView.hasOwnProperty("byteOffset") ? bufferView.byteOffset : 0;
-    const byteOffset = accessorByteOffset + bufferViewByteOffset;
-    const accessorTypeSize = GLTFUtils.getAccessorTypeSize(accessor.type);
-    const length = accessorTypeSize * accessor.count;
-    const byteStride = bufferView.byteStride ?? 0;
-    const arrayType = GLTFUtils.getComponentType(accessor.componentType);
-    let uint8Array;
-    if (byteStride) {
-      const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
-      uint8Array = new Uint8Array(accessor.count * accessorByteSize);
-      const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
-      for (let i = 0; i < accessor.count; i++) {
-        for (let j = 0; j < accessorByteSize; j++) {
-          uint8Array[i * accessorByteSize + j] = originalBufferView[i * byteStride + accessorByteOffset + j];
-        }
+    const baseOffset = byteOffset / buffer.BYTES_PER_ELEMENT;
+    const stride = buffer.length / count;
+    const vertices = new Array<Vector3>(count);
+    if (normalized) {
+      const factor = GLTFUtils.getNormalizedComponentScale(componentType);
+      for (let i = 0; i < count; i++) {
+        const index = baseOffset + i * stride;
+        vertices[i] = new Vector3(buffer[index] * factor, buffer[index + 1] * factor, buffer[index + 2] * factor);
       }
     } else {
-      uint8Array = new Uint8Array(arrayBuffer.slice(byteOffset, byteOffset + length * arrayType.BYTES_PER_ELEMENT));
-    }
-
-    const typedArray = new arrayType(uint8Array.buffer);
-
-    if (accessor.sparse) {
-      const { count, indices, values } = accessor.sparse;
-      const indicesBufferView = bufferViews[indices.bufferView];
-      const valuesBufferView = bufferViews[values.bufferView];
-      const indicesArrayBuffer = buffers[indicesBufferView.buffer];
-      const valuesArrayBuffer = buffers[valuesBufferView.buffer];
-      const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
-      const indicesByteLength = indicesBufferView.byteLength;
-      const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
-      const valuesByteLength = valuesBufferView.byteLength;
-
-      const indicesType = GLTFUtils.getComponentType(indices.componentType);
-      const indicesArray = new indicesType(
-        indicesArrayBuffer,
-        indicesByteOffset,
-        indicesByteLength / indicesType.BYTES_PER_ELEMENT
-      );
-      const valuesArray = new arrayType(
-        valuesArrayBuffer,
-        valuesByteOffset,
-        valuesByteLength / arrayType.BYTES_PER_ELEMENT
-      );
-
       for (let i = 0; i < count; i++) {
-        const replaceIndex = indicesArray[i];
-        for (let j = 0; j < accessorTypeSize; j++) {
-          typedArray[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
-        }
+        const index = baseOffset + i * stride;
+        vertices[i] = new Vector3(buffer[index], buffer[index + 1], buffer[index + 2]);
       }
     }
-
-    return typedArray;
+    return vertices;
   }
 
   static getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[]): ArrayBuffer {
