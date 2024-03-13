@@ -250,4 +250,9 @@ describe("ShaderLab", () => {
     const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
     glslValidate(shaderSource, shaderLab);
   });
+
+  it("macro-with-preprocessor", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/macro-pre.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
+  });
 });

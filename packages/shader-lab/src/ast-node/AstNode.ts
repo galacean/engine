@@ -266,7 +266,7 @@ export class FnMacroDefineAstNode extends AstNode<IFnMacroDefineAstContent> {
   override _doSerialization(context?: RuntimeContext, args?: any): string {
     if (context?.currentMainFnAst) context.referenceGlobal(this.content.variable.getVariableName());
     return `#define ${this.content.variable.serialize(context)} ${
-      this.content.value?.serialize(context, { skipUniform: true }) ?? ""
+      this.content.value?.serialize(context, { skipUniform: true, skipComma: true }) ?? ""
     }`;
   }
 
@@ -789,7 +789,7 @@ export class VariableTypeAstNode extends AstNode<IVariableTypeAstContent> {
 
 export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAstContent> {
   override _astType: string = "VariableDeclaration";
-  override _doSerialization(context: RuntimeContext, opts?: { skipUniform: boolean }): string {
+  override _doSerialization(context: RuntimeContext, opts?: { skipUniform: boolean; skipComma: boolean }): string {
     if (context.currentFunctionInfo) {
       context.currentFunctionInfo.localDeclaration.push(this);
     }
@@ -820,7 +820,7 @@ export class VariableDeclarationAstNode extends AstNode<IFnVariableDeclarationAs
       ret = "uniform " + ret;
     }
 
-    return ret + ";";
+    return opts?.skipComma ? ret : ret + ";";
   }
 }
 
