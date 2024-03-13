@@ -130,8 +130,13 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
 
   private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): TypedArray {
     const main = restoreInfo.main;
-    const buffer = buffers[main.bufferIndex];
-    const data = new main.TypedArray(buffer, main.byteOffset, main.length);
+    let data: TypedArray;
+    if (main) {
+      const buffer = buffers[main.bufferIndex];
+      data = new main.TypedArray(buffer, main.byteOffset, main.length);
+    } else {
+      data = new main.TypedArray(main.length);
+    }
 
     const sparseCount = restoreInfo.sparseCount;
     if (sparseCount) {
@@ -216,7 +221,13 @@ export class BufferDataRestoreInfo {
 export class RestoreDataAccessor {
   constructor(
     public bufferIndex: number,
-    public TypedArray: new (buffer: ArrayBuffer, byteOffset: number, length?: number) => TypedArray,
+    public TypedArray:
+      | Uint8ArrayConstructor
+      | Int8ArrayConstructor
+      | Int16ArrayConstructor
+      | Uint16ArrayConstructor
+      | Uint32ArrayConstructor
+      | Float32ArrayConstructor,
     public byteOffset: number,
     public length: number
   ) {}
