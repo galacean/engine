@@ -46,7 +46,7 @@ export class PointerManager implements IInput {
    * @internal
    */
   constructor(engine: Engine, target: EventTarget) {
-    if (target instanceof Window) {
+    if (typeof Window !== "undefined" && target instanceof Window) {
       throw "Do not set window as target because window cannot listen to pointer leave event.";
     }
     this._engine = engine;
