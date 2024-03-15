@@ -166,9 +166,7 @@ export class GLTFMeshParser extends GLTFParser {
       return GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
         const buffer = bufferInfo.data;
         const byteOffset = bufferInfo.interleaved ? (accessor.byteOffset ?? 0) % bufferInfo.stride : 0;
-        const count = accessor.count;
-        const normalized = accessor.normalized;
-        const componentType = accessor.componentType;
+        const { count, normalized, componentType } = accessor;
         const vertices = GLTFUtils.bufferToVector3Array(buffer, byteOffset, count, normalized, componentType);
 
         const restoreInfo = new BlendShapeDataRestoreInfo(
@@ -209,9 +207,7 @@ export class GLTFMeshParser extends GLTFParser {
         this._getBlendShapeData(context, context.glTF, gltfPrimitive, "NORMAL", i),
         this._getBlendShapeData(context, context.glTF, gltfPrimitive, "TANGENT", i)
       ]).then((vertices) => {
-        const positionData = vertices[0];
-        const normalData = vertices[1];
-        const tangentData = vertices[2];
+        const [positionData, normalData, tangentData] = vertices;
 
         const blendShape = new BlendShape(name);
         blendShape.addFrame(1.0, positionData.vertices, normalData?.vertices ?? null, tangentData?.vertices ?? null);
