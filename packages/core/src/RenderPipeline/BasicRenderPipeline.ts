@@ -44,7 +44,6 @@ export class BasicRenderPipeline {
     this._camera = camera;
     const { engine } = camera;
     this._cullingResults = new CullingResults();
-    this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
