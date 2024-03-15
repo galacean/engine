@@ -10,6 +10,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-blendShape",
       threshold: 0.1
     },
+    blendShapeQuantization: {
+      category: "Animator",
+      caseFileName: "animator-blendShape-quantization",
+      threshold: 0.1
+    },
     crossfade: {
       category: "Animator",
       caseFileName: "animator-crossfade",
