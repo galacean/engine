@@ -6,7 +6,7 @@ import {
   BufferRestoreInfo,
   ModelMeshRestoreInfo
 } from "../../GLTFContentRestorer";
-import type { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
+import type { IAccessor, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
@@ -155,33 +155,24 @@ export class GLTFMeshParser extends GLTFParser {
   private static _getBlendShapeData(
     context: GLTFParserContext,
     glTF: IGLTF,
-    gltfPrimitive: IMeshPrimitive,
-    attributeName: string,
-    shapeIndex: number
+    accessor: IAccessor
   ): Promise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }> {
-    const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
-    const attributeAccessorIdx = shapeAccessorIdx[attributeName];
-    if (attributeAccessorIdx) {
-      const accessor = glTF.accessors[attributeAccessorIdx];
-      return GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
-        const buffer = bufferInfo.data;
-        const byteOffset = bufferInfo.interleaved ? (accessor.byteOffset ?? 0) % bufferInfo.stride : 0;
-        const { count, normalized, componentType } = accessor;
-        const vertices = GLTFUtils.bufferToVector3Array(buffer, byteOffset, count, normalized, componentType);
+    return GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
+      const buffer = bufferInfo.data;
+      const byteOffset = bufferInfo.interleaved ? (accessor.byteOffset ?? 0) % bufferInfo.stride : 0;
+      const { count, normalized, componentType } = accessor;
+      const vertices = GLTFUtils.bufferToVector3Array(buffer, byteOffset, count, normalized, componentType);
 
-        const restoreInfo = new BlendShapeDataRestoreInfo(
-          bufferInfo.restoreInfo,
-          byteOffset,
-          count,
-          normalized,
-          componentType
-        );
+      const restoreInfo = new BlendShapeDataRestoreInfo(
+        bufferInfo.restoreInfo,
+        byteOffset,
+        count,
+        normalized,
+        componentType
+      );
 
-        return { vertices, restoreInfo };
-      });
-    } else {
-      return null;
-    }
+      return { vertices, restoreInfo };
+    });
   }
 
   /**
@@ -197,28 +188,41 @@ export class GLTFMeshParser extends GLTFParser {
       [name: string]: number;
     }[]
   ): Promise<void[]> {
+    const glTF = context.glTF;
+    const accessors = glTF.accessors;
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
     let promises = new Array<Promise<void>>();
     for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
 
+      const targets = gltfPrimitive.targets[i];
+      const normalTarget = targets["NORMAL"];
+      const tangentTarget = targets["TANGENT"];
+      const hasNormal = normalTarget !== undefined;
+      const hasTangent = tangentTarget !== undefined;
+
       const promise = Promise.all([
-        this._getBlendShapeData(context, context.glTF, gltfPrimitive, "POSITION", i),
-        this._getBlendShapeData(context, context.glTF, gltfPrimitive, "NORMAL", i),
-        this._getBlendShapeData(context, context.glTF, gltfPrimitive, "TANGENT", i)
+        this._getBlendShapeData(context, glTF, accessors[targets["POSITION"]]),
+        hasNormal ? this._getBlendShapeData(context, glTF, accessors[normalTarget]) : null,
+        hasTangent ? this._getBlendShapeData(context, glTF, accessors[tangentTarget]) : null
       ]).then((vertices) => {
         const [positionData, normalData, tangentData] = vertices;
 
         const blendShape = new BlendShape(name);
-        blendShape.addFrame(1.0, positionData.vertices, normalData?.vertices ?? null, tangentData?.vertices ?? null);
+        blendShape.addFrame(
+          1.0,
+          positionData.vertices,
+          hasNormal ? normalData.vertices : null,
+          hasTangent ? tangentData.vertices : null
+        );
         mesh.addBlendShape(blendShape);
 
         meshRestoreInfo.blendShapes.push(
           new BlendShapeRestoreInfo(
             blendShape,
             positionData.restoreInfo,
-            normalData?.restoreInfo ?? null,
-            tangentData?.restoreInfo ?? null
+            hasNormal ? normalData.restoreInfo : null,
+            hasTangent ? tangentData?.restoreInfo : null
           )
         );
       });

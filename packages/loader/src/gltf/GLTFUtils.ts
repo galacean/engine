@@ -140,11 +140,13 @@ export class GLTFUtils {
     const elementStride = dataElementSize * dataElementBytes;
     const accessorCount = accessor.count;
 
+    let promise: Promise<BufferInfo>;
+
     if (accessor.bufferView !== undefined) {
       const bufferViewIndex = accessor.bufferView;
       const bufferView = bufferViews[bufferViewIndex];
 
-      return context.get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView).then((bufferViewData) => {
+      promise = context.get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView).then((bufferViewData) => {
         const bufferIndex = bufferView.buffer;
         const bufferByteOffset = bufferViewData.byteOffset ?? 0;
         const byteOffset = accessor.byteOffset ?? 0;
@@ -177,9 +179,6 @@ export class GLTFUtils {
           );
         }
 
-        if (accessor.sparse) {
-          return GLTFUtils.processingSparseData(context, accessor, bufferInfo).then(() => bufferInfo);
-        }
         return bufferInfo;
       });
     } else {
@@ -189,11 +188,15 @@ export class GLTFUtils {
       bufferInfo.restoreInfo = new BufferDataRestoreInfo(
         new RestoreDataAccessor(undefined, TypedArray, undefined, count)
       );
-      if (accessor.sparse) {
-        return GLTFUtils.processingSparseData(context, accessor, bufferInfo).then(() => bufferInfo);
-      }
-      return Promise.resolve(bufferInfo);
+
+      promise = Promise.resolve(bufferInfo);
     }
+
+    return accessor.sparse
+      ? promise.then((bufferInfo) =>
+          GLTFUtils.processingSparseData(context, accessor, bufferInfo).then(() => bufferInfo)
+        )
+      : promise;
   }
 
   static bufferToVector3Array(
