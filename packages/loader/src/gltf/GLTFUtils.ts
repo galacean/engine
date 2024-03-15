@@ -206,17 +206,11 @@ export class GLTFUtils {
     const baseOffset = byteOffset / buffer.BYTES_PER_ELEMENT;
     const stride = buffer.length / count;
     const vertices = new Array<Vector3>(count);
-    if (normalized) {
-      const factor = GLTFUtils.getNormalizedComponentScale(componentType);
-      for (let i = 0; i < count; i++) {
-        const index = baseOffset + i * stride;
-        vertices[i] = new Vector3(buffer[index] * factor, buffer[index + 1] * factor, buffer[index + 2] * factor);
-      }
-    } else {
-      for (let i = 0; i < count; i++) {
-        const index = baseOffset + i * stride;
-        vertices[i] = new Vector3(buffer[index], buffer[index + 1], buffer[index + 2]);
-      }
+
+    const factor = normalized ? GLTFUtils.getNormalizedComponentScale(componentType) : 1;
+    for (let i = 0; i < count; i++) {
+      const index = baseOffset + i * stride;
+      vertices[i] = new Vector3(buffer[index] * factor, buffer[index + 1] * factor, buffer[index + 2] * factor);
     }
     return vertices;
   }
