@@ -10,6 +10,7 @@ import { LiteColliderShape } from "./LiteColliderShape";
 export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
   private static _tempBox: BoundingBox = new BoundingBox();
   private _halfSize: Vector3 = new Vector3();
+  private _sizeScale: Vector3 = new Vector3(1, 1, 1);
 
   /** @internal */
   _boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
@@ -42,6 +43,11 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
+    this._sizeScale.copyFrom({
+      x: Math.abs(scale.x),
+      y: Math.abs(scale.y),
+      z: Math.abs(scale.z)
+    });
     this._setBondingBox();
   }
 
@@ -58,18 +64,15 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   _raycast(ray: Ray, hit: LiteHitResult): boolean {
     const localRay = this._getLocalRay(ray);
+    const sizeScale = this._sizeScale;
 
     const boundingBox = LiteBoxColliderShape._tempBox;
     boundingBox.min.set(
-      -this._halfSize.x * this._worldScale.x,
-      -this._halfSize.y * this._worldScale.y,
-      -this._halfSize.z * this._worldScale.z
+      -this._halfSize.x * sizeScale.x,
+      -this._halfSize.y * sizeScale.y,
+      -this._halfSize.z * sizeScale.z
     );
-    boundingBox.max.set(
-      this._halfSize.x * this._worldScale.x,
-      this._halfSize.y * this._worldScale.y,
-      this._halfSize.z * this._worldScale.z
-    );
+    boundingBox.max.set(this._halfSize.x * sizeScale.x, this._halfSize.y * sizeScale.y, this._halfSize.z * sizeScale.z);
     const rayDistance = localRay.intersectBox(boundingBox);
     if (rayDistance !== -1) {
       this._updateHitResult(localRay, rayDistance, hit, ray.origin);
@@ -81,7 +84,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
 
   private _setBondingBox(): void {
     const { position } = this._transform;
-    const scale = this._worldScale;
+    const scale = this._sizeScale;
     const halfSize = this._halfSize;
 
     this._boxMin.set(

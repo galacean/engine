@@ -11,17 +11,13 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   private static _tempHalfExtents = new Vector3();
   /** @internal */
   _halfSize: Vector3 = new Vector3();
+  private _sizeScale: Vector3 = new Vector3(1, 1, 1);
 
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
 
     this._halfSize.set(size.x * 0.5, size.y * 0.5, size.z * 0.5);
-
-    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(
-      this._halfSize.x * this._worldScale.x,
-      this._halfSize.y * this._worldScale.y,
-      this._halfSize.z * this._worldScale.z
-    );
+    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(this._halfSize.x, this._halfSize.y, this._halfSize.z);
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }
@@ -32,7 +28,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   setSize(value: Vector3): void {
     const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    Vector3.multiply(this._halfSize, this._worldScale, tempExtents);
+    Vector3.multiply(this._halfSize, this._sizeScale, tempExtents);
     this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
@@ -44,9 +40,13 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    */
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
-
+    this._sizeScale.copyFrom({
+      x: Math.abs(scale.x),
+      y: Math.abs(scale.y),
+      z: Math.abs(scale.z)
+    });
     const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
-    Vector3.multiply(this._halfSize, this._worldScale, tempExtents);
+    Vector3.multiply(this._halfSize, this._sizeScale, tempExtents);
     this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 

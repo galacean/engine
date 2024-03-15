@@ -13,6 +13,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   /** @internal */
   _halfHeight: number;
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
+  private _sizeScale: Vector3 = new Vector3(1, 1, 1);
 
   constructor(
     physXPhysics: PhysXPhysics,
@@ -38,15 +39,16 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    */
   setRadius(value: number): void {
     this._radius = value;
+    const sizeScale = this._sizeScale;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._pxGeometry.radius = this._radius * Math.max(this._worldScale.y, this._worldScale.z);
+        this._pxGeometry.radius = this._radius * Math.max(sizeScale.y, sizeScale.z);
         break;
       case ColliderShapeUpAxis.Y:
-        this._pxGeometry.radius = this._radius * Math.max(this._worldScale.x, this._worldScale.z);
+        this._pxGeometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.z);
         break;
       case ColliderShapeUpAxis.Z:
-        this._pxGeometry.radius = this._radius * Math.max(this._worldScale.x, this._worldScale.y);
+        this._pxGeometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.y);
         break;
     }
     this._pxShape.setGeometry(this._pxGeometry);
@@ -63,15 +65,16 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    */
   setHeight(value: number): void {
     this._halfHeight = value * 0.5;
+    const sizeScale = this._sizeScale;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._pxGeometry.halfHeight = this._halfHeight * this._worldScale.x;
+        this._pxGeometry.halfHeight = this._halfHeight * sizeScale.x;
         break;
       case ColliderShapeUpAxis.Y:
-        this._pxGeometry.halfHeight = this._halfHeight * this._worldScale.y;
+        this._pxGeometry.halfHeight = this._halfHeight * sizeScale.y;
         break;
       case ColliderShapeUpAxis.Z:
-        this._pxGeometry.halfHeight = this._halfHeight * this._worldScale.z;
+        this._pxGeometry.halfHeight = this._halfHeight * sizeScale.z;
         break;
     }
     this._pxShape.setGeometry(this._pxGeometry);
@@ -116,19 +119,24 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
 
+    const sizeScale = this._sizeScale.copyFrom({
+      x: Math.abs(scale.x),
+      y: Math.abs(scale.y),
+      z: Math.abs(scale.z)
+    });
     const geometry = this._pxGeometry;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        geometry.radius = this._radius * Math.max(scale.y, scale.z);
-        geometry.halfHeight = this._halfHeight * scale.x;
+        geometry.radius = this._radius * Math.max(sizeScale.y, sizeScale.z);
+        geometry.halfHeight = this._halfHeight * sizeScale.x;
         break;
       case ColliderShapeUpAxis.Y:
-        geometry.radius = this._radius * Math.max(scale.x, scale.z);
-        geometry.halfHeight = this._halfHeight * scale.y;
+        geometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.z);
+        geometry.halfHeight = this._halfHeight * sizeScale.y;
         break;
       case ColliderShapeUpAxis.Z:
-        geometry.radius = this._radius * Math.max(scale.x, scale.y);
-        geometry.halfHeight = this._halfHeight * scale.z;
+        geometry.radius = this._radius * Math.max(sizeScale.x, sizeScale.y);
+        geometry.halfHeight = this._halfHeight * sizeScale.z;
         break;
     }
     this._pxShape.setGeometry(geometry);
