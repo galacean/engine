@@ -172,7 +172,7 @@ describe("Physics Test", () => {
       removeShapeRoot2.isActive = false;
       const removeShapeRoot3 = root.createChild("root");
       removeShapeRoot3.transform.position = new Vector3(1000, 1000, 1000);
-      const collider3 = removeShapeRoot3.addComponent(StaticCollider);
+      const collider3 = removeShapeRoot3.addComponent(DynamicCollider);
       const box3 = new BoxColliderShape();
       enterEvent[box3.id] = [];
       collider3.addShape(box3);
@@ -192,9 +192,9 @@ describe("Physics Test", () => {
       enterEvent[box3.id][box2.id] = 0;
       // @ts-ignore
       engineLite.physicsManager._update(8);
-      expect(enterEvent[box1.id][box2.id]).to.eq(1);
+      expect(enterEvent[box1.id][box2.id]).to.eq(0);
       expect(enterEvent[box1.id][box3.id]).to.eq(1);
-      expect(enterEvent[box2.id][box1.id]).to.eq(1);
+      expect(enterEvent[box2.id][box1.id]).to.eq(0);
       expect(enterEvent[box2.id][box3.id]).to.eq(1);
       expect(enterEvent[box3.id][box1.id]).to.eq(1);
       expect(enterEvent[box3.id][box2.id]).to.eq(1);
