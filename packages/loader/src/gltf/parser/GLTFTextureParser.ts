@@ -41,11 +41,14 @@ export class GLTFTextureParser extends GLTFParser {
               mipmap: samplerInfo?.mipmap
             }
           })
+          .onProgress(undefined, context._onTaskDetail)
           .then<Texture2D>((texture) => {
             texture.name = textureName || imageName || texture.name || `texture_${index}`;
             useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
             return texture;
           });
+
+        context._addTaskCompletePromise(texture);
       } else {
         const bufferView = glTF.bufferViews[bufferViewIndex];
 
@@ -72,6 +75,8 @@ export class GLTFTextureParser extends GLTFParser {
 
     return Promise.resolve(texture).then((texture) => {
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
+      // @ts-ignore
+      texture._associationSuperResource(glTFResource);
       return texture;
     });
   }

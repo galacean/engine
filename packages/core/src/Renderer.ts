@@ -156,7 +156,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     const shaderData = this.shaderData;
     this._overrideUpdate = this.update !== prototype.update;
 
-    shaderData._addReferCount(1);
+    this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
@@ -267,7 +267,7 @@ export class Renderer extends Component implements IComponentCustomClone {
 
     for (let i = count, n = internalMaterials.length; i < n; i++) {
       const internalMaterial = internalMaterials[i];
-      internalMaterial && internalMaterial._addReferCount(-1);
+      internalMaterial && this._addResourceReferCount(internalMaterial, -1);
     }
 
     internalMaterials.length !== count && (internalMaterials.length = count);
@@ -278,8 +278,8 @@ export class Renderer extends Component implements IComponentCustomClone {
       const material = materials[i];
       if (internalMaterial !== material) {
         internalMaterials[i] = material;
-        internalMaterial && internalMaterial._addReferCount(-1);
-        material && material._addReferCount(1);
+        internalMaterial && this._addResourceReferCount(internalMaterial, -1);
+        material && this._addResourceReferCount(material, 1);
       }
     }
   }
@@ -323,7 +323,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
     }
 
-    this._updateShaderData(context);
+    this._updateShaderData(context, false);
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -349,13 +349,14 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
-    this.shaderData._addReferCount(-1);
+    this._unRegisterEntityTransformListener();
+    this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
-      materials[i]?._addReferCount(-1);
+      const material = materials[i];
+      material && this._addResourceReferCount(material, -1);
     }
 
     this._entity = null;
@@ -374,29 +375,26 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
+  _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
     const entity = this.entity;
     const worldMatrix = entity.transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateMVPShaderData(context, worldMatrix);
+      return;
+    }
     this._updateTransformShaderData(context, worldMatrix);
 
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  /**
-   * @internal
-   */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
-    const virtualCamera = context.virtualCamera;
-
     const mvMatrix = this._mvMatrix;
-    const mvpMatrix = this._mvpMatrix;
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(virtualCamera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(virtualCamera.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();
@@ -404,9 +402,16 @@ export class Renderer extends Component implements IComponentCustomClone {
     shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
     shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
     shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+    this._updateMVPShaderData(context, worldMatrix);
+  }
+
+  protected _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix): void {
+    const mvpMatrix = this._mvpMatrix;
+
+    Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
   }
 
   /**
@@ -414,6 +419,13 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected _registerEntityTransformListener(): void {
     this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  protected _unRegisterEntityTransformListener(): void {
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
   }
 
   /**
@@ -434,8 +446,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
-    material._addReferCount(-1);
-    insMaterial._addReferCount(1);
+    this._addResourceReferCount(material, -1);
+    this._addResourceReferCount(insMaterial, 1);
     this._materialsInstanced[index] = true;
     this._materials[index] = insMaterial;
     return insMaterial;
@@ -452,8 +464,8 @@ export class Renderer extends Component implements IComponentCustomClone {
       const materialsInstance = this._materialsInstanced;
       index < materialsInstance.length && (materialsInstance[index] = false);
 
-      internalMaterial && internalMaterial._addReferCount(-1);
-      material && material._addReferCount(1);
+      internalMaterial && this._addResourceReferCount(internalMaterial, -1);
+      material && this._addResourceReferCount(material, 1);
       materials[index] = material;
     }
   }

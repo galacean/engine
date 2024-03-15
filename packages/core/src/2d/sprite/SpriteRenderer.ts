@@ -133,12 +133,12 @@ export class SpriteRenderer extends Renderer {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
       if (lastSprite) {
-        lastSprite._addReferCount(-1);
+        this._addResourceReferCount(lastSprite, -1);
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
       this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       if (value) {
-        value._addReferCount(1);
+        this._addResourceReferCount(value, 1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
@@ -285,7 +285,12 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateShaderData(context: RenderContext): void {
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
+    if (onlyMVP) {
+      // @ts-ignore
+      this._updateMVPShaderData(context, Matrix._identity);
+      return;
+    }
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
@@ -310,6 +315,15 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+    // @todo: This question needs to be raised rather than hidden.
+    if (material.destroyed) {
+      material = this._engine._spriteDefaultMaterials[this._maskInteraction];
+    }
+
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(this);
@@ -330,7 +344,6 @@ export class SpriteRenderer extends Renderer {
 
     // Push primitive
     const { engine } = context.camera;
-    const material = this.getMaterial();
     const renderData = engine._spriteRenderDataPool.getFromPool();
     const { _chunk: chunk } = this;
     renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
@@ -342,12 +355,14 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const sprite = this._sprite;
     if (sprite) {
-      sprite._addReferCount(-1);
+      this._addResourceReferCount(sprite, -1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
+
+    super._onDestroy();
+
     this._entity = null;
     this._color = null;
     this._sprite = null;

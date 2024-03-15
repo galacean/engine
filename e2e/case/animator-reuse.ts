@@ -9,7 +9,6 @@ import {
   DirectLight,
   GLTFResource,
   Logger,
-  SystemInfo,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -64,8 +63,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     const animationNames = originAnimations.map((clip) => clip.name);
     animationNames.push("dance");
     updateForE2E(engine);
-    const category = "Animator";
-    const name = "animator-reuse";
-    initScreenshot(category, name, engine, camera);
+
+    initScreenshot(engine, camera);
   });
 });

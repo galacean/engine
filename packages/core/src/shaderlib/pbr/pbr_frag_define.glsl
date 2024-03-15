@@ -1,3 +1,6 @@
+#define MIN_PERCEPTUAL_ROUGHNESS 0.045
+#define MIN_ROUGHNESS            0.002025
+
 uniform float material_AlphaCutoff;
 uniform vec4 material_BaseColor;
 uniform float material_Metal;
@@ -6,15 +9,33 @@ uniform float material_IOR;
 uniform vec3 material_PBRSpecularColor;
 uniform float material_Glossiness;
 uniform vec3 material_EmissiveColor;
+uniform float material_NormalIntensity;
+uniform float material_OcclusionIntensity;
+uniform float material_OcclusionTextureCoord;
 
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
     uniform float material_ClearCoat;
     uniform float material_ClearCoatRoughness;
+
+    #ifdef MATERIAL_HAS_CLEAR_COAT_TEXTURE
+        uniform sampler2D material_ClearCoatTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE
+        uniform sampler2D material_ClearCoatRoughnessTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
+        uniform sampler2D material_ClearCoatNormalTexture;
+    #endif
 #endif
 
-uniform float material_NormalIntensity;
-uniform float material_OcclusionIntensity;
-uniform float material_OcclusionTextureCoord;
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    uniform vec3 material_AnisotropyInfo;
+    #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
+        uniform sampler2D material_AnisotropyTexture;
+    #endif
+#endif
 
 // Texture
 #ifdef MATERIAL_HAS_BASETEXTURE
@@ -42,20 +63,6 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_OcclusionTexture;
 #endif
 
-#ifdef MATERIAL_HAS_CLEAR_COAT_TEXTURE
-    uniform sampler2D material_ClearCoatTexture;
-#endif
-
-#ifdef MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE
-    uniform sampler2D material_ClearCoatRoughnessTexture;
-#endif
-
-#ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
-    uniform sampler2D material_ClearCoatNormalTexture;
-#endif
-
-
-
 // Runtime
 struct ReflectedLight {
     vec3 directDiffuse;
@@ -75,6 +82,12 @@ struct Geometry {
         float clearCoatDotNV;
     #endif
 
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        vec3  anisotropicT;
+        vec3  anisotropicB;
+        vec3  anisotropicN;
+        float anisotropy;
+    #endif
 };
 
 struct Material {
@@ -82,6 +95,7 @@ struct Material {
     float roughness;
     vec3  specularColor;
     float opacity;
+    float f0;
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
         float clearCoatRoughness;

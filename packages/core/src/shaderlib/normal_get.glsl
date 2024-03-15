@@ -8,6 +8,7 @@ vec3 getNormal(bool isFrontFacing){
         vec3 pos_dx = dFdx(v_pos);
         vec3 pos_dy = dFdy(v_pos);
         vec3 normal = normalize( cross(pos_dx, pos_dy) );
+        normal *= camera_ProjectionParams.x;
     #else
         vec3 normal = vec3(0, 0, 1);
     #endif
@@ -25,7 +26,7 @@ vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalInt
 }
 
 mat3 getTBN(bool isFrontFacing){
-    #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
+    #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY) )
         mat3 tbn = v_TBN;
     #else
         vec3 normal = getNormal(isFrontFacing);
@@ -44,11 +45,12 @@ mat3 getTBN(bool isFrontFacing){
 	        vec3 dp2perp = cross(dp2, normal);
 	        vec3 dp1perp = cross(normal, dp1);
 	        vec3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
-	        vec3 binormal = dp2perp * duv1.y + dp1perp * duv2.y;
+	        vec3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
 
 	        // construct a scale-invariant frame 
-	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(binormal, binormal)));
-	        mat3 tbn = mat3(tangent * invmax, binormal * invmax, normal);
+            float denom = max( dot(tangent, tangent), dot(bitangent, bitangent) );
+            float invmax = (denom == 0.0) ? 0.0 : camera_ProjectionParams.x / sqrt( denom );
+	        mat3 tbn = mat3(tangent * invmax, bitangent * invmax, normal);
         #else
             mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);
         #endif

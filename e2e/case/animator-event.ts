@@ -76,8 +76,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play("walk", 0);
 
       updateForE2E(engine, 500);
-      const category = "Animator";
-      const name = "animator-event";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

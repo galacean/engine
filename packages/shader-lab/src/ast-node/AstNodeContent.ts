@@ -43,7 +43,15 @@ import {
   FnMacroUndefineAstNode,
   FnMacroConditionAstNode,
   RenderQueueValueAstNode,
-  FnReturnStatementAstNode
+  FnReturnStatementAstNode,
+  StructMacroConditionElifBranchAstNode,
+  StructMacroConditionalFieldAstNode,
+  StructMacroConditionBodyAstNode,
+  FnMacroConditionBodyAstNode,
+  FnArgDecoratorAstNode,
+  TernaryExpressionSuffixAstNode,
+  FnExpressionAstNode,
+  StructMacroConditionElseBranchAstNode
 } from "./AstNode";
 
 export interface IShaderAstContent {
@@ -108,12 +116,15 @@ export interface IFnReturnTypeAstContent {
 }
 
 export interface IFnAstContent {
+  precision?: PrecisionAstNode;
   returnType: ReturnTypeAstNode;
   name: string;
   args: FnArgAstNode[];
   body: AstNode;
   returnStatement?: FnReturnStatementAstNode;
 }
+
+export type IUseMacroAstContent = string | FnCallAstNode;
 
 export interface IFnBodyAstContent {
   statements: AstNode[];
@@ -134,18 +145,41 @@ export interface IFnMacroUndefineAstContent {
 export interface IFnMacroConditionAstContent {
   command: string;
   condition: RelationExprAstNode;
-  body: FnBodyAstNode;
-  elifBranch?: FnMacroConditionElifBranchAstNode;
+  body: FnBodyAstNode | StructAstNode;
+  elifBranch?: FnMacroConditionElifBranchAstNode[];
   elseBranch?: FnMacroConditionElseBranchAstNode;
 }
 
+export interface IStructMacroConditionalFieldAstContent {
+  command: string;
+  condition: RelationExprAstNode;
+  body: StructMacroConditionBodyAstNode;
+  elifBranch?: StructMacroConditionElifBranchAstNode;
+  elseBranch?: StructMacroConditionElseBranchAstNode;
+}
+
+export type IFnMacroConditionBodyAstContent = Array<FnBodyAstNode | StructAstNode>;
+
+export type IStructMacroConditionBodyAstContent = Array<
+  DeclarationWithoutAssignAstNode | StructMacroConditionalFieldAstNode
+>;
+
 export interface IFnMacroConditionElifBranchAstContent {
   condition: RelationExprAstNode;
-  body: FnBodyAstNode;
+  body: FnMacroConditionBodyAstNode;
+}
+
+export interface IStructMacroConditionElifBranchAstContent {
+  condition: RelationExprAstNode;
+  body: StructMacroConditionBodyAstNode;
 }
 
 export interface IFnMacroConditionElseBranchAstContent {
-  body: FnBodyAstNode;
+  body: FnMacroConditionBodyAstNode;
+}
+
+export interface IStructMacroConditionElseBranchAstContent {
+  body: StructMacroConditionBodyAstNode;
 }
 
 export interface IFnCallAstContent {
@@ -164,6 +198,7 @@ export interface IFnConditionStatementAstContent {
 export interface IConditionExprAstContent {
   expressionList: RelationExprAstNode[];
   operatorList?: RelationOperatorAstNode[];
+  ternarySuffix?: TernaryExpressionSuffixAstNode;
 }
 
 export interface IFnRelationExprAstContent {
@@ -174,17 +209,27 @@ export interface IFnRelationExprAstContent {
 
 export type IFnBlockStatementAstContent = FnBodyAstNode;
 
+export type IFnVariableDeclarationStatementAstContent = VariableDeclarationAstNode;
+
 export type IRelationOperatorAstContent = string;
 
 export interface IFnAssignExprAstContent {
   assignee: SelfAssignAstNode;
-  value: AstNode;
-  operator: string;
+  value: FnExpressionAstNode[];
+  operator: string[];
 }
 
 export type IFnAssignStatementAstContent = FnAssignExprAstNode;
 
-export type IFnExpressionAstContent = AstNode<IFnAddExprAstContent>;
+export interface IFnExpressionAstContent {
+  expr: AddExprAstNode;
+  ternaryExprSuffix?: AstNode;
+}
+
+export interface ITernaryExpressionSuffixAstContent {
+  positiveExpr: AddExprAstNode;
+  negativeExpr: AddExprAstNode;
+}
 
 export type IFnAddExprAstContent = {
   operators: AddOperatorAstNode[];
@@ -220,21 +265,25 @@ export type IFnVariableAstContent = {
   properties?: VariablePropertyAstNode[];
 };
 
-export type IArrayIndexAstContent = FnAtomicExprAstNode;
+export type IArrayIndexAstContent = AddExprAstNode | undefined;
 
 export type IVariablePropertyAstContent = string;
 
-export type IFnReturnStatementAstContent = ObjectAstNode;
+export interface IFnReturnStatementAstContent {
+  prefix: string;
+  body: ObjectAstNode;
+}
 
 export type IFnCallStatementAstContent = FnCallAstNode;
 
 export interface IFnArgAstContent {
+  decorator?: FnArgDecoratorAstNode;
   name: string;
-  type: {
-    isCustom: boolean;
-    text: string;
-  };
+  type: VariableTypeAstNode;
+  arrayIndex?: ArrayIndexAstNode;
 }
+
+export type IFnArgDecoratorAstContent = string;
 
 export interface IRenderStateDeclarationAstContent {
   variable: string;
@@ -271,6 +320,7 @@ export interface IFnVariableDeclarationAstContent {
   precision?: PrecisionAstNode;
   type: VariableTypeAstNode;
   variableList: FnVariableDeclareUnitAstNode[];
+  typeQualifier?: string;
 }
 
 export interface IShaderPropertyDeclareAstContent {
@@ -297,7 +347,7 @@ export interface IDeclarationWithoutAssignAstContent {
 
 export interface IStructAstContent {
   name: string;
-  variables: DeclarationWithoutAssignAstNode[];
+  variables: (DeclarationWithoutAssignAstNode | StructMacroConditionalFieldAstNode)[];
 }
 
 export interface IPassPropertyAssignmentAstContent {

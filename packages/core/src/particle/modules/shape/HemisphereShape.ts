@@ -7,13 +7,10 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Particle shape that emits particles from a hemisphere.
  */
 export class HemisphereShape extends BaseShape {
+  readonly shapeType = ParticleShapeType.Hemisphere;
+
   /** Radius of the shape to emit particles from. */
   radius = 1.0;
-
-  constructor() {
-    super();
-    this.shapeType = ParticleShapeType.Hemisphere;
-  }
 
   /**
    * @internal

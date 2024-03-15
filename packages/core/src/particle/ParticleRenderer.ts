@@ -1,7 +1,7 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Renderer } from "../Renderer";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
 import { deepClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
@@ -102,8 +102,8 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-      lastMesh?._addReferCount(-1);
-      value?._addReferCount(1);
+      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      value && this._addResourceReferCount(value, 1);
       if (this.renderMode === ParticleRenderMode.Mesh) {
         this.generator._reorganizeGeometryBuffers();
       }
@@ -120,6 +120,7 @@ export class ParticleRenderer extends Renderer {
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -168,7 +169,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateShaderData(context: RenderContext): void {
+  override _updateShaderData(context: RenderContext, _: boolean): void {
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
@@ -187,7 +188,7 @@ export class ParticleRenderer extends Renderer {
       return;
     }
 
-    if (material.destroyed) {
+    if (material.destroyed || material.shader.destroyed) {
       material = this.engine._particleMagentaMaterial;
     }
 
@@ -198,6 +199,10 @@ export class ParticleRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     super._onDestroy();
+    const mesh = this._mesh;
+    if (mesh) {
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    }
     this.generator._destroy();
   }
 }

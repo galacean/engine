@@ -9,6 +9,9 @@ class GALACEAN_materials_remap extends GLTFExtensionParser {
   override createAndParse(context: GLTFParserContext, schema: IGalaceanMaterialRemap): Promise<Material> {
     const { engine } = context.glTFResource;
     // @ts-ignore
-    return engine.resourceManager.getResourceByRef<Material>(schema);
+    const promise = engine.resourceManager.getResourceByRef<Material>(schema);
+    context._addTaskCompletePromise(promise);
+
+    return promise;
   }
 }

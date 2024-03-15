@@ -135,12 +135,12 @@ export class SpriteMask extends Renderer {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
       if (lastSprite) {
-        lastSprite._addReferCount(-1);
+        this._addResourceReferCount(lastSprite, -1);
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
       this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
       if (value) {
-        value._addReferCount(1);
+        this._addResourceReferCount(value, 1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
@@ -204,6 +204,16 @@ export class SpriteMask extends Renderer {
       return;
     }
 
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+    const { _engine: engine } = this;
+    // @todo: This question needs to be raised rather than hidden.
+    if (material.destroyed) {
+      material = engine._spriteMaskDefaultMaterial;
+    }
+
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(this);
@@ -216,10 +226,8 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    const { engine } = context.camera;
     engine._spriteMaskManager.addMask(this);
     const renderData = engine._spriteRenderDataPool.getFromPool();
-    const material = this.getMaterial();
     const { _chunk: chunk } = this;
     renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
@@ -234,13 +242,14 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const sprite = this._sprite;
     if (sprite) {
-      sprite._addReferCount(-1);
+      this._addResourceReferCount(sprite, -1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
-    this._entity = null;
+
+    super._onDestroy();
+
     this._sprite = null;
     if (this._chunk) {
       this.engine._batcherManager._batcher2D.freeChunk(this._chunk);

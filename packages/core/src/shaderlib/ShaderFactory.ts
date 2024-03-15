@@ -18,9 +18,15 @@ export class ShaderFactory {
     ShaderLib[includeName] = includeSource;
   }
 
-  static parseIncludes(src: string) {
-    const regex = /^[ \t]*#include +<([\w\d.]+)>/gm;
+  static unRegisterInclude(includeName: string) {
+    delete ShaderLib[includeName];
+  }
 
+  /**
+   * @param regex The default regex is for engine's builtin glsl `#include` syntax,
+   * since `ShaderLab` use the same parsing function but different syntax for `#include` --- `/^[ \t]*#include +"([\w\d.]+)"/gm`
+   */
+  static parseIncludes(src: string, regex = /^[ \t]*#include +<([\w\d.]+)>/gm) {
     function replace(match, slice) {
       var replace = ShaderLib[slice];
 
@@ -29,7 +35,7 @@ export class ShaderFactory {
         return "";
       }
 
-      return ShaderFactory.parseIncludes(replace);
+      return ShaderFactory.parseIncludes(replace, regex);
     }
 
     return src.replace(regex, replace);

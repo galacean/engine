@@ -346,5 +346,34 @@ describe("Script", () => {
         engine.update();
       }).to.not.throw();
     });
+
+    it("script order", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      let tag: string;
+      entity.addComponent(
+        class extends Script {
+          onUpdate(deltaTime: number): void {
+            tag = "script1";
+          }
+        }
+      );
+      entity.addComponent(
+        class extends Script {
+          onUpdate(deltaTime: number): void {
+            tag = "script2";
+          }
+        }
+      );
+      engine.update();
+      expect(tag).to.equal("script2");
+
+      rootEntity.removeChild(entity);
+      rootEntity.addChild(entity);
+      engine.update();
+      expect(tag).to.equal("script2");
+    });
   });
 });

@@ -43,15 +43,22 @@ float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {
     return roughness * float(maxMIPLevel);
 }
 
-vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
+vec3 getReflectedVector(Geometry geometry, vec3 n) {
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        vec3 r = reflect(-geometry.viewDir, geometry.anisotropicN);
+    #else
+        vec3 r = reflect(-geometry.viewDir, n);
+    #endif
+
+    return r;
+}
+
+vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
 
     #ifndef SCENE_USE_SPECULAR_ENV
-
         return vec3(0);
-
     #else
-
-        vec3 reflectVec = reflect( -viewDir, normal );
+        vec3 reflectVec = getReflectedVector(geometry, normal);
         reflectVec.x = -reflectVec.x; // TextureCube is left-hand,so x need inverse
         
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );

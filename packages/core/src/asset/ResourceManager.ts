@@ -34,6 +34,8 @@ export class ResourceManager {
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
+  /** Base url for loading assets. */
+  baseUrl: string | null = null;
 
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
@@ -313,7 +315,10 @@ export class ResourceManager {
 
     // Check url mapping
     const itemURL = item.url;
-    const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
+    let url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
+
+    // Not absolute and base url is set
+    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
 
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);
@@ -322,8 +327,7 @@ export class ResourceManager {
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
-      return new AssetPromise((resolve, _, setProgress) => {
-        setProgress(1);
+      return new AssetPromise((resolve) => {
         resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
@@ -343,11 +347,9 @@ export class ResourceManager {
     const loadingPromises = this._loadingPromises;
     const loadingPromise = loadingPromises[assetURL];
     if (loadingPromise) {
-      return new AssetPromise((resolve, reject, setProgress) => {
+      return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
-          .onProgress((v) => {
-            setProgress(v);
-          })
+          .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
           .then((resource: EngineObject) => {
             resolve(resource as T);
           })
@@ -409,10 +411,11 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = Utils.objectValues(this._referResourcePool);
-    for (let i = 0, len = objects.length; i < len; i++) {
-      if (!objects[i].isGCIgnored || forceDestroy) {
-        (<ReferResource>objects[i]).destroy(forceDestroy);
+    const objects = <ReferResource[]>Utils.objectValues(this._referResourcePool);
+    for (let i = 0, n = objects.length; i < n; i++) {
+      const object = objects[i];
+      if (!object.isGCIgnored || forceDestroy) {
+        object.destroy(forceDestroy, true);
       }
     }
   }

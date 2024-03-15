@@ -1,4 +1,4 @@
-import { BackgroundMode, DiffuseMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
+import { BackgroundMode, DiffuseMode, FogMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
 import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
 import type { IColor, IPrefabFile, IVector3 } from "./BasicSchema";
 
@@ -34,6 +34,14 @@ export interface IScene extends IPrefabFile {
       shadowCascades: ShadowCascadesMode;
       shadowTwoCascadeSplits: number;
       shadowFourCascadeSplits: IVector3;
+      shadowFadeBorder: number;
+    };
+    fog?: {
+      fogMode: FogMode;
+      fogStart: number;
+      fogEnd: number;
+      fogDensity: number;
+      fogColor: IColor;
     };
   };
   files: Array<{ id: string; type: string; virtualPath: string; path: string }>;

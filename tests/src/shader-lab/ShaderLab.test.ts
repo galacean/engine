@@ -119,6 +119,7 @@ describe("ShaderLab", () => {
     passList = subShader.passes;
     usePass = <string>passList[0];
     pass = <IShaderPassInfo>passList[1];
+    context = (shader as any)._context;
   });
 
   it("create shaderLab", async () => {
@@ -220,7 +221,38 @@ describe("ShaderLab", () => {
   it("shader with duplicate name", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
     (Shader as any)._shaderLab = shaderLab;
-    expect(Shader.create(demoShader) instanceof Shader).to.be.true;
+
+    const shaderInstance = Shader.create(demoShader);
+    expect(shaderInstance).instanceOf(Shader);
     expect(Shader.create.bind(null, demoShader)).to.throw('Shader named "Gem" already exists.');
+    shaderInstance.destroy();
+    const sameNameShader = Shader.create(demoShader);
+    expect(sameNameShader).instanceOf(Shader);
+  });
+
+  it("template shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("diagnostic position", () => {
+    const invalidShader = fs.readFileSync(path.join(__dirname, "shaders/invalid.shader")).toString();
+    try {
+      shaderLab.parseShader(invalidShader);
+    } catch (err) {
+      expect(err).to.have.lengthOf(1);
+      expect(err[0]).to.have.property("token");
+      expect(err[0].token.startLine).to.eql(25);
+    }
+  });
+
+  it("multi-pass", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
+  });
+
+  it("macro-with-preprocessor", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/macro-pre.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
   });
 });

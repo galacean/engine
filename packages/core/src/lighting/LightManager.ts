@@ -1,5 +1,5 @@
 import { DisorderedArray } from "../DisorderedArray";
-import { ShaderData } from "../shader";
+import { ShaderData, ShaderProperty } from "../shader";
 import { ShadowType } from "../shadow";
 import { DirectLight, IDirectLightShaderData } from "./DirectLight";
 import { PointLight, IPointLightShaderData } from "./PointLight";
@@ -9,6 +9,10 @@ import { SpotLight, ISpotLightShaderData } from "./SpotLight";
  * Light manager.
  */
 export class LightManager {
+  /** @internal */
+  static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
+  /** @internal */
+  static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
   /**
    * Each type of light source is at most 10, beyond which it will not take effect.
    * */
@@ -20,6 +24,8 @@ export class LightManager {
   _pointLights: DisorderedArray<PointLight> = new DisorderedArray();
   /** @internal */
   _directLights: DisorderedArray<DirectLight> = new DisorderedArray();
+  /** @internal */
+  _sunlight: DirectLight | null;
 
   private _directData: IDirectLightShaderData = {
     cullingMask: new Int32Array(LightManager._maxLight * 2),
@@ -98,24 +104,6 @@ export class LightManager {
   /**
    * @internal
    */
-  _updateSunLightIndex(): void {
-    const directLights = this._directLights;
-    const index = this._getSunLightIndex();
-    // -1 means no sun light, 0 means the first direct light already is sun light
-    if (index > 0) {
-      const firstLight = directLights.get(0);
-      const sunLight = directLights.get(index);
-      directLights.set(0, sunLight);
-      directLights.set(index, firstLight);
-
-      sunLight._lightIndex = 0;
-      firstLight._lightIndex = index;
-    }
-  }
-
-  /**
-   * @internal
-   */
   _updateShaderData(shaderData: ShaderData): void {
     const { _spotLights: spotLight, _pointLights: pointLight, _directLights: directLight } = this;
     const { _spotData: spotData, _pointData: pointData, _directData: directData } = this;
@@ -166,31 +154,53 @@ export class LightManager {
     this._directLights.garbageCollection();
   }
 
-  private _getSunLightIndex(): number {
+  /**
+   * @internal
+   */
+  _updateSunlightIndex(light: DirectLight): void {
+    const directLights = this._directLights;
+    const index = light._lightIndex;
+
+    // -1 means no sun light, 0 means the first direct light already is sun light
+    if (index > 0) {
+      const firstLight = directLights.get(0);
+      const sunlight = directLights.get(index);
+      directLights.set(0, sunlight);
+      directLights.set(index, firstLight);
+
+      sunlight._lightIndex = 0;
+      firstLight._lightIndex = index;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getMaxBrightestSunlight(): DirectLight | null {
     const directLights = this._directLights;
 
-    let sunLightIndex = -1;
+    let sunlight = null;
     let maxIntensity = Number.NEGATIVE_INFINITY;
     let hasShadowLight = false;
     for (let i = 0, n = directLights.length; i < n; i++) {
-      const directLight = directLights.get(i);
-      if (directLight.shadowType !== ShadowType.None && !hasShadowLight) {
+      const currentLight = directLights.get(i);
+      if (currentLight.shadowType !== ShadowType.None && !hasShadowLight) {
         maxIntensity = Number.NEGATIVE_INFINITY;
         hasShadowLight = true;
       }
-      const intensity = directLight.intensity * directLight.color.getBrightness();
+      const intensity = currentLight.intensity * currentLight.color.getBrightness();
       if (hasShadowLight) {
-        if (directLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
+        if (currentLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
           maxIntensity = intensity;
-          sunLightIndex = i;
+          sunlight = currentLight;
         }
       } else {
         if (maxIntensity < intensity) {
           maxIntensity = intensity;
-          sunLightIndex = i;
+          sunlight = currentLight;
         }
       }
     }
-    return sunLightIndex;
+    return sunlight;
   }
 }

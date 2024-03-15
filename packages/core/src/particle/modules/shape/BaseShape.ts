@@ -6,9 +6,9 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  */
 export abstract class BaseShape {
   /** The type of shape to emit particles from. */
-  shapeType: ParticleShapeType;
+  abstract readonly shapeType: ParticleShapeType;
   /** Specifies whether the ShapeModule is enabled or disabled. */
-  enable: boolean = true;
+  enabled: boolean = true;
   /** Randomizes the starting direction of particles. */
   randomDirectionAmount: number = 0;
 

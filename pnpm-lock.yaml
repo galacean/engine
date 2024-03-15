@@ -44,6 +44,9 @@ importers:
       '@types/node':
         specifier: ^18.7.16
         version: 18.17.0
+      '@types/webxr':
+        specifier: latest
+        version: 0.5.10
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6)
@@ -175,12 +178,6 @@ importers:
         specifier: workspace:*
         version: link:../math
 
-  packages/draco:
-    dependencies:
-      '@galacean/engine-core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/galacean:
     dependencies:
       '@galacean/engine-core':
@@ -201,9 +198,6 @@ importers:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
-      '@galacean/engine-draco':
-        specifier: workspace:*
-        version: link:../draco
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
@@ -256,6 +250,28 @@ importers:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
+
+  packages/xr:
+    devDependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+
+  packages/xr-webxr:
+    dependencies:
+      '@galacean/engine-xr':
+        specifier: workspace:*
+        version: link:../xr
+    devDependencies:
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
 
   tests:
     dependencies:
@@ -1416,13 +1432,6 @@ packages:
     resolution: {integrity: sha512-GXZxEtOxYGFchyUzxvKI14iff9KZ2DI+A6a37o6EQevtg6uO9t+aUZKcaC1Te5Ng1OnLM7K9NVVj+FbecD9cJg==}
     dev: true
 
-  /@types/node@18.19.3:
-    resolution: {integrity: sha512-k5fggr14DwAytoA/t8rPrIz++lXK7/DqckthCmoZOKNsEbJkId4Z//BqgApXBUGrGddrigYa1oqheo/7YmW4rg==}
-    dependencies:
-      undici-types: 5.26.5
-    dev: true
-    optional: true
-
   /@types/normalize-package-data@2.4.1:
     resolution: {integrity: sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==}
     dev: true
@@ -1455,11 +1464,15 @@ packages:
     resolution: {integrity: sha512-0vWLNK2D5MT9dg0iOo8GlKguPAU02QjmZitPEsXRuJXU/OGIOt9vT9Fc26wtYuavLxtO45v9PGleoL9Z0k1LHg==}
     dev: true
 
+  /@types/webxr@0.5.10:
+    resolution: {integrity: sha512-n3u5sqXQJhf1CS68mw3Wf16FQ4cRPNBBwdYLFzq3UddiADOim1Pn3Y6PBdDilz1vOJF3ybLxJ8ZEDlLIzrOQZg==}
+    dev: true
+
   /@types/yauzl@2.10.3:
     resolution: {integrity: sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==}
     requiresBuild: true
     dependencies:
-      '@types/node': 18.19.3
+      '@types/node': 18.17.0
     dev: true
     optional: true
 
@@ -5815,11 +5828,6 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
     dev: true
-
-  /undici-types@5.26.5:
-    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
-    dev: true
-    optional: true
 
   /universalify@0.1.2:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}

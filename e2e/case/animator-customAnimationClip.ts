@@ -182,8 +182,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       animator.play(animations[0].name, 0);
 
       updateForE2E(engine, 500);
-      const category = "Animator";
-      const name = "animator-customAnimationClip";
-      initScreenshot(category, name, engine, camera);
+
+      initScreenshot(engine, camera);
     });
 });

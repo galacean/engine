@@ -1,3 +1,4 @@
+import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 import { Entity } from "./Entity";
@@ -149,6 +150,10 @@ export class Component extends EngineObject {
         }
       }
     }
+  }
+
+  protected _addResourceReferCount(resource: IReferable, count: number): void {
+    this._entity._isTemplate || resource._addReferCount(count);
   }
 
   /**

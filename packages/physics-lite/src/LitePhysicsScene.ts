@@ -1,5 +1,5 @@
-import { ICharacterController, IPhysicsScene } from "@galacean/engine-design";
 import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "@galacean/engine";
+import { ICharacterController, IPhysicsScene } from "@galacean/engine-design";
 import { DisorderedArray } from "./DisorderedArray";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -65,16 +65,21 @@ export class LitePhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsManager.removeColliderShape }
    */
   removeColliderShape(colliderShape: LiteColliderShape): void {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    const { _id: shapeID } = colliderShape;
+    const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
+    const { _id: id } = colliderShape;
     for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
-      if (event.index1 == shapeID || event.index2 == shapeID) {
+      if (event.index1 == id) {
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
       }
     }
-    delete this._eventMap[shapeID];
+    delete eventMap[id];
   }
 
   /**

@@ -3,7 +3,6 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
-  Engine,
   Font,
   Loader,
   LoadItem,
@@ -13,7 +12,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser } from "./resource-deserialize";
+import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -27,7 +26,7 @@ class SceneLoader extends Loader<Scene> {
             // parse ambient light
             const ambient = data.scene.ambient;
             if (ambient) {
-              const useCustomAmbient = ambient.specularMode === "Custom";
+              const useCustomAmbient = ambient.specularMode === SpecularMode.Custom;
               const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
 
               scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
@@ -61,6 +60,7 @@ class SceneLoader extends Loader<Scene> {
               }
             }
 
+            // parse background
             const background = data.scene.background;
             scene.background.mode = background.mode;
 
@@ -105,6 +105,17 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
               scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
               shadow.shadowFourCascadeSplits && scene.shadowFourCascadeSplits.copyFrom(shadow.shadowFourCascadeSplits);
+              scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;
+            }
+
+            // parse fog
+            const fog = data.scene.fog;
+            if (fog) {
+              if (fog.fogMode != undefined) scene.fogMode = fog.fogMode;
+              if (fog.fogStart != undefined) scene.fogStart = fog.fogStart;
+              if (fog.fogEnd != undefined) scene.fogEnd = fog.fogEnd;
+              if (fog.fogDensity != undefined) scene.fogDensity = fog.fogDensity;
+              if (fog.fogColor != undefined) scene.fogColor.copyFrom(fog.fogColor);
             }
 
             return Promise.all(promises).then(() => {
