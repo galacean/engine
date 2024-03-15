@@ -190,6 +190,7 @@ export enum GLTFParserType {
   Validator,
   Scene,
   Buffer,
+  BufferView,
   Texture,
   Material,
   Mesh,
@@ -206,7 +207,8 @@ const glTFSchemaMap = {
   [GLTFParserType.Mesh]: "meshes",
   [GLTFParserType.Entity]: "nodes",
   [GLTFParserType.Skin]: "skins",
-  [GLTFParserType.Animation]: "animations"
+  [GLTFParserType.Animation]: "animations",
+  [GLTFParserType.BufferView]: "bufferViews"
 };
 
 const glTFResourceMap = {
