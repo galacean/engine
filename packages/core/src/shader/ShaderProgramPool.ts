@@ -59,7 +59,7 @@ export class ShaderProgramPool {
   /**
    * @internal
    */
-  garbageCollection():void {
+  garbageCollection(): void {
     this._recursiveGC(0, this._cacheMap);
   }
 
@@ -75,7 +75,7 @@ export class ShaderProgramPool {
     if (hierarchy === this._cacheHierarchyDepth - 1) {
       for (let k in cacheMap) {
         const sp = <ShaderProgram>cacheMap[k];
-        sp._uploadScene = sp._uploadCamera = sp._uploadRenderer  =sp._uploadMaterial = null;
+        sp._uploadScene = sp._uploadCamera = sp._uploadRenderer = sp._uploadMaterial = null;
       }
       return;
     }

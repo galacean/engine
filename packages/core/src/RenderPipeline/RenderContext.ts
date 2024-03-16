@@ -62,7 +62,7 @@ export class RenderContext {
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 
-  garbageCollection():void {
+  garbageCollection(): void {
     this.camera = this.virtualCamera = this.replacementShader = this.replacementTag = null;
   }
 }
