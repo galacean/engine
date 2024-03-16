@@ -761,6 +761,11 @@ export class Engine extends EventDispatcher {
     this._spriteRenderDataPool.garbageCollection();
     this._spriteMaskRenderDataPool.garbageCollection();
     this._textRenderDataPool.garbageCollection();
+    this._renderContext.garbageCollection();
+    const shaderProgramPools = this._shaderProgramPools;
+    for (let i = 0, n =shaderProgramPools.length; i < n; i++) {
+      shaderProgramPools[i]?.garbageCollection();
+    }
   }
 
   /**

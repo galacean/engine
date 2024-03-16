@@ -1,6 +1,5 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { Layer } from "../Layer";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";

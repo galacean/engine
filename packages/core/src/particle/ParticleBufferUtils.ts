@@ -56,6 +56,7 @@ export class ParticleBufferUtils {
       BufferUsage.Static,
       false
     );
+    billboardGeometryBuffer._addReferCount(1);
     this.billboardVertexBufferBinding = new VertexBufferBinding(billboardGeometryBuffer, stride);
 
     const indexBuffer = new Buffer(
@@ -65,6 +66,7 @@ export class ParticleBufferUtils {
       BufferUsage.Static,
       false
     );
+    indexBuffer._addReferCount(1);
     this.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);
 
     this.setBufferData();

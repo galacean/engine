@@ -162,7 +162,6 @@ export abstract class Basic2DBatcher {
       MAX_VERTEX_COUNT * vertexStride,
       BufferUsage.Dynamic
     ));
-    vertexBuffer.isGCIgnored = true;
     // indices
     const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
       engine,
@@ -170,7 +169,6 @@ export abstract class Basic2DBatcher {
       MAX_VERTEX_COUNT * 6,
       BufferUsage.Dynamic
     ));
-    indiceBuffer.isGCIgnored = true;
     mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
     mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
     mesh.setVertexElements(vertexElements);
