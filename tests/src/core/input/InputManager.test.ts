@@ -173,6 +173,7 @@ describe("InputManager", async () => {
     target.dispatchEvent(generatePointerEvent("pointerdown", 5, left + 2.5, top + 2.5));
     engine.update();
     expect(script.onPointerEnter).to.have.been.called.exactly(2);
+    expect(script.onPointerDown).to.have.been.called.exactly(2);
     expect(script.onPointerExit).to.have.been.called.exactly(1);
     expect(script.onPointerDrag).to.have.been.called.exactly(1);
     target.dispatchEvent(generatePointerEvent("pointermove", 5, left + 200, top + 200));
@@ -192,6 +193,20 @@ describe("InputManager", async () => {
     expect(script.onPointerExit).to.have.been.called.exactly(3);
     expect(script.onPointerDown).to.have.been.called.exactly(2);
     expect(script.onPointerUp).to.have.been.called.exactly(2);
+    expect(script.onPointerClick).to.have.been.called.exactly(1);
+
+    // 1. 在碰撞体外 down
+    // 2. 在碰撞体上 up & leave
+    target.dispatchEvent(generatePointerEvent("pointerdown", 6, left + 200, top + 200));
+    engine.update();
+    expect(script.onPointerEnter).to.have.been.called.exactly(3);
+    expect(script.onPointerDown).to.have.been.called.exactly(2);
+    target.dispatchEvent(generatePointerEvent("pointerup", 6, left + 2.5, top + 2.5, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 2.5, top + 2.5, -1, 0));
+    engine.update();
+    expect(script.onPointerEnter).to.have.been.called.exactly(4);
+    expect(script.onPointerDrag).to.have.been.called.exactly(2);
+    expect(script.onPointerUp).to.have.been.called.exactly(3);
     expect(script.onPointerClick).to.have.been.called.exactly(1);
   });
 
