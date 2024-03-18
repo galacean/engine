@@ -11,6 +11,13 @@ import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
+interface BlendShapeData {
+  name: string;
+  vertices: { vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }[];
+  hasNormal: boolean;
+  hasTangent: boolean;
+}
+
 @registerGLTFParser(GLTFParserType.Mesh)
 export class GLTFMeshParser extends GLTFParser {
   private static _tempVector3 = new Vector3();
@@ -35,7 +42,7 @@ export class GLTFMeshParser extends GLTFParser {
     let vertexCount: number;
     let bufferBindIndex = 0;
 
-    const promises = new Array<Promise<void | void[]>>();
+    const promises = new Array<Promise<void>>();
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
@@ -187,11 +194,12 @@ export class GLTFMeshParser extends GLTFParser {
     glTFTargets: {
       [name: string]: number;
     }[]
-  ): Promise<void[]> {
+  ): Promise<void> {
     const glTF = context.glTF;
     const accessors = glTF.accessors;
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
     let promises = new Array<Promise<void>>();
+    const dataCollection: BlendShapeData[] = [];
     for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
 
@@ -206,6 +214,19 @@ export class GLTFMeshParser extends GLTFParser {
         hasNormal ? this._getBlendShapeData(context, glTF, accessors[normalTarget]) : null,
         hasTangent ? this._getBlendShapeData(context, glTF, accessors[tangentTarget]) : null
       ]).then((vertices) => {
+        dataCollection[i] = {
+          name,
+          vertices,
+          hasNormal,
+          hasTangent
+        };
+      });
+      promises.push(promise);
+    }
+
+    return Promise.all(promises).then(() => {
+      for (let i = 0, n = dataCollection.length; i < n; i++) {
+        const { name, vertices, hasNormal, hasTangent } = dataCollection[i];
         const [positionData, normalData, tangentData] = vertices;
 
         const blendShape = new BlendShape(name);
@@ -225,11 +246,8 @@ export class GLTFMeshParser extends GLTFParser {
             hasTangent ? tangentData?.restoreInfo : null
           )
         );
-      });
-      promises.push(promise);
-    }
-
-    return Promise.all(promises);
+      }
+    });
   }
 
   parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
