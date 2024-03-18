@@ -56,8 +56,14 @@ export const E2E_CONFIG = {
       category: "GLTF",
       caseFileName: "gltf-meshopt",
       threshold: 0.3
+    },
+    blendShape: {
+      category: "GLTF",
+      caseFileName: "gltf-blendshape",
+      threshold: 0.3
     }
   },
+
   Material: {
     blendMode: {
       category: "Material",

@@ -35,7 +35,7 @@ export class GLTFMeshParser extends GLTFParser {
     let vertexCount: number;
     let bufferBindIndex = 0;
 
-    const promises = new Array<Promise<void | void[]>>();
+    const promises = new Array<Promise<void | BlendShapeData[]>>();
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
@@ -139,9 +139,14 @@ export class GLTFMeshParser extends GLTFParser {
 
       // BlendShapes
       if (targets) {
-        promises.push(
-          GLTFMeshParser._createBlendShape(context, mesh, meshRestoreInfo, gltfMesh, gltfPrimitive, targets)
-        );
+        const subPromise = GLTFMeshParser._createBlendShape(context, gltfMesh, gltfPrimitive, targets);
+        subPromise.then((blendShapes) => {
+          for (const blendShape of blendShapes) {
+            mesh.addBlendShape(blendShape.blendShape);
+            meshRestoreInfo.blendShapes.push(blendShape.restoreInfo);
+          }
+        });
+        promises.push(subPromise);
       }
 
       return Promise.all(promises).then(() => {
@@ -180,19 +185,23 @@ export class GLTFMeshParser extends GLTFParser {
    */
   static _createBlendShape(
     context: GLTFParserContext,
-    mesh: ModelMesh,
-    meshRestoreInfo: ModelMeshRestoreInfo,
     glTFMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
     glTFTargets: {
       [name: string]: number;
     }[]
-  ): Promise<void[]> {
+  ): Promise<BlendShapeData[]> {
     const glTF = context.glTF;
     const accessors = glTF.accessors;
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
     let promises = new Array<Promise<void>>();
-    for (let i = 0, n = glTFTargets.length; i < n; i++) {
+
+    const blendShapeCount = glTFTargets.length;
+    const blendShapeCollection = new Array<BlendShapeData>(blendShapeCount);
+    for (let i = 0; i < blendShapeCount; i++) {
+      const blendShapeData = <BlendShapeData>{};
+      blendShapeCollection[i] = blendShapeData;
+
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
 
       const targets = gltfPrimitive.targets[i];
@@ -215,21 +224,21 @@ export class GLTFMeshParser extends GLTFParser {
           hasNormal ? normalData.vertices : null,
           hasTangent ? tangentData.vertices : null
         );
-        mesh.addBlendShape(blendShape);
+        blendShapeData.blendShape = blendShape;
 
-        meshRestoreInfo.blendShapes.push(
-          new BlendShapeRestoreInfo(
-            blendShape,
-            positionData.restoreInfo,
-            hasNormal ? normalData.restoreInfo : null,
-            hasTangent ? tangentData?.restoreInfo : null
-          )
+        blendShapeData.restoreInfo = new BlendShapeRestoreInfo(
+          blendShape,
+          positionData.restoreInfo,
+          hasNormal ? normalData.restoreInfo : null,
+          hasTangent ? tangentData?.restoreInfo : null
         );
       });
       promises.push(promise);
     }
 
-    return Promise.all(promises);
+    return Promise.all(promises).then(() => {
+      return blendShapeCollection;
+    });
   }
 
   parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
@@ -283,4 +292,9 @@ export class GLTFMeshParser extends GLTFParser {
 
     return Promise.all(primitivePromises);
   }
+}
+
+interface BlendShapeData {
+  blendShape: BlendShape;
+  restoreInfo: BlendShapeRestoreInfo;
 }
