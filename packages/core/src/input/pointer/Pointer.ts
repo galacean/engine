@@ -45,6 +45,7 @@ export class Pointer {
    */
   _firePointerExitAndEnter(rayCastEntity: Entity): void {
     if (this._currentEnteredEntity !== rayCastEntity) {
+      this._currentPressedEntity = null;
       if (this._currentEnteredEntity) {
         this._currentEnteredEntity._scripts.forEach(
           (element: Script) => {
@@ -106,10 +107,9 @@ export class Pointer {
    * @internal
    */
   _firePointerUpAndClick(rayCastEntity: Entity): void {
-    const { _currentPressedEntity: pressedEntity } = this;
-    if (pressedEntity) {
-      const sameTarget = pressedEntity === rayCastEntity;
-      pressedEntity._scripts.forEach(
+    if (rayCastEntity) {
+      const sameTarget = this._currentPressedEntity === rayCastEntity;
+      rayCastEntity._scripts.forEach(
         (element: Script) => {
           sameTarget && element.onPointerClick(this);
           element.onPointerUp(this);
@@ -118,8 +118,8 @@ export class Pointer {
           element._entityScriptsIndex = index;
         }
       );
-      this._currentPressedEntity = null;
     }
+    this._currentPressedEntity = null;
   }
 
   /**
