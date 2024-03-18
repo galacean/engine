@@ -357,6 +357,7 @@ export class Engine extends EventDispatcher {
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
+    // Handle input info and fire `onPointerDrag`
     inputManager._update();
 
     const scenes = this._sceneManager._scenes.getLoopArray();
@@ -380,7 +381,7 @@ export class Engine extends EventDispatcher {
       }
     }
 
-    // Fire `onPointerXX`
+    // Fire `onPointerXXX` except `onPointerDrag`
     physicsInitialized && inputManager._firePointerScript(scenes);
 
     // Fire `onUpdate`

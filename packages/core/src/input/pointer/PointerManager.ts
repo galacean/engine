@@ -115,6 +115,7 @@ export class PointerManager implements IInput {
       pointer._upList.length = pointer._downList.length = 0;
       this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
       this._buttons |= pointer.pressedButtons;
+      pointer._firePointerDrag();
     }
   }
 
@@ -126,7 +127,6 @@ export class PointerManager implements IInput {
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
-      pointer._firePointerDrag();
       const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
       pointer._firePointerExitAndEnter(rayCastEntity);
       const length = events.length;
