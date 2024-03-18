@@ -102,9 +102,9 @@ export class Ast2GLSLUtils {
       }
     });
 
-    // There may be global variable references in conditional macro statement, so it needs to be serialized first.
-    const conditionalMacroText = context.getGlobalMacroText(passAst.content.conditionalMacros);
     const vertexFnStr = vertFnAst.serialize(context);
+    // There may be global variable references in conditional macro statement, so it needs to be serialized right after main function.
+    const conditionalMacroText = context.getGlobalMacroText(passAst.content.conditionalMacros);
 
     const globalFragmentSource = [
       ...context.getGlobalMacroText(passAst.content.macros),

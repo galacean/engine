@@ -20,6 +20,10 @@ export class Tokenizer {
     return this._text[this._posTicker.index];
   }
 
+  get peek() {
+    return this._text[this._posTicker.index + 1];
+  }
+
   get curIndex() {
     return this._posTicker.index;
   }

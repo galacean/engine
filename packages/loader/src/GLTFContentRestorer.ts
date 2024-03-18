@@ -11,7 +11,7 @@ import {
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
-import type { IBufferView } from "./gltf/GLTFSchema";
+import type { AccessorComponentType, IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
 import { KTX2Loader } from "./ktx2/KTX2Loader";
 
@@ -88,9 +88,10 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                   const positionData = this._getBufferData(buffers, position.buffer);
                   frame.deltaPositions = GLTFUtils.bufferToVector3Array(
                     positionData,
-                    position.stride,
                     position.byteOffset,
-                    position.count
+                    position.count,
+                    position.normalized,
+                    position.componentType
                   );
 
                   if (restoreInfo.normal) {
@@ -98,9 +99,10 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                     const normalData = this._getBufferData(buffers, normal.buffer);
                     frame.deltaNormals = GLTFUtils.bufferToVector3Array(
                       normalData,
-                      normal.stride,
                       normal.byteOffset,
-                      normal.count
+                      normal.count,
+                      normal.normalized,
+                      normal.componentType
                     );
                   }
 
@@ -109,9 +111,10 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                     const tangentData = this._getBufferData(buffers, tangent.buffer);
                     frame.deltaTangents = GLTFUtils.bufferToVector3Array(
                       tangentData,
-                      tangent.stride,
                       tangent.byteOffset,
-                      tangent.count
+                      tangent.count,
+                      tangent.normalized,
+                      tangent.componentType
                     );
                   }
                 }
@@ -127,8 +130,13 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
 
   private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): TypedArray {
     const main = restoreInfo.main;
-    const buffer = buffers[main.bufferIndex];
-    const data = new main.TypedArray(buffer, main.byteOffset, main.length);
+    let data: TypedArray;
+    if (main) {
+      const buffer = buffers[main.bufferIndex];
+      data = new main.TypedArray(buffer, main.byteOffset, main.length);
+    } else {
+      data = new main.TypedArray(main.length);
+    }
 
     const sparseCount = restoreInfo.sparseCount;
     if (sparseCount) {
@@ -213,7 +221,13 @@ export class BufferDataRestoreInfo {
 export class RestoreDataAccessor {
   constructor(
     public bufferIndex: number,
-    public TypedArray: new (buffer: ArrayBuffer, byteOffset: number, length?: number) => TypedArray,
+    public TypedArray:
+      | Uint8ArrayConstructor
+      | Int8ArrayConstructor
+      | Int16ArrayConstructor
+      | Uint16ArrayConstructor
+      | Uint32ArrayConstructor
+      | Float32ArrayConstructor,
     public byteOffset: number,
     public length: number
   ) {}
@@ -237,8 +251,9 @@ export class BlendShapeRestoreInfo {
 export class BlendShapeDataRestoreInfo {
   constructor(
     public buffer: BufferDataRestoreInfo,
-    public stride: number,
     public byteOffset: number,
-    public count: number
+    public count: number,
+    public normalized: boolean,
+    public componentType: AccessorComponentType
   ) {}
 }
