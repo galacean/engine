@@ -35,7 +35,7 @@ export class GLTFMeshParser extends GLTFParser {
     let vertexCount: number;
     let bufferBindIndex = 0;
 
-    const promises = new Array<Promise<void | BlendShapeData[]>>();
+    const promises = new Array<Promise<void>>();
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
