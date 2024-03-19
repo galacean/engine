@@ -111,8 +111,8 @@ export class Pointer {
       const sameTarget = this._currentPressedEntity === rayCastEntity;
       rayCastEntity._scripts.forEach(
         (element: Script) => {
-          sameTarget && element.onPointerClick(this);
           element.onPointerUp(this);
+          sameTarget && element.onPointerClick(this);
         },
         (element: Script, index: number) => {
           element._entityScriptsIndex = index;
