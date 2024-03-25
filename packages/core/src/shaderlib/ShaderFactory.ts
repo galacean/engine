@@ -7,6 +7,8 @@ export class ShaderFactory {
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
+  private static readonly _hasOutInFragReg = /\bout\s+(?:\w+\s+)?(?:float|vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] [vec4|float] [color|gl_FragDepth];
+
   static parseCustomMacros(macros: string[]) {
     return macros.map((m) => `#define ${m}\n`).join("");
   }
@@ -67,6 +69,14 @@ export class ShaderFactory {
     }
 
     return shader;
+  }
+
+  /**
+   * The temporary solution for checking whether the fragment shader is GLSL 300 es.
+   * @internal
+   */
+  static _isGLSL300(fragmentShader: string) {
+    return ShaderFactory._hasOutInFragReg.test(fragmentShader);
   }
 
   private static _replaceMRTShader(shader: string, result: string[]): string {

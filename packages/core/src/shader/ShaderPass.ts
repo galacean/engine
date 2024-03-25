@@ -130,7 +130,7 @@ export class ShaderPass extends ShaderPart {
         ${macroNameStr}
       ` + ShaderFactory.parseIncludes(this._fragmentSource);
 
-    if (isWebGL2) {
+    if (isWebGL2 && !ShaderFactory._isGLSL300(fragmentSource)) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);
       fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
     }
