@@ -1,7 +1,7 @@
 import { Utils } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe.only("Transform test", function () {
+describe("Transform test", function () {
   it("is absolute", () => {
     expect(Utils.isAbsoluteUrl("/test.png")).to.false;
     expect(Utils.isAbsoluteUrl("https://www.galacean.com/test.png")).to.true;
