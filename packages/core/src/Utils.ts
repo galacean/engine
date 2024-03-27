@@ -244,19 +244,6 @@ export class Utils {
     return result;
   }
 
-  private static _formatRelativePath(path: string): string {
-    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
-    return path
-      .split("/")
-      .filter(Boolean)
-      .reduce((acc, cur) => {
-        if (cur === "..") acc.pop();
-        else if (cur !== ".") acc.push(cur);
-        return acc;
-      }, [])
-      .join("/");
-  }
-
   private static _insertionSort<T>(a: T[], from: number, to: number, compareFunc: Function): void {
     for (let i = from + 1; i < to; i++) {
       let j;
