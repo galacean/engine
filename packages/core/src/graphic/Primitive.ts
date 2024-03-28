@@ -167,6 +167,7 @@ export class Primitive extends GraphicsResource {
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
     this._platformPrimitive.destroy();
     this._vertexElementMap = null;
   }

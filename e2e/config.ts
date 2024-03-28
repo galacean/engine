@@ -10,6 +10,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-blendShape",
       threshold: 0.1
     },
+    blendShapeQuantization: {
+      category: "Animator",
+      caseFileName: "animator-blendShape-quantization",
+      threshold: 0.1
+    },
     crossfade: {
       category: "Animator",
       caseFileName: "animator-crossfade",
@@ -51,8 +56,14 @@ export const E2E_CONFIG = {
       category: "GLTF",
       caseFileName: "gltf-meshopt",
       threshold: 0.3
+    },
+    blendShape: {
+      category: "GLTF",
+      caseFileName: "gltf-blendshape",
+      threshold: 0.3
     }
   },
+
   Material: {
     blendMode: {
       category: "Material",
