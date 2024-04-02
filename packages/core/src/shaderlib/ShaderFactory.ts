@@ -3,7 +3,12 @@ import { ShaderLib } from "./ShaderLib";
 
 export class ShaderFactory {
   /** @internal */
-  static readonly _shaderExtension = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives", "GL_EXT_draw_buffers"]
+  static readonly _shaderExtension = [
+    "GL_EXT_shader_texture_lod",
+    "GL_OES_standard_derivatives",
+    "GL_EXT_draw_buffers",
+    "GL_EXT_frag_depth"
+  ]
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
@@ -52,13 +57,13 @@ export class ShaderFactory {
     shader = shader.replace(/\battribute\b/g, "in");
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
     shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
-    shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
-    shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
-    shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
     shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
-    shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
 
     if (isFrag) {
+      shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
+      shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
+      shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
+      shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
       if (!ShaderFactory._hasOutput(shader)) {
