@@ -49,22 +49,28 @@ export class ShaderFactory {
    * @param isFrag - Whether it is a fragment shader.
    * */
   static convertTo300(shader: string, isFrag?: boolean) {
-    /** replace attribute and in */
     shader = shader.replace(/\battribute\b/g, "in");
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
-
-    /** replace api */
     shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
-    shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
+
     if (isFrag) {
-      const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
-      if (isMRT) {
-        shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
-        const result = shader.match(/\bgl_FragData\[.+?\]/g);
-        shader = this._replaceMRTShader(shader, result);
-      } else {
-        shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
-        shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
+      shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
+      shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
+      shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
+      shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
+      shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
+      shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
+
+      if (!ShaderFactory._hasOutput(shader)) {
+        const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
+        if (isMRT) {
+          shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
+          const result = shader.match(/\bgl_FragData\[.+?\]/g);
+          shader = this._replaceMRTShader(shader, result);
+        } else {
+          shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
+          shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
+        }
       }
     }
 
@@ -75,7 +81,7 @@ export class ShaderFactory {
    * The temporary solution for checking whether the fragment shader is GLSL 300 es.
    * @internal
    */
-  static _isGLSL300(fragmentShader: string) {
+  static _hasOutput(fragmentShader: string) {
     return ShaderFactory._hasOutInFragReg.test(fragmentShader);
   }
 
