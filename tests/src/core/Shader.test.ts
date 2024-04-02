@@ -316,6 +316,7 @@ describe("Shader", () => {
 
         void main(){
           gl_FragData[0] = texture2D(u_texture, v_uv);
+          gl_FragColor.rgb += vec3(0.1);
           gl_FragData[1] = texture2D(u_texture, v_uv);
           gl_FragData[2] = texture2D(u_texture, v_uv);
         }
@@ -328,6 +329,7 @@ describe("Shader", () => {
         uniform sampler2D u_texture;\n
         layout(location=0) out vec4 fragOutColor0;\nlayout(location=1) out vec4 fragOutColor1;\nlayout(location=2) out vec4 fragOutColor2;\nvoid main(){
           fragOutColor0 = texture(u_texture, v_uv);
+          fragOutColor0.rgb += vec3(0.1);
           fragOutColor1 = texture(u_texture, v_uv);
           fragOutColor2 = texture(u_texture, v_uv);
         }
