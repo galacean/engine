@@ -12,7 +12,7 @@ export class ShaderFactory {
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
-  private static readonly _hasOutInFragReg = /\bout\s+(?:\w+\s+)?(?:float|vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] [vec4|float] [color|gl_FragDepth];
+  private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
 
   static parseCustomMacros(macros: string[]) {
     return macros.map((m) => `#define ${m}\n`).join("");
@@ -65,7 +65,7 @@ export class ShaderFactory {
       shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
-      if (!ShaderFactory._hasOutput(shader)) {
+      if (!ShaderFactory._has300Output(shader)) {
         const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
         if (isMRT) {
           shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
@@ -83,12 +83,8 @@ export class ShaderFactory {
     return shader;
   }
 
-  /**
-   * The temporary solution for checking whether the fragment shader is GLSL 300 es.
-   * @internal
-   */
-  static _hasOutput(fragmentShader: string) {
-    return ShaderFactory._hasOutInFragReg.test(fragmentShader);
+  private static _has300Output(fragmentShader: string): boolean {
+    return ShaderFactory._has300OutInFragReg.test(fragmentShader);
   }
 
   private static _replaceMRTShader(shader: string, result: string[]): string {
