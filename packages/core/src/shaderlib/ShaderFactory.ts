@@ -54,7 +54,6 @@ export class ShaderFactory {
    * @param isFrag - Whether it is a fragment shader.
    * */
   static convertTo300(shader: string, isFrag?: boolean) {
-    shader = shader.replace(/\battribute\b/g, "in");
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
     shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
     shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
@@ -77,6 +76,8 @@ export class ShaderFactory {
           shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
         }
       }
+    } else {
+      shader = shader.replace(/\battribute\b/g, "in");
     }
 
     return shader;
