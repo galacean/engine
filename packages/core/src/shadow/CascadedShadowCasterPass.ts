@@ -1,6 +1,5 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
-import { Layer } from "../Layer";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -117,7 +116,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
         height,
         null,
         format,
-        false
+        true,
+        false,
+        1
       );
       shadowTexture = <Texture2D>renderTarget.depthTexture;
     } else {
@@ -128,7 +129,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
         height,
         format,
         null,
-        false
+        false,
+        false,
+        1
       );
       shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
     }
@@ -142,7 +145,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._depthTexture = shadowTexture;
 
     // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
+    rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, context.flipProjection, 0);
     if (this._supportDepthTexture) {
       rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
     } else {
@@ -225,10 +228,11 @@ export class CascadedShadowCasterPass extends PipelinePass {
         rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
         // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
         rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
+        // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
         engine._renderCount++;
 
-        opaqueQueue.render(camera, Layer.Everything, PipelineStage.ShadowCaster);
-        alphaTestQueue.render(camera, Layer.Everything, PipelineStage.ShadowCaster);
+        opaqueQueue.render(camera, PipelineStage.ShadowCaster);
+        alphaTestQueue.render(camera, PipelineStage.ShadowCaster);
         rhi.setGlobalDepthBias(0, 0);
       }
     }
@@ -375,6 +379,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
-    context.applyVirtualCamera(virtualCamera);
+    context.applyVirtualCamera(virtualCamera, true);
   }
 }

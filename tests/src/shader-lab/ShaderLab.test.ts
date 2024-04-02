@@ -112,7 +112,6 @@ describe("ShaderLab", () => {
   let passList: ISubShaderInfo["passes"];
   let pass: IShaderPassInfo;
   let usePass: string;
-  let context: any;
 
   before(() => {
     shader = shaderLab.parseShader(demoShader);
@@ -245,5 +244,15 @@ describe("ShaderLab", () => {
       expect(err[0]).to.have.property("token");
       expect(err[0].token.startLine).to.eql(25);
     }
+  });
+
+  it("multi-pass", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
+  });
+
+  it("macro-with-preprocessor", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/macro-pre.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
   });
 });

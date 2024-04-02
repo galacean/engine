@@ -103,10 +103,42 @@ const MeshoptDecoder = (function () {
       "var instance; var ready = WebAssembly.instantiate(new Uint8Array([" +
       new Uint8Array(unpack(wasm)) +
       "]), {})" +
-      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});" +
-      "self.onmessage = workerProcess;" +
-      decode.toString() +
-      workerProcess.toString();
+      ".then(function(result) {instance = result.instance; instance.exports.__wasm_call_ctors();});\n" +
+      "self.onmessage = workerProcess;\n" +
+      `function decode(fun, target, count, size, source, filter) {
+        const sbrk = instance.exports.sbrk;
+        const count4 = (count + 3) & ~3;
+        const tp = sbrk(count4 * size);
+        const sp = sbrk(source.length);
+        const heap = new Uint8Array(instance.exports.memory.buffer);
+        heap.set(source, sp);
+        const res = fun(tp, count, size, sp, source.length);
+        if (res == 0 && filter) {
+          filter(tp, count4, size);
+        }
+        target.set(heap.subarray(tp, tp + count * size));
+        sbrk(tp - sbrk(0));
+        if (res != 0) {
+          throw new Error("Malformed buffer data: " + res);
+        }
+      }\n` +
+      `function workerProcess(event) {
+        ready.then(function () {
+          const data = event.data;
+          try {
+            const target = new Uint8Array(data.count * data.size);
+            decode(instance.exports[data.mode], target, data.count, data.size, data.source, instance.exports[data.filter]);
+            self.postMessage({ id: data.id, count: data.count, action: "resolve", value: target }, [target.buffer]);
+          } catch (error) {
+            self.postMessage({
+              id: data.id,
+              count: data.count,
+              action: "reject",
+              value: error
+            });
+          }
+        });
+      }`;
 
     const blob = new Blob([source], { type: "text/javascript" });
     const url = URL.createObjectURL(blob);
@@ -144,24 +176,6 @@ const MeshoptDecoder = (function () {
         },
         [data.buffer]
       );
-    });
-  }
-
-  function workerProcess(event) {
-    ready.then(function () {
-      const data = event.data;
-      try {
-        const target = new Uint8Array(data.count * data.size);
-        decode(instance.exports[data.mode], target, data.count, data.size, data.source, instance.exports[data.filter]);
-        self.postMessage({ id: data.id, count: data.count, action: "resolve", value: target }, [target.buffer] as any);
-      } catch (error) {
-        self.postMessage({
-          id: data.id,
-          count: data.count,
-          action: "reject",
-          value: error
-        });
-      }
     });
   }
 

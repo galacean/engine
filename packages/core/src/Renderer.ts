@@ -323,7 +323,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
     }
 
-    this._updateShaderData(context);
+    this._updateShaderData(context, false);
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -349,8 +349,8 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
+    this._unRegisterEntityTransformListener();
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -375,29 +375,26 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
+  _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
     const entity = this.entity;
     const worldMatrix = entity.transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateMVPShaderData(context, worldMatrix);
+      return;
+    }
     this._updateTransformShaderData(context, worldMatrix);
 
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  /**
-   * @internal
-   */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
-    const virtualCamera = context.virtualCamera;
-
     const mvMatrix = this._mvMatrix;
-    const mvpMatrix = this._mvpMatrix;
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(virtualCamera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(virtualCamera.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();
@@ -405,9 +402,16 @@ export class Renderer extends Component implements IComponentCustomClone {
     shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
     shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
     shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+    this._updateMVPShaderData(context, worldMatrix);
+  }
+
+  protected _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix): void {
+    const mvpMatrix = this._mvpMatrix;
+
+    Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+    this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
   }
 
   /**
@@ -415,6 +419,13 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   protected _registerEntityTransformListener(): void {
     this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  protected _unRegisterEntityTransformListener(): void {
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
   }
 
   /**

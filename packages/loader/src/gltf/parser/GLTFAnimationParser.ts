@@ -36,14 +36,15 @@ export class GLTFAnimationParser extends GLTFParser {
     const { glTF } = context;
     const { accessors, bufferViews } = glTF;
     const { channels, samplers } = animationInfo;
-    const sampleDataCollection = new Array<SampleData>();
+    const len = samplers.length;
+    const sampleDataCollection = new Array<SampleData>(len);
     const entities = context.get<Entity>(GLTFParserType.Entity);
 
     let duration = -1;
     let promises = new Array<Promise<void | Entity[]>>();
 
     // parse samplers
-    for (let j = 0, m = samplers.length; j < m; j++) {
+    for (let j = 0, m = len; j < m; j++) {
       const glTFSampler = samplers[j];
       const inputAccessor = accessors[glTFSampler.input];
       const outputAccessor = accessors[glTFSampler.output];
@@ -84,13 +85,13 @@ export class GLTFAnimationParser extends GLTFParser {
           duration = maxTime;
         }
 
-        sampleDataCollection.push({
+        sampleDataCollection[j] = {
           type: outputAccessor.type,
           interpolation: samplerInterpolation,
           input,
           output,
           outputSize: outputStride
-        });
+        };
       });
       promises.push(promise);
     }

@@ -1,10 +1,10 @@
-import { BoundingBox, Vector3 } from "@galacean/engine-math";
+import { Vector3, BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
 import { deepClone, shallowClone } from "../clone/CloneManager";
-import { Entity } from "../Entity";
 import { ModelMesh } from "../mesh/ModelMesh";
-import { Renderer } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
@@ -120,6 +120,7 @@ export class ParticleRenderer extends Renderer {
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -160,7 +161,15 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateShaderData(context: RenderContext): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+  }
+
+  /**
+   * @internal
+   */
+  override _updateShaderData(context: RenderContext, _: boolean): void {
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);

@@ -9,6 +9,7 @@ import {
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
 import { Font } from "./2d/text/Font";
+import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
@@ -92,6 +93,8 @@ export class Engine extends EventDispatcher {
   _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
 
   /* @internal */
+  _basicResources: BasicResources;
+  /* @internal */
   _spriteDefaultMaterial: Material;
   /** @internal */
   _spriteDefaultMaterials: Material[] = [];
@@ -106,6 +109,8 @@ export class Engine extends EventDispatcher {
   _whiteTexture2D: Texture2D;
   /* @internal */
   _magentaTexture2D: Texture2D;
+  /* @internal */
+  _uintMagentaTexture2D: Texture2D;
   /* @internal */
   _magentaTextureCube: TextureCube;
   /* @internal */
@@ -296,6 +301,7 @@ export class Engine extends EventDispatcher {
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
 
+    this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
   }
 
@@ -601,6 +607,21 @@ export class Engine extends EventDispatcher {
     this._magentaTextureCube = magentaTextureCube;
 
     if (hardwareRenderer.isWebGL2) {
+      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
+      const uintMagentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R32G32B32A32_UInt, false);
+      uintMagentaTexture2D.setPixelBuffer(magentaPixel32);
+      uintMagentaTexture2D.isGCIgnored = true;
+      this.resourceManager.addContentRestorer(
+        new (class extends ContentRestorer<Texture2D> {
+          constructor() {
+            super(uintMagentaTexture2D);
+          }
+          restoreContent() {
+            this.resource.setPixelBuffer(magentaPixel32);
+          }
+        })()
+      );
+
       const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
       magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
       magentaTexture2DArray.isGCIgnored = true;
@@ -614,6 +635,8 @@ export class Engine extends EventDispatcher {
           }
         })()
       );
+
+      this._uintMagentaTexture2D = uintMagentaTexture2D;
       this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }

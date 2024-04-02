@@ -283,7 +283,12 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateShaderData(context: RenderContext): void {
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
+    if (onlyMVP) {
+      // @ts-ignore
+      this._updateMVPShaderData(context, Matrix._identity);
+      return;
+    }
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
@@ -308,6 +313,15 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+    // @todo: This question needs to be raised rather than hidden.
+    if (material.destroyed) {
+      material = this._engine._spriteDefaultMaterials[this._maskInteraction];
+    }
+
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(this);
@@ -321,7 +335,6 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Push primitive
-    const material = this.getMaterial();
     const texture = this.sprite.texture;
     const renderData = this._engine._spriteRenderDataPool.getFromPool();
     renderData.set(this, material, this._verticesData, texture);

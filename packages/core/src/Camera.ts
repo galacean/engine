@@ -5,6 +5,7 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
 import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
@@ -12,6 +13,8 @@ import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
+import { Downsampling } from "./enums/Downsampling";
+import { MSAASamples } from "./enums/MSAASamples";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -35,6 +38,8 @@ class MathTemp {
 export class Camera extends Component {
   /** @internal */
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
+  /** @internal */
+  static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
@@ -47,6 +52,7 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
+   *
    * @defaultValue `CameraClearFlags.All`
    */
   clearFlags: CameraClearFlags = CameraClearFlags.All;
@@ -59,9 +65,25 @@ export class Camera extends Component {
 
   /**
    * Depth texture mode.
+   * If `DepthTextureMode.PrePass` is used, the depth texture can be accessed in the shader using `camera_DepthTexture`.
+   *
    * @defaultValue `DepthTextureMode.None`
    */
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
+
+  /**
+   * Opacity texture down sampling.
+   *
+   * @defaultValue `Downsampling.TwoX`
+   */
+  opaqueTextureDownsampling: Downsampling = Downsampling.TwoX;
+
+  /**
+   * Multi-sample anti-aliasing samples when use independent canvas mode.
+   *
+   * @remarks The `independentCanvasEnabled` property should be `true` to take effect, otherwise it will be invalid.
+   */
+  msaaSamples: MSAASamples = MSAASamples.None;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
@@ -88,8 +110,6 @@ export class Camera extends Component {
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   private _isCustomViewMatrix = false;
   private _isCustomProjectionMatrix = false;
-  private _nearClipPlane: number = 0.1;
-  private _farClipPlane: number = 100;
   private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
   private _isProjectionDirty = true;
@@ -97,6 +117,7 @@ export class Camera extends Component {
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
+  private _opaqueTextureEnabled: boolean = false;
 
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
@@ -116,6 +137,38 @@ export class Camera extends Component {
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
+   * Whether to enable opaque texture.
+   * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
+   *
+   * @defaultValue `false`
+   *
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
+   */
+  get opaqueTextureEnabled(): boolean {
+    return this._opaqueTextureEnabled;
+  }
+
+  set opaqueTextureEnabled(value: boolean) {
+    if (this._opaqueTextureEnabled !== value) {
+      this._opaqueTextureEnabled = value;
+      this._checkMainCanvasAntialiasWaste();
+    }
+  }
+
+  /**
+   * Whether independent canvas is enabled.
+   *
+   * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
+   */
+  get independentCanvasEnabled(): boolean {
+    if (this._renderTarget) {
+      return false;
+    }
+
+    return this._forceUseInternalCanvas();
+  }
+
+  /**
    * Shader data.
    */
   get shaderData(): ShaderData {
@@ -126,11 +179,11 @@ export class Camera extends Component {
    * Near clip plane - the closest point to the camera when rendering occurs.
    */
   get nearClipPlane(): number {
-    return this._nearClipPlane;
+    return this._virtualCamera.nearClipPlane;
   }
 
   set nearClipPlane(value: number) {
-    this._nearClipPlane = value;
+    this._virtualCamera.nearClipPlane = value;
     this._projectionMatrixChange();
   }
 
@@ -138,11 +191,11 @@ export class Camera extends Component {
    * Far clip plane - the furthest point to the camera when rendering occurs.
    */
   get farClipPlane(): number {
-    return this._farClipPlane;
+    return this._virtualCamera.farClipPlane;
   }
 
   set farClipPlane(value: number) {
-    this._farClipPlane = value;
+    this._virtualCamera.farClipPlane = value;
     this._projectionMatrixChange();
   }
 
@@ -283,14 +336,14 @@ export class Camera extends Component {
       Matrix.perspective(
         MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
-        this._nearClipPlane,
-        this._farClipPlane,
+        this.nearClipPlane,
+        this.farClipPlane,
         projectionMatrix
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
       const height = this._orthographicSize;
-      Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, projectionMatrix);
+      Matrix.ortho(-width, width, -height, height, this.nearClipPlane, this.farClipPlane, projectionMatrix);
     }
     return projectionMatrix;
   }
@@ -327,6 +380,7 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
+      this._checkMainCanvasAntialiasWaste();
     }
   }
 
@@ -687,7 +741,7 @@ export class Camera extends Component {
     shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
 
     const depthBufferParams = this._depthBufferParams;
-    const farDivideNear = this._farClipPlane / this._nearClipPlane;
+    const farDivideNear = this.farClipPlane / this.nearClipPlane;
     depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
@@ -714,9 +768,22 @@ export class Camera extends Component {
     return this._inverseProjectionMatrix;
   }
 
+  private _forceUseInternalCanvas(): boolean {
+    return this.opaqueTextureEnabled;
+  }
+
   @ignoreClone
   private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
+    this._checkMainCanvasAntialiasWaste();
+  }
+
+  private _checkMainCanvasAntialiasWaste(): void {
+    if (this.independentCanvasEnabled && Vector4.equals(this._viewport, PipelineUtils.defaultViewport)) {
+      console.warn(
+        "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
+      );
+    }
   }
 }

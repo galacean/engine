@@ -106,6 +106,7 @@ export enum GLCapabilityType {
   colorBufferHalfFloat = "EXT_color_buffer_half_float",
   textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
   blendMinMax = "EXT_blend_minmax",
+  fragDepth = "EXT_frag_depth",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",

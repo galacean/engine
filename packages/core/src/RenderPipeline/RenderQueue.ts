@@ -26,9 +26,7 @@ export class RenderQueue {
     }
     // make suer from the same renderer.
     if (componentA.instanceId === componentB.instanceId) {
-      return (
-        dataA.material._priority - dataB.material._priority || componentA._distanceForSort - componentB._distanceForSort
-      );
+      return dataA.material._priority - dataB.material._priority;
     } else {
       const distanceDiff = componentA._distanceForSort - componentB._distanceForSort;
       if (distanceDiff === 0) {
@@ -53,9 +51,7 @@ export class RenderQueue {
     }
     // make suer from the same renderer.
     if (componentA.instanceId === componentB.instanceId) {
-      return (
-        dataA.material._priority - dataB.material._priority || componentB._distanceForSort - componentA._distanceForSort
-      );
+      return dataA.material._priority - dataB.material._priority;
     } else {
       const distanceDiff = componentB._distanceForSort - componentA._distanceForSort;
       if (distanceDiff === 0) {
@@ -83,7 +79,7 @@ export class RenderQueue {
     this.elements.push(element);
   }
 
-  render(camera: Camera, mask: Layer, pipelineStageTagValue: string): void {
+  render(camera: Camera, pipelineStageTagValue: string): void {
     const elements = this.elements;
     if (elements.length === 0) {
       return;
@@ -100,12 +96,6 @@ export class RenderQueue {
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
       const { data, shaderPasses } = element;
-
-      const renderPassFlag = data.component.entity.layer;
-
-      if (!(renderPassFlag & mask)) {
-        continue;
-      }
 
       if (data.primitive) {
         this._spriteBatcher.flush(camera);

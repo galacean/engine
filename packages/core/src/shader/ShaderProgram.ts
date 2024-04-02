@@ -1,17 +1,17 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Scene } from "../Scene";
+import { Logger } from "../base/Logger";
+import { Material } from "../material/Material";
 import { Texture } from "../texture";
-import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderData } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
+import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 
 /**
  * Shader program, corresponding to the GPU shader program.
@@ -400,6 +400,7 @@ export class ShaderProgram {
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
+        case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
         case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
         case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
           let defaultTexture: Texture;
@@ -409,6 +410,9 @@ export class ShaderProgram {
               break;
             case gl.SAMPLER_CUBE:
               defaultTexture = this._engine._magentaTextureCube;
+              break;
+            case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
+              defaultTexture = this._engine._uintMagentaTexture2D;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
               defaultTexture = this._engine._magentaTexture2DArray;

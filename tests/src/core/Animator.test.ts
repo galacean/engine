@@ -264,16 +264,25 @@ describe("Animator test", function () {
       "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05"
     );
 
-    const layerData = animator["_animatorLayersData"][1];
+    let layerData = animator["_animatorLayersData"][1];
     const layerCurveOwner = layerData.curveOwnerPool[targetEntity.instanceId]["0.rotationQuaternion"];
     const parentLayerCurveOwner = layerData.curveOwnerPool[parentEntity.instanceId]["0.rotationQuaternion"];
 
-    const childLayerCurveOwner = layerData.curveOwnerPool[childEntity.instanceId]["0.rotationQuaternion"];
+    let childLayerCurveOwner = layerData.curveOwnerPool[childEntity.instanceId]["0.rotationQuaternion"];
 
     expect(layerCurveOwner.isActive).to.eq(false);
     expect(parentLayerCurveOwner.isActive).to.eq(true);
     expect(childLayerCurveOwner.isActive).to.eq(false);
+
+    animator.animatorController.removeLayer(1);
+    mask.removePathMask("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05");
+    animator.animatorController.addLayer(additiveLayer);
+    animator.play("Run", 1);
+    layerData = animator["_animatorLayersData"][1];
+    childLayerCurveOwner = layerData.curveOwnerPool[childEntity.instanceId]["0.rotationQuaternion"];
+    expect(childLayerCurveOwner.isActive).to.eq(true);
   });
+
   it("animation event", () => {
     animator.play("Walk");
 
