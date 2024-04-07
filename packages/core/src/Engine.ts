@@ -249,7 +249,9 @@ export class Engine extends EventDispatcher {
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
     this._hardwareRenderer = hardwareRenderer;
+    console.log("Step1.");
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
+    console.log("Step2.");
 
     this._canvas = canvas;
 

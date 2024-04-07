@@ -196,12 +196,15 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       }
     }
 
+    console.log("Step1.11");
+
     if (!gl) {
       throw new Error("Get GL Context FAILED.");
     }
 
     this._gl = gl;
     this._initGLState(gl);
+    console.log("Step1.22");
   }
 
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
