@@ -170,6 +170,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
     webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
 
+    console.log("Step1.10");
+
     this._webCanvas = webCanvas;
 
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
