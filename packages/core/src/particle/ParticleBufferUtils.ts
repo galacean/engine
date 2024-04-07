@@ -1,4 +1,5 @@
 import { Engine } from "../Engine";
+import { ContentRestorer } from "../asset/ContentRestorer";
 import { Buffer } from "../graphic/Buffer";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
@@ -67,13 +68,35 @@ export class ParticleBufferUtils {
     );
     this.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);
 
-    this.setBufferData();
-  }
+    const billboardGeometryData = new Float32Array([
+      -0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0
+    ]);
+    const indexData = new Uint8Array([0, 2, 3, 0, 1, 2]);
 
-  setBufferData(): void {
-    this.billboardVertexBufferBinding.buffer.setData(
-      new Float32Array([-0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0])
+    billboardGeometryBuffer.setData(billboardGeometryData);
+    indexBuffer.setData(indexData);
+
+    // Register content restorer
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<Buffer> {
+        constructor() {
+          super(billboardGeometryBuffer);
+        }
+        restoreContent() {
+          billboardGeometryBuffer.setData(billboardGeometryData);
+        }
+      })()
     );
-    this.billboardIndexBufferBinding.buffer.setData(new Uint8Array([0, 2, 3, 0, 1, 2]));
+
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<Buffer> {
+        constructor() {
+          super(indexBuffer);
+        }
+        restoreContent() {
+          indexData;
+        }
+      })()
+    );
   }
 }
