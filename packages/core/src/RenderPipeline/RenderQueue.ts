@@ -1,6 +1,5 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { Layer } from "../Layer";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -85,11 +84,10 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, scene } = camera;
+    const { engine, instanceId: cameraId, shaderData: cameraData } = camera;
+    const { shaderData: sceneData, instanceId: sceneId } = camera.scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
-    const sceneData = scene.shaderData;
-    const cameraData = camera.shaderData;
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this._renderQueueType;
 
@@ -104,9 +102,8 @@ export class RenderQueue {
         const primitive = data.primitive;
         const renderer = data.component;
         const material = data.material;
-        const rendererData = renderer.shaderData;
-        const materialData = material.shaderData;
-        const renderStates = material.renderStates;
+        const { shaderData: rendererData, instanceId: rendererId } = renderer;
+        const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -141,36 +138,36 @@ export class RenderQueue {
             program.uploadAll(program.materialUniformBlock, materialData);
             // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
             program.uploadUnGroupTextures();
-            program._uploadScene = scene;
-            program._uploadCamera = camera;
-            program._uploadRenderer = renderer;
-            program._uploadMaterial = material;
+            program._uploadSceneId = sceneId;
+            program._uploadCameraId = cameraId;
+            program._uploadRendererId = rendererId;
+            program._uploadMaterialId = materialId;
             program._uploadRenderCount = renderCount;
           } else {
-            if (program._uploadScene !== scene) {
+            if (program._uploadSceneId !== sceneId) {
               program.uploadAll(program.sceneUniformBlock, sceneData);
-              program._uploadScene = scene;
+              program._uploadSceneId = sceneId;
             } else if (switchProgram) {
               program.uploadTextures(program.sceneUniformBlock, sceneData);
             }
 
-            if (program._uploadCamera !== camera) {
+            if (program._uploadCameraId !== cameraId) {
               program.uploadAll(program.cameraUniformBlock, cameraData);
-              program._uploadCamera = camera;
+              program._uploadCameraId = cameraId;
             } else if (switchProgram) {
               program.uploadTextures(program.cameraUniformBlock, cameraData);
             }
 
-            if (program._uploadRenderer !== renderer) {
+            if (program._uploadRendererId !== rendererId) {
               program.uploadAll(program.rendererUniformBlock, rendererData);
-              program._uploadRenderer = renderer;
+              program._uploadRendererId = rendererId;
             } else if (switchProgram) {
               program.uploadTextures(program.rendererUniformBlock, rendererData);
             }
 
-            if (program._uploadMaterial !== material) {
+            if (program._uploadMaterialId !== materialId) {
               program.uploadAll(program.materialUniformBlock, materialData);
-              program._uploadMaterial = material;
+              program._uploadMaterialId = materialId;
             } else if (switchProgram) {
               program.uploadTextures(program.materialUniformBlock, materialData);
             }

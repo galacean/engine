@@ -33,6 +33,7 @@ export class BasicResources {
       -1, 1, 0, 1]); // left-top
 
     const blitMaterial = new Material(engine, Shader.find("blit"));
+    blitMaterial._addReferCount(1);
     blitMaterial.renderState.depthState.enabled = false;
     blitMaterial.renderState.depthState.writeEnabled = false;
 
