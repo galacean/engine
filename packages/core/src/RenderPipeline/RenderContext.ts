@@ -63,6 +63,6 @@ export class RenderContext {
   }
 
   garbageCollection(): void {
-    this.camera = this.virtualCamera = this.replacementShader = this.replacementTag = null;
+    this.camera = null;
   }
 }

@@ -59,30 +59,9 @@ export class ShaderProgramPool {
   /**
    * @internal
    */
-  garbageCollection(): void {
-    this._recursiveGC(0, this._cacheMap);
-  }
-
-  /**
-   * @internal
-   */
   _destroy(): void {
     this._recursiveDestroy(0, this._cacheMap);
     this._cacheMap = Object.create(null);
-  }
-
-  private _recursiveGC(hierarchy: number, cacheMap: Tree<ShaderProgram>): void {
-    if (hierarchy === this._cacheHierarchyDepth - 1) {
-      for (let k in cacheMap) {
-        const sp = <ShaderProgram>cacheMap[k];
-        sp._uploadScene = sp._uploadCamera = sp._uploadRenderer = sp._uploadMaterial = null;
-      }
-      return;
-    }
-    ++hierarchy;
-    for (let k in cacheMap) {
-      this._recursiveGC(hierarchy, <Tree<ShaderProgram>>cacheMap[k]);
-    }
   }
 
   private _recursiveDestroy(hierarchy: number, cacheMap: Tree<ShaderProgram>): void {
