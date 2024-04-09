@@ -742,7 +742,6 @@ export class Engine extends EventDispatcher {
     console.log("Graphic resource restored.");
 
     // Restore resources content
-    this._particleBufferUtils.setBufferData();
     resourceManager
       ._restoreResourcesContent()
       .then(() => {
@@ -761,6 +760,7 @@ export class Engine extends EventDispatcher {
     this._spriteRenderDataPool.garbageCollection();
     this._spriteMaskRenderDataPool.garbageCollection();
     this._textRenderDataPool.garbageCollection();
+    this._renderContext.garbageCollection();
   }
 
   /**
