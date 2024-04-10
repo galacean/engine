@@ -1,11 +1,7 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { Renderer } from "../Renderer";
-import { Scene } from "../Scene";
 import { Logger } from "../base/Logger";
-import { Material } from "../material/Material";
 import { Texture } from "../texture";
 import { ShaderData } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
@@ -47,13 +43,13 @@ export class ShaderProgram {
   /** @internal */
   _uploadRenderCount: number = -1;
   /** @internal */
-  _uploadScene: Scene;
+  _uploadSceneId: number = -1;
   /** @internal */
-  _uploadCamera: Camera;
+  _uploadCameraId: number = -1;
   /** @internal */
-  _uploadRenderer: Renderer;
+  _uploadRendererId: number = -1;
   /** @internal */
-  _uploadMaterial: Material;
+  _uploadMaterialId: number = -1;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
 

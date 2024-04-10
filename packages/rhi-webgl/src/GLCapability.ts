@@ -175,7 +175,8 @@ export class GLCapability {
       WEBGL_colorBufferFloat,
       colorBufferFloat,
       colorBufferHalfFloat,
-      textureFilterAnisotropic
+      textureFilterAnisotropic,
+      fragDepth
     } = GLCapabilityType;
     cap.set(shaderVertexID, isWebGL2);
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -200,6 +201,7 @@ export class GLCapability {
       (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
     );
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
+    cap.set(fragDepth, isWebGL2 || !!requireExtension(fragDepth));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
