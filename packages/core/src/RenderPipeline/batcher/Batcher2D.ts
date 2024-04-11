@@ -5,13 +5,12 @@ import { ShaderProperty, ShaderTagKey } from "../../shader";
 import { ClassPool } from "../ClassPool";
 import { RenderContext } from "../RenderContext";
 import { SpriteRenderData } from "../SpriteRenderData";
-import { IBatcher } from "./IBatcher";
 import { MBChunk, MeshBuffer } from "./MeshBuffer";
 
 /**
  * @internal
  */
-export class Batcher2D implements IBatcher {
+export class Batcher2D {
   /** The maximum number of vertex. */
   static MAX_VERTEX_COUNT: number = 4096;
 
