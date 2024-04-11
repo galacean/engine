@@ -1,12 +1,13 @@
-import { Vector3, Vector4 } from "@galacean/engine-math";
+import { Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
 import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
 import { Engine } from "../../Engine";
+import { IPoolElement } from "../../utils/Pool";
 
 /**
  * @internal
  */
-export class CharRenderData {
+export class CharRenderData implements IPoolElement {
   static triangles: number[] = [0, 2, 1, 2, 0, 3];
 
   texture: Texture2D;
@@ -19,5 +20,9 @@ export class CharRenderData {
       this.chunk = engine._batcherManager._batcher2D.allocateChunk(4, 6);
       this.chunk._indices = CharRenderData.triangles;
     }
+  }
+
+  dispose(): void {
+    this.texture = this.chunk = null;
   }
 }

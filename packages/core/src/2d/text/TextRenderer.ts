@@ -12,18 +12,18 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { CharRenderData } from "./CharRenderData";
-import { CharRenderDataPool } from "./CharRenderDataPool";
 import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
+import { Pool } from "../../utils/Pool";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
-  private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
+  private static _charRenderDataPool: Pool<CharRenderData> = new Pool(CharRenderData, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
   private static _worldPosition0: Vector3 = new Vector3();
@@ -317,10 +317,11 @@ export class TextRenderer extends Renderer {
 
     super._onDestroy();
     // Clear render data.
+    const pool = TextRenderer._charRenderDataPool;
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       this.engine._batcherManager._batcher2D.freeChunk(charRenderDatas[i].chunk);
-      TextRenderer._charRenderDataPool.put(charRenderDatas[i]);
+      pool.free(charRenderDatas[i]);
     }
     charRenderDatas.length = 0;
 
@@ -570,7 +571,7 @@ export class TextRenderer extends Renderer {
             const charInfo = charFont._getCharInfo(char);
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
-              const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
+              const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.alloc());
               charRenderData.init(this.engine);
               const { chunk, localPositions } = charRenderData;
               charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
@@ -621,7 +622,7 @@ export class TextRenderer extends Renderer {
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
         this.engine._batcherManager._batcher2D.freeChunk(charRenderDatas[i].chunk);
-        charRenderDataPool.put(charRenderDatas[i]);
+        charRenderDataPool.free(charRenderDatas[i]);
       }
       charRenderDatas.length = renderDataCount;
     }
