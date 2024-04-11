@@ -1,4 +1,4 @@
-import { IPoolElement } from "../../RenderPipeline/IPoolElement";
+import { IPoolElement } from "../../utils/Pool";
 import { AnimationEvent } from "../AnimationEvent";
 /**
  * @internal

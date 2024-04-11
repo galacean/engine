@@ -1,4 +1,4 @@
-import { IPoolElement } from "./IPoolElement";
+import { IPoolElement } from "../utils/Pool";
 
 /**
  * Class pool utils.

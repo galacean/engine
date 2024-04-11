@@ -1,4 +1,6 @@
-import { IPoolElement } from "../RenderPipeline/IPoolElement";
+export interface IPoolElement {
+  dispose?(): void;
+}
 
 export class Pool<T extends IPoolElement> {
   private _type: new () => T;
@@ -25,7 +27,7 @@ export class Pool<T extends IPoolElement> {
     this._elementPool[++this._elementPoolIndex] = element;
   }
 
-  garbageCollection(): void {
+  dispose(): void {
     const { _elementPool: pool } = this;
     for (let i = pool.length - 1; i >= 0; i--) {
       pool[i].dispose && pool[i].dispose();

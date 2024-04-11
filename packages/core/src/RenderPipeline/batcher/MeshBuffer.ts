@@ -11,8 +11,7 @@ import {
   VertexElementFormat
 } from "../../graphic";
 import { BufferMesh } from "../../mesh";
-import { Pool } from "../../utils/Pool";
-import { IPoolElement } from "../IPoolElement";
+import { IPoolElement, Pool } from "../../utils/Pool";
 import { Batcher2D } from "./Batcher2D";
 
 /**
@@ -120,7 +119,7 @@ export class MeshBuffer {
     this._iBuffer = null;
     this._vertices = null;
     this._indices = null;
-    this._entryPool.garbageCollection();
+    this._entryPool.dispose();
     this._entryPool = null;
   }
 

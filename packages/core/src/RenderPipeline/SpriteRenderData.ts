@@ -2,9 +2,9 @@ import { Primitive, SubMesh } from "../graphic";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Texture2D } from "../texture";
+import { IPoolElement } from "../utils/Pool";
 import { MBChunk } from "./batcher/MeshBuffer";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
-import { IPoolElement } from "./IPoolElement";
 import { RenderData } from "./RenderData";
 
 export class SpriteRenderData extends RenderData implements IPoolElement {

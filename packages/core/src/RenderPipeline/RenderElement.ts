@@ -1,5 +1,5 @@
 import { ShaderPass } from "../shader/ShaderPass";
-import { IPoolElement } from "./IPoolElement";
+import { IPoolElement } from "../utils/Pool";
 import { RenderData } from "./RenderData";
 
 export class RenderElement implements IPoolElement {
