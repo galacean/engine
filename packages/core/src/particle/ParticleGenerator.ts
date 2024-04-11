@@ -835,7 +835,7 @@ export class ParticleGenerator {
     }
   }
 
-  private _updateBoundingBoxWorldSpace() {
+  private _updateBoundingBoxWorldSpace(): void {
     const { min, max } = this._renderer._bounds;
     if (this._firstActiveBounds === this._firstFreeBounds) {
       min.set(0, 0, 0);
@@ -1023,21 +1023,23 @@ export class ParticleGenerator {
     max.z += worldPosition.z;
   }
 
-  private _mergeIntoRendererBounds(index: number) {
+  private _mergeIntoRendererBounds(index: number): void {
     const { min, max } = this._renderer._bounds;
+    const { _dynamicBounds: bounds } = this;
+
     const particleUtils = this._renderer.engine._particleBufferUtils;
     const baseIndex = index * particleUtils.boundsFloatStride;
 
-    min.x = Math.min(min.x, this._dynamicBounds[baseIndex]);
-    min.y = Math.min(min.y, this._dynamicBounds[baseIndex + 1]);
-    min.z = Math.min(min.z, this._dynamicBounds[baseIndex + 2]);
+    min.x = Math.min(min.x, bounds[baseIndex]);
+    min.y = Math.min(min.y, bounds[baseIndex + 1]);
+    min.z = Math.min(min.z, bounds[baseIndex + 2]);
 
-    max.x = Math.max(max.x, this._dynamicBounds[baseIndex + 3]);
-    max.y = Math.max(max.y, this._dynamicBounds[baseIndex + 4]);
-    max.z = Math.max(max.z, this._dynamicBounds[baseIndex + 5]);
+    max.x = Math.max(max.x, bounds[baseIndex + 3]);
+    max.y = Math.max(max.y, bounds[baseIndex + 4]);
+    max.z = Math.max(max.z, bounds[baseIndex + 5]);
   }
 
-  private _addGravityModifierImpact() {
+  private _addGravityModifierImpact(): void {
     const { min, max } = this._renderer._bounds;
     const { _tempVector20: minmax } = ParticleGenerator;
 
