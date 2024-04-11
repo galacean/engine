@@ -893,9 +893,11 @@ export class ParticleGenerator {
 
   private _resizeBoundsArray(isIncrease: boolean, increaseCount?: number): void {
     if (isIncrease) {
-      // TODO concat is not accept
       const particleUtils = this._renderer.engine._particleBufferUtils;
-      this._dynamicBounds.concat(new Array(increaseCount * particleUtils.boundsFloatStride));
+      const newSize = this._dynamicBoundsCapacity + increaseCount;
+
+      this._dynamicBounds.length = newSize * particleUtils.boundsFloatStride;
+      this._dynamicBounds.fill(0, this._dynamicBoundsCapacity);
       this._dynamicBoundsCapacity += increaseCount;
     }
   }
