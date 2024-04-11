@@ -50,6 +50,10 @@ export class ParticleBufferUtils {
 
   readonly instanceBoundsFloatStride = 6;
 
+  readonly boundsFloatStride = 8;
+  readonly boundsTimeOffset = 6;
+  readonly boundsMaxLifetimeOffset = 7;
+
   constructor(engine: Engine) {
     const stride = 16;
     const billboardGeometryBuffer = new Buffer(

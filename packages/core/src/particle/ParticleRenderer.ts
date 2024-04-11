@@ -10,6 +10,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleGenerator } from "./ParticleGenerator";
+import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 
 /**
  * Particle Renderer Component.
@@ -159,11 +160,17 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
-   * @internal
+   * The world bounding volume of the ParticleRenderer.
    */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+  override get bounds(): BoundingBox {
+    if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
+      this.generator._getBoundsLocalSpace();
+    }
+    if (this.generator.main.simulationSpace === ParticleSimulationSpace.World) {
+      this.generator._getBoundsWorldSpace();
+    }
+
+    return this._bounds;
   }
 
   /**
