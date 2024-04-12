@@ -18,8 +18,8 @@ export class SpriteMaskBatcher extends Batcher2D {
   /** @internal */
   _preOp: StencilOperation = null;
 
-  constructor(engine: Engine) {
-    super(engine);
+  constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
+    super(engine, maxVertexCount);
   }
 
   drawElement(element: RenderElement, camera: Camera, op: StencilOperation): void {

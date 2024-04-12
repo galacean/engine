@@ -29,9 +29,9 @@ export class Batcher2D {
   /** @internal */
   _preRenderData: SpriteRenderData = null;
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
     this._engine = engine;
-    this._createMeshBuffer(0);
+    this._createMeshBuffer(0, maxVertexCount);
   }
 
   /**
@@ -110,13 +110,13 @@ export class Batcher2D {
     meshBuffer && meshBuffer.freeChunk(chunk);
   }
 
-  protected _createMeshBuffer(index: number): MeshBuffer {
+  protected _createMeshBuffer(index: number, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT): MeshBuffer {
     const { _meshBuffers } = this;
     if (_meshBuffers[index]) {
       return _meshBuffers[index];
     }
 
-    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(this._engine));
+    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(this._engine, maxVertexCount));
     return meshBuffer;
   }
 

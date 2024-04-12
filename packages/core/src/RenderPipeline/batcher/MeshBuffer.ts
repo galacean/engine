@@ -75,18 +75,17 @@ export class MeshBuffer {
   /** @internal */
   _subMeshPool: Pool<SubMesh> = new Pool(SubMesh, 10);
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
     const mesh = (this._mesh = new BufferMesh(engine));
     mesh.isGCIgnored = true;
 
     const vertexElements: VertexElement[] = [];
     const vertexStride = this.createVertexElements(vertexElements);
-    const { MAX_VERTEX_COUNT } = Batcher2D;
     // vertices
     const vertexBuffer = (this._vBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * vertexStride,
+      maxVertexCount * vertexStride,
       BufferUsage.Dynamic
     ));
     vertexBuffer.isGCIgnored = true;
@@ -94,7 +93,7 @@ export class MeshBuffer {
     const indiceBuffer = (this._iBuffer = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 8,
+      maxVertexCount * 8,
       BufferUsage.Dynamic
     ));
     indiceBuffer.isGCIgnored = true;
@@ -102,8 +101,8 @@ export class MeshBuffer {
     mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
     mesh.setVertexElements(vertexElements);
 
-    const vertexLen = MAX_VERTEX_COUNT * 9;
-    const indiceLen = MAX_VERTEX_COUNT * 4;
+    const vertexLen = maxVertexCount * 9;
+    const indiceLen = maxVertexCount * 4;
     this._vertices = new Float32Array(vertexLen);
     this._indices = new Uint16Array(indiceLen);
     this._vFreeEntries.push(new Entry(0, vertexLen));

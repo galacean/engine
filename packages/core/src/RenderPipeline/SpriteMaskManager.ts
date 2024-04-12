@@ -19,7 +19,7 @@ export class SpriteMaskManager {
   private _preMaskLayer: number = 0;
 
   constructor(engine: Engine) {
-    this._batcher = new SpriteMaskBatcher(engine);
+    this._batcher = new SpriteMaskBatcher(engine, 128);
   }
 
   addMask(mask: SpriteMask): void {

@@ -250,7 +250,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    this._spriteMaskManager = new SpriteMaskManager(this);
     const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
     this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
       SpriteMaskInteraction.None
