@@ -2,16 +2,16 @@ import {
   BlinnPhongMaterial,
   Camera,
   DirectLight,
+  Material,
   MeshRenderer,
   PrimitiveMesh,
   Shader,
+  ShaderFactory,
   ShaderMacro,
   ShaderPass,
   ShaderProperty,
   ShaderTagKey,
-  SubShader,
-  RenderQueueType,
-  Material
+  SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { ShaderLab } from "@galacean/engine-shader-lab";
@@ -196,6 +196,145 @@ describe("Shader", () => {
 
       // Test get macro is same as ShaderMacro.getByName
       expect(Shader.getMacroByName("SET_TEXTURE_GRAY")).to.be.equal(macro);
+    });
+  });
+
+  describe("GLSL Convert test", () => {
+    it("Shader api vertex replace test", async () => {
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        attribute vec3 POSITION;
+        attribute vec2 TEXCOORD_0;
+        varying vec2 v_uv;
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;
+
+        void main(){
+          gl_Position = vec4(POSITION, 1.0);
+          v_uv = TEXCOORD_0;
+          vec4 color1 = texture2D(u_texture, TEXCOORD_0);
+          vec4 color2 = textureCube(u_textureCube, POSITION);
+          vec4 color3 = texture2DProj(u_texture, POSITION);
+        }
+    `
+        )
+      ).to.be.equal(`
+        in vec3 POSITION;
+        in vec2 TEXCOORD_0;
+        out vec2 v_uv;
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;
+
+        void main(){
+          gl_Position = vec4(POSITION, 1.0);
+          v_uv = TEXCOORD_0;
+          vec4 color1 = texture(u_texture, TEXCOORD_0);
+          vec4 color2 = texture(u_textureCube, POSITION);
+          vec4 color3 = textureProj(u_texture, POSITION);
+        }
+    `);
+    });
+
+    it("Shader api fragment replace test", async () => {
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        varying vec2 v_uv; 
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;
+
+        void main(){
+          gl_FragColor = texture2D(u_texture, v_uv);
+          vec4 color1 = textureCube(u_textureCube, vec3(1));
+          vec4 color2 = texture2DProj(u_textureCube, vec3(1));
+          vec4 color3 = texture2DLodEXT(u_texture, v_uv, 1.0);
+          vec4 color4 = textureCubeLodEXT(u_textureCube, vec3(1), 1.0);
+          vec4 color5 = texture2DGradEXT(u_texture, v_uv, vec2(1), vec2(1));
+          vec4 color6 = textureCubeGradEXT(u_textureCube, v_uv, vec2(1), vec2(1));
+          vec4 color7 = texture2DProjGradEXT(u_texture, vec3(1), vec2(1), vec2(1));
+          vec4 color8 = texture2DProjLodEXT(u_texture, vec3(1), 1.0);
+          gl_FragDepthEXT = 0.5;
+        }
+    `,
+          true
+        )
+      ).to.be.equal(
+        `
+        in vec2 v_uv; 
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;\n
+        out vec4 glFragColor;\nvoid main(){
+          glFragColor = texture(u_texture, v_uv);
+          vec4 color1 = texture(u_textureCube, vec3(1));
+          vec4 color2 = textureProj(u_textureCube, vec3(1));
+          vec4 color3 = textureLod(u_texture, v_uv, 1.0);
+          vec4 color4 = textureLod(u_textureCube, vec3(1), 1.0);
+          vec4 color5 = textureGrad(u_texture, v_uv, vec2(1), vec2(1));
+          vec4 color6 = textureGrad(u_textureCube, v_uv, vec2(1), vec2(1));
+          vec4 color7 = textureProjGrad(u_texture, vec3(1), vec2(1), vec2(1));
+          vec4 color8 = textureProjLod(u_texture, vec3(1), 1.0);
+          gl_FragDepth = 0.5;
+        }
+    `
+      );
+    });
+
+    it("Shader api fragment layout test", async () => {
+      // original shader has out
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        varying vec2 v_uv; 
+        uniform sampler2D u_texture;
+
+        out vec4 color;
+        void main(){
+          color = texture2D(u_texture, v_uv);
+        }
+    `,
+          true
+        )
+      ).to.be.equal(
+        `
+        in vec2 v_uv; 
+        uniform sampler2D u_texture;
+
+        out vec4 color;
+        void main(){
+          color = texture(u_texture, v_uv);
+        }
+    `
+      );
+
+      // mrt
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        varying vec2 v_uv; 
+        uniform sampler2D u_texture;
+
+        void main(){
+          gl_FragData[0] = texture2D(u_texture, v_uv);
+          gl_FragColor.rgb += vec3(0.1);
+          gl_FragData[1] = texture2D(u_texture, v_uv);
+          gl_FragData[2] = texture2D(u_texture, v_uv);
+        }
+    `,
+          true
+        )
+      ).to.be.equal(
+        `
+        in vec2 v_uv; 
+        uniform sampler2D u_texture;\n
+        layout(location=0) out vec4 fragOutColor0;\nlayout(location=1) out vec4 fragOutColor1;\nlayout(location=2) out vec4 fragOutColor2;\nvoid main(){
+          fragOutColor0 = texture(u_texture, v_uv);
+          fragOutColor0.rgb += vec3(0.1);
+          fragOutColor1 = texture(u_texture, v_uv);
+          fragOutColor2 = texture(u_texture, v_uv);
+        }
+    `
+      );
     });
   });
 });
