@@ -46,6 +46,7 @@ export class PointerManager implements IInput {
    * @internal
    */
   constructor(engine: Engine, target: EventTarget) {
+    // Temporary solution for mini program, window does not exist
     if (typeof Window !== "undefined" && target instanceof Window) {
       throw "Do not set window as target because window cannot listen to pointer leave event.";
     }
