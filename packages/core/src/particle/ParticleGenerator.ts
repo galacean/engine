@@ -884,11 +884,14 @@ export class ParticleGenerator {
     dynamicBounds[boundsOffset + particleUtils.boundsTimeOffset] = this._playTime;
     dynamicBounds[boundsOffset + particleUtils.boundsMaxLifetimeOffset] = minmax.y;
 
-    if ((this._firstFreeBounds + 1) % this._dynamicBoundsCapacity == this._firstActiveBounds) {
+    if (
+      this._firstFreeBounds + 1 === this._dynamicBoundsCapacity ||
+      this._firstFreeBounds + 1 === this._firstActiveBounds
+    ) {
       this._resizeBoundsArray(true, ParticleGenerator._particleIncreaseCount);
     }
 
-    this._firstFreeBounds++;
+    this._firstFreeBounds = (this._firstFreeBounds + 1) % this._dynamicBoundsCapacity;
   }
 
   private _resizeBoundsArray(isIncrease: boolean, increaseCount?: number): void {
@@ -898,7 +901,7 @@ export class ParticleGenerator {
 
       this._dynamicBounds.length = newSize * particleUtils.boundsFloatStride;
       this._dynamicBounds.fill(0, this._dynamicBoundsCapacity);
-      this._dynamicBoundsCapacity += increaseCount;
+      this._dynamicBoundsCapacity = newSize;
     }
   }
 
