@@ -91,7 +91,8 @@ export class Shader implements IReferable {
 
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
       if (shaderMap[shaderInfo.name]) {
-        throw `Shader named "${shaderInfo.name}" already exists.`;
+        console.error(`Shader named "${shaderInfo.name}" already exists.`)
+        return;
       }
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
@@ -136,7 +137,8 @@ export class Shader implements IReferable {
       return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {
-        throw `Shader named "${nameOrShaderSource}" already exists.`;
+        console.error(`Shader named "${nameOrShaderSource}" already exists.`);
+        return;
       }
       if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
         const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
