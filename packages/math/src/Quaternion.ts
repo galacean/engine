@@ -780,11 +780,11 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const unit = xx + yy + zz + ww;
     const test = 2 * (x * w - y * z);
     if (test > (1 - MathUtil.zeroTolerance) * unit) {
-      out._x = Math.atan2(2.0 * (w * y - x * z), zz + ww - yy - zz);
+      out._x = Math.atan2(2.0 * (w * y - x * z), xx + ww - yy - zz);
       out._y = Math.PI / 2;
       out._z = 0;
     } else if (test < -(1 - MathUtil.zeroTolerance) * unit) {
-      out._x = Math.atan2(2.0 * (w * y - x * z), zz + ww - yy - zz);
+      out._x = Math.atan2(2.0 * (w * y - x * z), xx + ww - yy - zz);
       out._y = -Math.PI / 2;
       out._z = 0;
     } else {
