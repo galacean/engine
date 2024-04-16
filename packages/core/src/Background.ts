@@ -146,7 +146,6 @@ export class Background {
 
   private _createPlane(engine: Engine): ModelMesh {
     const mesh = new ModelMesh(engine);
-    mesh.isGCIgnored = true;
     const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
 
     const positions: Vector3[] = new Array(4);

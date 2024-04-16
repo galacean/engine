@@ -20,6 +20,14 @@ describe("Transform test", function () {
       "https://www.galacean.com/test.png"
     );
 
+    expect(Utils.resolveAbsoluteUrl("https://www.galacean.com/space/basic.gltf", "texture.png")).to.equal(
+      "https://www.galacean.com/space/texture.png"
+    );
+
+    expect(Utils.resolveAbsoluteUrl("https://www.galacean.com/space/basic.gltf", "/texture.png")).to.equal(
+      "https://www.galacean.com/texture.png"
+    );
+
     const base64Url = "data:application/octet-stream;base64,AAAAAImICD2JiIg9zczMPYmICD6rqio";
     expect(Utils.resolveAbsoluteUrl("https://www.galacean.com", base64Url)).to.equal(base64Url);
   });
