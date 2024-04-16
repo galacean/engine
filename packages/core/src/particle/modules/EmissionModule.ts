@@ -16,10 +16,9 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate at which the emitter spawns new particles over distance. */
   @deepClone
   rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
-  /** The shape of the emitter. */
-  @deepClone
-  shape: BaseShape;
 
+  @deepClone
+  _shape: BaseShape;
   /** @internal */
   @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
@@ -34,6 +33,16 @@ export class EmissionModule extends ParticleGeneratorModule {
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
+  /** The shape of the emitter. */
+  get shape() {
+    return this._shape;
+  }
+
+  set shape(value: BaseShape) {
+    this._shape = value;
+    this._shape._onValueChanged = this._generator._renderer._onBoundsChanged;
+    this._generator._renderer._onBoundsChanged && this._generator._renderer._onBoundsChanged();
+  }
   /**
    * Gets the burst array.
    */

@@ -28,18 +28,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
-  /** Velocity over lifetime for x axis. */
   @deepClone
-  velocityX = new ParticleCompositeCurve(0);
-  /** Velocity over lifetime for z axis. */
+  private _velocityX = new ParticleCompositeCurve(0);
   @deepClone
-  velocityY = new ParticleCompositeCurve(0);
-  /** Velocity over lifetime for z axis. */
+  private _velocityY = new ParticleCompositeCurve(0);
   @deepClone
-  velocityZ = new ParticleCompositeCurve(0);
-
-  /** Velocity space. */
-  space = ParticleSimulationSpace.Local;
+  private _velocityZ = new ParticleCompositeCurve(0);
+  private _space = ParticleSimulationSpace.Local;
 
   /** @internal */
   @ignoreClone
@@ -51,6 +46,46 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _velocityMaxConstant = new Vector3();
   @ignoreClone
   private _velocityMacro: ShaderMacro;
+
+  /** Velocity over lifetime for x axis. */
+  get velocityX(): ParticleCompositeCurve {
+    return this._velocityX;
+  }
+
+  set velocityX(value: ParticleCompositeCurve) {
+    this._velocityX = value;
+    this._velocityX._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** Velocity over lifetime for y axis. */
+  get velocityY(): ParticleCompositeCurve {
+    return this._velocityY;
+  }
+
+  set velocityY(value: ParticleCompositeCurve) {
+    this._velocityY = value;
+    this._velocityY._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** Velocity over lifetime for z axis. */
+  get velocityZ(): ParticleCompositeCurve {
+    return this._velocityZ;
+  }
+
+  set velocityZ(value: ParticleCompositeCurve) {
+    this._velocityZ = value;
+    this._velocityZ._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** Velocity space. */
+  get space(): ParticleSimulationSpace {
+    return this._space;
+  }
+
+  set space(value: ParticleSimulationSpace) {
+    this._space = value;
+    this._generator._renderer._onBoundsChanged();
+  }
 
   /**
    * @internal

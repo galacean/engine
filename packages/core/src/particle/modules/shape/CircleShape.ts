@@ -10,16 +10,53 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class CircleShape extends BaseShape {
   private static _tempPositionPoint: Vector2 = new Vector2();
 
+  private _radius: number = 1.0;
+  private _arc: number = 360.0;
+  private _arcMode: ParticleShapeArcMode = ParticleShapeArcMode.Random;
+  private _arcSpeed: number = 1.0;
+
   readonly shapeType = ParticleShapeType.Circle;
 
   /** Radius of the shape to emit particles from. */
-  radius = 1.0;
+  get radius(): number {
+    return this._radius;
+  }
+
+  set radius(value: number) {
+    this._radius = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** Angle of the circle arc to emit particles from. */
-  arc = 360.0;
+  get arc(): number {
+    return this._arc;
+  }
+
+  set arc(value: number) {
+    this._arc = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** The mode to generate particles around the arc. */
-  arcMode = ParticleShapeArcMode.Random;
+  get arcMode(): ParticleShapeArcMode {
+    return this._arcMode;
+  }
+
+  /** Sets the mode to generate particles around the arc. */
+  set arcMode(value: ParticleShapeArcMode) {
+    this._arcMode = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** The speed of complete 360 degree rotation. */
-  arcSpeed = 1.0;
+  get arcSpeed(): number {
+    return this._arcSpeed;
+  }
+
+  set arcSpeed(value: number) {
+    this._arcSpeed = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * @internal

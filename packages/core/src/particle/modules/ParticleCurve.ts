@@ -25,6 +25,7 @@ export class ParticleCurve {
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
       this.addKey(key);
+      key._onValueChanged = this._onValueChanged;
     }
   }
 
@@ -50,7 +51,9 @@ export class ParticleCurve {
 
     const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
     this._addKey(keys, key);
+    key._onValueChanged = this._onValueChanged;
     this._typeArrayDirty = true;
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -60,6 +63,7 @@ export class ParticleCurve {
   removeKey(index: number): void {
     this._keys.splice(index, 1);
     this._typeArrayDirty = true;
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -69,9 +73,12 @@ export class ParticleCurve {
   setKeys(keys: CurveKey[]): void {
     this._keys.length = 0;
     for (let i = 0, n = keys.length; i < n; i++) {
-      this.addKey(keys[i]);
+      const key = keys[i];
+      this.addKey(key);
+      key._onValueChanged = this._onValueChanged;
     }
     this._typeArrayDirty = true;
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -92,6 +99,9 @@ export class ParticleCurve {
     return typeArray;
   }
 
+  /** @internal */
+  _onValueChanged: () => void = null;
+
   private _addKey(keys: CurveKey[], key: CurveKey): void {
     const count = keys.length;
     const time = key.time;
@@ -110,13 +120,39 @@ export class ParticleCurve {
  * The key of the curve.
  */
 export class CurveKey {
+  /** @internal */
+  private _time: number;
+  /** @internal */
+  private _value: number;
+
+  /** The key time. */
+  public get time(): number {
+    return this._time;
+  }
+
+  public set time(value: number) {
+    this._time = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /** The key value. */
+  public get value(): number {
+    return this._value;
+  }
+
+  public set value(value: number) {
+    this._value = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /**
    * Create a new key.
    */
-  constructor(
-    /** The key time. */
-    public time: number,
-    /** The key value. */
-    public value: number
-  ) {}
+  constructor(time: number, value: number) {
+    this._time = time;
+    this._value = value;
+  }
+
+  /** @internal */
+  _onValueChanged: () => void = null;
 }

@@ -7,18 +7,64 @@ import { ParticleCurve } from "./ParticleCurve";
  * Particle composite curve.
  */
 export class ParticleCompositeCurve {
+  private _mode = ParticleCurveMode.Constant;
+  private _constantMin: number = 0;
+  private _constantMax: number = 0;
+  @deepClone
+  _curveMin: ParticleCurve;
+  @deepClone
+  _curveMax: ParticleCurve;
+
   /** The curve mode. */
-  mode: ParticleCurveMode = ParticleCurveMode.Constant;
-  /** The min constant value used by the curve if mode is set to `TwoConstants`.*/
-  constantMin: number = 0;
-  /** The max constant value used by the curve if mode is set to `TwoConstants`.*/
-  constantMax: number = 0;
+  get mode(): ParticleCurveMode {
+    return this._mode;
+  }
+  set mode(value: ParticleCurveMode) {
+    this._mode = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /** The min constant value used by the curve if mode is set to `TwoConstants`. */
+  get constantMin(): number {
+    return this._constantMin;
+  }
+
+  set constantMin(value: number) {
+    this._constantMin = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /** The max constant value used by the curve if mode is set to `TwoConstants`. */
+  get constantMax(): number {
+    return this._constantMax;
+  }
+
+  set constantMax(value: number) {
+    this._constantMax = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** The min curve used by the curve if mode is set to `TwoCurves`. */
-  @deepClone
-  curveMin: ParticleCurve;
+  get curveMin(): ParticleCurve {
+    return this._curveMin;
+  }
+
+  set curveMin(value: ParticleCurve) {
+    this._curveMin = value;
+    this._curveMin._onValueChanged = this._onValueChanged;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** The max curve used by the curve if mode is set to `TwoCurves`. */
-  @deepClone
-  curveMax: ParticleCurve;
+  get curveMax(): ParticleCurve {
+    return this._curveMax;
+  }
+
+  set curveMax(value: ParticleCurve) {
+    this._curveMax = value;
+    this._curveMax._onValueChanged = this._onValueChanged;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * The constant value used by the curve if mode is set to `Constant`.
@@ -29,6 +75,7 @@ export class ParticleCompositeCurve {
 
   set constant(value: number) {
     this.constantMax = value;
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -40,6 +87,8 @@ export class ParticleCompositeCurve {
 
   set curve(value: ParticleCurve) {
     this.curveMax = value;
+    this._curveMax._onValueChanged = this._onValueChanged;
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -141,4 +190,6 @@ export class ParticleCompositeCurve {
         break;
     }
   }
+  /** @internal */
+  _onValueChanged: () => void = null;
 }

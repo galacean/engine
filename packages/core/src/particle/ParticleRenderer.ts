@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
-import { deepClone, shallowClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -11,6 +11,7 @@ import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { TransformModifyFlags } from "../Transform";
 
 /**
  * Particle Renderer Component.
@@ -42,7 +43,8 @@ export class ParticleRenderer extends Renderer {
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
   private _supportInstancedArrays: boolean;
-
+  @ignoreClone
+  private _dirtyFlag = DirtyFlag.Bounds;
   /**
    * Specifies how particles are rendered.
    */
@@ -163,12 +165,15 @@ export class ParticleRenderer extends Renderer {
    * The world bounding volume of the ParticleRenderer.
    */
   override get bounds(): BoundingBox {
-    if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
-      this.generator._getBoundsLocalSpace();
+    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition | DirtyFlag.Bounds)) {
+      if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
+        this.generator._getBoundsLocalSpace();
+      }
+      if (this.generator.main.simulationSpace === ParticleSimulationSpace.World) {
+        this.generator._getBoundsWorldSpace();
+      }
     }
-    if (this.generator.main.simulationSpace === ParticleSimulationSpace.World) {
-      this.generator._getBoundsWorldSpace();
-    }
+    this._setDirtyFlagFalse(DirtyFlag.Bounds | DirtyFlag.WorldPosition);
 
     return this._bounds;
   }
@@ -212,4 +217,32 @@ export class ParticleRenderer extends Renderer {
     }
     this.generator._destroy();
   }
+
+  /**
+   * @internal
+   */
+  protected override _onTransformChanged(bit: TransformModifyFlags): void {
+    super._onTransformChanged(bit);
+    this._dirtyUpdateFlag |= DirtyFlag.WorldPosition;
+  }
+
+  /**
+   * @internal
+   */
+  _onBoundsChanged() {
+    this._dirtyUpdateFlag |= DirtyFlag.Bounds;
+  }
+
+  private _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  private _setDirtyFlagFalse(type: number) {
+    this._dirtyUpdateFlag &= ~type;
+  }
+}
+
+enum DirtyFlag {
+  WorldPosition = 0x1,
+  Bounds = 0x2
 }

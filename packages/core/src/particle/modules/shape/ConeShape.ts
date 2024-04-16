@@ -12,16 +12,54 @@ export class ConeShape extends BaseShape {
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
 
+  private _angle: number = 25.0;
+  private _radius: number = 1.0;
+  private _length: number = 5.0;
+  private _emitType: ConeEmitType = ConeEmitType.Base;
+
   readonly shapeType = ParticleShapeType.Cone;
 
   /** Angle of the cone to emit particles from. */
-  angle = 25.0;
+  get angle(): number {
+    return this._angle;
+  }
+
+  set angle(value: number) {
+    this._angle = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** Radius of the shape to emit particles from. */
-  radius = 1.0;
+  get radius(): number {
+    return this._radius;
+  }
+
+  set radius(value: number) {
+    this._radius = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** Length of the cone to emit particles from. */
-  length = 5.0;
+  get length(): number {
+    return this._length;
+  }
+
+  /** Sets the length of the cone to emit particles from. */
+  set length(value: number) {
+    this._length = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
   /** Cone emitter type. */
-  emitType = ConeEmitType.Base;
+  get emitType(): ConeEmitType {
+    return this._emitType;
+  }
+
+  /** Sets the cone emitter type. */
+  set emitType(value: ConeEmitType) {
+    this._emitType = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * @internal

@@ -31,24 +31,6 @@ export class MainModule implements ICustomClone {
   /** Start delay in seconds. */
   @deepClone
   startDelay = new ParticleCompositeCurve(0);
-  /** The initial lifetime of particles when emitted. */
-  @deepClone
-  startLifetime = new ParticleCompositeCurve(5);
-  /** The initial speed of particles when the Particle Generator first spawns them. */
-  @deepClone
-  startSpeed = new ParticleCompositeCurve(5);
-
-  /** A flag to enable specifying particle size individually for each axis. */
-  startSize3D = false;
-  /** The initial size of particles along the x-axis when the Particle Generator first spawns them. */
-  @deepClone
-  startSizeX = new ParticleCompositeCurve(1);
-  /** The initial size of particles along the y-axis when the Particle Generator first spawns them. */
-  @deepClone
-  startSizeY = new ParticleCompositeCurve(1);
-  /** The initial size of particles along the z-axis when the Particle Generator first spawns them. */
-  @deepClone
-  startSizeZ = new ParticleCompositeCurve(1);
 
   /** A flag to enable 3D particle rotation, when disabled, only `startRotationZ` is used. */
   startRotation3D = false;
@@ -68,10 +50,6 @@ export class MainModule implements ICustomClone {
   @deepClone
   startColor = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
-  @deepClone
-  gravityModifier = new ParticleCompositeCurve(0);
-  /** This selects the space in which to simulate particles. It can be either world or local space. */
-  simulationSpace = ParticleSimulationSpace.Local;
   /** Override the default playback speed of the Particle Generator. */
   simulationSpeed = 1.0;
   /** Control how the Particle Generator applies its Transform component to the particles it emits. */
@@ -79,6 +57,19 @@ export class MainModule implements ICustomClone {
   /** If set to true, the Particle Generator automatically begins to play on startup. */
   playOnEnabled = true;
 
+  @deepClone
+  _startLifetime = new ParticleCompositeCurve(5);
+  @deepClone
+  _startSpeed = new ParticleCompositeCurve(5);
+  _startSize3D = false;
+  @deepClone
+  _startSizeX = new ParticleCompositeCurve(1);
+  @deepClone
+  _startSizeY = new ParticleCompositeCurve(1);
+  @deepClone
+  _startSizeZ = new ParticleCompositeCurve(1);
+  @deepClone
+  _gravityModifier = new ParticleCompositeCurve(0);
   /** @internal */
   @ignoreClone
   _maxParticleBuffer = 1000;
@@ -105,6 +96,88 @@ export class MainModule implements ICustomClone {
   private _generator: ParticleGenerator;
   @ignoreClone
   private _gravity = new Vector3();
+
+  /** The initial lifetime of particles when emitted. */
+  set startLifetime(value: ParticleCompositeCurve) {
+    this._startLifetime = value;
+    this._startLifetime._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  get startLifetime(): ParticleCompositeCurve {
+    return this._startLifetime;
+  }
+
+  /** The initial speed of particles when the Particle Generator first spawns them. */
+  get startSpeed(): ParticleCompositeCurve {
+    return this._startSpeed;
+  }
+
+  set startSpeed(value: ParticleCompositeCurve) {
+    this._startSpeed = value;
+    this._startSpeed._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** A flag to enable specifying particle size individually for each axis. */
+  get startSize3D(): boolean {
+    return this._startSize3D;
+  }
+
+  set startSize3D(value: boolean) {
+    this._startSize3D = value;
+    this._generator._renderer._onBoundsChanged();
+  }
+
+  /** The initial size of particles along the x-axis when the Particle Generator first spawns them. */
+  get startSizeX(): ParticleCompositeCurve {
+    return this._startSizeX;
+  }
+
+  set startSizeX(value: ParticleCompositeCurve) {
+    this._startSizeX = value;
+    this._startSizeX._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** The initial size of particles along the y-axis when the Particle Generator first spawns them. */
+  get startSizeY(): ParticleCompositeCurve {
+    return this._startSizeY;
+  }
+
+  set startSizeY(value: ParticleCompositeCurve) {
+    this._startSizeY = value;
+    this._startSizeY._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** The initial size of particles along the z-axis when the Particle Generator first spawns them. */
+  get startSizeZ(): ParticleCompositeCurve {
+    return this._startSizeZ;
+  }
+
+  set startSizeZ(value: ParticleCompositeCurve) {
+    this._startSizeZ = value;
+    this._startSizeZ._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
+  get gravityModifier(): ParticleCompositeCurve {
+    return this._gravityModifier;
+  }
+
+  set gravityModifier(value: ParticleCompositeCurve) {
+    this._gravityModifier = value;
+    this._gravityModifier._onValueChanged = this._generator._renderer._onBoundsChanged;
+  }
+
+  private _simulationSpace = ParticleSimulationSpace.Local;
+
+  /** This selects the space in which to simulate particles. It can be either world or local space. */
+  get simulationSpace(): ParticleSimulationSpace {
+    return this._simulationSpace;
+  }
+
+  set simulationSpace(value: ParticleSimulationSpace) {
+    this._simulationSpace = value;
+    this._generator._renderer._onBoundsChanged();
+  }
 
   /**
    * Max particles count.

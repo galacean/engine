@@ -10,11 +10,20 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class BoxShape extends BaseShape {
   private static _tempVector30 = new Vector3();
 
+  @deepClone
+  _size = new Vector3(1, 1, 1);
+
   readonly shapeType = ParticleShapeType.Box;
 
   /** The size of the box. */
-  @deepClone
-  size = new Vector3(1, 1, 1);
+  get size() {
+    return this._size;
+  }
+
+  set size(value: Vector3) {
+    this._size = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * @internal
