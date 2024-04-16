@@ -60,5 +60,5 @@ export abstract class BaseShape {
   }
 
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged(): void {}
 }

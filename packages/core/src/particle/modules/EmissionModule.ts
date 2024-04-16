@@ -43,7 +43,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     if (value) {
       this._shape._onValueChanged = this._generator._renderer._onBoundsChanged;
     }
-    this._generator._renderer._onBoundsChanged && this._generator._renderer._onBoundsChanged();
+    this._generator._renderer._onBoundsChanged();
   }
   /**
    * Gets the burst array.
