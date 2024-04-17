@@ -6,7 +6,6 @@ import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
-import { LiteStaticCollider } from "./LiteStaticCollider";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -212,17 +211,12 @@ export class LitePhysicsScene implements IPhysicsScene {
     const colliders = this._colliders;
 
     const myColliderShapes = myCollider._shapes;
-    const isStatic = myCollider instanceof LiteStaticCollider;
     for (let i = 0, len = myColliderShapes.length; i < len; i++) {
       const myShape = myColliderShapes[i];
       if (myShape instanceof LiteBoxColliderShape) {
         LitePhysicsScene._updateWorldBox(myShape, this._box);
         for (let j = 0, len = colliders.length; j < len; j++) {
-          const otherCollider = colliders[j];
-
-          if (isStatic && otherCollider instanceof LiteStaticCollider) continue;
-
-          const colliderShape = otherCollider._shapes;
+          const colliderShape = colliders[j]._shapes;
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
             const index1 = shape._id;
@@ -249,11 +243,7 @@ export class LitePhysicsScene implements IPhysicsScene {
       } else if (myShape instanceof LiteSphereColliderShape) {
         LitePhysicsScene._upWorldSphere(myShape, this._sphere);
         for (let j = 0, len = colliders.length; j < len; j++) {
-          const otherCollider = colliders[j];
-
-          if (isStatic && otherCollider instanceof LiteStaticCollider) continue;
-
-          const colliderShape = otherCollider._shapes;
+          const colliderShape = colliders[j]._shapes;
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
             const index1 = shape._id;

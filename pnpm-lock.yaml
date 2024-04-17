@@ -46,7 +46,7 @@ importers:
         version: 18.17.0
       '@types/webxr':
         specifier: latest
-        version: 0.5.10
+        version: 0.5.14
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.2.0(@typescript-eslint/parser@6.2.0)(eslint@8.46.0)(typescript@5.1.6)
@@ -143,6 +143,9 @@ importers:
       '@galacean/engine-physics-lite':
         specifier: workspace:*
         version: link:../packages/physics-lite
+      '@galacean/engine-physics-physx':
+        specifier: workspace:*
+        version: link:../packages/physics-physx
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
@@ -1464,8 +1467,8 @@ packages:
     resolution: {integrity: sha512-0vWLNK2D5MT9dg0iOo8GlKguPAU02QjmZitPEsXRuJXU/OGIOt9vT9Fc26wtYuavLxtO45v9PGleoL9Z0k1LHg==}
     dev: true
 
-  /@types/webxr@0.5.10:
-    resolution: {integrity: sha512-n3u5sqXQJhf1CS68mw3Wf16FQ4cRPNBBwdYLFzq3UddiADOim1Pn3Y6PBdDilz1vOJF3ybLxJ8ZEDlLIzrOQZg==}
+  /@types/webxr@0.5.14:
+    resolution: {integrity: sha512-UEMMm/Xn3DtEa+gpzUrOcDj+SJS1tk5YodjwOxcqStNhCfPcwgyC5Srg2ToVKyg2Fhq16Ffpb0UWUQHqoT9AMA==}
     dev: true
 
   /@types/yauzl@2.10.3:

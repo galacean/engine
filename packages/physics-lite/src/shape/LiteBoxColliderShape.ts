@@ -43,11 +43,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
-    this._sizeScale.copyFrom({
-      x: Math.abs(scale.x),
-      y: Math.abs(scale.y),
-      z: Math.abs(scale.z)
-    });
+    this._sizeScale.set(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
     this._setBondingBox();
   }
 
@@ -65,14 +61,10 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   _raycast(ray: Ray, hit: LiteHitResult): boolean {
     const localRay = this._getLocalRay(ray);
     const sizeScale = this._sizeScale;
-
+    const halfSize = this._halfSize;
     const boundingBox = LiteBoxColliderShape._tempBox;
-    boundingBox.min.set(
-      -this._halfSize.x * sizeScale.x,
-      -this._halfSize.y * sizeScale.y,
-      -this._halfSize.z * sizeScale.z
-    );
-    boundingBox.max.set(this._halfSize.x * sizeScale.x, this._halfSize.y * sizeScale.y, this._halfSize.z * sizeScale.z);
+    boundingBox.min.set(-halfSize.x * sizeScale.x, -halfSize.y * sizeScale.y, -halfSize.z * sizeScale.z);
+    boundingBox.max.set(halfSize.x * sizeScale.x, halfSize.y * sizeScale.y, halfSize.z * sizeScale.z);
     const rayDistance = localRay.intersectBox(boundingBox);
     if (rayDistance !== -1) {
       this._updateHitResult(localRay, rayDistance, hit, ray.origin);

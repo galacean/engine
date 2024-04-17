@@ -119,11 +119,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
 
-    const sizeScale = this._sizeScale.copyFrom({
-      x: Math.abs(scale.x),
-      y: Math.abs(scale.y),
-      z: Math.abs(scale.z)
-    });
+    const sizeScale = this._sizeScale.set(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
     const geometry = this._pxGeometry;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
