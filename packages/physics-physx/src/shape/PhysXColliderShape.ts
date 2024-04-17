@@ -82,9 +82,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    if (scale !== this._worldScale) {
-      this._worldScale.copyFrom(scale);
-    }
+    this._worldScale.copyFrom(scale);
     this._setLocalPose();
 
     const controllers = this._controllers;
