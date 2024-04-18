@@ -83,13 +83,13 @@ export class Batcher2D {
     }
   }
 
-  allocateChunk(vertexCount, indiceCount): MBChunk | null {
+  allocateChunk(vertexCount: number): MBChunk | null {
     const { _meshBuffers } = this;
     let chunk: MBChunk = null;
     let i = 0;
     const len = _meshBuffers.length;
     for (; i < len; ++i) {
-      chunk = _meshBuffers[i].allocateChunk(vertexCount, indiceCount);
+      chunk = _meshBuffers[i].allocateChunk(vertexCount);
       if (chunk) {
         chunk._mbId = i;
         return chunk;
@@ -97,7 +97,7 @@ export class Batcher2D {
     }
 
     const meshBuffer = this._createMeshBuffer(len);
-    chunk = meshBuffer.allocateChunk(vertexCount, indiceCount);
+    chunk = meshBuffer.allocateChunk(vertexCount);
     if (chunk) {
       chunk._mbId = len;
       return chunk;

@@ -26,11 +26,11 @@ export class TiledSpriteAssembler {
       if (chunk) {
         if (chunk._vEntry.len !== vCount * 9) {
           batcher.freeChunk(chunk);
-          renderer._chunk = batcher.allocateChunk(vCount, iCount);
+          renderer._chunk = batcher.allocateChunk(vCount);
           renderer._chunk._indices = [];
         }
       } else {
-        renderer._chunk = batcher.allocateChunk(vCount, iCount);
+        renderer._chunk = batcher.allocateChunk(vCount);
         renderer._chunk._indices = [];
       }
     }

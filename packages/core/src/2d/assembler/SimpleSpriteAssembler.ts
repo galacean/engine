@@ -19,9 +19,9 @@ export class SimpleSpriteAssembler {
         : renderer.engine._spriteMaskManager._batcher;
     if (renderer._chunk) {
       batcher.freeChunk(renderer._chunk);
-      renderer._chunk = batcher.allocateChunk(4, 6);
+      renderer._chunk = batcher.allocateChunk(4);
     } else {
-      renderer._chunk = batcher.allocateChunk(4, 6);
+      renderer._chunk = batcher.allocateChunk(4);
     }
     renderer._chunk._indices = this._rectangleTriangles;
   }

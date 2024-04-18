@@ -134,7 +134,7 @@ export class MeshBuffer {
     this._iBuffer.setData(this._indices, 0, 0, this._iLen, SetDataOptions.Discard);
   }
 
-  allocateChunk(vertexCount: number, indiceCount: number): MBChunk | null {
+  allocateChunk(vertexCount: number): MBChunk | null {
     const vEntry = this._allocateEntry(this._vFreeEntries, vertexCount * 9);
     if (vEntry) {
       const chunk = this._chunkPool.alloc();

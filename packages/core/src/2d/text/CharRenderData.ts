@@ -17,7 +17,7 @@ export class CharRenderData implements IPoolElement {
 
   init(engine: Engine) {
     if (!this.chunk) {
-      this.chunk = engine._batcherManager._batcher2D.allocateChunk(4, 6);
+      this.chunk = engine._batcherManager._batcher2D.allocateChunk(4);
       this.chunk._indices = CharRenderData.triangles;
     }
   }
