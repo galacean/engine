@@ -1,8 +1,6 @@
 import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
 import { Engine } from "../../Engine";
-import { MeshTopology, SubMesh } from "../../graphic";
 import { ShaderProperty, ShaderTagKey } from "../../shader";
-import { ClassPool } from "../ClassPool";
 import { RenderContext } from "../RenderContext";
 import { SpriteRenderData } from "../SpriteRenderData";
 import { MBChunk, MeshBuffer } from "./MeshBuffer";
@@ -19,8 +17,6 @@ export class Batcher2D {
 
   /** @internal */
   _engine: Engine;
-  /** @internal */
-  _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
 
   /** @internal */
   _meshBuffers: MeshBuffer[] = [];
@@ -118,14 +114,6 @@ export class Batcher2D {
 
     const meshBuffer = (_meshBuffers[index] = new MeshBuffer(this._engine, maxVertexCount));
     return meshBuffer;
-  }
-
-  protected _getSubMeshFromPool(start: number, count: number): SubMesh {
-    const subMesh = this._subMeshPool.getFromPool();
-    subMesh.start = start;
-    subMesh.count = count;
-    subMesh.topology = MeshTopology.Triangles;
-    return subMesh;
   }
 
   private _canBatch(preRenderData: SpriteRenderData, curRenderData: SpriteRenderData): boolean {

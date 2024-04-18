@@ -26,10 +26,15 @@ export class MBChunk implements IPoolElement {
 
   reset() {
     this._mbId = -1;
-    // TODO
+    this._meshBuffer = null;
+    this._subMesh = null;
+    this._vEntry = null;
+    this._indices = null;
   }
 
-  dispose?(): void {}
+  dispose?(): void {
+    this.reset();
+  }
 }
 
 /**
@@ -152,9 +157,7 @@ export class MeshBuffer {
   freeChunk(chunk: MBChunk): void {
     this._freeEntry(this._vFreeEntries, chunk._vEntry);
     this._subMeshPool.free(chunk._subMesh);
-    chunk._vEntry = null;
-    chunk._subMesh = null;
-    chunk._indices = null;
+    chunk.reset();
     this._chunkPool.free(chunk);
   }
 
