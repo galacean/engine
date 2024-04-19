@@ -49,6 +49,7 @@ export class BatcherManager {
         context.camera._renderPipeline.pushRenderData(context, data);
         break;
       case RenderDataUsage.Sprite:
+      case RenderDataUsage.Text:
         this._batcher2D.commitRenderData(context, <SpriteRenderData>data);
         break;
     }

@@ -297,7 +297,6 @@ export class TextRenderer extends Renderer {
 
   /**
    * @internal
-   * Standalone for CanvasRenderer plugin.
    */
   _init(): void {
     const { engine } = this;
@@ -418,7 +417,7 @@ export class TextRenderer extends Renderer {
       const renderData = spriteRenderDataPool.getFromPool();
       const { chunk } = charRenderData;
       renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, charRenderData.texture, chunk);
-      renderData.usage = RenderDataUsage.Sprite;
+      renderData.usage = RenderDataUsage.Text;
       spriteRenderDatas.push(renderData);
     }
     engine._batcherManager.commitRenderData(context, spriteRenderDatas);

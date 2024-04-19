@@ -1,7 +1,7 @@
 import { SpriteRenderer } from "../2d";
 import { Camera } from "../Camera";
 import { Utils } from "../Utils";
-import { RenderQueueType, Shader } from "../shader";
+import { RenderQueueType, Shader, ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
@@ -11,6 +11,8 @@ import { RenderDataUsage } from "./enums/RenderDataUsage";
  * Render queue.
  */
 export class RenderQueue {
+  private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
+
   /**
    * @internal
    */
@@ -95,15 +97,21 @@ export class RenderQueue {
       const element = elements[i];
       const { data, shaderPasses } = element;
 
-      const isSprite = data.usage === RenderDataUsage.Sprite;
+      const { usage } = data;
+      const needMask = usage === RenderDataUsage.Sprite || usage === RenderDataUsage.Text;
       const renderer = data.component;
-      isSprite && spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
+      needMask && spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
 
       const compileMacros = Shader._compileMacros;
       const primitive = data.primitive;
       const material = data.material;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
+
+      // TextRenderer may be has multi-texture.
+      const isText = usage === RenderDataUsage.Text;
+      // @ts-ignore
+      isText && rendererData.setTexture(RenderQueue._textureProperty, data.texture);
 
       // union render global macro and material self macro.
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
@@ -157,7 +165,7 @@ export class RenderQueue {
           if (program._uploadRendererId !== rendererId) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRendererId = rendererId;
-          } else if (switchProgram) {
+          } else if (switchProgram || isText) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
 
@@ -184,7 +192,7 @@ export class RenderQueue {
 
         rhi.drawPrimitive(primitive, data.subPrimitive, program);
       }
-      isSprite && spriteMaskManager.postRender(<SpriteRenderer>renderer);
+      needMask && spriteMaskManager.postRender(<SpriteRenderer>renderer);
     }
   }
 

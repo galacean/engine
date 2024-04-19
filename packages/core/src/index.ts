@@ -63,5 +63,4 @@ export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
 
-// Export for CanvasRenderer plugin.
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";

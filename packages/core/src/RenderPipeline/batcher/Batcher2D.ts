@@ -13,7 +13,6 @@ export class Batcher2D {
   static MAX_VERTEX_COUNT: number = 4096;
 
   protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
-  private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
   /** @internal */
   _engine: Engine;
@@ -58,10 +57,7 @@ export class Batcher2D {
 
   flush(): void {
     const { _preRenderData: preRenderData } = this;
-    if (preRenderData) {
-      preRenderData.component.shaderData.setTexture(Batcher2D._textureProperty, preRenderData.texture);
-      this._preContext.camera._renderPipeline.pushRenderData(this._preContext, preRenderData);
-    }
+    preRenderData && this._preContext.camera._renderPipeline.pushRenderData(this._preContext, preRenderData);
   }
 
   uploadBuffer(): void {

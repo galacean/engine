@@ -7,5 +7,7 @@ export enum RenderDataUsage {
   /** Usage for sprite. */
   Sprite,
   /** Usage for sprite mask. */
-  SpriteMask
+  SpriteMask,
+  /** Usage for text. */
+  Text
 }
