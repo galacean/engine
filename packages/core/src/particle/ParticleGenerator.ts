@@ -524,22 +524,22 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _getBoundsLocalSpace(): void {
+  _computeBoundsLocalSpace(): void {
     if (!this.isAlive) {
       const { min, max } = this._renderer._bounds;
       min.set(0, 0, 0);
       max.set(0, 0, 0);
     } else {
       this._calculateWorldBounds(this._renderer._bounds);
-      this._addGravityModifierImpact();
+      this._addGravityToWorldBounds();
     }
   }
 
   /**
    * @internal
    */
-  _getBoundsWorldSpace(): void {
-    this._addNewBoundsToDynamicBounds();
+  _computeBoundsWorldSpace(): void {
+    this._addToDynamicBounds();
     this._updateBoundingBoxWorldSpace();
   }
 
@@ -838,23 +838,23 @@ export class ParticleGenerator {
 
     if (this._firstActiveBounds < this._firstFreeBounds) {
       for (let i = this._firstActiveBounds; i < this._firstFreeBounds; i++) {
-        this._mergeIntoRendererBounds(i);
+        this._mergeToWorldBounds(i);
       }
     } else {
       for (let i = this._firstActiveBounds; i < this._dynamicBoundsCapacity; i++) {
-        this._mergeIntoRendererBounds(i);
+        this._mergeToWorldBounds(i);
       }
       if (this._firstFreeBounds > 0) {
         for (let i = 0; i < this._firstFreeBounds; i++) {
-          this._mergeIntoRendererBounds(i);
+          this._mergeToWorldBounds(i);
         }
       }
     }
 
-    this._addGravityModifierImpact();
+    this._addGravityToWorldBounds();
   }
 
-  private _addNewBoundsToDynamicBounds(): void {
+  private _addToDynamicBounds(): void {
     this._calculateWorldBounds(ParticleGenerator._tempBoundingBox);
     const { _dynamicBounds: dynamicBounds } = this;
     const { _tempVector20: minmax } = ParticleGenerator;
@@ -1018,7 +1018,7 @@ export class ParticleGenerator {
     max.z += worldPosition.z;
   }
 
-  private _mergeIntoRendererBounds(index: number): void {
+  private _mergeToWorldBounds(index: number): void {
     const { min, max } = this._renderer._bounds;
     const { _dynamicBounds: bounds } = this;
 
@@ -1038,7 +1038,7 @@ export class ParticleGenerator {
     );
   }
 
-  private _addGravityModifierImpact(): void {
+  private _addGravityToWorldBounds(): void {
     const { min, max } = this._renderer._bounds;
     const { _tempVector20: minmax } = ParticleGenerator;
 
@@ -1046,6 +1046,7 @@ export class ParticleGenerator {
     const maxLifetime = minmax.y;
     this.main.gravityModifier._getMinMaxValue(minmax);
 
+    // Gravity Modifier Impact
     const direction = this._renderer.scene.physics.gravity;
     const gravityDisplacement = 0.5 * maxLifetime * maxLifetime;
     const gravityMinVelocity = minmax.x * gravityDisplacement;
