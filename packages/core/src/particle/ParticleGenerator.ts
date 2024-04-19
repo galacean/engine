@@ -117,8 +117,6 @@ export class ParticleGenerator {
   @ignoreClone
   private _dynamicBoundsCapacity = 0;
   @ignoreClone
-  private _latestMaxLifetime = 0;
-  @ignoreClone
   private _firstActiveBounds = 0;
   @ignoreClone
   private _firstFreeBounds = 0;
@@ -272,8 +270,6 @@ export class ParticleGenerator {
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       this._retireActiveBounds();
       this._updateBoundingBoxWorldSpace();
-    } else if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
-      this._updateBoundingBoxLocalSpace();
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -529,9 +525,14 @@ export class ParticleGenerator {
    * @internal
    */
   _getBoundsLocalSpace(): void {
-    this._calculateWorldBounds(this._renderer._bounds);
-    this._addGravityModifierImpact();
-    this._updateBoundingBoxLocalSpace();
+    if (!this.isAlive) {
+      const { min, max } = this._renderer._bounds;
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
+    } else {
+      this._calculateWorldBounds(this._renderer._bounds);
+      this._addGravityModifierImpact();
+    }
   }
 
   /**
@@ -823,16 +824,6 @@ export class ParticleGenerator {
         break;
       }
     } while (this._firstActiveBounds !== start);
-  }
-
-  private _updateBoundingBoxLocalSpace() {
-    if (!this.isAlive) {
-      if (this._latestMaxLifetime < this._playTime || this._playTime === 0) {
-        const { min, max } = this._renderer._bounds;
-        min.set(0, 0, 0);
-        max.set(0, 0, 0);
-      }
-    }
   }
 
   private _updateBoundingBoxWorldSpace(): void {
