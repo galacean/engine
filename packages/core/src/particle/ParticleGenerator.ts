@@ -910,7 +910,6 @@ export class ParticleGenerator {
 
     this.main.startLifetime._getMinMaxValue(minmax);
     const maxLifetime = minmax.y;
-    this._latestMaxLifetime = maxLifetime + this._playTime;
 
     // StartSpeed's impact
     const shape = this.emission.shape;
