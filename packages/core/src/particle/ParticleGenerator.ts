@@ -1025,13 +1025,17 @@ export class ParticleGenerator {
     const particleUtils = this._renderer.engine._particleBufferUtils;
     const baseIndex = index * particleUtils.boundsFloatStride;
 
-    min.x = Math.min(min.x, bounds[baseIndex]);
-    min.y = Math.min(min.y, bounds[baseIndex + 1]);
-    min.z = Math.min(min.z, bounds[baseIndex + 2]);
+    min.set(
+      Math.min(min.x, bounds[baseIndex]),
+      Math.min(min.y, bounds[baseIndex + 1]),
+      Math.min(min.z, bounds[baseIndex + 2])
+    );
 
-    max.x = Math.max(max.x, bounds[baseIndex + 3]);
-    max.y = Math.max(max.y, bounds[baseIndex + 4]);
-    max.z = Math.max(max.z, bounds[baseIndex + 5]);
+    max.set(
+      Math.max(max.x, bounds[baseIndex + 3]),
+      Math.max(max.y, bounds[baseIndex + 4]),
+      Math.max(max.z, bounds[baseIndex + 5])
+    );
   }
 
   private _addGravityModifierImpact(): void {

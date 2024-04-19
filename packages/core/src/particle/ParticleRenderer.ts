@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { deepClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -42,8 +42,7 @@ export class ParticleRenderer extends Renderer {
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
   private _supportInstancedArrays: boolean;
-  @ignoreClone
-  private _dirtyFlag = DirtyFlag.Bounds;
+
   /**
    * Specifies how particles are rendered.
    */
@@ -217,9 +216,4 @@ export class ParticleRenderer extends Renderer {
   _onBoundsChanged() {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
-}
-
-enum DirtyFlag {
-  WorldPosition = 0x1,
-  Bounds = 0x2
 }
