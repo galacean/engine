@@ -39,13 +39,13 @@ export class Pointer {
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
+  private _currentDraggedEntity: Entity;
 
   /**
    * @internal
    */
   _firePointerExitAndEnter(rayCastEntity: Entity): void {
     if (this._currentEnteredEntity !== rayCastEntity) {
-      this._currentPressedEntity = null;
       if (this._currentEnteredEntity) {
         this._currentEnteredEntity._scripts.forEach(
           (element: Script) => {
@@ -68,6 +68,9 @@ export class Pointer {
       }
       this._currentEnteredEntity = rayCastEntity;
     }
+    if (this._currentDraggedEntity !== rayCastEntity) {
+      this._currentDraggedEntity = null;
+    }
   }
 
   /**
@@ -84,15 +87,15 @@ export class Pointer {
         }
       );
     }
-    this._currentPressedEntity = rayCastEntity;
+    this._currentPressedEntity = this._currentDraggedEntity = rayCastEntity;
   }
 
   /**
    * @internal
    */
   _firePointerDrag(): void {
-    if (this._currentPressedEntity) {
-      this._currentPressedEntity._scripts.forEach(
+    if (this._currentDraggedEntity) {
+      this._currentDraggedEntity._scripts.forEach(
         (element: Script) => {
           element.onPointerDrag(this);
         },
@@ -119,7 +122,7 @@ export class Pointer {
         }
       );
     }
-    this._currentPressedEntity = null;
+    this._currentPressedEntity = this._currentDraggedEntity = null;
   }
 
   /**

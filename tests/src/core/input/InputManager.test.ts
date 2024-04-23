@@ -193,7 +193,7 @@ describe("InputManager", async () => {
     expect(script.onPointerExit).to.have.been.called.exactly(3);
     expect(script.onPointerDown).to.have.been.called.exactly(2);
     expect(script.onPointerUp).to.have.been.called.exactly(2);
-    expect(script.onPointerClick).to.have.been.called.exactly(1);
+    expect(script.onPointerClick).to.have.been.called.exactly(2);
 
     // 1. 在碰撞体外 down
     // 2. 在碰撞体上 up & leave
@@ -207,7 +207,7 @@ describe("InputManager", async () => {
     expect(script.onPointerEnter).to.have.been.called.exactly(4);
     expect(script.onPointerDrag).to.have.been.called.exactly(2);
     expect(script.onPointerUp).to.have.been.called.exactly(3);
-    expect(script.onPointerClick).to.have.been.called.exactly(1);
+    expect(script.onPointerClick).to.have.been.called.exactly(2);
   });
 
   it("keyboard", () => {
