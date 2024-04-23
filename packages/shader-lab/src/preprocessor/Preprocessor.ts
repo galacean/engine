@@ -129,7 +129,6 @@ export class Preprocessor {
     const tokenizer = this._tokenizer;
 
     const variable = this.consumeToken(this._tokenizer);
-    if (variable.res?.text === "xxx") debugger;
     if (!variable.res || variable.end) throw "No defined variable";
     if (this._definePairs.get(variable.res.text)) throw `redefined macro: ${variable.res.text}`;
 
