@@ -185,6 +185,7 @@ export class ParticleGenerator {
         this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
       }
     }
+    this._renderer._onBoundsChanged();
   }
 
   /**
