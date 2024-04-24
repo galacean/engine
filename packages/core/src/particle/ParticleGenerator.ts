@@ -530,10 +530,6 @@ export class ParticleGenerator {
   _updateBoundsSimulationLocal(): void {
     if (this.isAlive) {
       if (this._renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
-        const { min, max } = this._renderer._bounds;
-        min.set(0, 0, 0);
-        max.set(0, 0, 0);
-      } else {
         this._calculateWorldBounds(this._renderer._bounds);
         this._addGravityToWorldBounds();
       }
