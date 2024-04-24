@@ -10,6 +10,9 @@ export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
+  /** @internal */
+  _onValueChanged: () => void = null;
+
   /** Specifies whether the ShapeModule is enabled or disabled. */
   get enabled(): boolean {
     return this._enabled;
@@ -34,8 +37,19 @@ export abstract class BaseShape {
     }
   }
 
-  constructor() {
-    this._onValueChanged = this._onValueChanged.bind(this);
+  /**
+   * @internal
+   */
+  get onValueChanged(): (() => void) | null {
+    return this._onValueChanged;
+  }
+
+  /**
+   * @internal
+   */
+  set onValueChanged(value: (() => void) | null) {
+    this._onValueChanged = value;
+    this._updateOnValueChanged();
   }
 
   /**
@@ -59,6 +73,8 @@ export abstract class BaseShape {
     throw new Error("BaseShape: must override it.");
   }
 
-  /** @internal */
-  _onValueChanged(): void {}
+  /**
+   * @internal
+   */
+  _updateOnValueChanged(): void {}
 }

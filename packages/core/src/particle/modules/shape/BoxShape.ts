@@ -22,6 +22,8 @@ export class BoxShape extends BaseShape {
 
   set size(value: Vector3) {
     this._size = value;
+    //@ts-ignore
+    this._size._onValueChanged = this._onValueChanged;
     this._onValueChanged && this._onValueChanged();
   }
 
@@ -52,5 +54,13 @@ export class BoxShape extends BaseShape {
   override _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
     out.min.set(-this.size.x / 2, -this.size.y / 2, -this.size.z / 2);
     out.max.set(this.size.x / 2, this.size.y / 2, this.size.z / 2);
+  }
+
+  /**
+   * @internal
+   */
+  override _updateOnValueChanged(): void {
+    //@ts-ignore
+    this._size._onValueChanged = this._onValueChanged;
   }
 }

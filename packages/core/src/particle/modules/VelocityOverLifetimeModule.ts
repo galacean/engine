@@ -87,6 +87,14 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._generator._renderer._onBoundsChanged();
   }
 
+  public override get enabled(): boolean {
+    return this._enabled;
+  }
+  public override set enabled(value: boolean) {
+    this._enabled = value;
+    this._generator._renderer._onBoundsChanged();
+  }
+
   /**
    * @internal
    */

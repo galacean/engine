@@ -6,8 +6,15 @@ import { ParticleGenerator } from "../ParticleGenerator";
  * Particle generator module.
  */
 export abstract class ParticleGeneratorModule {
+  _enabled: boolean = false;
+
   /** Specifies whether the module is enabled or not. */
-  enabled: boolean = false;
+  public get enabled(): boolean {
+    return this._enabled;
+  }
+  public set enabled(value: boolean) {
+    this._enabled = value;
+  }
 
   @ignoreClone
   protected _generator: ParticleGenerator;
