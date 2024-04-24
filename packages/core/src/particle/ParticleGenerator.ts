@@ -271,9 +271,9 @@ export class ParticleGenerator {
 
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       this._retireActiveBounds();
-      this._updateBoundsSimulationWorld();
+      this._updateBoundsSimulationWorld(this._renderer._bounds);
     } else {
-      this._updateBoundsSimulationLocal();
+      this._updateBoundsSimulationLocal(this._renderer._bounds);
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -528,10 +528,10 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _updateBoundsSimulationLocal(): void {
+  _updateBoundsSimulationLocal(bounds: BoundingBox): void {
     if (this.isAlive) {
       if (this._renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
-        this._calculateWorldBounds(this._renderer._bounds);
+        this._calculateWorldBounds(bounds);
         this._addGravityToWorldBounds();
       }
     } else {
@@ -546,9 +546,9 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _updateBoundsSimulationWorld(): void {
+  _updateBoundsSimulationWorld(bounds: BoundingBox): void {
     this._generateBoundsPerFrame();
-    this._updateBoundingBoxWorldSpace();
+    this._updateBoundingBoxWorldSpace(bounds);
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
@@ -834,8 +834,8 @@ export class ParticleGenerator {
     } while (this._firstActiveBounds !== start);
   }
 
-  private _updateBoundingBoxWorldSpace(): void {
-    const { min, max } = this._renderer._bounds;
+  private _updateBoundingBoxWorldSpace(bounds: BoundingBox): void {
+    const { min, max } = bounds;
     if (this._firstActiveBounds === this._firstFreeBounds) {
       min.set(0, 0, 0);
       max.set(0, 0, 0);

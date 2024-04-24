@@ -166,9 +166,9 @@ export class ParticleRenderer extends Renderer {
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
-      this.generator._updateBoundsSimulationLocal();
+      this.generator._updateBoundsSimulationLocal(worldBounds);
     } else {
-      this.generator._updateBoundsSimulationWorld();
+      this.generator._updateBoundsSimulationWorld(worldBounds);
     }
   }
 
