@@ -14,7 +14,7 @@ import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
-import { ParticleRenderer } from "./ParticleRenderer";
+import { ParticleRenderer, ParticleUpdateFlags } from "./ParticleRenderer";
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
@@ -27,6 +27,7 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { RendererUpdateFlags } from "../Renderer";
 
 /**
  * Particle Generator.
@@ -269,7 +270,9 @@ export class ParticleGenerator {
 
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       this._retireActiveBounds();
-      this._updateBoundingBoxWorldSpace();
+      this._updateBoundsSimulationWorld();
+    } else {
+      this._updateBoundsSimulationLocal();
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -524,22 +527,30 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _computeBoundsLocalSpace(): void {
-    if (!this.isAlive) {
-      const { min, max } = this._renderer._bounds;
-      min.set(0, 0, 0);
-      max.set(0, 0, 0);
+  _updateBoundsSimulationLocal(): void {
+    if (this.isAlive) {
+      if (this._renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
+        const { min, max } = this._renderer._bounds;
+        min.set(0, 0, 0);
+        max.set(0, 0, 0);
+      } else {
+        this._calculateWorldBounds(this._renderer._bounds);
+        this._addGravityToWorldBounds();
+      }
     } else {
-      this._calculateWorldBounds(this._renderer._bounds);
-      this._addGravityToWorldBounds();
+      const { min, max } = this._renderer._bounds;
+      const worldPosition = this._renderer.entity.transform.worldPosition;
+
+      min.copyFrom(worldPosition);
+      max.copyFrom(worldPosition);
     }
   }
 
   /**
    * @internal
    */
-  _computeBoundsWorldSpace(): void {
-    this._addToDynamicBounds();
+  _updateBoundsSimulationWorld(): void {
+    this._generateBoundsPerFrame();
     this._updateBoundingBoxWorldSpace();
   }
 
@@ -854,8 +865,11 @@ export class ParticleGenerator {
     this._addGravityToWorldBounds();
   }
 
-  private _addToDynamicBounds(): void {
-    this._calculateWorldBounds(ParticleGenerator._tempBoundingBox);
+  private _generateBoundsPerFrame(): void {
+    if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.FrameVolume)) {
+      this._calculateWorldBounds(ParticleGenerator._tempBoundingBox);
+      this._renderer._setDirtyFlagFalse(ParticleUpdateFlags.FrameVolume);
+    }
     const { _dynamicBounds: dynamicBounds } = this;
     const { _tempVector20: minmax } = ParticleGenerator;
 

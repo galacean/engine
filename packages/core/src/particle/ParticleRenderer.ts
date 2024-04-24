@@ -11,6 +11,7 @@ import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { TransformModifyFlags } from "../Transform";
 
 /**
  * Particle Renderer Component.
@@ -116,12 +117,13 @@ export class ParticleRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._onBoundsChanged = this._onBoundsChanged.bind(this);
 
     this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= ParticleUpdateFlags.FrameVolume | RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -164,9 +166,9 @@ export class ParticleRenderer extends Renderer {
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
-      this.generator._computeBoundsLocalSpace();
+      this.generator._updateBoundsSimulationLocal();
     } else {
-      this.generator._computeBoundsWorldSpace();
+      this.generator._updateBoundsSimulationWorld();
     }
   }
 
@@ -213,7 +215,37 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _onBoundsChanged() {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+
+  protected override _onTransformChanged(type: TransformModifyFlags): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume | ParticleUpdateFlags.FrameVolume;
   }
+
+  /**
+   * @internal
+   */
+  _onBoundsChanged() {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume | ParticleUpdateFlags.FrameVolume;
+  }
+
+  /**
+   * @internal
+   */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyUpdateFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyUpdateFlag &= ~type;
+  }
+}
+
+/**
+ * @internal
+ */
+export enum ParticleUpdateFlags {
+  /** Volume per Frame for Simulation Space World */
+  FrameVolume = 0x2
 }
