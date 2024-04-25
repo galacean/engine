@@ -24,9 +24,9 @@ export class CullingResults {
   }
 
   sort(): void {
-    this.opaqueQueue.sort(RenderQueue._compareFromNearToFar);
-    this.alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
-    this.transparentQueue.sort(RenderQueue._compareFromFarToNear);
+    this.opaqueQueue.sort(RenderQueue._compareForOpaque);
+    this.alphaTestQueue.sort(RenderQueue._compareForOpaque);
+    this.transparentQueue.sort(RenderQueue._compareForTransparent);
   }
 
   destroy(): void {
