@@ -282,17 +282,24 @@ class HDRLoader extends Loader<TextureCube> {
     let offset = 0,
       pos = 0;
     const ptrEnd = 4 * scanLineWidth;
-    const rgbeStart = new Uint8Array(4);
+    let a: number, b: number, c: number, d: number;
     const scanLineBuffer = new Uint8Array(ptrEnd);
     let numScanLines = height; // read in each successive scanLine
 
     while (numScanLines > 0 && pos < byteLength) {
-      rgbeStart[0] = buffer[pos++];
-      rgbeStart[1] = buffer[pos++];
-      rgbeStart[2] = buffer[pos++];
-      rgbeStart[3] = buffer[pos++];
+      a = buffer[pos++];
+      b = buffer[pos++];
+      c = buffer[pos++];
+      d = buffer[pos++];
 
-      if (2 != rgbeStart[0] || 2 != rgbeStart[1] || ((rgbeStart[2] << 8) | rgbeStart[3]) != scanLineWidth) {
+      if (a != 2 || b != 2 || c & 0x80 || width < 8 || width > 32767) {
+        // this file is not run length encoded
+        // read values sequentially
+        return buffer;
+      }
+
+      if (((c << 8) | d) != scanLineWidth) {
+        // eslint-disable-next-line no-throw-literal
         throw "HDR Bad header format, wrong scan line width";
       }
 
