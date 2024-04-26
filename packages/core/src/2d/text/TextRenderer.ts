@@ -329,8 +329,10 @@ export class TextRenderer extends Renderer {
     const pool = TextRenderer._charRenderDataPool;
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
-      this.engine._batcherManager._batcher2D.freeChunk(charRenderDatas[i].chunk);
-      pool.free(charRenderDatas[i]);
+      const charRenderData = charRenderDatas[i];
+      this.engine._batcherManager._batcher2D.freeChunk(charRenderData.chunk);
+      charRenderData.chunk = null;
+      pool.free(charRenderData);
     }
     charRenderDatas.length = 0;
 
@@ -630,8 +632,10 @@ export class TextRenderer extends Renderer {
     const lastRenderDataCount = charRenderDatas.length;
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
-        this.engine._batcherManager._batcher2D.freeChunk(charRenderDatas[i].chunk);
-        charRenderDataPool.free(charRenderDatas[i]);
+        const charRenderData = charRenderDatas[i];
+        this.engine._batcherManager._batcher2D.freeChunk(charRenderData.chunk);
+        charRenderData.chunk = null;
+        charRenderDataPool.free(charRenderData);
       }
       charRenderDatas.length = renderDataCount;
     }
