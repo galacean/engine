@@ -314,10 +314,7 @@ export default class RuntimeContext {
   getExtendedDefineMacros() {
     return Array.from(this._preprocessor._definePairs.entries())
       .map(([k, v]) => {
-        let ret = `#define ${k}`;
-        if (!v.isFunction) {
-          ret += ` ${v.replacer}`;
-        }
+        let ret = `#define ${k} ${v.originText}`;
         return ret;
       })
       .join("\n");

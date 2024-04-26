@@ -16,8 +16,8 @@ export class Preprocessor {
   private _curMacroLvl = 0;
 
   /** @internal */
-  _definePairs: Map<string, { isFunction: boolean; replacer: TextReplacer }> = new Map();
-  private set definePairs(pairs: Map<string, { isFunction: boolean; replacer: TextReplacer }>) {
+  _definePairs: Map<string, { isFunction: boolean; replacer: TextReplacer; originText: string }> = new Map();
+  private set definePairs(pairs: Map<string, { isFunction: boolean; replacer: TextReplacer; originText: string }>) {
     this._definePairs = pairs;
   }
   private _replacers: IReplaceSegment[] = [];
@@ -156,9 +156,9 @@ export class Preprocessor {
           const idx = macroArgs.findIndex((item) => item === m);
           return args[idx];
         });
-      this._definePairs.set(variable.res.text, { isFunction: true, replacer });
+      this._definePairs.set(variable.res.text, { isFunction: true, replacer, originText: chunk });
     } else {
-      this._definePairs.set(variable.res.text, { isFunction: false, replacer: chunk });
+      this._definePairs.set(variable.res.text, { isFunction: false, replacer: chunk, originText: chunk });
     }
 
     this._replacers.push({ startIdx: macroToken.start.index, endIdx: tokenizer.curIndex, replace: "" });
