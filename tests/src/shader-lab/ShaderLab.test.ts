@@ -133,6 +133,10 @@ describe("ShaderLab", () => {
     expect(usePass).to.equal("pbr/Default/Forward");
   });
 
+  it("marco completeness", () => {
+    expect(pass.vertexSource.includes("#define saturate clamp( a, 0.0, 1.0 )")).to.true;
+  });
+
   it("render state", () => {
     expect(pass.renderStates).not.be.null;
 
