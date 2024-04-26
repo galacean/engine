@@ -16,7 +16,7 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
+  static _compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
     const componentA = dataA.component;
@@ -41,7 +41,7 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
+  static _compareForTransparent(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
     const componentA = dataA.component;

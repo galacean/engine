@@ -166,8 +166,6 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
     spriteMask.destroy();
     expect(spriteMask.sprite).to.eq(null);
-    // @ts-ignore
-    expect(spriteMask._verticesData).to.eq(null);
   });
 
   it("_render", () => {
@@ -178,7 +176,16 @@ describe("SpriteMask", async () => {
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore
-    let { positions, uvs } = spriteMask._verticesData;
+    const { _chunk: chunk } = spriteMask;
+    const vertices = chunk._meshBuffer._vertices;
+    const positions: Array<Vector3> = [];
+    const uvs: Array<Vector2> = [];
+    let index = chunk._vEntry.start;
+    for (let i = 0; i < 4; ++i) {
+      positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
+      uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
+      index += 9;
+    }
     expect(positions[0]).to.deep.eq(new Vector3(0, 0, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0, 0, 0));
     expect(positions[2]).to.deep.eq(new Vector3(0, 0, 0));
@@ -197,6 +204,14 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = sprite;
     // @ts-ignore
     spriteMask._render(context);
+    positions.length = 0;
+    uvs.length = 0;
+    index = chunk._vEntry.start;
+    for (let i = 0; i < 4; ++i) {
+      positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
+      uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
+      index += 9;
+    }
     // @ts-ignore
     expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));
