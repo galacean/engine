@@ -64,9 +64,15 @@ export class MeshBuffer {
   /** @internal */
   _indices: Uint16Array;
 
-  /** @internal */
-  _vLen: number = 0; // _vertices 需要上传的数据长度
-  /** @internal */
+  /**
+   * @internal
+   * The length of _vertices needed to be uploaded.
+   * */
+  _vLen: number = 0;
+  /**
+   * @internal
+   * The length of _indices needed to be uploaded.
+   * */
   _iLen: number = 0; // _indices 需要上传的数据长度
 
   /** @internal */

@@ -20,13 +20,15 @@ export class Batcher2D {
   /** @internal */
   _meshBuffers: MeshBuffer[] = [];
   /** @internal */
+  _maxVertexCount: number;
+  /** @internal */
   _preContext: RenderContext = null;
   /** @internal */
   _preRenderData: SpriteRenderData = null;
 
   constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
     this._engine = engine;
-    this._createMeshBuffer(0, maxVertexCount);
+    this._maxVertexCount = maxVertexCount;
   }
 
   /**
@@ -88,7 +90,7 @@ export class Batcher2D {
       }
     }
 
-    const meshBuffer = this._createMeshBuffer(len);
+    const meshBuffer = this._createMeshBuffer(len, this._maxVertexCount);
     chunk = meshBuffer.allocateChunk(vertexCount);
     if (chunk) {
       chunk._mbId = len;
@@ -103,13 +105,7 @@ export class Batcher2D {
   }
 
   protected _createMeshBuffer(index: number, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT): MeshBuffer {
-    const { _meshBuffers } = this;
-    if (_meshBuffers[index]) {
-      return _meshBuffers[index];
-    }
-
-    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(this._engine, maxVertexCount));
-    return meshBuffer;
+    return (this._meshBuffers[index] ||= new MeshBuffer(this._engine, maxVertexCount));
   }
 
   private _canBatch(preRenderData: SpriteRenderData, curRenderData: SpriteRenderData): boolean {
