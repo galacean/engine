@@ -1,6 +1,6 @@
 import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
 import { Engine } from "../../Engine";
-import { ShaderProperty, ShaderTagKey } from "../../shader";
+import { ShaderTagKey } from "../../shader";
 import { RenderContext } from "../RenderContext";
 import { SpriteRenderData } from "../SpriteRenderData";
 import { MBChunk, MeshBuffer } from "./MeshBuffer";

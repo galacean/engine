@@ -73,7 +73,7 @@ export class MeshBuffer {
    * @internal
    * The length of _indices needed to be uploaded.
    * */
-  _iLen: number = 0; // _indices 需要上传的数据长度
+  _iLen: number = 0;
 
   /** @internal */
   _vFreeEntries: Entry[] = [];
