@@ -30,6 +30,10 @@ export class BatcherManager {
     }
   }
 
+  sortAndHandleRenderData(): void {
+    this._batcher2D.sortAndHandleRenderData();
+  }
+
   flush(): void {
     this._batcher2D.flush();
   }
