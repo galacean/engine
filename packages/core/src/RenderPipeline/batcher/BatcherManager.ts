@@ -17,23 +17,11 @@ export class BatcherManager {
 
   destroy() {
     this._batcher2D.destroy();
+    this._batcher2D = null;
+    this._engine = null;
   }
 
-  commitRenderData(context: RenderContext, data: RenderData | Array<RenderData>): void {
-    if (data instanceof Array) {
-      for (let i = 0, l = data.length; i < l; ++i) {
-        this._handleRenderData(context, data[i]);
-      }
-    } else {
-      this._handleRenderData(context, data);
-    }
-  }
-
-  clear() {
-    this._batcher2D.clear();
-  }
-
-  private _handleRenderData(context: RenderContext, data: RenderData): void {
+  commitRenderData(context: RenderContext, data: RenderData): void {
     switch (data.usage) {
       case RenderDataUsage.Mesh:
       case RenderDataUsage.Sprite:
@@ -43,5 +31,9 @@ export class BatcherManager {
       default:
         break;
     }
+  }
+
+  clear() {
+    this._batcher2D.clear();
   }
 }

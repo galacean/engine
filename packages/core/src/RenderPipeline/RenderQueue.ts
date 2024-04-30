@@ -82,12 +82,13 @@ export class RenderQueue {
 
   update2DBatch(batcher: Batcher2D): void {
     const { tempElements } = this;
-    if (tempElements.length === 0) {
+    const len = tempElements.length;
+    if (len === 0) {
       return;
     }
 
     const { elements } = this;
-    for (let i = 0, l = tempElements.length; i < l; ++i) {
+    for (let i = 0; i < len; ++i) {
       const element = tempElements[i];
       if (element.data.usage === RenderDataUsage.Mesh) {
         if (batcher._preElement) {
@@ -110,8 +111,9 @@ export class RenderQueue {
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {
-    const elements = this.elements;
-    if (elements.length === 0) {
+    const { elements } = this;
+    const len = elements.length;
+    if (len === 0) {
       return;
     }
 
@@ -124,7 +126,7 @@ export class RenderQueue {
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this._renderQueueType;
 
-    for (let i = 0, n = elements.length; i < n; i++) {
+    for (let i = 0; i < len; i++) {
       const element = elements[i];
       const { data, shaderPasses } = element;
 

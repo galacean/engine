@@ -39,6 +39,8 @@ export class Batcher2D {
     }
     _meshBuffers.length = 0;
     this._meshBuffers = null;
+    this._engine = null;
+    this._preElement = null;
   }
 
   commitRenderElement(element: RenderElement): RenderElement | null {
@@ -75,10 +77,9 @@ export class Batcher2D {
 
   allocateChunk(vertexCount: number): MBChunk | null {
     const { _meshBuffers } = this;
-    let chunk: MBChunk = null;
-    let i = 0;
     const len = _meshBuffers.length;
-    for (; i < len; ++i) {
+    let chunk: MBChunk = null;
+    for (let i = 0; i < len; ++i) {
       chunk = _meshBuffers[i].allocateChunk(vertexCount);
       if (chunk) {
         chunk._mbId = i;

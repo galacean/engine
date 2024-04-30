@@ -15,7 +15,6 @@ import { CharRenderData } from "./CharRenderData";
 import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
-import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Pool } from "../../utils/Pool";
 
@@ -423,16 +422,15 @@ export class TextRenderer extends Renderer {
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
 
-    let spriteRenderDatas: Array<SpriteRenderData> = [];
+    const batcherManager = engine._batcherManager;
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
       const renderData = spriteRenderDataPool.getFromPool();
       const { chunk } = charRenderData;
       renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, charRenderData.texture, chunk);
       renderData.usage = RenderDataUsage.Text;
-      spriteRenderDatas.push(renderData);
+      batcherManager.commitRenderData(context, renderData);
     }
-    engine._batcherManager.commitRenderData(context, spriteRenderDatas);
   }
 
   private _updateStencilState(): void {
