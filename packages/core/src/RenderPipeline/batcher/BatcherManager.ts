@@ -1,7 +1,6 @@
 import { Engine } from "../../Engine";
 import { RenderContext } from "../RenderContext";
 import { RenderData } from "../RenderData";
-import { SpriteRenderData } from "../SpriteRenderData";
 import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { Batcher2D } from "./Batcher2D";
 
@@ -30,18 +29,6 @@ export class BatcherManager {
     }
   }
 
-  sortAndHandleRenderData(): void {
-    this._batcher2D.sortAndHandleRenderData();
-  }
-
-  flush(): void {
-    this._batcher2D.flush();
-  }
-
-  uploadBuffer(): void {
-    this._batcher2D.uploadBuffer();
-  }
-
   clear() {
     this._batcher2D.clear();
   }
@@ -49,12 +36,11 @@ export class BatcherManager {
   private _handleRenderData(context: RenderContext, data: RenderData): void {
     switch (data.usage) {
       case RenderDataUsage.Mesh:
-        this._batcher2D.flush();
-        context.camera._renderPipeline.pushRenderData(context, data);
-        break;
       case RenderDataUsage.Sprite:
       case RenderDataUsage.Text:
-        this._batcher2D.commitRenderData(context, <SpriteRenderData>data);
+        context.camera._renderPipeline.pushRenderData(context, data);
+        break;
+      default:
         break;
     }
   }

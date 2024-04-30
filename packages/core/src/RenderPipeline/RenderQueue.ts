@@ -5,6 +5,7 @@ import { RenderQueueType, Shader, ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
+import { Batcher2D } from "./batcher/Batcher2D";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 /**
@@ -64,6 +65,7 @@ export class RenderQueue {
   }
 
   readonly elements: RenderElement[] = [];
+  readonly tempElements: RenderElement[] = [];
 
   private readonly _renderQueueType: RenderQueueType;
 
@@ -75,7 +77,36 @@ export class RenderQueue {
    * Push a render element.
    */
   pushRenderElement(element: RenderElement): void {
-    this.elements.push(element);
+    this.tempElements.push(element);
+  }
+
+  update2DBatch(batcher: Batcher2D): void {
+    const { tempElements } = this;
+    if (tempElements.length === 0) {
+      return;
+    }
+
+    const { elements } = this;
+    for (let i = 0, l = tempElements.length; i < l; ++i) {
+      const element = tempElements[i];
+      if (element.data.usage === RenderDataUsage.Mesh) {
+        if (batcher._preElement) {
+          elements.push(batcher._preElement);
+          batcher._preElement = null;
+        }
+        elements.push(element);
+      } else {
+        const newElement = batcher.commitRenderElement(element);
+        if (newElement) {
+          elements.push(newElement);
+        }
+      }
+    }
+    if (batcher._preElement) {
+      elements.push(batcher._preElement);
+      batcher._preElement = null;
+    }
+    batcher.uploadBuffer();
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {
@@ -201,6 +232,7 @@ export class RenderQueue {
    */
   clear(): void {
     this.elements.length = 0;
+    this.tempElements.length = 0;
   }
 
   /**

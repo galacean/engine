@@ -1,14 +1,9 @@
 import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
 import { Engine } from "../../Engine";
-import { RenderQueueType, ShaderTagKey } from "../../shader";
-import { RenderContext } from "../RenderContext";
+import { ShaderTagKey } from "../../shader";
+import { RenderElement } from "../RenderElement";
 import { SpriteRenderData } from "../SpriteRenderData";
 import { MBChunk, MeshBuffer } from "./MeshBuffer";
-
-interface TempRenderInfo {
-  context: RenderContext;
-  data: SpriteRenderData;
-}
 
 /**
  * @internal
@@ -16,42 +11,6 @@ interface TempRenderInfo {
 export class Batcher2D {
   /** The maximum number of vertex. */
   static MAX_VERTEX_COUNT: number = 4096;
-
-  /**
-   * @internal
-   */
-  static _sort(a: TempRenderInfo, b: TempRenderInfo): number {
-    const dataA = a.data;
-    const dataB = b.data;
-    const renderQueueTypeA = dataA.material.renderState.renderQueueType;
-    const renderQueueTypeB = dataB.material.renderState.renderQueueType;
-    const renderQueueTypeOrder = renderQueueTypeA - renderQueueTypeB;
-    if (renderQueueTypeOrder !== 0) {
-      return renderQueueTypeOrder;
-    }
-
-    const componentA = dataA.component;
-    const componentB = dataB.component;
-    const priorityOrder = componentA.priority - componentB.priority;
-    if (priorityOrder !== 0) {
-      return priorityOrder;
-    }
-
-    // make suer from the same renderer.
-    if (componentA.instanceId === componentB.instanceId) {
-      return dataA.material._priority - dataB.material._priority;
-    } else {
-      const distanceDiff =
-        renderQueueTypeA == RenderQueueType.Transparent
-          ? componentB._distanceForSort - componentA._distanceForSort
-          : componentA._distanceForSort - componentB._distanceForSort;
-      if (distanceDiff === 0) {
-        return componentA.instanceId - componentB.instanceId;
-      } else {
-        return distanceDiff;
-      }
-    }
-  }
 
   protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
 
@@ -63,11 +22,7 @@ export class Batcher2D {
   /** @internal */
   _maxVertexCount: number;
   /** @internal */
-  _preContext: RenderContext = null;
-  /** @internal */
-  _preRenderData: SpriteRenderData = null;
-  /** @internal */
-  _tempRenderInfos: Array<TempRenderInfo> = [];
+  _preElement: RenderElement = null;
 
   constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
     this._engine = engine;
@@ -86,25 +41,21 @@ export class Batcher2D {
     this._meshBuffers = null;
   }
 
-  commitRenderData(context: RenderContext, data: SpriteRenderData): void {
-    this._tempRenderInfos.push({
-      context,
-      data
-    });
-  }
-
-  sortAndHandleRenderData(): void {
-    const { _tempRenderInfos } = this;
-    _tempRenderInfos.sort(Batcher2D._sort);
-    for (let i = 0, l = _tempRenderInfos.length; i < l; ++i) {
-      const info = _tempRenderInfos[i];
-      this._handleRenderData(info.context, info.data);
+  commitRenderElement(element: RenderElement): RenderElement | null {
+    const { _preElement: preElement } = this;
+    let batchElement = null;
+    if (preElement) {
+      if (this._canBatch(preElement, element)) {
+        this._udpateRenderData(preElement, element, true);
+      } else {
+        batchElement = this._preElement;
+        this._udpateRenderData(preElement, element, false);
+      }
+    } else {
+      this._udpateRenderData(preElement, element, false);
     }
-  }
 
-  flush(): void {
-    const { _preRenderData: preRenderData } = this;
-    preRenderData && this._preContext.camera._renderPipeline.pushRenderData(this._preContext, preRenderData);
+    return batchElement;
   }
 
   uploadBuffer(): void {
@@ -120,7 +71,6 @@ export class Batcher2D {
     for (let i = 0, l = meshBuffers.length; i < l; ++i) {
       meshBuffers[i].clear();
     }
-    this._tempRenderInfos.length = 0;
   }
 
   allocateChunk(vertexCount: number): MBChunk | null {
@@ -154,7 +104,9 @@ export class Batcher2D {
     return (this._meshBuffers[index] ||= new MeshBuffer(this._engine, maxVertexCount));
   }
 
-  private _canBatch(preRenderData: SpriteRenderData, curRenderData: SpriteRenderData): boolean {
+  private _canBatch(preElement: RenderElement, cureElement: RenderElement): boolean {
+    const preRenderData = <SpriteRenderData>preElement.data;
+    const curRenderData = <SpriteRenderData>cureElement.data;
     if (preRenderData.chunk._meshBuffer !== curRenderData.chunk._meshBuffer) {
       return false;
     }
@@ -188,26 +140,9 @@ export class Batcher2D {
     return left.maskLayer === right.maskLayer;
   }
 
-  private _handleRenderData(context: RenderContext, data: SpriteRenderData): void {
-    const { _preRenderData: preRenderData } = this;
-    if (preRenderData) {
-      if (this._canBatch(preRenderData, data)) {
-        this._udpateRenderData(context, preRenderData, data, true);
-      } else {
-        this.flush();
-        this._udpateRenderData(context, preRenderData, data, false);
-      }
-    } else {
-      this._udpateRenderData(context, preRenderData, data, false);
-    }
-  }
-
-  private _udpateRenderData(
-    context: RenderContext,
-    preRenderData: SpriteRenderData,
-    curRenderData: SpriteRenderData,
-    canBatch: boolean
-  ): void {
+  private _udpateRenderData(preElement: RenderElement, curElement: RenderElement, canBatch: boolean): void {
+    const preRenderData = preElement ? <SpriteRenderData>preElement.data : null;
+    const curRenderData = <SpriteRenderData>curElement.data;
     const { chunk } = curRenderData;
     const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
     const { _indices: indices } = meshBuffer;
@@ -229,13 +164,11 @@ export class Batcher2D {
     meshBuffer._iLen += len;
     meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
     if (!canBatch) {
-      this._preContext = context;
-      this._preRenderData = curRenderData;
+      this._preElement = curElement;
     }
   }
 
   private _reset(): void {
-    this._preContext = null;
-    this._preRenderData = null;
+    this._preElement = null;
   }
 }
