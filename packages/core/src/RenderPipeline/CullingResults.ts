@@ -31,10 +31,10 @@ export class CullingResults {
     this.transparentQueue.sort(RenderQueue._compareForTransparent);
   }
 
-  update2DBatch(batcher: Batcher2D): void {
-    this.opaqueQueue.update2DBatch(batcher);
-    this.alphaTestQueue.update2DBatch(batcher);
-    this.transparentQueue.update2DBatch(batcher);
+  batch(batcher: Batcher2D): void {
+    this.opaqueQueue.batch(batcher);
+    this.alphaTestQueue.batch(batcher);
+    this.transparentQueue.batch(batcher);
   }
 
   destroy(): void {

@@ -80,34 +80,8 @@ export class RenderQueue {
     this.tempElements.push(element);
   }
 
-  update2DBatch(batcher: Batcher2D): void {
-    const { tempElements } = this;
-    const len = tempElements.length;
-    if (len === 0) {
-      return;
-    }
-
-    const { elements } = this;
-    for (let i = 0; i < len; ++i) {
-      const element = tempElements[i];
-      if (element.data.usage === RenderDataUsage.Mesh) {
-        if (batcher._preElement) {
-          elements.push(batcher._preElement);
-          batcher._preElement = null;
-        }
-        elements.push(element);
-      } else {
-        const newElement = batcher.commitRenderElement(element);
-        if (newElement) {
-          elements.push(newElement);
-        }
-      }
-    }
-    if (batcher._preElement) {
-      elements.push(batcher._preElement);
-      batcher._preElement = null;
-    }
-    batcher.uploadBuffer();
+  batch(batcher: Batcher2D): void {
+    batcher.batch(this.tempElements, this.elements);
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {

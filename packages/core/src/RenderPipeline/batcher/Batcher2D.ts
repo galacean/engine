@@ -3,6 +3,7 @@ import { Engine } from "../../Engine";
 import { ShaderTagKey } from "../../shader";
 import { RenderElement } from "../RenderElement";
 import { SpriteRenderData } from "../SpriteRenderData";
+import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { MBChunk, MeshBuffer } from "./MeshBuffer";
 
 /**
@@ -43,28 +44,32 @@ export class Batcher2D {
     this._preElement = null;
   }
 
-  commitRenderElement(element: RenderElement): RenderElement | null {
-    const { _preElement: preElement } = this;
-    let batchElement = null;
-    if (preElement) {
-      if (this._canBatch(preElement, element)) {
-        this._udpateRenderData(preElement, element, true);
+  batch(srcElements, dstElements): void {
+    const len = srcElements.length;
+    if (len === 0) {
+      return;
+    }
+
+    for (let i = 0; i < len; ++i) {
+      const element = srcElements[i];
+      if (element.data.usage === RenderDataUsage.Mesh) {
+        if (this._preElement) {
+          dstElements.push(this._preElement);
+          this._preElement = null;
+        }
+        dstElements.push(element);
       } else {
-        batchElement = this._preElement;
-        this._udpateRenderData(preElement, element, false);
+        const newElement = this._commitRenderElement(element);
+        if (newElement) {
+          dstElements.push(newElement);
+        }
       }
-    } else {
-      this._udpateRenderData(preElement, element, false);
     }
-
-    return batchElement;
-  }
-
-  uploadBuffer(): void {
-    const { _meshBuffers: meshBuffers } = this;
-    for (let i = 0, l = meshBuffers.length; i < l; ++i) {
-      meshBuffers[i].uploadBuffer();
+    if (this._preElement) {
+      dstElements.push(this._preElement);
+      this._preElement = null;
     }
+    this._uploadBuffer();
   }
 
   clear() {
@@ -100,6 +105,30 @@ export class Batcher2D {
 
   protected _createMeshBuffer(index: number, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT): MeshBuffer {
     return (this._meshBuffers[index] ||= new MeshBuffer(this._engine, maxVertexCount));
+  }
+
+  protected _uploadBuffer(): void {
+    const { _meshBuffers: meshBuffers } = this;
+    for (let i = 0, l = meshBuffers.length; i < l; ++i) {
+      meshBuffers[i].uploadBuffer();
+    }
+  }
+
+  private _commitRenderElement(element: RenderElement): RenderElement | null {
+    const { _preElement: preElement } = this;
+    let batchElement = null;
+    if (preElement) {
+      if (this._canBatch(preElement, element)) {
+        this._udpateRenderData(preElement, element, true);
+      } else {
+        batchElement = this._preElement;
+        this._udpateRenderData(preElement, element, false);
+      }
+    } else {
+      this._udpateRenderData(preElement, element, false);
+    }
+
+    return batchElement;
   }
 
   private _canBatch(preElement: RenderElement, cureElement: RenderElement): boolean {
