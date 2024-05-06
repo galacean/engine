@@ -181,7 +181,11 @@ export class SpriteRenderer extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      if (this._drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+      } else {
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      }
     }
   }
 
@@ -204,7 +208,11 @@ export class SpriteRenderer extends Renderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      if (this._drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+      } else {
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      }
     }
   }
 
