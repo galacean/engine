@@ -134,7 +134,7 @@ describe("ShaderLab", () => {
   });
 
   it("marco completeness", () => {
-    expect(pass.vertexSource.includes("#define saturate clamp( a, 0.0, 1.0 )")).to.true;
+    expect(pass.vertexSource.includes("#define saturate(a) clamp( a, 0.0, 1.0 )")).to.true;
   });
 
   it("render state", () => {
