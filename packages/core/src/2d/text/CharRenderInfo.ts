@@ -7,7 +7,7 @@ import { IPoolElement } from "../../utils/Pool";
 /**
  * @internal
  */
-export class CharRenderData implements IPoolElement {
+export class CharRenderInfo implements IPoolElement {
   static triangles: number[] = [0, 2, 1, 2, 0, 3];
 
   texture: Texture2D;
@@ -18,7 +18,7 @@ export class CharRenderData implements IPoolElement {
   init(engine: Engine) {
     if (!this.chunk) {
       this.chunk = engine._batcherManager._batcher2D.allocateChunk(4);
-      this.chunk._indices = CharRenderData.triangles;
+      this.chunk._indices = CharRenderInfo.triangles;
     }
   }
 
