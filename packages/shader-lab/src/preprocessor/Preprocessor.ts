@@ -156,9 +156,17 @@ export class Preprocessor {
           const idx = macroArgs.findIndex((item) => item === m);
           return args[idx];
         });
-      this._definePairs.set(variable.res.text, { isFunction: true, replacer, originText: chunk });
+      this._definePairs.set(variable.res.text, {
+        isFunction: true,
+        replacer,
+        originText: `#define ${variable.res.text}(${macroArgs.join(",")}) ${chunk}`
+      });
     } else {
-      this._definePairs.set(variable.res.text, { isFunction: false, replacer: chunk, originText: chunk });
+      this._definePairs.set(variable.res.text, {
+        isFunction: false,
+        replacer: chunk,
+        originText: `#define ${variable.res.text} ${chunk}`
+      });
     }
 
     this._replacers.push({ startIdx: macroToken.start.index, endIdx: tokenizer.curIndex, replace: "" });
