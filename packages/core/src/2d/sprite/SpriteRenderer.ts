@@ -85,7 +85,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
     }
   }
 
@@ -100,7 +100,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
       }
     }
   }
@@ -117,7 +117,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
       }
     }
   }
@@ -418,7 +418,7 @@ export class SpriteRenderer extends Renderer {
         if (this._drawMode === SpriteDrawMode.Sliced) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
         } else {
           // When the width and height of `SpriteRenderer` are `undefined`,
           // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
@@ -428,11 +428,11 @@ export class SpriteRenderer extends Renderer {
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData);
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
@@ -453,12 +453,12 @@ export class SpriteRenderer extends Renderer {
 enum SpriteRendererUpdateFlags {
   /** UV. */
   UV = 0x2,
-  /** WorldVolume and UV . */
-  RenderData = 0x3,
-  /** Automatic Size. */
-  AutomaticSize = 0x4,
-  /** All. */
-  All = 0x7,
   /** Color. */
-  Color = 0x8
+  Color = 0x4,
+  /** Vertex data. */
+  VertexData = 0x7,
+  /** Automatic Size. */
+  AutomaticSize = 0x8,
+  /** All. */
+  All = 0xff
 }
