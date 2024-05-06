@@ -25,10 +25,7 @@ export class TextRenderer extends Renderer {
   private static _charRenderDataPool: Pool<CharRenderData> = new Pool(CharRenderData, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
-  private static _worldPosition0: Vector3 = new Vector3();
-  private static _worldPosition1: Vector3 = new Vector3();
-  private static _worldPosition2: Vector3 = new Vector3();
-  private static _worldPosition3: Vector3 = new Vector3();
+  private static _worldPositions: Array<Vector3> = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
 
   /** @internal */
   @assignmentClone
@@ -327,9 +324,10 @@ export class TextRenderer extends Renderer {
     // Clear render data.
     const pool = TextRenderer._charRenderDataPool;
     const charRenderDatas = this._charRenderDatas;
+    const batcher2D = this.engine._batcherManager._batcher2D;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
-      this.engine._batcherManager._batcher2D.freeChunk(charRenderData.chunk);
+      batcher2D.freeChunk(charRenderData.chunk);
       charRenderData.chunk = null;
       pool.free(charRenderData);
     }
@@ -475,30 +473,32 @@ export class TextRenderer extends Renderer {
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
 
+    const worldPosition0 = TextRenderer._worldPositions[0];
+    const worldPosition1 = TextRenderer._worldPositions[1];
+    const worldPosition2 = TextRenderer._worldPositions[2];
+    const worldPosition3 = TextRenderer._worldPositions[3];
+
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
       const { localPositions } = charRenderData;
       const { x: topLeftX, y: topLeftY } = localPositions;
 
       // Top-Left
-      const worldPosition0 = TextRenderer._worldPosition0;
       worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
       worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
       worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
 
       // Right offset
-      const worldPosition1 = TextRenderer._worldPosition1;
       Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
 
       // Top-Right
       Vector3.add(worldPosition0, worldPosition1, worldPosition1);
 
       // Up offset
-      const worldPosition2 = TextRenderer._worldPosition2;
       Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
 
       // Bottom-Left
-      Vector3.add(worldPosition0, worldPosition2, TextRenderer._worldPosition3);
+      Vector3.add(worldPosition0, worldPosition2, worldPosition3);
       // Bottom-Right
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
@@ -506,7 +506,7 @@ export class TextRenderer extends Renderer {
       const vertices = chunk._meshBuffer._vertices;
       let index = chunk._vEntry.start;
       for (let i = 0; i < 4; ++i) {
-        const position = TextRenderer[`_worldPosition${i}`];
+        const position = TextRenderer._worldPositions[i];
         vertices[index] = position.x;
         vertices[index + 1] = position.y;
         vertices[index + 2] = position.z;

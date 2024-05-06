@@ -203,26 +203,28 @@ export class MeshBuffer {
 
     const { _entryPool: pool } = this;
     let preEntry = entry;
+    let notMerge = true;
     for (let i = 0; i < entryLen; ++i) {
       const curEntry = entries[i];
       const { start, len } = preEntry;
       const preEnd = start + len;
       const curEnd = curEntry.start + curEntry.len;
       if (preEnd < curEntry.start) {
-        entries.splice(i, 0, preEntry);
+        notMerge && entries.splice(i, 0, preEntry);
         return;
       } else if (preEnd === curEntry.start) {
         curEntry.start = preEntry.start;
         curEntry.len += preEntry.len;
         pool.free(preEntry);
         preEntry = curEntry;
+        notMerge = false;
       } else if (start === curEnd) {
         curEntry.len += preEntry.len;
         pool.free(preEntry);
         preEntry = curEntry;
+        notMerge = false;
       } else if (start > curEnd) {
-        entries.splice(i + 1, 0, preEntry);
-        preEntry = curEntry;
+        i + 1 === entryLen && entries.push(preEntry);
       }
     }
   }

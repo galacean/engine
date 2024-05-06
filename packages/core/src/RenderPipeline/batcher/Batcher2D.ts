@@ -89,11 +89,8 @@ export class Batcher2D {
 
     const meshBuffer = this._createMeshBuffer(len, this._maxVertexCount);
     chunk = meshBuffer.allocateChunk(vertexCount);
-    if (chunk) {
-      chunk._mbId = len;
-      return chunk;
-    }
-    return null;
+    chunk._mbId = len;
+    return chunk;
   }
 
   freeChunk(chunk: MBChunk): void {
