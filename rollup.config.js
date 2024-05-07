@@ -94,7 +94,7 @@ function config({ location, pkgJson }) {
             file,
             name: umdConfig.name,
             format: "umd",
-            sourcemap: false,
+            sourcemap: true,
             globals: umdConfig.globals
           }
         ],
