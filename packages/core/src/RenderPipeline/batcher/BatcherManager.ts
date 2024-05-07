@@ -1,6 +1,7 @@
 import { Engine } from "../../Engine";
 import { RenderContext } from "../RenderContext";
 import { RenderData } from "../RenderData";
+import { RenderElement } from "../RenderElement";
 import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { Batcher2D } from "./Batcher2D";
 
@@ -31,6 +32,10 @@ export class BatcherManager {
       default:
         break;
     }
+  }
+
+  batch(elements: Array<RenderElement>, batchedElements: Array<RenderElement>): void {
+    this._batcher2D.batch(elements, batchedElements);
   }
 
   clear() {

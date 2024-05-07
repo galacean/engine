@@ -86,7 +86,7 @@ export class BasicRenderPipeline {
     this._prepareRender(context);
 
     cullingResults.sort();
-    cullingResults.batch(batcherManager._batcher2D);
+    cullingResults.batch(batcherManager);
 
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);

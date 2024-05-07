@@ -1,7 +1,5 @@
-import { Engine } from "../Engine";
 import { RenderQueueType } from "../shader";
 import { RenderQueue } from "./RenderQueue";
-import { Batcher2D } from "./batcher/Batcher2D";
 import { BatcherManager } from "./batcher/BatcherManager";
 
 /**
@@ -31,10 +29,10 @@ export class CullingResults {
     this.transparentQueue.sort(RenderQueue._compareForTransparent);
   }
 
-  batch(batcher: Batcher2D): void {
-    this.opaqueQueue.batch(batcher);
-    this.alphaTestQueue.batch(batcher);
-    this.transparentQueue.batch(batcher);
+  batch(batcherManager: BatcherManager): void {
+    this.opaqueQueue.batch(batcherManager);
+    this.alphaTestQueue.batch(batcherManager);
+    this.transparentQueue.batch(batcherManager);
   }
 
   destroy(): void {

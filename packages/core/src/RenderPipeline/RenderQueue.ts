@@ -5,7 +5,7 @@ import { RenderQueueType, Shader, ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { Batcher2D } from "./batcher/Batcher2D";
+import { BatcherManager } from "./batcher/BatcherManager";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 /**
@@ -64,8 +64,8 @@ export class RenderQueue {
     }
   }
 
+  readonly batchedElements: RenderElement[] = [];
   readonly elements: RenderElement[] = [];
-  readonly tempElements: RenderElement[] = [];
 
   private readonly _renderQueueType: RenderQueueType;
 
@@ -77,16 +77,16 @@ export class RenderQueue {
    * Push a render element.
    */
   pushRenderElement(element: RenderElement): void {
-    this.tempElements.push(element);
+    this.elements.push(element);
   }
 
-  batch(batcher: Batcher2D): void {
-    batcher.batch(this.tempElements, this.elements);
+  batch(batcherManager: BatcherManager): void {
+    batcherManager.batch(this.elements, this.batchedElements);
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {
-    const { elements } = this;
-    const len = elements.length;
+    const { batchedElements } = this;
+    const len = batchedElements.length;
     if (len === 0) {
       return;
     }
@@ -101,7 +101,7 @@ export class RenderQueue {
     const renderQueueType = this._renderQueueType;
 
     for (let i = 0; i < len; i++) {
-      const element = elements[i];
+      const element = batchedElements[i];
       const { data, shaderPasses } = element;
 
       const { usage } = data;
@@ -207,8 +207,8 @@ export class RenderQueue {
    * Clear collection.
    */
   clear(): void {
+    this.batchedElements.length = 0;
     this.elements.length = 0;
-    this.tempElements.length = 0;
   }
 
   /**
@@ -220,6 +220,6 @@ export class RenderQueue {
    * Sort the elements.
    */
   sort(compareFunc: Function): void {
-    Utils._quickSort(this.tempElements, 0, this.tempElements.length, compareFunc);
+    Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
   }
 }
