@@ -25,10 +25,11 @@ export class RenderQueue {
       return priorityOrder;
     }
     // make sure from the same renderer.
-    if (dataA._componentInstanceId === dataB._componentInstanceId) {
+    const instanceIdDiff = dataA._componentInstanceId - dataB._componentInstanceId;
+    if (instanceIdDiff === 0) {
       return dataA._materialPriority - dataB._materialPriority;
     } else {
-      return dataA._distanceForSort - dataB._distanceForSort || dataA._componentInstanceId - dataB._componentInstanceId;
+      return dataA._distanceForSort - dataB._distanceForSort || instanceIdDiff;
     }
   }
 
@@ -43,10 +44,11 @@ export class RenderQueue {
       return priorityOrder;
     }
     // make sure from the same renderer.
-    if (dataA._componentInstanceId === dataB._componentInstanceId) {
+    const instanceIdDiff = dataA._componentInstanceId - dataB._componentInstanceId;
+    if (instanceIdDiff === 0) {
       return dataA._materialPriority - dataB._materialPriority;
     } else {
-      return dataB._distanceForSort - dataA._distanceForSort || dataA._componentInstanceId - dataB._componentInstanceId;
+      return dataB._distanceForSort - dataA._distanceForSort || instanceIdDiff;
     }
   }
 
