@@ -91,7 +91,7 @@ class MaterialLoader extends Loader<Material> {
         case "Texture":
           texturePromises.push(
             // @ts-ignore
-            resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
+            engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
               materialShaderData.setTexture(key, texture);
             })
           );
