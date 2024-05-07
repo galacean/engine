@@ -370,13 +370,13 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (onlyMVP) {
+    if (this.getMaterial() === this.engine._spriteDefaultMaterial || onlyMVP) {
       // @ts-ignore
       this._updateMVPShaderData(context, Matrix._identity);
-      return;
+    } else {
+      // @ts-ignore
+      this._updateTransformShaderData(context, Matrix._identity);
     }
-    // @ts-ignore
-    this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
