@@ -20,22 +20,15 @@ export class RenderQueue {
   static _compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const componentA = dataA.component;
-    const componentB = dataB.component;
-    const priorityOrder = componentA.priority - componentB.priority;
+    const priorityOrder = dataA._priority - dataB._priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
-    // make suer from the same renderer.
-    if (componentA.instanceId === componentB.instanceId) {
-      return dataA.material._priority - dataB.material._priority;
+    // make sure from the same renderer.
+    if (dataA._componentInstanceId === dataB._componentInstanceId) {
+      return dataA._materialPriority - dataB._materialPriority;
     } else {
-      const distanceDiff = componentA._distanceForSort - componentB._distanceForSort;
-      if (distanceDiff === 0) {
-        return componentA.instanceId - componentB.instanceId;
-      } else {
-        return distanceDiff;
-      }
+      return dataA._distanceForSort - dataB._distanceForSort || dataA._componentInstanceId - dataB._componentInstanceId;
     }
   }
 
@@ -45,22 +38,15 @@ export class RenderQueue {
   static _compareForTransparent(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const componentA = dataA.component;
-    const componentB = dataB.component;
-    const priorityOrder = componentA.priority - componentB.priority;
+    const priorityOrder = dataA._priority - dataB._priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
-    // make suer from the same renderer.
-    if (componentA.instanceId === componentB.instanceId) {
-      return dataA.material._priority - dataB.material._priority;
+    // make sure from the same renderer.
+    if (dataA._componentInstanceId === dataB._componentInstanceId) {
+      return dataA._materialPriority - dataB._materialPriority;
     } else {
-      const distanceDiff = componentB._distanceForSort - componentA._distanceForSort;
-      if (distanceDiff === 0) {
-        return componentA.instanceId - componentB.instanceId;
-      } else {
-        return distanceDiff;
-      }
+      return dataB._distanceForSort - dataA._distanceForSort || dataA._componentInstanceId - dataB._componentInstanceId;
     }
   }
 
