@@ -54,6 +54,7 @@ export class LightManager {
    * @internal
    */
   _attachSpotLight(light: SpotLight): void {
+    if (this._spotLights.length >= LightManager._maxLight) return;
     light._lightIndex = this._spotLights.length;
     this._spotLights.add(light);
   }
@@ -71,6 +72,7 @@ export class LightManager {
    * @internal
    */
   _attachPointLight(light: PointLight): void {
+    if (this._pointLights.length >= LightManager._maxLight) return;
     light._lightIndex = this._pointLights.length;
     this._pointLights.add(light);
   }
@@ -88,6 +90,7 @@ export class LightManager {
    * @internal
    */
   _attachDirectLight(light: DirectLight): void {
+    if (this._directLights.length >= LightManager._maxLight) return;
     light._lightIndex = this._directLights.length;
     this._directLights.add(light);
   }
