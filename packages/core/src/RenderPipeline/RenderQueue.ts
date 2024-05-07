@@ -220,6 +220,6 @@ export class RenderQueue {
    * Sort the elements.
    */
   sort(compareFunc: Function): void {
-    Utils._quickSort(this.tempElements, 0, this.elements.length, compareFunc);
+    Utils._quickSort(this.tempElements, 0, this.tempElements.length, compareFunc);
   }
 }
