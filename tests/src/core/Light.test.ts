@@ -292,7 +292,7 @@ describe("Light test", function () {
   });
 
   it("limit amount", async () => {
-    engine = await WebGLEngine.create({ canvas: canvasDOM });
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     const scene = engine.sceneManager.activeScene;
     lightEntity = rootEntity.createChild("light");
