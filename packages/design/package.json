@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-design",
-  "version": "0.0.0-experimental-shaderlab.0",
+  "version": "0.0.0-experimental-shaderlab.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
