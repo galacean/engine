@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-rhi-webgl",
-  "version": "0.0.0-experimental-shaderlab.1",
+  "version": "0.0.0-experimental-shaderlab.2",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
