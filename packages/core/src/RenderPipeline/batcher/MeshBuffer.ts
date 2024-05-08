@@ -78,8 +78,6 @@ export class MeshBuffer {
   /** @internal */
   _vFreeEntries: Entry[] = [];
   /** @internal */
-  _iFreeEntries: Entry[] = [];
-  /** @internal */
   _entryPool: Pool<Entry> = new Pool(Entry, 10);
   /** @internal */
   _chunkPool: Pool<MBChunk> = new Pool(MBChunk, 10);
@@ -117,7 +115,6 @@ export class MeshBuffer {
     this._vertices = new Float32Array(vertexLen);
     this._indices = new Uint16Array(indiceLen);
     this._vFreeEntries.push(new Entry(0, vertexLen));
-    this._iFreeEntries.push(new Entry(0, indiceLen));
   }
 
   destroy(): void {
