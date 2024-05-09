@@ -1,4 +1,4 @@
-import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
+import { SpriteMaskInteraction, SpriteRenderer, TextRenderer } from "../../2d";
 import { Engine } from "../../Engine";
 import { ShaderTagKey } from "../../shader";
 import { RenderElement } from "../RenderElement";
@@ -138,30 +138,20 @@ export class Batcher2D {
       return false;
     }
 
-    const preRender = <SpriteRenderer>preRenderData.component;
-    const curRender = <SpriteRenderer>curRenderData.component;
+    const preRender = <SpriteRenderer | TextRenderer>preRenderData.component;
+    const curRender = <SpriteRenderer | TextRenderer>curRenderData.component;
 
     // Compare mask.
-    if (!this._checkBatchWithMask(preRender, curRender)) {
+    const preMaskInteraction = preRender.maskInteraction;
+    if (
+      preMaskInteraction !== curRender.maskInteraction ||
+      (preMaskInteraction !== SpriteMaskInteraction.None && preRender.maskLayer !== curRender.maskLayer)
+    ) {
       return false;
     }
 
-    // Compare texture.
-    if (preRenderData.texture !== curRenderData.texture) {
-      return false;
-    }
-
-    // Compare material.
-    return preRenderData.material === curRenderData.material;
-  }
-
-  private _checkBatchWithMask(left: SpriteRenderer, right: SpriteRenderer): boolean {
-    const leftMaskInteraction = left.maskInteraction;
-
-    if (leftMaskInteraction !== right.maskInteraction) {
-      return false;
-    }
-    return leftMaskInteraction === SpriteMaskInteraction.None || left.maskLayer === right.maskLayer;
+    // Compare texture and material.
+    return preRenderData.texture === curRenderData.texture && preRenderData.material === curRenderData.material;
   }
 
   private _udpateRenderData(preElement: RenderElement, curElement: RenderElement, canBatch: boolean): void {
@@ -187,9 +177,7 @@ export class Batcher2D {
     }
     meshBuffer._iLen += len;
     meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
-    if (!canBatch) {
-      this._preElement = curElement;
-    }
+    !canBatch && (this._preElement = curElement);
   }
 
   private _reset(): void {
