@@ -247,9 +247,19 @@ describe("Physics Test", () => {
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE)).to.eq(true);
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything)).to.eq(true);
 
+      // Test that raycast the nearest collider.
+      const collider2 = raycastTestRoot.addComponent(DynamicCollider);
+      const outHitResult = new HitResult();
+      const box2 = new BoxColliderShape();
+      box2.position = new Vector3(0, 0.5, 0);
+      collider2.addShape(box2);
+
+      ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+      expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(true);
+      expect(outHitResult.shape.id).to.eq(box2.id);
+      collider2.destroy();
       // Test that raycast with outHitResult works correctly.
       ray = new Ray(new Vector3(3, 3, 3), new Vector3(-1, -1.25, -1));
-      const outHitResult = new HitResult();
       engineLite.physicsManager.raycast(ray, outHitResult);
       expect(engineLite.physicsManager.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.distance).to.be.closeTo(4.718, 0.01);
