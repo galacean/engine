@@ -80,7 +80,7 @@ function config({ location, pkgJson }) {
         ...commonPlugins
       ];
       if (compress) {
-        plugins.push(minify());
+        plugins.push(minify({ sourceMap: true }));
         file = path.join(location, "dist", "browser.min.js");
       }
 
