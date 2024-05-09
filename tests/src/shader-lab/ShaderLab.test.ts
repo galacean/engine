@@ -227,8 +227,9 @@ describe("ShaderLab", () => {
 
     const errorSpy = chai.spy.on(console, "error");
     Shader.create(demoShader);
-    expect(errorSpy).to.have.been.called.with("Shader named 'Glass' already exists.");
+    expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
     shaderInstance.destroy();
+    chai.spy.restore(console, "error");
 
     const sameNameShader = Shader.create(demoShader);
     expect(sameNameShader).instanceOf(Shader);

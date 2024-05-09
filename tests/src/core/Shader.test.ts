@@ -31,7 +31,8 @@ describe("Shader", () => {
       // Create same name shader
       const errorSpy = chai.spy.on(console, "error");
       Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
-      expect(errorSpy).to.have.been.called.with("Shader named 'custom' already exists.");
+      expect(errorSpy).to.have.been.called.with('Shader named "custom" already exists.');
+      chai.spy.restore(console, "error");
 
       // Create shader by empty SubShader array
       expect(() => {
