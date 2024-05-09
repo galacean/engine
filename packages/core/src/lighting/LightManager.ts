@@ -54,7 +54,6 @@ export class LightManager {
    * @internal
    */
   _attachSpotLight(light: SpotLight): void {
-    if (this._spotLights.length >= LightManager._maxLight) return;
     light._lightIndex = this._spotLights.length;
     this._spotLights.add(light);
   }
@@ -72,7 +71,6 @@ export class LightManager {
    * @internal
    */
   _attachPointLight(light: PointLight): void {
-    if (this._pointLights.length >= LightManager._maxLight) return;
     light._lightIndex = this._pointLights.length;
     this._pointLights.add(light);
   }
@@ -90,7 +88,6 @@ export class LightManager {
    * @internal
    */
   _attachDirectLight(light: DirectLight): void {
-    if (this._directLights.length >= LightManager._maxLight) return;
     light._lightIndex = this._directLights.length;
     this._directLights.add(light);
   }
@@ -110,9 +107,9 @@ export class LightManager {
   _updateShaderData(shaderData: ShaderData): void {
     const { _spotLights: spotLight, _pointLights: pointLight, _directLights: directLight } = this;
     const { _spotData: spotData, _pointData: pointData, _directData: directData } = this;
-    const spotLightCount = spotLight.length;
-    const pointLightCount = pointLight.length;
-    const directLightCount = directLight.length;
+    const spotLightCount = Math.min(spotLight.length, LightManager._maxLight);
+    const pointLightCount = Math.min(pointLight.length, LightManager._maxLight);
+    const directLightCount = Math.min(directLight.length, LightManager._maxLight);
 
     for (let i = 0; i < spotLightCount; i++) {
       spotLight.get(i)._appendData(i, spotData);
