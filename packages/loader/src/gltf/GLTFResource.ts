@@ -1,5 +1,6 @@
 import {
   AnimationClip,
+  AnimatorController,
   Camera,
   Engine,
   Entity,
@@ -27,6 +28,8 @@ export class GLTFResource extends ReferResource {
   readonly skins?: Skin[];
   /** AnimationClip after AnimationParser. */
   readonly animations?: AnimationClip[];
+  /** AnimatorController after AnimatorControllerParser. */
+  readonly animatorController?: AnimatorController;
 
   /** @internal */
   _defaultSceneRoot: Entity;
