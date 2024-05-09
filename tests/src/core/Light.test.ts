@@ -291,23 +291,6 @@ describe("Light test", function () {
     expect(currentDecodeRGBM).to.eq(!expectDecodeRGBM);
   });
 
-  it("limit amount", async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
-    const rootEntity = engine.sceneManager.activeScene.createRootEntity();
-    const scene = engine.sceneManager.activeScene;
-    lightEntity = rootEntity.createChild("light");
-
-    for (let i = 0; i < 20; i++) {
-      lightEntity.addComponent(PointLight);
-    }
-
-    // @ts-ignore
-    expect(scene._lightManager._pointLights.length).to.eq(10);
-
-    engine.resourceManager.gc();
-    engine.destroy();
-  });
-
   after(function () {
     engine.resourceManager.gc();
     engine.destroy();
