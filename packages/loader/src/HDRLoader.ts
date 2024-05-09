@@ -27,6 +27,7 @@ interface IHDRHeader {
   dataPosition: number;
 }
 
+// referenece: https://www.flipcode.com/archives/HDR_Image_Reader.shtml
 @resourceLoader(AssetType.HDR, ["hdr"])
 class HDRLoader extends Loader<TextureCube> {
   private static _rightBottomBack = new Vector3(1.0, -1.0, -1.0);
@@ -282,15 +283,14 @@ class HDRLoader extends Loader<TextureCube> {
     let offset = 0,
       pos = 0;
     const ptrEnd = 4 * scanLineWidth;
-    let a: number, b: number, c: number, d: number;
     const scanLineBuffer = new Uint8Array(ptrEnd);
     let numScanLines = height; // read in each successive scanLine
 
     while (numScanLines > 0 && pos < byteLength) {
-      a = buffer[pos++];
-      b = buffer[pos++];
-      c = buffer[pos++];
-      d = buffer[pos++];
+      const a = buffer[pos++];
+      const b = buffer[pos++];
+      const c = buffer[pos++];
+      const d = buffer[pos++];
 
       if (a != 2 || b != 2 || c & 0x80 || width < 8 || width > 32767) {
         // this file is not run length encoded
