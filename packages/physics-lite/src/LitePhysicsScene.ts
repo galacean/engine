@@ -126,10 +126,33 @@ export class LitePhysicsScene implements IPhysicsScene {
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    return (
-      this._raycast(ray, distance, onRaycast, this._staticColliders, hit) ||
-      this._raycast(ray, distance, onRaycast, this._dynamicColliders, hit)
-    );
+    if (!hit) {
+      return (
+        this._raycast(ray, distance, onRaycast, this._staticColliders, hit) ||
+        this._raycast(ray, distance, onRaycast, this._dynamicColliders, hit)
+      );
+    } else {
+      const raycastStaticRes = this._raycast(ray, distance, onRaycast, this._staticColliders, hit);
+      const raycastDynamicRes = this._raycast(
+        ray,
+        LitePhysicsScene._currentHit.distance,
+        onRaycast,
+        this._dynamicColliders,
+        hit
+      );
+      const isHit = raycastStaticRes || raycastDynamicRes;
+      const hitResult = LitePhysicsScene._hitResult;
+
+      if (!isHit && hitResult) {
+        hitResult.shapeID = -1;
+        hitResult.distance = 0;
+        hitResult.point.set(0, 0, 0);
+        hitResult.normal.set(0, 0, 0);
+      } else if (isHit && hitResult) {
+        hit(hitResult.shapeID, hitResult.distance, hitResult.point, hitResult.normal);
+      }
+      return isHit;
+    }
   }
 
   /**
@@ -326,14 +349,6 @@ export class LitePhysicsScene implements IPhysicsScene {
       }
     }
 
-    if (!isHit && hitResult) {
-      hitResult.shapeID = -1;
-      hitResult.distance = 0;
-      hitResult.point.set(0, 0, 0);
-      hitResult.normal.set(0, 0, 0);
-    } else if (isHit && hitResult) {
-      hit(hitResult.shapeID, hitResult.distance, hitResult.point, hitResult.normal);
-    }
     return isHit;
   }
 }
