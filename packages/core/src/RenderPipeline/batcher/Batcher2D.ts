@@ -161,10 +161,7 @@ export class Batcher2D {
     if (leftMaskInteraction !== right.maskInteraction) {
       return false;
     }
-    if (leftMaskInteraction === SpriteMaskInteraction.None) {
-      return true;
-    }
-    return left.maskLayer === right.maskLayer;
+    return leftMaskInteraction === SpriteMaskInteraction.None || left.maskLayer === right.maskLayer;
   }
 
   private _udpateRenderData(preElement: RenderElement, curElement: RenderElement, canBatch: boolean): void {
