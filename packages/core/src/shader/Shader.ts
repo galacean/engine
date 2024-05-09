@@ -91,7 +91,7 @@ export class Shader implements IReferable {
 
       const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
       if (shaderMap[shaderInfo.name]) {
-        console.error(`Shader named "${shaderInfo.name}" already exists.`)
+        console.error(`Shader named "${shaderInfo.name}" already exists.`);
         return;
       }
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
