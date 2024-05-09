@@ -143,12 +143,12 @@ export class LitePhysicsScene implements IPhysicsScene {
       const isHit = raycastStaticRes || raycastDynamicRes;
       const hitResult = LitePhysicsScene._hitResult;
 
-      if (!isHit && hitResult) {
+      if (!isHit) {
         hitResult.shapeID = -1;
         hitResult.distance = 0;
         hitResult.point.set(0, 0, 0);
         hitResult.normal.set(0, 0, 0);
-      } else if (isHit && hitResult) {
+      } else {
         hit(hitResult.shapeID, hitResult.distance, hitResult.point, hitResult.normal);
       }
       return isHit;
