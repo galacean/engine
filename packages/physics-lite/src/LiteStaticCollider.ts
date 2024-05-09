@@ -7,6 +7,8 @@ import { Quaternion, Vector3 } from "@galacean/engine";
  * @remarks Mostly used for object which always stays at the same place and never moves around.
  */
 export class LiteStaticCollider extends LiteCollider implements IStaticCollider {
+  /** @internal */
+  override readonly isStaticCollider: boolean = true;
   /**
    * Initialize static actor.
    * @param position - The global position

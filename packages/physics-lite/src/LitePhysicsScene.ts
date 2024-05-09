@@ -7,6 +7,7 @@ import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteStaticCollider } from "./LiteStaticCollider";
+import { LiteDynamicCollider } from "./LiteDynamicCollider";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -24,7 +25,8 @@ export class LitePhysicsScene implements IPhysicsScene {
   private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
 
-  private _colliders: LiteCollider[] = [];
+  private _staticColliders: LiteStaticCollider[] = [];
+  private _dynamicColliders: LiteDynamicCollider[] = [];
   private _sphere: BoundingSphere = new BoundingSphere();
   private _box: BoundingBox = new BoundingBox();
 
@@ -87,16 +89,18 @@ export class LitePhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsManager.addCollider }
    */
   addCollider(actor: LiteCollider): void {
-    this._colliders.push(actor);
+    const colliders = actor.isStaticCollider ? this._staticColliders : this._dynamicColliders;
+    colliders.push(actor);
   }
 
   /**
    * {@inheritDoc IPhysicsManager.removeCollider }
    */
   removeCollider(collider: LiteCollider): void {
-    const index = this._colliders.indexOf(collider);
+    const colliders = collider.isStaticCollider ? this._staticColliders : this._dynamicColliders;
+    const index = colliders.indexOf(collider);
     if (index !== -1) {
-      this._colliders.splice(index, 1);
+      colliders.splice(index, 1);
     }
   }
 
@@ -104,9 +108,9 @@ export class LitePhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsManager.update }
    */
   update(deltaTime: number): void {
-    let colliders = this._colliders;
-    for (let i = 0, len = colliders.length; i < len; i++) {
-      this._collisionDetection(deltaTime, colliders[i]);
+    const dynamicColliders = this._dynamicColliders;
+    for (let i = 0, len = dynamicColliders.length; i < len; i++) {
+      this._collisionDetection(deltaTime, dynamicColliders[i]);
     }
     this._fireEvent();
   }
@@ -120,7 +124,7 @@ export class LitePhysicsScene implements IPhysicsScene {
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const colliders = this._colliders;
+    const colliders = this._staticColliders.concat(this._dynamicColliders);
 
     let hitResult: LiteHitResult;
     if (hit) {
@@ -209,19 +213,14 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   private _collisionDetection(deltaTime: number, myCollider: LiteCollider): void {
-    const colliders = this._colliders;
-
+    const colliders = this._staticColliders.concat(this._dynamicColliders);
     const myColliderShapes = myCollider._shapes;
-    const isStatic = myCollider instanceof LiteStaticCollider;
     for (let i = 0, len = myColliderShapes.length; i < len; i++) {
       const myShape = myColliderShapes[i];
       if (myShape instanceof LiteBoxColliderShape) {
         LitePhysicsScene._updateWorldBox(myShape, this._box);
         for (let j = 0, len = colliders.length; j < len; j++) {
           const otherCollider = colliders[j];
-
-          if (isStatic && otherCollider instanceof LiteStaticCollider) continue;
-
           const colliderShape = otherCollider._shapes;
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
@@ -250,9 +249,6 @@ export class LitePhysicsScene implements IPhysicsScene {
         LitePhysicsScene._upWorldSphere(myShape, this._sphere);
         for (let j = 0, len = colliders.length; j < len; j++) {
           const otherCollider = colliders[j];
-
-          if (isStatic && otherCollider instanceof LiteStaticCollider) continue;
-
           const colliderShape = otherCollider._shapes;
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];

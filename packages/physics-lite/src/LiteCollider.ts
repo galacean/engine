@@ -9,6 +9,9 @@ import { LiteTransform } from "./LiteTransform";
  */
 export abstract class LiteCollider implements ICollider {
   /** @internal */
+  declare readonly isStaticCollider: boolean;
+
+  /** @internal */
   _shapes: LiteColliderShape[] = [];
   /** @internal */
   _transform: LiteTransform = new LiteTransform();
