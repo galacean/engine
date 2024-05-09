@@ -8,7 +8,7 @@ import { Quaternion, Vector3 } from "@galacean/engine";
  */
 export class LiteStaticCollider extends LiteCollider implements IStaticCollider {
   /** @internal */
-  override readonly _isStaticCollider: boolean = true;
+  readonly _isStaticCollider: boolean = true;
   /**
    * Initialize static actor.
    * @param position - The global position
