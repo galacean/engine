@@ -74,9 +74,11 @@ export class GLTFParserContext {
       return resource;
     }
 
-    const glTFKey = glTFSchemaMap[type];
-    if (glTFKey) {
-      const glTFItems = this.glTF[glTFKey];
+    const glTFSchemaKey = glTFSchemaMap[type];
+    const isSubAsset = !!glTFResourceMap[type];
+
+    if (glTFSchemaKey) {
+      const glTFItems = this.glTF[glTFSchemaKey];
       if (glTFItems && (index === undefined || glTFItems[index])) {
         if (index === undefined) {
           resource =
@@ -85,16 +87,14 @@ export class GLTFParserContext {
               : Promise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
         } else {
           resource = parser.parse(this, index);
+          isSubAsset && this._handleSubAsset(resource, type, index);
         }
       } else {
         resource = Promise.resolve<T>(null);
       }
     } else {
       resource = parser.parse(this, index);
-    }
-
-    if (index !== undefined || !glTFKey) {
-      this._handleSubAsset(resource, type, index);
+      isSubAsset && this._handleSubAsset(resource, type, index);
     }
 
     cache.set(cacheKey, resource);
