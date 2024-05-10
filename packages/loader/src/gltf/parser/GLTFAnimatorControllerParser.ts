@@ -10,13 +10,13 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.AnimatorController)
 export class GLTFAnimatorControllerParser extends GLTFParser {
   parse(context: GLTFParserContext): Promise<AnimatorController> {
+    if (!context.needAnimatorController) {
+      return Promise.resolve(null);
+    }
+
     return context.get<AnimationClip>(GLTFParserType.Animation).then((animations) => {
-      if (context.needAnimatorController) {
-        const animatorController = this._createAnimatorController(animations);
-        return Promise.resolve(animatorController);
-      } else {
-        return Promise.resolve(null);
-      }
+      const animatorController = this._createAnimatorController(animations);
+      return Promise.resolve(animatorController);
     });
   }
 
