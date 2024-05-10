@@ -60,7 +60,7 @@ export class SpriteMaskManager {
     const preMaskLayer = this._preMaskLayer;
     const curMaskLayer = renderer.maskLayer;
     if (preMaskLayer !== curMaskLayer) {
-      const { _allSpriteMasks: masks } = this;
+      const { _allSpriteMasks: masks, _batcher } = this;
       const commonLayer = preMaskLayer & curMaskLayer;
       const addLayer = curMaskLayer & ~preMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
@@ -76,13 +76,13 @@ export class SpriteMaskManager {
 
         if (influenceLayers & addLayer) {
           const maskRenderElement = mask._maskElement;
-          this._batcher.drawElement(maskRenderElement, camera, StencilOperation.IncrementSaturate);
+          _batcher.drawElement(maskRenderElement, camera, StencilOperation.IncrementSaturate);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const maskRenderElement = mask._maskElement;
-          this._batcher.drawElement(maskRenderElement, camera, StencilOperation.DecrementSaturate);
+          _batcher.drawElement(maskRenderElement, camera, StencilOperation.DecrementSaturate);
         }
       }
     }

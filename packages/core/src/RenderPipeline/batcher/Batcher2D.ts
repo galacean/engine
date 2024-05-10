@@ -1,8 +1,9 @@
-import { SpriteMaskInteraction, SpriteRenderer } from "../../2d";
+import { SpriteMaskInteraction, SpriteRenderer, TextRenderer } from "../../2d";
 import { Engine } from "../../Engine";
-import { ShaderProperty, ShaderTagKey } from "../../shader";
-import { RenderContext } from "../RenderContext";
+import { ShaderTagKey } from "../../shader";
+import { RenderElement } from "../RenderElement";
 import { SpriteRenderData } from "../SpriteRenderData";
+import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { MBChunk, MeshBuffer } from "./MeshBuffer";
 
 /**
@@ -20,13 +21,13 @@ export class Batcher2D {
   /** @internal */
   _meshBuffers: MeshBuffer[] = [];
   /** @internal */
-  _preContext: RenderContext = null;
+  _maxVertexCount: number;
   /** @internal */
-  _preRenderData: SpriteRenderData = null;
+  _preElement: RenderElement = null;
 
   constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
     this._engine = engine;
-    this._createMeshBuffer(0, maxVertexCount);
+    this._maxVertexCount = maxVertexCount;
   }
 
   /**
@@ -39,32 +40,36 @@ export class Batcher2D {
     }
     _meshBuffers.length = 0;
     this._meshBuffers = null;
+    this._engine = null;
+    this._preElement = null;
   }
 
-  commitRenderData(context: RenderContext, data: SpriteRenderData): void {
-    const { _preRenderData: preRenderData } = this;
-    if (preRenderData) {
-      if (this._canBatch(preRenderData, data)) {
-        this._udpateRenderData(context, preRenderData, data, true);
+  batch(srcElements, dstElements): void {
+    const len = srcElements.length;
+    if (len === 0) {
+      return;
+    }
+
+    for (let i = 0; i < len; ++i) {
+      const element = srcElements[i];
+      if (element.data.usage === RenderDataUsage.Mesh) {
+        if (this._preElement) {
+          dstElements.push(this._preElement);
+          this._preElement = null;
+        }
+        dstElements.push(element);
       } else {
-        this.flush();
-        this._udpateRenderData(context, preRenderData, data, false);
+        const newElement = this._commitRenderElement(element);
+        if (newElement) {
+          dstElements.push(newElement);
+        }
       }
-    } else {
-      this._udpateRenderData(context, preRenderData, data, false);
     }
-  }
-
-  flush(): void {
-    const { _preRenderData: preRenderData } = this;
-    preRenderData && this._preContext.camera._renderPipeline.pushRenderData(this._preContext, preRenderData);
-  }
-
-  uploadBuffer(): void {
-    const { _meshBuffers: meshBuffers } = this;
-    for (let i = 0, l = meshBuffers.length; i < l; ++i) {
-      meshBuffers[i].uploadBuffer();
+    if (this._preElement) {
+      dstElements.push(this._preElement);
+      this._preElement = null;
     }
+    this._uploadBuffer();
   }
 
   clear() {
@@ -77,10 +82,9 @@ export class Batcher2D {
 
   allocateChunk(vertexCount: number): MBChunk | null {
     const { _meshBuffers } = this;
-    let chunk: MBChunk = null;
-    let i = 0;
     const len = _meshBuffers.length;
-    for (; i < len; ++i) {
+    let chunk: MBChunk = null;
+    for (let i = 0; i < len; ++i) {
       chunk = _meshBuffers[i].allocateChunk(vertexCount);
       if (chunk) {
         chunk._mbId = i;
@@ -88,13 +92,10 @@ export class Batcher2D {
       }
     }
 
-    const meshBuffer = this._createMeshBuffer(len);
+    const meshBuffer = this._createMeshBuffer(len, this._maxVertexCount);
     chunk = meshBuffer.allocateChunk(vertexCount);
-    if (chunk) {
-      chunk._mbId = len;
-      return chunk;
-    }
-    return null;
+    chunk._mbId = len;
+    return chunk;
   }
 
   freeChunk(chunk: MBChunk): void {
@@ -103,55 +104,59 @@ export class Batcher2D {
   }
 
   protected _createMeshBuffer(index: number, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT): MeshBuffer {
-    const { _meshBuffers } = this;
-    if (_meshBuffers[index]) {
-      return _meshBuffers[index];
-    }
-
-    const meshBuffer = (_meshBuffers[index] = new MeshBuffer(this._engine, maxVertexCount));
-    return meshBuffer;
+    return (this._meshBuffers[index] ||= new MeshBuffer(this._engine, maxVertexCount));
   }
 
-  private _canBatch(preRenderData: SpriteRenderData, curRenderData: SpriteRenderData): boolean {
+  protected _uploadBuffer(): void {
+    const { _meshBuffers: meshBuffers } = this;
+    for (let i = 0, l = meshBuffers.length; i < l; ++i) {
+      meshBuffers[i].uploadBuffer();
+    }
+  }
+
+  private _commitRenderElement(element: RenderElement): RenderElement | null {
+    const { _preElement: preElement } = this;
+    let batchElement = null;
+    if (preElement) {
+      if (this._canBatch(preElement, element)) {
+        this._udpateRenderData(preElement, element, true);
+      } else {
+        batchElement = this._preElement;
+        this._udpateRenderData(preElement, element, false);
+      }
+    } else {
+      this._udpateRenderData(preElement, element, false);
+    }
+
+    return batchElement;
+  }
+
+  private _canBatch(preElement: RenderElement, cureElement: RenderElement): boolean {
+    const preRenderData = <SpriteRenderData>preElement.data;
+    const curRenderData = <SpriteRenderData>cureElement.data;
     if (preRenderData.chunk._meshBuffer !== curRenderData.chunk._meshBuffer) {
       return false;
     }
 
-    const preRender = <SpriteRenderer>preRenderData.component;
-    const curRender = <SpriteRenderer>curRenderData.component;
+    const preRender = <SpriteRenderer | TextRenderer>preRenderData.component;
+    const curRender = <SpriteRenderer | TextRenderer>curRenderData.component;
 
     // Compare mask.
-    if (!this._checkBatchWithMask(preRender, curRender)) {
+    const preMaskInteraction = preRender.maskInteraction;
+    if (
+      preMaskInteraction !== curRender.maskInteraction ||
+      (preMaskInteraction !== SpriteMaskInteraction.None && preRender.maskLayer !== curRender.maskLayer)
+    ) {
       return false;
     }
 
-    // Compare texture.
-    if (preRenderData.texture !== curRenderData.texture) {
-      return false;
-    }
-
-    // Compare material.
-    return preRenderData.material === curRenderData.material;
+    // Compare texture and material.
+    return preRenderData.texture === curRenderData.texture && preRenderData.material === curRenderData.material;
   }
 
-  private _checkBatchWithMask(left: SpriteRenderer, right: SpriteRenderer): boolean {
-    const leftMaskInteraction = left.maskInteraction;
-
-    if (leftMaskInteraction !== right.maskInteraction) {
-      return false;
-    }
-    if (leftMaskInteraction === SpriteMaskInteraction.None) {
-      return true;
-    }
-    return left.maskLayer === right.maskLayer;
-  }
-
-  private _udpateRenderData(
-    context: RenderContext,
-    preRenderData: SpriteRenderData,
-    curRenderData: SpriteRenderData,
-    canBatch: boolean
-  ): void {
+  private _udpateRenderData(preElement: RenderElement, curElement: RenderElement, canBatch: boolean): void {
+    const preRenderData = preElement ? <SpriteRenderData>preElement.data : null;
+    const curRenderData = <SpriteRenderData>curElement.data;
     const { chunk } = curRenderData;
     const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
     const { _indices: indices } = meshBuffer;
@@ -172,14 +177,10 @@ export class Batcher2D {
     }
     meshBuffer._iLen += len;
     meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
-    if (!canBatch) {
-      this._preContext = context;
-      this._preRenderData = curRenderData;
-    }
+    !canBatch && (this._preElement = curElement);
   }
 
   private _reset(): void {
-    this._preContext = null;
-    this._preRenderData = null;
+    this._preElement = null;
   }
 }

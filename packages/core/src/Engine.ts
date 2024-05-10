@@ -518,7 +518,8 @@ export class Engine extends EventDispatcher {
   _render(scenes: ReadonlyArray<Scene>): void {
     // Update `Renderer` logic and shader data
     const deltaTime = this.time.deltaTime;
-    for (let i = 0, n = scenes.length; i < n; i++) {
+    const sceneCount = scenes.length;
+    for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callRendererOnUpdate(deltaTime);
@@ -526,7 +527,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire script `onBeginRender` and `onEndRender`
-    for (let i = 0, n = scenes.length; i < n; i++) {
+    for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       const cameras = scene._componentsManager._activeCameras;

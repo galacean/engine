@@ -44,7 +44,7 @@ export class SpriteMaskBatcher extends Batcher2D {
       stencilOps.push(this._preOp);
     }
 
-    this.uploadBuffer();
+    this._uploadBuffer();
     this.drawBatches(camera);
   }
 

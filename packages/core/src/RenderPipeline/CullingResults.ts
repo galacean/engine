@@ -1,6 +1,6 @@
-import { Engine } from "../Engine";
 import { RenderQueueType } from "../shader";
 import { RenderQueue } from "./RenderQueue";
+import { BatcherManager } from "./batcher/BatcherManager";
 
 /**
  * @internal
@@ -27,6 +27,12 @@ export class CullingResults {
     this.opaqueQueue.sort(RenderQueue._compareForOpaque);
     this.alphaTestQueue.sort(RenderQueue._compareForOpaque);
     this.transparentQueue.sort(RenderQueue._compareForTransparent);
+  }
+
+  batch(batcherManager: BatcherManager): void {
+    this.opaqueQueue.batch(batcherManager);
+    this.alphaTestQueue.batch(batcherManager);
+    this.transparentQueue.batch(batcherManager);
   }
 
   destroy(): void {

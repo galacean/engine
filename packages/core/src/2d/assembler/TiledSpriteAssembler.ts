@@ -85,7 +85,6 @@ export class TiledSpriteAssembler {
     }
     this.resetData(renderer, vertexCount, indicesCount);
 
-    const { r: colorR, g: colorG, b: colorB, a: colorA } = renderer.color;
     const { _chunk: chunk } = renderer;
     const vertices = chunk._meshBuffer._vertices;
     const indices = chunk._indices;
@@ -96,7 +95,6 @@ export class TiledSpriteAssembler {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
-        const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
         if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
@@ -116,48 +114,28 @@ export class TiledSpriteAssembler {
         const t = posColumn.get(j + 1);
 
         // left and bottom
-        vertices[index++] = wE0 * l + wE4 * b + wE12;
-        vertices[index++] = wE1 * l + wE5 * b + wE13;
-        vertices[index++] = wE2 * l + wE6 * b + wE14;
-        vertices[index++] = uvL;
-        vertices[index++] = uvB;
-        vertices[index++] = colorR;
-        vertices[index++] = colorG;
-        vertices[index++] = colorB;
-        vertices[index++] = colorA;
+        vertices[index] = wE0 * l + wE4 * b + wE12;
+        vertices[index + 1] = wE1 * l + wE5 * b + wE13;
+        vertices[index + 2] = wE2 * l + wE6 * b + wE14;
+        index += 9;
 
         // right and bottom
-        vertices[index++] = wE0 * r + wE4 * b + wE12;
-        vertices[index++] = wE1 * r + wE5 * b + wE13;
-        vertices[index++] = wE2 * r + wE6 * b + wE14;
-        vertices[index++] = uvR;
-        vertices[index++] = uvB;
-        vertices[index++] = colorR;
-        vertices[index++] = colorG;
-        vertices[index++] = colorB;
-        vertices[index++] = colorA;
+        vertices[index] = wE0 * r + wE4 * b + wE12;
+        vertices[index + 1] = wE1 * r + wE5 * b + wE13;
+        vertices[index + 2] = wE2 * r + wE6 * b + wE14;
+        index += 9;
 
         // left and top
-        vertices[index++] = wE0 * l + wE4 * t + wE12;
-        vertices[index++] = wE1 * l + wE5 * t + wE13;
-        vertices[index++] = wE2 * l + wE6 * t + wE14;
-        vertices[index++] = uvL;
-        vertices[index++] = uvT;
-        vertices[index++] = colorR;
-        vertices[index++] = colorG;
-        vertices[index++] = colorB;
-        vertices[index++] = colorA;
+        vertices[index] = wE0 * l + wE4 * t + wE12;
+        vertices[index + 1] = wE1 * l + wE5 * t + wE13;
+        vertices[index + 2] = wE2 * l + wE6 * t + wE14;
+        index += 9;
 
         // right and top
-        vertices[index++] = wE0 * r + wE4 * t + wE12;
-        vertices[index++] = wE1 * r + wE5 * t + wE13;
-        vertices[index++] = wE2 * r + wE6 * t + wE14;
-        vertices[index++] = uvR;
-        vertices[index++] = uvT;
-        vertices[index++] = colorR;
-        vertices[index++] = colorG;
-        vertices[index++] = colorB;
-        vertices[index++] = colorA;
+        vertices[index] = wE0 * r + wE4 * t + wE12;
+        vertices[index + 1] = wE1 * r + wE5 * t + wE13;
+        vertices[index + 2] = wE2 * r + wE6 * t + wE14;
+        index += 9;
       }
     }
 
@@ -167,18 +145,57 @@ export class TiledSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {}
+  static updateUVs(renderer: SpriteRenderer): void {
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    const rowLength = posRow.length - 1;
+    const columnLength = posColumn.length - 1;
+    const { _chunk: chunk } = renderer;
+    const vertices = chunk._meshBuffer._vertices;
+    let index = chunk._vEntry.start + 3;
+    for (let j = 0; j < columnLength; j++) {
+      const doubleJ = 2 * j;
+      for (let i = 0; i < rowLength; i++) {
+        const uvL = uvRow.get(2 * i);
+        const uvB = uvColumn.get(doubleJ);
+        const uvR = uvRow.get(2 * i + 1);
+        const uvT = uvColumn.get(doubleJ + 1);
+        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
+          continue;
+        }
+
+        // left and bottom
+        vertices[index] = uvL;
+        vertices[index + 1] = uvB;
+        index += 9;
+
+        // right and bottom
+        vertices[index] = uvR;
+        vertices[index + 1] = uvB;
+        index += 9;
+
+        // left and top
+        vertices[index] = uvL;
+        vertices[index + 1] = uvT;
+        index += 9;
+
+        // right and top
+        vertices[index] = uvR;
+        vertices[index + 1] = uvT;
+        index += 9;
+      }
+    }
+  }
 
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
-    const { color } = renderer;
+    const { r, g, b, a } = renderer.color;
     const vertices = chunk._meshBuffer._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0, l = chunk._vEntry.len / 9; i < l; ++i) {
-      vertices[index] = color.r;
-      vertices[index + 1] = color.g;
-      vertices[index + 2] = color.b;
-      vertices[index + 3] = color.a;
+      vertices[index] = r;
+      vertices[index + 1] = g;
+      vertices[index + 2] = b;
+      vertices[index + 3] = a;
       index += 9;
     }
   }

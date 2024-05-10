@@ -64,15 +64,19 @@ export class MeshBuffer {
   /** @internal */
   _indices: Uint16Array;
 
-  /** @internal */
-  _vLen: number = 0; // _vertices 需要上传的数据长度
-  /** @internal */
-  _iLen: number = 0; // _indices 需要上传的数据长度
+  /**
+   * @internal
+   * The length of _vertices needed to be uploaded.
+   * */
+  _vLen: number = 0;
+  /**
+   * @internal
+   * The length of _indices needed to be uploaded.
+   * */
+  _iLen: number = 0;
 
   /** @internal */
   _vFreeEntries: Entry[] = [];
-  /** @internal */
-  _iFreeEntries: Entry[] = [];
   /** @internal */
   _entryPool: Pool<Entry> = new Pool(Entry, 10);
   /** @internal */
@@ -111,7 +115,6 @@ export class MeshBuffer {
     this._vertices = new Float32Array(vertexLen);
     this._indices = new Uint16Array(indiceLen);
     this._vFreeEntries.push(new Entry(0, vertexLen));
-    this._iFreeEntries.push(new Entry(0, indiceLen));
   }
 
   destroy(): void {
@@ -197,26 +200,28 @@ export class MeshBuffer {
 
     const { _entryPool: pool } = this;
     let preEntry = entry;
+    let notMerge = true;
     for (let i = 0; i < entryLen; ++i) {
       const curEntry = entries[i];
       const { start, len } = preEntry;
       const preEnd = start + len;
       const curEnd = curEntry.start + curEntry.len;
       if (preEnd < curEntry.start) {
-        entries.splice(i, 0, preEntry);
+        notMerge && entries.splice(i, 0, preEntry);
         return;
       } else if (preEnd === curEntry.start) {
         curEntry.start = preEntry.start;
         curEntry.len += preEntry.len;
         pool.free(preEntry);
         preEntry = curEntry;
+        notMerge = false;
       } else if (start === curEnd) {
         curEntry.len += preEntry.len;
         pool.free(preEntry);
         preEntry = curEntry;
+        notMerge = false;
       } else if (start > curEnd) {
-        entries.splice(i + 1, 0, preEntry);
-        preEntry = curEntry;
+        i + 1 === entryLen && entries.push(preEntry);
       }
     }
   }

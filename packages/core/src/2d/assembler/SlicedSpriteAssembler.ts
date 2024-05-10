@@ -139,14 +139,14 @@ export class SlicedSpriteAssembler {
 
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
-    const { color } = renderer;
+    const { r, g, b, a } = renderer.color;
     const vertices = chunk._meshBuffer._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0; i < 16; ++i) {
-      vertices[index] = color.r;
-      vertices[index + 1] = color.g;
-      vertices[index + 2] = color.b;
-      vertices[index + 3] = color.a;
+      vertices[index] = r;
+      vertices[index + 1] = g;
+      vertices[index + 2] = b;
+      vertices[index + 3] = a;
       index += 9;
     }
   }

@@ -11,11 +11,10 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
-import { CharRenderData } from "./CharRenderData";
+import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
-import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Pool } from "../../utils/Pool";
 
@@ -23,20 +22,17 @@ import { Pool } from "../../utils/Pool";
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
-  private static _charRenderDataPool: Pool<CharRenderData> = new Pool(CharRenderData, 50);
+  private static _charRenderInfoPool: Pool<CharRenderInfo> = new Pool(CharRenderInfo, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
-  private static _worldPosition0: Vector3 = new Vector3();
-  private static _worldPosition1: Vector3 = new Vector3();
-  private static _worldPosition2: Vector3 = new Vector3();
-  private static _worldPosition3: Vector3 = new Vector3();
+  private static _worldPositions: Array<Vector3> = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
 
   /** @internal */
   @assignmentClone
   _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
-  _charRenderDatas: CharRenderData[] = [];
+  _charRenderInfos: CharRenderInfo[] = [];
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
 
@@ -326,13 +322,16 @@ export class TextRenderer extends Renderer {
 
     super._onDestroy();
     // Clear render data.
-    const pool = TextRenderer._charRenderDataPool;
-    const charRenderDatas = this._charRenderDatas;
-    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
-      this.engine._batcherManager._batcher2D.freeChunk(charRenderDatas[i].chunk);
-      pool.free(charRenderDatas[i]);
+    const pool = TextRenderer._charRenderInfoPool;
+    const charRenderInfos = this._charRenderInfos;
+    const batcher2D = this.engine._batcherManager._batcher2D;
+    for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
+      const charRenderInfo = charRenderInfos[i];
+      batcher2D.freeChunk(charRenderInfo.chunk);
+      charRenderInfo.chunk = null;
+      pool.free(charRenderInfo);
     }
-    charRenderDatas.length = 0;
+    charRenderInfos.length = 0;
 
     this._subFont && (this._subFont = null);
   }
@@ -371,13 +370,13 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (onlyMVP) {
+    if (this.getMaterial() === this.engine._spriteDefaultMaterial || onlyMVP) {
       // @ts-ignore
       this._updateMVPShaderData(context, Matrix._identity);
-      return;
+    } else {
+      // @ts-ignore
+      this._updateTransformShaderData(context, Matrix._identity);
     }
-    // @ts-ignore
-    this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
@@ -418,19 +417,18 @@ export class TextRenderer extends Renderer {
     const { engine } = context.camera;
     const spriteRenderDataPool = engine._spriteRenderDataPool;
     const material = this.getMaterial();
-    const charRenderDatas = this._charRenderDatas;
-    const charCount = charRenderDatas.length;
+    const charRenderInfos = this._charRenderInfos;
+    const charCount = charRenderInfos.length;
 
-    let spriteRenderDatas: Array<SpriteRenderData> = [];
+    const batcherManager = engine._batcherManager;
     for (let i = 0; i < charCount; ++i) {
-      const charRenderData = charRenderDatas[i];
+      const charRenderInfo = charRenderInfos[i];
       const renderData = spriteRenderDataPool.getFromPool();
-      const { chunk } = charRenderData;
-      renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, charRenderData.texture, chunk);
+      const { chunk } = charRenderInfo;
+      renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
       renderData.usage = RenderDataUsage.Text;
-      spriteRenderDatas.push(renderData);
+      batcherManager.commitRenderData(context, renderData);
     }
-    engine._batcherManager.commitRenderData(context, spriteRenderDatas);
   }
 
   private _updateStencilState(): void {
@@ -465,7 +463,7 @@ export class TextRenderer extends Renderer {
   private _updatePosition(): void {
     const { transform } = this.entity;
     const e = transform.worldMatrix.elements;
-    const charRenderDatas = this._charRenderDatas;
+    const charRenderInfos = this._charRenderInfos;
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
@@ -475,38 +473,40 @@ export class TextRenderer extends Renderer {
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
 
-    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
-      const charRenderData = charRenderDatas[i];
-      const { localPositions } = charRenderData;
+    const worldPosition0 = TextRenderer._worldPositions[0];
+    const worldPosition1 = TextRenderer._worldPositions[1];
+    const worldPosition2 = TextRenderer._worldPositions[2];
+    const worldPosition3 = TextRenderer._worldPositions[3];
+
+    for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
+      const charRenderInfo = charRenderInfos[i];
+      const { localPositions } = charRenderInfo;
       const { x: topLeftX, y: topLeftY } = localPositions;
 
       // Top-Left
-      const worldPosition0 = TextRenderer._worldPosition0;
       worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
       worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
       worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
 
       // Right offset
-      const worldPosition1 = TextRenderer._worldPosition1;
       Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
 
       // Top-Right
       Vector3.add(worldPosition0, worldPosition1, worldPosition1);
 
       // Up offset
-      const worldPosition2 = TextRenderer._worldPosition2;
       Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
 
       // Bottom-Left
-      Vector3.add(worldPosition0, worldPosition2, TextRenderer._worldPosition3);
+      Vector3.add(worldPosition0, worldPosition2, worldPosition3);
       // Bottom-Right
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-      const { chunk } = charRenderData;
+      const { chunk } = charRenderInfo;
       const vertices = chunk._meshBuffer._vertices;
       let index = chunk._vEntry.start;
       for (let i = 0; i < 4; ++i) {
-        const position = TextRenderer[`_worldPosition${i}`];
+        const position = TextRenderer._worldPositions[i];
         vertices[index] = position.x;
         vertices[index + 1] = position.y;
         vertices[index + 2] = position.z;
@@ -517,12 +517,12 @@ export class TextRenderer extends Renderer {
 
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
-    const { color, _charRenderDatas: charRenderDatas, _subFont: charFont } = this;
+    const { color, _charRenderInfos: charRenderInfos, _subFont: charFont } = this;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-    const charRenderDataPool = TextRenderer._charRenderDataPool;
+    const charRenderInfoPool = TextRenderer._charRenderInfoPool;
     const linesLen = lines.length;
     let renderDataCount = 0;
 
@@ -580,10 +580,10 @@ export class TextRenderer extends Renderer {
             const charInfo = charFont._getCharInfo(char);
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
-              const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.alloc());
-              charRenderData.init(this.engine);
-              const { chunk, localPositions } = charRenderData;
-              charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+              const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.alloc());
+              charRenderInfo.init(this.engine);
+              const { chunk, localPositions } = charRenderInfo;
+              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               const vertices = chunk._meshBuffer._vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
@@ -627,17 +627,19 @@ export class TextRenderer extends Renderer {
     }
 
     // Revert excess render data to pool.
-    const lastRenderDataCount = charRenderDatas.length;
+    const lastRenderDataCount = charRenderInfos.length;
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
-        this.engine._batcherManager._batcher2D.freeChunk(charRenderDatas[i].chunk);
-        charRenderDataPool.free(charRenderDatas[i]);
+        const charRenderInfo = charRenderInfos[i];
+        this.engine._batcherManager._batcher2D.freeChunk(charRenderInfo.chunk);
+        charRenderInfo.chunk = null;
+        charRenderInfoPool.free(charRenderInfo);
       }
-      charRenderDatas.length = renderDataCount;
+      charRenderInfos.length = renderDataCount;
     }
 
     charFont._getLastIndex() > 0 &&
-      charRenderDatas.sort((a, b) => {
+      charRenderInfos.sort((a, b) => {
         return a.texture.instanceId - b.texture.instanceId;
       });
   }

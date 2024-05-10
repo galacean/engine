@@ -5,6 +5,7 @@ import { RenderQueueType, Shader, ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
+import { BatcherManager } from "./batcher/BatcherManager";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 /**
@@ -19,22 +20,16 @@ export class RenderQueue {
   static _compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const componentA = dataA.component;
-    const componentB = dataB.component;
-    const priorityOrder = componentA.priority - componentB.priority;
+    const priorityOrder = dataA._priority - dataB._priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
-    // make suer from the same renderer.
-    if (componentA.instanceId === componentB.instanceId) {
-      return dataA.material._priority - dataB.material._priority;
+    // make sure from the same renderer.
+    const instanceIdDiff = dataA._componentInstanceId - dataB._componentInstanceId;
+    if (instanceIdDiff === 0) {
+      return dataA._materialPriority - dataB._materialPriority;
     } else {
-      const distanceDiff = componentA._distanceForSort - componentB._distanceForSort;
-      if (distanceDiff === 0) {
-        return componentA.instanceId - componentB.instanceId;
-      } else {
-        return distanceDiff;
-      }
+      return dataA._distanceForSort - dataB._distanceForSort || instanceIdDiff;
     }
   }
 
@@ -44,25 +39,20 @@ export class RenderQueue {
   static _compareForTransparent(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const componentA = dataA.component;
-    const componentB = dataB.component;
-    const priorityOrder = componentA.priority - componentB.priority;
+    const priorityOrder = dataA._priority - dataB._priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
-    // make suer from the same renderer.
-    if (componentA.instanceId === componentB.instanceId) {
-      return dataA.material._priority - dataB.material._priority;
+    // make sure from the same renderer.
+    const instanceIdDiff = dataA._componentInstanceId - dataB._componentInstanceId;
+    if (instanceIdDiff === 0) {
+      return dataA._materialPriority - dataB._materialPriority;
     } else {
-      const distanceDiff = componentB._distanceForSort - componentA._distanceForSort;
-      if (distanceDiff === 0) {
-        return componentA.instanceId - componentB.instanceId;
-      } else {
-        return distanceDiff;
-      }
+      return dataB._distanceForSort - dataA._distanceForSort || instanceIdDiff;
     }
   }
 
+  readonly batchedElements: RenderElement[] = [];
   readonly elements: RenderElement[] = [];
 
   private readonly _renderQueueType: RenderQueueType;
@@ -78,9 +68,14 @@ export class RenderQueue {
     this.elements.push(element);
   }
 
+  batch(batcherManager: BatcherManager): void {
+    batcherManager.batch(this.elements, this.batchedElements);
+  }
+
   render(camera: Camera, pipelineStageTagValue: string): void {
-    const elements = this.elements;
-    if (elements.length === 0) {
+    const { batchedElements } = this;
+    const len = batchedElements.length;
+    if (len === 0) {
       return;
     }
 
@@ -93,8 +88,8 @@ export class RenderQueue {
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this._renderQueueType;
 
-    for (let i = 0, n = elements.length; i < n; i++) {
-      const element = elements[i];
+    for (let i = 0; i < len; i++) {
+      const element = batchedElements[i];
       const { data, shaderPasses } = element;
 
       const { usage } = data;
@@ -200,6 +195,7 @@ export class RenderQueue {
    * Clear collection.
    */
   clear(): void {
+    this.batchedElements.length = 0;
     this.elements.length = 0;
   }
 

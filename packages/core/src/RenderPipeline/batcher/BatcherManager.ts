@@ -1,7 +1,7 @@
 import { Engine } from "../../Engine";
 import { RenderContext } from "../RenderContext";
 import { RenderData } from "../RenderData";
-import { SpriteRenderData } from "../SpriteRenderData";
+import { RenderElement } from "../RenderElement";
 import { RenderDataUsage } from "../enums/RenderDataUsage";
 import { Batcher2D } from "./Batcher2D";
 
@@ -18,40 +18,27 @@ export class BatcherManager {
 
   destroy() {
     this._batcher2D.destroy();
+    this._batcher2D = null;
+    this._engine = null;
   }
 
-  commitRenderData(context: RenderContext, data: RenderData | Array<RenderData>): void {
-    if (data instanceof Array) {
-      for (let i = 0, l = data.length; i < l; ++i) {
-        this._handleRenderData(context, data[i]);
-      }
-    } else {
-      this._handleRenderData(context, data);
+  commitRenderData(context: RenderContext, data: RenderData): void {
+    switch (data.usage) {
+      case RenderDataUsage.Mesh:
+      case RenderDataUsage.Sprite:
+      case RenderDataUsage.Text:
+        context.camera._renderPipeline.pushRenderData(context, data);
+        break;
+      default:
+        break;
     }
   }
 
-  flush(): void {
-    this._batcher2D.flush();
-  }
-
-  uploadBuffer(): void {
-    this._batcher2D.uploadBuffer();
+  batch(elements: Array<RenderElement>, batchedElements: Array<RenderElement>): void {
+    this._batcher2D.batch(elements, batchedElements);
   }
 
   clear() {
     this._batcher2D.clear();
-  }
-
-  private _handleRenderData(context: RenderContext, data: RenderData): void {
-    switch (data.usage) {
-      case RenderDataUsage.Mesh:
-        this._batcher2D.flush();
-        context.camera._renderPipeline.pushRenderData(context, data);
-        break;
-      case RenderDataUsage.Sprite:
-      case RenderDataUsage.Text:
-        this._batcher2D.commitRenderData(context, <SpriteRenderData>data);
-        break;
-    }
   }
 }
