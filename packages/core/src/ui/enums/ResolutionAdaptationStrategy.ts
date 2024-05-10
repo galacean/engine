@@ -1,5 +1,5 @@
 /**
- *
+ * Resolution adaptation strategy.
  */
 export enum ResolutionAdaptationStrategy {
   WidthAdaptation,

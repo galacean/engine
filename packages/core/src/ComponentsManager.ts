@@ -4,6 +4,7 @@ import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { UICanvas } from "./ui";
 
 /**
  * The manager of the components.
@@ -15,6 +16,8 @@ export class ComponentsManager {
   _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+  /** @internal */
+  _uiCanvases: DisorderedArray<UICanvas> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -67,6 +70,17 @@ export class ComponentsManager {
     const replaced = this._renderers.deleteByIndex(renderer._rendererIndex);
     replaced && (replaced._rendererIndex = renderer._rendererIndex);
     renderer._rendererIndex = -1;
+  }
+
+  addUICanvas(uiCanvas: UICanvas) {
+    uiCanvas._uiCanvasIndex = this._uiCanvases.length;
+    this._uiCanvases.add(uiCanvas);
+  }
+
+  removeUICanvas(uiCanvas: UICanvas) {
+    const replaced = this._uiCanvases.deleteByIndex(uiCanvas._uiCanvasIndex);
+    replaced && (replaced._uiCanvasIndex = uiCanvas._uiCanvasIndex);
+    uiCanvas._uiCanvasIndex = -1;
   }
 
   addOnStartScript(script: Script) {
@@ -255,6 +269,7 @@ export class ComponentsManager {
    */
   _gc() {
     this._renderers.garbageCollection();
+    this._uiCanvases.garbageCollection();
     this._onStartScripts.garbageCollection();
     this._onUpdateScripts.garbageCollection();
     this._onLateUpdateScripts.garbageCollection();
