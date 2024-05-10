@@ -107,9 +107,10 @@ export class LightManager {
   _updateShaderData(shaderData: ShaderData): void {
     const { _spotLights: spotLight, _pointLights: pointLight, _directLights: directLight } = this;
     const { _spotData: spotData, _pointData: pointData, _directData: directData } = this;
-    const spotLightCount = spotLight.length;
-    const pointLightCount = pointLight.length;
-    const directLightCount = directLight.length;
+    const maxLight = LightManager._maxLight;
+    const spotLightCount = Math.min(spotLight.length, maxLight);
+    const pointLightCount = Math.min(pointLight.length, maxLight);
+    const directLightCount = Math.min(directLight.length, maxLight);
 
     for (let i = 0; i < spotLightCount; i++) {
       spotLight.get(i)._appendData(i, spotData);
