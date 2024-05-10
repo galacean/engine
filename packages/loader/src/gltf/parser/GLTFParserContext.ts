@@ -161,7 +161,6 @@ export class GLTFParserContext {
     index?: number
   ): void {
     const glTFResourceKey = glTFResourceMap[type];
-    if (!glTFResourceKey) return;
 
     if (type === GLTFParserType.Entity) {
       (this.glTFResource[glTFResourceKey] ||= [])[index] = <Entity>resource;
