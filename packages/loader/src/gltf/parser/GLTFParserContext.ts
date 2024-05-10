@@ -113,19 +113,19 @@ export class GLTFParserContext {
         this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
+        this.get<AnimatorController>(GLTFParserType.AnimatorController),
         this.get<Entity>(GLTFParserType.Scene)
       ]).then(() => {
-        return this.get<AnimatorController>(GLTFParserType.AnimatorController).then((animatorController) => {
-          const glTFResource = this.glTFResource;
+        const glTFResource = this.glTFResource;
+        const animatorController = glTFResource.animatorController;
 
-          if (animatorController) {
-            const animator = glTFResource._defaultSceneRoot.addComponent(Animator);
-            animator.animatorController = animatorController;
-          }
+        if (animatorController) {
+          const animator = glTFResource._defaultSceneRoot.addComponent(Animator);
+          animator.animatorController = animatorController;
+        }
 
-          this.resourceManager.addContentRestorer(this.contentRestorer);
-          return glTFResource;
-        });
+        this.resourceManager.addContentRestorer(this.contentRestorer);
+        return glTFResource;
       });
     });
 
