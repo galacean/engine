@@ -272,8 +272,6 @@ export class ParticleGenerator {
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       this._retireActiveBounds();
       this._updateBoundsSimulationWorld(this._renderer._bounds);
-    } else {
-      this._updateBoundsSimulationLocal(this._renderer._bounds);
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -529,18 +527,26 @@ export class ParticleGenerator {
    * @internal
    */
   _updateBoundsSimulationLocal(bounds: BoundingBox): void {
-    if (this.isAlive) {
-      if (this._renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
-        this._calculateWorldBounds(bounds);
-        this._addGravityToWorldBounds();
+    const { _localBounds: localBounds } = this._renderer;
+    if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.FrameVolume)) {
+      if (this.isAlive) {
+        this._calculateLocalBounds(localBounds);
+        this._addGravityToBounds(localBounds);
+      } else {
+        localBounds.min.set(0, 0, 0);
+        localBounds.max.set(0, 0, 0);
       }
-    } else {
-      const { min, max } = this._renderer._bounds;
-      const worldPosition = this._renderer.entity.transform.worldPosition;
-
-      min.copyFrom(worldPosition);
-      max.copyFrom(worldPosition);
     }
+    const { min: localMin, max: localMax } = localBounds;
+    const { min: worldMin, max: worldMax } = bounds;
+    const worldPosition = this._renderer.entity.transform.worldPosition;
+
+    worldMin.x = localMin.x + worldPosition.x;
+    worldMax.x = localMax.x + worldPosition.x;
+    worldMin.y = localMin.y + worldPosition.y;
+    worldMax.y = localMax.y + worldPosition.y;
+    worldMin.z = localMin.z + worldPosition.z;
+    worldMax.z = localMax.z + worldPosition.z;
   }
 
   /**
@@ -859,12 +865,23 @@ export class ParticleGenerator {
       }
     }
 
-    this._addGravityToWorldBounds();
+    this._addGravityToBounds(bounds);
   }
 
   private _generateBoundsPerFrame(): void {
     if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.FrameVolume)) {
-      this._calculateWorldBounds(ParticleGenerator._tempBoundingBox);
+      this._calculateLocalBounds(ParticleGenerator._tempBoundingBox);
+
+      const worldPosition = this._renderer.entity.transform.worldPosition;
+      const { min, max } = ParticleGenerator._tempBoundingBox;
+
+      min.x += worldPosition.x;
+      max.x += worldPosition.x;
+      min.y += worldPosition.y;
+      max.y += worldPosition.y;
+      min.z += worldPosition.z;
+      max.z += worldPosition.z;
+
       this._renderer._setDirtyFlagFalse(ParticleUpdateFlags.FrameVolume);
     }
     const { _dynamicBounds: dynamicBounds } = this;
@@ -902,12 +919,11 @@ export class ParticleGenerator {
       const newSize = this._dynamicBoundsCapacity + increaseCount;
 
       this._dynamicBounds.length = newSize * particleUtils.boundsFloatStride;
-      this._dynamicBounds.fill(0, this._dynamicBoundsCapacity);
       this._dynamicBoundsCapacity = newSize;
     }
   }
 
-  private _calculateWorldBounds(bounds: BoundingBox): void {
+  private _calculateLocalBounds(bounds: BoundingBox): void {
     const { min, max } = bounds;
     const {
       _tempVector30: directionMax,
@@ -1017,16 +1033,6 @@ export class ParticleGenerator {
       min.transformByQuat(worldRotation);
       max.transformByQuat(worldRotation);
     }
-
-    const worldPosition = this._renderer.entity.transform.worldPosition;
-    min.x += worldPosition.x;
-    max.x += worldPosition.x;
-
-    min.y += worldPosition.y;
-    max.y += worldPosition.y;
-
-    min.z += worldPosition.z;
-    max.z += worldPosition.z;
   }
 
   private _mergeToWorldBounds(index: number): void {
@@ -1049,8 +1055,8 @@ export class ParticleGenerator {
     );
   }
 
-  private _addGravityToWorldBounds(): void {
-    const { min, max } = this._renderer._bounds;
+  private _addGravityToBounds(bounds: BoundingBox): void {
+    const { min, max } = bounds;
     const { _tempVector20: minmax } = ParticleGenerator;
 
     this.main.startLifetime._getMinMaxValue(minmax);

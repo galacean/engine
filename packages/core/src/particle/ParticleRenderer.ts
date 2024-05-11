@@ -39,6 +39,8 @@ export class ParticleRenderer extends Renderer {
   @shallowClone
   pivot = new Vector3();
 
+  @deepClone
+  _localBounds: BoundingBox = new BoundingBox();
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
