@@ -557,6 +557,37 @@ export class ParticleGenerator {
     this._updateBoundingBoxWorldSpace(bounds);
   }
 
+  /**
+   * @internal
+   */
+  _updateBoundingBoxWorldSpace(bounds: BoundingBox): void {
+    const { min, max } = bounds;
+    if (this._firstActiveBounds === this._firstFreeBounds) {
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
+      return;
+    }
+    min.set(Infinity, Infinity, Infinity);
+    max.set(-Infinity, -Infinity, -Infinity);
+
+    if (this._firstActiveBounds < this._firstFreeBounds) {
+      for (let i = this._firstActiveBounds; i < this._firstFreeBounds; i++) {
+        this._mergeToWorldBounds(i);
+      }
+    } else {
+      for (let i = this._firstActiveBounds; i < this._dynamicBoundsCapacity; i++) {
+        this._mergeToWorldBounds(i);
+      }
+      if (this._firstFreeBounds > 0) {
+        for (let i = 0; i < this._firstFreeBounds; i++) {
+          this._mergeToWorldBounds(i);
+        }
+      }
+    }
+
+    this._addGravityToBounds(bounds);
+  }
+
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
@@ -838,34 +869,6 @@ export class ParticleGenerator {
         break;
       }
     } while (this._firstActiveBounds !== start);
-  }
-
-  private _updateBoundingBoxWorldSpace(bounds: BoundingBox): void {
-    const { min, max } = bounds;
-    if (this._firstActiveBounds === this._firstFreeBounds) {
-      min.set(0, 0, 0);
-      max.set(0, 0, 0);
-      return;
-    }
-    min.set(Infinity, Infinity, Infinity);
-    max.set(-Infinity, -Infinity, -Infinity);
-
-    if (this._firstActiveBounds < this._firstFreeBounds) {
-      for (let i = this._firstActiveBounds; i < this._firstFreeBounds; i++) {
-        this._mergeToWorldBounds(i);
-      }
-    } else {
-      for (let i = this._firstActiveBounds; i < this._dynamicBoundsCapacity; i++) {
-        this._mergeToWorldBounds(i);
-      }
-      if (this._firstFreeBounds > 0) {
-        for (let i = 0; i < this._firstFreeBounds; i++) {
-          this._mergeToWorldBounds(i);
-        }
-      }
-    }
-
-    this._addGravityToBounds(bounds);
   }
 
   private _generateBoundsPerFrame(): void {

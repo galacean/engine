@@ -170,7 +170,7 @@ export class ParticleRenderer extends Renderer {
     if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       this.generator._updateBoundsSimulationLocal(worldBounds);
     } else {
-      this.generator._updateBoundsSimulationWorld(worldBounds);
+      this.generator._updateBoundingBoxWorldSpace(worldBounds);
     }
   }
 
