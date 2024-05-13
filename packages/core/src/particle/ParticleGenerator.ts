@@ -27,7 +27,6 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { RendererUpdateFlags } from "../Renderer";
 
 /**
  * Particle Generator.
@@ -271,7 +270,7 @@ export class ParticleGenerator {
 
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       this._retireActiveBounds();
-      this._updateBoundsSimulationWorld(this._renderer._bounds);
+      this._generateBoundsPerFrame();
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -547,14 +546,6 @@ export class ParticleGenerator {
     worldMax.y = localMax.y + worldPosition.y;
     worldMin.z = localMin.z + worldPosition.z;
     worldMax.z = localMax.z + worldPosition.z;
-  }
-
-  /**
-   * @internal
-   */
-  _updateBoundsSimulationWorld(bounds: BoundingBox): void {
-    this._generateBoundsPerFrame();
-    this._updateBoundingBoxWorldSpace(bounds);
   }
 
   /**
