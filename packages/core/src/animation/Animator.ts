@@ -311,7 +311,7 @@ export class Animator extends Component {
         }
 
         const { property } = curve;
-        const { instanceId } = targetEntity;
+        const { instanceId } = component;
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= <Record<string, AnimationCurveOwner<KeyframeValueType>>>(
           Object.create(null)
