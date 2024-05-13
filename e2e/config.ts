@@ -151,5 +151,12 @@ export const E2E_CONFIG = {
       caseFileName: "camera-opaque-texture",
       threshold: 0.1
     }
+  },
+  Physics: {
+    "physx-collision": {
+      category: "Physics",
+      caseFileName: "physx-collision",
+      threshold: 0.1
+    }
   }
 };

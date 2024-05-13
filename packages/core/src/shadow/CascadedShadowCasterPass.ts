@@ -220,6 +220,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
       if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {
         opaqueQueue.sort(RenderQueue._compareForOpaque);
         alphaTestQueue.sort(RenderQueue._compareForOpaque);
+        opaqueQueue.batch(engine._batcherManager);
+        alphaTestQueue.batch(engine._batcherManager);
 
         const { x, y } = viewports[j];
 

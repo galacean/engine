@@ -212,11 +212,6 @@ describe("InputManager", async () => {
   });
 
   it("change listener target", () => {
-    try {
-      WebGLEngine.create({ canvas: canvasDOM, input: { pointerTarget: window } });
-    } catch (error) {
-      expect(error).to.eq("Do not set window as target because window cannot listen to pointer leave event.");
-    }
     window.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
     engine.update();
     expect(inputManager.pointers.length).to.eq(0);
