@@ -300,7 +300,6 @@ export class Animator extends Component {
       const { relativePath } = curve;
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       if (targetEntity) {
-        const propertyPath = `${curve.typeIndex}.` + curve.property;
         const component =
           curve.typeIndex > 0
             ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
@@ -311,7 +310,7 @@ export class Animator extends Component {
         }
 
         const { property } = curve;
-        const { instanceId } = targetEntity;
+        const { instanceId } = component;
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= <Record<string, AnimationCurveOwner<KeyframeValueType>>>(
           Object.create(null)
@@ -322,7 +321,7 @@ export class Animator extends Component {
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= <Record<string, AnimationCurveLayerOwner>>(
           Object.create(null)
         ));
-        const layerOwner = (layerPropertyOwners[propertyPath] ||= curve._createCurveLayerOwner(owner));
+        const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
 
         if (mask && mask.pathMasks.length) {
           layerOwner.isActive = mask.getPathMask(relativePath)?.active ?? true;
