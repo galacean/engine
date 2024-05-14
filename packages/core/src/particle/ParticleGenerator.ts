@@ -269,7 +269,6 @@ export class ParticleGenerator {
 
     if (main.simulationSpace === ParticleSimulationSpace.World) {
       this._retireActiveBounds();
-      this._generateBoundsPerFrame();
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -287,7 +286,11 @@ export class ParticleGenerator {
     }
 
     // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
-    if (!this.isAlive) {
+    if (this.isAlive) {
+      if (main.simulationSpace === ParticleSimulationSpace.World) {
+        this._generateBoundsPerFrame();
+      }
+    } else {
       const discardTime = Math.min(emission._frameRateTime, Math.floor(this._playTime / duration) * duration);
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
