@@ -175,8 +175,16 @@ export class MainModule implements ICustomClone {
   }
 
   set simulationSpace(value: ParticleSimulationSpace) {
-    this._simulationSpace = value;
-    this._generator._renderer._onBoundsChanged();
+    if (value !== this._simulationSpace) {
+      this._simulationSpace = value;
+      if (value === ParticleSimulationSpace.World) {
+        this._generator._resizeBoundsArray(true);
+        this._generator._generateBoundsPerFrame();
+      } else {
+        this._generator._resizeBoundsArray(false);
+      }
+      this._generator._renderer._onBoundsChanged();
+    }
   }
 
   /**

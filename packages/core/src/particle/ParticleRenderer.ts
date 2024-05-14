@@ -40,6 +40,7 @@ export class ParticleRenderer extends Renderer {
   pivot = new Vector3();
 
   @deepClone
+  /** @internal */
   _localBounds: BoundingBox = new BoundingBox();
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
@@ -170,7 +171,7 @@ export class ParticleRenderer extends Renderer {
     if (this.generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       this.generator._updateBoundsSimulationLocal(worldBounds);
     } else {
-      this.generator._updateBoundingBoxWorldSpace(worldBounds);
+      this.generator._updateBoundsSimulationWorld(worldBounds);
     }
   }
 
@@ -219,7 +220,7 @@ export class ParticleRenderer extends Renderer {
    */
 
   protected override _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume | ParticleUpdateFlags.FrameVolume;
+    this._onBoundsChanged();
   }
 
   /**

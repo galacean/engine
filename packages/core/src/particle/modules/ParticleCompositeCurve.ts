@@ -161,7 +161,7 @@ export class ParticleCompositeCurve {
    * @internal
    * @param out - x as the max negative value, y as the max positive value of the curve.
    */
-  _getMinMaxValue(out: Vector2): void {
+  _getExtremeNegativeAndPositiveValuesFromZero(out: Vector2): void {
     out.x = out.y = 0;
     switch (this.mode) {
       case ParticleCurveMode.Constant:
