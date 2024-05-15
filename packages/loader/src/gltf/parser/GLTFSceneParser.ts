@@ -135,10 +135,7 @@ export class GLTFSceneParser extends GLTFParser {
     const materialPromises = new Array<void | Promise<Material>>(rendererCount);
 
     for (let i = 0; i < rendererCount; i++) {
-      const materialIndex = glTFMeshPrimitives[i].material;
-
-      materialPromises[i] =
-        materialIndex !== undefined ? context.get<Material>(GLTFParserType.Material, materialIndex) : null;
+      materialPromises[i] = context.get<Material>(GLTFParserType.Material, glTFMeshPrimitives[i].material);
     }
 
     return Promise.all([
