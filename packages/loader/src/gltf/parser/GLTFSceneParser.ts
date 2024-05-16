@@ -61,7 +61,7 @@ export class GLTFSceneParser extends GLTFParser {
     const entityInfo = glTF.nodes[index];
     const { camera: cameraID, mesh: meshID } = entityInfo;
     const entity = context.get<Entity>(GLTFParserType.Entity, index);
-    let promise: Promise<void[]>;
+    let promise: Promise<void>;
 
     if (cameraID !== undefined) {
       this._createCamera(glTFResource, glTF.cameras[cameraID], entity);
@@ -132,7 +132,7 @@ export class GLTFSceneParser extends GLTFParser {
     const glTFMeshPrimitives = glTFMesh.primitives;
     const rendererCount = glTFMeshPrimitives.length;
     const blendShapeWeights = entityInfo.weights || glTFMesh.weights;
-    const materialPromises = new Array<void | Promise<Material>>(rendererCount);
+    const materialPromises = new Array<Promise<Material>>(rendererCount);
 
     for (let i = 0; i < rendererCount; i++) {
       materialPromises[i] = context.get<Material>(GLTFParserType.Material, glTFMeshPrimitives[i].material);
