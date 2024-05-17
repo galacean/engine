@@ -235,7 +235,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _onForceFieldChanged() {
+  _onWorldVolumeChanged() {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 

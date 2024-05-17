@@ -164,7 +164,7 @@ export class MainModule implements ICustomClone {
 
   set gravityModifier(value: ParticleCompositeCurve) {
     this._gravityModifier = value;
-    this._gravityModifier._onValueChanged = this._generator._renderer._onForceFieldChanged;
+    this._gravityModifier._onValueChanged = this._generator._renderer._onWorldVolumeChanged;
   }
 
   private _simulationSpace = ParticleSimulationSpace.Local;
