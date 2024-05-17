@@ -48,8 +48,6 @@ export class ParticleBufferUtils {
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;
 
-  readonly instanceBoundsFloatStride = 6;
-
   readonly boundsFloatStride = 8;
   readonly boundsTimeOffset = 6;
   readonly boundsMaxLifetimeOffset = 7;

@@ -95,7 +95,6 @@ describe("ParticleBoundingBox", function () {
     particleRenderer.generator.velocityOverLifetime.enabled = false;
 
     particleRenderer.generator.emission.shape = null;
-    updateEngine(engine);
   });
 
   it("EmptyShape", function () {

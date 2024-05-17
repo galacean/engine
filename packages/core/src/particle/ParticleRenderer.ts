@@ -39,9 +39,10 @@ export class ParticleRenderer extends Renderer {
   @shallowClone
   pivot = new Vector3();
 
-  @deepClone
   /** @internal */
+  @deepClone
   _localBounds: BoundingBox = new BoundingBox();
+
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
@@ -120,13 +121,14 @@ export class ParticleRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._onBoundsChanged = this._onBoundsChanged.bind(this);
+    this._onGeneratorParamsChanged = this._onGeneratorParamsChanged.bind(this);
 
     this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
-    this._dirtyUpdateFlag |= ParticleUpdateFlags.FrameVolume | RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |=
+      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -218,16 +220,23 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-
   protected override _onTransformChanged(type: TransformModifyFlags): void {
-    this._onBoundsChanged();
+    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 
   /**
    * @internal
    */
-  _onBoundsChanged() {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume | ParticleUpdateFlags.FrameVolume;
+  _onGeneratorParamsChanged() {
+    this._dirtyUpdateFlag |=
+      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+  }
+
+  /**
+   * @internal
+   */
+  _onForceFieldChanged() {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -249,6 +258,8 @@ export class ParticleRenderer extends Renderer {
  * @internal
  */
 export enum ParticleUpdateFlags {
-  /** Volume per Frame for Simulation Space World */
-  FrameVolume = 0x2
+  /** On World Transform Changed */
+  TransformVolume = 0x2,
+  /** On Generator Bounds Related Params Changed */
+  GeneratorVolume = 0x4
 }

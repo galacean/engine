@@ -54,7 +54,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   set velocityX(value: ParticleCompositeCurve) {
     this._velocityX = value;
-    this._velocityX._onValueChanged = this._generator._renderer._onBoundsChanged;
+    this._velocityX._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
   /** Velocity over lifetime for y axis. */
@@ -64,7 +64,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   set velocityY(value: ParticleCompositeCurve) {
     this._velocityY = value;
-    this._velocityY._onValueChanged = this._generator._renderer._onBoundsChanged;
+    this._velocityY._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
   /** Velocity over lifetime for z axis. */
@@ -74,7 +74,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   set velocityZ(value: ParticleCompositeCurve) {
     this._velocityZ = value;
-    this._velocityZ._onValueChanged = this._generator._renderer._onBoundsChanged;
+    this._velocityZ._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
   /** Velocity space. */
@@ -84,7 +84,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   set space(value: ParticleSimulationSpace) {
     this._space = value;
-    this._generator._renderer._onBoundsChanged();
+    this._generator._renderer._onGeneratorParamsChanged();
   }
 
   public override get enabled(): boolean {
@@ -92,7 +92,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
   public override set enabled(value: boolean) {
     this._enabled = value;
-    this._generator._renderer._onBoundsChanged();
+    this._generator._renderer._onGeneratorParamsChanged();
   }
 
   /**
