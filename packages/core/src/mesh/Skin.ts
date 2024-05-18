@@ -10,7 +10,7 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  */
 export class Skin extends EngineObject {
   /** Inverse bind matrices. */
-  inverseBindMatrices: Matrix[] = [];
+  inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
   _skinMatrices: Float32Array;
@@ -18,8 +18,8 @@ export class Skin extends EngineObject {
   _updatedManager = new UpdateFlagManager();
 
   private _rootBone: Entity;
-  private _bones: ReadonlyArray<Entity>;
-  private _updateMark: number = -1;
+  private _bones = new Array<Entity>();
+  private _updateMark = -1;
 
   _cloneMap: Record<number, Skin> = {};
 
@@ -45,14 +45,18 @@ export class Skin extends EngineObject {
   }
 
   set bones(value: ReadonlyArray<Entity>) {
-    if (this._bones !== value) {
-      const lastBoneCount = this._bones?.length ?? 0;
-      const boneCount = value?.length ?? 0;
-      if (lastBoneCount !== boneCount) {
-        this._skinMatrices = new Float32Array(boneCount * 16);
-        this._updatedManager.dispatch(SkinUpdateFlag.BoneCountChanged, boneCount);
-      }
-      this._bones = value;
+    const bones = this._bones;
+    const boneCount = value?.length ?? 0;
+    const lastBoneCount = bones.length;
+
+    bones.length = boneCount;
+    for (let i = 0; i < boneCount; i++) {
+      bones[i] = value[i];
+    }
+
+    if (lastBoneCount !== boneCount) {
+      this._skinMatrices = new Float32Array(boneCount * 16);
+      this._updatedManager.dispatch(SkinUpdateFlag.BoneCountChanged, boneCount);
     }
   }
 
