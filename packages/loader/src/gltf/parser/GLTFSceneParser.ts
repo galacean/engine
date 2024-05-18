@@ -126,9 +126,9 @@ export class GLTFSceneParser extends GLTFParser {
   }
 
   private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void> {
-    const glTFMeshes = context.glTF.meshes;
     const { mesh: meshID, skin: skinID } = entityInfo;
-    const glTFMesh = glTFMeshes[meshID];
+    const glTFMesh = context.glTF.meshes[meshID];
+
     const glTFMeshPrimitives = glTFMesh.primitives;
     const rendererCount = glTFMeshPrimitives.length;
     const blendShapeWeights = entityInfo.weights || glTFMesh.weights;
@@ -154,10 +154,7 @@ export class GLTFSceneParser extends GLTFParser {
           const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
           skinRenderer.mesh = mesh;
           if (skin) {
-            skinRenderer.rootBone = skin._rootBone;
-            skinRenderer.bones = skin._bones;
-            this._computeLocalBounds(skinRenderer, mesh, skin._bones, skin._rootBone, skin.inverseBindMatrices);
-
+            this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
             skinRenderer.skin = skin;
           }
           if (blendShapeWeights) {
@@ -186,7 +183,7 @@ export class GLTFSceneParser extends GLTFParser {
   private _computeLocalBounds(
     skinnedMeshRenderer: SkinnedMeshRenderer,
     mesh: Mesh,
-    bones: Entity[],
+    bones: ReadonlyArray<Entity>,
     rootBone: Entity,
     inverseBindMatrices: Matrix[]
   ): void {
@@ -214,7 +211,7 @@ export class GLTFSceneParser extends GLTFParser {
   }
 
   private _computeApproximateBindMatrix(
-    jointEntities: Entity[],
+    jointEntities: ReadonlyArray<Entity>,
     inverseBindMatrices: Matrix[],
     rootEntity: Entity,
     approximateBindMatrix: Matrix
