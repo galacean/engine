@@ -31,21 +31,22 @@ export class GLTFSkinParser extends GLTFParser {
         const bone = entities[joints[i]];
         bones[i] = bone;
         skin.joints[i] = bone.name;
-
-        // Get skeleton
-        if (skeleton !== undefined) {
-          const rootBone = entities[skeleton];
-          skin.rootBone = rootBone;
-        } else {
-          const rootBone = this._findSkeletonRootBone(joints, entities);
-          if (rootBone) {
-            skin.rootBone = rootBone;
-          } else {
-            throw "Failed to find skeleton root bone.";
-          }
-        }
       }
       skin.bones = bones;
+
+      // Get skeleton
+      if (skeleton !== undefined) {
+        const rootBone = entities[skeleton];
+        skin.rootBone = rootBone;
+      } else {
+        const rootBone = this._findSkeletonRootBone(joints, entities);
+        if (rootBone) {
+          skin.rootBone = rootBone;
+        } else {
+          throw "Failed to find skeleton root bone.";
+        }
+      }
+
       return skin;
     });
 
