@@ -159,36 +159,36 @@ export class CloneManager {
             if (!targetProperty) {
               targetProperty = new sourceProperty.constructor();
               deepInstanceMap.set(sourceProperty, targetProperty);
+            }
+            target[k] = targetProperty;
+          }
 
-              // Use hard code to clone
-              if ((<ICustomClone>sourceProperty).copyFrom) {
-                (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
-              } else {
-                const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
-                for (let k in sourceProperty) {
-                  CloneManager.cloneProperty(
-                    <Object>sourceProperty,
-                    targetProperty,
-                    k,
-                    cloneModes[k],
-                    srcRoot,
-                    targetRoot,
-                    deepInstanceMap
-                  );
-                }
-              }
-
-              // Custom incremental clone
-              if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
-                (<IComponentCustomClone>sourceProperty)._cloneTo(
-                  <IComponentCustomClone>targetProperty,
-                  srcRoot,
-                  targetRoot
-                );
-              }
+          if ((<ICustomClone>sourceProperty).copyFrom) {
+            // Custom clone
+            (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
+          } else {
+            // Universal clone
+            const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
+            for (let k in sourceProperty) {
+              CloneManager.cloneProperty(
+                <Object>sourceProperty,
+                targetProperty,
+                k,
+                cloneModes[k],
+                srcRoot,
+                targetRoot,
+                deepInstanceMap
+              );
             }
 
-            target[k] = targetProperty;
+            // Custom incremental clone
+            if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
+              (<IComponentCustomClone>sourceProperty)._cloneTo(
+                <IComponentCustomClone>targetProperty,
+                srcRoot,
+                targetRoot
+              );
+            }
           }
           break;
       }
