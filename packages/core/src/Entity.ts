@@ -416,7 +416,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clone.
+   * Clone this entity include children and components.
    * @returns Cloned entity
    */
   clone(): Entity {
@@ -458,23 +458,23 @@ export class Entity extends EngineObject {
   }
 
   private _parseCloneEntity(
-    srcEntity: Entity,
-    targetEntity: Entity,
+    src: Entity,
+    target: Entity,
     srcRoot: Entity,
     targetRoot: Entity,
     deepInstanceMap: Map<Object, Object>
   ): void {
-    const srcChildren = srcEntity._children;
-    const targetChildren = targetEntity._children;
+    const srcChildren = src._children;
+    const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot, deepInstanceMap);
     }
 
-    const components = srcEntity._components;
+    const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = targetEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        const targetComp = target.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
         ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
       }
     }

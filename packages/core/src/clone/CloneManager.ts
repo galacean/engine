@@ -153,10 +153,10 @@ export class CloneManager {
           break;
         default:
           let targetProperty = <Object>target[k];
-
-          // If the target property is null, create new instance and keep reference sharing like the source
+          // If the target property is undefined, create new instance and keep reference sharing like the source
           if (!targetProperty) {
-            if (!deepInstanceMap.has(sourceProperty)) {
+            targetProperty = deepInstanceMap.get(sourceProperty);
+            if (!targetProperty) {
               targetProperty = new sourceProperty.constructor();
               deepInstanceMap.set(sourceProperty, targetProperty);
 
@@ -178,7 +178,7 @@ export class CloneManager {
                 }
               }
 
-              // Custom clone
+              // Custom incremental clone
               if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
                 (<IComponentCustomClone>sourceProperty)._cloneTo(
                   <IComponentCustomClone>targetProperty,
@@ -186,12 +186,10 @@ export class CloneManager {
                   targetRoot
                 );
               }
-            } else {
-              targetProperty = deepInstanceMap.get(sourceProperty);
             }
+
             target[k] = targetProperty;
           }
-
           break;
       }
     } else {

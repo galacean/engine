@@ -298,8 +298,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-
-
   private _applySkin(lastSkin: Skin, value: Skin): void {
     const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
     const lastRootBone = lastSkin?.rootBone ?? this.entity;
