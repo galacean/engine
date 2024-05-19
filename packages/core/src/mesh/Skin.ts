@@ -3,25 +3,31 @@ import { Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
 import { EngineObject } from "../base/EngineObject";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { IComponentCustomClone } from "../clone/ComponentCloner";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**
  * Skin used for skinned mesh renderer.
  */
-export class Skin extends EngineObject {
+export class Skin extends EngineObject implements IComponentCustomClone {
   /** Inverse bind matrices. */
+  @deepClone
   inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
+  @ignoreClone
   _skinMatrices: Float32Array;
   /** @internal */
+  @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
+  @ignoreClone
   private _rootBone: Entity;
+  @ignoreClone
   private _bones = new Array<Entity>();
+  @ignoreClone
   private _updateMark = -1;
-
-  _cloneMap: Record<number, Skin> = {};
 
   /**
    * Root bone.
@@ -87,6 +93,33 @@ export class Skin extends EngineObject {
     }
 
     this._updateMark = renderer.engine.time.frameCount;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Skin, srcRoot: Entity, targetRoot: Entity): void {
+    const paths = new Array<number>();
+
+    // Clone rootBone
+    const rootBone = this.rootBone;
+    if (rootBone) {
+      const success = Entity._getEntityHierarchyPath(srcRoot, rootBone, paths);
+      target.rootBone = success ? Entity._getEntityByHierarchyPath(targetRoot, paths) : rootBone;
+    }
+
+    // Clone bones
+    const bones = this.bones;
+    if (bones.length > 0) {
+      const boneCount = bones.length;
+      const destBones = new Array<Entity>(boneCount);
+      for (let i = 0; i < boneCount; i++) {
+        const bone = bones[i];
+        const success = Entity._getEntityHierarchyPath(srcRoot, bone, paths);
+        destBones[i] = success ? Entity._getEntityByHierarchyPath(targetRoot, paths) : bone;
+      }
+      target.bones = destBones;
+    }
   }
 
   /** @deprecated Please use `bones` instead. */

@@ -37,7 +37,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _jointTexture: Texture2D;
 
-  @ignoreClone
+  @deepClone
   private _skin: Skin;
 
   /**
@@ -50,21 +50,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   set skin(value: Skin) {
     const lastSkin = this._skin;
     if (lastSkin !== value) {
-      const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
-      const lastRootBone = lastSkin?.rootBone ?? this.entity;
-      lastSkin?._updatedManager.removeListener(this._onSkinUpdated);
-
-      const skinBoneCount = value?.bones?.length ?? 0;
-      const rootBone = value?.rootBone ?? this.entity;
-      value?._updatedManager.addListener(this._onSkinUpdated);
-
-      if (lastSkinBoneCount !== skinBoneCount) {
-        this._onSkinUpdated(SkinUpdateFlag.BoneCountChanged, skinBoneCount);
-      }
-      if (lastRootBone !== rootBone) {
-        this._onSkinUpdated(SkinUpdateFlag.RootBoneChanged, rootBone);
-      }
-
+      this._applySkin(lastSkin, value);
       this._skin = value;
     }
   }
@@ -224,31 +210,32 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   override _cloneTo(target: SkinnedMeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
 
-    this.skin._cloneMap[targetRoot.instanceId] ||= new Skin(this.skin.name);
-    target.skin = this.skin._cloneMap[targetRoot.instanceId];
-    target.skin.inverseBindMatrices = this.skin.inverseBindMatrices.slice();
-
     const paths = new Array<number>();
 
-    // Clone rootBone
-    if (this.skin.rootBone) {
-      const success = this._getEntityHierarchyPath(srcRoot, this.skin.rootBone, paths);
-      target.skin.rootBone = success ? this._getEntityByHierarchyPath(targetRoot, paths) : this.skin.rootBone;
+    if (this.skin) {
+      target._applySkin(null, target.skin);
     }
 
-    // Clone bones
-    const bones = this.skin.bones;
-    if (bones) {
-      const boneCount = bones.length;
-      const destBones = new Array<Entity>(boneCount);
-      for (let i = 0; i < boneCount; i++) {
-        const bone = bones[i];
-        const success = this._getEntityHierarchyPath(srcRoot, bone, paths);
-        destBones[i] = success ? this._getEntityByHierarchyPath(targetRoot, paths) : bone;
-      }
+    // // Clone rootBone
+    // if (this.skin.rootBone) {
+    //   const success = this._getEntityHierarchyPath(srcRoot, this.skin.rootBone, paths);
 
-      target.skin.bones = destBones;
-    }
+    //   target.skin.rootBone = success ? this._getEntityByHierarchyPath(targetRoot, paths) : this.skin.rootBone;
+    // }
+
+    // // Clone bones
+    // const bones = this.skin.bones;
+    // if (bones) {
+    //   const boneCount = bones.length;
+    //   const destBones = new Array<Entity>(boneCount);
+    //   for (let i = 0; i < boneCount; i++) {
+    //     const bone = bones[i];
+    //     const success = this._getEntityHierarchyPath(srcRoot, bone, paths);
+    //     destBones[i] = success ? this._getEntityByHierarchyPath(targetRoot, paths) : bone;
+    //   }
+
+    //   target.skin.bones = destBones;
+    // }
 
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
@@ -311,25 +298,23 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
-    inversePath.length = 0;
-    while (searchEntity !== rootEntity) {
-      const parent = searchEntity.parent;
-      if (!parent) {
-        return false;
-      }
-      inversePath.push(searchEntity.siblingIndex);
-      searchEntity = parent;
-    }
-    return true;
-  }
 
-  private _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
-    let entity = rootEntity;
-    for (let i = inversePath.length - 1; i >= 0; i--) {
-      entity = entity.children[inversePath[i]];
+
+  private _applySkin(lastSkin: Skin, value: Skin): void {
+    const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
+    const lastRootBone = lastSkin?.rootBone ?? this.entity;
+    lastSkin?._updatedManager.removeListener(this._onSkinUpdated);
+
+    const skinBoneCount = value?.bones?.length ?? 0;
+    const rootBone = value?.rootBone ?? this.entity;
+    value?._updatedManager.addListener(this._onSkinUpdated);
+
+    if (lastSkinBoneCount !== skinBoneCount) {
+      this._onSkinUpdated(SkinUpdateFlag.BoneCountChanged, skinBoneCount);
     }
-    return entity;
+    if (lastRootBone !== rootBone) {
+      this._onSkinUpdated(SkinUpdateFlag.RootBoneChanged, rootBone);
+    }
   }
 
   /**
