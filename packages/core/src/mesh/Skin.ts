@@ -126,11 +126,14 @@ export class Skin extends EngineObject implements IComponentCustomClone {
 
   /** @deprecated Please use `rootBone` instead. */
   get skeleton(): string {
-    return this.rootBone.name;
+    return this.rootBone?.name;
   }
 
   set skeleton(value: string) {
-    this.rootBone.name = value;
+    const rootBone = this._rootBone;
+    if (rootBone) {
+      rootBone.name = value;
+    }
   }
 }
 
