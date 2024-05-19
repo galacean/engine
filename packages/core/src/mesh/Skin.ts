@@ -44,7 +44,7 @@ export class Skin extends EngineObject implements IComponentCustomClone {
   }
 
   /**
-   * Bones used for skin.
+   * Bones of the skin.
    */
   get bones(): ReadonlyArray<Entity> {
     return this._bones;
@@ -70,16 +70,15 @@ export class Skin extends EngineObject implements IComponentCustomClone {
     super(null);
   }
 
-  updateJointMatrices(renderer: SkinnedMeshRenderer) {
+  /**
+   * @internal
+   */
+  _updateSkinMatrices(renderer: SkinnedMeshRenderer) {
     if (this._updateMark === renderer.engine.time.frameCount) {
-      // console.log("skip:_" + renderer.engine.time.frameCount);
       return;
     }
-    // console.log("compute:_" + renderer.engine.time.frameCount);
-    const bones = this.bones;
-    // @todo: can optimize when share skin
-    const skinMatrices = this._skinMatrices;
-    const bindMatrices = this.inverseBindMatrices;
+
+    const { bones, inverseBindMatrices: bindMatrices, _skinMatrices: skinMatrices } = this;
     const worldToLocal = (this.rootBone ?? renderer.entity).getInvModelMatrix();
     for (let i = bones.length - 1; i >= 0; i--) {
       const bone = bones[i];
@@ -136,6 +135,6 @@ export class Skin extends EngineObject implements IComponentCustomClone {
 }
 
 export enum SkinUpdateFlag {
-  BoneCountChanged = 0,
-  RootBoneChanged = 1
+  BoneCountChanged,
+  RootBoneChanged
 }
