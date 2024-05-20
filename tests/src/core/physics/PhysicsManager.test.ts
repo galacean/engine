@@ -172,7 +172,7 @@ describe("Physics Test", () => {
       removeShapeRoot2.isActive = false;
       const removeShapeRoot3 = root.createChild("root");
       removeShapeRoot3.transform.position = new Vector3(1000, 1000, 1000);
-      const collider3 = removeShapeRoot3.addComponent(StaticCollider);
+      const collider3 = removeShapeRoot3.addComponent(DynamicCollider);
       const box3 = new BoxColliderShape();
       enterEvent[box3.id] = [];
       collider3.addShape(box3);
@@ -192,9 +192,9 @@ describe("Physics Test", () => {
       enterEvent[box3.id][box2.id] = 0;
       // @ts-ignore
       engineLite.physicsManager._update(8);
-      expect(enterEvent[box1.id][box2.id]).to.eq(1);
+      expect(enterEvent[box1.id][box2.id]).to.eq(0);
       expect(enterEvent[box1.id][box3.id]).to.eq(1);
-      expect(enterEvent[box2.id][box1.id]).to.eq(1);
+      expect(enterEvent[box2.id][box1.id]).to.eq(0);
       expect(enterEvent[box2.id][box3.id]).to.eq(1);
       expect(enterEvent[box3.id][box1.id]).to.eq(1);
       expect(enterEvent[box3.id][box2.id]).to.eq(1);
@@ -247,9 +247,19 @@ describe("Physics Test", () => {
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE)).to.eq(true);
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything)).to.eq(true);
 
+      // Test that raycast the nearest collider.
+      const collider2 = raycastTestRoot.addComponent(DynamicCollider);
+      const outHitResult = new HitResult();
+      const box2 = new BoxColliderShape();
+      box2.position = new Vector3(0, 0.5, 0);
+      collider2.addShape(box2);
+
+      ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+      expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(true);
+      expect(outHitResult.shape.id).to.eq(box2.id);
+      collider2.destroy();
       // Test that raycast with outHitResult works correctly.
       ray = new Ray(new Vector3(3, 3, 3), new Vector3(-1, -1.25, -1));
-      const outHitResult = new HitResult();
       engineLite.physicsManager.raycast(ray, outHitResult);
       expect(engineLite.physicsManager.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.distance).to.be.closeTo(4.718, 0.01);
