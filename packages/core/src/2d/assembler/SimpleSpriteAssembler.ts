@@ -17,22 +17,21 @@ export class SimpleSpriteAssembler {
       renderer instanceof SpriteRenderer
         ? renderer.engine._batcherManager._batcher2D
         : renderer.engine._spriteMaskManager._batcher;
-    if (renderer._chunk) {
-      batcher.freeChunk(renderer._chunk);
-      renderer._chunk = batcher.allocateChunk(4);
-    } else {
-      renderer._chunk = batcher.allocateChunk(4);
-    }
-    renderer._chunk._indices = this._rectangleTriangles;
+
+    const lastChunk = renderer._chunk;
+    lastChunk && batcher.freeChunk(lastChunk);
+    const chunk = batcher.allocateChunk(4);
+    chunk._indices = this._rectangleTriangles;
+    renderer._chunk = chunk;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
     const { width, height, sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
-    // Renderer's worldMatrix;
+    // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = this;
     const { elements: wE } = worldMatrix;
-    // Parent's worldMatrix.
+    // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
     const sx = renderer.flipX ? -width : width;
     const sy = renderer.flipY ? -height : height;
@@ -48,7 +47,7 @@ export class SimpleSpriteAssembler {
     //  |   |
     //  0 - 1
     // ---------------
-    // Update positions.
+    // Update positions
     const spritePositions = sprite._getPositions();
     const { _chunk: chunk } = renderer;
     const vertices = chunk._meshBuffer._vertices;
@@ -73,15 +72,12 @@ export class SimpleSpriteAssembler {
     let index = chunk._vEntry.start + 3;
     vertices[index] = left;
     vertices[index + 1] = bottom;
-    index += 9;
-    vertices[index] = right;
-    vertices[index + 1] = bottom;
-    index += 9;
-    vertices[index] = left;
-    vertices[index + 1] = top;
-    index += 9;
-    vertices[index] = right;
-    vertices[index + 1] = top;
+    vertices[index + 10] = right;
+    vertices[index + 11] = bottom;
+    vertices[index + 20] = left;
+    vertices[index + 21] = top;
+    vertices[index + 30] = right;
+    vertices[index + 31] = top;
   }
 
   static updateColor(renderer: SpriteRenderer): void {
