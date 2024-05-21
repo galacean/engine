@@ -473,10 +473,11 @@ export class TextRenderer extends Renderer {
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
 
-    const worldPosition0 = TextRenderer._worldPositions[0];
-    const worldPosition1 = TextRenderer._worldPositions[1];
-    const worldPosition2 = TextRenderer._worldPositions[2];
-    const worldPosition3 = TextRenderer._worldPositions[3];
+    const worldPositions = TextRenderer._worldPositions;
+    const worldPosition0 = worldPositions[0];
+    const worldPosition1 = worldPositions[1];
+    const worldPosition2 = worldPositions[2];
+    const worldPosition3 = worldPositions[3];
 
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];

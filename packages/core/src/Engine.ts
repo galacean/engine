@@ -264,7 +264,6 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
-    this.inputManager = new InputManager(this);
     this._batcherManager = new BatcherManager(this);
     this._spriteMaskManager = new SpriteMaskManager(this);
     this.inputManager = new InputManager(this, configuration.input);
