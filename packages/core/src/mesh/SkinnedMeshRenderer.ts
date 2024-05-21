@@ -265,7 +265,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           shaderData.enableMacro("RENDERER_HAS_SKIN");
           shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, <number>value);
         } else {
-          debugger;
           shaderData.disableMacro("RENDERER_HAS_SKIN");
         }
         break;
