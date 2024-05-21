@@ -72,12 +72,12 @@ export class SimpleSpriteAssembler {
     let index = chunk._vEntry.start + 3;
     vertices[index] = left;
     vertices[index + 1] = bottom;
-    vertices[index + 10] = right;
-    vertices[index + 11] = bottom;
-    vertices[index + 20] = left;
-    vertices[index + 21] = top;
-    vertices[index + 30] = right;
-    vertices[index + 31] = top;
+    vertices[index + 9] = right;
+    vertices[index + 10] = bottom;
+    vertices[index + 18] = left;
+    vertices[index + 19] = top;
+    vertices[index + 27] = right;
+    vertices[index + 28] = top;
   }
 
   static updateColor(renderer: SpriteRenderer): void {

@@ -19,19 +19,21 @@ export class TiledSpriteAssembler {
   static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
   static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer, vCount: number, iCount: number): void {
-    if (vCount && iCount) {
+  static resetData(renderer: SpriteRenderer, vCount: number): void {
+    if (vCount) {
       const batcher = renderer.engine._batcherManager._batcher2D;
       const { _chunk: chunk } = renderer;
       if (chunk) {
         if (chunk._vEntry.len !== vCount * 9) {
           batcher.freeChunk(chunk);
-          renderer._chunk = batcher.allocateChunk(vCount);
-          renderer._chunk._indices = [];
+          const newChunk = batcher.allocateChunk(vCount);
+          newChunk._indices = [];
+          renderer._chunk = newChunk;
         }
       } else {
-        renderer._chunk = batcher.allocateChunk(vCount);
-        renderer._chunk._indices = [];
+        const newChunk = batcher.allocateChunk(vCount);
+        newChunk._indices = [];
+        renderer._chunk = newChunk;
       }
     }
   }
@@ -69,7 +71,6 @@ export class TiledSpriteAssembler {
 
     // Calculate total vertex count and indices count, to be optimized.
     let vertexCount = 0;
-    let indicesCount = 0;
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
@@ -80,10 +81,9 @@ export class TiledSpriteAssembler {
           continue;
         }
         vertexCount += 4;
-        indicesCount += 6;
       }
     }
-    this.resetData(renderer, vertexCount, indicesCount);
+    this.resetData(renderer, vertexCount);
 
     const { _chunk: chunk } = renderer;
     const vertices = chunk._meshBuffer._vertices;
@@ -117,25 +117,19 @@ export class TiledSpriteAssembler {
         vertices[index] = wE0 * l + wE4 * b + wE12;
         vertices[index + 1] = wE1 * l + wE5 * b + wE13;
         vertices[index + 2] = wE2 * l + wE6 * b + wE14;
-        index += 9;
-
         // right and bottom
-        vertices[index] = wE0 * r + wE4 * b + wE12;
-        vertices[index + 1] = wE1 * r + wE5 * b + wE13;
-        vertices[index + 2] = wE2 * r + wE6 * b + wE14;
-        index += 9;
-
+        vertices[index + 9] = wE0 * r + wE4 * b + wE12;
+        vertices[index + 10] = wE1 * r + wE5 * b + wE13;
+        vertices[index + 11] = wE2 * r + wE6 * b + wE14;
         // left and top
-        vertices[index] = wE0 * l + wE4 * t + wE12;
-        vertices[index + 1] = wE1 * l + wE5 * t + wE13;
-        vertices[index + 2] = wE2 * l + wE6 * t + wE14;
-        index += 9;
-
+        vertices[index + 18] = wE0 * l + wE4 * t + wE12;
+        vertices[index + 19] = wE1 * l + wE5 * t + wE13;
+        vertices[index + 20] = wE2 * l + wE6 * t + wE14;
         // right and top
-        vertices[index] = wE0 * r + wE4 * t + wE12;
-        vertices[index + 1] = wE1 * r + wE5 * t + wE13;
-        vertices[index + 2] = wE2 * r + wE6 * t + wE14;
-        index += 9;
+        vertices[index + 27] = wE0 * r + wE4 * t + wE12;
+        vertices[index + 28] = wE1 * r + wE5 * t + wE13;
+        vertices[index + 29] = wE2 * r + wE6 * t + wE14;
+        index += 36;
       }
     }
 

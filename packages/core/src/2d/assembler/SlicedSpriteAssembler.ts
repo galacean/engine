@@ -1,4 +1,4 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
@@ -16,13 +16,11 @@ export class SlicedSpriteAssembler {
 
   static resetData(renderer: SpriteRenderer): void {
     const batcher = renderer.engine._batcherManager._batcher2D;
-    if (renderer._chunk) {
-      batcher.freeChunk(renderer._chunk);
-      renderer._chunk = batcher.allocateChunk(16);
-    } else {
-      renderer._chunk = batcher.allocateChunk(16);
-    }
-    renderer._chunk._indices = this._rectangleTriangles;
+    const lastChunk = renderer._chunk;
+    lastChunk && batcher.freeChunk(lastChunk);
+    const chunk = batcher.allocateChunk(16);
+    chunk._indices = this._rectangleTriangles;
+    renderer._chunk = chunk;
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
