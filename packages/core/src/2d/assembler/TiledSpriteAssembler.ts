@@ -43,10 +43,11 @@ export class TiledSpriteAssembler {
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
-    const tempCount =
+    const vertexCount =
       tileMode === SpriteTileMode.Adaptive
         ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
         : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+    this.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
@@ -69,23 +70,6 @@ export class TiledSpriteAssembler {
     // Assemble position and uv
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-
-    // Calculate total vertex count and indices count, to be optimized.
-    let vertexCount = 0;
-    for (let j = 0; j < columnLength; j++) {
-      const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++) {
-        const uvL = uvRow.get(2 * i);
-        const uvR = uvRow.get(2 * i + 1);
-        const uvT = uvColumn.get(doubleJ + 1);
-        if (isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
-          continue;
-        }
-        vertexCount += 4;
-      }
-    }
-    this.resetData(renderer, vertexCount);
-    console.log(`vertex is ${vertexCount} and temp count is ${tempCount}`);
 
     const { _chunk: chunk } = renderer;
     const vertices = chunk._meshBuffer._vertices;
