@@ -20,16 +20,16 @@ export class RenderQueue {
   static _compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const priorityOrder = dataA._priority - dataB._priority;
+    const priorityOrder = dataA.priority - dataB.priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
     // make sure from the same renderer.
-    const instanceIdDiff = dataA._componentInstanceId - dataB._componentInstanceId;
+    const instanceIdDiff = dataA.componentInstanceId - dataB.componentInstanceId;
     if (instanceIdDiff === 0) {
-      return dataA._materialPriority - dataB._materialPriority;
+      return dataA.materialPriority - dataB.materialPriority;
     } else {
-      return dataA._distanceForSort - dataB._distanceForSort || instanceIdDiff;
+      return dataA.distanceForSort - dataB.distanceForSort || instanceIdDiff;
     }
   }
 
@@ -39,16 +39,16 @@ export class RenderQueue {
   static _compareForTransparent(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const priorityOrder = dataA._priority - dataB._priority;
+    const priorityOrder = dataA.priority - dataB.priority;
     if (priorityOrder !== 0) {
       return priorityOrder;
     }
     // make sure from the same renderer.
-    const instanceIdDiff = dataA._componentInstanceId - dataB._componentInstanceId;
+    const instanceIdDiff = dataA.componentInstanceId - dataB.componentInstanceId;
     if (instanceIdDiff === 0) {
-      return dataA._materialPriority - dataB._materialPriority;
+      return dataA.materialPriority - dataB.materialPriority;
     } else {
-      return dataB._distanceForSort - dataA._distanceForSort || instanceIdDiff;
+      return dataB.distanceForSort - dataA.distanceForSort || instanceIdDiff;
     }
   }
 

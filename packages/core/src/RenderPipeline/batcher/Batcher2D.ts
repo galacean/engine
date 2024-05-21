@@ -44,7 +44,7 @@ export class Batcher2D {
     this._preElement = null;
   }
 
-  batch(srcElements, dstElements): void {
+  batch(srcElements: Array<RenderElement>, dstElements: Array<RenderElement>): void {
     const len = srcElements.length;
     if (len === 0) {
       return;

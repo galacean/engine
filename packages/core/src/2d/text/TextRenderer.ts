@@ -264,16 +264,6 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The sub font.
-   */
-  get subFont(): SubFont {
-    if (!this._subFont) {
-      this._resetSubFont();
-    }
-    return this._subFont;
-  }
-
-  /**
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {
@@ -364,6 +354,16 @@ export class TextRenderer extends Renderer {
    */
   _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
+  _getSubFont(): SubFont {
+    if (!this._subFont) {
+      this._resetSubFont();
+    }
+    return this._subFont;
   }
 
   /**
