@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { BlendFactor, BlendOperation, CullMode, Shader, ShaderProperty } from "../shader";
+import { BlendFactor, BlendOperation, CullMode, Shader, ShaderPass, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { RenderState } from "../shader/state/RenderState";
@@ -27,6 +27,8 @@ export class BaseMaterial extends Material {
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
+  private _shadowPass: ShaderPass;
+  private _shadowPassIndex: number;
 
   /**
    * Shader used by the material.
@@ -60,6 +62,8 @@ export class BaseMaterial extends Material {
     } else {
       renderStates.length = maxPassCount;
     }
+
+    this._refreshShadowPassInfo();
   }
 
   /**
@@ -71,8 +75,8 @@ export class BaseMaterial extends Material {
 
   set isTransparent(value: boolean) {
     if (value !== this._isTransparent) {
-      this.setIsTransparent(0, value);
       this._isTransparent = value;
+      this.setIsTransparent(0, value);
     }
   }
 
@@ -86,8 +90,8 @@ export class BaseMaterial extends Material {
 
   set blendMode(value: BlendMode) {
     if (value !== this._blendMode) {
-      this.setBlendMode(0, value);
       this._blendMode = value;
+      this.setBlendMode(0, value);
     }
   }
 
@@ -125,6 +129,8 @@ export class BaseMaterial extends Material {
       }
 
       shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
+
+      this._setShadowPassRenderQueueType();
     }
   }
 
@@ -177,6 +183,8 @@ export class BaseMaterial extends Material {
         : RenderQueueType.Opaque;
       this.shaderData.disableMacro(BaseMaterial._transparentMacro);
     }
+
+    this._setShadowPassRenderQueueType();
   }
 
   /**
@@ -251,5 +259,33 @@ export class BaseMaterial extends Material {
     target._renderFace = this._renderFace;
     target._isTransparent = this._isTransparent;
     target._blendMode = this._blendMode;
+  }
+
+  private _refreshShadowPassInfo(): void {
+    const passes = this.shader.subShaders[0].passes;
+    const length = passes.length;
+    this._shadowPass = null;
+    this._shadowPassIndex = null;
+
+    for (let i = 0; i < length; i++) {
+      const pass = passes[i];
+      if (pass.name === "ShadowCaster") {
+        this._shadowPass = pass;
+        this._shadowPassIndex = i;
+      }
+    }
+  }
+
+  private _setShadowPassRenderQueueType(): void {
+    const shadowPass = this._shadowPass;
+    const shadowPassIndex = this._shadowPassIndex;
+
+    if (shadowPass) {
+      const alphaCutoff = this.shaderData.getFloat(BaseMaterial._alphaCutoffProp);
+      const renderState = shadowPass._renderState ?? this.renderStates[shadowPassIndex];
+
+      renderState.renderQueueType =
+        alphaCutoff || this._isTransparent ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
+    }
   }
 }
