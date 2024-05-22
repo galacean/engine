@@ -1,4 +1,5 @@
 import { Engine } from "../../Engine";
+import { Renderer } from "../../Renderer";
 import { RenderContext } from "../RenderContext";
 import { RenderData } from "../RenderData";
 import { RenderElement } from "../RenderElement";
@@ -35,7 +36,45 @@ export class BatcherManager {
   }
 
   batch(elements: Array<RenderElement>, batchedElements: Array<RenderElement>): void {
-    this._batcher2D.batch(elements, batchedElements);
+    const len = elements.length;
+    if (len === 0) {
+      return;
+    }
+
+    let preElement: RenderElement;
+    let preRenderer: Renderer;
+    let preUsage: RenderDataUsage;
+    for (let i = 0; i < len; ++i) {
+      const curElement = elements[i];
+      const curRenderer = curElement.data.component;
+
+      if (preElement) {
+        // @ts-ignore
+        if (preUsage === curElement.data.usage && preRenderer._canBatch(preElement, curElement)) {
+          // @ts-ignore
+          preRenderer._batchRenderElement(preElement, curElement);
+        } else {
+          batchedElements.push(preElement);
+          preElement = curElement;
+          preRenderer = curRenderer;
+          preUsage = curElement.data.usage;
+          // @ts-ignore
+          preRenderer._batchRenderElement(preElement);
+        }
+      } else {
+        preElement = curElement;
+        preRenderer = curRenderer;
+        preUsage = curElement.data.usage;
+        // @ts-ignore
+        preRenderer._batchRenderElement(preElement);
+      }
+    }
+    preElement && batchedElements.push(preElement);
+  }
+
+  uploadBuffer() {
+    // @ts-ignore
+    this._batcher2D._uploadBuffer();
   }
 
   clear() {

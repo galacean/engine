@@ -70,6 +70,7 @@ export class RenderQueue {
 
   batch(batcherManager: BatcherManager): void {
     batcherManager.batch(this.elements, this.batchedElements);
+    batcherManager.uploadBuffer();
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {
