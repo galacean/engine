@@ -26,6 +26,7 @@ WebGLEngine.create({
     webGLMode: WebGLMode.WebGL2
   }
 }).then((engine) => {
+  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   scene.shadowResolution = ShadowResolution.Medium;
@@ -36,10 +37,9 @@ WebGLEngine.create({
   const camera = cameraEntity.addComponent(Camera);
   const lightEntity = rootEntity.createChild("light_node");
   const light = lightEntity.addComponent(DirectLight);
-  lightEntity.transform.setPosition(-10, 10, 10);
-  lightEntity.transform.lookAt(new Vector3(0, 0, 0));
-
-  light.shadowType = ShadowType.SoftHigh;
+  lightEntity.transform.setPosition(-6, 10, 0);
+  lightEntity.transform.lookAt(new Vector3(0, 0, -10));
+  light.shadowType = ShadowType.Hard;
 
   const planeEntity = rootEntity.createChild("plane_node");
   const renderer = planeEntity.addComponent(MeshRenderer);
