@@ -278,11 +278,10 @@ export class BaseMaterial extends Material {
 
   private _setShadowPassRenderQueueType(): void {
     const shadowPass = this._shadowPass;
-    const shadowPassIndex = this._shadowPassIndex;
 
     if (shadowPass) {
       const alphaCutoff = this.shaderData.getFloat(BaseMaterial._alphaCutoffProp);
-      const renderState = shadowPass._renderState ?? this.renderStates[shadowPassIndex];
+      const renderState = shadowPass._renderState ?? this.renderStates[this._shadowPassIndex];
 
       renderState.renderQueueType =
         alphaCutoff || this._isTransparent ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
