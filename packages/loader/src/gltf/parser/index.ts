@@ -11,3 +11,4 @@ export { GLTFTextureParser } from "./GLTFTextureParser";
 export { GLTFValidator } from "./GLTFValidator";
 export { GLTFParserContext, GLTFParserType, registerGLTFParser, BufferInfo } from "./GLTFParserContext";
 export { GLTFBufferViewParser } from "./GLTFBufferViewParser";
+export { GLTFAnimatorControllerParser } from "./GLTFAnimatorControllerParser";

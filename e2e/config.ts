@@ -30,6 +30,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-customBlendShape",
       threshold: 0.1
     },
+    multiSubMeshBlendShape: {
+      category: "Animator",
+      caseFileName: "animator-multiSubMeshBlendShape",
+      threshold: 0.1
+    },
     event: {
       category: "Animator",
       caseFileName: "animator-event",
@@ -149,6 +154,13 @@ export const E2E_CONFIG = {
     opaqueTexture: {
       category: "Camera",
       caseFileName: "camera-opaque-texture",
+      threshold: 0.1
+    }
+  },
+  Physics: {
+    "physx-collision": {
+      category: "Physics",
+      caseFileName: "physx-collision",
       threshold: 0.1
     }
   }

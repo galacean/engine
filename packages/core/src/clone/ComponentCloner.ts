@@ -29,11 +29,17 @@ export class ComponentCloner {
    * @param source - Clone source
    * @param target - Clone target
    */
-  static cloneComponent(source: Component, target: Component, srcRoot: Entity, targetRoot: Entity): void {
+  static cloneComponent(
+    source: Component,
+    target: Component,
+    srcRoot: Entity,
+    targetRoot: Entity,
+    deepInstanceMap: Map<Object, Object>
+  ): void {
     const cloneModes = CloneManager.getCloneMode(source.constructor);
 
     for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, cloneModes[k]);
+      CloneManager.cloneProperty(source, target, k, cloneModes[k], srcRoot, targetRoot, deepInstanceMap);
     }
 
     if ((<IComponentCustomClone>(source as unknown))._cloneTo) {

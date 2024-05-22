@@ -80,7 +80,7 @@ function config({ location, pkgJson }) {
         ...commonPlugins
       ];
       if (compress) {
-        plugins.push(minify());
+        plugins.push(minify({ sourceMap: true }));
         file = path.join(location, "dist", "browser.min.js");
       }
 
@@ -94,7 +94,7 @@ function config({ location, pkgJson }) {
             file,
             name: umdConfig.name,
             format: "umd",
-            sourcemap: false,
+            sourcemap: true,
             globals: umdConfig.globals
           }
         ],

@@ -61,7 +61,7 @@ export class GLTFSceneParser extends GLTFParser {
     const entityInfo = glTF.nodes[index];
     const { camera: cameraID, mesh: meshID } = entityInfo;
     const entity = context.get<Entity>(GLTFParserType.Entity, index);
-    let promise: Promise<void[]>;
+    let promise: Promise<void>;
 
     if (cameraID !== undefined) {
       this._createCamera(glTFResource, glTF.cameras[cameraID], entity);
@@ -125,69 +125,65 @@ export class GLTFSceneParser extends GLTFParser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void[]> {
-    const glTFMeshes = context.glTF.meshes;
+  private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void> {
     const { mesh: meshID, skin: skinID } = entityInfo;
-    const glTFMesh = glTFMeshes[meshID];
+    const glTFMesh = context.glTF.meshes[meshID];
+
     const glTFMeshPrimitives = glTFMesh.primitives;
+    const rendererCount = glTFMeshPrimitives.length;
     const blendShapeWeights = entityInfo.weights || glTFMesh.weights;
-    const promises = new Array<Promise<void>>();
+    const materialPromises = new Array<Promise<Material>>(rendererCount);
 
-    for (let i = 0; i < glTFMeshPrimitives.length; i++) {
-      const glTFPrimitive = glTFMeshPrimitives[i];
-      const materialIndex = glTFPrimitive.material;
-
-      promises.push(
-        Promise.all([
-          context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),
-          skinID !== undefined && context.get<Skin>(GLTFParserType.Skin, skinID),
-          materialIndex !== undefined && context.get<Material>(GLTFParserType.Material, materialIndex)
-        ]).then(([meshes, skin, material]) => {
-          const mesh = meshes[i];
-          let renderer: MeshRenderer | SkinnedMeshRenderer;
-
-          material ||= GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
-
-          if (skin || blendShapeWeights) {
-            const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
-            skinRenderer.mesh = mesh;
-            if (skin) {
-              skinRenderer.rootBone = skin._rootBone;
-              skinRenderer.bones = skin._bones;
-              this._computeLocalBounds(skinRenderer, mesh, skin._bones, skin._rootBone, skin.inverseBindMatrices);
-
-              skinRenderer.skin = skin;
-            }
-            if (blendShapeWeights) {
-              skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
-            }
-            renderer = skinRenderer;
-          } else {
-            renderer = entity.addComponent(MeshRenderer);
-            renderer.mesh = mesh;
-          }
-
-          renderer.setMaterial(material);
-
-          // Enable vertex color if mesh has COLOR_0 vertex element
-          mesh.vertexElements.forEach((element) => {
-            if (element.semantic === "COLOR_0") {
-              renderer.enableVertexColor = true;
-            }
-          });
-
-          GLTFParser.executeExtensionsAdditiveAndParse(glTFPrimitive.extensions, context, renderer, glTFPrimitive);
-        })
-      );
+    for (let i = 0; i < rendererCount; i++) {
+      materialPromises[i] = context.get<Material>(GLTFParserType.Material, glTFMeshPrimitives[i].material);
     }
 
-    return Promise.all(promises);
+    return Promise.all([
+      context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),
+      skinID !== undefined && context.get<Skin>(GLTFParserType.Skin, skinID),
+      Promise.all(materialPromises)
+    ]).then(([meshes, skin, materials]) => {
+      for (let i = 0; i < rendererCount; i++) {
+        const material = materials[i] || GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
+        const glTFPrimitive = glTFMeshPrimitives[i];
+        const mesh = meshes[i];
+
+        let renderer: MeshRenderer | SkinnedMeshRenderer;
+
+        if (skin || blendShapeWeights) {
+          const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
+          skinRenderer.mesh = mesh;
+          if (skin) {
+            this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
+            skinRenderer.skin = skin;
+          }
+          if (blendShapeWeights) {
+            skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
+          }
+          renderer = skinRenderer;
+        } else {
+          renderer = entity.addComponent(MeshRenderer);
+          renderer.mesh = mesh;
+        }
+
+        renderer.setMaterial(material);
+
+        // Enable vertex color if mesh has COLOR_0 vertex element
+        mesh.vertexElements.forEach((element) => {
+          if (element.semantic === "COLOR_0") {
+            renderer.enableVertexColor = true;
+          }
+        });
+
+        GLTFParser.executeExtensionsAdditiveAndParse(glTFPrimitive.extensions, context, renderer, glTFPrimitive);
+      }
+    });
   }
 
   private _computeLocalBounds(
     skinnedMeshRenderer: SkinnedMeshRenderer,
     mesh: Mesh,
-    bones: Entity[],
+    bones: ReadonlyArray<Entity>,
     rootBone: Entity,
     inverseBindMatrices: Matrix[]
   ): void {
@@ -215,7 +211,7 @@ export class GLTFSceneParser extends GLTFParser {
   }
 
   private _computeApproximateBindMatrix(
-    jointEntities: Entity[],
+    jointEntities: ReadonlyArray<Entity>,
     inverseBindMatrices: Matrix[],
     rootEntity: Entity,
     approximateBindMatrix: Matrix

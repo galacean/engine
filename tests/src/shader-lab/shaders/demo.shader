@@ -36,6 +36,8 @@ Shader "Water" {
     UsePass "pbr/Default/Forward"
 
     Pass "default" {
+      #define saturate( a ) clamp( a, 0.0, 1.0 )
+
       Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
 
       struct a2v {
