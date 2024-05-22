@@ -294,13 +294,10 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial() === this.engine._spriteDefaultMaterial || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
+    super._updateShaderData(
+      context,
+      this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP
+    );
   }
 
   /**
