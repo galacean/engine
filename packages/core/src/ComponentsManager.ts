@@ -143,11 +143,16 @@ export class ComponentsManager {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
-      onStartScripts.forEachAndClean((script: Script) => {
-        script._started = true;
-        this.removeOnStartScript(script);
-        script.onStart();
-      });
+      onStartScripts.forEachAndClean(
+        (script: Script) => {
+          script._started = true;
+          this.removeOnStartScript(script);
+          script.onStart();
+        },
+        (element: Script, index: number) => {
+          element._onStartIndex = index;
+        }
+      );
     }
   }
 
