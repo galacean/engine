@@ -44,6 +44,7 @@ export class ParticleGenerator {
   private static _tempBoundingBox = new BoundingBox();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
   private static readonly _particleIncreaseCount = 128;
+  private static readonly _transformedBoundsIncreaseCount = 16;
 
   /** Use auto random seed. */
   useAutoRandomSeed = true;
@@ -114,13 +115,13 @@ export class ParticleGenerator {
   private _randomSeed = 0;
 
   @ignoreClone
-  private _dynamicBounds: number[] = [];
+  private _transformedBoundsArray: number[] = [];
   @ignoreClone
   private _dynamicBoundsCapacity = 0;
   @ignoreClone
-  private _firstActiveBoundingBox = 0;
+  private _firstActiveTransformedBoundingBox = 0;
   @ignoreClone
-  private _firstFreeBoundingBox = 0;
+  private _firstFreeTransformedBoundingBox = 0;
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -211,7 +212,7 @@ export class ParticleGenerator {
         this._firstNewElement = firstFreeElement;
         this._playTime = 0;
 
-        this._firstActiveBoundingBox = this._firstFreeBoundingBox;
+        this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
 
         this.emission._reset();
       }
@@ -268,7 +269,7 @@ export class ParticleGenerator {
     this._freeRetiredParticles();
 
     if (main.simulationSpace === ParticleSimulationSpace.World) {
-      this._retireActiveBounds();
+      this._retireTransformedBounds();
     }
 
     if (emission.enabled && this._isPlaying) {
@@ -285,12 +286,12 @@ export class ParticleGenerator {
       }
     }
 
-    // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
     if (this.isAlive) {
       if (main.simulationSpace === ParticleSimulationSpace.World) {
-        this._generateBoundsPerFrame();
+        this._generateTransformedBounds();
       }
     } else {
+      // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
       const discardTime = Math.min(emission._frameRateTime, Math.floor(this._playTime / duration) * duration);
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
@@ -528,34 +529,36 @@ export class ParticleGenerator {
    * @internal
    */
   _updateBoundsSimulationLocal(bounds: BoundingBox): void {
-    const { _localBounds: localBounds } = this._renderer;
-    if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
+    const renderer = this._renderer;
+    const { _transformedBounds: transformedBounds } = renderer;
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
       if (this.isAlive) {
-        this._calculateLocalBounds(localBounds);
+        this._calculateLocalBounds(transformedBounds);
       } else {
-        localBounds.min.set(0, 0, 0);
-        localBounds.max.set(0, 0, 0);
+        transformedBounds.min.set(0, 0, 0);
+        transformedBounds.max.set(0, 0, 0);
       }
-      this._renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
-    if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-      const { min: localMin, max: localMax } = localBounds;
-      this._addRotationAndVelocityOverLifetimeToBounds(localBounds);
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+      this._addRotationAndVelocityOverLifetimeToBounds(transformedBounds);
 
+      const { min, max } = transformedBounds;
       const { min: worldMin, max: worldMax } = bounds;
+
       const { _tempVector30: worldPosition } = ParticleGenerator;
       worldPosition.copyFrom(this._renderer.entity.transform.worldPosition);
 
-      worldMin.set(localMin.x + worldPosition.x, localMin.y + worldPosition.y, localMin.z + worldPosition.z);
-      worldMax.set(localMax.x + worldPosition.x, localMax.y + worldPosition.y, localMax.z + worldPosition.z);
+      worldMin.set(min.x + worldPosition.x, min.y + worldPosition.y, min.z + worldPosition.z);
+      worldMax.set(max.x + worldPosition.x, max.y + worldPosition.y, max.z + worldPosition.z);
 
-      this._renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     }
 
-    if (this._renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
-      this._addGravityToBounds(bounds);
-      this._renderer._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
+    if (renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
+      this._addGravityToWorldBounds(bounds);
+      renderer._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
     }
   }
 
@@ -564,80 +567,99 @@ export class ParticleGenerator {
    */
   _updateBoundsSimulationWorld(bounds: BoundingBox): void {
     const { min, max } = bounds;
-    if (this._firstActiveBoundingBox === this._firstFreeBoundingBox) {
+    const renderer = this._renderer;
+    if (this._firstActiveTransformedBoundingBox === this._firstFreeTransformedBoundingBox) {
       min.set(0, 0, 0);
       max.set(0, 0, 0);
       return;
     }
 
-    if (this._renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
-      const index = this._firstActiveBoundingBox * this._renderer.engine._particleBufferUtils.boundsFloatStride;
+    if (renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
+      const index = this._firstActiveTransformedBoundingBox * renderer.engine._particleBufferUtils.boundsFloatStride;
 
-      min.set(this._dynamicBounds[index], this._dynamicBounds[index + 1], this._dynamicBounds[index + 2]);
-      max.set(this._dynamicBounds[index + 3], this._dynamicBounds[index + 4], this._dynamicBounds[index + 5]);
+      min.set(
+        this._transformedBoundsArray[index],
+        this._transformedBoundsArray[index + 1],
+        this._transformedBoundsArray[index + 2]
+      );
+      max.set(
+        this._transformedBoundsArray[index + 3],
+        this._transformedBoundsArray[index + 4],
+        this._transformedBoundsArray[index + 5]
+      );
 
-      if (this._firstActiveBoundingBox < this._firstFreeBoundingBox) {
-        for (let i = this._firstActiveBoundingBox; i < this._firstFreeBoundingBox; i++) {
+      if (this._firstActiveTransformedBoundingBox < this._firstFreeTransformedBoundingBox) {
+        for (let i = this._firstActiveTransformedBoundingBox; i < this._firstFreeTransformedBoundingBox; i++) {
           this._mergeToWorldBounds(i, bounds);
         }
       } else {
-        for (let i = this._firstActiveBoundingBox; i < this._dynamicBoundsCapacity; i++) {
+        for (let i = this._firstActiveTransformedBoundingBox; i < this._dynamicBoundsCapacity; i++) {
           this._mergeToWorldBounds(i, bounds);
         }
-        if (this._firstFreeBoundingBox > 0) {
-          for (let i = 0; i < this._firstFreeBoundingBox; i++) {
+        if (this._firstFreeTransformedBoundingBox > 0) {
+          for (let i = 0; i < this._firstFreeTransformedBoundingBox; i++) {
             this._mergeToWorldBounds(i, bounds);
           }
         }
 
-        this._addGravityToBounds(bounds);
-        this._renderer._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
+        this._addGravityToWorldBounds(bounds);
+        renderer._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
       }
     }
   }
 
-  /** @internal */
-  _resizeBoundsArray(isIncrease: boolean, increaseCount: number = ParticleGenerator._particleIncreaseCount): void {
+  /**
+   * @internal
+   */
+  _resizeBoundsArray(isIncrease: boolean): void {
     if (isIncrease) {
-      const newSize = this._dynamicBoundsCapacity + increaseCount;
-
-      this._dynamicBounds.length = newSize * this._renderer.engine._particleBufferUtils.boundsFloatStride;
-      this._dynamicBoundsCapacity = newSize;
+      this._transformedBoundsArray.length +=
+        ParticleGenerator._particleIncreaseCount * this._renderer.engine._particleBufferUtils.boundsFloatStride;
+      this._dynamicBoundsCapacity += ParticleGenerator._transformedBoundsIncreaseCount;
     } else {
-      this._dynamicBounds.length = 0;
-      this._dynamicBoundsCapacity = 0;
+      this._transformedBoundsArray.length = 0;
 
-      this._firstActiveBoundingBox = 0;
-      this._firstFreeBoundingBox = 0;
+      this._firstActiveTransformedBoundingBox = 0;
+      this._firstFreeTransformedBoundingBox = 0;
     }
   }
 
-  /** @internal */
-  _generateBoundsPerFrame(): void {
-    const { _localBounds: localBounds } = this._renderer;
-    if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
+  /**
+   * @internal
+   */
+  _generateTransformedBounds(): void {
+    const renderer = this._renderer;
+    const { _transformedBounds: localBounds } = renderer;
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
       this._calculateLocalBounds(localBounds);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
-    if (this._renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-      const worldPosition = this._renderer.entity.transform.worldPosition;
+    const { _transformedBoundsArray: dynamicBounds } = this;
+    const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = renderer.engine._particleBufferUtils;
+    const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
+
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+      // Resize dynamic bounds
+      if (
+        this._firstFreeTransformedBoundingBox + 1 === this._dynamicBoundsCapacity ||
+        this._firstFreeTransformedBoundingBox + 1 === this._firstActiveTransformedBoundingBox
+      ) {
+        this._resizeBoundsArray(true);
+      }
+
+      this._firstFreeTransformedBoundingBox = (this._firstFreeTransformedBoundingBox + 1) % this._dynamicBoundsCapacity;
+
+      // Generate Transformed Bounds
+      const worldPosition = renderer.entity.transform.worldPosition;
       const { min: localMin, max: localMax } = localBounds;
       const { min, max } = ParticleGenerator._tempBoundingBox;
 
       this._addRotationAndVelocityOverLifetimeToBounds(localBounds);
       min.set(worldPosition.x + localMin.x, worldPosition.y + localMin.y, worldPosition.z + localMin.z);
       max.set(worldPosition.x + localMax.x, worldPosition.y + localMax.y, worldPosition.z + localMax.z);
-    }
 
-    const { _dynamicBounds: dynamicBounds } = this;
-    const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = this._renderer.engine._particleBufferUtils;
-    const boundsOffset = this._firstFreeBoundingBox * boundsFloatStride;
-    if (
-      this._renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume) ||
-      this._firstActiveBoundingBox === this._firstFreeBoundingBox
-    ) {
       const { _tempVector20: minmax } = ParticleGenerator;
-      const { min, max } = ParticleGenerator._tempBoundingBox;
 
       dynamicBounds[boundsOffset] = min.x;
       dynamicBounds[boundsOffset + 1] = min.y;
@@ -651,18 +673,10 @@ export class ParticleGenerator {
       dynamicBounds[boundsOffset + boundsTimeOffset] = this._playTime;
       dynamicBounds[boundsOffset + boundsMaxLifetimeOffset] = minmax.y;
 
-      if (
-        this._firstFreeBoundingBox + 1 === this._dynamicBoundsCapacity ||
-        this._firstFreeBoundingBox + 1 === this._firstActiveBoundingBox
-      ) {
-        this._resizeBoundsArray(true, ParticleGenerator._particleIncreaseCount);
-      }
-
-      this._firstFreeBoundingBox = (this._firstFreeBoundingBox + 1) % this._dynamicBoundsCapacity;
-
-      this._renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume | ParticleUpdateFlags.GeneratorVolume);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     } else {
-      const previousBoundsOffset = ((this._firstFreeBoundingBox - 1) % this._dynamicBoundsCapacity) * boundsFloatStride;
+      const previousBoundsOffset =
+        ((this._firstFreeTransformedBoundingBox - 1) % this._dynamicBoundsCapacity) * boundsFloatStride;
       dynamicBounds[previousBoundsOffset + boundsTimeOffset] = this._playTime;
     }
   }
@@ -929,15 +943,17 @@ export class ParticleGenerator {
     return index;
   }
 
-  private _retireActiveBounds(): void {
+  private _retireTransformedBounds(): void {
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = this._renderer.engine._particleBufferUtils;
-    while (this._firstActiveBoundingBox !== this._firstFreeBoundingBox) {
-      const index = this._firstActiveBoundingBox * boundsFloatStride;
+    while (this._firstActiveTransformedBoundingBox !== this._firstFreeTransformedBoundingBox) {
+      const index = this._firstActiveTransformedBoundingBox * boundsFloatStride;
       if (
-        this._dynamicBounds[index + boundsTimeOffset] + this._dynamicBounds[index + boundsMaxLifetimeOffset] <
+        this._transformedBoundsArray[index + boundsTimeOffset] +
+          this._transformedBoundsArray[index + boundsMaxLifetimeOffset] <
         this._playTime
       ) {
-        this._firstActiveBoundingBox = (this._firstActiveBoundingBox + 1) % this._dynamicBoundsCapacity;
+        this._firstActiveTransformedBoundingBox =
+          (this._firstActiveTransformedBoundingBox + 1) % this._dynamicBoundsCapacity;
         this._renderer._onWorldVolumeChanged();
       } else {
         break;
@@ -1015,7 +1031,7 @@ export class ParticleGenerator {
 
   private _mergeToWorldBounds(index: number, bounds: BoundingBox): void {
     const { min, max } = bounds;
-    const { _dynamicBounds: dynamicBounds } = this;
+    const { _transformedBoundsArray: dynamicBounds } = this;
 
     const baseIndex = index * this._renderer.engine._particleBufferUtils.boundsFloatStride;
 
@@ -1089,7 +1105,7 @@ export class ParticleGenerator {
     }
   }
 
-  private _addGravityToBounds(bounds: BoundingBox): void {
+  private _addGravityToWorldBounds(bounds: BoundingBox): void {
     const { min, max } = bounds;
     const { _tempVector20: minmax } = ParticleGenerator;
 
