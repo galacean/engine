@@ -7,7 +7,7 @@ import { MBChunk } from "./batcher/MeshBuffer";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 import { RenderData } from "./RenderData";
 
-export class SpriteRenderData extends RenderData implements IPoolElement {
+export class RenderData2D extends RenderData implements IPoolElement {
   texture: Texture2D;
   chunk: MBChunk;
 

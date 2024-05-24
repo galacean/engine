@@ -6,7 +6,7 @@ import { StencilOperation } from "../../shader/enums/StencilOperation";
 import { Shader } from "../../shader/Shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderElement } from "../RenderElement";
-import { SpriteRenderData } from "../SpriteRenderData";
+import { RenderData2D } from "../RenderData2D";
 import { Batcher2D } from "./Batcher2D";
 
 export class SpriteMaskBatcher extends Batcher2D {
@@ -83,7 +83,7 @@ export class SpriteMaskBatcher extends Batcher2D {
       // const subMesh = subMeshes[i];
       const spriteMaskElement = batchedQueue[i];
       const stencilOp = stencilOps[i];
-      const renderData = <SpriteRenderData>spriteMaskElement.data;
+      const renderData = <RenderData2D>spriteMaskElement.data;
       const mesh = renderData.chunk._meshBuffer._mesh;
 
       if (!spriteMaskElement) {

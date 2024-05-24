@@ -11,7 +11,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
-import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
+import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 
 /**
  * A component for masking Sprites.
@@ -242,7 +242,7 @@ export class SpriteMask extends Renderer {
 
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
-    const renderData = engine._spriteRenderDataPool.getFromPool();
+    const renderData = engine._renderData2DPool.getFromPool();
     renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
 
@@ -255,8 +255,8 @@ export class SpriteMask extends Renderer {
    * @internal
    */
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    const renderDataA = <SpriteRenderData>elementA.data;
-    const renderDataB = <SpriteRenderData>elementB.data;
+    const renderDataA = <RenderData2D>elementA.data;
+    const renderDataB = <RenderData2D>elementB.data;
     if (renderDataA.chunk._meshBuffer !== renderDataB.chunk._meshBuffer) {
       return false;
     }
@@ -277,8 +277,8 @@ export class SpriteMask extends Renderer {
    * @internal
    */
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
-    const renderDataA = <SpriteRenderData>elementA.data;
-    const chunk = elementB ? (<SpriteRenderData>elementB.data).chunk : renderDataA.chunk;
+    const renderDataA = <RenderData2D>elementA.data;
+    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
     const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
     const indices = meshBuffer._indices;
     const vertexStartIndex = vEntry.start / 9;

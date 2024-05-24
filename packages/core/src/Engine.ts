@@ -18,7 +18,7 @@ import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
-import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
+import { RenderData2D } from "./RenderPipeline/RenderData2D";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -89,7 +89,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
   /* @internal */
-  _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
+  _renderData2DPool: ClassPool<RenderData2D> = new ClassPool(RenderData2D);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -349,7 +349,7 @@ export class Engine extends EventDispatcher {
 
     this._renderElementPool.resetPool();
     this._renderDataPool.resetPool();
-    this._spriteRenderDataPool.resetPool();
+    this._renderData2DPool.resetPool();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -754,7 +754,7 @@ export class Engine extends EventDispatcher {
   private _gc(): void {
     this._renderElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();
-    this._spriteRenderDataPool.garbageCollection();
+    this._renderData2DPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 
