@@ -178,14 +178,14 @@ export class GLTFParserContext {
           for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
             const mesh = item[i] as ModelMesh;
             // @ts-ignore
-            this.resourceManager._onSubAssetSuccess<ModelMesh>(`${url}?q=${glTFResourceKey}[${index}][${i}]`, mesh);
+            this.resourceManager._onSubAssetSuccess<ModelMesh>(url, `${glTFResourceKey}[${index}][${i}]`, mesh);
           }
         } else {
           // @ts-ignore
-          this.resourceManager._onSubAssetSuccess<T>(`${url}?q=${glTFResourceKey}[${index}]`, item);
+          this.resourceManager._onSubAssetSuccess<T>(url, `${glTFResourceKey}[${index}]`, item);
           if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
             // @ts-ignore
-            this.resourceManager._onSubAssetSuccess<Entity>(`${url}?q=defaultSceneRoot`, item as Entity);
+            this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
           }
         }
       });

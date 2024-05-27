@@ -182,17 +182,48 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetSuccess<T>(assetURL: string, value: T): void {
-    this._subAssetPromiseCallbacks[assetURL]?.resolve(value);
-    delete this._subAssetPromiseCallbacks[assetURL];
+  _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
+    const subPromise = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    if (subPromise) {
+      subPromise.resolve(value);
+    } else {
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        resolve: value
+      };
+    }
   }
 
   /**
    * @internal
    */
-  _onSubAssetFail(assetURL: string, value: (reason: any) => void): void {
-    this._subAssetPromiseCallbacks[assetURL]?.reject(value);
-    delete this._subAssetPromiseCallbacks[assetURL];
+  _onSubAssetFail(assetBaseURL: string, assetSubPath: string, value: (reason: any) => void): void {
+    const subPromise = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    if (subPromise) {
+      subPromise.reject(value);
+    } else {
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        reject: value
+      };
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _createSubAssetPromiseCallback<T>(assetBaseURL: string, assetSubPath: string): AssetPromise<T> {
+    return new AssetPromise<T>((resolve, reject) => {
+      const subPromise = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+      if (subPromise?.resolve) {
+        resolve(subPromise.resolve);
+      } else if (subPromise?.reject) {
+        reject(subPromise.reject);
+      } else {
+        (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+          resolve,
+          reject
+        };
+      }
+    });
   }
 
   /**
@@ -365,25 +396,9 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    // Load asset
-    item.url = assetBaseURL;
-    const promise = loader.load(item, this);
-    loadingPromises[assetBaseURL] = promise;
-
-    promise.then(
-      (resource: T) => {
-        if (loader.useCache) {
-          this._addAsset(assetBaseURL, resource as EngineObject);
-        }
-        delete loadingPromises[assetBaseURL];
-      },
-      () => delete loadingPromises[assetBaseURL]
-    );
-
+    // Check sub asset
     if (queryPath) {
-      const subPromise = new AssetPromise<T>((resolve, reject) => {
-        this._pushSubAssetPromiseCallback(assetURL, resolve, reject);
-      });
+      const subPromise = this._createSubAssetPromiseCallback<T>(assetBaseURL, queryPath);
 
       loadingPromises[assetURL] = subPromise;
       subPromise.then(
@@ -393,21 +408,39 @@ export class ResourceManager {
         () => delete loadingPromises[assetURL]
       );
 
-      promise.catch((e) => {
-        this._onSubAssetFail(assetURL, e);
+      // Check whether load main asset
+      const mainPromise = loadingPromises[assetBaseURL] || this._loadMainAsset(loader, item, assetBaseURL);
+      mainPromise.catch((e) => {
+        this._onSubAssetFail(assetBaseURL, queryPath, e);
       });
 
       return subPromise;
     }
 
-    return promise;
+    return this._loadMainAsset(loader, item, assetBaseURL);
   }
 
-  private _pushSubAssetPromiseCallback(assetURL: string, resolve: (value: any) => void, reject: (reason: any) => void) {
-    this._subAssetPromiseCallbacks[assetURL] = {
-      resolve,
-      reject
-    };
+  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, assetBaseURL: string): AssetPromise<T> {
+    item.url = assetBaseURL;
+    const loadingPromises = this._loadingPromises;
+    const promise = loader.load(item, this);
+    loadingPromises[assetBaseURL] = promise;
+
+    promise.then(
+      (resource: T) => {
+        if (loader.useCache) {
+          this._addAsset(assetBaseURL, resource as EngineObject);
+        }
+        delete loadingPromises[assetBaseURL];
+        this._releaseSubAssetPromiseCallback(assetBaseURL);
+      },
+      () => {
+        delete loadingPromises[assetBaseURL];
+        this._releaseSubAssetPromiseCallback(assetBaseURL);
+      }
+    );
+
+    return promise;
   }
 
   private _gc(forceDestroy: boolean): void {
@@ -465,6 +498,13 @@ export class ResourceManager {
       result.push(key);
     });
     return result;
+  }
+
+  /**
+   * @internal
+   */
+  private _releaseSubAssetPromiseCallback(assetBaseURL: string): void {
+    delete this._subAssetPromiseCallbacks[assetBaseURL];
   }
 
   //-----------------Editor temp solution-----------------
@@ -549,9 +589,14 @@ const rePropName = RegExp(
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
 type SubAssetPromiseCallbacks = Record<
+  // main asset url, ie. "https://***.glb"
   string,
-  {
-    resolve: (value: any) => void;
-    reject: (reason: any) => void;
-  }
+  Record<
+    // sub asset url, ie. "textures[0]"
+    string,
+    {
+      resolve?: any;
+      reject?: any;
+    }
+  >
 >;
