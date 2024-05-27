@@ -9,6 +9,19 @@
 
 
 
+
+// include test
+
+void frag( v2f i ) {
+  if ( u_mode ) {
+      gl_FragColor = vec4( u_color, 1.0 );
+  } else {
+    
+      gl_FragColor = texture2D( u_texture, i.v_uv );
+   
+  }
+}
+
 void function() {
   clamp( 9.9999 + 1e-6, 0.0, 1.0 ) ;
   mat4 m;

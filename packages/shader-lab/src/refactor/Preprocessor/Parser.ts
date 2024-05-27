@@ -1,8 +1,6 @@
 import LexerUtils from "../Lexer/Utils";
 import LocRange from "../common/LocRange";
 import { MacroDefine } from "./MacroDefine";
-// import { MacroExpand } from "./MacroExpand";
-// import { MacroInclude } from "./MacroInclude";
 import { PpError } from "./PpError";
 import PpSourceMap, { BlockInfo, IIdxRange } from "./PpSourceMap";
 import PpToken from "./PpToken";
@@ -91,9 +89,6 @@ export default class PpParser extends PpError {
       rangeInBlock: { start: start.index, end: end.index },
       replace: expanded.content
     });
-    // const macroInclude = new MacroInclude(id, new LocRange(start, end));
-    // this.includeMacros.push(macroInclude);
-    // TODO: replace
   }
 
   private parseIfDef(scanner: PpScanner) {
