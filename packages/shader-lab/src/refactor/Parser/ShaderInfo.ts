@@ -14,8 +14,6 @@ export abstract class ShaderData {
   settingRenderState?: ASTNode.GLRenderStateDeclarator;
   symbolTable: SymbolTable;
 
-  renderQueueType: string | IEngineType["RenderQueueType"];
-
   renderStates: IRenderState = [{}, {}];
 
   tags: Record<string, string | number | boolean> = {};

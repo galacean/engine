@@ -20,7 +20,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       name: node.name,
       vertexSource: this.vertexMain(vertexMain, node.shaderData),
       fragmentSource: this.fragmentMain(fragmentMain, node.shaderData),
-      renderStates: mergedStates
+      renderStates: mergedStates,
+      tags: node.shaderData.tags
     };
   }
 

@@ -3,6 +3,7 @@
 %token pass
 %token id
 %token render_queue_type
+%token pipeline_stage
 %token blend_state
 %token depth_state
 %token stencil_state
@@ -150,6 +151,7 @@ gl_tag_id:
     /** 待补充 */
     ReplacementTag
     | LightMode
+    | pipeline_stage
     ;
 
 // TODO: 需确认

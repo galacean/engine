@@ -42,7 +42,8 @@ export abstract class CodeGenVisitor {
     const ret: ISubShaderCodeGenResult = {
       name: node.name,
       passes: [],
-      renderStates: mergedStates
+      renderStates: mergedStates,
+      tags: node.shaderData.tags
     };
     for (const pass of node.shaderData.passList) {
       if (pass instanceof ASTNode.GLPassProgram) {

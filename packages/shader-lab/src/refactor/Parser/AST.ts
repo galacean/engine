@@ -1254,16 +1254,18 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const variable = this.children[2] as Token;
       const builtinType = EngineType.RenderQueueType[<any>variable.lexeme];
+      const key = EngineType.RenderStateElementKey["RenderQueueType"];
       if (builtinType != undefined) {
-        sa.shaderData.renderQueueType = builtinType;
+        sa.shaderData.renderStates[0][key] = builtinType;
       } else {
         const varSymbol = sa.scope.lookup(variable.lexeme, ESymbolType.VAR);
         if (!varSymbol || varSymbol.symDataType?.type !== EKeyword.GL_RenderQueueType) {
-          sa.error(variable.location, "invalid render queue variable");
+          sa.error(variable.location, "invalid render queue variable:", variable.lexeme);
+          return;
         }
-      }
 
-      sa.shaderData.renderQueueType = variable.lexeme;
+        sa.shaderData.renderStates[1][key] = variable.lexeme;
+      }
     }
   }
 
@@ -1383,8 +1385,8 @@ export namespace ASTNode {
       } else {
         k = declarator.ident + prop.key;
       }
-      return k as any;
-      // return EngineType.RenderStateElementKey[k];
+      // return k as any;
+      return EngineType.RenderStateElementKey[k];
     }
   }
 
