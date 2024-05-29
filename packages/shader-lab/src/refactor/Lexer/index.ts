@@ -1,6 +1,5 @@
-import LocRange from "../common/LocRange";
-import Position from "../common/Position";
-import { ETokenType, KeywordTable } from "../common/types";
+import { LocRange, Position } from "../common";
+import { ETokenType, KeywordTable } from "../common";
 import Token, { EOF } from "../Token";
 import LexerUtils from "./Utils";
 

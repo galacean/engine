@@ -1,6 +1,19 @@
+export enum LoggerLevel {
+  info = 0,
+  warn = 1,
+  error = 2,
+  off = 3
+}
+
 export class Logger {
-  static enabled = true;
-  private enabled = true;
+  static _level = LoggerLevel.error;
+  static setLevel(lvl: LoggerLevel) {
+    this._level = lvl;
+  }
+
+  static get enabled() {
+    return Logger._level < LoggerLevel.off;
+  }
 
   readonly name: string;
 
@@ -8,12 +21,23 @@ export class Logger {
     this.name = name;
   }
 
-  log(color: number, ...param: any[]) {
-    if (Logger.enabled && this.enabled) console.log(`\x1B[38;5;${color}m[${this.name}]`, ...param, "\x1B[m");
+  private _log(color: number, ...param: any[]) {
+    console.log(`\x1B[38;5;${color}m[${this.name}]`, ...param, "\x1B[m");
+  }
+
+  log(...param: any[]) {
+    if (Logger._level > LoggerLevel.info) return;
+    this._log(Logger.GREEN, ...param);
+  }
+
+  warn(...param: any[]) {
+    if (Logger._level > LoggerLevel.warn) return;
+    this._log(Logger.YELLOW, ...param);
   }
 
   error(...param: any[]) {
-    this.log(Logger.RED, ...param);
+    if (Logger._level > LoggerLevel.error) return;
+    this._log(Logger.RED, ...param);
   }
 
   static RED = 1;
