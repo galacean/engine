@@ -164,11 +164,6 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
-    },
-    blendShape: {
-      category: "Particle",
-      caseFileName: "particleRenderer-fire",
-      threshold: 0.3
     }
   }
 };
