@@ -86,17 +86,7 @@ export class DisorderedArray<T> {
       const element = elements[i];
       element && callbackFn(element);
     }
-    let index = 0;
-    for (let i = preEnd, n = this.length; i < n; i++) {
-      const element = elements[i];
-      if (!element) continue;
-      elements[index] = element;
-      swapFn(element, index);
-      index++;
-    }
-    this._isLooping = false;
-    this.length = index;
-    this._blankCount = 0;
+    this._endLoopAndClean(preEnd, elements, swapFn);
   }
 
   sort(compareFn: (a: T, b: T) => number): void {
@@ -137,5 +127,19 @@ export class DisorderedArray<T> {
       this.length -= this._blankCount;
       this._blankCount = 0;
     }
+  }
+
+  private _endLoopAndClean(preEnd: number, elements: T[], swapFn: (element: T, index: number) => void): void {
+    let index = 0;
+    for (let i = preEnd, n = this.length; i < n; i++) {
+      const element = elements[i];
+      if (!element) continue;
+      elements[index] = element;
+      swapFn(element, index);
+      index++;
+    }
+    this._isLooping = false;
+    this.length = index;
+    this._blankCount = 0;
   }
 }
