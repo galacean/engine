@@ -220,6 +220,13 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  _onWorldVolumeChanged() {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+
+  /**
+   * @internal
+   */
   protected override _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
@@ -230,13 +237,6 @@ export class ParticleRenderer extends Renderer {
   _onGeneratorParamsChanged() {
     this._dirtyUpdateFlag |=
       ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
-  }
-
-  /**
-   * @internal
-   */
-  _onWorldVolumeChanged() {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
