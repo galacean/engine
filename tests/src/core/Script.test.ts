@@ -196,6 +196,32 @@ describe("Script", () => {
       expect(script3.onUpdate).to.have.been.called.exactly(3);
     });
 
+    it("Script add in script's onStart", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      class Script1 extends Script {
+        onStart(): void {
+          entity1.addComponent(Script2);
+        }
+      }
+      class Script2 extends Script {
+        onStart(): void {}
+      }
+
+      Script1.prototype.onStart = chai.spy(Script1.prototype.onStart);
+      Script2.prototype.onStart = chai.spy(Script2.prototype.onStart);
+
+      const entity1 = scene.createRootEntity("1");
+      const script1 = entity1.addComponent(Script1);
+      engine.update();
+      expect(script1.onStart).to.have.been.called.exactly(1);
+      const script2 = entity1.getComponent(Script2);
+      expect(script2.onStart).to.have.been.called.exactly(0);
+      engine.update();
+      expect(script1.onStart).to.have.been.called.exactly(1);
+      expect(script2.onStart).to.have.been.called.exactly(1);
+    });
+
     it("Engine destroy outside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {
