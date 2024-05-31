@@ -1036,7 +1036,7 @@ export class ParticleGenerator {
 
   private _mergeToWorldBounds(index: number, bounds: BoundingBox): void {
     const { min, max } = bounds;
-    const { _transformedBoundsArray: transformedBoundsArray } = this;
+    const transformedBoundsArray = this._transformedBoundsArray;
 
     const baseIndex = index * ParticleBufferUtils.boundsFloatStride;
 
