@@ -1,5 +1,8 @@
-export const EngineType: Record<string, Record<string, any>> = {
+export const EngineType = {
   RenderQueueType: {},
-  RenderStateElementKey: {}
+  _RenderStateElementKey: {}
 };
-export type IEngineType = Record<keyof typeof EngineType, Record<string, any>>;
+export type IEngineType = Record<string, Record<string, any>>;
+
+export type IEngineFunction = new (...args: number[]) => any;
+export const EngineFunctions: Record<string, IEngineFunction> = {};

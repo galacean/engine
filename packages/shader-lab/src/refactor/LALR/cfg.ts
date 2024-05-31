@@ -230,7 +230,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.gl_engine_type,
-    [[EKeyword.GL_Vector2], [EKeyword.GL_Vector3], [EKeyword.GL_Vector4], [EKeyword.GL_Color]],
+    // [[EKeyword.GL_Vector2], [EKeyword.GL_Vector3], [EKeyword.GL_Vector4], [EKeyword.GL_Color]],
+    [[ETokenType.ID]],
     ASTNode.GLEngineType
   ),
 

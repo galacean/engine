@@ -215,12 +215,9 @@ gl_render_state_prop_assignment:
     gl_render_state_prop '=' gl_engine_type_init ';'
     ;
 
-// TODO: 补充
+// Vector2 / Vector3 / Vector4 / Color
 gl_engine_type:
-    Vector2
-    | Vector3
-    | Vector4
-    | Color
+    id
     ;
 
 gl_engine_type_init:

@@ -253,6 +253,9 @@ BuiltinFunction._create("textureSize", EKeyword.IVEC2, EKeyword.SAMPLER_CUBE_SHA
 BuiltinFunction._create("textureSize", EKeyword.IVEC3, EGenType.GSampler2DArray, EKeyword.INT);
 BuiltinFunction._create("textureSize", EKeyword.IVEC3, EKeyword.SAMPLER2D_ARRAY_SHADOW, EKeyword.INT);
 
+BuiltinFunction._create("texture2D", EKeyword.SAMPLER2D, EKeyword.VEC2);
+BuiltinFunction._create("texture2D", EKeyword.SAMPLER2D, EKeyword.VEC2, EKeyword.FLOAT);
+
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.FLOAT);
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2);
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3, EKeyword.FLOAT);

@@ -2,7 +2,7 @@ import Lexer from "./Lexer";
 import { Parser } from "./Parser";
 import Preprocessor from "./Preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./CodeGen";
-import { IEngineType, EngineType } from "./EngineType";
+import { IEngineType, EngineType, IEngineFunction, EngineFunctions } from "./EngineType";
 import { IShaderLab } from "@galacean/engine-design";
 
 export enum EBackend {
@@ -13,9 +13,10 @@ export enum EBackend {
 export class ShaderLab implements IShaderLab {
   private parser: Parser;
 
-  constructor(engineInfo: Partial<IEngineType> = {}) {
+  constructor(engineTypes: Partial<IEngineType> = {}, engineFunctions: Partial<IEngineFunction> = {}) {
     this.parser = Parser.create();
-    Object.assign(EngineType, engineInfo);
+    Object.assign(EngineType, engineTypes);
+    Object.assign(EngineFunctions, engineFunctions);
   }
 
   parseShader(source: string, includeMap: Record<string, string> = {}, backend = EBackend.GLES300) {

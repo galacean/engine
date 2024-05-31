@@ -4,7 +4,7 @@ import { GalaceanDataType } from "../types";
 
 export const BuiltinVariableTable: Map<string, BuiltinVariable> = new Map();
 
-class BuiltinVariable {
+export class BuiltinVariable {
   type: GalaceanDataType;
   lexeme: string;
   scope: EShaderStage;
@@ -19,6 +19,10 @@ class BuiltinVariable {
     const item = new BuiltinVariable(type, lexeme, scope);
     BuiltinVariableTable.set(lexeme, item);
   }
+
+  static getVar(ident: string) {
+    return BuiltinVariableTable.get(ident);
+  }
 }
 
 BuiltinVariable.createVariable("gl_VertexID", EKeyword.INT, EShaderStage.VERTEX);
@@ -30,6 +34,7 @@ BuiltinVariable.createVariable("gl_FragCoord", EKeyword.VEC4, EShaderStage.FRAGM
 BuiltinVariable.createVariable("gl_FrontFacing", EKeyword.BOOL, EShaderStage.FRAGMENT);
 BuiltinVariable.createVariable("gl_FragDepth", EKeyword.FLOAT, EShaderStage.FRAGMENT);
 BuiltinVariable.createVariable("gl_PointCoord", EKeyword.VEC2, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragColor", EKeyword.VEC4, EShaderStage.FRAGMENT);
 
 BuiltinVariable.createVariable("gl_MaxVertexAttribs", EKeyword.INT);
 BuiltinVariable.createVariable("gl_MaxVertexUniformVectors", EKeyword.INT);

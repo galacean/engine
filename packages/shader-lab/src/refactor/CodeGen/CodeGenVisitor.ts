@@ -3,7 +3,7 @@ import Token from "../Token";
 import { EKeyword } from "../common";
 import { Logger } from "../Logger";
 import { ASTNode, TreeNode } from "../Parser/AST";
-import { ESymbolType } from "../Parser/SymbolTable";
+import { ESymbolType, VarSymbol } from "../Parser/SymbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../Parser/types";
 import { VisitorContext } from "./VisitorContext";
@@ -81,7 +81,7 @@ export abstract class CodeGenVisitor {
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (node.symbolInfo?.isGlobalVariable) {
+    if (node.symbolInfo instanceof VarSymbol && node.symbolInfo.isGlobalVariable) {
       this.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
     }
     return node.lexeme;
@@ -142,7 +142,7 @@ export abstract class CodeGenVisitor {
           expr,
           ENonTerminal.variable_identifier
         );
-        if (returnVar?.typeInfo?.type === this.context.varyingStruct?.ident?.lexeme) {
+        if (returnVar?.typeInfo === this.context.varyingStruct?.ident?.lexeme) {
           return "";
         }
       }

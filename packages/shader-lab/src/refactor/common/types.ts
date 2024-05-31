@@ -86,11 +86,11 @@ export enum EKeyword {
   GL_PipelineStage,
   GL_UsePass,
   GL_VertexShader,
-  GL_FragmentShader,
-  GL_Vector2,
-  GL_Vector3,
-  GL_Vector4,
-  GL_Color
+  GL_FragmentShader
+  // GL_Vector2,
+  // GL_Vector3,
+  // GL_Vector4,
+  // GL_Color
 }
 
 export const KeywordTable = new Map<string, EKeyword>([
@@ -175,11 +175,11 @@ export const KeywordTable = new Map<string, EKeyword>([
   ["pipelineStage", EKeyword.GL_PipelineStage],
   ["UsePass", EKeyword.GL_UsePass],
   ["VertexShader", EKeyword.GL_VertexShader],
-  ["FragmentShader", EKeyword.GL_FragmentShader],
-  ["Vector2", EKeyword.GL_Vector2],
-  ["Vector3", EKeyword.GL_Vector3],
-  ["Vector4", EKeyword.GL_Vector4],
-  ["Color", EKeyword.GL_Color]
+  ["FragmentShader", EKeyword.GL_FragmentShader]
+  // ["Vector2", EKeyword.GL_Vector2],
+  // ["Vector3", EKeyword.GL_Vector3],
+  // ["Vector4", EKeyword.GL_Vector4],
+  // ["Color", EKeyword.GL_Color]
 ]);
 
 export enum ETokenType {

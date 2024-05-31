@@ -1,4 +1,4 @@
-import { BuiltinFunction, NonGenericGalaceanType } from "./Builtin";
+import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./Builtin";
 import { CodeGenVisitor } from "../CodeGen";
 import { ENonTerminal } from "./GrammarSymbol";
 import Token from "../Token";
@@ -8,7 +8,7 @@ import { EShaderDataType, GLPassShaderData, GLShaderData, GLSubShaderData, Shade
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./SymbolTable";
 import { ParserUtils } from "../Utils";
 import { EEnginePropType, EnginePropTypeList } from "./constants";
-import { EngineType } from "../EngineType";
+import { EngineFunctions, EngineType } from "../EngineType";
 import {
   ASTNodeConstructor,
   GalaceanDataType,
@@ -246,8 +246,18 @@ export namespace ASTNode {
       super(ENonTerminal.fully_specified_type, loc, children);
     }
 
-    equal(other: FullySpecifiedType) {
-      return this.typeSpecifier.equal(other.typeSpecifier);
+    // equal(other: FullySpecifiedType) {
+    //   return this.typeSpecifier.equal(other.typeSpecifier);
+    // }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      if (typeof this.type === "string") {
+        // Custom type, check declaration
+        const decl = sa.scope.lookup(this.type, ESymbolType.STRUCT);
+        if (!decl && EngineType[this.type] == undefined) {
+          sa.error(this.location, "undeclared type:", this.type);
+        }
+      }
     }
   }
 
@@ -349,10 +359,6 @@ export namespace ASTNode {
       const otherArraySpecifier = other.children[1] as ArraySpecifier;
       return this.type === other.type && arraySpecifier?.size === otherArraySpecifier?.size;
     }
-
-    // override codeGen(visitor: CodeGenVisitor): string {
-    //   return visitor.visitTypeSpecifier(this);
-    // }
   }
 
   export class ArraySpecifier extends TreeNode {
@@ -418,23 +424,18 @@ export namespace ASTNode {
           if (!id.symbolInfo) {
             sa.error(id.location, "undeclared symbol:", id.lexeme);
           }
-          if (!ParserUtils.typeCompatible(EKeyword.INT, id.typeInfo?.type)) {
+          if (!ParserUtils.typeCompatible(EKeyword.INT, id.typeInfo)) {
             sa.error(id.location, "invalid integer.");
             return;
           }
         }
       }
     }
-
-    // override codeGen(visitor: CodeGenVisitor): string {
-    //   return visitor.visitIntegerConstantExpression(this);
-    // }
   }
 
   export class TypeSpecifierNonArray extends TreeNode {
     type: GalaceanDataType;
     lexeme: string;
-
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.type_specifier_nonarray, loc, children);
     }
@@ -442,11 +443,6 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const tt = this.children[0];
       if (tt instanceof Token) {
-        // Custom type, check declaration
-        const decl = sa.scope.lookup(tt.lexeme, ESymbolType.STRUCT);
-        if (!decl) {
-          sa.error(this.location, "undeclared type:", this.type);
-        }
         this.type = tt.lexeme;
         this.lexeme = tt.lexeme;
       } else {
@@ -688,20 +684,12 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.simple_statement, loc, children);
     }
-
-    // override codeGen(visitor: CodeGenVisitor): string {
-    //   return visitor.visitSimpleStatement(this);
-    // }
   }
 
   export class CompoundStatement extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.compound_statement, loc, children);
     }
-
-    // override codeGen(visitor: CodeGenVisitor): string {
-    //   return visitor.visitCompoundStatement(this);
-    // }
   }
 
   export class CompoundStatementNoScope extends TreeNode {
@@ -905,7 +893,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         const id = this.children[0];
         if (id instanceof VariableIdentifier) {
-          this.type = id.typeInfo?.type ?? TypeAny;
+          this.type = id.typeInfo ?? TypeAny;
         } else {
           switch ((<Token>id).type) {
             case ETokenType.INT_CONSTANT:
@@ -1236,7 +1224,7 @@ export namespace ASTNode {
       if (type instanceof Token) {
         sm = new VarSymbol(ident.lexeme, new SymbolType(<EKeyword.GL_RenderQueueType>type.type, ""), false);
       } else if (typeof type.type === "string" && !EnginePropTypeList.includes(<EEnginePropType>type.type)) {
-        sa.error(type.location, "Not supported type.");
+        sa.error(type.location, "Not supported type:", type.type);
         return;
       } else {
         sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true);
@@ -1254,7 +1242,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const variable = this.children[2] as Token;
       const builtinType = EngineType.RenderQueueType[<any>variable.lexeme];
-      const key = EngineType.RenderStateElementKey["RenderQueueType"];
+      const key = EngineType._RenderStateElementKey["RenderQueueType"];
       if (builtinType != undefined) {
         sa.shaderData.renderStates[0][key] = builtinType;
       } else {
@@ -1270,13 +1258,14 @@ export namespace ASTNode {
   }
 
   export class VariableIdentifier extends TreeNode {
-    symbolInfo: VarSymbol | null;
+    symbolInfo: VarSymbol | BuiltinVariable | null;
     get lexeme(): string {
       return (<Token>this.children[0]).lexeme;
     }
 
-    get typeInfo() {
-      return this.symbolInfo?.symDataType;
+    get typeInfo(): GalaceanDataType {
+      if (this.symbolInfo instanceof VarSymbol) return this.symbolInfo?.symDataType.type;
+      return this.symbolInfo?.type;
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -1285,6 +1274,13 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const token = this.children[0] as Token;
+
+      const builtinVar = BuiltinVariable.getVar(token.lexeme);
+      if (builtinVar) {
+        this.symbolInfo = builtinVar;
+        return;
+      }
+
       this.symbolInfo = sa.scope.lookup(token.lexeme, ESymbolType.VAR);
       if (!this.symbolInfo) {
         sa.error(this.location, "undeclared identifier:", token.lexeme);
@@ -1343,6 +1339,9 @@ export namespace ASTNode {
 
     getPropValue(reporter: Logger) {
       const valueToken = this.children[2] as Token;
+      if (valueToken instanceof GLEngineTypeInit) {
+        return valueToken.value;
+      }
       switch (valueToken.type) {
         case ETokenType.ID:
           if (this.children.length === 4) {
@@ -1368,7 +1367,6 @@ export namespace ASTNode {
           return true;
         case EKeyword.FALSE:
           return false;
-
         case ETokenType.INT_CONSTANT:
         case ETokenType.FLOAT_CONSTANT:
           return Number(valueToken.lexeme);
@@ -1379,30 +1377,58 @@ export namespace ASTNode {
     }
 
     private static getPropKey(declarator: GLRenderStateDeclarator, prop: GLRenderStateProp): number | undefined {
-      let k = "";
-      if (declarator.ident === "BlendState") {
+      let k = declarator.ident + prop.key;
+      const ret = EngineType._RenderStateElementKey[k];
+      if (ret == undefined && declarator.ident === "BlendState") {
         k = declarator.ident + prop.key + (prop.index ?? "0");
-      } else {
-        k = declarator.ident + prop.key;
+        return EngineType._RenderStateElementKey[k];
       }
-      // return k as any;
-      return EngineType.RenderStateElementKey[k];
+
+      return ret;
     }
   }
 
   export class GLEngineType extends TreeNode {
+    engineType?: new (...args: number[]) => any;
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_engine_type, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      const typeToken = this.children[0] as Token;
+      this.engineType = EngineFunctions[typeToken.lexeme];
+      if (this.engineType == undefined) {
+        sa.error(this.location, "invalid engine type:", typeToken.lexeme);
+        return;
+      }
     }
   }
 
   export class GLEngineTypeInit extends TreeNode {
+    value?: any;
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_engine_type_init, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      const type = this.children[0] as GLEngineType;
+      const paramList = this.children[2] as GLEngineTypeInitParamList;
+      if (type.engineType) {
+        this.value = Reflect.construct(type.engineType, paramList.params);
+      }
     }
   }
 
   export class GLEngineTypeInitParamList extends TreeNode {
+    get params(): number[] {
+      if (this.children.length === 1) return [Number((this.children[0] as Token).lexeme)];
+      const list = this.children[0] as GLEngineTypeInitParamList;
+      const cur = this.children[2] as Token;
+      return [...list.params, Number(cur.lexeme)];
+    }
+
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_engine_type_init_param_list, loc, children);
     }
@@ -1508,7 +1534,7 @@ export namespace ASTNode {
       }
       for (const prop of propListNode.propList) {
         const key = prop.getPropKey(declarator);
-        if (!key) {
+        if (key == undefined) {
           sa.error(prop.location, "invalid render state key");
           continue;
         }
