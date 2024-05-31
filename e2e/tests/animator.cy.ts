@@ -14,6 +14,9 @@ describe("Animator", () => {
   it("Animation BlendShape", () => {
     cy.screenshotWithThreshold("Animator", "animator-blendShape", 0.1);
   });
+  it("Animation BlendShape Quantization", () => {
+    cy.screenshotWithThreshold("Animator", "animator-blendShape-quantization", 0.1);
+  });
   it("Animator CustomBlendShape", () => {
     cy.screenshotWithThreshold("Animator", "animator-customBlendShape", 0.1);
   });

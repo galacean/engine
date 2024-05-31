@@ -1,12 +1,4 @@
-import {
-  BlendShape,
-  Buffer,
-  BufferBindFlag,
-  BufferUsage,
-  ModelMesh,
-  TypedArray,
-  VertexElement
-} from "@galacean/engine-core";
+import { BlendShape, Buffer, BufferBindFlag, BufferUsage, ModelMesh, VertexElement } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import {
   BlendShapeDataRestoreInfo,
@@ -17,7 +9,7 @@ import {
 import type { IAccessor, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
-import { BufferInfo, GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
 @registerGLTFParser(GLTFParserType.Mesh)
 export class GLTFMeshParser extends GLTFParser {
@@ -33,9 +25,6 @@ export class GLTFMeshParser extends GLTFParser {
     gltfMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
-    getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>,
-    getIndexBufferData: () => Promise<TypedArray>,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { accessors } = gltf;
@@ -46,7 +35,7 @@ export class GLTFMeshParser extends GLTFParser {
     let vertexCount: number;
     let bufferBindIndex = 0;
 
-    const promises = new Array<Promise<void | void[]>>();
+    const promises = new Array<Promise<void>>();
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
@@ -151,15 +140,45 @@ export class GLTFMeshParser extends GLTFParser {
       // BlendShapes
       if (targets) {
         promises.push(
-          GLTFMeshParser._createBlendShape(mesh, meshRestoreInfo, gltfMesh, accessors, targets, getBlendShapeData)
+          GLTFMeshParser._createBlendShape(
+            context,
+            mesh,
+            meshRestoreInfo,
+            gltfMesh,
+            gltfPrimitive,
+            targets,
+            this._getBlendShapeData
+          )
         );
       }
 
       return Promise.all(promises).then(() => {
         mesh.uploadData(!keepMeshData);
-
-        return Promise.resolve(mesh);
+        return mesh;
       });
+    });
+  }
+
+  private static _getBlendShapeData(
+    context: GLTFParserContext,
+    glTF: IGLTF,
+    accessor: IAccessor
+  ): Promise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }> {
+    return GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
+      const buffer = bufferInfo.data;
+      const byteOffset = bufferInfo.interleaved ? (accessor.byteOffset ?? 0) % bufferInfo.stride : 0;
+      const { count, normalized, componentType } = accessor;
+      const vertices = GLTFUtils.bufferToVector3Array(buffer, byteOffset, count, normalized, componentType);
+
+      const restoreInfo = new BlendShapeDataRestoreInfo(
+        bufferInfo.restoreInfo,
+        byteOffset,
+        count,
+        normalized,
+        componentType
+      );
+
+      return { vertices, restoreInfo };
     });
   }
 
@@ -167,110 +186,78 @@ export class GLTFMeshParser extends GLTFParser {
    * @internal
    */
   static _createBlendShape(
+    context: GLTFParserContext,
     mesh: ModelMesh,
     meshRestoreInfo: ModelMeshRestoreInfo,
     glTFMesh: IMesh,
-    accessors: IAccessor[],
+    gltfPrimitive: IMeshPrimitive,
     glTFTargets: {
       [name: string]: number;
     }[],
-    getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>
-  ): Promise<void[]> {
+    getBlendShapeData: (
+      context: GLTFParserContext,
+      glTF: IGLTF,
+      accessor: IAccessor
+    ) => Promise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }>
+  ): Promise<void> {
+    const glTF = context.glTF;
+    const accessors = glTF.accessors;
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
     let promises = new Array<Promise<void>>();
-    for (let i = 0, n = glTFTargets.length; i < n; i++) {
+
+    const blendShapeCount = glTFTargets.length;
+    const blendShapeCollection = new Array<BlendShapeData>(blendShapeCount);
+    for (let i = 0; i < blendShapeCount; i++) {
+      const blendShapeData = <BlendShapeData>{};
+      blendShapeCollection[i] = blendShapeData;
+
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
 
+      const targets = gltfPrimitive.targets[i];
+      const normalTarget = targets["NORMAL"];
+      const tangentTarget = targets["TANGENT"];
+      const hasNormal = normalTarget !== undefined;
+      const hasTangent = tangentTarget !== undefined;
+
       const promise = Promise.all([
-        getBlendShapeData("POSITION", i),
-        getBlendShapeData("NORMAL", i),
-        getBlendShapeData("TANGENT", i)
-      ]).then((infos) => {
-        const posBufferInfo = infos[0];
-        const norBufferInfo = infos[1];
-        const tanBufferInfo = infos[2];
-        const target = glTFTargets[i];
-        let posAccessor: IAccessor;
-        let norAccessor: IAccessor;
-        let tanAccessor: IAccessor;
-
-        let positions: Vector3[] = null;
-        if (posBufferInfo) {
-          posAccessor = accessors[target["POSITION"]];
-          positions = GLTFUtils.bufferToVector3Array(
-            posBufferInfo.data,
-            posBufferInfo.stride,
-            posAccessor.byteOffset ?? 0,
-            posAccessor.count
-          );
-        }
-
-        let normals: Vector3[] = null;
-        if (norBufferInfo) {
-          norAccessor = accessors[target["NORMAL"]];
-          normals = GLTFUtils.bufferToVector3Array(
-            norBufferInfo.data,
-            norBufferInfo.stride,
-            norAccessor.byteOffset ?? 0,
-            norAccessor.count
-          );
-        }
-
-        let tangents: Vector3[] = null;
-        if (tanBufferInfo) {
-          tanAccessor = accessors[target["NORMAL"]];
-          tangents = GLTFUtils.bufferToVector3Array(
-            tanBufferInfo.data,
-            tanBufferInfo.stride,
-            tanAccessor.byteOffset ?? 0,
-            tanAccessor.count
-          );
-        }
+        getBlendShapeData(context, glTF, accessors[targets["POSITION"]]),
+        hasNormal ? getBlendShapeData(context, glTF, accessors[normalTarget]) : null,
+        hasTangent ? getBlendShapeData(context, glTF, accessors[tangentTarget]) : null
+      ]).then((vertices) => {
+        const [positionData, normalData, tangentData] = vertices;
 
         const blendShape = new BlendShape(name);
-        blendShape.addFrame(1.0, positions, normals, tangents);
-        mesh.addBlendShape(blendShape);
-        meshRestoreInfo.blendShapes.push(
-          new BlendShapeRestoreInfo(
-            blendShape,
-            new BlendShapeDataRestoreInfo(
-              posBufferInfo.restoreInfo,
-              posBufferInfo.stride,
-              posAccessor.byteOffset ?? 0,
-              posAccessor.count
-            ),
-            norBufferInfo
-              ? new BlendShapeDataRestoreInfo(
-                  norBufferInfo.restoreInfo,
-                  norBufferInfo.stride,
-                  norAccessor.byteOffset ?? 0,
-                  norAccessor.count
-                )
-              : null,
-            tanBufferInfo
-              ? new BlendShapeDataRestoreInfo(
-                  tanBufferInfo.restoreInfo,
-                  tanBufferInfo.stride,
-                  tanAccessor.byteOffset ?? 0,
-                  tanAccessor.count
-                )
-              : null
-          )
+        blendShape.addFrame(
+          1.0,
+          positionData.vertices,
+          hasNormal ? normalData.vertices : null,
+          hasTangent ? tangentData.vertices : null
+        );
+        blendShapeData.blendShape = blendShape;
+
+        blendShapeData.restoreInfo = new BlendShapeRestoreInfo(
+          blendShape,
+          positionData.restoreInfo,
+          hasNormal ? normalData.restoreInfo : null,
+          hasTangent ? tangentData?.restoreInfo : null
         );
       });
       promises.push(promise);
     }
 
-    return Promise.all(promises);
+    return Promise.all(promises).then(() => {
+      for (const blendShape of blendShapeCollection) {
+        mesh.addBlendShape(blendShape.blendShape);
+        meshRestoreInfo.blendShapes.push(blendShape.restoreInfo);
+      }
+    });
   }
 
   parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
     const meshInfo = context.glTF.meshes[index];
 
-    const {
-      glTF,
-      glTFResource: { engine }
-    } = context;
+    const { glTF, glTFResource } = context;
+    const engine = glTFResource.engine;
     const primitivePromises = new Array<Promise<ModelMesh>>();
 
     for (let i = 0, length = meshInfo.primitives.length; i < length; i++) {
@@ -285,7 +272,9 @@ export class GLTFMeshParser extends GLTFParser {
           if (mesh instanceof ModelMesh) {
             resolve(mesh);
           } else {
-            mesh.then((mesh) => resolve(mesh));
+            mesh.then((mesh) => {
+              resolve(mesh);
+            });
           }
         } else {
           const mesh = new ModelMesh(engine, meshInfo.name || i + "");
@@ -301,25 +290,6 @@ export class GLTFMeshParser extends GLTFParser {
             meshInfo,
             gltfPrimitive,
             glTF,
-            (attributeSemantic) => {
-              return null;
-            },
-            (attributeName, shapeIndex) => {
-              const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
-              const attributeAccessorIdx = shapeAccessorIdx[attributeName];
-              if (attributeAccessorIdx) {
-                const accessor = glTF.accessors[attributeAccessorIdx];
-                return GLTFUtils.getAccessorBuffer(context, context.glTF.bufferViews, accessor);
-              } else {
-                return null;
-              }
-            },
-            () => {
-              const indexAccessor = glTF.accessors[gltfPrimitive.indices];
-              return context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
-                return GLTFUtils.getAccessorData(glTF, indexAccessor, buffers);
-              });
-            },
             context.params.keepMeshData
           ).then(resolve);
         }
@@ -328,4 +298,9 @@ export class GLTFMeshParser extends GLTFParser {
 
     return Promise.all(primitivePromises);
   }
+}
+
+interface BlendShapeData {
+  blendShape: BlendShape;
+  restoreInfo: BlendShapeRestoreInfo;
 }

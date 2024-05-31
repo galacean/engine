@@ -1,13 +1,14 @@
 import { ModelMesh, TypedArray } from "@galacean/engine-core";
 import { DRACODecoder } from "@galacean/engine-draco";
 import { Vector3 } from "@galacean/engine-math";
-import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
+import { AccessorType, IAccessor, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFMeshParser } from "../parser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { BufferInfo, GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
+import { BlendShapeDataRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
 
 @registerGLTFExtension("KHR_draco_mesh_compression", GLTFExtensionMode.CreateAndParse)
 class KHR_draco_mesh_compression extends GLTFExtensionParser {
@@ -52,8 +53,14 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
       return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
         const mesh = new ModelMesh(engine, glTFMesh.name);
+        const meshRestoreInfo = new ModelMeshRestoreInfo();
+        meshRestoreInfo.mesh = mesh;
+        context.contentRestorer.meshes.push(meshRestoreInfo);
+
         return this._parseMeshFromGLTFPrimitiveDraco(
+          context,
           mesh,
+          meshRestoreInfo,
           glTFMesh,
           glTFPrimitive,
           glTF,
@@ -65,7 +72,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
             }
             return null;
           },
-          (attributeSemantic, shapeIndex) => {
+          () => {
             throw "BlendShape animation is not supported when using draco.";
           },
           () => {
@@ -84,12 +91,18 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   }
 
   private _parseMeshFromGLTFPrimitiveDraco(
+    context: GLTFParserContext,
     mesh: ModelMesh,
+    meshRestoreInfo: ModelMeshRestoreInfo,
     gltfMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => Promise<BufferInfo>,
+    getBlendShapeData: (
+      context: GLTFParserContext,
+      glTF: IGLTF,
+      accessor: IAccessor
+    ) => Promise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }>,
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
@@ -201,7 +214,16 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       mesh.addSubMesh(0, vertexCount, mode);
     }
     // BlendShapes
-    targets && GLTFMeshParser._createBlendShape(mesh, null, gltfMesh, accessors, targets, getBlendShapeData);
+    targets &&
+      GLTFMeshParser._createBlendShape(
+        context,
+        mesh,
+        meshRestoreInfo,
+        gltfMesh,
+        gltfPrimitive,
+        targets,
+        getBlendShapeData
+      );
 
     mesh.uploadData(!keepMeshData);
     return Promise.resolve(mesh);
