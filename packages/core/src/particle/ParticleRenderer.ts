@@ -41,7 +41,7 @@ export class ParticleRenderer extends Renderer {
 
   /** @internal */
   @deepClone
-  _transformedBounds: BoundingBox = new BoundingBox();
+  _generatorBounds: BoundingBox = new BoundingBox();
 
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
