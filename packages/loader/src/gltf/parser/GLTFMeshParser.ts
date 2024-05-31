@@ -270,20 +270,14 @@ export class GLTFMeshParser extends GLTFParser {
 
         if (mesh) {
           if (mesh instanceof ModelMesh) {
-            // @ts-ignore
-            mesh._associationSuperResource(glTFResource);
             resolve(mesh);
           } else {
             mesh.then((mesh) => {
-              // @ts-ignore
-              mesh._associationSuperResource(glTFResource);
               resolve(mesh);
             });
           }
         } else {
           const mesh = new ModelMesh(engine, meshInfo.name || i + "");
-          // @ts-ignore
-          mesh._associationSuperResource(glTFResource);
 
           const meshRestoreInfo = new ModelMeshRestoreInfo();
           meshRestoreInfo.mesh = mesh;

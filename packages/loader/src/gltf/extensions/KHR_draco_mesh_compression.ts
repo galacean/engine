@@ -53,8 +53,6 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
       return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
         const mesh = new ModelMesh(engine, glTFMesh.name);
-        // @ts-ignore
-        mesh._associationSuperResource(glTFResource);
         const meshRestoreInfo = new ModelMeshRestoreInfo();
         meshRestoreInfo.mesh = mesh;
         context.contentRestorer.meshes.push(meshRestoreInfo);
