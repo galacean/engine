@@ -84,7 +84,7 @@ export class SpriteMaskBatcher extends Batcher2D {
       const spriteMaskElement = batchedQueue[i];
       const stencilOp = stencilOps[i];
       const renderData = <RenderData2D>spriteMaskElement.data;
-      const mesh = renderData.chunk._meshBuffer._mesh;
+      const primitive = renderData.chunk._meshBuffer._primitive;
 
       if (!spriteMaskElement) {
         return;
@@ -121,7 +121,7 @@ export class SpriteMaskBatcher extends Batcher2D {
 
       material.renderState._apply(engine, false, pass._renderStateDataMap, material.shaderData);
 
-      engine._hardwareRenderer.drawPrimitive(mesh._primitive, renderData.chunk._subMesh, program);
+      engine._hardwareRenderer.drawPrimitive(primitive, renderData.chunk._subMesh, program);
     }
   }
 }

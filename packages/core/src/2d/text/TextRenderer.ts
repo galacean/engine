@@ -427,7 +427,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.getFromPool();
       const { chunk } = charRenderInfo;
-      renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
+      renderData.set(this, material, chunk._meshBuffer._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       batcherManager.commitRenderData(context, renderData);
     }
@@ -477,7 +477,6 @@ export class TextRenderer extends Renderer {
       const subMesh = chunk._subMesh;
       subMesh.start = startIndex;
       subMesh.count = len;
-      meshBuffer._mesh.addSubMesh(subMesh);
     }
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];

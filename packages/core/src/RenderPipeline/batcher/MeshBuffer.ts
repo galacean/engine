@@ -3,14 +3,16 @@ import {
   Buffer,
   BufferBindFlag,
   BufferUsage,
+  IndexBufferBinding,
   IndexFormat,
   MeshTopology,
+  Primitive,
   SetDataOptions,
   SubMesh,
+  VertexBufferBinding,
   VertexElement,
   VertexElementFormat
 } from "../../graphic";
-import { BufferMesh } from "../../mesh";
 import { IPoolElement, Pool } from "../../utils/Pool";
 import { Batcher2D } from "./Batcher2D";
 
@@ -54,7 +56,7 @@ class Entry implements IPoolElement {
  */
 export class MeshBuffer {
   /** @internal */
-  _mesh: BufferMesh;
+  _primitive: Primitive;
   /** @internal */
   _vBuffer: Buffer;
   /** @internal */
@@ -85,8 +87,8 @@ export class MeshBuffer {
   _subMeshPool: Pool<SubMesh> = new Pool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
-    const mesh = (this._mesh = new BufferMesh(engine));
-    mesh.isGCIgnored = true;
+    const primitive = (this._primitive = new Primitive(engine));
+    primitive.isGCIgnored = true;
 
     const vertexElements: VertexElement[] = [];
     const vertexStride = this.createVertexElements(vertexElements);
@@ -98,17 +100,20 @@ export class MeshBuffer {
       BufferUsage.Dynamic
     ));
     vertexBuffer.isGCIgnored = true;
+    primitive.vertexBufferBindings.length = 1;
+    primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
     // indices
-    const indiceBuffer = (this._iBuffer = new Buffer(
+    const indexBuffer = (this._iBuffer = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
       maxVertexCount * 8,
       BufferUsage.Dynamic
     ));
-    indiceBuffer.isGCIgnored = true;
-    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
-    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
-    mesh.setVertexElements(vertexElements);
+    indexBuffer.isGCIgnored = true;
+    primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
+    for (let i = 0, l = vertexElements.length; i < l; ++i) {
+      primitive.addVertexElement(vertexElements[i]);
+    }
 
     const vertexLen = maxVertexCount * 9;
     const indiceLen = maxVertexCount * 4;
@@ -118,8 +123,8 @@ export class MeshBuffer {
   }
 
   destroy(): void {
-    this._mesh.destroy();
-    this._mesh = null;
+    this._primitive.destroy();
+    this._primitive = null;
     this._vBuffer.destroy();
     this._vBuffer = null;
     this._iBuffer.destroy();
@@ -131,7 +136,6 @@ export class MeshBuffer {
   }
 
   clear(): void {
-    this._mesh.clearSubMesh();
     this._vLen = this._iLen = 0;
   }
 

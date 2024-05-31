@@ -243,7 +243,7 @@ export class SpriteMask extends Renderer {
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
     const renderData = engine._renderData2DPool.getFromPool();
-    renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    renderData.set(this, material, chunk._meshBuffer._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
 
     const renderElement = engine._renderElementPool.getFromPool();
@@ -291,7 +291,6 @@ export class SpriteMask extends Renderer {
       const subMesh = chunk._subMesh;
       subMesh.start = startIndex;
       subMesh.count = len;
-      meshBuffer._mesh.addSubMesh(subMesh);
     }
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];

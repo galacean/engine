@@ -356,7 +356,7 @@ export class SpriteRenderer extends Renderer {
     const { engine } = context.camera;
     const renderData = engine._renderData2DPool.getFromPool();
     const { _chunk: chunk } = this;
-    renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    renderData.set(this, material, chunk._meshBuffer._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;
     engine._batcherManager.commitRenderData(context, renderData);
   }
@@ -405,7 +405,6 @@ export class SpriteRenderer extends Renderer {
       const subMesh = chunk._subMesh;
       subMesh.start = startIndex;
       subMesh.count = len;
-      meshBuffer._mesh.addSubMesh(subMesh);
     }
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
