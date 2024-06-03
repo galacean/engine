@@ -66,7 +66,7 @@ export class BaseMaterial extends Material {
   }
 
   /**
-   * Whethor transparent of first shader pass render state.
+   * Whether transparent of first shader pass render state.
    */
   get isTransparent(): boolean {
     return this._isTransparent;
@@ -198,9 +198,10 @@ export class BaseMaterial extends Material {
     } else {
       renderState.blendState.targetBlendState.enabled = false;
       renderState.depthState.writeEnabled = true;
-      const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
 
-      renderState.renderQueueType = alphaCutoff ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
+      renderState.renderQueueType = shaderData.getFloat(BaseMaterial._alphaCutoffProp)
+        ? RenderQueueType.AlphaTest
+        : RenderQueueType.Opaque;
       shaderData.disableMacro(BaseMaterial._transparentMacro);
     }
   }
