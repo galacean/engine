@@ -116,7 +116,7 @@ export class ParticleGenerator {
   private _randomSeed = 0;
 
   @ignoreClone
-  private _transformedBoundsArray: number[] = new Array();
+  private _transformedBoundsArray: Float32Array;
   @ignoreClone
   private _transformedBoundsArrayCapacity = 0;
   @ignoreClone
@@ -613,11 +613,36 @@ export class ParticleGenerator {
    */
   _resizeBoundsArray(isIncrease: boolean): void {
     if (isIncrease) {
-      this._transformedBoundsArrayCapacity += ParticleGenerator._transformedBoundsIncreaseCount;
-      this._transformedBoundsArray.length =
-        this._transformedBoundsArrayCapacity * ParticleBufferUtils.boundsFloatStride;
+      const floatStride = ParticleBufferUtils.boundsFloatStride;
+      const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
+      const {
+        _firstFreeTransformedBoundingBox: firstFreeTransformedBoundingBox,
+        _firstActiveTransformedBoundingBox: firstActiveTransformedBoundingBox
+      } = this;
+
+      this._transformedBoundsArrayCapacity += increaseCount;
+      const lastBoundsArray = this._transformedBoundsArray;
+      const boundsArray = new Float32Array(this._transformedBoundsArrayCapacity * floatStride);
+
+      if (lastBoundsArray) {
+        if (firstActiveTransformedBoundingBox <= firstFreeTransformedBoundingBox) {
+          boundsArray.set(new Float32Array(lastBoundsArray.buffer));
+        } else {
+          const freeOffset = firstFreeTransformedBoundingBox * floatStride;
+          const activeOffset = firstActiveTransformedBoundingBox * floatStride;
+          const freeEndOffset = (firstFreeTransformedBoundingBox + increaseCount) * floatStride;
+
+          boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, freeOffset));
+          boundsArray.set(new Float32Array(lastBoundsArray.buffer, activeOffset), freeEndOffset);
+
+          this._firstActiveTransformedBoundingBox += increaseCount;
+        }
+      }
+
+      this._transformedBoundsArray = boundsArray;
     } else {
-      this._transformedBoundsArray.length = 0;
+      this._transformedBoundsArray = null;
+
       this._transformedBoundsArrayCapacity = 0;
       this._firstActiveTransformedBoundingBox = 0;
       this._firstFreeTransformedBoundingBox = 0;
@@ -636,7 +661,6 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
-    const transformedBoundsArray = this._transformedBoundsArray;
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
 
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
@@ -660,6 +684,7 @@ export class ParticleGenerator {
       max.add(worldPosition);
 
       const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
+      const transformedBoundsArray = this._transformedBoundsArray;
       min.copyToArray(transformedBoundsArray, boundsOffset);
       max.copyToArray(transformedBoundsArray, boundsOffset + 3);
 
@@ -673,7 +698,8 @@ export class ParticleGenerator {
     } else {
       const previousBoundsOffset =
         ((this._firstFreeTransformedBoundingBox - 1) % this._transformedBoundsArrayCapacity) * boundsFloatStride;
-      transformedBoundsArray[previousBoundsOffset + boundsTimeOffset] = this._playTime;
+
+      this._transformedBoundsArray[previousBoundsOffset + boundsTimeOffset] = this._playTime;
     }
   }
 
