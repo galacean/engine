@@ -18,7 +18,6 @@ import { Pointer, PointerEventType } from "./Pointer";
 export class PointerManager implements IInput {
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
-  private static _tempHitResult: HitResult = new HitResult();
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
@@ -74,6 +73,7 @@ export class PointerManager implements IInput {
     // Clean up the pointer released in the previous frame
     for (let i = pointers.length - 1; i >= 0; i--) {
       if (pointers[i].phase === PointerPhase.Leave) {
+        pointers[i]._dispose();
         pointers.splice(i, 1);
       }
     }
@@ -127,7 +127,12 @@ export class PointerManager implements IInput {
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
-      const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+      const rayCastEntity = this._pointerRayCast(
+        scenes,
+        position.x / canvas.width,
+        position.y / canvas.height,
+        pointer.hitResult
+      );
       pointer._firePointerExitAndEnter(rayCastEntity);
       const length = events.length;
       if (length > 0) {
@@ -248,8 +253,13 @@ export class PointerManager implements IInput {
     }
   }
 
-  private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number): Entity {
-    const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+  private _pointerRayCast(
+    scenes: readonly Scene[],
+    normalizedX: number,
+    normalizedY: number,
+    hitResult: HitResult
+  ): Entity {
+    const { _tempPoint: point, _tempRay: ray } = PointerManager;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) {

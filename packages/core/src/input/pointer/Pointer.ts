@@ -2,6 +2,7 @@ import { Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Entity } from "../../Entity";
 import { Script } from "../../Script";
+import { HitResult } from "../../physics";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 
@@ -24,6 +25,7 @@ export class Pointer {
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
+  hitResult: HitResult = new HitResult();
   /** @internal */
   _events: PointerEvent[] = [];
   /** @internal */
@@ -186,6 +188,14 @@ export class Pointer {
       );
       this._draggedEntity = null;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _dispose(): void {
+    const { hitResult } = this;
+    this._enteredEntity = this._pressedEntity = this._draggedEntity = hitResult.entity = hitResult.shape = null;
   }
 }
 
