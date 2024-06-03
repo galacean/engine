@@ -249,10 +249,10 @@ export class Scene extends EngineObject {
     return this._enableTransparentShadow;
   }
 
-  set enableTransparentShadow(v: boolean) {
-    if (v !== this._enableTransparentShadow) {
-      this._enableTransparentShadow = v;
-      if (v) {
+  set enableTransparentShadow(value: boolean) {
+    if (value !== this._enableTransparentShadow) {
+      this._enableTransparentShadow = value;
+      if (value) {
         this.shaderData.enableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
       } else {
         this.shaderData.disableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
