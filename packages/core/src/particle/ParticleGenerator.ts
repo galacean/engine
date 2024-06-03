@@ -625,16 +625,14 @@ export class ParticleGenerator {
       const boundsArray = new Float32Array(this._transformedBoundsArrayCapacity * floatStride);
 
       if (lastBoundsArray) {
-        if (firstActiveTransformedBoundingBox <= firstFreeTransformedBoundingBox) {
-          boundsArray.set(new Float32Array(lastBoundsArray.buffer));
-        } else {
-          const freeOffset = firstFreeTransformedBoundingBox * floatStride;
-          const activeOffset = firstActiveTransformedBoundingBox * floatStride;
-          const freeEndOffset = (firstFreeTransformedBoundingBox + increaseCount) * floatStride;
+        const freeOffset = firstFreeTransformedBoundingBox * floatStride;
+        const freeEndOffset = (firstFreeTransformedBoundingBox + increaseCount) * floatStride;
 
-          boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, freeOffset));
-          boundsArray.set(new Float32Array(lastBoundsArray.buffer, activeOffset), freeEndOffset);
+        boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, freeOffset));
 
+        boundsArray.set(new Float32Array(lastBoundsArray.buffer, freeOffset * 4), freeEndOffset);
+
+        if (firstActiveTransformedBoundingBox > firstFreeTransformedBoundingBox) {
           this._firstActiveTransformedBoundingBox += increaseCount;
         }
       }
@@ -665,12 +663,14 @@ export class ParticleGenerator {
 
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       // Resize transformed bounds if needed
-      const nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
-      if (
-        nextFreeTransformedBoundingBox === this._transformedBoundsArrayCapacity ||
-        nextFreeTransformedBoundingBox === this._firstActiveTransformedBoundingBox
-      ) {
+      let nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
+      if (nextFreeTransformedBoundingBox >= this._transformedBoundsArrayCapacity) {
+        nextFreeTransformedBoundingBox = 0;
+      }
+      if (nextFreeTransformedBoundingBox === this._firstActiveTransformedBoundingBox) {
         this._resizeBoundsArray(true);
+
+        nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
       }
 
       // Generate transformed bounds
