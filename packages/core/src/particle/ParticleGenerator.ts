@@ -602,10 +602,9 @@ export class ParticleGenerator {
             this._mergeToWorldBounds(i, bounds);
           }
         }
-
-        this._addGravityToWorldBounds(bounds);
-        renderer._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
       }
+      this._addGravityToWorldBounds(bounds);
+      renderer._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
     }
   }
 
