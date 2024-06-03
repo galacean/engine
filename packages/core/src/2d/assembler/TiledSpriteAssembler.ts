@@ -6,7 +6,7 @@ import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { Logger } from "../../base";
-import { Batcher2D } from "../../RenderPipeline/batcher/Batcher2D";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * @internal
@@ -21,17 +21,17 @@ export class TiledSpriteAssembler {
 
   static resetData(renderer: SpriteRenderer, vCount: number): void {
     if (vCount) {
-      const batcher = renderer.engine._batcherManager._batcher2D;
+      const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
       const { _chunk: chunk } = renderer;
       if (chunk) {
         if (chunk._vEntry.len !== vCount * 9) {
-          batcher.freeChunk(chunk);
-          const newChunk = batcher.allocateChunk(vCount);
+          manager.freeChunk(chunk);
+          const newChunk = manager.allocateChunk(vCount);
           newChunk._indices = [];
           renderer._chunk = newChunk;
         }
       } else {
-        const newChunk = batcher.allocateChunk(vCount);
+        const newChunk = manager.allocateChunk(vCount);
         newChunk._indices = [];
         renderer._chunk = newChunk;
       }
@@ -72,7 +72,7 @@ export class TiledSpriteAssembler {
     const columnLength = posColumn.length - 1;
 
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const indices = chunk._indices;
     let index = chunk._vEntry.start;
     let count = 0;
@@ -130,7 +130,7 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 3;
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
@@ -163,7 +163,7 @@ export class TiledSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0, l = chunk._vEntry.len / 9; i < l; ++i) {
       vertices[index] = r;
@@ -235,14 +235,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Batcher2D.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${Batcher2D.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
       return rowCount * columnCount;
     }
 
@@ -372,14 +372,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Batcher2D.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${Batcher2D.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
       return rowCount * columnCount;
     }
 

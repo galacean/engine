@@ -185,7 +185,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.height = 5;
     // @ts-ignore
     const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
     let index = chunk._vEntry.start;
@@ -262,7 +262,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
     const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
     let index = chunk._vEntry.start;
@@ -369,7 +369,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
     const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
     let index = chunk._vEntry.start;
@@ -1554,7 +1554,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._render(context);
     // @ts-ignore
     const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
     let index = chunk._vEntry.start;

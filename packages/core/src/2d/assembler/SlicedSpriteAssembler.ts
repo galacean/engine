@@ -15,10 +15,10 @@ export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer): void {
-    const batcher = renderer.engine._batcherManager._batcher2D;
+    const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
     const lastChunk = renderer._chunk;
-    lastChunk && batcher.freeChunk(lastChunk);
-    const chunk = batcher.allocateChunk(16);
+    lastChunk && manager.freeChunk(lastChunk);
+    const chunk = manager.allocateChunk(16);
     chunk._indices = this._rectangleTriangles;
     renderer._chunk = chunk;
   }
@@ -101,7 +101,7 @@ export class SlicedSpriteAssembler {
     // ------------------------
     // Assemble position and uv.
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start;
     for (let i = 0; i < 4; i++) {
       const rowValue = row[i];
@@ -122,7 +122,7 @@ export class SlicedSpriteAssembler {
 
   static updateUVs(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const spriteUVs = renderer.sprite._getUVs();
     let index = chunk._vEntry.start + 3;
     for (let i = 0; i < 4; i++) {
@@ -138,7 +138,7 @@ export class SlicedSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0; i < 16; ++i) {
       vertices[index] = r;

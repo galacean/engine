@@ -10,7 +10,7 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
+import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 
 /**
@@ -30,7 +30,7 @@ export class SpriteMask extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _chunk: MBChunk;
+  _chunk: Chunk;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -243,7 +243,7 @@ export class SpriteMask extends Renderer {
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
     const renderData = engine._renderData2DPool.getFromPool();
-    renderData.set(this, material, chunk._meshBuffer._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    renderData.set(this, material, chunk._data._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
 
     const renderElement = engine._renderElementPool.getFromPool();
@@ -257,7 +257,7 @@ export class SpriteMask extends Renderer {
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
     const renderDataA = <RenderData2D>elementA.data;
     const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk._meshBuffer !== renderDataB.chunk._meshBuffer) {
+    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
       return false;
     }
 
@@ -279,7 +279,7 @@ export class SpriteMask extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const { _data: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
     const indices = meshBuffer._indices;
     const vertexStartIndex = vEntry.start / 9;
     const len = tempIndices.length;
@@ -314,7 +314,7 @@ export class SpriteMask extends Renderer {
 
     this._sprite = null;
     if (this._chunk) {
-      this.engine._batcherManager._batcher2D.freeChunk(this._chunk);
+      this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(this._chunk);
       this._chunk = null;
     }
   }

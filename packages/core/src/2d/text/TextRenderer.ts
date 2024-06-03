@@ -316,7 +316,7 @@ export class TextRenderer extends Renderer {
     // Clear render data.
     const pool = TextRenderer._charRenderInfoPool;
     const charRenderInfos = this._charRenderInfos;
-    const batcher2D = this.engine._batcherManager._batcher2D;
+    const batcher2D = this.engine._batcherManager._dynamicGeometryDataManager2D;
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];
       batcher2D.freeChunk(charRenderInfo.chunk);
@@ -427,7 +427,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.getFromPool();
       const { chunk } = charRenderInfo;
-      renderData.set(this, material, chunk._meshBuffer._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
+      renderData.set(this, material, chunk._data._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       batcherManager.commitRenderData(context, renderData);
     }
@@ -439,7 +439,7 @@ export class TextRenderer extends Renderer {
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
     const renderDataA = <RenderData2D>elementA.data;
     const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk._meshBuffer !== renderDataB.chunk._meshBuffer) {
+    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
       return false;
     }
 
@@ -465,7 +465,7 @@ export class TextRenderer extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const { _data: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
     const indices = meshBuffer._indices;
     const vertexStartIndex = vEntry.start / 9;
     const len = tempIndices.length;
@@ -558,7 +558,7 @@ export class TextRenderer extends Renderer {
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
       const { chunk } = charRenderInfo;
-      const vertices = chunk._meshBuffer._vertices;
+      const vertices = chunk._data._vertices;
       let index = chunk._vEntry.start;
       for (let i = 0; i < 4; ++i) {
         const position = TextRenderer._worldPositions[i];
@@ -639,7 +639,7 @@ export class TextRenderer extends Renderer {
               charRenderInfo.init(this.engine);
               const { chunk, localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
-              const vertices = chunk._meshBuffer._vertices;
+              const vertices = chunk._data._vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
               let index = chunk._vEntry.start + 3;
@@ -686,7 +686,7 @@ export class TextRenderer extends Renderer {
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
         const charRenderInfo = charRenderInfos[i];
-        this.engine._batcherManager._batcher2D.freeChunk(charRenderInfo.chunk);
+        this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(charRenderInfo.chunk);
         charRenderInfo.chunk = null;
         charRenderInfoPool.free(charRenderInfo);
       }

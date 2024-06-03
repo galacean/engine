@@ -7,9 +7,11 @@ import { Shader } from "../../shader/Shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderElement } from "../RenderElement";
 import { RenderData2D } from "../RenderData2D";
-import { Batcher2D } from "./Batcher2D";
+import { DynamicGeometryDataManager } from "../DynamicGeometryDataManager";
 
-export class SpriteMaskBatcher extends Batcher2D {
+export class SpriteMaskBatcher {
+  /** @internal */
+  _engine: Engine;
   /** @internal */
   _batchedQueue: RenderElement[] = [];
   /** @internal */
@@ -20,9 +22,12 @@ export class SpriteMaskBatcher extends Batcher2D {
   _preRenderer: Renderer;
   /** @internal */
   _preOp: StencilOperation = null;
+  /** @internal */
+  _dynamicGeometryDataManager: DynamicGeometryDataManager;
 
-  constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
-    super(engine, maxVertexCount);
+  constructor(engine: Engine, maxVertexCount: number) {
+    this._engine = engine;
+    this._dynamicGeometryDataManager = new DynamicGeometryDataManager(engine, maxVertexCount);
   }
 
   drawElement(element: RenderElement, camera: Camera, op: StencilOperation): void {
@@ -56,22 +61,23 @@ export class SpriteMaskBatcher extends Batcher2D {
       stencilOps.push(this._preOp);
     }
 
-    this._uploadBuffer();
+    this._dynamicGeometryDataManager.uploadBuffer();
     this.drawBatches(camera);
   }
 
-  override clear(): void {
-    super.clear();
+  clear(): void {
+    this._dynamicGeometryDataManager.clear();
     this._batchedQueue.length = 0;
     this._stencilOps.length = 0;
     this._preRenderElement = null;
     this._preOp = null;
   }
 
-  override destroy(): void {
+  destroy(): void {
     this._batchedQueue = null;
     this._stencilOps = null;
-    super.destroy();
+    this._dynamicGeometryDataManager.destroy();
+    this._dynamicGeometryDataManager = null;
   }
 
   drawBatches(camera: Camera): void {
@@ -84,7 +90,7 @@ export class SpriteMaskBatcher extends Batcher2D {
       const spriteMaskElement = batchedQueue[i];
       const stencilOp = stencilOps[i];
       const renderData = <RenderData2D>spriteMaskElement.data;
-      const primitive = renderData.chunk._meshBuffer._primitive;
+      const primitive = renderData.chunk._data._primitive;
 
       if (!spriteMaskElement) {
         return;

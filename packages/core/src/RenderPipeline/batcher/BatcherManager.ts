@@ -4,22 +4,22 @@ import { RenderContext } from "../RenderContext";
 import { RenderData } from "../RenderData";
 import { RenderElement } from "../RenderElement";
 import { RenderDataUsage } from "../enums/RenderDataUsage";
-import { Batcher2D } from "./Batcher2D";
+import { DynamicGeometryDataManager } from "../DynamicGeometryDataManager";
 
 export class BatcherManager {
   /** @internal */
   _engine: Engine;
   /** @internal */
-  _batcher2D: Batcher2D;
+  _dynamicGeometryDataManager2D: DynamicGeometryDataManager;
 
   constructor(engine: Engine) {
     this._engine = engine;
-    this._batcher2D = new Batcher2D(engine);
+    this._dynamicGeometryDataManager2D = new DynamicGeometryDataManager(engine);
   }
 
   destroy() {
-    this._batcher2D.destroy();
-    this._batcher2D = null;
+    this._dynamicGeometryDataManager2D.destroy();
+    this._dynamicGeometryDataManager2D = null;
     this._engine = null;
   }
 
@@ -73,11 +73,10 @@ export class BatcherManager {
   }
 
   uploadBuffer() {
-    // @ts-ignore
-    this._batcher2D._uploadBuffer();
+    this._dynamicGeometryDataManager2D.uploadBuffer();
   }
 
   clear() {
-    this._batcher2D.clear();
+    this._dynamicGeometryDataManager2D.clear();
   }
 }

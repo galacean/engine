@@ -1,4 +1,4 @@
-import { Engine } from "../../Engine";
+import { Engine } from "../Engine";
 import {
   Buffer,
   BufferBindFlag,
@@ -12,23 +12,22 @@ import {
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
-} from "../../graphic";
-import { IPoolElement, Pool } from "../../utils/Pool";
-import { Batcher2D } from "./Batcher2D";
+} from "../graphic";
+import { IPoolElement, Pool } from "../utils/Pool";
 
 /**
  * @internal
  */
-export class MBChunk implements IPoolElement {
-  _mbId: number = -1;
-  _meshBuffer: MeshBuffer;
+export class Chunk implements IPoolElement {
+  _id: number = -1;
+  _data: DynamicGeometryData;
   _subMesh: SubMesh;
   _vEntry: Entry;
   _indices: number[];
 
   reset() {
-    this._mbId = -1;
-    this._meshBuffer = null;
+    this._id = -1;
+    this._data = null;
     this._subMesh = null;
     this._vEntry = null;
     this._indices = null;
@@ -54,7 +53,7 @@ class Entry implements IPoolElement {
 /**
  * @internal
  */
-export class MeshBuffer {
+export class DynamicGeometryData {
   /** @internal */
   _primitive: Primitive;
   /** @internal */
@@ -82,11 +81,11 @@ export class MeshBuffer {
   /** @internal */
   _entryPool: Pool<Entry> = new Pool(Entry, 10);
   /** @internal */
-  _chunkPool: Pool<MBChunk> = new Pool(MBChunk, 10);
+  _chunkPool: Pool<Chunk> = new Pool(Chunk, 10);
   /** @internal */
   _subMeshPool: Pool<SubMesh> = new Pool(SubMesh, 10);
 
-  constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
+  constructor(engine: Engine, maxVertexCount: number) {
     const primitive = (this._primitive = new Primitive(engine));
     primitive.isGCIgnored = true;
 
@@ -146,11 +145,11 @@ export class MeshBuffer {
     this._iBuffer.setData(this._indices, 0, 0, this._iLen, SetDataOptions.Discard);
   }
 
-  allocateChunk(vertexCount: number): MBChunk | null {
+  allocateChunk(vertexCount: number): Chunk | null {
     const vEntry = this._allocateEntry(this._vFreeEntries, vertexCount * 9);
     if (vEntry) {
       const chunk = this._chunkPool.alloc();
-      chunk._meshBuffer = this;
+      chunk._data = this;
       chunk._vEntry = vEntry;
       chunk._subMesh = this._subMeshPool.alloc();
       const { _subMesh: subMesh } = chunk;
@@ -161,7 +160,7 @@ export class MeshBuffer {
     return null;
   }
 
-  freeChunk(chunk: MBChunk): void {
+  freeChunk(chunk: Chunk): void {
     this._freeEntry(this._vFreeEntries, chunk._vEntry);
     this._subMeshPool.free(chunk._subMesh);
     chunk.reset();

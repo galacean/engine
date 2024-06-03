@@ -13,14 +13,14 @@ export class SimpleSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const batcher =
+    const manager =
       renderer instanceof SpriteRenderer
-        ? renderer.engine._batcherManager._batcher2D
-        : renderer.engine._spriteMaskManager._batcher;
+        ? renderer.engine._batcherManager._dynamicGeometryDataManager2D
+        : renderer.engine._spriteMaskManager._batcher._dynamicGeometryDataManager;
 
     const lastChunk = renderer._chunk;
-    lastChunk && batcher.freeChunk(lastChunk);
-    const chunk = batcher.allocateChunk(4);
+    lastChunk && manager.freeChunk(lastChunk);
+    const chunk = manager.allocateChunk(4);
     chunk._indices = this._rectangleTriangles;
     renderer._chunk = chunk;
   }
@@ -50,7 +50,7 @@ export class SimpleSpriteAssembler {
     // Update positions
     const spritePositions = sprite._getPositions();
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start;
     for (let i = 0; i < 4; ++i) {
       const { x, y } = spritePositions[i];
@@ -68,7 +68,7 @@ export class SimpleSpriteAssembler {
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 3;
     vertices[index] = left;
     vertices[index + 1] = bottom;
@@ -83,7 +83,7 @@ export class SimpleSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0; i < 4; ++i) {
       vertices[index] = r;
