@@ -75,6 +75,20 @@ export class BaseMaterial extends Material {
   set isTransparent(value: boolean) {
     if (value !== this._isTransparent) {
       this.setIsTransparent(0, value);
+
+      const { shaderData } = this;
+      if (value) {
+        // Use alpha test queue to simulate transparent shadow
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+      } else {
+        const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
+        if (alphaCutoff) {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+        } else {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
+        }
+      }
+
       this._isTransparent = value;
     }
   }
@@ -109,8 +123,14 @@ export class BaseMaterial extends Material {
     if (shaderData.getFloat(BaseMaterial._alphaCutoffProp) !== value) {
       if (value) {
         shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
       } else {
         shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
+        if (this._isTransparent) {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+        } else {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
+        }
       }
 
       const { renderStates } = this;
@@ -120,15 +140,10 @@ export class BaseMaterial extends Material {
           renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
             ? RenderQueueType.Transparent
             : RenderQueueType.AlphaTest;
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
         } else {
-          if (renderState.blendState.targetBlendState.enabled) {
-            renderState.renderQueueType = RenderQueueType.Transparent;
-            shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-          } else {
-            renderState.renderQueueType = RenderQueueType.Opaque;
-            shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-          }
+          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
+            ? RenderQueueType.Transparent
+            : RenderQueueType.Opaque;
         }
       }
       shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
@@ -180,22 +195,12 @@ export class BaseMaterial extends Material {
       renderState.depthState.writeEnabled = false;
       renderState.renderQueueType = RenderQueueType.Transparent;
       shaderData.enableMacro(BaseMaterial._transparentMacro);
-
-      // Use alpha test queue to simulate transparent shadow
-      shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
     } else {
       renderState.blendState.targetBlendState.enabled = false;
       renderState.depthState.writeEnabled = true;
       const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
 
-      if (alphaCutoff) {
-        renderState.renderQueueType = RenderQueueType.AlphaTest;
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-      } else {
-        renderState.renderQueueType = RenderQueueType.Opaque;
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-      }
-
+      renderState.renderQueueType = alphaCutoff ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
       shaderData.disableMacro(BaseMaterial._transparentMacro);
     }
   }
