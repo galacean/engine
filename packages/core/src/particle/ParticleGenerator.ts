@@ -689,7 +689,7 @@ export class ParticleGenerator {
       max.copyToArray(transformedBoundsArray, boundsOffset + 3);
 
       const minmax = ParticleGenerator._tempVector20;
-      this.main.startLifetime._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+      this.main.startLifetime._getMinMax(minmax);
       transformedBoundsArray[boundsOffset + boundsTimeOffset] = this._playTime;
       transformedBoundsArray[boundsOffset + boundsMaxLifetimeOffset] = minmax.y;
 
@@ -992,7 +992,7 @@ export class ParticleGenerator {
       _tempVector23: minmaxZ
     } = ParticleGenerator;
 
-    this.main.startLifetime._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+    this.main.startLifetime._getMinMax(minmax);
     const maxLifetime = minmax.y;
 
     // StartSpeed's impact
@@ -1006,7 +1006,8 @@ export class ParticleGenerator {
       directionMin.set(0, 0, -1);
       directionMax.set(0, 0, 0);
     }
-    this.main.startSpeed._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+    this.main.startSpeed._getMinMax(minmax);
+    this._getExtremeValueFromZero(minmax);
     const velocityMin = minmax.x * maxLifetime;
     const velocityMax = minmax.y * maxLifetime;
 
@@ -1022,9 +1023,12 @@ export class ParticleGenerator {
     // StartSize's impact
     let maxSize = 0;
 
-    this.main.startSizeX._getExtremeNegativeAndPositiveValuesFromZero(minmaxX);
-    this.main.startSizeY._getExtremeNegativeAndPositiveValuesFromZero(minmaxY);
-    this.main.startSize._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+    this.main.startSizeX._getMinMax(minmaxX);
+    this._getExtremeValueFromZero(minmaxX);
+    this.main.startSizeY._getMinMax(minmaxY);
+    this._getExtremeValueFromZero(minmaxY);
+    this.main.startSize._getMinMax(minmax);
+    this._getExtremeValueFromZero(minmax);
 
     if (
       this._renderer.renderMode === ParticleRenderMode.Billboard ||
@@ -1033,7 +1037,8 @@ export class ParticleGenerator {
     ) {
       maxSize = this.main.startSize3D ? Math.max(minmaxX.y, minmaxY.y) : minmax.y;
     } else {
-      this.main.startSizeZ._getExtremeNegativeAndPositiveValuesFromZero(minmaxZ);
+      this.main.startSizeZ._getMinMax(minmaxZ);
+      this._getExtremeValueFromZero(minmaxZ);
       maxSize = this.main.startSize3D ? Math.max(minmaxX.y, minmaxY.y, minmaxZ.y) : minmax.y;
     }
     // Use diagonal for potential rotation
@@ -1084,12 +1089,15 @@ export class ParticleGenerator {
 
     if (this.velocityOverLifetime.enabled) {
       const { velocityX, velocityY, velocityZ, space } = this.velocityOverLifetime;
-      this.main.startLifetime._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+      this.main.startLifetime._getMinMax(minmax);
       const maxLifetime = minmax.y;
 
-      velocityX._getExtremeNegativeAndPositiveValuesFromZero(minmaxX);
-      velocityY._getExtremeNegativeAndPositiveValuesFromZero(minmaxY);
-      velocityZ._getExtremeNegativeAndPositiveValuesFromZero(minmaxZ);
+      velocityX._getMinMax(minmaxX);
+      this._getExtremeValueFromZero(minmaxX);
+      velocityY._getMinMax(minmaxY);
+      this._getExtremeValueFromZero(minmaxY);
+      velocityZ._getMinMax(minmaxZ);
+      this._getExtremeValueFromZero(minmaxZ);
 
       directionMin.set(minmaxX.x, minmaxY.x, minmaxZ.x);
       directionMax.set(minmaxX.y, minmaxY.y, minmaxZ.y);
@@ -1129,9 +1137,10 @@ export class ParticleGenerator {
     const { min, max } = bounds;
     const { _tempVector20: minmax } = ParticleGenerator;
 
-    this.main.startLifetime._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+    this.main.startLifetime._getMinMax(minmax);
     const maxLifetime = minmax.y;
-    this.main.gravityModifier._getExtremeNegativeAndPositiveValuesFromZero(minmax);
+    this.main.gravityModifier._getMinMax(minmax);
+    this._getExtremeValueFromZero(minmax);
 
     // Gravity Modifier Impact
     const direction = this._renderer.scene.physics.gravity;
@@ -1153,5 +1162,10 @@ export class ParticleGenerator {
     const zMaxGravityVelocity = direction.z * gravityMaxVelocity;
     min.z += Math.min(zMinGravityVelocity, zMaxGravityVelocity);
     max.z += Math.max(zMinGravityVelocity, zMaxGravityVelocity);
+  }
+
+  private _getExtremeValueFromZero(out: Vector2): void {
+    out.x = Math.min(0, out.x);
+    out.y = Math.max(0, out.y);
   }
 }

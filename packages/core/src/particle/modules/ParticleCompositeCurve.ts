@@ -159,18 +159,19 @@ export class ParticleCompositeCurve {
 
   /**
    * @internal
-   * @param out - x as the max negative value, y as the max positive value of the curve.
+   * @param out - x as the min value, y as the max value of the curve.
    */
-  _getExtremeNegativeAndPositiveValuesFromZero(out: Vector2): void {
-    out.x = out.y = 0;
+  _getMinMax(out: Vector2): void {
+    out.x = Infinity;
+    out.y = -Infinity;
+
     switch (this.mode) {
       case ParticleCurveMode.Constant:
-        out.x = Math.min(0, this.constantMax);
-        out.y = Math.max(0, this.constantMax);
+        out.x = out.y = this.constantMax;
         break;
       case ParticleCurveMode.TwoConstants:
-        out.x = Math.min(0, this.constantMin, this.constantMax);
-        out.y = Math.max(0, this.constantMin, this.constantMax);
+        out.x = Math.min(this.constantMin, this.constantMax);
+        out.y = Math.max(this.constantMin, this.constantMax);
         break;
       case ParticleCurveMode.Curve:
         for (let i = 0; i < this.curveMax?.keys.length; i++) {
