@@ -105,16 +105,28 @@ describe("InputManager", async () => {
         console.log("onPointerDown");
       }
 
+      onPointerUp(pointer: Pointer): void {
+        console.log("onPointerUp");
+      }
+
       onPointerClick(pointer: Pointer): void {
         console.log("onPointerClick");
+      }
+
+      onPointerStartDrag(pointer: Pointer): void {
+        console.log("onPointerStartDrag");
       }
 
       onPointerDrag(pointer: Pointer): void {
         console.log("onPointerDrag");
       }
 
-      onPointerUp(pointer: Pointer): void {
-        console.log("onPointerUp");
+      onPointerEndDrag(pointer: Pointer): void {
+        console.log("onPointerEndDrag");
+      }
+
+      onPointerDrop(pointer: Pointer): void {
+        console.log("onPointerDrop");
       }
     }
     TestScript.prototype.onPointerEnter = chai.spy(TestScript.prototype.onPointerEnter);
@@ -205,7 +217,7 @@ describe("InputManager", async () => {
     target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 2.5, top + 2.5, -1, 0));
     engine.update();
     expect(script.onPointerEnter).to.have.been.called.exactly(4);
-    expect(script.onPointerDrag).to.have.been.called.exactly(2);
+    expect(script.onPointerDrag).to.have.been.called.exactly(3);
     expect(script.onPointerUp).to.have.been.called.exactly(3);
     expect(script.onPointerClick).to.have.been.called.exactly(2);
   });

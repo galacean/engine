@@ -9,7 +9,7 @@ import { HitResult } from "../../physics";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
-import { Pointer } from "./Pointer";
+import { Pointer, PointerEventType } from "./Pointer";
 
 /**
  * Pointer Manager.
@@ -73,7 +73,9 @@ export class PointerManager implements IInput {
 
     // Clean up the pointer released in the previous frame
     for (let i = pointers.length - 1; i >= 0; i--) {
-      if (pointers[i].phase === PointerPhase.Leave) {
+      const pointer = pointers[i];
+      if (pointer.phase === PointerPhase.Leave) {
+        pointer._dispose();
         pointers.splice(i, 1);
       }
     }
@@ -113,9 +115,9 @@ export class PointerManager implements IInput {
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       pointer._upList.length = pointer._downList.length = 0;
+      pointer._eventsMap = PointerEventType.None;
       this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
       this._buttons |= pointer.pressedButtons;
-      pointer._firePointerDrag();
     }
   }
 
@@ -131,21 +133,28 @@ export class PointerManager implements IInput {
       pointer._firePointerExitAndEnter(rayCastEntity);
       const length = events.length;
       if (length > 0) {
+        if (pointer._eventsMap & PointerEventType.Move) {
+          pointer.phase = PointerPhase.Move;
+          pointer._firePointerDrag();
+        }
         for (let i = 0; i < length; i++) {
           const event = events[i];
           switch (event.type) {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
               pointer._firePointerDown(rayCastEntity);
+              pointer._firePointerStartDrag(rayCastEntity);
               break;
             case "pointerup":
               pointer.phase = PointerPhase.Up;
               pointer._firePointerUpAndClick(rayCastEntity);
+              pointer._firePointerEndDrag(rayCastEntity);
               break;
             case "pointerleave":
             case "pointercancel":
               pointer.phase = PointerPhase.Leave;
               pointer._firePointerExitAndEnter(null);
+              pointer._firePointerEndDrag(null);
               break;
           }
         }
@@ -208,6 +217,7 @@ export class PointerManager implements IInput {
             pointer._downList.add(button);
             pointer._downMap[button] = frameCount;
             pointer.phase = PointerPhase.Down;
+            pointer._eventsMap |= PointerEventType.Down;
             break;
           case "pointerup":
             _upList.add(button);
@@ -215,13 +225,20 @@ export class PointerManager implements IInput {
             pointer._upList.add(button);
             pointer._upMap[button] = frameCount;
             pointer.phase = PointerPhase.Up;
+            pointer._eventsMap |= PointerEventType.Up;
             break;
           case "pointermove":
             pointer.phase = PointerPhase.Move;
+            pointer._eventsMap |= PointerEventType.Move;
             break;
           case "pointerleave":
+            pointer.phase = PointerPhase.Leave;
+            pointer._eventsMap |= PointerEventType.Leave;
+            break;
           case "pointercancel":
             pointer.phase = PointerPhase.Leave;
+            pointer._eventsMap |= PointerEventType.Cancel;
+            break;
           default:
             break;
         }
