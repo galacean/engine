@@ -24,9 +24,6 @@ export class ParticleBufferUtils {
 
   static readonly billboardIndexCount = 6;
 
-  readonly billboardVertexBufferBinding: VertexBufferBinding;
-  readonly billboardIndexBufferBinding: IndexBufferBinding;
-
   static readonly boundsFloatStride = 8;
   static readonly boundsTimeOffset = 6;
   static readonly boundsMaxLifetimeOffset = 7;
@@ -51,6 +48,9 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 1, 1),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1)
   ];
+
+  readonly billboardVertexBufferBinding: VertexBufferBinding;
+  readonly billboardIndexBufferBinding: IndexBufferBinding;
 
   constructor(engine: Engine) {
     const stride = 16;
