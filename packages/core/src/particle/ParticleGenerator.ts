@@ -414,10 +414,14 @@ export class ParticleGenerator {
       const firstFreeElement = this._firstFreeElement;
       const firstRetiredElement = this._firstRetiredElement;
       if (isIncrease) {
-        const freeOffset = this._firstFreeElement * floatStride;
-        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
-        const freeEndOffset = (this._firstFreeElement + increaseCount) * floatStride;
-        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset * 4), freeEndOffset);
+        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, firstFreeElement * floatStride));
+
+        const nextFreeElement = firstFreeElement + 1;
+        const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
+        instanceVertices.set(
+          new Float32Array(lastInstanceVertices.buffer, nextFreeElement * floatStride * 4),
+          freeEndOffset
+        );
 
         // Maintain expanded pointers
         this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
@@ -619,11 +623,14 @@ export class ParticleGenerator {
       const boundsArray = new Float32Array(this._transformedBoundsArrayCapacity * floatStride);
 
       if (lastBoundsArray) {
-        const freeOffset = firstFreeTransformedBoundingBox * floatStride;
-        const freeEndOffset = (firstFreeTransformedBoundingBox + increaseCount) * floatStride;
+        boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeTransformedBoundingBox * floatStride));
 
-        boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, freeOffset));
-        boundsArray.set(new Float32Array(lastBoundsArray.buffer, freeOffset * 4), freeEndOffset);
+        const nextFreeTransformedBoundingBox = firstFreeTransformedBoundingBox + 1;
+        const freeEndOffset = (nextFreeTransformedBoundingBox + increaseCount) * floatStride;
+        boundsArray.set(
+          new Float32Array(lastBoundsArray.buffer, nextFreeTransformedBoundingBox * floatStride * 4),
+          freeEndOffset
+        );
 
         if (firstActiveTransformedBoundingBox > firstFreeTransformedBoundingBox) {
           this._firstActiveTransformedBoundingBox += increaseCount;
@@ -705,6 +712,13 @@ export class ParticleGenerator {
 
     const main = this.main;
     // Check if can be expanded
+
+    // Using 'nextFreeElement' instead of 'freeElement' when comparing with '_firstRetiredElement'
+    // aids in definitively identifying the head and tail of the circular queue.
+
+    // Failure to adopt this approach may impede growth initiation
+    // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
+
     if (nextFreeElement === this._firstRetiredElement) {
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
