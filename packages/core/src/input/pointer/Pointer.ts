@@ -187,13 +187,6 @@ export class Pointer {
       this._draggedEntity = null;
     }
   }
-
-  /**
-   * @internal
-   */
-  _dispose(): void {
-    this._enteredEntity = this._pressedEntity = this._draggedEntity = null;
-  }
 }
 
 export enum PointerEventType {

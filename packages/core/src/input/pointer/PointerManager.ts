@@ -73,9 +73,7 @@ export class PointerManager implements IInput {
 
     // Clean up the pointer released in the previous frame
     for (let i = pointers.length - 1; i >= 0; i--) {
-      const pointer = pointers[i];
-      if (pointer.phase === PointerPhase.Leave) {
-        pointer._dispose();
+      if (pointers[i].phase === PointerPhase.Leave) {
         pointers.splice(i, 1);
       }
     }
