@@ -19,11 +19,14 @@ import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Pool } from "../../utils/Pool";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
+import { ShaderProperty } from "../../shader";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
+  private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
   private static _charRenderInfoPool: Pool<CharRenderInfo> = new Pool(CharRenderInfo, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -416,19 +419,29 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const { engine } = context.camera;
+    const camera = context.camera;
+    const engine = camera.engine;
     const renderData2DPool = engine._renderData2DPool;
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
-
     const batcherManager = engine._batcherManager;
+    const spriteMaskManager = engine._spriteMaskManager;
+    const shaderData = this.shaderData;
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.getFromPool();
-      const { chunk } = charRenderInfo;
-      renderData.set(this, material, chunk._data._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
+      const { chunk, texture } = charRenderInfo;
+      renderData.set(this, material, chunk._data._primitive, chunk._subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
+      renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
+      renderData.preRender = () => {
+        shaderData.setTexture(TextRenderer._textureProperty, texture);
+        spriteMaskManager.preRender(camera, this);
+      };
+      renderData.postRender = () => {
+        spriteMaskManager.postRender(this);
+      };
       batcherManager.commitRenderData(context, renderData);
     }
   }

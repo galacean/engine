@@ -3,6 +3,7 @@ import { Primitive } from "../graphic/Primitive";
 import { Material } from "../material";
 import { Renderer } from "../Renderer";
 import { IPoolElement } from "../utils/Pool";
+import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 export class RenderData implements IPoolElement {
@@ -11,6 +12,11 @@ export class RenderData implements IPoolElement {
   primitive: Primitive;
   subPrimitive: SubMesh;
   usage: RenderDataUsage = RenderDataUsage.Mesh;
+  uploadFlag: ForceUploadShaderDataFlag = ForceUploadShaderDataFlag.None;
+  // cb: Function;
+
+  preRender: Function;
+  postRender: Function;
 
   priority: number;
   materialPriority: number;

@@ -12,6 +12,7 @@ import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 
 /**
  * A component for masking Sprites.
@@ -245,7 +246,9 @@ export class SpriteMask extends Renderer {
     const renderData = engine._renderData2DPool.getFromPool();
     renderData.set(this, material, chunk._data._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
-
+    renderData.uploadFlag = ForceUploadShaderDataFlag.None;
+    renderData.preRender = null;
+    renderData.postRender = null;
     const renderElement = engine._renderElementPool.getFromPool();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;

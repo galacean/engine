@@ -1,19 +1,16 @@
-import { SpriteRenderer } from "../2d";
 import { Camera } from "../Camera";
 import { Utils } from "../Utils";
-import { RenderQueueType, Shader, ShaderProperty } from "../shader";
+import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { BatcherManager } from "./batcher/BatcherManager";
-import { RenderDataUsage } from "./enums/RenderDataUsage";
+import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 
 /**
  * Render queue.
  */
 export class RenderQueue {
-  private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
-
   /**
    * @internal
    */
@@ -81,7 +78,6 @@ export class RenderQueue {
     }
 
     const { engine, scene } = camera;
-    const { _spriteMaskManager: spriteMaskManager } = engine;
     const { instanceId: cameraId, shaderData: cameraData } = camera;
     const { shaderData: sceneData, instanceId: sceneId } = scene;
     const renderCount = engine._renderCount;
@@ -92,22 +88,16 @@ export class RenderQueue {
     for (let i = 0; i < len; i++) {
       const element = batchedElements[i];
       const { data, shaderPasses } = element;
+      const { uploadFlag } = data;
 
-      const { usage } = data;
-      const needMask = usage === RenderDataUsage.Sprite || usage === RenderDataUsage.Text;
-      const renderer = data.component;
-      needMask && spriteMaskManager.preRender(camera, <SpriteRenderer>renderer);
+      data.preRender && data.preRender();
 
       const compileMacros = Shader._compileMacros;
       const primitive = data.primitive;
+      const renderer = data.component;
       const material = data.material;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
-
-      // TextRenderer may be has multi-texture.
-      const isText = usage === RenderDataUsage.Text;
-      // @ts-ignore
-      isText && rendererData.setTexture(RenderQueue._textureProperty, data.texture);
 
       // union render global macro and material self macro.
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
@@ -147,28 +137,28 @@ export class RenderQueue {
           if (program._uploadSceneId !== sceneId) {
             program.uploadAll(program.sceneUniformBlock, sceneData);
             program._uploadSceneId = sceneId;
-          } else if (switchProgram) {
+          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Scene) {
             program.uploadTextures(program.sceneUniformBlock, sceneData);
           }
 
           if (program._uploadCameraId !== cameraId) {
             program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCameraId = cameraId;
-          } else if (switchProgram) {
+          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Camera) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
 
           if (program._uploadRendererId !== rendererId) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRendererId = rendererId;
-          } else if (switchProgram || isText) {
+          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Renderer) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
 
           if (program._uploadMaterialId !== materialId) {
             program.uploadAll(program.materialUniformBlock, materialData);
             program._uploadMaterialId = materialId;
-          } else if (switchProgram) {
+          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Material) {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
 
@@ -188,7 +178,7 @@ export class RenderQueue {
 
         rhi.drawPrimitive(primitive, data.subPrimitive, program);
       }
-      needMask && spriteMaskManager.postRender(<SpriteRenderer>renderer);
+      data.postRender && data.postRender();
     }
   }
 

@@ -19,6 +19,7 @@ import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -353,11 +354,20 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Push primitive
-    const { engine } = context.camera;
+    const camera = context.camera;
+    const engine = camera.engine;
+    const spriteMaskManager = engine._spriteMaskManager;
     const renderData = engine._renderData2DPool.getFromPool();
-    const { _chunk: chunk } = this;
+    const chunk = this._chunk;
     renderData.set(this, material, chunk._data._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;
+    renderData.uploadFlag = ForceUploadShaderDataFlag.None;
+    renderData.preRender = () => {
+      spriteMaskManager.preRender(camera, this);
+    };
+    renderData.postRender = () => {
+      spriteMaskManager.postRender(this);
+    };
     engine._batcherManager.commitRenderData(context, renderData);
   }
 
