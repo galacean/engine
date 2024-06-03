@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { BlendFactor, BlendOperation, CullMode, Shader, ShaderPass, ShaderProperty } from "../shader";
+import { BlendFactor, BlendOperation, CullMode, Shader, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { RenderState } from "../shader/state/RenderState";
@@ -30,8 +30,6 @@ export class BaseMaterial extends Material {
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
-  private _shadowPass: ShaderPass;
-  private _shadowPassIndex: number;
 
   /**
    * Shader used by the material.
@@ -76,8 +74,8 @@ export class BaseMaterial extends Material {
 
   set isTransparent(value: boolean) {
     if (value !== this._isTransparent) {
-      this._isTransparent = value;
       this.setIsTransparent(0, value);
+      this._isTransparent = value;
     }
   }
 
@@ -91,8 +89,8 @@ export class BaseMaterial extends Material {
 
   set blendMode(value: BlendMode) {
     if (value !== this._blendMode) {
-      this._blendMode = value;
       this.setBlendMode(0, value);
+      this._blendMode = value;
     }
   }
 
@@ -122,7 +120,6 @@ export class BaseMaterial extends Material {
           renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
             ? RenderQueueType.Transparent
             : RenderQueueType.AlphaTest;
-
           shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
         } else {
           if (renderState.blendState.targetBlendState.enabled) {

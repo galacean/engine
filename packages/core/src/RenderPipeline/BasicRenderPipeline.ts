@@ -290,7 +290,7 @@ export class BasicRenderPipeline {
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || material.renderState)._apply(engine, false, pass._renderStateDataMap, material.shaderData);
+    (pass._renderState || material.renderState)._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 

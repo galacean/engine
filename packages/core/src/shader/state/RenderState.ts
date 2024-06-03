@@ -30,35 +30,14 @@ export class RenderState {
 
   /**
    * @internal
-   * @todo Should merge when we can delete material render state.
    */
-  _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
-  }
-
-  /**
-   * @internal
-   * @todo Should merge when we can delete material render state.
-   */
-  _applyRenderQueueByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (renderQueueType !== undefined) {
-      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _apply(
+  _applyStates(
     engine: Engine,
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData
   ): void {
+    // @todo: Should merge when we can delete material render state
     renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
@@ -71,5 +50,23 @@ export class RenderState {
       lastRenderState,
       context.flipProjection ? !frontFaceInvert : frontFaceInvert
     );
+  }
+
+  /**
+   * @internal
+   * @todo Should merge when we can delete material render state
+   */
+  _applyRenderQueueByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueType !== undefined) {
+      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    }
+  }
+
+  private _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
   }
 }
