@@ -32,12 +32,18 @@ export class RenderState {
    * @internal
    * @todo Should merge when we can delete material render state.
    */
-  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+  _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+  }
 
+  /**
+   * @internal
+   * @todo Should merge when we can delete material render state.
+   */
+  _applyRenderQueueByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
     if (renderQueueType !== undefined) {
       this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
@@ -53,7 +59,7 @@ export class RenderState {
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData
   ): void {
-    renderStateDataMap && this._applyShaderDataValue(renderStateDataMap, shaderData);
+    renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     const context = engine._renderContext;

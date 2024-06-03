@@ -237,7 +237,18 @@ export class BasicRenderPipeline {
 
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      const renderQueueType = (shaderPasses[i]._renderState ?? renderStates[i]).renderQueueType;
+      let renderQueueType: RenderQueueType;
+      const shaderPass = shaderPasses[i];
+      const renderState = shaderPass._renderState;
+
+      // Get render queue type
+      if (renderState) {
+        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, element.material.shaderData);
+        renderQueueType = renderState.renderQueueType;
+      } else {
+        renderQueueType = renderStates[i].renderQueueType;
+      }
+
       if (renderQueueAddedFlags & (<RenderQueueAddedFlag>(1 << renderQueueType))) {
         continue;
       }
