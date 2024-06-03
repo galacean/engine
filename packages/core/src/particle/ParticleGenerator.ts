@@ -657,22 +657,12 @@ export class ParticleGenerator {
       this._addRotationAndVelocityOverLifetimeToBounds(transformedBounds);
 
       const { min, max } = transformedBounds;
-      min.x += worldPosition.x;
-      min.y += worldPosition.y;
-      min.z += worldPosition.z;
-
-      max.x += worldPosition.x;
-      max.y += worldPosition.y;
-      max.z += worldPosition.z;
+      min.add(worldPosition);
+      max.add(worldPosition);
 
       const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
-      transformedBoundsArray[boundsOffset] = min.x;
-      transformedBoundsArray[boundsOffset + 1] = min.y;
-      transformedBoundsArray[boundsOffset + 2] = min.z;
-
-      transformedBoundsArray[boundsOffset + 3] = max.x;
-      transformedBoundsArray[boundsOffset + 4] = max.y;
-      transformedBoundsArray[boundsOffset + 5] = max.z;
+      min.copyToArray(transformedBoundsArray, boundsOffset);
+      max.copyToArray(transformedBoundsArray, boundsOffset + 3);
 
       const minmax = ParticleGenerator._tempVector20;
       this.main.startLifetime._getExtremeNegativeAndPositiveValuesFromZero(minmax);
@@ -955,7 +945,7 @@ export class ParticleGenerator {
     while (this._firstActiveTransformedBoundingBox !== this._firstFreeTransformedBoundingBox) {
       const index = this._firstActiveTransformedBoundingBox * boundsFloatStride;
       const age = this._playTime - transformedBoundsArray[index + boundsTimeOffset];
-      if (age > transformedBoundsArray[index + boundsMaxLifetimeOffset]) {
+      if (age <= transformedBoundsArray[index + boundsMaxLifetimeOffset]) {
         break;
       }
 
