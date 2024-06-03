@@ -260,6 +260,7 @@ export class ParticleGenerator {
    * @internal
    */
   _update(elapsedTime: number): void {
+    const lastAlive = this.isAlive;
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
@@ -287,7 +288,8 @@ export class ParticleGenerator {
       }
     }
 
-    if (this.isAlive) {
+    const isAlive = this.isAlive;
+    if (isAlive) {
       if (main.simulationSpace === ParticleSimulationSpace.World) {
         this._generateTransformedBounds();
       }
@@ -298,6 +300,9 @@ export class ParticleGenerator {
       emission._frameRateTime -= discardTime;
     }
 
+    if (isAlive !== lastAlive) {
+      this._renderer._onWorldVolumeChanged();
+    }
     // Add new particles to vertex buffer when has wait process retired element or new particle
     //
     // Another choice is just add new particles to vertex buffer and render all particles ignore the retired particle in shader, especially billboards
@@ -532,12 +537,7 @@ export class ParticleGenerator {
     const renderer = this._renderer;
     const { _generatorBounds: generatorBounds } = renderer;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
-      if (this.isAlive) {
-        this._calculateGeneratorBounds(generatorBounds);
-      } else {
-        generatorBounds.min.set(0, 0, 0);
-        generatorBounds.max.set(0, 0, 0);
-      }
+      this._calculateGeneratorBounds(generatorBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
@@ -570,11 +570,6 @@ export class ParticleGenerator {
   _updateBoundsSimulationWorld(bounds: BoundingBox): void {
     const { min, max } = bounds;
     const renderer = this._renderer;
-    if (this._firstActiveTransformedBoundingBox === this._firstFreeTransformedBoundingBox) {
-      min.set(0, 0, 0);
-      max.set(0, 0, 0);
-      return;
-    }
 
     if (renderer._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
       const {
@@ -585,9 +580,8 @@ export class ParticleGenerator {
       } = this;
 
       const index = this._firstActiveTransformedBoundingBox * ParticleBufferUtils.boundsFloatStride;
-
-      min.set(transformedBoundsArray[index], transformedBoundsArray[index + 1], transformedBoundsArray[index + 2]);
-      max.set(transformedBoundsArray[index + 3], transformedBoundsArray[index + 4], transformedBoundsArray[index + 5]);
+      min.copyFromArray(transformedBoundsArray, index);
+      max.copyFromArray(transformedBoundsArray, index + 3);
 
       if (firstActiveTransformedBoundingBox < firstFreeTransformedBoundingBox) {
         for (let i = firstActiveTransformedBoundingBox; i < firstFreeTransformedBoundingBox; i++) {
@@ -629,7 +623,6 @@ export class ParticleGenerator {
         const freeEndOffset = (firstFreeTransformedBoundingBox + increaseCount) * floatStride;
 
         boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, freeOffset));
-
         boundsArray.set(new Float32Array(lastBoundsArray.buffer, freeOffset * 4), freeEndOffset);
 
         if (firstActiveTransformedBoundingBox > firstFreeTransformedBoundingBox) {
