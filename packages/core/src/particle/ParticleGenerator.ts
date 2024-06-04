@@ -975,12 +975,13 @@ export class ParticleGenerator {
     const directionMin = ParticleGenerator._tempVector31;
     const speedMinMax = ParticleGenerator._tempVector20;
     const { min, max } = bounds;
+    const { main } = this;
 
     // Get longest Lifetime
-    const maxLifetime = this.main.startLifetime._getMax();
+    const maxLifetime = main.startLifetime._getMax();
 
     // StartSpeed's impact
-    const shape = this.emission.shape;
+    const { shape } = this.emission;
     if (shape?.enabled) {
       shape._getStartPositionRange(min, max);
       shape._getDirectionRange(directionMin, directionMax);
@@ -990,7 +991,7 @@ export class ParticleGenerator {
       directionMin.set(0, 0, -1);
       directionMax.set(0, 0, 0);
     }
-    this.main.startSpeed._getMinMax(speedMinMax);
+    main.startSpeed._getMinMax(speedMinMax);
     this._getExtremeValueFromZero(speedMinMax);
 
     min.x += Math.min(directionMin.x * speedMinMax.y, directionMax.x * speedMinMax.x) * maxLifetime;
@@ -1003,10 +1004,10 @@ export class ParticleGenerator {
     max.z += Math.max(directionMin.z * speedMinMax.x, directionMax.z * speedMinMax.y) * maxLifetime;
 
     // StartSize's impact
-    let maxSize = this.main.startSize._getMax();
+    let maxSize = main.startSize._getMax();
 
-    if (this.main.startSize3D) {
-      const startSizeYMax = this.main.startSizeY._getMax();
+    if (main.startSize3D) {
+      const startSizeYMax = main.startSizeY._getMax();
       if (
         this._renderer.renderMode === ParticleRenderMode.Billboard ||
         ParticleRenderMode.StretchBillboard ||
@@ -1014,7 +1015,7 @@ export class ParticleGenerator {
       ) {
         maxSize = Math.max(maxSize, startSizeYMax);
       } else {
-        const startSizeZMax = this.main.startSizeZ._getMax();
+        const startSizeZMax = main.startSizeZ._getMax();
         maxSize = Math.max(maxSize, startSizeYMax, startSizeZMax);
       }
     }
