@@ -17,11 +17,16 @@ import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Pool } from "../../utils/Pool";
+import { RenderData2D } from "../../RenderPipeline/RenderData2D";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
+import { ShaderProperty } from "../../shader";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
+  private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
   private static _charRenderInfoPool: Pool<CharRenderInfo> = new Pool(CharRenderInfo, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -264,16 +269,6 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The sub font.
-   */
-  get subFont(): SubFont {
-    if (!this._subFont) {
-      this._resetSubFont();
-    }
-    return this._subFont;
-  }
-
-  /**
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {
@@ -324,7 +319,7 @@ export class TextRenderer extends Renderer {
     // Clear render data.
     const pool = TextRenderer._charRenderInfoPool;
     const charRenderInfos = this._charRenderInfos;
-    const batcher2D = this.engine._batcherManager._batcher2D;
+    const batcher2D = this.engine._batcherManager._dynamicGeometryDataManager2D;
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];
       batcher2D.freeChunk(charRenderInfo.chunk);
@@ -369,8 +364,18 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
+  _getSubFont(): SubFont {
+    if (!this._subFont) {
+      this._resetSubFont();
+    }
+    return this._subFont;
+  }
+
+  /**
+   * @internal
+   */
   override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial() === this.engine._spriteDefaultMaterial || onlyMVP) {
+    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
       // @ts-ignore
       this._updateMVPShaderData(context, Matrix._identity);
     } else {
@@ -414,21 +419,83 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const { engine } = context.camera;
-    const spriteRenderDataPool = engine._spriteRenderDataPool;
+    const camera = context.camera;
+    const engine = camera.engine;
+    const renderData2DPool = engine._renderData2DPool;
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
-
     const batcherManager = engine._batcherManager;
+    const spriteMaskManager = engine._spriteMaskManager;
+    const shaderData = this.shaderData;
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
-      const renderData = spriteRenderDataPool.getFromPool();
-      const { chunk } = charRenderInfo;
-      renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, charRenderInfo.texture, chunk);
+      const renderData = renderData2DPool.getFromPool();
+      const { chunk, texture } = charRenderInfo;
+      renderData.set(this, material, chunk._data._primitive, chunk._subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
+      renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
+      renderData.preRender = () => {
+        shaderData.setTexture(TextRenderer._textureProperty, texture);
+        spriteMaskManager.preRender(camera, this);
+      };
+      renderData.postRender = () => {
+        spriteMaskManager.postRender(this);
+      };
       batcherManager.commitRenderData(context, renderData);
     }
+  }
+
+  /**
+   * @internal
+   */
+  protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
+    const renderDataA = <RenderData2D>elementA.data;
+    const renderDataB = <RenderData2D>elementB.data;
+    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
+      return false;
+    }
+
+    const rendererA = <TextRenderer>renderDataA.component;
+    const rendererB = <TextRenderer>renderDataB.component;
+
+    // Compare mask
+    const maskInteractionA = rendererA.maskInteraction;
+    if (
+      maskInteractionA !== rendererB.maskInteraction ||
+      (maskInteractionA !== SpriteMaskInteraction.None && rendererA.maskLayer !== rendererB.maskLayer)
+    ) {
+      return false;
+    }
+
+    // Compare texture and material
+    return renderDataA.texture === renderDataB.texture && renderDataA.material === renderDataB.material;
+  }
+
+  /**
+   * @internal
+   */
+  protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
+    const renderDataA = <RenderData2D>elementA.data;
+    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
+    const { _data: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const indices = meshBuffer._indices;
+    const vertexStartIndex = vEntry.start / 9;
+    const len = tempIndices.length;
+    let startIndex = meshBuffer._iLen;
+    if (elementB) {
+      const subMesh = renderDataA.chunk._subMesh;
+      subMesh.count += len;
+    } else {
+      const subMesh = chunk._subMesh;
+      subMesh.start = startIndex;
+      subMesh.count = len;
+    }
+    for (let i = 0; i < len; ++i) {
+      indices[startIndex++] = vertexStartIndex + tempIndices[i];
+    }
+    meshBuffer._iLen += len;
+    meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
   }
 
   private _updateStencilState(): void {
@@ -473,10 +540,11 @@ export class TextRenderer extends Renderer {
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
 
-    const worldPosition0 = TextRenderer._worldPositions[0];
-    const worldPosition1 = TextRenderer._worldPositions[1];
-    const worldPosition2 = TextRenderer._worldPositions[2];
-    const worldPosition3 = TextRenderer._worldPositions[3];
+    const worldPositions = TextRenderer._worldPositions;
+    const worldPosition0 = worldPositions[0];
+    const worldPosition1 = worldPositions[1];
+    const worldPosition2 = worldPositions[2];
+    const worldPosition3 = worldPositions[3];
 
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];
@@ -503,7 +571,7 @@ export class TextRenderer extends Renderer {
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
       const { chunk } = charRenderInfo;
-      const vertices = chunk._meshBuffer._vertices;
+      const vertices = chunk._data._vertices;
       let index = chunk._vEntry.start;
       for (let i = 0; i < 4; ++i) {
         const position = TextRenderer._worldPositions[i];
@@ -584,7 +652,7 @@ export class TextRenderer extends Renderer {
               charRenderInfo.init(this.engine);
               const { chunk, localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
-              const vertices = chunk._meshBuffer._vertices;
+              const vertices = chunk._data._vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
               let index = chunk._vEntry.start + 3;
@@ -631,7 +699,7 @@ export class TextRenderer extends Renderer {
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
         const charRenderInfo = charRenderInfos[i];
-        this.engine._batcherManager._batcher2D.freeChunk(charRenderInfo.chunk);
+        this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(charRenderInfo.chunk);
         charRenderInfo.chunk = null;
         charRenderInfoPool.free(charRenderInfo);
       }

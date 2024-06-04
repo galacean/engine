@@ -1,39 +1,56 @@
 import { SpriteMask } from "../../2d/sprite/SpriteMask";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
+import { Renderer } from "../../Renderer";
 import { StencilOperation } from "../../shader/enums/StencilOperation";
 import { Shader } from "../../shader/Shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderElement } from "../RenderElement";
-import { SpriteRenderData } from "../SpriteRenderData";
-import { Batcher2D } from "./Batcher2D";
+import { RenderData2D } from "../RenderData2D";
+import { DynamicGeometryDataManager } from "../DynamicGeometryDataManager";
 
-export class SpriteMaskBatcher extends Batcher2D {
+export class SpriteMaskBatcher {
+  /** @internal */
+  _engine: Engine;
   /** @internal */
   _batchedQueue: RenderElement[] = [];
   /** @internal */
   _stencilOps: StencilOperation[] = [];
   /** @internal */
-  _preRenderElement: RenderElement = null;
+  _preRenderElement: RenderElement;
+  /** @internal */
+  _preRenderer: Renderer;
   /** @internal */
   _preOp: StencilOperation = null;
+  /** @internal */
+  _dynamicGeometryDataManager: DynamicGeometryDataManager;
 
-  constructor(engine: Engine, maxVertexCount: number = Batcher2D.MAX_VERTEX_COUNT) {
-    super(engine, maxVertexCount);
+  constructor(engine: Engine, maxVertexCount: number) {
+    this._engine = engine;
+    this._dynamicGeometryDataManager = new DynamicGeometryDataManager(engine, maxVertexCount);
   }
 
   drawElement(element: RenderElement, camera: Camera, op: StencilOperation): void {
-    const { _preRenderElement: preRenderElement } = this;
+    const { _preRenderElement: preRenderElement, _preRenderer: preRenderer } = this;
     if (preRenderElement) {
-      if (this.canBatch(preRenderElement, element, this._preOp, op)) {
-        this._updateRenderElement(preRenderElement, element, true, op);
+      // @ts-ignore
+      if (this._preOp === op && preRenderElement.data.component._canBatch(preRenderElement, element)) {
+        // @ts-ignore
+        preRenderer._batchRenderElement(preRenderElement, element);
       } else {
         this._batchedQueue.push(preRenderElement);
         this._stencilOps.push(this._preOp);
-        this._updateRenderElement(preRenderElement, element, false, op);
+        this._preRenderElement = element;
+        this._preRenderer = element.data.component;
+        // @ts-ignore
+        this._preRenderer._batchRenderElement(element);
       }
     } else {
-      this._updateRenderElement(preRenderElement, element, false, op);
+      this._preRenderElement = element;
+      this._preRenderer = element.data.component;
+      this._preOp = op;
+      // @ts-ignore
+      this._preRenderer._batchRenderElement(element);
     }
   }
 
@@ -44,51 +61,23 @@ export class SpriteMaskBatcher extends Batcher2D {
       stencilOps.push(this._preOp);
     }
 
-    this._uploadBuffer();
+    this._dynamicGeometryDataManager.uploadBuffer();
     this.drawBatches(camera);
   }
 
-  override clear(): void {
-    super.clear();
+  clear(): void {
+    this._dynamicGeometryDataManager.clear();
     this._batchedQueue.length = 0;
     this._stencilOps.length = 0;
     this._preRenderElement = null;
     this._preOp = null;
   }
 
-  override destroy(): void {
+  destroy(): void {
     this._batchedQueue = null;
     this._stencilOps = null;
-    super.destroy();
-  }
-
-  canBatch(
-    preElement: RenderElement,
-    curElement: RenderElement,
-    preStencilOp: StencilOperation,
-    curStencilOp: StencilOperation
-  ): boolean {
-    const preSpriteData = <SpriteRenderData>preElement.data;
-    const curSpriteData = <SpriteRenderData>curElement.data;
-
-    if (preSpriteData.chunk._meshBuffer !== curSpriteData.chunk._meshBuffer) {
-      return false;
-    }
-
-    if (preStencilOp !== curStencilOp) {
-      return false;
-    }
-
-    // Compare renderer property
-    const preShaderData = (<SpriteMask>preSpriteData.component).shaderData;
-    const curShaderData = (<SpriteMask>curSpriteData.component).shaderData;
-    const textureProperty = SpriteMask._textureProperty;
-    const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
-
-    return (
-      preShaderData.getTexture(textureProperty) === curShaderData.getTexture(textureProperty) &&
-      preShaderData.getTexture(alphaCutoffProperty) === curShaderData.getTexture(alphaCutoffProperty)
-    );
+    this._dynamicGeometryDataManager.destroy();
+    this._dynamicGeometryDataManager = null;
   }
 
   drawBatches(camera: Camera): void {
@@ -100,8 +89,8 @@ export class SpriteMaskBatcher extends Batcher2D {
       // const subMesh = subMeshes[i];
       const spriteMaskElement = batchedQueue[i];
       const stencilOp = stencilOps[i];
-      const renderData = <SpriteRenderData>spriteMaskElement.data;
-      const mesh = renderData.chunk._meshBuffer._mesh;
+      const renderData = <RenderData2D>spriteMaskElement.data;
+      const primitive = renderData.chunk._data._primitive;
 
       if (!spriteMaskElement) {
         return;
@@ -138,41 +127,7 @@ export class SpriteMaskBatcher extends Batcher2D {
 
       material.renderState._apply(engine, false, pass._renderStateDataMap, material.shaderData);
 
-      engine._hardwareRenderer.drawPrimitive(mesh._primitive, renderData.chunk._subMesh, program);
-    }
-  }
-
-  private _updateRenderElement(
-    preRenderElement: RenderElement,
-    curRenderElement: RenderElement,
-    canBatch: boolean,
-    op: StencilOperation
-  ): void {
-    const curRenderData = <SpriteRenderData>curRenderElement.data;
-    const { chunk } = curRenderData;
-    const { _meshBuffer: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
-    const { _indices: indices } = meshBuffer;
-    const vertexStartIndex = vEntry.start / 9;
-    const len = tempIndices.length;
-    let startIndex = meshBuffer._iLen;
-    if (canBatch) {
-      const preRenderData = <SpriteRenderData>preRenderElement.data;
-      const { _subMesh } = preRenderData.chunk;
-      _subMesh.count += len;
-    } else {
-      const { _subMesh } = chunk;
-      _subMesh.start = startIndex;
-      _subMesh.count = len;
-      meshBuffer._mesh.addSubMesh(_subMesh);
-    }
-    for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + tempIndices[i];
-    }
-    meshBuffer._iLen += len;
-    meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
-    if (!canBatch) {
-      this._preRenderElement = curRenderElement;
-      this._preOp = op;
+      engine._hardwareRenderer.drawPrimitive(primitive, renderData.chunk._subMesh, program);
     }
   }
 }

@@ -16,7 +16,10 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { MBChunk } from "../../RenderPipeline/batcher/MeshBuffer";
+import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { RenderData2D } from "../../RenderPipeline/RenderData2D";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -27,7 +30,7 @@ export class SpriteRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _chunk: MBChunk;
+  _chunk: Chunk;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
@@ -294,7 +297,7 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial() === this.engine._spriteDefaultMaterial || onlyMVP) {
+    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
       // @ts-ignore
       this._updateMVPShaderData(context, Matrix._identity);
     } else {
@@ -351,12 +354,73 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Push primitive
-    const { engine } = context.camera;
-    const renderData = engine._spriteRenderDataPool.getFromPool();
-    const { _chunk: chunk } = this;
-    renderData.set(this, material, chunk._meshBuffer._mesh._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    const camera = context.camera;
+    const engine = camera.engine;
+    const spriteMaskManager = engine._spriteMaskManager;
+    const renderData = engine._renderData2DPool.getFromPool();
+    const chunk = this._chunk;
+    renderData.set(this, material, chunk._data._primitive, chunk._subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;
+    renderData.uploadFlag = ForceUploadShaderDataFlag.None;
+    renderData.preRender = () => {
+      spriteMaskManager.preRender(camera, this);
+    };
+    renderData.postRender = () => {
+      spriteMaskManager.postRender(this);
+    };
     engine._batcherManager.commitRenderData(context, renderData);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
+    const renderDataA = <RenderData2D>elementA.data;
+    const renderDataB = <RenderData2D>elementB.data;
+    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
+      return false;
+    }
+
+    const rendererA = <SpriteRenderer>renderDataA.component;
+    const rendererB = <SpriteRenderer>renderDataB.component;
+
+    // Compare mask
+    const maskInteractionA = rendererA.maskInteraction;
+    if (
+      maskInteractionA !== rendererB.maskInteraction ||
+      (maskInteractionA !== SpriteMaskInteraction.None && rendererA.maskLayer !== rendererB.maskLayer)
+    ) {
+      return false;
+    }
+
+    // Compare texture and material
+    return renderDataA.texture === renderDataB.texture && renderDataA.material === renderDataB.material;
+  }
+
+  /**
+   * @internal
+   */
+  protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
+    const renderDataA = <RenderData2D>elementA.data;
+    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
+    const { _data: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const indices = meshBuffer._indices;
+    const vertexStartIndex = vEntry.start / 9;
+    const len = tempIndices.length;
+    let startIndex = meshBuffer._iLen;
+    if (elementB) {
+      const subMesh = renderDataA.chunk._subMesh;
+      subMesh.count += len;
+    } else {
+      const subMesh = chunk._subMesh;
+      subMesh.start = startIndex;
+      subMesh.count = len;
+    }
+    for (let i = 0; i < len; ++i) {
+      indices[startIndex++] = vertexStartIndex + tempIndices[i];
+    }
+    meshBuffer._iLen += len;
+    meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
   }
 
   /**
@@ -376,7 +440,7 @@ export class SpriteRenderer extends Renderer {
     this._sprite = null;
     this._assembler = null;
     if (this._chunk) {
-      this.engine._batcherManager._batcher2D.freeChunk(this._chunk);
+      this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(this._chunk);
       this._chunk = null;
     }
   }

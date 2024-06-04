@@ -13,26 +13,25 @@ export class SimpleSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const batcher =
+    const manager =
       renderer instanceof SpriteRenderer
-        ? renderer.engine._batcherManager._batcher2D
-        : renderer.engine._spriteMaskManager._batcher;
-    if (renderer._chunk) {
-      batcher.freeChunk(renderer._chunk);
-      renderer._chunk = batcher.allocateChunk(4);
-    } else {
-      renderer._chunk = batcher.allocateChunk(4);
-    }
-    renderer._chunk._indices = this._rectangleTriangles;
+        ? renderer.engine._batcherManager._dynamicGeometryDataManager2D
+        : renderer.engine._spriteMaskManager._batcher._dynamicGeometryDataManager;
+
+    const lastChunk = renderer._chunk;
+    lastChunk && manager.freeChunk(lastChunk);
+    const chunk = manager.allocateChunk(4);
+    chunk._indices = this._rectangleTriangles;
+    renderer._chunk = chunk;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
     const { width, height, sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
-    // Renderer's worldMatrix;
+    // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = this;
     const { elements: wE } = worldMatrix;
-    // Parent's worldMatrix.
+    // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
     const sx = renderer.flipX ? -width : width;
     const sy = renderer.flipY ? -height : height;
@@ -48,10 +47,10 @@ export class SimpleSpriteAssembler {
     //  |   |
     //  0 - 1
     // ---------------
-    // Update positions.
+    // Update positions
     const spritePositions = sprite._getPositions();
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start;
     for (let i = 0; i < 4; ++i) {
       const { x, y } = spritePositions[i];
@@ -69,25 +68,22 @@ export class SimpleSpriteAssembler {
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 3;
     vertices[index] = left;
     vertices[index + 1] = bottom;
-    index += 9;
-    vertices[index] = right;
-    vertices[index + 1] = bottom;
-    index += 9;
-    vertices[index] = left;
-    vertices[index + 1] = top;
-    index += 9;
-    vertices[index] = right;
-    vertices[index + 1] = top;
+    vertices[index + 9] = right;
+    vertices[index + 10] = bottom;
+    vertices[index + 18] = left;
+    vertices[index + 19] = top;
+    vertices[index + 27] = right;
+    vertices[index + 28] = top;
   }
 
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0; i < 4; ++i) {
       vertices[index] = r;

@@ -3,6 +3,7 @@ import { Primitive } from "../graphic/Primitive";
 import { Material } from "../material";
 import { Renderer } from "../Renderer";
 import { IPoolElement } from "../utils/Pool";
+import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 export class RenderData implements IPoolElement {
@@ -11,15 +12,16 @@ export class RenderData implements IPoolElement {
   primitive: Primitive;
   subPrimitive: SubMesh;
   usage: RenderDataUsage = RenderDataUsage.Mesh;
+  uploadFlag: ForceUploadShaderDataFlag = ForceUploadShaderDataFlag.None;
+  // cb: Function;
 
-  /** @internal */
-  _priority: number;
-  /** @internal */
-  _materialPriority: number;
-  /** @internal */
-  _componentInstanceId: number;
-  /** @internal */
-  _distanceForSort: number;
+  preRender: Function;
+  postRender: Function;
+
+  priority: number;
+  materialPriority: number;
+  componentInstanceId: number;
+  distanceForSort: number;
 
   set(component: Renderer, material: Material, primitive: Primitive, subPrimitive: SubMesh): void {
     this.component = component;
@@ -28,10 +30,10 @@ export class RenderData implements IPoolElement {
     this.primitive = primitive;
     this.subPrimitive = subPrimitive;
 
-    this._priority = component.priority;
-    this._materialPriority = material._priority;
-    this._componentInstanceId = component.instanceId;
-    this._distanceForSort = component._distanceForSort;
+    this.priority = component.priority;
+    this.materialPriority = material._priority;
+    this.componentInstanceId = component.instanceId;
+    this.distanceForSort = component._distanceForSort;
   }
 
   dispose(): void {

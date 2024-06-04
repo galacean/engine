@@ -3,13 +3,13 @@ import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/Pool";
-import { MBChunk } from "./batcher/MeshBuffer";
+import { Chunk } from "./DynamicGeometryData";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 import { RenderData } from "./RenderData";
 
-export class SpriteRenderData extends RenderData implements IPoolElement {
+export class RenderData2D extends RenderData implements IPoolElement {
   texture: Texture2D;
-  chunk: MBChunk;
+  chunk: Chunk;
 
   constructor() {
     super();
@@ -22,7 +22,7 @@ export class SpriteRenderData extends RenderData implements IPoolElement {
     primitive: Primitive,
     subPrimitive: SubMesh,
     texture?: Texture2D,
-    chunk?: MBChunk
+    chunk?: Chunk
   ): void {
     super.set(component, material, primitive, subPrimitive);
     this.texture = texture;

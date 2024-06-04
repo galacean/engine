@@ -177,7 +177,7 @@ describe("SpriteMask", async () => {
     spriteMask._render(context);
     // @ts-ignore
     const { _chunk: chunk } = spriteMask;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
     let index = chunk._vEntry.start;

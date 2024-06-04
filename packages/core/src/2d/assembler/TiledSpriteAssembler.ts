@@ -6,7 +6,7 @@ import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { Logger } from "../../base";
-import { Batcher2D } from "../../RenderPipeline/batcher/Batcher2D";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * @internal
@@ -19,19 +19,21 @@ export class TiledSpriteAssembler {
   static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
   static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer, vCount: number, iCount: number): void {
-    if (vCount && iCount) {
-      const batcher = renderer.engine._batcherManager._batcher2D;
+  static resetData(renderer: SpriteRenderer, vCount: number): void {
+    if (vCount) {
+      const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
       const { _chunk: chunk } = renderer;
       if (chunk) {
         if (chunk._vEntry.len !== vCount * 9) {
-          batcher.freeChunk(chunk);
-          renderer._chunk = batcher.allocateChunk(vCount);
-          renderer._chunk._indices = [];
+          manager.freeChunk(chunk);
+          const newChunk = manager.allocateChunk(vCount);
+          newChunk._indices = [];
+          renderer._chunk = newChunk;
         }
       } else {
-        renderer._chunk = batcher.allocateChunk(vCount);
-        renderer._chunk._indices = [];
+        const newChunk = manager.allocateChunk(vCount);
+        newChunk._indices = [];
+        renderer._chunk = newChunk;
       }
     }
   }
@@ -41,9 +43,11 @@ export class TiledSpriteAssembler {
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
-    tileMode === SpriteTileMode.Adaptive
-      ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
-      : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+    const vertexCount =
+      tileMode === SpriteTileMode.Adaptive
+        ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
+        : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+    this.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
@@ -67,26 +71,8 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
 
-    // Calculate total vertex count and indices count, to be optimized.
-    let vertexCount = 0;
-    let indicesCount = 0;
-    for (let j = 0; j < columnLength; j++) {
-      const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++) {
-        const uvL = uvRow.get(2 * i);
-        const uvR = uvRow.get(2 * i + 1);
-        const uvT = uvColumn.get(doubleJ + 1);
-        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
-          continue;
-        }
-        vertexCount += 4;
-        indicesCount += 6;
-      }
-    }
-    this.resetData(renderer, vertexCount, indicesCount);
-
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const indices = chunk._indices;
     let index = chunk._vEntry.start;
     let count = 0;
@@ -97,7 +83,7 @@ export class TiledSpriteAssembler {
         const uvL = uvRow.get(2 * i);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
-        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
+        if (isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
           continue;
         }
 
@@ -117,25 +103,19 @@ export class TiledSpriteAssembler {
         vertices[index] = wE0 * l + wE4 * b + wE12;
         vertices[index + 1] = wE1 * l + wE5 * b + wE13;
         vertices[index + 2] = wE2 * l + wE6 * b + wE14;
-        index += 9;
-
         // right and bottom
-        vertices[index] = wE0 * r + wE4 * b + wE12;
-        vertices[index + 1] = wE1 * r + wE5 * b + wE13;
-        vertices[index + 2] = wE2 * r + wE6 * b + wE14;
-        index += 9;
-
+        vertices[index + 9] = wE0 * r + wE4 * b + wE12;
+        vertices[index + 10] = wE1 * r + wE5 * b + wE13;
+        vertices[index + 11] = wE2 * r + wE6 * b + wE14;
         // left and top
-        vertices[index] = wE0 * l + wE4 * t + wE12;
-        vertices[index + 1] = wE1 * l + wE5 * t + wE13;
-        vertices[index + 2] = wE2 * l + wE6 * t + wE14;
-        index += 9;
-
+        vertices[index + 18] = wE0 * l + wE4 * t + wE12;
+        vertices[index + 19] = wE1 * l + wE5 * t + wE13;
+        vertices[index + 20] = wE2 * l + wE6 * t + wE14;
         // right and top
-        vertices[index] = wE0 * r + wE4 * t + wE12;
-        vertices[index + 1] = wE1 * r + wE5 * t + wE13;
-        vertices[index + 2] = wE2 * r + wE6 * t + wE14;
-        index += 9;
+        vertices[index + 27] = wE0 * r + wE4 * t + wE12;
+        vertices[index + 28] = wE1 * r + wE5 * t + wE13;
+        vertices[index + 29] = wE2 * r + wE6 * t + wE14;
+        index += 36;
       }
     }
 
@@ -150,7 +130,7 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 3;
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
@@ -159,29 +139,23 @@ export class TiledSpriteAssembler {
         const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
-        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
+        if (isNaN(uvL) || isNaN(uvB) || isNaN(uvR) || isNaN(uvT)) {
           continue;
         }
 
         // left and bottom
         vertices[index] = uvL;
         vertices[index + 1] = uvB;
-        index += 9;
-
         // right and bottom
-        vertices[index] = uvR;
-        vertices[index + 1] = uvB;
-        index += 9;
-
+        vertices[index + 9] = uvR;
+        vertices[index + 10] = uvB;
         // left and top
-        vertices[index] = uvL;
-        vertices[index + 1] = uvT;
-        index += 9;
-
+        vertices[index + 18] = uvL;
+        vertices[index + 19] = uvT;
         // right and top
-        vertices[index] = uvR;
-        vertices[index + 1] = uvT;
-        index += 9;
+        vertices[index + 27] = uvR;
+        vertices[index + 28] = uvT;
+        index += 36;
       }
     }
   }
@@ -189,7 +163,7 @@ export class TiledSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0, l = chunk._vEntry.len / 9; i < l; ++i) {
       vertices[index] = r;
@@ -209,7 +183,7 @@ export class TiledSpriteAssembler {
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
     uvColumn: DisorderedArray<number>
-  ) {
+  ): number {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
@@ -258,13 +232,18 @@ export class TiledSpriteAssembler {
       }
     }
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Batcher2D.MAX_VERTEX_COUNT) {
+    let rowCount = 0;
+    let columnCount = 0;
+
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
-      Logger.warn(`The number of vertices exceeds the upper limit(${Batcher2D.MAX_VERTEX_COUNT}).`);
-      return;
+      rowCount += 2;
+      columnCount += 2;
+      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
+      return rowCount * columnCount;
     }
 
     switch (rType) {
@@ -273,23 +252,28 @@ export class TiledSpriteAssembler {
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
         posRow.add(width - expectWidth * (1 - right) * scale);
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        rowCount += 4;
         break;
       case TiledType.WithoutTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL), posRow.add(width - fixedR);
         posRow.add(width - expectWidth * (1 - right));
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(NaN), uvRow.add(NaN);
         uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        rowCount += 4;
         break;
       case TiledType.WithTiled:
         scale = width / (fixedLR + rRepeatCount * fixedCW);
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
+        rowCount += 3;
         for (let i = 0, l = rRepeatCount - 1; i < l; i++) {
           posRow.add(fixedL + (i + 1) * fixedCW * scale);
           uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
+          rowCount += 2;
         }
         posRow.add(width - fixedR * scale), posRow.add(width - expectWidth * (1 - right) * scale);
         uvRow.add(spriteUV2.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        rowCount += 3;
         break;
       default:
         break;
@@ -301,27 +285,34 @@ export class TiledSpriteAssembler {
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
         posColumn.add(height - expectHeight * (1 - top) * scale);
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        columnCount += 4;
         break;
       case TiledType.WithoutTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB), posColumn.add(height - fixedT);
         posColumn.add(height - expectHeight * (1 - top));
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(NaN), uvColumn.add(NaN);
         uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        columnCount += 4;
         break;
       case TiledType.WithTiled:
         scale = height / (fixedTB + cRepeatCount * fixedCH);
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
+        columnCount += 3;
         for (let i = 0, l = cRepeatCount - 1; i < l; i++) {
           posColumn.add(fixedB + (i + 1) * fixedCH * scale);
           uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
+          columnCount += 2;
         }
         posColumn.add(height - fixedT * scale), posColumn.add(height - expectHeight * (1 - top) * scale);
         uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        columnCount += 3;
         break;
       default:
         break;
     }
+
+    return rowCount * columnCount;
   }
 
   private static _calculateContinuousDividing(
@@ -332,7 +323,7 @@ export class TiledSpriteAssembler {
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
     uvColumn: DisorderedArray<number>
-  ) {
+  ): number {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
@@ -378,13 +369,18 @@ export class TiledSpriteAssembler {
       }
     }
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Batcher2D.MAX_VERTEX_COUNT) {
+    let rowCount = 0;
+    let columnCount = 0;
+
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
-      Logger.warn(`The number of vertices exceeds the upper limit(${Batcher2D.MAX_VERTEX_COUNT}).`);
-      return;
+      rowCount += 2;
+      columnCount += 2;
+      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
+      return rowCount * columnCount;
     }
 
     switch (rType) {
@@ -393,24 +389,29 @@ export class TiledSpriteAssembler {
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
         posRow.add(width - expectWidth * (1 - right) * scale);
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        rowCount += 4;
         break;
       case TiledType.WithoutTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL), posRow.add(width - fixedR);
         posRow.add(width - expectWidth * (1 - right));
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(NaN), uvRow.add(NaN);
         uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        rowCount += 4;
         break;
       case TiledType.WithTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL);
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
+        rowCount += 3;
         const countInteger = rRepeatCount | 0;
         for (let i = 0; i < countInteger; i++) {
           posRow.add(fixedL + (i + 1) * fixedCW);
           uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
+          rowCount += 2;
         }
         posRow.add(width - fixedR), posRow.add(width - expectWidth * (1 - right));
         uvRow.add((spriteUV2.x - spriteUV1.x) * (rRepeatCount - countInteger) + spriteUV1.x);
         uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
+        rowCount += 3;
         break;
       default:
         break;
@@ -422,28 +423,34 @@ export class TiledSpriteAssembler {
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
         posColumn.add(height - expectHeight * (1 - top) * scale);
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        columnCount += 4;
         break;
       case TiledType.WithoutTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB), posColumn.add(height - fixedT);
         posColumn.add(height - expectHeight * (1 - top));
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(NaN), uvColumn.add(NaN);
         uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        columnCount += 4;
         break;
       case TiledType.WithTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB);
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
+        columnCount += 3;
         const countInteger = cRepeatCount | 0;
         for (let i = 0; i < countInteger; i++) {
           posColumn.add(fixedB + (i + 1) * fixedCH);
           uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
+          columnCount += 2;
         }
         posColumn.add(height - fixedT), posColumn.add(height - expectHeight * (1 - top));
         uvColumn.add((spriteUV2.y - spriteUV1.y) * (cRepeatCount - countInteger) + spriteUV1.y);
         uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
+        columnCount += 3;
         break;
       default:
         break;
     }
+    return rowCount * columnCount;
   }
 }
 

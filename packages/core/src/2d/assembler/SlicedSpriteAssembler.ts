@@ -1,4 +1,4 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
@@ -15,14 +15,12 @@ export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer): void {
-    const batcher = renderer.engine._batcherManager._batcher2D;
-    if (renderer._chunk) {
-      batcher.freeChunk(renderer._chunk);
-      renderer._chunk = batcher.allocateChunk(16);
-    } else {
-      renderer._chunk = batcher.allocateChunk(16);
-    }
-    renderer._chunk._indices = this._rectangleTriangles;
+    const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
+    const lastChunk = renderer._chunk;
+    lastChunk && manager.freeChunk(lastChunk);
+    const chunk = manager.allocateChunk(16);
+    chunk._indices = this._rectangleTriangles;
+    renderer._chunk = chunk;
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
@@ -103,7 +101,7 @@ export class SlicedSpriteAssembler {
     // ------------------------
     // Assemble position and uv.
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start;
     for (let i = 0; i < 4; i++) {
       const rowValue = row[i];
@@ -124,7 +122,7 @@ export class SlicedSpriteAssembler {
 
   static updateUVs(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     const spriteUVs = renderer.sprite._getUVs();
     let index = chunk._vEntry.start + 3;
     for (let i = 0; i < 4; i++) {
@@ -140,7 +138,7 @@ export class SlicedSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._meshBuffer._vertices;
+    const vertices = chunk._data._vertices;
     let index = chunk._vEntry.start + 5;
     for (let i = 0; i < 16; ++i) {
       vertices[index] = r;
