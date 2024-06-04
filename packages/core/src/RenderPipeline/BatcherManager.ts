@@ -1,10 +1,10 @@
-import { Engine } from "../../Engine";
-import { Renderer } from "../../Renderer";
-import { RenderContext } from "../RenderContext";
-import { RenderData } from "../RenderData";
-import { RenderElement } from "../RenderElement";
-import { RenderDataUsage } from "../enums/RenderDataUsage";
-import { DynamicGeometryDataManager } from "../DynamicGeometryDataManager";
+import { Engine } from "../Engine";
+import { Renderer } from "../Renderer";
+import { RenderContext } from "./RenderContext";
+import { RenderData } from "./RenderData";
+import { RenderElement } from "./RenderElement";
+import { RenderDataUsage } from "./enums/RenderDataUsage";
+import { DynamicGeometryDataManager } from "./DynamicGeometryDataManager";
 
 export class BatcherManager {
   /** @internal */

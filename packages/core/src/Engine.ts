@@ -45,7 +45,7 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { BatcherManager } from "./RenderPipeline/batcher/BatcherManager";
+import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { XRManager } from "./xr/XRManager";
 

@@ -5,7 +5,7 @@ import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { StencilOperation } from "../shader";
-import { SpriteMaskBatcher } from "./batcher/SpriteMaskBatcher";
+import { SpriteMaskBatcher } from "./SpriteMaskBatcher";
 
 /**
  * @internal

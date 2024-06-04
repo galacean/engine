@@ -1,13 +1,13 @@
-import { SpriteMask } from "../../2d/sprite/SpriteMask";
-import { Camera } from "../../Camera";
-import { Engine } from "../../Engine";
-import { Renderer } from "../../Renderer";
-import { StencilOperation } from "../../shader/enums/StencilOperation";
-import { Shader } from "../../shader/Shader";
-import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
-import { RenderElement } from "../RenderElement";
-import { RenderData2D } from "../RenderData2D";
-import { DynamicGeometryDataManager } from "../DynamicGeometryDataManager";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
+import { Camera } from "../Camera";
+import { Engine } from "../Engine";
+import { Renderer } from "../Renderer";
+import { StencilOperation } from "../shader/enums/StencilOperation";
+import { Shader } from "../shader/Shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { RenderElement } from "./RenderElement";
+import { RenderData2D } from "./RenderData2D";
+import { DynamicGeometryDataManager } from "./DynamicGeometryDataManager";
 
 export class SpriteMaskBatcher {
   /** @internal */
