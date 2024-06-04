@@ -1,4 +1,5 @@
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import { BaseMaterial } from "../material/BaseMaterial";
 import blitFs from "../shaderlib/extra/Blit.fs.glsl";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
@@ -26,6 +27,8 @@ import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
+import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { RenderState } from "./state";
 
 /**
  * Internal shader pool.
@@ -36,6 +39,10 @@ export class ShaderPool {
     const shadowCasterPass = new ShaderPass("ShadowCaster", shadowMapVs, shadowMapFs, {
       pipelineStage: PipelineStage.ShadowCaster
     });
+    shadowCasterPass._renderState = new RenderState();
+    shadowCasterPass._renderStateDataMap[RenderStateElementKey.RenderQueueType] =
+      BaseMaterial._shadowCasterRenderQueueProp;
+
     const depthOnlyPass = new ShaderPass("DepthOnly", depthOnlyVs, depthOnlyFs, {
       pipelineStage: PipelineStage.DepthOnly
     });

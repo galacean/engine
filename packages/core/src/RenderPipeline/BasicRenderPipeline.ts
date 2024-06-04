@@ -237,7 +237,17 @@ export class BasicRenderPipeline {
 
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      const renderQueueType = (shaderPasses[i]._renderState ?? renderStates[i]).renderQueueType;
+      // Get render queue type
+      let renderQueueType: RenderQueueType;
+      const shaderPass = shaderPasses[i];
+      const renderState = shaderPass._renderState;
+      if (renderState) {
+        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, element.material.shaderData);
+        renderQueueType = renderState.renderQueueType;
+      } else {
+        renderQueueType = renderStates[i].renderQueueType;
+      }
+
       if (renderQueueAddedFlags & (<RenderQueueAddedFlag>(1 << renderQueueType))) {
         continue;
       }
@@ -280,7 +290,12 @@ export class BasicRenderPipeline {
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || material.renderState)._apply(engine, false, pass._renderStateDataMap, material.shaderData);
+    (pass._renderState || material.renderState)._applyStates(
+      engine,
+      false,
+      pass._renderStateDataMap,
+      material.shaderData
+    );
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 
