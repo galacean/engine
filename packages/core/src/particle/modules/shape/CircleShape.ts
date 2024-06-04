@@ -17,7 +17,9 @@ export class CircleShape extends BaseShape {
 
   readonly shapeType = ParticleShapeType.Circle;
 
-  /** Radius of the shape to emit particles from. */
+  /**
+   * Radius of the shape to emit particles from.
+   */
   get radius(): number {
     return this._radius;
   }
@@ -27,7 +29,9 @@ export class CircleShape extends BaseShape {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** Angle of the circle arc to emit particles from. */
+  /**
+   * Angle of the circle arc to emit particles from.
+   */
   get arc(): number {
     return this._arc;
   }
@@ -37,18 +41,24 @@ export class CircleShape extends BaseShape {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The mode to generate particles around the arc. */
+  /**
+   * The mode to generate particles around the arc.
+   */
   get arcMode(): ParticleShapeArcMode {
     return this._arcMode;
   }
 
-  /** Sets the mode to generate particles around the arc. */
+  /**
+   * Sets the mode to generate particles around the arc.
+   */
   set arcMode(value: ParticleShapeArcMode) {
     this._arcMode = value;
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The speed of complete 360 degree rotation. */
+  /**
+   * The speed of complete 360 degree rotation.
+   */
   get arcSpeed(): number {
     return this._arcSpeed;
   }

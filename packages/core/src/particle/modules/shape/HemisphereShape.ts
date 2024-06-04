@@ -11,7 +11,9 @@ export class HemisphereShape extends BaseShape {
 
   readonly shapeType = ParticleShapeType.Hemisphere;
 
-  /** Radius of the shape to emit particles from. */
+  /**
+   * Radius of the shape to emit particles from.
+   */
   get radius(): number {
     return this._radius;
   }

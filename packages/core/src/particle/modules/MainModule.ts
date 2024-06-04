@@ -70,6 +70,8 @@ export class MainModule implements ICustomClone {
   _startSizeZ = new ParticleCompositeCurve(1);
   @deepClone
   _gravityModifier = new ParticleCompositeCurve(0);
+  @deepClone
+  _simulationSpace = ParticleSimulationSpace.Local;
   /** @internal */
   @ignoreClone
   _maxParticleBuffer = 1000;
@@ -97,17 +99,21 @@ export class MainModule implements ICustomClone {
   @ignoreClone
   private _gravity = new Vector3();
 
-  /** The initial lifetime of particles when emitted. */
+  /**
+   * The initial lifetime of particles when emitted.
+   */
+  get startLifetime(): ParticleCompositeCurve {
+    return this._startLifetime;
+  }
+
   set startLifetime(value: ParticleCompositeCurve) {
     this._startLifetime = value;
     this._startLifetime._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  get startLifetime(): ParticleCompositeCurve {
-    return this._startLifetime;
-  }
-
-  /** The initial speed of particles when the Particle Generator first spawns them. */
+  /**
+   * The initial speed of particles when the Particle Generator first spawns them.
+   */
   get startSpeed(): ParticleCompositeCurve {
     return this._startSpeed;
   }
@@ -117,7 +123,9 @@ export class MainModule implements ICustomClone {
     this._startSpeed._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** A flag to enable specifying particle size individually for each axis. */
+  /**
+   * A flag to enable specifying particle size individually for each axis.
+   */
   get startSize3D(): boolean {
     return this._startSize3D;
   }
@@ -127,7 +135,9 @@ export class MainModule implements ICustomClone {
     this._generator._renderer._onGeneratorParamsChanged();
   }
 
-  /** The initial size of particles along the x-axis when the Particle Generator first spawns them. */
+  /**
+   * The initial size of particles along the x-axis when the Particle Generator first spawns them.
+   */
   get startSizeX(): ParticleCompositeCurve {
     return this._startSizeX;
   }
@@ -137,7 +147,9 @@ export class MainModule implements ICustomClone {
     this._startSizeX._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** The initial size of particles along the y-axis when the Particle Generator first spawns them. */
+  /**
+   * The initial size of particles along the y-axis when the Particle Generator first spawns them.
+   */
   get startSizeY(): ParticleCompositeCurve {
     return this._startSizeY;
   }
@@ -147,7 +159,9 @@ export class MainModule implements ICustomClone {
     this._startSizeY._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** The initial size of particles along the z-axis when the Particle Generator first spawns them. */
+  /**
+   * The initial size of particles along the z-axis when the Particle Generator first spawns them.
+   */
   get startSizeZ(): ParticleCompositeCurve {
     return this._startSizeZ;
   }
@@ -157,7 +171,9 @@ export class MainModule implements ICustomClone {
     this._startSizeZ._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
+  /**
+   * A scale that this Particle Generator applies to gravity, defined by Physics.gravity.
+   */
   get gravityModifier(): ParticleCompositeCurve {
     return this._gravityModifier;
   }
@@ -167,9 +183,9 @@ export class MainModule implements ICustomClone {
     this._gravityModifier._onValueChanged = this._generator._renderer._onWorldVolumeChanged;
   }
 
-  private _simulationSpace = ParticleSimulationSpace.Local;
-
-  /** This selects the space in which to simulate particles. It can be either world or local space. */
+  /**
+   * This selects the space in which to simulate particles. It can be either world or local space.
+   */
   get simulationSpace(): ParticleSimulationSpace {
     return this._simulationSpace;
   }

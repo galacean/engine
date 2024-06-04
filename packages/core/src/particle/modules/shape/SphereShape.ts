@@ -11,7 +11,9 @@ export class SphereShape extends BaseShape {
 
   readonly shapeType = ParticleShapeType.Sphere;
 
-  /** Radius of the shape to emit particles from. */
+  /**
+   * Radius of the shape to emit particles from.
+   */
   get radius(): number {
     return this._radius;
   }

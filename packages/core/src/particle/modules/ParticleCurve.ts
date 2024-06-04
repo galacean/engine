@@ -125,22 +125,26 @@ export class CurveKey {
   /** @internal */
   private _value: number;
 
-  /** The key time. */
-  public get time(): number {
+  /**
+   * The key time.
+   */
+  get time(): number {
     return this._time;
   }
 
-  public set time(value: number) {
+  set time(value: number) {
     this._time = value;
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The key value. */
-  public get value(): number {
+  /**
+   * The key value.
+   * */
+  get value(): number {
     return this._value;
   }
 
-  public set value(value: number) {
+  set value(value: number) {
     this._value = value;
     this._onValueChanged && this._onValueChanged();
   }

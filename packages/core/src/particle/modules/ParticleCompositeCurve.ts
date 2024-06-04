@@ -15,7 +15,9 @@ export class ParticleCompositeCurve {
   @deepClone
   _curveMax: ParticleCurve;
 
-  /** The curve mode. */
+  /**
+   * The curve mode.
+   */
   get mode(): ParticleCurveMode {
     return this._mode;
   }
@@ -24,7 +26,9 @@ export class ParticleCompositeCurve {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The min constant value used by the curve if mode is set to `TwoConstants`. */
+  /**
+   * The min constant value used by the curve if mode is set to `TwoConstants`.
+   */
   get constantMin(): number {
     return this._constantMin;
   }
@@ -34,7 +38,9 @@ export class ParticleCompositeCurve {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The max constant value used by the curve if mode is set to `TwoConstants`. */
+  /**
+   * The max constant value used by the curve if mode is set to `TwoConstants`.
+   */
   get constantMax(): number {
     return this._constantMax;
   }
@@ -44,7 +50,9 @@ export class ParticleCompositeCurve {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The min curve used by the curve if mode is set to `TwoCurves`. */
+  /**
+   * The min curve used by the curve if mode is set to `TwoCurves`.
+   */
   get curveMin(): ParticleCurve {
     return this._curveMin;
   }
@@ -55,7 +63,9 @@ export class ParticleCompositeCurve {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** The max curve used by the curve if mode is set to `TwoCurves`. */
+  /**
+   * The max curve used by the curve if mode is set to `TwoCurves`.
+   */
   get curveMax(): ParticleCurve {
     return this._curveMax;
   }

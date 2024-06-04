@@ -8,11 +8,13 @@ import { ParticleGenerator } from "../ParticleGenerator";
 export abstract class ParticleGeneratorModule {
   _enabled: boolean = false;
 
-  /** Specifies whether the module is enabled or not. */
-  public get enabled(): boolean {
+  /**
+   * Specifies whether the module is enabled or not.
+   */
+  get enabled(): boolean {
     return this._enabled;
   }
-  public set enabled(value: boolean) {
+  set enabled(value: boolean) {
     this._enabled = value;
   }
 

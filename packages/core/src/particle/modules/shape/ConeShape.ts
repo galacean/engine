@@ -19,7 +19,9 @@ export class ConeShape extends BaseShape {
 
   readonly shapeType = ParticleShapeType.Cone;
 
-  /** Angle of the cone to emit particles from. */
+  /**
+   * Angle of the cone to emit particles from.
+   */
   get angle(): number {
     return this._angle;
   }
@@ -29,7 +31,9 @@ export class ConeShape extends BaseShape {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** Radius of the shape to emit particles from. */
+  /**
+   * Radius of the shape to emit particles from.
+   */
   get radius(): number {
     return this._radius;
   }
@@ -39,23 +43,31 @@ export class ConeShape extends BaseShape {
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** Length of the cone to emit particles from. */
+  /**
+   * Length of the cone to emit particles from.
+   */
   get length(): number {
     return this._length;
   }
 
-  /** Sets the length of the cone to emit particles from. */
+  /**
+   * Sets the length of the cone to emit particles from.
+   */
   set length(value: number) {
     this._length = value;
     this._onValueChanged && this._onValueChanged();
   }
 
-  /** Cone emitter type. */
+  /**
+   * Cone emitter type.
+   */
   get emitType(): ConeEmitType {
     return this._emitType;
   }
 
-  /** Sets the cone emitter type. */
+  /**
+   * Sets the cone emitter type.
+   */
   set emitType(value: ConeEmitType) {
     this._emitType = value;
     this._onValueChanged && this._onValueChanged();

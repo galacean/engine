@@ -559,25 +559,25 @@ export class ParticleGenerator {
    * @internal
    */
   _updateBoundsSimulationWorld(bounds: BoundingBox): void {
-    const transformedBoundsArray = this._transformedBoundsArray;
-    const firstActiveTransformedBoundingBox = this._firstActiveTransformedBoundingBox;
-    const firstFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
-    const transformedBoundsArrayCapacity = this._transformedBoundsArrayCapacity;
+    const boundsArray = this._transformedBoundsArray;
+    const firstActiveElement = this._firstActiveTransformedBoundingBox;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
+    const capacity = this._transformedBoundsArrayCapacity;
 
-    const index = firstActiveTransformedBoundingBox * ParticleBufferUtils.boundsFloatStride;
-    bounds.min.copyFromArray(transformedBoundsArray, index);
-    bounds.max.copyFromArray(transformedBoundsArray, index + 3);
+    const index = firstActiveElement * ParticleBufferUtils.boundsFloatStride;
+    bounds.min.copyFromArray(boundsArray, index);
+    bounds.max.copyFromArray(boundsArray, index + 3);
 
-    if (firstActiveTransformedBoundingBox < firstFreeTransformedBoundingBox) {
-      for (let i = firstActiveTransformedBoundingBox; i < firstFreeTransformedBoundingBox; i++) {
+    if (firstActiveElement < firstFreeElement) {
+      for (let i = firstActiveElement + 1; i < firstFreeElement; i++) {
         this._mergeTransformedBounds(i, bounds);
       }
     } else {
-      for (let i = firstActiveTransformedBoundingBox; i < transformedBoundsArrayCapacity; i++) {
+      for (let i = firstActiveElement + 1; i < capacity; i++) {
         this._mergeTransformedBounds(i, bounds);
       }
-      if (firstFreeTransformedBoundingBox > 0) {
-        for (let i = 0; i < firstFreeTransformedBoundingBox; i++) {
+      if (firstFreeElement > 0) {
+        for (let i = 0; i < firstFreeElement; i++) {
           this._mergeTransformedBounds(i, bounds);
         }
       }
@@ -593,24 +593,21 @@ export class ParticleGenerator {
   _resizeBoundsArray(): void {
     const floatStride = ParticleBufferUtils.boundsFloatStride;
     const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
-    const firstFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
-    const firstActiveTransformedBoundingBox = this._firstActiveTransformedBoundingBox;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
+    const firstActiveElement = this._firstActiveTransformedBoundingBox;
 
     this._transformedBoundsArrayCapacity += increaseCount;
     const lastBoundsArray = this._transformedBoundsArray;
     const boundsArray = new Float32Array(this._transformedBoundsArrayCapacity * floatStride);
 
     if (lastBoundsArray) {
-      boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeTransformedBoundingBox * floatStride));
+      boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
 
-      const nextFreeTransformedBoundingBox = firstFreeTransformedBoundingBox + 1;
-      const freeEndOffset = (nextFreeTransformedBoundingBox + increaseCount) * floatStride;
-      boundsArray.set(
-        new Float32Array(lastBoundsArray.buffer, nextFreeTransformedBoundingBox * floatStride * 4),
-        freeEndOffset
-      );
+      const nextFreeElement = firstFreeElement + 1;
+      const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
+      boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFreeElement * floatStride * 4), freeEndOffset);
 
-      if (firstActiveTransformedBoundingBox > firstFreeTransformedBoundingBox) {
+      if (firstActiveElement > firstFreeElement) {
         this._firstActiveTransformedBoundingBox += increaseCount;
       }
     }
@@ -646,13 +643,13 @@ export class ParticleGenerator {
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       // Resize transformed bounds if needed
-      let nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
-      if (nextFreeTransformedBoundingBox >= this._transformedBoundsArrayCapacity) {
-        nextFreeTransformedBoundingBox = 0;
+      let nextFreeElement = this._firstFreeTransformedBoundingBox + 1;
+      if (nextFreeElement >= this._transformedBoundsArrayCapacity) {
+        nextFreeElement = 0;
       }
-      if (nextFreeTransformedBoundingBox === this._firstActiveTransformedBoundingBox) {
+      if (nextFreeElement === this._firstActiveTransformedBoundingBox) {
         this._resizeBoundsArray();
-        nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
+        nextFreeElement = this._firstFreeTransformedBoundingBox + 1;
       }
 
       // Generate transformed bounds
@@ -660,14 +657,14 @@ export class ParticleGenerator {
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
-      const transformedBoundsArray = this._transformedBoundsArray;
-      transformedBounds.min.copyToArray(transformedBoundsArray, boundsOffset);
-      transformedBounds.max.copyToArray(transformedBoundsArray, boundsOffset + 3);
+      const boundsArray = this._transformedBoundsArray;
+      transformedBounds.min.copyToArray(boundsArray, boundsOffset);
+      transformedBounds.max.copyToArray(boundsArray, boundsOffset + 3);
 
-      transformedBoundsArray[boundsOffset + boundsTimeOffset] = this._playTime;
-      transformedBoundsArray[boundsOffset + boundsMaxLifetimeOffset] = maxLifetime;
+      boundsArray[boundsOffset + boundsTimeOffset] = this._playTime;
+      boundsArray[boundsOffset + boundsMaxLifetimeOffset] = maxLifetime;
 
-      this._firstFreeTransformedBoundingBox = nextFreeTransformedBoundingBox;
+      this._firstFreeTransformedBoundingBox = nextFreeElement;
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     } else {
       const previousBoundsOffset =
@@ -946,17 +943,18 @@ export class ParticleGenerator {
 
   private _retireTransformedBounds(): void {
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
-    const transformedBoundsArray = this._transformedBoundsArray;
-    const firstFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
+    const boundsArray = this._transformedBoundsArray;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
+    const capacity = this._transformedBoundsArrayCapacity;
 
-    while (this._firstActiveTransformedBoundingBox !== firstFreeTransformedBoundingBox) {
+    while (this._firstActiveTransformedBoundingBox !== firstFreeElement) {
       const index = this._firstActiveTransformedBoundingBox * boundsFloatStride;
-      const age = this._playTime - transformedBoundsArray[index + boundsTimeOffset];
-      if (age <= transformedBoundsArray[index + boundsMaxLifetimeOffset]) {
+      const age = this._playTime - boundsArray[index + boundsTimeOffset];
+      if (age <= boundsArray[index + boundsMaxLifetimeOffset]) {
         break;
       }
 
-      if (++this._firstActiveTransformedBoundingBox >= this._transformedBoundsArrayCapacity) {
+      if (++this._firstActiveTransformedBoundingBox >= capacity) {
         this._firstActiveTransformedBoundingBox = 0;
       }
       this._renderer._onWorldVolumeChanged();
@@ -1023,20 +1021,20 @@ export class ParticleGenerator {
 
   private _mergeTransformedBounds(index: number, bounds: BoundingBox): void {
     const { min, max } = bounds;
-    const transformedBoundsArray = this._transformedBoundsArray;
+    const boundsArray = this._transformedBoundsArray;
 
-    const baseIndex = index * ParticleBufferUtils.boundsFloatStride;
+    const offset = index * ParticleBufferUtils.boundsFloatStride;
 
     min.set(
-      Math.min(min.x, transformedBoundsArray[baseIndex]),
-      Math.min(min.y, transformedBoundsArray[baseIndex + 1]),
-      Math.min(min.z, transformedBoundsArray[baseIndex + 2])
+      Math.min(min.x, boundsArray[offset]),
+      Math.min(min.y, boundsArray[offset + 1]),
+      Math.min(min.z, boundsArray[offset + 2])
     );
 
     max.set(
-      Math.max(max.x, transformedBoundsArray[baseIndex + 3]),
-      Math.max(max.y, transformedBoundsArray[baseIndex + 4]),
-      Math.max(max.z, transformedBoundsArray[baseIndex + 5])
+      Math.max(max.x, boundsArray[offset + 3]),
+      Math.max(max.y, boundsArray[offset + 4]),
+      Math.max(max.z, boundsArray[offset + 5])
     );
   }
 
@@ -1095,16 +1093,15 @@ export class ParticleGenerator {
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
     const { min: originMin, max: originMax } = origin;
-    const { min, max } = out;
-    const scalarMinMax = ParticleGenerator._tempVector20;
+    const modifierMinMax = ParticleGenerator._tempVector20;
 
     // Gravity Modifier Impact
-    this._getExtremeValueFromZero(this.main.gravityModifier, scalarMinMax);
+    this._getExtremeValueFromZero(this.main.gravityModifier, modifierMinMax);
     const { x, y, z } = this._renderer.scene.physics.gravity;
 
     const coefficient = 0.5 * maxLifetime * maxLifetime;
-    const minGravityEffect = scalarMinMax.x * coefficient;
-    const maxGravityEffect = scalarMinMax.y * coefficient;
+    const minGravityEffect = modifierMinMax.x * coefficient;
+    const maxGravityEffect = modifierMinMax.y * coefficient;
 
     const gravityEffectMinX = x * minGravityEffect;
     const gravityEffectMaxX = x * maxGravityEffect;
@@ -1115,13 +1112,13 @@ export class ParticleGenerator {
     const gravityEffectMinZ = z * minGravityEffect;
     const gravityEffectMaxZ = z * maxGravityEffect;
 
-    min.set(
+    out.min.set(
       Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
       Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
       Math.min(gravityEffectMinZ, gravityEffectMaxZ) + originMin.z
     );
 
-    max.set(
+    out.max.set(
       Math.max(gravityEffectMinX, gravityEffectMaxX) + originMax.x,
       Math.max(gravityEffectMinY, gravityEffectMaxY) + originMax.y,
       Math.max(gravityEffectMinZ, gravityEffectMaxZ) + originMax.z

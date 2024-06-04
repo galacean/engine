@@ -13,7 +13,9 @@ export abstract class BaseShape {
   /** @internal */
   _onValueChanged: () => void = null;
 
-  /** Specifies whether the ShapeModule is enabled or disabled. */
+  /**
+   * Specifies whether the ShapeModule is enabled or disabled.
+   */
   get enabled(): boolean {
     return this._enabled;
   }
@@ -25,7 +27,9 @@ export abstract class BaseShape {
     }
   }
 
-  /** Randomizes the starting direction of particles. */
+  /**
+   * Randomizes the starting direction of particles.
+   */
   get randomDirectionAmount(): number {
     return this._randomDirectionAmount;
   }

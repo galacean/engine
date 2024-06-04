@@ -15,7 +15,9 @@ export class BoxShape extends BaseShape {
 
   readonly shapeType = ParticleShapeType.Box;
 
-  /** The size of the box. */
+  /**
+   * The size of the box.
+   */
   get size() {
     return this._size;
   }

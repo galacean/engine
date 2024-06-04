@@ -47,7 +47,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _velocityMacro: ShaderMacro;
 
-  /** Velocity over lifetime for x axis. */
+  /**
+   * Velocity over lifetime for x axis.
+   */
   get velocityX(): ParticleCompositeCurve {
     return this._velocityX;
   }
@@ -57,7 +59,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._velocityX._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** Velocity over lifetime for y axis. */
+  /**
+   * Velocity over lifetime for y axis.
+   */
   get velocityY(): ParticleCompositeCurve {
     return this._velocityY;
   }
@@ -67,7 +71,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._velocityY._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** Velocity over lifetime for z axis. */
+  /**
+   * Velocity over lifetime for z axis.
+   */
   get velocityZ(): ParticleCompositeCurve {
     return this._velocityZ;
   }
@@ -77,7 +83,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._velocityZ._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
-  /** Velocity space. */
+  /**
+   * Velocity space.
+   */
   get space(): ParticleSimulationSpace {
     return this._space;
   }

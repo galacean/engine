@@ -33,7 +33,9 @@ export class EmissionModule extends ParticleGeneratorModule {
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
-  /** The shape of the emitter. */
+  /**
+   * The shape of the emitter.
+   */
   get shape() {
     return this._shape;
   }
@@ -45,6 +47,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
     this._generator._renderer._onGeneratorParamsChanged();
   }
+
   /**
    * Gets the burst array.
    */
