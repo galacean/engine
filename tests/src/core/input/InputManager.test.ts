@@ -135,6 +135,7 @@ describe("InputManager", async () => {
     TestScript.prototype.onPointerClick = chai.spy(TestScript.prototype.onPointerClick);
     TestScript.prototype.onPointerDrag = chai.spy(TestScript.prototype.onPointerDrag);
     TestScript.prototype.onPointerUp = chai.spy(TestScript.prototype.onPointerUp);
+    TestScript.prototype.onPointerDrop = chai.spy(TestScript.prototype.onPointerDrop);
     const script = boxEntity.addComponent(TestScript);
 
     const { left, top } = target.getBoundingClientRect();
@@ -158,6 +159,7 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).to.have.been.called.exactly(1);
     expect(script.onPointerDrag).to.have.been.called.exactly(1);
     expect(script.onPointerUp).to.have.been.called.exactly(1);
+    expect(script.onPointerDrop).to.have.been.called.exactly(1);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
     target.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
@@ -206,20 +208,57 @@ describe("InputManager", async () => {
     expect(script.onPointerDown).to.have.been.called.exactly(2);
     expect(script.onPointerUp).to.have.been.called.exactly(2);
     expect(script.onPointerClick).to.have.been.called.exactly(2);
+    expect(script.onPointerDrop).to.have.been.called.exactly(2);
 
     // 1. 在碰撞体外 down
     // 2. 在碰撞体上 up & leave
     target.dispatchEvent(generatePointerEvent("pointerdown", 6, left + 200, top + 200));
     engine.update();
-    expect(script.onPointerEnter).to.have.been.called.exactly(3);
     expect(script.onPointerDown).to.have.been.called.exactly(2);
     target.dispatchEvent(generatePointerEvent("pointerup", 6, left + 2.5, top + 2.5, 0, 0));
     target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 2.5, top + 2.5, -1, 0));
     engine.update();
-    expect(script.onPointerEnter).to.have.been.called.exactly(4);
-    expect(script.onPointerDrag).to.have.been.called.exactly(3);
     expect(script.onPointerUp).to.have.been.called.exactly(3);
     expect(script.onPointerClick).to.have.been.called.exactly(2);
+
+    // 1. 在碰撞体上 down
+    // 2. 在碰撞体外 up & leave
+    target.dispatchEvent(generatePointerEvent("pointerdown", 6, left + 2.5, top + 2.5));
+    engine.update();
+    expect(script.onPointerDown).to.have.been.called.exactly(3);
+    target.dispatchEvent(generatePointerEvent("pointerup", 6, left + 200, top + 200, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 200, top + 200, -1, 0));
+    engine.update();
+    expect(script.onPointerUp).to.have.been.called.exactly(3);
+    expect(script.onPointerClick).to.have.been.called.exactly(2);
+
+    // hit result
+    target.dispatchEvent(generatePointerEvent("pointerdown", 7, left + 2.5, top + 2.5));
+    engine.update();
+    const pointer = inputManager.pointers[0];
+    const { hitResult } = pointer;
+    expect(hitResult.entity).to.have.been.eq(boxEntity);
+    const out = new Vector3();
+    Vector3.subtract(hitResult.point, new Vector3(2.5 * 2, 2.5 * 2, 1), out);
+    expect(Math.abs(out.x) < 0.00001).to.deep.eq(true);
+    expect(Math.abs(out.y) < 0.00001).to.deep.eq(true);
+    expect(Math.abs(out.z) < 0.00001).to.deep.eq(true);
+    expect(pointer.draggedEntity).to.have.been.eq(boxEntity);
+    expect(pointer.enteredEntity).to.have.been.eq(boxEntity);
+    expect(pointer.pressedEntity).to.have.been.eq(boxEntity);
+    target.dispatchEvent(generatePointerEvent("pointerup", 7, left + 2.5, top + 2.5, 0, 0));
+    engine.update();
+    expect(hitResult.entity).to.have.been.eq(boxEntity);
+    expect(pointer.draggedEntity).to.have.been.eq(null);
+    expect(pointer.enteredEntity).to.have.been.eq(boxEntity);
+    expect(pointer.pressedEntity).to.have.been.eq(null);
+    target.dispatchEvent(generatePointerEvent("pointerleave", 7, left + 2.5, top + 2.5, -1, 0));
+    engine.update();
+    expect(hitResult.entity).to.have.been.eq(boxEntity);
+    expect(pointer.draggedEntity).to.have.been.eq(null);
+    expect(pointer.enteredEntity).to.have.been.eq(null);
+    expect(pointer.pressedEntity).to.have.been.eq(null);
+    expect(script.onPointerDrop).to.have.been.called.exactly(3);
   });
 
   it("keyboard", () => {

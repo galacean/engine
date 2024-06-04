@@ -25,6 +25,7 @@ export class Pointer {
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
+  /** The hit result of raycasting all scenes using pointer in this frame. */
   hitResult: HitResult = new HitResult();
   /** @internal */
   _events: PointerEvent[] = [];
