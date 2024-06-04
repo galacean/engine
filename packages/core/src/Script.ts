@@ -160,7 +160,7 @@ export class Script extends Component {
   onPointerDrag(pointer: Pointer): void {}
 
   /**
-   * This function will be called when the pointer is raised.
+   * This function will be called when the pointer is released while dragging.
    * @param pointer - The pointer that triggered
    */
   onPointerEndDrag(pointer: Pointer): void {}
