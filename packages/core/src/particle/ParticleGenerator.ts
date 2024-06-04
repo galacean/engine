@@ -28,6 +28,7 @@ import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
+import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 
 /**
  * Particle Generator.
@@ -989,8 +990,7 @@ export class ParticleGenerator {
       directionMin.set(0, 0, -1);
       directionMax.set(0, 0, 0);
     }
-    main.startSpeed._getMinMax(speedMinMax);
-    this._getExtremeValueFromZero(speedMinMax);
+    this._getExtremeValueFromZero(main.startSpeed, speedMinMax);
 
     const { x: speedMin, y: speedMax } = speedMinMax;
     const { x: dirMinX, y: dirMinY, z: dirMinZ } = directionMin;
@@ -1058,20 +1058,15 @@ export class ParticleGenerator {
     const { min: originMin, max: originMax } = origin;
     const { min, max } = out;
 
-    if (this.velocityOverLifetime.enabled) {
-      const { velocityX, velocityY, velocityZ, space } = this.velocityOverLifetime;
+    const { velocityOverLifetime } = this;
+    if (velocityOverLifetime.enabled) {
       const maxLifetime = this.main.startLifetime._getMax();
 
-      velocityX._getMinMax(velMinMaxX);
-      this._getExtremeValueFromZero(velMinMaxX);
+      this._getExtremeValueFromZero(velocityOverLifetime.velocityX, velMinMaxX);
+      this._getExtremeValueFromZero(velocityOverLifetime.velocityY, velMinMaxY);
+      this._getExtremeValueFromZero(velocityOverLifetime.velocityZ, velMinMaxZ);
 
-      velocityY._getMinMax(velMinMaxY);
-      this._getExtremeValueFromZero(velMinMaxY);
-
-      velocityZ._getMinMax(velMinMaxZ);
-      this._getExtremeValueFromZero(velMinMaxZ);
-
-      if (space === ParticleSimulationSpace.Local) {
+      if (velocityOverLifetime.space === ParticleSimulationSpace.Local) {
         min.set(
           originMin.x + velMinMaxX.x * maxLifetime,
           originMin.y + velMinMaxY.x * maxLifetime,
@@ -1114,8 +1109,7 @@ export class ParticleGenerator {
     const maxLifetime = this.main.startLifetime._getMax();
 
     // Gravity Modifier Impact
-    this.main.gravityModifier._getMinMax(gravityMinMax);
-    this._getExtremeValueFromZero(gravityMinMax);
+    this._getExtremeValueFromZero(this.main.gravityModifier, gravityMinMax);
     const direction = this._renderer.scene.physics.gravity;
 
     const gravityDisplacement = 0.5 * maxLifetime * maxLifetime;
@@ -1124,21 +1118,28 @@ export class ParticleGenerator {
 
     const xMinGravityVelocity = direction.x * gravityMinVelocity;
     const xMaxGravityVelocity = direction.x * gravityMaxVelocity;
-    worldMin.x = Math.min(xMinGravityVelocity, xMaxGravityVelocity) + min.x;
-    worldMax.x = Math.max(xMinGravityVelocity, xMaxGravityVelocity) + max.x;
 
     const yMinGravityVelocity = direction.y * gravityMinVelocity;
     const yMaxGravityVelocity = direction.y * gravityMaxVelocity;
-    worldMin.y = Math.min(yMinGravityVelocity, yMaxGravityVelocity) + min.y;
-    worldMax.y = Math.max(yMinGravityVelocity, yMaxGravityVelocity) + max.y;
 
     const zMinGravityVelocity = direction.z * gravityMinVelocity;
     const zMaxGravityVelocity = direction.z * gravityMaxVelocity;
-    worldMin.z = Math.min(zMinGravityVelocity, zMaxGravityVelocity) + min.z;
-    worldMax.z = Math.max(zMinGravityVelocity, zMaxGravityVelocity) + max.z;
+
+    worldMin.set(
+      Math.min(xMinGravityVelocity, xMaxGravityVelocity) + min.x,
+      Math.min(yMinGravityVelocity, yMaxGravityVelocity) + min.y,
+      Math.min(zMinGravityVelocity, zMaxGravityVelocity) + min.z
+    );
+
+    worldMax.set(
+      Math.max(xMinGravityVelocity, xMaxGravityVelocity) + max.x,
+      Math.max(yMinGravityVelocity, yMaxGravityVelocity) + max.y,
+      Math.max(zMinGravityVelocity, zMaxGravityVelocity) + max.z
+    );
   }
 
-  private _getExtremeValueFromZero(out: Vector2): void {
+  private _getExtremeValueFromZero(curve: ParticleCompositeCurve, out: Vector2): void {
+    curve._getMinMax(out);
     out.x = Math.min(0, out.x);
     out.y = Math.max(0, out.y);
   }
