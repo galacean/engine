@@ -1004,18 +1004,21 @@ export class ParticleGenerator {
 
     // StartSize's impact
     let maxSize = this.main.startSize._getMax();
-    const startSizeYMax = this.main.startSizeY._getMax();
 
-    if (
-      this._renderer.renderMode === ParticleRenderMode.Billboard ||
-      ParticleRenderMode.StretchBillboard ||
-      ParticleRenderMode.HorizontalBillboard
-    ) {
-      maxSize = this.main.startSize3D ? Math.max(maxSize, startSizeYMax) : maxSize;
-    } else {
-      const startSizeZMax = this.main.startSizeZ._getMax();
-      maxSize = this.main.startSize3D ? Math.max(maxSize, startSizeYMax, startSizeZMax) : maxSize;
+    if (this.main.startSize3D) {
+      const startSizeYMax = this.main.startSizeY._getMax();
+      if (
+        this._renderer.renderMode === ParticleRenderMode.Billboard ||
+        ParticleRenderMode.StretchBillboard ||
+        ParticleRenderMode.HorizontalBillboard
+      ) {
+        maxSize = Math.max(maxSize, startSizeYMax);
+      } else {
+        const startSizeZMax = this.main.startSizeZ._getMax();
+        maxSize = Math.max(maxSize, startSizeYMax, startSizeZMax);
+      }
     }
+
     // Use diagonal for potential rotation
     maxSize *= 1.414;
 
@@ -1107,18 +1110,18 @@ export class ParticleGenerator {
   private _addGravityToBounds(origin: BoundingBox, out: BoundingBox): void {
     const { min, max } = origin;
     const { min: worldMin, max: worldMax } = out;
-    const minmax = ParticleGenerator._tempVector20;
+    const gravityMinMax = ParticleGenerator._tempVector20;
 
     const maxLifetime = this.main.startLifetime._getMax();
 
     // Gravity Modifier Impact
-    this.main.gravityModifier._getMinMax(minmax);
-    this._getExtremeValueFromZero(minmax);
+    this.main.gravityModifier._getMinMax(gravityMinMax);
+    this._getExtremeValueFromZero(gravityMinMax);
     const direction = this._renderer.scene.physics.gravity;
 
     const gravityDisplacement = 0.5 * maxLifetime * maxLifetime;
-    const gravityMinVelocity = minmax.x * gravityDisplacement;
-    const gravityMaxVelocity = minmax.y * gravityDisplacement;
+    const gravityMinVelocity = gravityMinMax.x * gravityDisplacement;
+    const gravityMaxVelocity = gravityMinMax.y * gravityDisplacement;
 
     const xMinGravityVelocity = direction.x * gravityMinVelocity;
     const xMaxGravityVelocity = direction.x * gravityMaxVelocity;
