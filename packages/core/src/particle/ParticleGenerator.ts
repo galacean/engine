@@ -539,15 +539,18 @@ export class ParticleGenerator {
     const renderer = this._renderer;
     const generatorBounds = renderer._generatorBounds;
 
+    // Get longest Lifetime
+    const maxLifetime = this.main.startLifetime._getMax();
+
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
-      this._calculateGeneratorBounds(generatorBounds);
+      this._calculateGeneratorBounds(maxLifetime, generatorBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
     const transformedBounds = ParticleGenerator._tempBoundingBox;
 
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-      this._addRotationAndVelocityOverLifetimeToBounds(generatorBounds, transformedBounds);
+      this._addRotationAndVelocityOverLifetimeToBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const worldPosition = renderer.entity.transform.worldPosition;
       transformedBounds.min.add(worldPosition);
@@ -556,7 +559,7 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     }
 
-    this._addGravityToBounds(transformedBounds, bounds);
+    this._addGravityToBounds(maxLifetime, transformedBounds, bounds);
   }
 
   /**
@@ -586,7 +589,9 @@ export class ParticleGenerator {
         }
       }
     }
-    this._addGravityToBounds(bounds, bounds);
+
+    const maxLifetime = this.main.startLifetime._getMax();
+    this._addGravityToBounds(maxLifetime, bounds, bounds);
   }
 
   /**
@@ -638,8 +643,11 @@ export class ParticleGenerator {
     const renderer = this._renderer;
     const generatorBounds = renderer._generatorBounds;
 
+    // Get longest Lifetime
+    const maxLifetime = this.main.startLifetime._getMax();
+
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
-      this._calculateGeneratorBounds(generatorBounds);
+      this._calculateGeneratorBounds(maxLifetime, generatorBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
@@ -660,7 +668,7 @@ export class ParticleGenerator {
       // Generate transformed bounds
       const worldPosition = renderer.entity.transform.worldPosition;
       const transformedBounds = ParticleGenerator._tempBoundingBox;
-      this._addRotationAndVelocityOverLifetimeToBounds(generatorBounds, transformedBounds);
+      this._addRotationAndVelocityOverLifetimeToBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const { min, max } = transformedBounds;
       min.add(worldPosition);
@@ -671,7 +679,6 @@ export class ParticleGenerator {
       min.copyToArray(transformedBoundsArray, boundsOffset);
       max.copyToArray(transformedBoundsArray, boundsOffset + 3);
 
-      const maxLifetime = this.main.startLifetime._getMax();
       transformedBoundsArray[boundsOffset + boundsTimeOffset] = this._playTime;
       transformedBoundsArray[boundsOffset + boundsMaxLifetimeOffset] = maxLifetime;
 
@@ -971,13 +978,10 @@ export class ParticleGenerator {
     }
   }
 
-  private _calculateGeneratorBounds(bounds: BoundingBox): void {
+  private _calculateGeneratorBounds(maxLifetime: number, bounds: BoundingBox): void {
     const { _tempVector30: directionMax, _tempVector31: directionMin, _tempVector20: speedMinMax } = ParticleGenerator;
     const { min, max } = bounds;
     const { main } = this;
-
-    // Get longest Lifetime
-    const maxLifetime = main.startLifetime._getMax();
 
     // StartSpeed's impact
     const { shape } = this.emission;
@@ -1051,7 +1055,11 @@ export class ParticleGenerator {
     );
   }
 
-  private _addRotationAndVelocityOverLifetimeToBounds(origin: BoundingBox, out: BoundingBox): void {
+  private _addRotationAndVelocityOverLifetimeToBounds(
+    maxLifetime: number,
+    origin: BoundingBox,
+    out: BoundingBox
+  ): void {
     const { _tempVector20: velMinMaxX, _tempVector21: velMinMaxY, _tempVector22: velMinMaxZ } = ParticleGenerator;
     const worldRotation = this._renderer.entity.transform.worldRotationQuaternion;
 
@@ -1060,8 +1068,6 @@ export class ParticleGenerator {
 
     const { velocityOverLifetime } = this;
     if (velocityOverLifetime.enabled) {
-      const maxLifetime = this.main.startLifetime._getMax();
-
       this._getExtremeValueFromZero(velocityOverLifetime.velocityX, velMinMaxX);
       this._getExtremeValueFromZero(velocityOverLifetime.velocityY, velMinMaxY);
       this._getExtremeValueFromZero(velocityOverLifetime.velocityZ, velMinMaxZ);
@@ -1101,12 +1107,10 @@ export class ParticleGenerator {
     }
   }
 
-  private _addGravityToBounds(origin: BoundingBox, out: BoundingBox): void {
+  private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
     const { min, max } = origin;
     const { min: worldMin, max: worldMax } = out;
     const gravityMinMax = ParticleGenerator._tempVector20;
-
-    const maxLifetime = this.main.startLifetime._getMax();
 
     // Gravity Modifier Impact
     this._getExtremeValueFromZero(this.main.gravityModifier, gravityMinMax);
