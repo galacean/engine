@@ -550,12 +550,7 @@ export class ParticleGenerator {
     const transformedBounds = ParticleGenerator._tempBoundingBox;
 
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-      this._addRotationAndVelocityOverLifetimeToBounds(maxLifetime, generatorBounds, transformedBounds);
-
-      const worldPosition = renderer.entity.transform.worldPosition;
-      transformedBounds.min.add(worldPosition);
-      transformedBounds.max.add(worldPosition);
-
+      this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     }
 
@@ -666,18 +661,13 @@ export class ParticleGenerator {
       }
 
       // Generate transformed bounds
-      const worldPosition = renderer.entity.transform.worldPosition;
       const transformedBounds = ParticleGenerator._tempBoundingBox;
-      this._addRotationAndVelocityOverLifetimeToBounds(maxLifetime, generatorBounds, transformedBounds);
-
-      const { min, max } = transformedBounds;
-      min.add(worldPosition);
-      max.add(worldPosition);
+      this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
       const transformedBoundsArray = this._transformedBoundsArray;
-      min.copyToArray(transformedBoundsArray, boundsOffset);
-      max.copyToArray(transformedBoundsArray, boundsOffset + 3);
+      transformedBounds.min.copyToArray(transformedBoundsArray, boundsOffset);
+      transformedBounds.max.copyToArray(transformedBoundsArray, boundsOffset + 3);
 
       transformedBoundsArray[boundsOffset + boundsTimeOffset] = this._playTime;
       transformedBoundsArray[boundsOffset + boundsMaxLifetimeOffset] = maxLifetime;
@@ -1055,13 +1045,11 @@ export class ParticleGenerator {
     );
   }
 
-  private _addRotationAndVelocityOverLifetimeToBounds(
-    maxLifetime: number,
-    origin: BoundingBox,
-    out: BoundingBox
-  ): void {
+  private _calculateTransformedBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
     const { _tempVector20: velMinMaxX, _tempVector21: velMinMaxY, _tempVector22: velMinMaxZ } = ParticleGenerator;
-    const worldRotation = this._renderer.entity.transform.worldRotationQuaternion;
+    const { transform } = this._renderer.entity;
+    const worldRotation = transform.worldRotationQuaternion;
+    const worldPosition = transform.worldPosition;
 
     const { min: originMin, max: originMax } = origin;
     const { min, max } = out;
@@ -1105,6 +1093,9 @@ export class ParticleGenerator {
       Vector3.transformByQuat(origin.min, worldRotation, out.min);
       Vector3.transformByQuat(origin.max, worldRotation, out.max);
     }
+
+    out.min.add(worldPosition);
+    out.max.add(worldPosition);
   }
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
