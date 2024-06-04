@@ -996,17 +996,15 @@ export class ParticleGenerator {
     }
     this.main.startSpeed._getMinMax(minmax);
     this._getExtremeValueFromZero(minmax);
-    const velocityMin = minmax.x * maxLifetime;
-    const velocityMax = minmax.y * maxLifetime;
 
-    min.x += Math.min(directionMin.x * velocityMax, directionMax.x * velocityMin);
-    max.x += Math.max(directionMin.x * velocityMin, directionMax.x * velocityMax);
+    min.x += Math.min(directionMin.x * minmax.y * maxLifetime, directionMax.x * minmax.x * maxLifetime);
+    max.x += Math.max(directionMin.x * minmax.x * maxLifetime, directionMax.x * minmax.y * maxLifetime);
 
-    min.y += Math.min(directionMin.y * velocityMax, directionMax.y * velocityMin);
-    max.y += Math.max(directionMin.y * velocityMin, directionMax.y * velocityMax);
+    min.y += Math.min(directionMin.y * minmax.y * maxLifetime, directionMax.y * minmax.x * maxLifetime);
+    max.y += Math.max(directionMin.y * minmax.x * maxLifetime, directionMax.y * minmax.y * maxLifetime);
 
-    min.z += Math.min(directionMin.z * velocityMax, directionMax.z * velocityMin);
-    max.z += Math.max(directionMin.z * velocityMin, directionMax.z * velocityMax);
+    min.z += Math.min(directionMin.z * minmax.y * maxLifetime, directionMax.z * minmax.x * maxLifetime);
+    max.z += Math.max(directionMin.z * minmax.x * maxLifetime, directionMax.z * minmax.y * maxLifetime);
 
     // StartSize's impact
     let maxSize = 0;
