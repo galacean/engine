@@ -4,7 +4,7 @@ import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { BatcherManager } from "./batcher/BatcherManager";
+import { BatcherManager } from "./BatcherManager";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 
 /**
