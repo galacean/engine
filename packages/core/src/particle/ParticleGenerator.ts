@@ -556,7 +556,7 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     }
 
-    this._addGravity(transformedBounds, bounds);
+    this._addGravityToBounds(transformedBounds, bounds);
   }
 
   /**
@@ -586,7 +586,7 @@ export class ParticleGenerator {
         }
       }
     }
-    this._addGravity(bounds, bounds);
+    this._addGravityToBounds(bounds, bounds);
   }
 
   /**
@@ -1115,7 +1115,7 @@ export class ParticleGenerator {
     }
   }
 
-  private _addGravity(a: BoundingBox, out: BoundingBox): void {
+  private _addGravityToBounds(a: BoundingBox, out: BoundingBox): void {
     const { min, max } = a;
     const { min: worldMin, max: worldMax } = out;
     const minmax = ParticleGenerator._tempVector20;
