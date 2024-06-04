@@ -36,7 +36,6 @@ export class ParticleGenerator {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();
   private static _tempVector22 = new Vector2();
-  private static _tempVector23 = new Vector2();
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
   private static _tempColor0 = new Color();
@@ -974,10 +973,7 @@ export class ParticleGenerator {
   private _calculateGeneratorBounds(bounds: BoundingBox): void {
     const directionMax = ParticleGenerator._tempVector30;
     const directionMin = ParticleGenerator._tempVector31;
-    const minmax = ParticleGenerator._tempVector20;
-    const minmaxX = ParticleGenerator._tempVector21;
-    const minmaxY = ParticleGenerator._tempVector22;
-    const minmaxZ = ParticleGenerator._tempVector23;
+    const speedMinMax = ParticleGenerator._tempVector20;
     const { min, max } = bounds;
 
     // Get longest Lifetime
@@ -994,38 +990,31 @@ export class ParticleGenerator {
       directionMin.set(0, 0, -1);
       directionMax.set(0, 0, 0);
     }
-    this.main.startSpeed._getMinMax(minmax);
-    this._getExtremeValueFromZero(minmax);
+    this.main.startSpeed._getMinMax(speedMinMax);
+    this._getExtremeValueFromZero(speedMinMax);
 
-    min.x += Math.min(directionMin.x * minmax.y, directionMax.x * minmax.x) * maxLifetime;
-    max.x += Math.max(directionMin.x * minmax.x, directionMax.x * minmax.y) * maxLifetime;
+    min.x += Math.min(directionMin.x * speedMinMax.y, directionMax.x * speedMinMax.x) * maxLifetime;
+    max.x += Math.max(directionMin.x * speedMinMax.x, directionMax.x * speedMinMax.y) * maxLifetime;
 
-    min.y += Math.min(directionMin.y * minmax.y, directionMax.y * minmax.x) * maxLifetime;
-    max.y += Math.max(directionMin.y * minmax.x, directionMax.y * minmax.y) * maxLifetime;
+    min.y += Math.min(directionMin.y * speedMinMax.y, directionMax.y * speedMinMax.x) * maxLifetime;
+    max.y += Math.max(directionMin.y * speedMinMax.x, directionMax.y * speedMinMax.y) * maxLifetime;
 
-    min.z += Math.min(directionMin.z * minmax.y, directionMax.z * minmax.x) * maxLifetime;
-    max.z += Math.max(directionMin.z * minmax.x, directionMax.z * minmax.y) * maxLifetime;
+    min.z += Math.min(directionMin.z * speedMinMax.y, directionMax.z * speedMinMax.x) * maxLifetime;
+    max.z += Math.max(directionMin.z * speedMinMax.x, directionMax.z * speedMinMax.y) * maxLifetime;
 
     // StartSize's impact
-    let maxSize = 0;
-
-    this.main.startSizeX._getMinMax(minmaxX);
-    this._getExtremeValueFromZero(minmaxX);
-    this.main.startSizeY._getMinMax(minmaxY);
-    this._getExtremeValueFromZero(minmaxY);
-    this.main.startSize._getMinMax(minmax);
-    this._getExtremeValueFromZero(minmax);
+    let maxSize = this.main.startSize._getMax();
+    const startSizeYMax = this.main.startSizeY._getMax();
 
     if (
       this._renderer.renderMode === ParticleRenderMode.Billboard ||
       ParticleRenderMode.StretchBillboard ||
       ParticleRenderMode.HorizontalBillboard
     ) {
-      maxSize = this.main.startSize3D ? Math.max(minmaxX.y, minmaxY.y) : minmax.y;
+      maxSize = this.main.startSize3D ? Math.max(maxSize, startSizeYMax) : maxSize;
     } else {
-      this.main.startSizeZ._getMinMax(minmaxZ);
-      this._getExtremeValueFromZero(minmaxZ);
-      maxSize = this.main.startSize3D ? Math.max(minmaxX.y, minmaxY.y, minmaxZ.y) : minmax.y;
+      const startSizeZMax = this.main.startSizeZ._getMax();
+      maxSize = this.main.startSize3D ? Math.max(maxSize, startSizeYMax, startSizeZMax) : maxSize;
     }
     // Use diagonal for potential rotation
     maxSize *= 1.414;
@@ -1062,9 +1051,9 @@ export class ParticleGenerator {
   private _addRotationAndVelocityOverLifetimeToBounds(origin: BoundingBox, out: BoundingBox): void {
     const directionMax = ParticleGenerator._tempVector30;
     const directionMin = ParticleGenerator._tempVector31;
-    const minmaxX = ParticleGenerator._tempVector21;
-    const minmaxY = ParticleGenerator._tempVector22;
-    const minmaxZ = ParticleGenerator._tempVector23;
+    const minmaxX = ParticleGenerator._tempVector20;
+    const minmaxY = ParticleGenerator._tempVector21;
+    const minmaxZ = ParticleGenerator._tempVector22;
     const worldRotation = this._renderer.entity.transform.worldRotationQuaternion;
 
     out.copyFrom(origin);
