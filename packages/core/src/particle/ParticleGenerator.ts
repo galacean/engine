@@ -537,18 +537,16 @@ export class ParticleGenerator {
    */
   _updateBoundsSimulationLocal(bounds: BoundingBox): void {
     const renderer = this._renderer;
-    const generatorBounds = renderer._generatorBounds;
-
     // Get longest Lifetime
     const maxLifetime = this.main.startLifetime._getMax();
 
+    const generatorBounds = renderer._generatorBounds;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
       this._calculateGeneratorBounds(maxLifetime, generatorBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
     const transformedBounds = ParticleGenerator._tempBoundingBox;
-
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
@@ -636,18 +634,16 @@ export class ParticleGenerator {
    */
   _generateTransformedBounds(): void {
     const renderer = this._renderer;
-    const generatorBounds = renderer._generatorBounds;
-
     // Get longest Lifetime
     const maxLifetime = this.main.startLifetime._getMax();
 
+    const generatorBounds = renderer._generatorBounds;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
       this._calculateGeneratorBounds(maxLifetime, generatorBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
-
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       // Resize transformed bounds if needed
       let nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
@@ -656,7 +652,6 @@ export class ParticleGenerator {
       }
       if (nextFreeTransformedBoundingBox === this._firstActiveTransformedBoundingBox) {
         this._resizeBoundsArray();
-
         nextFreeTransformedBoundingBox = this._firstFreeTransformedBoundingBox + 1;
       }
 
@@ -1090,46 +1085,46 @@ export class ParticleGenerator {
         );
       }
     } else {
-      Vector3.transformByQuat(origin.min, worldRotation, out.min);
-      Vector3.transformByQuat(origin.max, worldRotation, out.max);
+      Vector3.transformByQuat(origin.min, worldRotation, min);
+      Vector3.transformByQuat(origin.max, worldRotation, max);
     }
 
-    out.min.add(worldPosition);
-    out.max.add(worldPosition);
+    min.add(worldPosition);
+    max.add(worldPosition);
   }
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
-    const { min, max } = origin;
-    const { min: worldMin, max: worldMax } = out;
-    const gravityMinMax = ParticleGenerator._tempVector20;
+    const { min: originMin, max: originMax } = origin;
+    const { min, max } = out;
+    const scalarMinMax = ParticleGenerator._tempVector20;
 
     // Gravity Modifier Impact
-    this._getExtremeValueFromZero(this.main.gravityModifier, gravityMinMax);
-    const direction = this._renderer.scene.physics.gravity;
+    this._getExtremeValueFromZero(this.main.gravityModifier, scalarMinMax);
+    const { x, y, z } = this._renderer.scene.physics.gravity;
 
-    const gravityDisplacement = 0.5 * maxLifetime * maxLifetime;
-    const gravityMinVelocity = gravityMinMax.x * gravityDisplacement;
-    const gravityMaxVelocity = gravityMinMax.y * gravityDisplacement;
+    const coefficient = 0.5 * maxLifetime * maxLifetime;
+    const minGravityEffect = scalarMinMax.x * coefficient;
+    const maxGravityEffect = scalarMinMax.y * coefficient;
 
-    const xMinGravityVelocity = direction.x * gravityMinVelocity;
-    const xMaxGravityVelocity = direction.x * gravityMaxVelocity;
+    const gravityEffectMinX = x * minGravityEffect;
+    const gravityEffectMaxX = x * maxGravityEffect;
 
-    const yMinGravityVelocity = direction.y * gravityMinVelocity;
-    const yMaxGravityVelocity = direction.y * gravityMaxVelocity;
+    const gravityEffectMinY = y * minGravityEffect;
+    const gravityEffectMaxY = y * maxGravityEffect;
 
-    const zMinGravityVelocity = direction.z * gravityMinVelocity;
-    const zMaxGravityVelocity = direction.z * gravityMaxVelocity;
+    const gravityEffectMinZ = z * minGravityEffect;
+    const gravityEffectMaxZ = z * maxGravityEffect;
 
-    worldMin.set(
-      Math.min(xMinGravityVelocity, xMaxGravityVelocity) + min.x,
-      Math.min(yMinGravityVelocity, yMaxGravityVelocity) + min.y,
-      Math.min(zMinGravityVelocity, zMaxGravityVelocity) + min.z
+    min.set(
+      Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
+      Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
+      Math.min(gravityEffectMinZ, gravityEffectMaxZ) + originMin.z
     );
 
-    worldMax.set(
-      Math.max(xMinGravityVelocity, xMaxGravityVelocity) + max.x,
-      Math.max(yMinGravityVelocity, yMaxGravityVelocity) + max.y,
-      Math.max(zMinGravityVelocity, zMaxGravityVelocity) + max.z
+    max.set(
+      Math.max(gravityEffectMinX, gravityEffectMaxX) + originMax.x,
+      Math.max(gravityEffectMinY, gravityEffectMaxY) + originMax.y,
+      Math.max(gravityEffectMinZ, gravityEffectMaxZ) + originMax.z
     );
   }
 
