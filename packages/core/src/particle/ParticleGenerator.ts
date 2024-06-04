@@ -994,14 +994,21 @@ export class ParticleGenerator {
     main.startSpeed._getMinMax(speedMinMax);
     this._getExtremeValueFromZero(speedMinMax);
 
-    min.x += Math.min(directionMin.x * speedMinMax.y, directionMax.x * speedMinMax.x) * maxLifetime;
-    max.x += Math.max(directionMin.x * speedMinMax.x, directionMax.x * speedMinMax.y) * maxLifetime;
+    const { x: speedMin, y: speedMax } = speedMinMax;
+    const { x: minX, y: minY, z: minZ } = directionMin;
+    const { x: maxX, y: maxY, z: maxZ } = directionMax;
 
-    min.y += Math.min(directionMin.y * speedMinMax.y, directionMax.y * speedMinMax.x) * maxLifetime;
-    max.y += Math.max(directionMin.y * speedMinMax.x, directionMax.y * speedMinMax.y) * maxLifetime;
+    min.set(
+      min.x + Math.min(minX * speedMax, maxX * speedMin) * maxLifetime,
+      min.y + Math.min(minY * speedMax, maxY * speedMin) * maxLifetime,
+      min.z + Math.min(minZ * speedMax, maxZ * speedMin) * maxLifetime
+    );
 
-    min.z += Math.min(directionMin.z * speedMinMax.y, directionMax.z * speedMinMax.x) * maxLifetime;
-    max.z += Math.max(directionMin.z * speedMinMax.x, directionMax.z * speedMinMax.y) * maxLifetime;
+    max.set(
+      max.x + Math.max(minX * speedMin, maxX * speedMax) * maxLifetime,
+      max.y + Math.max(minY * speedMin, maxY * speedMax) * maxLifetime,
+      max.z + Math.max(minZ * speedMin, maxZ * speedMax) * maxLifetime
+    );
 
     // StartSize's impact
     let maxSize = main.startSize._getMax();
@@ -1023,14 +1030,8 @@ export class ParticleGenerator {
     // Use diagonal for potential rotation
     maxSize *= 1.414;
 
-    min.x -= maxSize;
-    max.x += maxSize;
-
-    min.y -= maxSize;
-    max.y += maxSize;
-
-    min.z -= maxSize;
-    max.z += maxSize;
+    min.set(min.x - maxSize, min.y - maxSize, min.z - maxSize);
+    max.set(max.x + maxSize, max.y + maxSize, max.z + maxSize);
   }
 
   private _mergeTransformedBounds(index: number, bounds: BoundingBox): void {
