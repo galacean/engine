@@ -77,8 +77,7 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, scene } = camera;
-    const { instanceId: cameraId, shaderData: cameraData } = camera;
+    const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
     const { shaderData: sceneData, instanceId: sceneId } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
