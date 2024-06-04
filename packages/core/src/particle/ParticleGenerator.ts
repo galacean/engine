@@ -548,7 +548,7 @@ export class ParticleGenerator {
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       this._addRotationAndVelocityOverLifetimeToBounds(generatorBounds, transformedBounds);
 
-      const worldPosition = this._renderer.entity.transform.worldPosition;
+      const worldPosition = renderer.entity.transform.worldPosition;
       transformedBounds.min.add(worldPosition);
       transformedBounds.max.add(worldPosition);
 
@@ -971,9 +971,7 @@ export class ParticleGenerator {
   }
 
   private _calculateGeneratorBounds(bounds: BoundingBox): void {
-    const directionMax = ParticleGenerator._tempVector30;
-    const directionMin = ParticleGenerator._tempVector31;
-    const speedMinMax = ParticleGenerator._tempVector20;
+    const { _tempVector30: directionMax, _tempVector31: directionMin, _tempVector20: speedMinMax } = ParticleGenerator;
     const { min, max } = bounds;
     const { main } = this;
 
@@ -995,19 +993,19 @@ export class ParticleGenerator {
     this._getExtremeValueFromZero(speedMinMax);
 
     const { x: speedMin, y: speedMax } = speedMinMax;
-    const { x: minX, y: minY, z: minZ } = directionMin;
-    const { x: maxX, y: maxY, z: maxZ } = directionMax;
+    const { x: dirMinX, y: dirMinY, z: dirMinZ } = directionMin;
+    const { x: dirMaxX, y: dirMaxY, z: dirMaxZ } = directionMax;
 
     min.set(
-      min.x + Math.min(minX * speedMax, maxX * speedMin) * maxLifetime,
-      min.y + Math.min(minY * speedMax, maxY * speedMin) * maxLifetime,
-      min.z + Math.min(minZ * speedMax, maxZ * speedMin) * maxLifetime
+      min.x + Math.min(dirMinX * speedMax, dirMaxX * speedMin) * maxLifetime,
+      min.y + Math.min(dirMinY * speedMax, dirMaxY * speedMin) * maxLifetime,
+      min.z + Math.min(dirMinZ * speedMax, dirMaxZ * speedMin) * maxLifetime
     );
 
     max.set(
-      max.x + Math.max(minX * speedMin, maxX * speedMax) * maxLifetime,
-      max.y + Math.max(minY * speedMin, maxY * speedMax) * maxLifetime,
-      max.z + Math.max(minZ * speedMin, maxZ * speedMax) * maxLifetime
+      max.x + Math.max(dirMinX * speedMin, dirMaxX * speedMax) * maxLifetime,
+      max.y + Math.max(dirMinY * speedMin, dirMaxY * speedMax) * maxLifetime,
+      max.z + Math.max(dirMinZ * speedMin, dirMaxZ * speedMax) * maxLifetime
     );
 
     // StartSize's impact
@@ -1054,39 +1052,36 @@ export class ParticleGenerator {
   }
 
   private _addRotationAndVelocityOverLifetimeToBounds(origin: BoundingBox, out: BoundingBox): void {
-    const directionMax = ParticleGenerator._tempVector30;
-    const directionMin = ParticleGenerator._tempVector31;
-    const minmaxX = ParticleGenerator._tempVector20;
-    const minmaxY = ParticleGenerator._tempVector21;
-    const minmaxZ = ParticleGenerator._tempVector22;
+    const { _tempVector20: velMinMaxX, _tempVector21: velMinMaxY, _tempVector22: velMinMaxZ } = ParticleGenerator;
     const worldRotation = this._renderer.entity.transform.worldRotationQuaternion;
 
-    out.copyFrom(origin);
+    const { min: originMin, max: originMax } = origin;
     const { min, max } = out;
 
     if (this.velocityOverLifetime.enabled) {
       const { velocityX, velocityY, velocityZ, space } = this.velocityOverLifetime;
       const maxLifetime = this.main.startLifetime._getMax();
 
-      velocityX._getMinMax(minmaxX);
-      this._getExtremeValueFromZero(minmaxX);
-      velocityY._getMinMax(minmaxY);
-      this._getExtremeValueFromZero(minmaxY);
-      velocityZ._getMinMax(minmaxZ);
-      this._getExtremeValueFromZero(minmaxZ);
+      velocityX._getMinMax(velMinMaxX);
+      this._getExtremeValueFromZero(velMinMaxX);
 
-      directionMin.set(minmaxX.x, minmaxY.x, minmaxZ.x);
-      directionMax.set(minmaxX.y, minmaxY.y, minmaxZ.y);
+      velocityY._getMinMax(velMinMaxY);
+      this._getExtremeValueFromZero(velMinMaxY);
+
+      velocityZ._getMinMax(velMinMaxZ);
+      this._getExtremeValueFromZero(velMinMaxZ);
 
       if (space === ParticleSimulationSpace.Local) {
-        min.x += directionMin.x * maxLifetime;
-        max.x += directionMax.x * maxLifetime;
-
-        min.y += directionMin.y * maxLifetime;
-        max.y += directionMax.y * maxLifetime;
-
-        min.z += directionMin.z * maxLifetime;
-        max.z += directionMax.z * maxLifetime;
+        min.set(
+          originMin.x + velMinMaxX.x * maxLifetime,
+          originMin.y + velMinMaxY.x * maxLifetime,
+          originMin.z + velMinMaxZ.x * maxLifetime
+        );
+        max.set(
+          originMax.x + velMinMaxX.y * maxLifetime,
+          originMax.y + velMinMaxY.y * maxLifetime,
+          originMax.z + velMinMaxZ.y * maxLifetime
+        );
 
         min.transformByQuat(worldRotation);
         max.transformByQuat(worldRotation);
@@ -1094,18 +1089,20 @@ export class ParticleGenerator {
         min.transformByQuat(worldRotation);
         max.transformByQuat(worldRotation);
 
-        min.x += directionMin.x * maxLifetime;
-        max.x += directionMax.x * maxLifetime;
-
-        min.y += directionMin.y * maxLifetime;
-        max.y += directionMax.y * maxLifetime;
-
-        min.z += directionMin.z * maxLifetime;
-        max.z += directionMax.z * maxLifetime;
+        min.set(
+          originMin.x + velMinMaxX.x * maxLifetime,
+          originMin.y + velMinMaxY.x * maxLifetime,
+          originMin.z + velMinMaxZ.x * maxLifetime
+        );
+        max.set(
+          originMax.x + velMinMaxX.y * maxLifetime,
+          originMax.y + velMinMaxY.y * maxLifetime,
+          originMax.z + velMinMaxZ.y * maxLifetime
+        );
       }
     } else {
-      min.transformByQuat(worldRotation);
-      max.transformByQuat(worldRotation);
+      Vector3.transformByQuat(origin.min, worldRotation, out.min);
+      Vector3.transformByQuat(origin.max, worldRotation, out.max);
     }
   }
 
