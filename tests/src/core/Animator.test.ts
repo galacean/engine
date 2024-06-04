@@ -265,10 +265,10 @@ describe("Animator test", function () {
     );
 
     let layerData = animator["_animatorLayersData"][1];
-    const layerCurveOwner = layerData.curveOwnerPool[targetEntity.instanceId]["0.rotationQuaternion"];
-    const parentLayerCurveOwner = layerData.curveOwnerPool[parentEntity.instanceId]["0.rotationQuaternion"];
+    const layerCurveOwner = layerData.curveOwnerPool[targetEntity.transform.instanceId]["rotationQuaternion"];
+    const parentLayerCurveOwner = layerData.curveOwnerPool[parentEntity.transform.instanceId]["rotationQuaternion"];
 
-    let childLayerCurveOwner = layerData.curveOwnerPool[childEntity.instanceId]["0.rotationQuaternion"];
+    let childLayerCurveOwner = layerData.curveOwnerPool[childEntity.transform.instanceId]["rotationQuaternion"];
 
     expect(layerCurveOwner.isActive).to.eq(false);
     expect(parentLayerCurveOwner.isActive).to.eq(true);
@@ -279,7 +279,7 @@ describe("Animator test", function () {
     animator.animatorController.addLayer(additiveLayer);
     animator.play("Run", 1);
     layerData = animator["_animatorLayersData"][1];
-    childLayerCurveOwner = layerData.curveOwnerPool[childEntity.instanceId]["0.rotationQuaternion"];
+    childLayerCurveOwner = layerData.curveOwnerPool[childEntity.transform.instanceId]["rotationQuaternion"];
     expect(childLayerCurveOwner.isActive).to.eq(true);
   });
 
