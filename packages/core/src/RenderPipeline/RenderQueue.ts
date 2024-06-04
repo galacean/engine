@@ -179,7 +179,7 @@ export class RenderQueue {
           }
 
           const renderState = shaderPass._renderState ?? renderStates[j];
-          renderState._apply(
+          renderState._applyStates(
             engine,
             renderer.entity.transform._isFrontFaceInvert(),
             shaderPass._renderStateDataMap,
