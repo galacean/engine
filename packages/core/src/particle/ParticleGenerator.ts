@@ -1059,7 +1059,7 @@ export class ParticleGenerator {
     );
   }
 
-  private _addRotationAndVelocityOverLifetimeToBounds(a: BoundingBox, out: BoundingBox): void {
+  private _addRotationAndVelocityOverLifetimeToBounds(origin: BoundingBox, out: BoundingBox): void {
     const directionMax = ParticleGenerator._tempVector30;
     const directionMin = ParticleGenerator._tempVector31;
     const minmaxX = ParticleGenerator._tempVector21;
@@ -1067,7 +1067,7 @@ export class ParticleGenerator {
     const minmaxZ = ParticleGenerator._tempVector23;
     const worldRotation = this._renderer.entity.transform.worldRotationQuaternion;
 
-    out.copyFrom(a);
+    out.copyFrom(origin);
     const { min, max } = out;
 
     if (this.velocityOverLifetime.enabled) {
@@ -1115,8 +1115,8 @@ export class ParticleGenerator {
     }
   }
 
-  private _addGravityToBounds(a: BoundingBox, out: BoundingBox): void {
-    const { min, max } = a;
+  private _addGravityToBounds(origin: BoundingBox, out: BoundingBox): void {
+    const { min, max } = origin;
     const { min: worldMin, max: worldMax } = out;
     const minmax = ParticleGenerator._tempVector20;
 
