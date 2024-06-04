@@ -27,7 +27,6 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { RendererUpdateFlags } from "../Renderer";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
 /**
@@ -1065,7 +1064,6 @@ export class ParticleGenerator {
   private _addRotationAndVelocityOverLifetimeToBounds(a: BoundingBox, out: BoundingBox): void {
     const directionMax = ParticleGenerator._tempVector30;
     const directionMin = ParticleGenerator._tempVector31;
-    const minmax = ParticleGenerator._tempVector20;
     const minmaxX = ParticleGenerator._tempVector21;
     const minmaxY = ParticleGenerator._tempVector22;
     const minmaxZ = ParticleGenerator._tempVector23;
