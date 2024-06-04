@@ -13,7 +13,6 @@ export class RenderData implements IPoolElement {
   subPrimitive: SubMesh;
   usage: RenderDataUsage = RenderDataUsage.Mesh;
   uploadFlag: ForceUploadShaderDataFlag = ForceUploadShaderDataFlag.None;
-  // cb: Function;
 
   preRender: Function;
   postRender: Function;
