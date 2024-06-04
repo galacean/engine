@@ -43,17 +43,19 @@ export class BoxShape extends BaseShape {
   /**
    * @internal
    */
-  override _getDirectionRange(out: { min: Vector3; max: Vector3 }) {
-    out.min.set(-this.randomDirectionAmount, -this.randomDirectionAmount, -1);
-    out.max.set(this.randomDirectionAmount, this.randomDirectionAmount, this.randomDirectionAmount);
+  override _getDirectionRange(min: Vector3, max: Vector3) {
+    const { randomDirectionAmount } = this;
+    min.set(-randomDirectionAmount, -randomDirectionAmount, -1);
+    max.set(randomDirectionAmount, randomDirectionAmount, randomDirectionAmount);
   }
 
   /**
    * @internal
    */
-  override _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
-    out.min.set(-this.size.x / 2, -this.size.y / 2, -this.size.z / 2);
-    out.max.set(this.size.x / 2, this.size.y / 2, this.size.z / 2);
+  override _getStartPositionRange(min: Vector3, max: Vector3): void {
+    const { x, y, z } = this.size;
+    min.set(-x / 2, -y / 2, -z / 2);
+    max.set(x / 2, y / 2, z / 2);
   }
 
   /**

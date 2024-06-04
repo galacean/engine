@@ -159,34 +159,97 @@ export class ParticleCompositeCurve {
 
   /**
    * @internal
+   * @returns - The max value.
+   */
+  _getMax(): number {
+    switch (this.mode) {
+      case ParticleCurveMode.Constant:
+        return this.constantMax;
+
+      case ParticleCurveMode.TwoConstants:
+        return Math.max(this.constantMin, this.constantMax);
+
+      case ParticleCurveMode.Curve: {
+        let max = undefined;
+        const keys = this.curveMax?.keys;
+        const count = keys.length ?? 0;
+        if (count > 0) {
+          max = keys[0].value;
+          for (let i = 1; i < count; i++) {
+            const value = keys[i].value;
+            max = Math.max(max, value);
+          }
+        }
+        return max;
+      }
+
+      case ParticleCurveMode.TwoCurves: {
+        let max = undefined;
+
+        const maxKeys = this.curveMax?.keys;
+        const maxCount = maxKeys.length ?? 0;
+        const minKeys = this.curveMin?.keys;
+        const minCount = minKeys.length ?? 0;
+
+        for (let i = 0; i < maxCount; i++) {
+          const value = maxKeys[i].value;
+          max = max ? Math.max(max, value) : value;
+        }
+        for (let i = 0; i < minCount; i++) {
+          const value = minKeys[i].value;
+          max = max ? Math.max(max, value) : value;
+        }
+        return max;
+      }
+    }
+  }
+
+  /**
+   * @internal
    * @param out - x as the min value, y as the max value of the curve.
    */
   _getMinMax(out: Vector2): void {
-    out.x = Infinity;
-    out.y = -Infinity;
-
     switch (this.mode) {
-      case ParticleCurveMode.Constant:
+      case ParticleCurveMode.Constant: {
         out.x = out.y = this.constantMax;
         break;
+      }
       case ParticleCurveMode.TwoConstants:
-        out.x = Math.min(this.constantMin, this.constantMax);
-        out.y = Math.max(this.constantMin, this.constantMax);
+        out.set(Math.min(this.constantMin, this.constantMax), Math.max(this.constantMin, this.constantMax));
         break;
+
       case ParticleCurveMode.Curve:
-        for (let i = 0; i < this.curveMax?.keys.length; i++) {
-          out.x = Math.min(out.x, this.curveMax.keys[i].value);
-          out.y = Math.max(out.y, this.curveMax.keys[i].value);
+        const keys = this.curveMax?.keys;
+        const count = keys.length ?? 0;
+        if (count > 0) {
+          const firstValue = keys[0].value;
+          out.set(firstValue, firstValue);
+          for (let i = 1; i < count; i++) {
+            const value = keys[i].value;
+            out.set(Math.min(out.x, value), Math.max(out.y, value));
+          }
+        } else {
+          out.set(undefined, undefined);
         }
         break;
+
       case ParticleCurveMode.TwoCurves:
-        for (let i = 0; i < this.curveMax?.keys.length; i++) {
-          out.x = Math.min(out.x, this.curveMax.keys[i].value);
-          out.y = Math.max(out.y, this.curveMax.keys[i].value);
+        const maxKeys = this.curveMax?.keys;
+        const maxCount = maxKeys.length ?? 0;
+        const minKeys = this.curveMin?.keys;
+        const minCount = minKeys.length ?? 0;
+
+        out.set(undefined, undefined);
+
+        for (let i = 0; i < maxCount; i++) {
+          const value = maxKeys[i].value;
+          out.x = out.x ? Math.min(out.x, value) : value;
+          out.y = out.y ? Math.max(out.y, value) : value;
         }
-        for (let i = 0; i < this.curveMin?.keys.length; i++) {
-          out.x = Math.min(out.x, this.curveMin.keys[i].value);
-          out.y = Math.max(out.y, this.curveMin.keys[i].value);
+        for (let i = 0; i < minCount; i++) {
+          const value = minKeys[i].value;
+          out.x = out.x ? Math.min(out.x, value) : value;
+          out.y = out.y ? Math.max(out.y, value) : value;
         }
         break;
     }

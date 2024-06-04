@@ -35,15 +35,16 @@ export class SphereShape extends BaseShape {
   /**
    * @internal
    */
-  override _getDirectionRange(out: { min: Vector3; max: Vector3 }) {
-    out.min.set(-1, -1, -1);
-    out.max.set(1, 1, 1);
+  override _getDirectionRange(min: Vector3, max: Vector3) {
+    min.set(-1, -1, -1);
+    max.set(1, 1, 1);
   }
   /**
    * @internal
    */
-  override _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
-    out.min.set(-this.radius, -this.radius, -this.radius);
-    out.max.set(this.radius, this.radius, this.radius);
+  override _getStartPositionRange(min: Vector3, max: Vector3): void {
+    const { radius } = this;
+    min.set(-radius, -radius, -radius);
+    max.set(radius, radius, radius);
   }
 }

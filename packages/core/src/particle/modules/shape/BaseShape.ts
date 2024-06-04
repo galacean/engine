@@ -62,14 +62,14 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _getDirectionRange(out: { min: Vector3; max: Vector3 }): void {
+  _getDirectionRange(min: Vector3, max: Vector3): void {
     throw new Error("BaseShape: must override it.");
   }
 
   /**
    * @internal
    */
-  _getStartPositionRange(out: { min: Vector3; max: Vector3 }): void {
+  _getStartPositionRange(min: Vector3, max: Vector3): void {
     throw new Error("BaseShape: must override it.");
   }
 
