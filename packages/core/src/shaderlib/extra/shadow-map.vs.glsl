@@ -2,6 +2,7 @@
 #include <common_vert>
 #include <blendShape_input>
 #include <normal_share>
+#include <uv_share>
 uniform mat4 camera_VPMat;
 uniform vec2 scene_ShadowBias; // x: depth bias, y: normal bias
 uniform vec3 scene_LightDirection;
@@ -24,6 +25,7 @@ void main() {
     #include <begin_normal_vert>
     #include <blendShape_vert>
     #include <skinning_vert>
+    #include <uv_vert>
     
     vec4 positionWS = renderer_ModelMat * position;
 

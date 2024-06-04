@@ -1,5 +1,5 @@
-import { BlendShape, ModelMesh, SkinnedMeshRenderer, Entity, Skin } from "@galacean/engine-core";
-import { BoundingBox, Vector3, Matrix } from "@galacean/engine-math";
+import { BlendShape, Entity, ModelMesh, Skin, SkinnedMeshRenderer } from "@galacean/engine-core";
+import { BoundingBox, Matrix, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 

@@ -30,6 +30,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-customBlendShape",
       threshold: 0.1
     },
+    multiSubMeshBlendShape: {
+      category: "Animator",
+      caseFileName: "animator-multiSubMeshBlendShape",
+      threshold: 0.1
+    },
     event: {
       category: "Animator",
       caseFileName: "animator-event",
@@ -105,6 +110,11 @@ export const E2E_CONFIG = {
     basic: {
       category: "Shadow",
       caseFileName: "shadow-basic",
+      threshold: 0.2
+    },
+    transparent: {
+      category: "Shadow",
+      caseFileName: "shadow-transparent",
       threshold: 0.2
     }
   },
