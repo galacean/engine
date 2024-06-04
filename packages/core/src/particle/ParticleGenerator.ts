@@ -1015,6 +1015,21 @@ export class ParticleGenerator {
     // Use diagonal for potential rotation
     maxSize *= 1.414;
 
+    // SizeOverLifetime impact
+    const { sizeOverLifetime } = this;
+    if (sizeOverLifetime.enabled) {
+      let maxSizeOverLifetime = sizeOverLifetime.size._getMax();
+      if (sizeOverLifetime.separateAxes) {
+        const maxSizeOverLifetimeY = sizeOverLifetime.sizeY._getMax();
+        const maxSizeOverLifetimeZ = sizeOverLifetime.sizeZ._getMax();
+        maxSizeOverLifetime = Math.max(maxSizeOverLifetime, maxSizeOverLifetimeY, maxSizeOverLifetimeZ);
+      }
+
+      if (maxSizeOverLifetime > 0) {
+        maxSize *= maxSizeOverLifetime;
+      }
+    }
+
     min.set(min.x - maxSize, min.y - maxSize, min.z - maxSize);
     max.set(max.x + maxSize, max.y + maxSize, max.z + maxSize);
   }
@@ -1095,7 +1110,7 @@ export class ParticleGenerator {
     const { min: originMin, max: originMax } = origin;
     const modifierMinMax = ParticleGenerator._tempVector20;
 
-    // Gravity Modifier Impact
+    // Gravity modifier impact
     this._getExtremeValueFromZero(this.main.gravityModifier, modifierMinMax);
     const { x, y, z } = this._renderer.scene.physics.gravity;
 
