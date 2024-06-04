@@ -106,18 +106,19 @@ export class Pointer {
   /**
    * @internal
    */
-  _firePointerDown(rayCastEntity: Entity): void {
+  _firePointerDownAndStartDrag(rayCastEntity: Entity): void {
+    this._pressedEntity = this._draggedEntity = rayCastEntity;
     if (rayCastEntity) {
       rayCastEntity._scripts.forEach(
         (element: Script) => {
           element.onPointerDown(this);
+          element.onPointerStartDrag(this);
         },
         (element: Script, index: number) => {
           element._entityScriptsIndex = index;
         }
       );
     }
-    this._pressedEntity = this._draggedEntity = rayCastEntity;
   }
 
   /**
@@ -137,23 +138,6 @@ export class Pointer {
       );
     }
     this._pressedEntity = null;
-  }
-
-  /**
-   * @internal
-   */
-  _firePointerStartDrag(rayCastEntity: Entity): void {
-    this._draggedEntity = rayCastEntity;
-    if (rayCastEntity) {
-      rayCastEntity._scripts.forEach(
-        (element: Script) => {
-          element.onPointerStartDrag(this);
-        },
-        (element: Script, index: number) => {
-          element._entityScriptsIndex = index;
-        }
-      );
-    }
   }
 
   /**

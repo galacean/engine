@@ -145,8 +145,7 @@ export class PointerManager implements IInput {
           switch (event.type) {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
-              pointer._firePointerDown(rayCastEntity);
-              pointer._firePointerStartDrag(rayCastEntity);
+              pointer._firePointerDownAndStartDrag(rayCastEntity);
               break;
             case "pointerup":
               pointer.phase = PointerPhase.Up;
