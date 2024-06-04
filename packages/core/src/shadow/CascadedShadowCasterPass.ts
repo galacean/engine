@@ -89,7 +89,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
       _shadowMatrices: shadowMatrices
     } = this;
 
-    const { opaqueQueue, alphaTestQueue, transparentQueue } = camera._renderPipeline._cullingResults;
+    const { opaqueQueue, alphaTestQueue } = camera._renderPipeline._cullingResults;
 
     const scene = camera.scene;
     const componentsManager = scene._componentsManager;
@@ -210,7 +210,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
       splitBoundSpheres[offset + 3] = radius * radius;
       opaqueQueue.clear();
       alphaTestQueue.clear();
-      transparentQueue.clear();
       const renderers = componentsManager._renderers;
       const elements = renderers._elements;
       for (let k = renderers.length - 1; k >= 0; --k) {

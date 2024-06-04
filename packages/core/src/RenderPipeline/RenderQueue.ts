@@ -77,8 +77,7 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, scene } = camera;
-    const { instanceId: cameraId, shaderData: cameraData } = camera;
+    const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
     const { shaderData: sceneData, instanceId: sceneId } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
@@ -169,7 +168,7 @@ export class RenderQueue {
         }
 
         const renderState = shaderPass._renderState ?? renderStates[j];
-        renderState._apply(
+        renderState._applyStates(
           engine,
           renderer.entity.transform._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,

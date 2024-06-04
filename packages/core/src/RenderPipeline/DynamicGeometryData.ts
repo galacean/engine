@@ -88,9 +88,11 @@ export class DynamicGeometryData {
   constructor(engine: Engine, maxVertexCount: number) {
     const primitive = (this._primitive = new Primitive(engine));
     primitive.isGCIgnored = true;
-
-    const vertexElements: VertexElement[] = [];
-    const vertexStride = this.createVertexElements(vertexElements);
+    // vertex element
+    primitive.addVertexElement(new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0));
+    primitive.addVertexElement(new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0));
+    primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
+    const vertexStride = 36;
     // vertices
     const vertexBuffer = (this._vBuffer = new Buffer(
       engine,
@@ -110,9 +112,6 @@ export class DynamicGeometryData {
     ));
     indexBuffer.isGCIgnored = true;
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
-    for (let i = 0, l = vertexElements.length; i < l; ++i) {
-      primitive.addVertexElement(vertexElements[i]);
-    }
 
     const vertexLen = maxVertexCount * 9;
     const indiceLen = maxVertexCount * 4;
@@ -165,13 +164,6 @@ export class DynamicGeometryData {
     this._subMeshPool.free(chunk._subMesh);
     chunk.reset();
     this._chunkPool.free(chunk);
-  }
-
-  createVertexElements(vertexElements: VertexElement[]): number {
-    vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
-    vertexElements[1] = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
-    vertexElements[2] = new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0);
-    return 36;
   }
 
   private _allocateEntry(entries: Entry[], needLen: number): Entry | null {

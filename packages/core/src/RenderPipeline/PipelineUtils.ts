@@ -147,7 +147,7 @@ export class PipelineUtils {
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || blitMaterial.renderState)._apply(
+    (pass._renderState || blitMaterial.renderState)._applyStates(
       engine,
       false,
       pass._renderStateDataMap,

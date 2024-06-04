@@ -125,7 +125,7 @@ export class SpriteMaskBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine, false, pass._renderStateDataMap, material.shaderData);
+      material.renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
 
       engine._hardwareRenderer.drawPrimitive(primitive, renderData.chunk._subMesh, program);
     }
