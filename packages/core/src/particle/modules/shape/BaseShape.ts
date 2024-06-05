@@ -9,8 +9,7 @@ export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
-  /* @internal */
-  _updateManager: UpdateFlagManager = new UpdateFlagManager();
+  protected _updateManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _enabled = true;
   private _randomDirectionAmount = 0;
