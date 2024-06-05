@@ -40,7 +40,6 @@ export class ParticleRenderer extends Renderer {
   pivot = new Vector3();
 
   /** @internal */
-  @deepClone
   _generatorBounds: BoundingBox = new BoundingBox();
 
   private _renderMode: ParticleRenderMode;
@@ -227,7 +226,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _onWorldVolumeChanged() {
+  _onWorldVolumeChanged(): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
@@ -241,7 +240,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _onGeneratorParamsChanged() {
+  _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
       ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }

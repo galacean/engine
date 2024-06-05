@@ -116,7 +116,7 @@ export class ParticleGenerator {
   @ignoreClone
   private _transformedBoundsArray: Float32Array;
   @ignoreClone
-  private _transformedBoundsArrayCapacity = 0;
+  private _transformedBoundsCount = 0;
   @ignoreClone
   private _firstActiveTransformedBoundingBox = 0;
   @ignoreClone
@@ -563,7 +563,7 @@ export class ParticleGenerator {
     const boundsArray = this._transformedBoundsArray;
     const firstActiveElement = this._firstActiveTransformedBoundingBox;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
-    const capacity = this._transformedBoundsArrayCapacity;
+    const count = this._transformedBoundsCount;
 
     const index = firstActiveElement * ParticleBufferUtils.boundsFloatStride;
     bounds.min.copyFromArray(boundsArray, index);
@@ -574,7 +574,7 @@ export class ParticleGenerator {
         this._mergeTransformedBounds(i, bounds);
       }
     } else {
-      for (let i = firstActiveElement + 1; i < capacity; i++) {
+      for (let i = firstActiveElement + 1; i < count; i++) {
         this._mergeTransformedBounds(i, bounds);
       }
       if (firstFreeElement > 0) {
@@ -597,9 +597,9 @@ export class ParticleGenerator {
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
     const firstActiveElement = this._firstActiveTransformedBoundingBox;
 
-    this._transformedBoundsArrayCapacity += increaseCount;
+    this._transformedBoundsCount += increaseCount;
     const lastBoundsArray = this._transformedBoundsArray;
-    const boundsArray = new Float32Array(this._transformedBoundsArrayCapacity * floatStride);
+    const boundsArray = new Float32Array(this._transformedBoundsCount * floatStride);
 
     if (lastBoundsArray) {
       boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
@@ -622,7 +622,7 @@ export class ParticleGenerator {
   _freeBoundsArray(): void {
     this._transformedBoundsArray = null;
 
-    this._transformedBoundsArrayCapacity = 0;
+    this._transformedBoundsCount = 0;
     this._firstActiveTransformedBoundingBox = 0;
     this._firstFreeTransformedBoundingBox = 0;
   }
@@ -645,7 +645,7 @@ export class ParticleGenerator {
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       // Resize transformed bounds if needed
       let nextFreeElement = this._firstFreeTransformedBoundingBox + 1;
-      if (nextFreeElement >= this._transformedBoundsArrayCapacity) {
+      if (nextFreeElement >= this._transformedBoundsCount) {
         nextFreeElement = 0;
       }
       if (nextFreeElement === this._firstActiveTransformedBoundingBox) {
@@ -669,7 +669,7 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     } else {
       const previousBoundsOffset =
-        ((this._firstFreeTransformedBoundingBox - 1) % this._transformedBoundsArrayCapacity) * boundsFloatStride;
+        ((this._firstFreeTransformedBoundingBox - 1) % this._transformedBoundsCount) * boundsFloatStride;
 
       this._transformedBoundsArray[previousBoundsOffset + boundsTimeOffset] = this._playTime;
     }
@@ -946,7 +946,7 @@ export class ParticleGenerator {
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
     const boundsArray = this._transformedBoundsArray;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
-    const capacity = this._transformedBoundsArrayCapacity;
+    const count = this._transformedBoundsCount;
 
     while (this._firstActiveTransformedBoundingBox !== firstFreeElement) {
       const index = this._firstActiveTransformedBoundingBox * boundsFloatStride;
@@ -955,7 +955,7 @@ export class ParticleGenerator {
         break;
       }
 
-      if (++this._firstActiveTransformedBoundingBox >= capacity) {
+      if (++this._firstActiveTransformedBoundingBox >= count) {
         this._firstActiveTransformedBoundingBox = 0;
       }
       this._renderer._onWorldVolumeChanged();
@@ -1026,9 +1026,7 @@ export class ParticleGenerator {
         maxSizeOverLifetime = Math.max(maxSizeOverLifetime, maxSizeOverLifetimeY, maxSizeOverLifetimeZ);
       }
 
-      if (maxSizeOverLifetime > 0) {
-        maxSize *= maxSizeOverLifetime;
-      }
+      maxSize *= maxSizeOverLifetime;
     }
 
     min.set(min.x - maxSize, min.y - maxSize, min.z - maxSize);

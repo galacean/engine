@@ -52,9 +52,6 @@ export class CircleShape extends BaseShape {
     return this._arcMode;
   }
 
-  /**
-   * Sets the mode to generate particles around the arc.
-   */
   set arcMode(value: ParticleShapeArcMode) {
     if (value !== this._arcMode) {
       this._arcMode = value;
@@ -98,7 +95,7 @@ export class CircleShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
-  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
+  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     if (this.randomDirectionAmount > 0) {
       outMin.set(-1, -1, -1);
       outMax.set(1, 1, 1);
@@ -113,21 +110,21 @@ export class CircleShape extends BaseShape {
     outMax.scale(this._radius);
   }
 
-  private _getUnitArcRange(outMin: Vector3, outMax: Vector3) {
+  private _getUnitArcRange(outMin: Vector3, outMax: Vector3): void {
     const radian = MathUtil.degreeToRadian(this._arc);
-    const dirSinA = Math.sin(radian);
-    const dirCosA = Math.cos(radian);
+    const dirSin = Math.sin(radian);
+    const dirCos = Math.cos(radian);
 
     if (this._arc < 90) {
       outMin.set(0, 0, 0);
-      outMax.set(1, dirSinA, 0);
-    } else if (this._arc <= 180) {
-      outMin.set(dirCosA, 0, 0);
+      outMax.set(1, dirSin, 0);
+    } else if (this._arc < 180) {
+      outMin.set(dirCos, 0, 0);
       outMax.set(1, 1, 0);
-    } else if (this._arc <= 270) {
-      outMin.set(-1, dirSinA, 0);
+    } else if (this._arc < 270) {
+      outMin.set(-1, dirSin, 0);
       outMax.set(1, 1, 0);
-    } else if (this._arc <= 360) {
+    } else if (this._arc < 360) {
       outMin.set(-1, -1, 0);
       outMax.set(1, 1, 0);
     }

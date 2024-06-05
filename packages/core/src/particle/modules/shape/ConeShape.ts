@@ -54,9 +54,6 @@ export class ConeShape extends BaseShape {
     return this._length;
   }
 
-  /**
-   * Sets the length of the cone to emit particles from.
-   */
   set length(value: number) {
     if (value !== this._length) {
       this._length = value;
@@ -71,9 +68,6 @@ export class ConeShape extends BaseShape {
     return this._emitType;
   }
 
-  /**
-   * Sets the cone emitter type.
-   */
   set emitType(value: ConeEmitType) {
     if (value !== this._emitType) {
       this._emitType = value;
@@ -115,7 +109,7 @@ export class ConeShape extends BaseShape {
     }
   }
 
-  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
+  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     outMin.set(-1, -1, -1);
     outMax.set(1, 1, 1);
 
@@ -125,13 +119,13 @@ export class ConeShape extends BaseShape {
 
     const totalRadian = MathUtil.degreeToRadian(this._angle) + this.randomDirectionAmount * Math.PI;
     const totalDegree = this._angle + this.randomDirectionAmount * 180;
-    const dirSin = Math.sin(totalRadian);
-    const dirCos = Math.cos(totalRadian);
 
     if (totalDegree < 90) {
+      const dirSin = Math.sin(totalRadian);
       outMin.set(-dirSin, -dirSin, -1);
       outMax.set(dirSin, dirSin, 0);
     } else if (totalDegree < 180) {
+      const dirCos = Math.cos(totalRadian);
       outMin.set(-1, -1, -1);
       outMax.set(1, 1, -dirCos);
     }

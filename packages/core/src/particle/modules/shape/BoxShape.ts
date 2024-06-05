@@ -45,15 +45,15 @@ export class BoxShape extends BaseShape {
     Vector3.lerp(defaultDirection, direction, this.randomDirectionAmount, direction);
   }
 
-  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
+  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     const radian = Math.PI * this.randomDirectionAmount;
-    const dirSin = Math.sin(radian);
-    const dirCos = Math.cos(radian);
 
     if (this.randomDirectionAmount < 0.5) {
+      const dirSin = Math.sin(radian);
       outMin.set(-dirSin, -dirSin, -1);
       outMax.set(dirSin, dirSin, 0);
     } else {
+      const dirCos = Math.cos(radian);
       outMin.set(-1, -1, -1);
       outMax.set(1, 1, -dirCos);
     }

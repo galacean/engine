@@ -16,7 +16,7 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
  */
 export class ParticleBufferUtils {
   static readonly instanceVertexStride = 152;
-  static readonly instanceVertexFloatStride = this.instanceVertexStride / 4;
+  static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 
   static readonly startLifeTimeOffset = 3;
   static readonly timeOffset = 7;
