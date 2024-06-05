@@ -530,6 +530,7 @@ export class ParticleGenerator {
   _destroy(): void {
     this._instanceVertexBufferBinding.buffer.destroy();
     this._primitive.destroy();
+    this.emission._destroy();
   }
 
   /**

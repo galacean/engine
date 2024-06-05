@@ -26,7 +26,7 @@ export class CircleShape extends BaseShape {
 
   set radius(value: number) {
     this._radius = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -38,7 +38,7 @@ export class CircleShape extends BaseShape {
 
   set arc(value: number) {
     this._arc = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -53,7 +53,7 @@ export class CircleShape extends BaseShape {
    */
   set arcMode(value: ParticleShapeArcMode) {
     this._arcMode = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -65,7 +65,7 @@ export class CircleShape extends BaseShape {
 
   set arcSpeed(value: number) {
     this._arcSpeed = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**

@@ -28,7 +28,7 @@ export class ConeShape extends BaseShape {
 
   set angle(value: number) {
     this._angle = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -40,7 +40,7 @@ export class ConeShape extends BaseShape {
 
   set radius(value: number) {
     this._radius = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -55,7 +55,7 @@ export class ConeShape extends BaseShape {
    */
   set length(value: number) {
     this._length = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -70,7 +70,7 @@ export class ConeShape extends BaseShape {
    */
   set emitType(value: ConeEmitType) {
     this._emitType = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**

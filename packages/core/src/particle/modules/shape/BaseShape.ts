@@ -1,17 +1,19 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
+import { UpdateFlagManager } from "../../../UpdateFlagManager";
 
 /**
  * Base class for all particle shapes.
  */
 export abstract class BaseShape {
-  private _enabled = true;
-  private _randomDirectionAmount = 0;
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
-  /** @internal */
-  _onValueChanged: () => void = null;
+  /* @internal */
+  _updateManager: UpdateFlagManager = new UpdateFlagManager();
+
+  private _enabled = true;
+  private _randomDirectionAmount = 0;
 
   /**
    * Specifies whether the ShapeModule is enabled or disabled.
@@ -23,7 +25,7 @@ export abstract class BaseShape {
   set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
-      this._onValueChanged && this._onValueChanged();
+      this._updateManager.dispatch();
     }
   }
 
@@ -37,23 +39,8 @@ export abstract class BaseShape {
   set randomDirectionAmount(value: number) {
     if (value !== this._randomDirectionAmount) {
       this._randomDirectionAmount = value;
-      this._onValueChanged && this._onValueChanged();
+      this._updateManager.dispatch();
     }
-  }
-
-  /**
-   * @internal
-   */
-  get onValueChanged(): (() => void) | null {
-    return this._onValueChanged;
-  }
-
-  /**
-   * @internal
-   */
-  set onValueChanged(value: (() => void) | null) {
-    this._onValueChanged = value;
-    this._updateOnValueChanged();
   }
 
   /**
@@ -80,5 +67,14 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _updateOnValueChanged(): void {}
+  _registerOnValueChanged(listener: () => void): void {
+    this._updateManager.addListener(listener);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterOnValueChanged(listener: () => void): void {
+    this._updateManager.removeListener(listener);
+  }
 }

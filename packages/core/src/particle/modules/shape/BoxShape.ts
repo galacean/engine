@@ -23,10 +23,16 @@ export class BoxShape extends BaseShape {
   }
 
   set size(value: Vector3) {
-    this._size = value;
-    //@ts-ignore
-    this._size._onValueChanged = this._onValueChanged;
-    this._onValueChanged && this._onValueChanged();
+    if (value !== this._size) {
+      this._size.copyFrom(value);
+    }
+  }
+
+  constructor() {
+    super();
+    this._onSizeChanged = this._onSizeChanged.bind(this);
+    // @ts-ignore
+    this._size._onValueChanged = this._onSizeChanged;
   }
 
   /**
@@ -60,11 +66,7 @@ export class BoxShape extends BaseShape {
     max.set(x / 2, y / 2, z / 2);
   }
 
-  /**
-   * @internal
-   */
-  override _updateOnValueChanged(): void {
-    //@ts-ignore
-    this._size._onValueChanged = this._onValueChanged;
+  private _onSizeChanged(): void {
+    this._updateManager.dispatch();
   }
 }

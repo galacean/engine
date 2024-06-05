@@ -41,11 +41,16 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   set shape(value: BaseShape) {
-    this._shape = value;
-    if (value) {
-      this._shape.onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastShape = this._shape;
+    if (value !== lastShape) {
+      this._shape = value;
+
+      const renderer = this._generator._renderer;
+      lastShape?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
+      value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
+
+      renderer._onGeneratorParamsChanged();
     }
-    this._generator._renderer._onGeneratorParamsChanged();
   }
 
   /**
@@ -114,6 +119,13 @@ export class EmissionModule extends ParticleGeneratorModule {
   _reset(): void {
     this._frameRateTime = 0;
     this._currentBurstIndex = 0;
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._shape?._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
   }
 
   private _emitByRateOverTime(playTime: number): void {

@@ -20,7 +20,7 @@ export class HemisphereShape extends BaseShape {
 
   set radius(value: number) {
     this._radius = value;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
