@@ -12,12 +12,12 @@ export class ConeShape extends BaseShape {
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
 
-  private _angle: number = 25.0;
-  private _radius: number = 1.0;
-  private _length: number = 5.0;
-  private _emitType: ConeEmitType = ConeEmitType.Base;
-
   readonly shapeType = ParticleShapeType.Cone;
+
+  private _angle = 25.0;
+  private _radius = 1.0;
+  private _length = 5.0;
+  private _emitType = ConeEmitType.Base;
 
   /**
    * Angle of the cone to emit particles from.
@@ -27,8 +27,10 @@ export class ConeShape extends BaseShape {
   }
 
   set angle(value: number) {
-    this._angle = value;
-    this._updateManager.dispatch();
+    if (value !== this._angle) {
+      this._angle = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -39,8 +41,10 @@ export class ConeShape extends BaseShape {
   }
 
   set radius(value: number) {
-    this._radius = value;
-    this._updateManager.dispatch();
+    if (value !== this._radius) {
+      this._radius = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -54,8 +58,10 @@ export class ConeShape extends BaseShape {
    * Sets the length of the cone to emit particles from.
    */
   set length(value: number) {
-    this._length = value;
-    this._updateManager.dispatch();
+    if (value !== this._length) {
+      this._length = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -69,14 +75,13 @@ export class ConeShape extends BaseShape {
    * Sets the cone emitter type.
    */
   set emitType(value: ConeEmitType) {
-    this._emitType = value;
-    this._updateManager.dispatch();
+    if (value !== this._emitType) {
+      this._emitType = value;
+      this._updateManager.dispatch();
+    }
   }
 
-  /**
-   * @internal
-   */
-  override _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const unitPosition = ConeShape._tempVector20;
     const radian = MathUtil.degreeToRadian(this.angle);
     const dirSinA = Math.sin(radian);
@@ -110,37 +115,32 @@ export class ConeShape extends BaseShape {
     }
   }
 
-  /**
-   * @internal
-   */
-  override _getDirectionRange(min: Vector3, max: Vector3) {
-    const radian = MathUtil.degreeToRadian(this.angle);
+  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
+    const radian = MathUtil.degreeToRadian(this._angle);
     const dirSinA = Math.sin(radian);
 
-    min.set(-dirSinA, -dirSinA, -1);
-    max.set(dirSinA, dirSinA, 0);
+    outMin.set(-dirSinA, -dirSinA, -1);
+    outMax.set(dirSinA, dirSinA, 0);
 
     if (this.emitType === ConeEmitType.Volume && this.randomDirectionAmount > 0) {
-      min.set(-1, -1, -1);
-      max.set(1, 1, 1);
+      outMin.set(-1, -1, -1);
+      outMax.set(1, 1, 1);
     }
   }
-  /**
-   * @internal
-   */
-  override _getStartPositionRange(min: Vector3, max: Vector3): void {
-    const radian = MathUtil.degreeToRadian(this.angle);
+
+  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+    const radian = MathUtil.degreeToRadian(this._angle);
     const dirSinA = Math.sin(radian);
     const { radius, length } = this;
 
     switch (this.emitType) {
       case ConeEmitType.Base:
-        min.set(-radius, -radius, -radius);
-        max.set(radius, radius, 0);
+        outMin.set(-radius, -radius, -radius);
+        outMax.set(radius, radius, 0);
         break;
       case ConeEmitType.Volume:
-        min.set(-radius - dirSinA * length, -radius - dirSinA * length, -length);
-        max.set(radius + dirSinA * length, radius + dirSinA * length, 0);
+        outMin.set(-radius - dirSinA * length, -radius - dirSinA * length, -length);
+        outMax.set(radius + dirSinA * length, radius + dirSinA * length, 0);
         break;
     }
   }

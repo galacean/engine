@@ -9,7 +9,7 @@ export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
-  protected _updateManager: UpdateFlagManager = new UpdateFlagManager();
+  protected _updateManager = new UpdateFlagManager();
 
   private _enabled = true;
   private _randomDirectionAmount = 0;
@@ -45,27 +45,6 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
-    throw new Error("BaseShape: must override it.");
-  }
-
-  /**
-   * @internal
-   */
-  _getDirectionRange(min: Vector3, max: Vector3): void {
-    throw new Error("BaseShape: must override it.");
-  }
-
-  /**
-   * @internal
-   */
-  _getStartPositionRange(min: Vector3, max: Vector3): void {
-    throw new Error("BaseShape: must override it.");
-  }
-
-  /**
-   * @internal
-   */
   _registerOnValueChanged(listener: () => void): void {
     this._updateManager.addListener(listener);
   }
@@ -76,4 +55,19 @@ export abstract class BaseShape {
   _unRegisterOnValueChanged(listener: () => void): void {
     this._updateManager.removeListener(listener);
   }
+
+  /**
+   * @internal
+   */
+  abstract _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void;
+
+  /**
+   * @internal
+   */
+  abstract _getDirectionRange(outMin: Vector3, outMax: Vector3): void;
+
+  /**
+   * @internal
+   */
+  abstract _getStartPositionRange(outMin: Vector3, outMax: Vector3): void;
 }

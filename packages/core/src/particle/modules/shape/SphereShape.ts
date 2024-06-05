@@ -7,9 +7,9 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Particle shape that emits particles from a sphere.
  */
 export class SphereShape extends BaseShape {
-  private _radius = 1.0;
-
   readonly shapeType = ParticleShapeType.Sphere;
+
+  private _radius = 1.0;
 
   /**
    * Radius of the shape to emit particles from.
@@ -19,14 +19,13 @@ export class SphereShape extends BaseShape {
   }
 
   set radius(value: number) {
-    this._radius = value;
-    this._updateManager.dispatch();
+    if (value !== this._radius) {
+      this._radius = value;
+      this._updateManager.dispatch();
+    }
   }
 
-  /**
-   * @internal
-   */
-  override _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideUnitSphere(position, rand);
     position.scale(this.radius);
 
@@ -34,19 +33,14 @@ export class SphereShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
-  /**
-   * @internal
-   */
-  override _getDirectionRange(min: Vector3, max: Vector3) {
-    min.set(-1, -1, -1);
-    max.set(1, 1, 1);
+  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
+    outMin.set(-1, -1, -1);
+    outMax.set(1, 1, 1);
   }
-  /**
-   * @internal
-   */
-  override _getStartPositionRange(min: Vector3, max: Vector3): void {
-    const { radius } = this;
-    min.set(-radius, -radius, -radius);
-    max.set(radius, radius, radius);
+
+  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+    const radius = this._radius;
+    outMin.set(-radius, -radius, -radius);
+    outMax.set(radius, radius, radius);
   }
 }

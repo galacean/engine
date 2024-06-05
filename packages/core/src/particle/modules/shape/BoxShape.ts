@@ -10,10 +10,10 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class BoxShape extends BaseShape {
   private static _tempVector30 = new Vector3();
 
-  @deepClone
-  _size = new Vector3(1, 1, 1);
-
   readonly shapeType = ParticleShapeType.Box;
+
+  @deepClone
+  private _size = new Vector3(1, 1, 1);
 
   /**
    * The size of the box.
@@ -35,10 +35,7 @@ export class BoxShape extends BaseShape {
     this._size._onValueChanged = this._onSizeChanged;
   }
 
-  /**
-   * @internal
-   */
-  override _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
     position.multiply(this.size);
 
@@ -48,22 +45,16 @@ export class BoxShape extends BaseShape {
     Vector3.lerp(defaultDirection, direction, this.randomDirectionAmount, direction);
   }
 
-  /**
-   * @internal
-   */
-  override _getDirectionRange(min: Vector3, max: Vector3) {
+  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
     const { randomDirectionAmount } = this;
-    min.set(-randomDirectionAmount, -randomDirectionAmount, -1);
-    max.set(randomDirectionAmount, randomDirectionAmount, randomDirectionAmount);
+    outMin.set(-randomDirectionAmount, -randomDirectionAmount, -1);
+    outMax.set(randomDirectionAmount, randomDirectionAmount, randomDirectionAmount);
   }
 
-  /**
-   * @internal
-   */
-  override _getStartPositionRange(min: Vector3, max: Vector3): void {
-    const { x, y, z } = this.size;
-    min.set(-x / 2, -y / 2, -z / 2);
-    max.set(x / 2, y / 2, z / 2);
+  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+    const { x, y, z } = this._size;
+    outMin.set(-x * 0.5, -y * 0.5, -z * 0.5);
+    outMax.set(x * 0.5, y * 0.5, z * 0.5);
   }
 
   private _onSizeChanged(): void {

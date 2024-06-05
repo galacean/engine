@@ -8,14 +8,14 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Particle shape that emits particles from a circle.
  */
 export class CircleShape extends BaseShape {
-  private static _tempPositionPoint: Vector2 = new Vector2();
-
-  private _radius: number = 1.0;
-  private _arc: number = 360.0;
-  private _arcMode: ParticleShapeArcMode = ParticleShapeArcMode.Random;
-  private _arcSpeed: number = 1.0;
+  private static _tempPositionPoint = new Vector2();
 
   readonly shapeType = ParticleShapeType.Circle;
+
+  private _radius = 1.0;
+  private _arc = 360.0;
+  private _arcMode = ParticleShapeArcMode.Random;
+  private _arcSpeed = 1.0;
 
   /**
    * Radius of the shape to emit particles from.
@@ -25,8 +25,10 @@ export class CircleShape extends BaseShape {
   }
 
   set radius(value: number) {
-    this._radius = value;
-    this._updateManager.dispatch();
+    if (value !== this._radius) {
+      this._radius = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -37,8 +39,10 @@ export class CircleShape extends BaseShape {
   }
 
   set arc(value: number) {
-    this._arc = value;
-    this._updateManager.dispatch();
+    if (value !== this._arc) {
+      this._arc = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -52,8 +56,10 @@ export class CircleShape extends BaseShape {
    * Sets the mode to generate particles around the arc.
    */
   set arcMode(value: ParticleShapeArcMode) {
-    this._arcMode = value;
-    this._updateManager.dispatch();
+    if (value !== this._arcMode) {
+      this._arcMode = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -64,14 +70,13 @@ export class CircleShape extends BaseShape {
   }
 
   set arcSpeed(value: number) {
-    this._arcSpeed = value;
-    this._updateManager.dispatch();
+    if (value !== this._arcSpeed) {
+      this._arcSpeed = value;
+      this._updateManager.dispatch();
+    }
   }
 
-  /**
-   * @internal
-   */
-  override _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const positionPoint = CircleShape._tempPositionPoint;
 
     switch (this.arcMode) {
@@ -93,40 +98,38 @@ export class CircleShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
-  /**
-   * @internal
-   */
-  override _getDirectionRange(min: Vector3, max: Vector3) {
+  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
     if (this.randomDirectionAmount > 0) {
-      min.set(-1, -1, -1);
-      max.set(1, 1, 1);
+      outMin.set(-1, -1, -1);
+      outMax.set(1, 1, 1);
     } else {
-      const radian = MathUtil.degreeToRadian(this.arc);
-      const dirSinA = Math.sin(radian);
-      const dirCosA = Math.cos(radian);
-
-      if (this.arc < 90) {
-        min.set(0, 0, 0);
-        max.set(1, dirSinA, 0);
-      } else if (this.arc <= 180) {
-        min.set(dirCosA, 0, 0);
-        max.set(1, 1, 0);
-      } else if (this.arc <= 270) {
-        min.set(-1, dirSinA, 0);
-        max.set(1, 1, 0);
-      } else if (this.arc <= 360) {
-        min.set(-1, -1, 0);
-        max.set(1, 1, 0);
-      }
+      this._getUnitArcRange(outMin, outMax);
     }
   }
 
-  /**
-   * @internal
-   */
-  override _getStartPositionRange(min: Vector3, max: Vector3): void {
-    const { radius } = this;
-    min.set(-radius, -radius, -radius);
-    max.set(radius, radius, radius);
+  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+    this._getUnitArcRange(outMin, outMax);
+    outMin.scale(this._radius);
+    outMax.scale(this._radius);
+  }
+
+  private _getUnitArcRange(outMin: Vector3, outMax: Vector3) {
+    const radian = MathUtil.degreeToRadian(this._arc);
+    const dirSinA = Math.sin(radian);
+    const dirCosA = Math.cos(radian);
+
+    if (this._arc < 90) {
+      outMin.set(0, 0, 0);
+      outMax.set(1, dirSinA, 0);
+    } else if (this._arc <= 180) {
+      outMin.set(dirCosA, 0, 0);
+      outMax.set(1, 1, 0);
+    } else if (this._arc <= 270) {
+      outMin.set(-1, dirSinA, 0);
+      outMax.set(1, 1, 0);
+    } else if (this._arc <= 360) {
+      outMin.set(-1, -1, 0);
+      outMax.set(1, 1, 0);
+    }
   }
 }

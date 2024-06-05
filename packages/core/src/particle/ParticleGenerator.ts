@@ -112,7 +112,7 @@ export class ParticleGenerator {
   private _instanceVertices: Float32Array;
   private _randomSeed = 0;
   @ignoreClone
-  private _tempBoundingBox = new BoundingBox();
+  private _transformedBounds = new BoundingBox();
   @ignoreClone
   private _transformedBoundsArray: Float32Array;
   @ignoreClone
@@ -547,7 +547,7 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
-    const transformedBounds = this._tempBoundingBox;
+    const transformedBounds = this._transformedBounds;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
@@ -654,7 +654,7 @@ export class ParticleGenerator {
       }
 
       // Generate transformed bounds
-      const transformedBounds = this._tempBoundingBox;
+      const transformedBounds = this._transformedBounds;
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
