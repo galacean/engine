@@ -135,8 +135,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -14.414, y: -14.914, z: -28.414 },
-      { x: 14.414, y: 14.914, z: 15.914 },
+      { x: -26.914, y: -27.414, z: -28.414 },
+      { x: 26.914, y: 27.414, z: 3.414 },
       delta
     );
   });
@@ -217,8 +217,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -27.414, y: -27.414, z: -2.414 },
-      { x: 27.414, y: 27.414, z: 2.414 },
+      { x: -27.414, y: -27.414, z: -1.414 },
+      { x: 27.414, y: 27.414, z: 1.414 },
       delta
     );
 
@@ -227,8 +227,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -28.914, y: -28.914, z: -3.914 },
-      { x: 28.914, y: 28.914, z: 3.914 },
+      { x: -28.914, y: -28.914, z: -1.414 },
+      { x: 28.914, y: 28.914, z: 1.414 },
       delta
     );
 
@@ -237,8 +237,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -3.914, y: -3.914, z: -3.914 },
-      { x: 28.914, y: 21.59, z: 3.914 },
+      { x: -1.414, y: -1.414, z: -1.414 },
+      { x: 28.914, y: 20.859, z: 1.414 },
       delta
     );
 
@@ -246,8 +246,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -21.59, y: -3.914, z: -3.914 },
-      { x: 28.914, y: 28.914, z: 3.914 },
+      { x: -20.859, y: -1.414, z: -1.414 },
+      { x: 28.914, y: 28.914, z: 1.414 },
       delta
     );
 
@@ -255,8 +255,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -28.914, y: -21.59, z: -3.914 },
-      { x: 28.914, y: 28.914, z: 3.914 },
+      { x: -28.914, y: -20.859, z: -1.414 },
+      { x: 28.914, y: 28.914, z: 1.414 },
       delta
     );
 
@@ -264,8 +264,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -28.914, y: -28.914, z: -3.914 },
-      { x: 28.914, y: 28.914, z: 3.914 },
+      { x: -28.914, y: -28.914, z: -1.414 },
+      { x: 28.914, y: 28.914, z: 1.414 },
       delta
     );
 
@@ -274,8 +274,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -28.914, y: -28.914, z: -3.914 },
-      { x: 28.914, y: 28.914, z: 3.914 },
+      { x: -28.914, y: -28.914, z: -1.414 },
+      { x: 28.914, y: 28.914, z: 1.414 },
       delta
     );
 
@@ -284,8 +284,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -28.914, y: -28.914, z: -28.914 },
-      { x: 28.914, y: 28.914, z: 28.914 },
+      { x: -28.914, y: -28.914, z: -26.414 },
+      { x: 28.914, y: 28.914, z: 26.414 },
       delta
     );
   });

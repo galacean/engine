@@ -116,15 +116,24 @@ export class ConeShape extends BaseShape {
   }
 
   _getDirectionRange(outMin: Vector3, outMax: Vector3) {
-    const radian = MathUtil.degreeToRadian(this._angle);
-    const dirSinA = Math.sin(radian);
-
-    outMin.set(-dirSinA, -dirSinA, -1);
-    outMax.set(dirSinA, dirSinA, 0);
+    outMin.set(-1, -1, -1);
+    outMax.set(1, 1, 1);
 
     if (this.emitType === ConeEmitType.Volume && this.randomDirectionAmount > 0) {
+      return;
+    }
+
+    const totalRadian = MathUtil.degreeToRadian(this._angle) + this.randomDirectionAmount * Math.PI;
+    const totalDegree = this._angle + this.randomDirectionAmount * 180;
+    const dirSin = Math.sin(totalRadian);
+    const dirCos = Math.cos(totalRadian);
+
+    if (totalDegree < 90) {
+      outMin.set(-dirSin, -dirSin, -1);
+      outMax.set(dirSin, dirSin, 0);
+    } else if (totalDegree < 180) {
       outMin.set(-1, -1, -1);
-      outMax.set(1, 1, 1);
+      outMax.set(1, 1, -dirCos);
     }
   }
 

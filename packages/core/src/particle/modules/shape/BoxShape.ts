@@ -46,9 +46,17 @@ export class BoxShape extends BaseShape {
   }
 
   _getDirectionRange(outMin: Vector3, outMax: Vector3) {
-    const { randomDirectionAmount } = this;
-    outMin.set(-randomDirectionAmount, -randomDirectionAmount, -1);
-    outMax.set(randomDirectionAmount, randomDirectionAmount, randomDirectionAmount);
+    const radian = Math.PI * this.randomDirectionAmount;
+    const dirSin = Math.sin(radian);
+    const dirCos = Math.cos(radian);
+
+    if (this.randomDirectionAmount < 0.5) {
+      outMin.set(-dirSin, -dirSin, -1);
+      outMax.set(dirSin, dirSin, 0);
+    } else {
+      outMin.set(-1, -1, -1);
+      outMax.set(1, 1, -dirCos);
+    }
   }
 
   _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
