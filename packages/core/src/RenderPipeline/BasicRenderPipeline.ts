@@ -188,6 +188,14 @@ export class BasicRenderPipeline {
 
     transparentQueue.render(camera, PipelineStage.Forward);
 
+    if (camera.enablePostProcess) {
+      const postProcesses = camera.scene._postProcessManager._postProcessPasses.getLoopArray();
+      for (let i = 0, length = postProcesses.length; i < length; i++) {
+        const pass = postProcesses[i];
+        pass.isActive && pass.onRender(context);
+      }
+    }
+
     colorTarget?._blitRenderTarget();
     colorTarget?.generateMipmaps();
 

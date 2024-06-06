@@ -1,34 +1,35 @@
 import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { PostProcess } from "./PostProcess";
+import { PostProcessPass } from "./PostProcessPass";
 
 export class PostProcessManager {
-  private _postProcess = new SafeLoopArray<PostProcess>();
+  /** @internal */
+  _postProcessPasses = new SafeLoopArray<PostProcessPass>();
 
   /**
-   * Get the post process list.
+   * Get the post process pass list.
    */
-  get postProcesses(): ReadonlyArray<PostProcess> {
-    return this._postProcess.getArray();
+  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
+    return this._postProcessPasses.getArray();
   }
 
   /**
-   * Add post process.
-   * @param value - The post process want to be added
+   * Add post process pass.
+   * @param value - The post process pass want to be added
    */
-  addPostProcess(value: PostProcess): void;
+  addPostProcessPass(value: PostProcessPass): void;
 
   /**
-   * Add post process at specified index.
+   * Add post process pass at specified index.
    * @param index - Specified index
-   * @param value - The post process want to be added
+   * @param value - The post process pass want to be added
    */
-  addPostProcess(index: number, value: PostProcess): void;
+  addPostProcessPass(index: number, value: PostProcessPass): void;
 
-  addPostProcess(indexOrValue: number | PostProcess, value?: PostProcess): void {}
+  addPostProcessPass(indexOrValue: number | PostProcessPass, value?: PostProcessPass): void {}
 
   /**
    * Remove post process.
-   * @param value - The post process want to be removed
+   * @param value - The post process pass want to be removed
    */
-  removePostProcess(value: PostProcess): void {}
+  removePostProcessPass(value: PostProcessPass): void {}
 }

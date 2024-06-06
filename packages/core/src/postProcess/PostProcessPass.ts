@@ -1,7 +1,9 @@
+import { PipelinePass } from "../RenderPipeline/PipelinePass";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessEffect } from "./PostProcessEffect";
 
-export class PostProcess {
+export class PostProcessPass extends PipelinePass {
   private _isActive = true;
   private _effects = new SafeLoopArray<PostProcessEffect>();
 
@@ -21,6 +23,14 @@ export class PostProcess {
    */
   get effects(): ReadonlyArray<PostProcessEffect> {
     return this._effects.getArray();
+  }
+
+  override onRender(context: RenderContext): void {
+    const effects = this._effects.getLoopArray();
+    for (let i = 0, length = effects.length; i < length; i++) {
+      const effect = effects[i];
+      effect.enabled && effect.onRender(context);
+    }
   }
 
   /**
