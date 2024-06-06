@@ -43,7 +43,7 @@ export class HemisphereShape extends BaseShape {
    * @internal
    */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
-    const randomDir = this.randomDirectionAmount > 0.5 ? 1 : Math.sin(this.randomDirectionAmount * Math.PI);
+    const randomDir = Math.sin(0.5 * this.randomDirectionAmount * Math.PI);
     outMin.set(-1, -1, -1);
     outMax.set(1, 1, randomDir);
   }
