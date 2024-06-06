@@ -260,7 +260,7 @@ export class ParticleGenerator {
    * @internal
    */
   _update(elapsedTime: number): void {
-    const lastAlive = this.isAlive;
+    const hasLastAliveParticle = this._firstActiveElement !== this._firstFreeElement;
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
@@ -288,21 +288,24 @@ export class ParticleGenerator {
       }
     }
 
-    const isAlive = this.isAlive;
-    if (isAlive) {
+    const hasAliveParticle = this._firstActiveElement !== this._firstFreeElement;
+    if (hasAliveParticle) {
       if (main.simulationSpace === ParticleSimulationSpace.World) {
         this._generateTransformedBounds();
       }
-    } else {
-      // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
+    }
+
+    // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
+    if (!this.isAlive) {
       const discardTime = Math.min(emission._frameRateTime, Math.floor(this._playTime / duration) * duration);
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
     }
 
-    if (isAlive !== lastAlive) {
+    if (hasAliveParticle !== hasLastAliveParticle) {
       this._renderer._onWorldVolumeChanged();
     }
+
     // Add new particles to vertex buffer when has wait process retired element or new particle
     //
     // Another choice is just add new particles to vertex buffer and render all particles ignore the retired particle in shader, especially billboards
