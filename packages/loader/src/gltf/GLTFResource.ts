@@ -11,13 +11,12 @@ import {
   Skin,
   Texture2D
 } from "@galacean/engine-core";
+import { PrefabResource } from "../prefab";
 
 /**
  * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
  */
-export class GLTFResource extends ReferResource {
-  /** glTF file url. */
-  readonly url: string;
+export class GLTFResource extends PrefabResource {
   /** The array of loaded textures. */
   readonly textures?: Texture2D[];
   /** The array of loaded materials. */
@@ -31,8 +30,6 @@ export class GLTFResource extends ReferResource {
   /** The loaded  AnimatorController. */
   readonly animatorController?: AnimatorController;
 
-  /** @internal */
-  _defaultSceneRoot: Entity;
   /** @internal */
   _sceneRoots: Entity[];
   /** @internal */
@@ -49,8 +46,7 @@ export class GLTFResource extends ReferResource {
    * @internal
    */
   constructor(engine: Engine, url: string) {
-    super(engine);
-    this.url = url;
+    super(engine, url);
   }
 
   /**
@@ -59,7 +55,7 @@ export class GLTFResource extends ReferResource {
    * @returns Root entity
    */
   instantiateSceneRoot(sceneIndex?: number): Entity {
-    const sceneRoot = sceneIndex === undefined ? this._defaultSceneRoot : this._sceneRoots[sceneIndex];
+    const sceneRoot = sceneIndex === undefined ? this._root : this._sceneRoots[sceneIndex];
     return sceneRoot.clone();
   }
 
@@ -114,6 +110,6 @@ export class GLTFResource extends ReferResource {
    * RootEntity after SceneParser.
    */
   get defaultSceneRoot(): Entity {
-    return this._defaultSceneRoot;
+    return this._root;
   }
 }

@@ -1,5 +1,5 @@
 import { EngineObject, Entity, Loader } from "@galacean/engine-core";
-import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef, IPrefabFile, IRefEntity } from "../schema";
+import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef, IHierarchyFile, IRefEntity } from "../schema";
 import { ParserContext } from "./ParserContext";
 
 export class ReflectionParser {
@@ -9,7 +9,7 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  constructor(private readonly _context: ParserContext<IPrefabFile, EngineObject>) {}
+  constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
 
   parseEntity(entityConfig: IEntity): Promise<Entity> {
     return this._getEntityByConfig(entityConfig).then((entity) => {

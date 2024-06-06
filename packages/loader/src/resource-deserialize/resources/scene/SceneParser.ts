@@ -13,14 +13,27 @@ export class SceneParser extends HierarchyParser<Scene, SceneParserContext> {
    */
   static parse(engine: Engine, sceneData: IScene): Promise<Scene> {
     const scene = new Scene(engine);
-    const context = new SceneParserContext(sceneData, engine, scene);
-    const parser = new SceneParser(context);
+    const context = new SceneParserContext(engine);
+    const parser = new SceneParser(sceneData, context, scene);
     parser.start();
-    return parser.promise;
+    return parser.promise.then(() => scene);
+  }
+
+  constructor(
+    data: IScene,
+    context: SceneParserContext,
+    public readonly scene: Scene
+  ) {
+    super(data, context);
   }
 
   protected override handleRootEntity(id: string): void {
-    const { target, entityMap } = this.context;
-    target.addRootEntity(entityMap.get(id));
+    const { entityMap } = this.context;
+    this.scene.addRootEntity(entityMap.get(id));
+  }
+
+  protected override _clearAndResolve() {
+    this.context.clear();
+    return this.scene;
   }
 }

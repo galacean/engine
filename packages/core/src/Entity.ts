@@ -98,6 +98,9 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
 
+  /** @internal */
+  _isPrefabRoot: boolean = false;
+
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -420,7 +423,7 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity(this);
+    const cloneEntity = this._createCloneEntity();
     this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
     return cloneEntity;
   }
@@ -433,11 +436,13 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(srcEntity: Entity): Entity {
+  private _createCloneEntity(): Entity {
+    const srcEntity = this;
     const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
 
     const templateResource = this._templateResource;
     if (templateResource) {
+      cloneEntity._isPrefabRoot = srcEntity._isPrefabRoot;
       cloneEntity._templateResource = templateResource;
       templateResource._addReferCount(1);
     }
@@ -452,7 +457,7 @@ export class Entity extends EngineObject {
 
     const children = srcEntity._children;
     for (let i = 0, n = srcEntity._children.length; i < n; i++) {
-      cloneEntity.addChild(this._createCloneEntity(children[i]));
+      cloneEntity.addChild(children[i]._createCloneEntity());
     }
     return cloneEntity;
   }
