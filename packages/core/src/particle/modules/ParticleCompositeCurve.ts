@@ -113,7 +113,6 @@ export class ParticleCompositeCurve {
 
   set curve(value: ParticleCurve) {
     this.curveMax = value;
-    this._updateManager.dispatch();
   }
 
   /**
