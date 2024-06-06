@@ -12,6 +12,8 @@ export class ParticleCurve {
   @ignoreClone
   private _typeArray: Float32Array;
   private _typeArrayDirty: boolean = false;
+  @ignoreClone
+  private _updateDispatch: () => void;
 
   /**
    * The keys of the curve.
@@ -25,7 +27,7 @@ export class ParticleCurve {
    * @param keys - The keys of the curve
    */
   constructor(...keys: CurveKey[]) {
-    this._onValueChange = this._onValueChange.bind(this);
+    this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
 
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
@@ -55,7 +57,8 @@ export class ParticleCurve {
 
     const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
     this._addKey(keys, key);
-    key._registerOnValueChanged(this._onValueChange);
+    key._registerOnValueChanged(this._updateDispatch);
+    this._updateDispatch();
     this._typeArrayDirty = true;
   }
 
@@ -66,8 +69,8 @@ export class ParticleCurve {
   removeKey(index: number): void {
     const removedKeyArray = this._keys.splice(index, 1);
     this._typeArrayDirty = true;
-    removedKeyArray[0]?._unRegisterOnValueChanged(this._onValueChange);
-    this._onValueChange();
+    removedKeyArray[0]?._unRegisterOnValueChanged(this._updateDispatch);
+    this._updateDispatch();
   }
 
   /**
@@ -99,13 +102,6 @@ export class ParticleCurve {
       this._typeArrayDirty = false;
     }
     return typeArray;
-  }
-
-  /**
-   * @internal
-   */
-  _onValueChange(): void {
-    this._updateManager.dispatch();
   }
 
   /**
