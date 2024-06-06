@@ -8,10 +8,10 @@ export class ParticleCurve {
   @ignoreClone
   private _updateManager = new UpdateFlagManager();
   @deepClone
-  private _keys: CurveKey[] = [];
+  private _keys = new Array<CurveKey>();
   @ignoreClone
   private _typeArray: Float32Array;
-  private _typeArrayDirty: boolean = false;
+  private _typeArrayDirty = false;
   @ignoreClone
   private _updateDispatch: () => void;
 
@@ -67,9 +67,10 @@ export class ParticleCurve {
    * @param index - The remove key index
    */
   removeKey(index: number): void {
-    const removedKeyArray = this._keys.splice(index, 1);
+    this._keys.splice(index, 1);
     this._typeArrayDirty = true;
-    removedKeyArray[0]?._unRegisterOnValueChanged(this._updateDispatch);
+    const removeKey = this._keys[index];
+    removeKey._unRegisterOnValueChanged(this._updateDispatch);
     this._updateDispatch();
   }
 
@@ -80,8 +81,7 @@ export class ParticleCurve {
   setKeys(keys: CurveKey[]): void {
     this._keys.length = 0;
     for (let i = 0, n = keys.length; i < n; i++) {
-      const key = keys[i];
-      this.addKey(key);
+      this.addKey(keys[i]);
     }
     this._typeArrayDirty = true;
   }

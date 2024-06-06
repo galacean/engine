@@ -260,7 +260,7 @@ export class ParticleGenerator {
    * @internal
    */
   _update(elapsedTime: number): void {
-    const hasLastAliveParticle = this._firstActiveElement !== this._firstFreeElement;
+    const lastHasAliveParticle = this._firstActiveElement !== this._firstFreeElement;
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
@@ -302,7 +302,7 @@ export class ParticleGenerator {
       emission._frameRateTime -= discardTime;
     }
 
-    if (hasAliveParticle !== hasLastAliveParticle) {
+    if (hasAliveParticle !== lastHasAliveParticle) {
       this._renderer._onWorldVolumeChanged();
     }
 

@@ -30,9 +30,8 @@ export class BoxShape extends BaseShape {
 
   constructor() {
     super();
-    this._onSizeChanged = this._onSizeChanged.bind(this);
     // @ts-ignore
-    this._size._onValueChanged = this._onSizeChanged;
+    this._size._onValueChanged = this._updateManager.dispatch.bind(this._updateManager);
   }
 
   /**
@@ -72,9 +71,5 @@ export class BoxShape extends BaseShape {
     const { x, y, z } = this._size;
     outMin.set(-x * 0.5, -y * 0.5, -z * 0.5);
     outMax.set(x * 0.5, y * 0.5, z * 0.5);
-  }
-
-  private _onSizeChanged(): void {
-    this._updateManager.dispatch();
   }
 }

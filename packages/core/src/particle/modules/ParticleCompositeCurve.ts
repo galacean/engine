@@ -11,8 +11,8 @@ export class ParticleCompositeCurve {
   @ignoreClone
   private _updateManager = new UpdateFlagManager();
   private _mode = ParticleCurveMode.Constant;
-  private _constantMin: number = 0;
-  private _constantMax: number = 0;
+  private _constantMin = 0;
+  private _constantMax = 0;
   @deepClone
   private _curveMin: ParticleCurve;
   @deepClone
@@ -187,20 +187,14 @@ export class ParticleCompositeCurve {
     switch (this.mode) {
       case ParticleCurveMode.Constant:
         return this.constantMax;
-
       case ParticleCurveMode.TwoConstants:
         return Math.max(this.constantMin, this.constantMax);
-
-      case ParticleCurveMode.Curve: {
+      case ParticleCurveMode.Curve:
         return this._getMaxKeyValue(this.curveMax?.keys);
-      }
-
-      case ParticleCurveMode.TwoCurves: {
+      case ParticleCurveMode.TwoCurves:
         const min = this._getMaxKeyValue(this.curveMin?.keys);
         const max = this._getMaxKeyValue(this.curveMax?.keys);
-
         return min > max ? min : max;
-      }
     }
   }
 
@@ -210,18 +204,15 @@ export class ParticleCompositeCurve {
    */
   _getMinMax(out: Vector2): void {
     switch (this.mode) {
-      case ParticleCurveMode.Constant: {
+      case ParticleCurveMode.Constant:
         out.x = out.y = this.constantMax;
         break;
-      }
       case ParticleCurveMode.TwoConstants:
         out.set(Math.min(this.constantMin, this.constantMax), Math.max(this.constantMin, this.constantMax));
         break;
-
       case ParticleCurveMode.Curve:
         out.set(this._getMinKeyValue(this.curveMax?.keys), this._getMaxKeyValue(this.curveMax?.keys));
         break;
-
       case ParticleCurveMode.TwoCurves:
         const minCurveMax = this._getMinKeyValue(this.curveMax?.keys);
         const minCurveMin = this._getMinKeyValue(this.curveMin?.keys);
@@ -280,7 +271,7 @@ export class ParticleCompositeCurve {
   private _onCurveChange(lastValue: ParticleCurve, value: ParticleCurve) {
     const dispatch = this._updateDispatch;
     lastValue?._unRegisterOnValueChanged(dispatch);
-    value._registerOnValueChanged(dispatch);
+    value?._registerOnValueChanged(dispatch);
     dispatch();
   }
 }

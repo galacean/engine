@@ -131,8 +131,8 @@ export class ParticleRenderer extends Renderer {
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
-    this._dirtyUpdateFlag |=
-      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+
+    this._onGeneratorParamsChanged();
   }
 
   /**
@@ -239,6 +239,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
       ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;

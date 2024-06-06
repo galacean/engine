@@ -200,7 +200,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
     const renderer = this._generator._renderer;
     lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-    value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
+    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
     renderer._onGeneratorParamsChanged();
   }
 }
