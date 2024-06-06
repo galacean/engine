@@ -332,22 +332,8 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
-  _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  /**
-   * @internal
-   */
   _setDirtyFlagTrue(type: number): void {
     this._dirtyFlag |= type;
-  }
-
-  /**
-   * @internal
-   */
-  _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
   }
 
   /**
