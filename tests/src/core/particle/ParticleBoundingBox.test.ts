@@ -204,7 +204,7 @@ describe("ParticleBoundingBox", function () {
       engine,
       particleRenderer,
       { x: -28.914, y: -28.914, z: -28.914 },
-      { x: 28.914, y: 28.914, z: 28.914 },
+      { x: 28.914, y: 28.914, z: 19.092 },
       delta
     );
   });
@@ -298,7 +298,7 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -12.979, y: -12.979, z: -27.414 },
+      { x: -12.979, y: -12.979, z: -26.414 },
       { x: 12.979, y: 12.979, z: 1.414 },
       delta
     );
@@ -308,7 +308,7 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -14.479, y: -14.479, z: -28.914 },
+      { x: -14.479, y: -14.479, z: -26.414 },
       { x: 14.479, y: 14.479, z: 1.414 },
       delta
     );
@@ -318,7 +318,7 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -16.414, y: -16.414, z: -28.914 },
+      { x: -16.414, y: -16.414, z: -26.414 },
       { x: 16.414, y: 16.414, z: 1.414 },
       delta
     );
@@ -328,8 +328,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -18.914, y: -18.914, z: -31.414 },
-      { x: 18.914, y: 18.914, z: 1.414 },
+      { x: -6.414, y: -6.414, z: -31.414 },
+      { x: 6.414, y: 6.414, z: 1.414 },
       delta
     );
 
@@ -338,8 +338,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -21.414, y: -21.414, z: -36.414 },
-      { x: 21.414, y: 21.414, z: 1.414 },
+      { x: -8.914, y: -8.914, z: -36.414 },
+      { x: 8.914, y: 8.914, z: 1.414 },
       delta
     );
 
@@ -348,8 +348,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -33.914, y: -33.914, z: -36.414 },
-      { x: 33.914, y: 33.914, z: 26.414 },
+      { x: -8.914, y: -8.914, z: -36.414 },
+      { x: 8.914, y: 8.914, z: 1.414 },
       delta
     );
   });

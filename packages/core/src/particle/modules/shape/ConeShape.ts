@@ -111,29 +111,26 @@ export class ConeShape extends BaseShape {
         break;
     }
   }
+
   /**
    * @internal
    */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
-    outMin.set(-1, -1, -1);
-    outMax.set(1, 1, 1);
+    let radian = 0;
+    switch (this.emitType) {
+      case ConeEmitType.Base:
+        radian = MathUtil.degreeToRadian(this._angle);
 
-    if (this.emitType === ConeEmitType.Volume && this.randomDirectionAmount > 0) {
-      return;
+        break;
+      case ConeEmitType.Base:
+        const randomRadian = MathUtil.degreeToRadian((180 - this._angle) * this.randomDirectionAmount + this._angle);
+        radian = Math.sin(randomRadian);
+        break;
     }
 
-    const totalRadian = MathUtil.degreeToRadian(this._angle) + this.randomDirectionAmount * Math.PI;
-    const totalDegree = this._angle + this.randomDirectionAmount * 180;
-
-    if (totalDegree < 90) {
-      const dirSin = Math.sin(totalRadian);
-      outMin.set(-dirSin, -dirSin, -1);
-      outMax.set(dirSin, dirSin, 0);
-    } else if (totalDegree < 180) {
-      const dirCos = Math.cos(totalRadian);
-      outMin.set(-1, -1, -1);
-      outMax.set(1, 1, -dirCos);
-    }
+    const dirSin = Math.sin(radian);
+    outMin.set(-dirSin, -dirSin, -1);
+    outMax.set(dirSin, dirSin, 0);
   }
 
   /**
@@ -141,17 +138,17 @@ export class ConeShape extends BaseShape {
    */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radian = MathUtil.degreeToRadian(this._angle);
-    const dirSinA = Math.sin(radian);
+    const dirSin = Math.sin(radian);
     const { radius, length } = this;
 
     switch (this.emitType) {
       case ConeEmitType.Base:
-        outMin.set(-radius, -radius, -radius);
+        outMin.set(-radius, -radius, 0);
         outMax.set(radius, radius, 0);
         break;
       case ConeEmitType.Volume:
-        outMin.set(-radius - dirSinA * length, -radius - dirSinA * length, -length);
-        outMax.set(radius + dirSinA * length, radius + dirSinA * length, 0);
+        outMin.set(-radius - dirSin * length, -radius - dirSin * length, -length);
+        outMax.set(radius + dirSin * length, radius + dirSin * length, 0);
         break;
     }
   }

@@ -102,36 +102,44 @@ export class CircleShape extends BaseShape {
    * @internal
    */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
-    const randomDir = this.randomDirectionAmount > 0.5 ? 1 : Math.sin(this.randomDirectionAmount * Math.PI);
-    this._getUnitArcRange(this._arc + this.randomDirectionAmount * 180, outMin, outMax, randomDir);
+    const randomDirZ = this.randomDirectionAmount > 0.5 ? 1 : Math.sin(this.randomDirectionAmount * Math.PI);
+    const randomDegreeOnXY = 0.5 * (360 - this._arc) * this.randomDirectionAmount;
+    const randomDirY = randomDegreeOnXY > 90 ? -1 : -Math.sin(randomDegreeOnXY);
+    this._getUnitArcRange(this._arc + randomDegreeOnXY, outMin, outMax, randomDirY, randomDirZ);
   }
 
   /**
    * @internal
    */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
-    this._getUnitArcRange(this._arc, outMin, outMax, 0);
+    this._getUnitArcRange(this._arc, outMin, outMax, 0, 0);
     outMin.scale(this._radius);
     outMax.scale(this._radius);
   }
 
-  private _getUnitArcRange(arc: number, outMin: Vector3, outMax: Vector3, randomDir: number): void {
+  private _getUnitArcRange(
+    arc: number,
+    outMin: Vector3,
+    outMax: Vector3,
+    randomDirY: number,
+    randomDirZ: number
+  ): void {
     const radian = MathUtil.degreeToRadian(arc);
     const dirSin = Math.sin(radian);
     const dirCos = Math.cos(radian);
 
     if (arc < 90) {
-      outMin.set(0, -randomDir, -randomDir);
-      outMax.set(1, dirSin, randomDir);
+      outMin.set(0, randomDirY, -randomDirZ);
+      outMax.set(1, dirSin, randomDirZ);
     } else if (arc < 180) {
-      outMin.set(dirCos, -randomDir, -randomDir);
-      outMax.set(1, 1, randomDir);
+      outMin.set(dirCos, randomDirY, -randomDirZ);
+      outMax.set(1, 1, randomDirZ);
     } else if (arc < 270) {
-      outMin.set(-1, Math.min(dirSin, randomDir), -randomDir);
-      outMax.set(1, 1, randomDir);
+      outMin.set(-1, Math.min(dirSin, randomDirY), -randomDirZ);
+      outMax.set(1, 1, randomDirZ);
     } else {
-      outMin.set(-1, -1, -randomDir);
-      outMax.set(1, 1, randomDir);
+      outMin.set(-1, -1, -randomDirZ);
+      outMax.set(1, 1, randomDirZ);
     }
   }
 }
