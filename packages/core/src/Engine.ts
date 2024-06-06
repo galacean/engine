@@ -364,6 +364,7 @@ export class Engine extends EventDispatcher {
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
       componentsManager.sortCameras();
+      componentsManager.sortUICanvases();
       componentsManager.callScriptOnStart();
     }
 

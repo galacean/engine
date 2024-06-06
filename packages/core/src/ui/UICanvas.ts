@@ -6,6 +6,9 @@ import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrate
 
 export class UICanvas extends Component {
   /** @internal */
+  _camera: Camera;
+
+  /** @internal */
   @ignoreClone
   _uiCanvasIndex: number = -1;
 
@@ -19,7 +22,12 @@ export class UICanvas extends Component {
     return this._renderMode;
   }
 
-  set renderMode(val: CanvasRenderMode) {}
+  set renderMode(val: CanvasRenderMode) {
+    if (this._renderMode !== val) {
+      this._renderMode = val;
+      this._updateCameraProiroty();
+    }
+  }
 
   get renderCamera(): Camera {
     return this._renderCamera;
@@ -27,7 +35,13 @@ export class UICanvas extends Component {
 
   set renderCamera(val: Camera) {
     if (this._renderCamera !== val) {
-      this._renderCamera = val;
+      if (val) {
+        this._renderCamera = val;
+        this._updateCameraProiroty();
+      } else {
+        this._renderCamera.priority &= ~(1 << 30);
+        this._renderCamera = null;
+      }
     }
   }
 
@@ -69,5 +83,13 @@ export class UICanvas extends Component {
    */
   override _onDisableInScene(): void {
     this.scene._componentsManager.removeUICanvas(this);
+  }
+
+  private _updateCameraProiroty(): void {
+    if (this._renderCamera) {
+      const priority = this._renderCamera.priority;
+      this._renderCamera.priority =
+        this._renderMode === CanvasRenderMode.WorldSpace ? priority & ~(1 << 30) : priority | (1 << 30);
+    }
   }
 }

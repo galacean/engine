@@ -4,7 +4,7 @@ import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
-import { UICanvas } from "./ui";
+import { CanvasRenderMode, UICanvas } from "./ui";
 
 /**
  * The manager of the components.
@@ -16,6 +16,8 @@ export class ComponentsManager {
   _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+  /* @internal */
+  _uiCanvasNeedSorting: boolean = false;
   /** @internal */
   _uiCanvases: DisorderedArray<UICanvas> = new DisorderedArray();
 
@@ -75,12 +77,39 @@ export class ComponentsManager {
   addUICanvas(uiCanvas: UICanvas) {
     uiCanvas._uiCanvasIndex = this._uiCanvases.length;
     this._uiCanvases.add(uiCanvas);
+    this._uiCanvasNeedSorting = true;
   }
 
   removeUICanvas(uiCanvas: UICanvas) {
     const replaced = this._uiCanvases.deleteByIndex(uiCanvas._uiCanvasIndex);
     replaced && (replaced._uiCanvasIndex = uiCanvas._uiCanvasIndex);
     uiCanvas._uiCanvasIndex = -1;
+    this._uiCanvasNeedSorting = true;
+  }
+
+  sortUICanvases(): void {
+    if (this._uiCanvasNeedSorting) {
+      const uiCanvases = this._uiCanvases;
+      uiCanvases.sort((a, b) => {
+        const renderModeA = a.renderMode;
+        const renderModeOrder = b.renderMode - renderModeA;
+        if (renderModeOrder !== 0) {
+          return renderModeOrder;
+        }
+
+        if (renderModeA === CanvasRenderMode.ScreenSpaceOverlay) {
+          return a.sortOrder - b.sortOrder;
+        } else if (renderModeA === CanvasRenderMode.ScreenSpaceCamera) {
+          return b.distance - a.distance;
+        } else {
+          return 0;
+        }
+      });
+      for (let i = 0, n = uiCanvases.length; i < n; i++) {
+        uiCanvases.get(i)._uiCanvasIndex = i;
+      }
+      this._uiCanvasNeedSorting = false;
+    }
   }
 
   addOnStartScript(script: Script) {
