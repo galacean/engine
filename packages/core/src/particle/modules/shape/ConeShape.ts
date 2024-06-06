@@ -122,7 +122,7 @@ export class ConeShape extends BaseShape {
         radian = MathUtil.degreeToRadian(this._angle);
 
         break;
-      case ConeEmitType.Base:
+      case ConeEmitType.Volume:
         const randomRadian = MathUtil.degreeToRadian((180 - this._angle) * this.randomDirectionAmount + this._angle);
         radian = Math.sin(randomRadian);
         break;
@@ -137,9 +137,7 @@ export class ConeShape extends BaseShape {
    * @internal
    */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
-    const radian = MathUtil.degreeToRadian(this._angle);
-    const dirSin = Math.sin(radian);
-    const { radius, length } = this;
+    const { radius } = this;
 
     switch (this.emitType) {
       case ConeEmitType.Base:
@@ -147,6 +145,8 @@ export class ConeShape extends BaseShape {
         outMax.set(radius, radius, 0);
         break;
       case ConeEmitType.Volume:
+        const { length } = this;
+        const dirSin = Math.sin(MathUtil.degreeToRadian(this._angle));
         outMin.set(-radius - dirSin * length, -radius - dirSin * length, -length);
         outMax.set(radius + dirSin * length, radius + dirSin * length, 0);
         break;
