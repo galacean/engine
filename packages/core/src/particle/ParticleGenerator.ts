@@ -567,7 +567,6 @@ export class ParticleGenerator {
     const boundsArray = this._transformedBoundsArray;
     const firstActiveElement = this._firstActiveTransformedBoundingBox;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
-    const count = this._transformedBoundsCount;
 
     const index = firstActiveElement * ParticleBufferUtils.boundsFloatStride;
     bounds.min.copyFromArray(boundsArray, index);
@@ -578,7 +577,7 @@ export class ParticleGenerator {
         this._mergeTransformedBounds(i, bounds);
       }
     } else {
-      for (let i = firstActiveElement + 1; i < count; i++) {
+      for (let i = firstActiveElement + 1, n = this._transformedBoundsCount; i < n; i++) {
         this._mergeTransformedBounds(i, bounds);
       }
       if (firstFreeElement > 0) {
@@ -595,23 +594,23 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _resizeBoundsArray(): void {
+  _resizeTransformedBoundsArray(): void {
     const floatStride = ParticleBufferUtils.boundsFloatStride;
     const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
-    const firstFreeElement = this._firstFreeTransformedBoundingBox;
-    const firstActiveElement = this._firstActiveTransformedBoundingBox;
 
     this._transformedBoundsCount += increaseCount;
     const lastBoundsArray = this._transformedBoundsArray;
     const boundsArray = new Float32Array(this._transformedBoundsCount * floatStride);
 
     if (lastBoundsArray) {
+      const firstFreeElement = this._firstFreeTransformedBoundingBox;
       boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
 
       const nextFreeElement = firstFreeElement + 1;
       const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
       boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFreeElement * floatStride * 4), freeEndOffset);
 
+      const firstActiveElement = this._firstActiveTransformedBoundingBox;
       if (firstActiveElement > firstFreeElement) {
         this._firstActiveTransformedBoundingBox += increaseCount;
       }
@@ -646,22 +645,23 @@ export class ParticleGenerator {
     }
 
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       // Resize transformed bounds if needed
-      let nextFreeElement = this._firstFreeTransformedBoundingBox + 1;
+      let nextFreeElement = firstFreeElement + 1;
       if (nextFreeElement >= this._transformedBoundsCount) {
         nextFreeElement = 0;
       }
       if (nextFreeElement === this._firstActiveTransformedBoundingBox) {
-        this._resizeBoundsArray();
-        nextFreeElement = this._firstFreeTransformedBoundingBox + 1;
+        this._resizeTransformedBoundsArray();
+        nextFreeElement = firstFreeElement + 1;
       }
 
       // Generate transformed bounds
       const transformedBounds = renderer._transformedBounds;
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
 
-      const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
+      const boundsOffset = firstFreeElement * boundsFloatStride;
       const boundsArray = this._transformedBoundsArray;
       transformedBounds.min.copyToArray(boundsArray, boundsOffset);
       transformedBounds.max.copyToArray(boundsArray, boundsOffset + 3);
@@ -672,10 +672,12 @@ export class ParticleGenerator {
       this._firstFreeTransformedBoundingBox = nextFreeElement;
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     } else {
-      const previousBoundsOffset =
-        ((this._firstFreeTransformedBoundingBox - 1) % this._transformedBoundsCount) * boundsFloatStride;
+      let previousFreeElement = this._firstFreeTransformedBoundingBox - 1;
+      if (previousFreeElement <= 0) {
+        previousFreeElement = this._transformedBoundsCount;
+      }
 
-      this._transformedBoundsArray[previousBoundsOffset + boundsTimeOffset] = this._playTime;
+      this._transformedBoundsArray[previousFreeElement + boundsTimeOffset] = this._playTime;
     }
   }
 

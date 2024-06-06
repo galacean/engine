@@ -218,7 +218,7 @@ export class MainModule implements ICustomClone {
       generator._renderer._onGeneratorParamsChanged();
 
       if (value === ParticleSimulationSpace.World) {
-        generator._resizeBoundsArray();
+        generator._resizeTransformedBoundsArray();
         generator._generateTransformedBounds();
       } else {
         generator._freeBoundsArray();
