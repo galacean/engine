@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
-import { deepClone, shallowClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -40,8 +40,10 @@ export class ParticleRenderer extends Renderer {
   pivot = new Vector3();
 
   /** @internal */
+  @ignoreClone
   _generatorBounds = new BoundingBox();
   /** @internal */
+  @ignoreClone
   _transformedBounds = new BoundingBox();
 
   private _renderMode: ParticleRenderMode;

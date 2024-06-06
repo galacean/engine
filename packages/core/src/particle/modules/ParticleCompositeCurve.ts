@@ -1,7 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { deepClone } from "../../clone/CloneManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
-import { ParticleCurve } from "./ParticleCurve";
+import { CurveKey, ParticleCurve } from "./ParticleCurve";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
@@ -196,36 +196,14 @@ export class ParticleCompositeCurve {
         return Math.max(this.constantMin, this.constantMax);
 
       case ParticleCurveMode.Curve: {
-        let max = undefined;
-        const keys = this.curveMax?.keys;
-        const count = keys.length ?? 0;
-        if (count > 0) {
-          max = keys[0].value;
-          for (let i = 1; i < count; i++) {
-            const value = keys[i].value;
-            max = Math.max(max, value);
-          }
-        }
-        return max;
+        return this._getMaxKeyValue(this.curveMax?.keys);
       }
 
       case ParticleCurveMode.TwoCurves: {
-        let max = undefined;
+        const min = this._getMaxKeyValue(this.curveMin?.keys);
+        const max = this._getMaxKeyValue(this.curveMax?.keys);
 
-        const maxKeys = this.curveMax?.keys;
-        const maxCount = maxKeys.length ?? 0;
-        const minKeys = this.curveMin?.keys;
-        const minCount = minKeys.length ?? 0;
-
-        for (let i = 0; i < maxCount; i++) {
-          const value = maxKeys[i].value;
-          max = max ? Math.max(max, value) : value;
-        }
-        for (let i = 0; i < minCount; i++) {
-          const value = minKeys[i].value;
-          max = max ? Math.max(max, value) : value;
-        }
-        return max;
+        return min > max ? min : max;
       }
     }
   }
@@ -245,38 +223,20 @@ export class ParticleCompositeCurve {
         break;
 
       case ParticleCurveMode.Curve:
-        const keys = this.curveMax?.keys;
-        const count = keys.length ?? 0;
-        if (count > 0) {
-          const firstValue = keys[0].value;
-          out.set(firstValue, firstValue);
-          for (let i = 1; i < count; i++) {
-            const value = keys[i].value;
-            out.set(Math.min(out.x, value), Math.max(out.y, value));
-          }
-        } else {
-          out.set(undefined, undefined);
-        }
+        out.set(this._getMinKeyValue(this.curveMax?.keys), this._getMaxKeyValue(this.curveMax?.keys));
         break;
 
       case ParticleCurveMode.TwoCurves:
-        const maxKeys = this.curveMax?.keys;
-        const maxCount = maxKeys.length ?? 0;
-        const minKeys = this.curveMin?.keys;
-        const minCount = minKeys.length ?? 0;
+        const minCurveMax = this._getMinKeyValue(this.curveMax?.keys);
+        const minCurveMin = this._getMinKeyValue(this.curveMin?.keys);
 
-        out.set(undefined, undefined);
+        const maxCurveMax = this._getMaxKeyValue(this.curveMax?.keys);
+        const maxCurveMin = this._getMaxKeyValue(this.curveMin?.keys);
 
-        for (let i = 0; i < maxCount; i++) {
-          const value = maxKeys[i].value;
-          out.x = out.x ? Math.min(out.x, value) : value;
-          out.y = out.y ? Math.max(out.y, value) : value;
-        }
-        for (let i = 0; i < minCount; i++) {
-          const value = minKeys[i].value;
-          out.x = out.x ? Math.min(out.x, value) : value;
-          out.y = out.y ? Math.max(out.y, value) : value;
-        }
+        const min = minCurveMax < minCurveMin ? minCurveMax : minCurveMin;
+        const max = maxCurveMax > maxCurveMin ? maxCurveMax : maxCurveMin;
+
+        out.set(min, max);
         break;
     }
   }
@@ -300,5 +260,31 @@ export class ParticleCompositeCurve {
    */
   _unRegisterOnValueChanged(listener: () => void): void {
     this._updateManager.removeListener(listener);
+  }
+
+  private _getMaxKeyValue(keys: ReadonlyArray<CurveKey>): number {
+    let max = undefined;
+    const count = keys?.length ?? 0;
+    if (count > 0) {
+      max = keys[0].value;
+      for (let i = 1; i < count; i++) {
+        const value = keys[i].value;
+        max = Math.max(max, value);
+      }
+    }
+    return max;
+  }
+
+  private _getMinKeyValue(keys: ReadonlyArray<CurveKey>): number {
+    let min = undefined;
+    const count = keys?.length ?? 0;
+    if (count > 0) {
+      min = keys[0].value;
+      for (let i = 1; i < count; i++) {
+        const value = keys[i].value;
+        min = Math.min(min, value);
+      }
+    }
+    return min;
   }
 }
