@@ -232,6 +232,20 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyUpdateFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyUpdateFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
   _onWorldVolumeChanged(): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
