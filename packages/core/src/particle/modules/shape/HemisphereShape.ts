@@ -36,14 +36,14 @@ export class HemisphereShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
-  _getDirectionRange(min: Vector3, max: Vector3) {
-    min.set(-1, -1, -1);
-    max.set(1, 1, this.randomDirectionAmount > 0 ? 1 : 0);
+  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
+    outMin.set(-1, -1, -1);
+    outMax.set(1, 1, this.randomDirectionAmount > 0 ? 1 : 0);
   }
 
-  _getStartPositionRange(min: Vector3, max: Vector3): void {
+  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radius = this._radius;
-    min.set(-radius, -radius, -radius);
-    max.set(radius, radius, this.randomDirectionAmount > 0 ? radius : 0);
+    outMin.set(-radius, -radius, -radius);
+    outMax.set(radius, radius, this.randomDirectionAmount > 0 ? radius : 0);
   }
 }

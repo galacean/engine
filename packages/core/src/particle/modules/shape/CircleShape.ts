@@ -104,7 +104,7 @@ export class CircleShape extends BaseShape {
     }
   }
 
-  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     this._getUnitArcRange(outMin, outMax);
     outMin.scale(this._radius);
     outMax.scale(this._radius);

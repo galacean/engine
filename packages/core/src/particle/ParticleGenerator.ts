@@ -112,8 +112,6 @@ export class ParticleGenerator {
   private _instanceVertices: Float32Array;
   private _randomSeed = 0;
   @ignoreClone
-  private _transformedBounds = new BoundingBox();
-  @ignoreClone
   private _transformedBoundsArray: Float32Array;
   @ignoreClone
   private _transformedBoundsCount = 0;
@@ -545,13 +543,12 @@ export class ParticleGenerator {
     // Get longest Lifetime
     const maxLifetime = this.main.startLifetime._getMax();
 
-    const generatorBounds = renderer._generatorBounds;
+    const { _generatorBounds: generatorBounds, _transformedBounds: transformedBounds } = renderer;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
       this._calculateGeneratorBounds(maxLifetime, generatorBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
     }
 
-    const transformedBounds = this._transformedBounds;
     if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
@@ -658,7 +655,7 @@ export class ParticleGenerator {
       }
 
       // Generate transformed bounds
-      const transformedBounds = this._transformedBounds;
+      const transformedBounds = renderer._transformedBounds;
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const boundsOffset = this._firstFreeTransformedBoundingBox * boundsFloatStride;
@@ -694,7 +691,6 @@ export class ParticleGenerator {
 
     // Failure to adopt this approach may impede growth initiation
     // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
-
     if (nextFreeElement === this._firstRetiredElement) {
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
@@ -974,7 +970,7 @@ export class ParticleGenerator {
     // StartSpeed's impact
     const { shape } = this.emission;
     if (shape?.enabled) {
-      shape._getStartPositionRange(min, max);
+      shape._getPositionRange(min, max);
       shape._getDirectionRange(directionMin, directionMax);
     } else {
       min.set(0, 0, 0);

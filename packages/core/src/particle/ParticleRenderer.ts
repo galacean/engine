@@ -40,7 +40,9 @@ export class ParticleRenderer extends Renderer {
   pivot = new Vector3();
 
   /** @internal */
-  _generatorBounds: BoundingBox = new BoundingBox();
+  _generatorBounds = new BoundingBox();
+  /** @internal */
+  _transformedBounds = new BoundingBox();
 
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;

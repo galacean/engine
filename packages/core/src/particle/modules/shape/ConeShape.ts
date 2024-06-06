@@ -131,7 +131,7 @@ export class ConeShape extends BaseShape {
     }
   }
 
-  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radian = MathUtil.degreeToRadian(this._angle);
     const dirSinA = Math.sin(radian);
     const { radius, length } = this;

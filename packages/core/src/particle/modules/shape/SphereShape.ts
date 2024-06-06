@@ -33,12 +33,12 @@ export class SphereShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
-  _getDirectionRange(outMin: Vector3, outMax: Vector3) {
+  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     outMin.set(-1, -1, -1);
     outMax.set(1, 1, 1);
   }
 
-  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radius = this._radius;
     outMin.set(-radius, -radius, -radius);
     outMax.set(radius, radius, radius);

@@ -69,5 +69,5 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  abstract _getStartPositionRange(outMin: Vector3, outMax: Vector3): void;
+  abstract _getPositionRange(outMin: Vector3, outMax: Vector3): void;
 }

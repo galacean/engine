@@ -59,7 +59,7 @@ export class BoxShape extends BaseShape {
     }
   }
 
-  _getStartPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const { x, y, z } = this._size;
     outMin.set(-x * 0.5, -y * 0.5, -z * 0.5);
     outMax.set(x * 0.5, y * 0.5, z * 0.5);
