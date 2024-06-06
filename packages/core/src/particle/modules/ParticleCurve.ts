@@ -5,8 +5,8 @@ import { deepClone, ignoreClone } from "../../clone/CloneManager";
  * Particle curve.
  */
 export class ParticleCurve {
-  protected _updateManager = new UpdateFlagManager();
-
+  @ignoreClone
+  private _updateManager = new UpdateFlagManager();
   @deepClone
   private _keys: CurveKey[] = [];
   @ignoreClone
@@ -140,8 +140,8 @@ export class ParticleCurve {
  * The key of the curve.
  */
 export class CurveKey {
-  protected _updateManager = new UpdateFlagManager();
-
+  @ignoreClone
+  private _updateManager = new UpdateFlagManager();
   private _time: number;
   private _value: number;
 
