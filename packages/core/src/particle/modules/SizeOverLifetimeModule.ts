@@ -63,7 +63,7 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     const lastValue = this._sizeX;
     if (value !== lastValue) {
       this._sizeX = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -78,7 +78,7 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     const lastValue = this._sizeY;
     if (value !== lastValue) {
       this._sizeY = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -93,7 +93,7 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     const lastValue = this._sizeZ;
     if (value !== lastValue) {
       this._sizeZ = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -170,7 +170,7 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     this._isRandomTwoMacro = this._enableMacro(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
   }
 
-  private _onValueChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
     const renderer = this._generator._renderer;
     lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
     value._registerOnValueChanged(renderer._onGeneratorParamsChanged);

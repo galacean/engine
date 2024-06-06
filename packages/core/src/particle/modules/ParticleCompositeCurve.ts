@@ -70,9 +70,7 @@ export class ParticleCompositeCurve {
     const lastCurve = this._curveMin;
     if (value !== lastCurve) {
       this._curveMin = value;
-
-      lastCurve?._unRegisterOnValueChanged(this._onValueChange);
-      value._registerOnValueChanged(this._onValueChange);
+      this._onCurveChange(lastCurve, value);
     }
   }
 
@@ -87,9 +85,7 @@ export class ParticleCompositeCurve {
     const lastCurve = this._curveMax;
     if (value !== lastCurve) {
       this._curveMax = value;
-
-      lastCurve?._unRegisterOnValueChanged(this._onValueChange);
-      value._registerOnValueChanged(this._onValueChange);
+      this._onCurveChange(lastCurve, value);
     }
   }
 
@@ -286,5 +282,11 @@ export class ParticleCompositeCurve {
       }
     }
     return min;
+  }
+
+  private _onCurveChange(lastValue: ParticleCurve, value: ParticleCurve) {
+    lastValue?._unRegisterOnValueChanged(this._onValueChange);
+    value._registerOnValueChanged(this._onValueChange);
+    this._onValueChange();
   }
 }

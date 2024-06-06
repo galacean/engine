@@ -594,34 +594,6 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _resizeTransformedBoundsArray(): void {
-    const floatStride = ParticleBufferUtils.boundsFloatStride;
-    const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
-
-    this._transformedBoundsCount += increaseCount;
-    const lastBoundsArray = this._transformedBoundsArray;
-    const boundsArray = new Float32Array(this._transformedBoundsCount * floatStride);
-
-    if (lastBoundsArray) {
-      const firstFreeElement = this._firstFreeTransformedBoundingBox;
-      boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
-
-      const nextFreeElement = firstFreeElement + 1;
-      const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
-      boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFreeElement * floatStride * 4), freeEndOffset);
-
-      const firstActiveElement = this._firstActiveTransformedBoundingBox;
-      if (firstActiveElement > firstFreeElement) {
-        this._firstActiveTransformedBoundingBox += increaseCount;
-      }
-    }
-
-    this._transformedBoundsArray = boundsArray;
-  }
-
-  /**
-   * @internal
-   */
   _freeBoundsArray(): void {
     this._transformedBoundsArray = null;
 
@@ -945,6 +917,31 @@ export class ParticleGenerator {
     }
     out.push(vertexBufferBinding);
     return index;
+  }
+
+  private _resizeTransformedBoundsArray(): void {
+    const floatStride = ParticleBufferUtils.boundsFloatStride;
+    const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
+
+    this._transformedBoundsCount += increaseCount;
+    const lastBoundsArray = this._transformedBoundsArray;
+    const boundsArray = new Float32Array(this._transformedBoundsCount * floatStride);
+
+    if (lastBoundsArray) {
+      const firstFreeElement = this._firstFreeTransformedBoundingBox;
+      boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
+
+      const nextFreeElement = firstFreeElement + 1;
+      const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
+      boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFreeElement * floatStride * 4), freeEndOffset);
+
+      const firstActiveElement = this._firstActiveTransformedBoundingBox;
+      if (firstActiveElement > firstFreeElement) {
+        this._firstActiveTransformedBoundingBox += increaseCount;
+      }
+    }
+
+    this._transformedBoundsArray = boundsArray;
   }
 
   private _retireTransformedBounds(): void {

@@ -110,7 +110,7 @@ export class MainModule implements ICustomClone {
     const lastValue = this._startLifetime;
     if (value !== lastValue) {
       this._startLifetime = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -125,7 +125,7 @@ export class MainModule implements ICustomClone {
     const lastValue = this._startSpeed;
     if (value !== lastValue) {
       this._startSpeed = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -154,7 +154,7 @@ export class MainModule implements ICustomClone {
     const lastValue = this._startSizeX;
     if (value !== lastValue) {
       this._startSizeX = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -169,7 +169,7 @@ export class MainModule implements ICustomClone {
     const lastValue = this._startSizeY;
     if (value !== lastValue) {
       this._startSizeY = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -184,7 +184,7 @@ export class MainModule implements ICustomClone {
     const lastValue = this._startSizeZ;
     if (value !== lastValue) {
       this._startSizeZ = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -199,7 +199,7 @@ export class MainModule implements ICustomClone {
     const lastValue = this._gravityModifier;
     if (value !== lastValue) {
       this._gravityModifier = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -218,7 +218,6 @@ export class MainModule implements ICustomClone {
       generator._renderer._onGeneratorParamsChanged();
 
       if (value === ParticleSimulationSpace.World) {
-        generator._resizeTransformedBoundsArray();
         generator._generateTransformedBounds();
       } else {
         generator._freeBoundsArray();
@@ -342,7 +341,7 @@ export class MainModule implements ICustomClone {
     target.maxParticles = this.maxParticles;
   }
 
-  private _onValueChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
     const renderer = this._generator._renderer;
     lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
     value._registerOnValueChanged(renderer._onGeneratorParamsChanged);

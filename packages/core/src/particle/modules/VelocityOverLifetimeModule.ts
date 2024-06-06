@@ -59,7 +59,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     const lastValue = this._velocityX;
     if (value !== lastValue) {
       this._velocityX = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -74,7 +74,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     const lastValue = this._velocityY;
     if (value !== lastValue) {
       this._velocityY = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -89,7 +89,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     const lastValue = this._velocityZ;
     if (value !== lastValue) {
       this._velocityZ = value;
-      this._onValueChange(lastValue, value);
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -197,7 +197,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._velocityRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
   }
 
-  private _onValueChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
     const renderer = this._generator._renderer;
     lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
     value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
