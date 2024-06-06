@@ -29,7 +29,7 @@ export class ParticleCompositeCurve {
   set mode(value: ParticleCurveMode) {
     if (value !== this._mode) {
       this._mode = value;
-      this._updateManager.dispatch();
+      this._updateDispatch();
     }
   }
 
@@ -43,7 +43,7 @@ export class ParticleCompositeCurve {
   set constantMin(value: number) {
     if (value !== this._constantMin) {
       this._constantMin = value;
-      this._updateManager.dispatch();
+      this._updateDispatch();
     }
   }
 
@@ -57,7 +57,7 @@ export class ParticleCompositeCurve {
   set constantMax(value: number) {
     if (value !== this._constantMax) {
       this._constantMax = value;
-      this._updateManager.dispatch();
+      this._updateDispatch();
     }
   }
 
