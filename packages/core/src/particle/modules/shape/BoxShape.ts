@@ -35,6 +35,9 @@ export class BoxShape extends BaseShape {
     this._size._onValueChanged = this._onSizeChanged;
   }
 
+  /**
+   * @internal
+   */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideHalfUnitBox(position, rand);
     position.multiply(this.size);
@@ -45,6 +48,9 @@ export class BoxShape extends BaseShape {
     Vector3.lerp(defaultDirection, direction, this.randomDirectionAmount, direction);
   }
 
+  /**
+   * @internal
+   */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     const radian = Math.PI * this.randomDirectionAmount;
 
@@ -59,6 +65,9 @@ export class BoxShape extends BaseShape {
     }
   }
 
+  /**
+   * @internal
+   */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const { x, y, z } = this._size;
     outMin.set(-x * 0.5, -y * 0.5, -z * 0.5);

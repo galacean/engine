@@ -73,6 +73,9 @@ export class CircleShape extends BaseShape {
     }
   }
 
+  /**
+   * @internal
+   */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const positionPoint = CircleShape._tempPositionPoint;
 
@@ -95,11 +98,17 @@ export class CircleShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
+  /**
+   * @internal
+   */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     const randomDir = this.randomDirectionAmount > 0.5 ? 1 : Math.sin(this.randomDirectionAmount * Math.PI);
     this._getUnitArcRange(this._arc + this.randomDirectionAmount * 180, outMin, outMax, randomDir);
   }
 
+  /**
+   * @internal
+   */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     this._getUnitArcRange(this._arc, outMin, outMax, 0);
     outMin.scale(this._radius);

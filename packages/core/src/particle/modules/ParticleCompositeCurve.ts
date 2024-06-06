@@ -182,7 +182,6 @@ export class ParticleCompositeCurve {
 
   /**
    * @internal
-   * @returns - The max value.
    */
   _getMax(): number {
     switch (this.mode) {
@@ -207,7 +206,7 @@ export class ParticleCompositeCurve {
 
   /**
    * @internal
-   * @param out - x as the min value, y as the max value of the curve.
+
    */
   _getMinMax(out: Vector2): void {
     switch (this.mode) {

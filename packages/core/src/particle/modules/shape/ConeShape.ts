@@ -75,6 +75,9 @@ export class ConeShape extends BaseShape {
     }
   }
 
+  /**
+   * @internal
+   */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const unitPosition = ConeShape._tempVector20;
     const radian = MathUtil.degreeToRadian(this.angle);
@@ -108,7 +111,9 @@ export class ConeShape extends BaseShape {
         break;
     }
   }
-
+  /**
+   * @internal
+   */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     outMin.set(-1, -1, -1);
     outMax.set(1, 1, 1);
@@ -131,6 +136,9 @@ export class ConeShape extends BaseShape {
     }
   }
 
+  /**
+   * @internal
+   */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radian = MathUtil.degreeToRadian(this._angle);
     const dirSinA = Math.sin(radian);

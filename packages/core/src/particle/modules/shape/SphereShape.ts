@@ -25,6 +25,9 @@ export class SphereShape extends BaseShape {
     }
   }
 
+  /**
+   * @internal
+   */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideUnitSphere(position, rand);
     position.scale(this.radius);
@@ -33,11 +36,17 @@ export class SphereShape extends BaseShape {
     Vector3.lerp(position, direction, this.randomDirectionAmount, direction);
   }
 
+  /**
+   * @internal
+   */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     outMin.set(-1, -1, -1);
     outMax.set(1, 1, 1);
   }
 
+  /**
+   * @internal
+   */
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radius = this._radius;
     outMin.set(-radius, -radius, -radius);
