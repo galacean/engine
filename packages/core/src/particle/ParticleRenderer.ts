@@ -30,7 +30,7 @@ export class ParticleRenderer extends Renderer {
 
   /** Particle generator. */
   @deepClone
-  readonly generator = new ParticleGenerator(this);
+  readonly generator: ParticleGenerator;
   /** Specifies how much particles stretch depending on their velocity. */
   velocityScale = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
@@ -125,6 +125,7 @@ export class ParticleRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._onGeneratorParamsChanged = this._onGeneratorParamsChanged.bind(this);
+    this.generator = new ParticleGenerator(this);
 
     this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);

@@ -172,8 +172,8 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
 
   private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
     const renderer = this._generator._renderer;
-    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged.bind(renderer));
-    value._registerOnValueChanged(renderer._onGeneratorParamsChanged.bind(renderer));
+    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
+    value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
     renderer._onGeneratorParamsChanged();
   }
 }
