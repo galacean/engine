@@ -118,6 +118,8 @@ export class Camera extends Component {
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
   private _opaqueTextureEnabled: boolean = false;
+  private _enableHDR = false;
+  private _enablePostProcess = false;
 
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
@@ -356,15 +358,24 @@ export class Camera extends Component {
 
   /**
    * Whether to enable HDR.
-   * @todo When render pipeline modification
    */
   get enableHDR(): boolean {
-    console.log("not implementation");
-    return false;
+    return this._enableHDR;
   }
 
   set enableHDR(value: boolean) {
-    console.log("not implementation");
+    this._enableHDR = value;
+  }
+
+  /**
+   * Whether to enable post process.
+   */
+  get enablePostProcess(): boolean {
+    return this._enablePostProcess;
+  }
+
+  set enablePostProcess(value: boolean) {
+    this._enablePostProcess = value;
   }
 
   /**

@@ -64,3 +64,5 @@ export * from "./Utils";
 // Export for CanvasRenderer plugin.
 export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+
+export * from "./postProcess";
