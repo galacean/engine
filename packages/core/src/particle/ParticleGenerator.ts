@@ -49,16 +49,16 @@ export class ParticleGenerator {
 
   /** Main module. */
   @deepClone
-  readonly main = new MainModule(this);
+  readonly main: MainModule;
   /** Emission module. */
   @deepClone
   readonly emission = new EmissionModule(this);
   /** Velocity over lifetime module. */
   @deepClone
-  readonly velocityOverLifetime = new VelocityOverLifetimeModule(this);
+  readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Size over lifetime module. */
   @deepClone
-  readonly sizeOverLifetime = new SizeOverLifetimeModule(this);
+  readonly sizeOverLifetime: SizeOverLifetimeModule;
   /** Rotation over lifetime module. */
   @deepClone
   readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
@@ -160,6 +160,10 @@ export class ParticleGenerator {
     this._primitive = new Primitive(renderer.engine);
     this._reorganizeGeometryBuffers();
     this._resizeInstanceBuffer(true, ParticleGenerator._particleIncreaseCount);
+
+    this.main = new MainModule(this);
+    this.velocityOverLifetime = new VelocityOverLifetimeModule(this);
+    this.sizeOverLifetime = new SizeOverLifetimeModule(this);
 
     this.emission.enabled = true;
   }

@@ -8,6 +8,7 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { ParticleGenerator } from "../ParticleGenerator";
 
 /**
  * Velocity over lifetime module.
@@ -29,11 +30,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
   @deepClone
-  private _velocityX = new ParticleCompositeCurve(0);
+  private _velocityX: ParticleCompositeCurve;
   @deepClone
-  private _velocityY = new ParticleCompositeCurve(0);
+  private _velocityY: ParticleCompositeCurve;
   @deepClone
-  private _velocityZ = new ParticleCompositeCurve(0);
+  private _velocityZ: ParticleCompositeCurve;
   private _space = ParticleSimulationSpace.Local;
 
   /** @internal */
@@ -55,8 +56,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   set velocityX(value: ParticleCompositeCurve) {
-    this._velocityX = value;
-    this._velocityX._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._velocityX;
+    if (value !== lastValue) {
+      this._velocityX = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -67,8 +71,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   set velocityY(value: ParticleCompositeCurve) {
-    this._velocityY = value;
-    this._velocityY._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._velocityY;
+    if (value !== lastValue) {
+      this._velocityY = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -79,8 +86,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   set velocityZ(value: ParticleCompositeCurve) {
-    this._velocityZ = value;
-    this._velocityZ._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._velocityZ;
+    if (value !== lastValue) {
+      this._velocityZ = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -91,8 +101,10 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   set space(value: ParticleSimulationSpace) {
-    this._space = value;
-    this._generator._renderer._onGeneratorParamsChanged();
+    if (value !== this._space) {
+      this._space = value;
+      this._generator._renderer._onGeneratorParamsChanged();
+    }
   }
 
   override get enabled(): boolean {
@@ -100,8 +112,18 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   override set enabled(value: boolean) {
-    this._enabled = value;
-    this._generator._renderer._onGeneratorParamsChanged();
+    if (value !== this._enabled) {
+      this._enabled = value;
+      this._generator._renderer._onGeneratorParamsChanged();
+    }
+  }
+
+  constructor(generator: ParticleGenerator) {
+    super(generator);
+
+    this.velocityX = new ParticleCompositeCurve(0);
+    this.velocityY = new ParticleCompositeCurve(0);
+    this.velocityZ = new ParticleCompositeCurve(0);
   }
 
   /**
@@ -173,5 +195,11 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._velocityRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
+  }
+
+  private _onValueChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+    const renderer = this._generator._renderer;
+    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
+    value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
   }
 }

@@ -58,18 +58,18 @@ export class MainModule implements ICustomClone {
   playOnEnabled = true;
 
   @deepClone
-  _startLifetime = new ParticleCompositeCurve(5);
+  _startLifetime: ParticleCompositeCurve;
   @deepClone
-  _startSpeed = new ParticleCompositeCurve(5);
+  _startSpeed: ParticleCompositeCurve;
   _startSize3D = false;
   @deepClone
-  _startSizeX = new ParticleCompositeCurve(1);
+  _startSizeX: ParticleCompositeCurve;
   @deepClone
-  _startSizeY = new ParticleCompositeCurve(1);
+  _startSizeY: ParticleCompositeCurve;
   @deepClone
-  _startSizeZ = new ParticleCompositeCurve(1);
+  _startSizeZ: ParticleCompositeCurve;
   @deepClone
-  _gravityModifier = new ParticleCompositeCurve(0);
+  _gravityModifier: ParticleCompositeCurve;
   @deepClone
   _simulationSpace = ParticleSimulationSpace.Local;
   /** @internal */
@@ -107,8 +107,11 @@ export class MainModule implements ICustomClone {
   }
 
   set startLifetime(value: ParticleCompositeCurve) {
-    this._startLifetime = value;
-    this._startLifetime._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._startLifetime;
+    if (value !== lastValue) {
+      this._startLifetime = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -119,8 +122,11 @@ export class MainModule implements ICustomClone {
   }
 
   set startSpeed(value: ParticleCompositeCurve) {
-    this._startSpeed = value;
-    this._startSpeed._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._startSpeed;
+    if (value !== lastValue) {
+      this._startSpeed = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -131,8 +137,10 @@ export class MainModule implements ICustomClone {
   }
 
   set startSize3D(value: boolean) {
-    this._startSize3D = value;
-    this._generator._renderer._onGeneratorParamsChanged();
+    if (value !== this._startSize3D) {
+      this._startSize3D = value;
+      this._generator._renderer._onGeneratorParamsChanged();
+    }
   }
 
   /**
@@ -143,8 +151,11 @@ export class MainModule implements ICustomClone {
   }
 
   set startSizeX(value: ParticleCompositeCurve) {
-    this._startSizeX = value;
-    this._startSizeX._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._startSizeX;
+    if (value !== lastValue) {
+      this._startSizeX = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -155,8 +166,11 @@ export class MainModule implements ICustomClone {
   }
 
   set startSizeY(value: ParticleCompositeCurve) {
-    this._startSizeY = value;
-    this._startSizeY._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._startSizeY;
+    if (value !== lastValue) {
+      this._startSizeY = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -167,8 +181,11 @@ export class MainModule implements ICustomClone {
   }
 
   set startSizeZ(value: ParticleCompositeCurve) {
-    this._startSizeZ = value;
-    this._startSizeZ._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
+    const lastValue = this._startSizeZ;
+    if (value !== lastValue) {
+      this._startSizeZ = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -179,8 +196,11 @@ export class MainModule implements ICustomClone {
   }
 
   set gravityModifier(value: ParticleCompositeCurve) {
-    this._gravityModifier = value;
-    this._gravityModifier._onValueChanged = this._generator._renderer._onWorldVolumeChanged;
+    const lastValue = this._gravityModifier;
+    if (value !== lastValue) {
+      this._gravityModifier = value;
+      this._onValueChange(lastValue, value);
+    }
   }
 
   /**
@@ -193,12 +213,15 @@ export class MainModule implements ICustomClone {
   set simulationSpace(value: ParticleSimulationSpace) {
     if (value !== this._simulationSpace) {
       this._simulationSpace = value;
-      this._generator._renderer._onGeneratorParamsChanged();
+
+      const generator = this._generator;
+      generator._renderer._onGeneratorParamsChanged();
+
       if (value === ParticleSimulationSpace.World) {
-        this._generator._resizeBoundsArray();
-        this._generator._generateTransformedBounds();
+        generator._resizeBoundsArray();
+        generator._generateTransformedBounds();
       } else {
-        this._generator._freeBoundsArray();
+        generator._freeBoundsArray();
       }
     }
   }
@@ -230,6 +253,13 @@ export class MainModule implements ICustomClone {
    */
   constructor(generator: ParticleGenerator) {
     this._generator = generator;
+
+    this.startLifetime = new ParticleCompositeCurve(5);
+    this.startSpeed = new ParticleCompositeCurve(5);
+    this.startSizeX = new ParticleCompositeCurve(1);
+    this.startSizeY = new ParticleCompositeCurve(1);
+    this.startSizeZ = new ParticleCompositeCurve(1);
+    this.gravityModifier = new ParticleCompositeCurve(0);
   }
 
   /**
@@ -310,5 +340,11 @@ export class MainModule implements ICustomClone {
    */
   _cloneTo(target: MainModule): void {
     target.maxParticles = this.maxParticles;
+  }
+
+  private _onValueChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+    const renderer = this._generator._renderer;
+    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
+    value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
   }
 }

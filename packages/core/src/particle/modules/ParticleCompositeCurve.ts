@@ -2,11 +2,14 @@ import { Vector2 } from "@galacean/engine-math";
 import { deepClone } from "../../clone/CloneManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCurve } from "./ParticleCurve";
+import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * Particle composite curve.
  */
 export class ParticleCompositeCurve {
+  protected _updateManager = new UpdateFlagManager();
+
   private _mode = ParticleCurveMode.Constant;
   private _constantMin: number = 0;
   private _constantMax: number = 0;
@@ -22,8 +25,10 @@ export class ParticleCompositeCurve {
     return this._mode;
   }
   set mode(value: ParticleCurveMode) {
-    this._mode = value;
-    this._onValueChanged && this._onValueChanged();
+    if (value !== this._mode) {
+      this._mode = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -34,8 +39,10 @@ export class ParticleCompositeCurve {
   }
 
   set constantMin(value: number) {
-    this._constantMin = value;
-    this._onValueChanged && this._onValueChanged();
+    if (value !== this._constantMin) {
+      this._constantMin = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -46,8 +53,10 @@ export class ParticleCompositeCurve {
   }
 
   set constantMax(value: number) {
-    this._constantMax = value;
-    this._onValueChanged && this._onValueChanged();
+    if (value !== this._constantMax) {
+      this._constantMax = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -58,9 +67,13 @@ export class ParticleCompositeCurve {
   }
 
   set curveMin(value: ParticleCurve) {
-    this._curveMin = value;
-    this._curveMin._onValueChanged = this._onValueChanged;
-    this._onValueChanged && this._onValueChanged();
+    const lastCurve = this._curveMin;
+    if (value !== lastCurve) {
+      this._curveMin = value;
+
+      lastCurve?._unRegisterOnValueChanged(this._onValueChange);
+      value._registerOnValueChanged(this._onValueChange);
+    }
   }
 
   /**
@@ -71,9 +84,13 @@ export class ParticleCompositeCurve {
   }
 
   set curveMax(value: ParticleCurve) {
-    this._curveMax = value;
-    this._curveMax._onValueChanged = this._onValueChanged;
-    this._onValueChanged && this._onValueChanged();
+    const lastCurve = this._curveMax;
+    if (value !== lastCurve) {
+      this._curveMax = value;
+
+      lastCurve?._unRegisterOnValueChanged(this._onValueChange);
+      value._registerOnValueChanged(this._onValueChange);
+    }
   }
 
   /**
@@ -85,7 +102,6 @@ export class ParticleCompositeCurve {
 
   set constant(value: number) {
     this.constantMax = value;
-    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -97,8 +113,7 @@ export class ParticleCompositeCurve {
 
   set curve(value: ParticleCurve) {
     this.curveMax = value;
-    this._curveMax._onValueChanged = this._onValueChanged;
-    this._onValueChanged && this._onValueChanged();
+    this._updateManager.dispatch();
   }
 
   /**
@@ -128,6 +143,8 @@ export class ParticleCompositeCurve {
   constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
 
   constructor(constantOrCurve: number | ParticleCurve, constantMaxOrCurveMax?: number | ParticleCurve) {
+    this._onValueChange = this._onValueChange.bind(this);
+
     if (typeof constantOrCurve === "number") {
       if (constantMaxOrCurveMax) {
         this.constantMin = constantOrCurve;
@@ -264,6 +281,25 @@ export class ParticleCompositeCurve {
         break;
     }
   }
-  /** @internal */
-  _onValueChanged: () => void = null;
+
+  /**
+   * @internal
+   */
+  _onValueChange(): void {
+    this._updateManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _registerOnValueChanged(listener: () => void): void {
+    this._updateManager.addListener(listener);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterOnValueChanged(listener: () => void): void {
+    this._updateManager.removeListener(listener);
+  }
 }

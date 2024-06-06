@@ -1,9 +1,12 @@
+import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
 export class ParticleCurve {
+  protected _updateManager = new UpdateFlagManager();
+
   @deepClone
   private _keys: CurveKey[] = [];
   @ignoreClone
@@ -22,10 +25,11 @@ export class ParticleCurve {
    * @param keys - The keys of the curve
    */
   constructor(...keys: CurveKey[]) {
+    this._onValueChange = this._onValueChange.bind(this);
+
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
       this.addKey(key);
-      key._onValueChanged = this._onValueChanged;
     }
   }
 
@@ -51,9 +55,8 @@ export class ParticleCurve {
 
     const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
     this._addKey(keys, key);
-    key._onValueChanged = this._onValueChanged;
+    key._registerOnValueChanged(this._onValueChange);
     this._typeArrayDirty = true;
-    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -61,9 +64,10 @@ export class ParticleCurve {
    * @param index - The remove key index
    */
   removeKey(index: number): void {
-    this._keys.splice(index, 1);
+    const removedKeyArray = this._keys.splice(index, 1);
     this._typeArrayDirty = true;
-    this._onValueChanged && this._onValueChanged();
+    removedKeyArray[0]?._unRegisterOnValueChanged(this._onValueChange);
+    this._onValueChange();
   }
 
   /**
@@ -75,10 +79,8 @@ export class ParticleCurve {
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
       this.addKey(key);
-      key._onValueChanged = this._onValueChanged;
     }
     this._typeArrayDirty = true;
-    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -99,8 +101,26 @@ export class ParticleCurve {
     return typeArray;
   }
 
-  /** @internal */
-  _onValueChanged: () => void = null;
+  /**
+   * @internal
+   */
+  _onValueChange(): void {
+    this._updateManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _registerOnValueChanged(listener: () => void): void {
+    this._updateManager.addListener(listener);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterOnValueChanged(listener: () => void): void {
+    this._updateManager.removeListener(listener);
+  }
 
   private _addKey(keys: CurveKey[], key: CurveKey): void {
     const count = keys.length;
@@ -120,9 +140,9 @@ export class ParticleCurve {
  * The key of the curve.
  */
 export class CurveKey {
-  /** @internal */
+  protected _updateManager = new UpdateFlagManager();
+
   private _time: number;
-  /** @internal */
   private _value: number;
 
   /**
@@ -133,20 +153,24 @@ export class CurveKey {
   }
 
   set time(value: number) {
-    this._time = value;
-    this._onValueChanged && this._onValueChanged();
+    if (value !== this._time) {
+      this._time = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
    * The key value.
-   * */
+   */
   get value(): number {
     return this._value;
   }
 
   set value(value: number) {
-    this._value = value;
-    this._onValueChanged && this._onValueChanged();
+    if (value !== this._value) {
+      this._value = value;
+      this._updateManager.dispatch();
+    }
   }
 
   /**
@@ -157,6 +181,17 @@ export class CurveKey {
     this._value = value;
   }
 
-  /** @internal */
-  _onValueChanged: () => void = null;
+  /**
+   * @internal
+   */
+  _registerOnValueChanged(listener: () => void): void {
+    this._updateManager.addListener(listener);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterOnValueChanged(listener: () => void): void {
+    this._updateManager.removeListener(listener);
+  }
 }
