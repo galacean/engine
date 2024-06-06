@@ -9,7 +9,6 @@ export abstract class ParticleGeneratorModule {
   @ignoreClone
   protected _generator: ParticleGenerator;
 
-  @ignoreClone
   protected _enabled: boolean = false;
 
   /**

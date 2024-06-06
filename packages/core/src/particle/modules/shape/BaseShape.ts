@@ -1,6 +1,7 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
+import { ignoreClone } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
@@ -9,6 +10,7 @@ export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
+  @ignoreClone
   protected _updateManager = new UpdateFlagManager();
 
   private _enabled = true;

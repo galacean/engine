@@ -388,6 +388,20 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
+  /**
+   * @internal
+   */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyUpdateFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyUpdateFlag &= ~type;
+  }
+
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
     const mvMatrix = this._mvMatrix;
