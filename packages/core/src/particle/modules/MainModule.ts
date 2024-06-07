@@ -9,6 +9,7 @@ import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
+import { TransformModifyFlags } from "../../Transform";
 
 export class MainModule implements ICustomClone {
   private static _tempVector40 = new Vector4();
@@ -214,11 +215,9 @@ export class MainModule implements ICustomClone {
       this._simulationSpace = value;
 
       const generator = this._generator;
-      generator._renderer._onGeneratorParamsChanged();
+      generator._renderer._onTransformChanged(TransformModifyFlags.WorldMatrix);
 
-      if (value === ParticleSimulationSpace.World) {
-        generator._generateTransformedBounds();
-      } else {
+      if (value === ParticleSimulationSpace.Local) {
         generator._freeBoundsArray();
       }
     }

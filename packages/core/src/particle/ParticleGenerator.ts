@@ -1,4 +1,4 @@
-import { BoundingBox, Color, MathUtil, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
@@ -39,8 +39,10 @@ export class ParticleGenerator {
   private static _tempVector22 = new Vector2();
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
+  private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
+
   private static readonly _particleIncreaseCount = 128;
   private static readonly _transformedBoundsIncreaseCount = 16;
 
@@ -260,7 +262,7 @@ export class ParticleGenerator {
    * @internal
    */
   _update(elapsedTime: number): void {
-    const lastHasAliveParticle = this._firstActiveElement !== this._firstFreeElement;
+    const lastAlive = this.isAlive;
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
@@ -288,21 +290,18 @@ export class ParticleGenerator {
       }
     }
 
-    const hasAliveParticle = this._firstActiveElement !== this._firstFreeElement;
-    if (hasAliveParticle) {
+    if (this.isAlive) {
       if (main.simulationSpace === ParticleSimulationSpace.World) {
         this._generateTransformedBounds();
       }
-    }
-
-    // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
-    if (!this.isAlive) {
+    } else {
+      // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
       const discardTime = Math.min(emission._frameRateTime, Math.floor(this._playTime / duration) * duration);
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
     }
 
-    if (hasAliveParticle !== lastHasAliveParticle) {
+    if (this.isAlive !== lastAlive) {
       this._renderer._onWorldVolumeChanged();
     }
 
@@ -1055,10 +1054,15 @@ export class ParticleGenerator {
   }
 
   private _calculateTransformedBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
-    const { _tempVector20: velMinMaxX, _tempVector21: velMinMaxY, _tempVector22: velMinMaxZ } = ParticleGenerator;
+    const {
+      _tempVector20: velMinMaxX,
+      _tempVector21: velMinMaxY,
+      _tempVector22: velMinMaxZ,
+      _tempMat: rotateMat
+    } = ParticleGenerator;
     const { transform } = this._renderer.entity;
-    const worldRotation = transform.worldRotationQuaternion;
     const worldPosition = transform.worldPosition;
+    Matrix.rotationQuaternion(transform.worldRotationQuaternion, rotateMat);
 
     const { min: originMin, max: originMax } = origin;
     const { min, max } = out;
@@ -1081,11 +1085,9 @@ export class ParticleGenerator {
           originMax.z + velMinMaxZ.y * maxLifetime
         );
 
-        min.transformByQuat(worldRotation);
-        max.transformByQuat(worldRotation);
+        out.transform(rotateMat);
       } else {
-        min.transformByQuat(worldRotation);
-        max.transformByQuat(worldRotation);
+        out.transform(rotateMat);
 
         min.set(
           originMin.x + velMinMaxX.x * maxLifetime,
@@ -1099,8 +1101,7 @@ export class ParticleGenerator {
         );
       }
     } else {
-      Vector3.transformByQuat(origin.min, worldRotation, min);
-      Vector3.transformByQuat(origin.max, worldRotation, max);
+      BoundingBox.transform(origin, rotateMat, out);
     }
 
     min.add(worldPosition);

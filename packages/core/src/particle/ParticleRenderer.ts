@@ -184,6 +184,10 @@ export class ParticleRenderer extends Renderer {
     if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       generator._updateBoundsSimulationLocal(worldBounds);
     } else {
+      if (this._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+        generator._generateTransformedBounds();
+        this._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
+      }
       generator._updateBoundsSimulationWorld(worldBounds);
     }
   }
@@ -261,7 +265,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _onTransformChanged(type: TransformModifyFlags): void {
+  override _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 }
