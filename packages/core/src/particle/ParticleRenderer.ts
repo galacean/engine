@@ -175,6 +175,10 @@ export class ParticleRenderer extends Renderer {
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const { generator } = this;
+
+    // Using `isAlive` instead of `firstActiveElement !== firstFreeElement`
+    // Because `firstActiveElement !== firstFreeElement` will cause bounds is merely a point, and cannot be culled forever
+    // Must generate bounds even when there is no particle but in play state
     if (!generator.isAlive) {
       const worldPosition = this.entity.transform.worldPosition;
       worldBounds.min.copyFrom(worldPosition);
