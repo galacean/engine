@@ -420,8 +420,8 @@ describe("ParticleBoundingBox", function () {
     testParticleRendererBounds(
       engine,
       particleRenderer,
-      { x: -18.068, y: 14.758, z: -10.239 },
-      { x: 1.31, y: 1.74, z: 5.414 },
+      { x: -19.906, y: -0.3798, z: -10.239 },
+      { x: 3.156, y: 16.88, z: 5.414 },
       delta
     );
   });
