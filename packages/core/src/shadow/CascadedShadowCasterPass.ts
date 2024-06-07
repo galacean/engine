@@ -81,7 +81,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
   private _renderDirectShadowMap(context: RenderContext, light: DirectLight): void {
     const {
-      _engine: engine,
+      engine: engine,
       _camera: camera,
       _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,

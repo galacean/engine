@@ -62,7 +62,7 @@ export class Scene extends EngineObject {
   /** @internal */
   _rootEntities: Entity[] = [];
   /** @internal */
-  _postProcessManager = new PostProcessManager();
+  _postProcessManager = new PostProcessManager(this);
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);

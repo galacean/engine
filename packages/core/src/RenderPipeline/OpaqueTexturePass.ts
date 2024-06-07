@@ -31,7 +31,7 @@ export class OpaqueTexturePass extends PipelinePass {
     const viewport = camera.pixelViewport;
     const sizeScale = isNoDownsampling ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
     const opaqueRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      this._engine,
+      this.engine,
       this._renderTarget,
       viewport.width * sizeScale,
       viewport.height * sizeScale,
@@ -49,7 +49,7 @@ export class OpaqueTexturePass extends PipelinePass {
   }
 
   onRender(context: RenderContext, _: CullingResults): void {
-    PipelineUtils.blitTexture(this._engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
+    PipelineUtils.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }
 }

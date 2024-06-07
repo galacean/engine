@@ -188,8 +188,9 @@ export class BasicRenderPipeline {
 
     transparentQueue.render(camera, PipelineStage.Forward);
 
+    // render post process pass
     if (camera.enablePostProcess) {
-      const postProcesses = camera.scene._postProcessManager._postProcessPasses.getLoopArray();
+      const postProcesses = camera.scene._postProcessManager._passes.getLoopArray();
       for (let i = 0, length = postProcesses.length; i < length; i++) {
         const pass = postProcesses[i];
         pass.isActive && pass.onRender(context);

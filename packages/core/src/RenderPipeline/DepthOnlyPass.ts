@@ -25,7 +25,7 @@ export class DepthOnlyPass extends PipelinePass {
   }
 
   onConfig(camera: Camera): void {
-    const engine = this._engine;
+    const engine = this.engine;
     const { width, height } = camera.pixelViewport;
 
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -47,7 +47,7 @@ export class DepthOnlyPass extends PipelinePass {
   }
 
   override onRender(context: RenderContext, cullingResults: CullingResults): void {
-    const engine = this._engine;
+    const engine = this.engine;
     const renderTarget = this._renderTarget;
     const camera = context.camera;
     const rhi = engine._hardwareRenderer;
