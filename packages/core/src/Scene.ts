@@ -73,6 +73,7 @@ export class Scene extends EngineObject {
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
+  private _enableTransparentShadow = false;
 
   /**
    * Whether the scene is active.
@@ -239,6 +240,24 @@ export class Scene extends EngineObject {
 
   set sun(light: DirectLight | null) {
     this._sun = light;
+  }
+
+  /**
+   * Whether to enable transparent shadow.
+   */
+  get enableTransparentShadow(): boolean {
+    return this._enableTransparentShadow;
+  }
+
+  set enableTransparentShadow(value: boolean) {
+    if (value !== this._enableTransparentShadow) {
+      this._enableTransparentShadow = value;
+      if (value) {
+        this.shaderData.enableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
+      } else {
+        this.shaderData.disableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
+      }
+    }
   }
 
   /**
