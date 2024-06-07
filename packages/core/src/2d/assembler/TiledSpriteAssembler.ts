@@ -24,7 +24,7 @@ export class TiledSpriteAssembler {
       const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
       const { _chunk: chunk } = renderer;
       if (chunk) {
-        if (chunk._vEntry.len !== vCount * 9) {
+        if (chunk._primitive.vertexBufferBindings[0].size !== vCount * 9) {
           manager.freeChunk(chunk);
           const newChunk = manager.allocateChunk(vCount);
           newChunk._indices = [];
@@ -74,7 +74,7 @@ export class TiledSpriteAssembler {
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
     const indices = chunk._indices;
-    let index = chunk._vEntry.start;
+    let index = chunk._primitive.vertexBufferBindings[0].offset;
     let count = 0;
     let trianglesOffset = 0;
     for (let j = 0; j < columnLength; j++) {
@@ -131,7 +131,7 @@ export class TiledSpriteAssembler {
     const columnLength = posColumn.length - 1;
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
-    let index = chunk._vEntry.start + 3;
+    let index = chunk._primitive.vertexBufferBindings[0].offset + 3;
     for (let j = 0; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
@@ -164,8 +164,9 @@ export class TiledSpriteAssembler {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
     const vertices = chunk._data._vertices;
-    let index = chunk._vEntry.start + 5;
-    for (let i = 0, l = chunk._vEntry.len / 9; i < l; ++i) {
+    const vertexBufferBinding = chunk._primitive.vertexBufferBindings[0];
+    let index = vertexBufferBinding.offset + 5;
+    for (let i = 0, l = vertexBufferBinding.size / 9; i < l; ++i) {
       vertices[index] = r;
       vertices[index + 1] = g;
       vertices[index + 2] = b;

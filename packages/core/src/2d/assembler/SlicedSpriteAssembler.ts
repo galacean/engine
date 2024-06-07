@@ -102,7 +102,7 @@ export class SlicedSpriteAssembler {
     // Assemble position and uv.
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
-    let index = chunk._vEntry.start;
+    let index = chunk._primitive.vertexBufferBindings[0].offset;
     for (let i = 0; i < 4; i++) {
       const rowValue = row[i];
       for (let j = 0; j < 4; j++) {
@@ -124,7 +124,7 @@ export class SlicedSpriteAssembler {
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
     const spriteUVs = renderer.sprite._getUVs();
-    let index = chunk._vEntry.start + 3;
+    let index = chunk._primitive.vertexBufferBindings[0].offset + 3;
     for (let i = 0; i < 4; i++) {
       const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++) {
@@ -139,7 +139,7 @@ export class SlicedSpriteAssembler {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
     const vertices = chunk._data._vertices;
-    let index = chunk._vEntry.start + 5;
+    let index = chunk._primitive.vertexBufferBindings[0].offset + 5;
     for (let i = 0; i < 16; ++i) {
       vertices[index] = r;
       vertices[index + 1] = g;

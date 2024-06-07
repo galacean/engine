@@ -180,7 +180,7 @@ describe("SpriteMask", async () => {
     const vertices = chunk._data._vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk._vEntry.start;
+    let index = chunk._vAera.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -206,7 +206,7 @@ describe("SpriteMask", async () => {
     spriteMask._render(context);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk._vEntry.start;
+    index = chunk._vAera.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));

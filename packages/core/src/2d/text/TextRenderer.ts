@@ -432,7 +432,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.getFromPool();
       const { chunk, texture } = charRenderInfo;
-      renderData.set(this, material, chunk._data._primitive, chunk._subMesh, texture, chunk);
+      renderData.set(this, material, chunk._primitive, chunk._subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
       renderData.preRender = () => {
@@ -478,9 +478,10 @@ export class TextRenderer extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _data: meshBuffer, _indices: tempIndices, _vEntry: vEntry } = chunk;
+    const { _data: meshBuffer, _indices: tempIndices } = chunk;
+    const { offset, size } = chunk._primitive.vertexBufferBindings[0];
     const indices = meshBuffer._indices;
-    const vertexStartIndex = vEntry.start / 9;
+    const vertexStartIndex = offset / 9;
     const len = tempIndices.length;
     let startIndex = meshBuffer._iLen;
     if (elementB) {
@@ -495,7 +496,7 @@ export class TextRenderer extends Renderer {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
     meshBuffer._iLen += len;
-    meshBuffer._vLen = Math.max(meshBuffer._vLen, vEntry.start + vEntry.len);
+    meshBuffer._vLen = Math.max(meshBuffer._vLen, offset + size);
   }
 
   private _updateStencilState(): void {
@@ -572,7 +573,7 @@ export class TextRenderer extends Renderer {
 
       const { chunk } = charRenderInfo;
       const vertices = chunk._data._vertices;
-      let index = chunk._vEntry.start;
+      let index = chunk._primitive.vertexBufferBindings[0].offset;
       for (let i = 0; i < 4; ++i) {
         const position = TextRenderer._worldPositions[i];
         vertices[index] = position.x;
@@ -655,7 +656,7 @@ export class TextRenderer extends Renderer {
               const vertices = chunk._data._vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
-              let index = chunk._vEntry.start + 3;
+              let index = chunk._primitive.vertexBufferBindings[0].offset + 3;
               for (let i = 0; i < 4; ++i) {
                 vertices[index] = uvs[i].x;
                 vertices[index + 1] = uvs[i].y;
