@@ -57,21 +57,6 @@ export class MainModule implements ICustomClone {
   /** If set to true, the Particle Generator automatically begins to play on startup. */
   playOnEnabled = true;
 
-  @deepClone
-  _startLifetime: ParticleCompositeCurve;
-  @deepClone
-  _startSpeed: ParticleCompositeCurve;
-  _startSize3D = false;
-  @deepClone
-  _startSizeX: ParticleCompositeCurve;
-  @deepClone
-  _startSizeY: ParticleCompositeCurve;
-  @deepClone
-  _startSizeZ: ParticleCompositeCurve;
-  @deepClone
-  _gravityModifier: ParticleCompositeCurve;
-  @deepClone
-  _simulationSpace = ParticleSimulationSpace.Local;
   /** @internal */
   @ignoreClone
   _maxParticleBuffer = 1000;
@@ -94,6 +79,20 @@ export class MainModule implements ICustomClone {
   @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
+  @deepClone
+  private _startLifetime: ParticleCompositeCurve;
+  @deepClone
+  private _startSpeed: ParticleCompositeCurve;
+  private _startSize3D = false;
+  @deepClone
+  private _startSizeX: ParticleCompositeCurve;
+  @deepClone
+  private _startSizeY: ParticleCompositeCurve;
+  @deepClone
+  private _startSizeZ: ParticleCompositeCurve;
+  @deepClone
+  private _gravityModifier: ParticleCompositeCurve;
+  private _simulationSpace = ParticleSimulationSpace.Local;
   @ignoreClone
   private _generator: ParticleGenerator;
   @ignoreClone

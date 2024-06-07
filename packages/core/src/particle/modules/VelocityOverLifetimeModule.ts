@@ -29,14 +29,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
-  @deepClone
-  private _velocityX: ParticleCompositeCurve;
-  @deepClone
-  private _velocityY: ParticleCompositeCurve;
-  @deepClone
-  private _velocityZ: ParticleCompositeCurve;
-  private _space = ParticleSimulationSpace.Local;
-
   /** @internal */
   @ignoreClone
   _velocityRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
@@ -47,6 +39,14 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _velocityMaxConstant = new Vector3();
   @ignoreClone
   private _velocityMacro: ShaderMacro;
+
+  @deepClone
+  private _velocityX: ParticleCompositeCurve;
+  @deepClone
+  private _velocityY: ParticleCompositeCurve;
+  @deepClone
+  private _velocityZ: ParticleCompositeCurve;
+  private _space = ParticleSimulationSpace.Local;
 
   /**
    * Velocity over lifetime for x axis.

@@ -645,11 +645,11 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     } else {
       let previousFreeElement = this._firstFreeTransformedBoundingBox - 1;
-      if (previousFreeElement <= 0) {
+      if (previousFreeElement < 0) {
         previousFreeElement = this._transformedBoundsCount;
       }
-
-      this._transformedBoundsArray[previousFreeElement + boundsTimeOffset] = this._playTime;
+      this._transformedBoundsArray[previousFreeElement * ParticleBufferUtils.boundsFloatStride + boundsTimeOffset] =
+        this._playTime;
     }
   }
 

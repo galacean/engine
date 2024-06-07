@@ -175,8 +175,7 @@ export class ParticleRenderer extends Renderer {
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const { generator } = this;
-    const hasNoneParticle = generator._firstActiveElement === generator._firstFreeElement;
-    if (hasNoneParticle) {
+    if (!generator.isAlive) {
       const worldPosition = this.entity.transform.worldPosition;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
