@@ -338,6 +338,10 @@ export class MainModule implements ICustomClone {
    */
   _cloneTo(target: MainModule): void {
     target.maxParticles = this.maxParticles;
+
+    if (target._simulationSpace === ParticleSimulationSpace.World) {
+      target._generator._generateTransformedBounds();
+    }
   }
 
   private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
