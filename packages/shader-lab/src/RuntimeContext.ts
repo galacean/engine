@@ -138,11 +138,12 @@ export default class RuntimeContext {
 
   addDiagnostic(diagnostic: IDiagnostic) {
     let offset = this._parsingContext.getTextLineOffsetAt(diagnostic.token.start.index);
+    let token: IPositionRange = { start: { ...diagnostic.token.start }, end: { ...diagnostic.token.end } };
     if (offset) {
-      diagnostic.token.start.line += offset;
-      diagnostic.token.end.line += offset;
+      token.start.line += offset;
+      token.end.line += offset;
     }
-    this._diagnostics.push(diagnostic);
+    this._diagnostics.push({ ...diagnostic, token });
   }
 
   setSerializingNode(node: AstNode) {
@@ -313,12 +314,8 @@ export default class RuntimeContext {
   // If be aware of the complete input macro list when parsing, the snippets below is not required.
   getExtendedDefineMacros() {
     return Array.from(this._preprocessor._definePairs.entries())
-      .map(([k, v]) => {
-        let ret = `#define ${k}`;
-        if (!v.isFunction) {
-          ret += ` ${v.replacer}`;
-        }
-        return ret;
+      .map(([_, v]) => {
+        return v.originText;
       })
       .join("\n");
   }

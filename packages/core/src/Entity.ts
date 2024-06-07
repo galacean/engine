@@ -42,6 +42,33 @@ export class Entity extends EngineObject {
     }
   }
 
+  /**
+   * @internal
+   */
+  static _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
+    inversePath.length = 0;
+    while (searchEntity !== rootEntity) {
+      const parent = searchEntity.parent;
+      if (!parent) {
+        return false;
+      }
+      inversePath.push(searchEntity.siblingIndex);
+      searchEntity = parent;
+    }
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  static _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
+    let entity = rootEntity;
+    for (let i = inversePath.length - 1; i >= 0; i--) {
+      entity = entity.children[inversePath[i]];
+    }
+    return entity;
+  }
+
   /** The name of entity. */
   name: string;
   /** The layer the entity belongs to. */
@@ -389,13 +416,12 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clone.
+   * Clone this entity include children and components.
    * @returns Cloned entity
    */
   clone(): Entity {
     const cloneEntity = this._createCloneEntity(this);
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity);
-
+    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
     return cloneEntity;
   }
 
@@ -431,19 +457,25 @@ export class Entity extends EngineObject {
     return cloneEntity;
   }
 
-  private _parseCloneEntity(srcEntity: Entity, targetEntity: Entity, srcRoot: Entity, targetRoot: Entity): void {
-    const srcChildren = srcEntity._children;
-    const targetChildren = targetEntity._children;
+  private _parseCloneEntity(
+    src: Entity,
+    target: Entity,
+    srcRoot: Entity,
+    targetRoot: Entity,
+    deepInstanceMap: Map<Object, Object>
+  ): void {
+    const srcChildren = src._children;
+    const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot);
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot, deepInstanceMap);
     }
 
-    const components = srcEntity._components;
+    const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = targetEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot);
+        const targetComp = target.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
       }
     }
   }

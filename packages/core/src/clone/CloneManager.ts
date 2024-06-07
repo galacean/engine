@@ -1,5 +1,6 @@
+import { Entity } from "../Entity";
 import { TypedArray } from "../base/Constant";
-import { ICustomClone } from "./ComponentCloner";
+import { IComponentCustomClone, ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -93,7 +94,15 @@ export class CloneManager {
     return cloneModes;
   }
 
-  static cloneProperty(source: Object, target: Object, k: string | number, cloneMode: CloneMode): void {
+  static cloneProperty(
+    source: Object,
+    target: Object,
+    k: string | number,
+    cloneMode: CloneMode,
+    srcRoot: Entity,
+    targetRoot: Entity,
+    deepInstanceMap: Map<Object, Object>
+  ): void {
     if (cloneMode === CloneMode.Ignore) {
       return;
     }
@@ -131,22 +140,55 @@ export class CloneManager {
             targetPropertyA.length = length;
           }
           for (let i = 0; i < length; i++) {
-            CloneManager.cloneProperty(<Array<any>>sourceProperty, targetPropertyA, i, cloneMode);
+            CloneManager.cloneProperty(
+              <Array<any>>sourceProperty,
+              targetPropertyA,
+              i,
+              cloneMode,
+              srcRoot,
+              targetRoot,
+              deepInstanceMap
+            );
           }
           break;
         default:
-          const targetOProperty = <Object>(target[k] ||= new sourceProperty.constructor());
-          const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
-          for (let k in sourceProperty) {
-            CloneManager.cloneProperty(<Object>sourceProperty, targetOProperty, k, cloneModes[k]);
+          let targetProperty = <Object>target[k];
+          // If the target property is undefined, create new instance and keep reference sharing like the source
+          if (!targetProperty) {
+            targetProperty = deepInstanceMap.get(sourceProperty);
+            if (!targetProperty) {
+              targetProperty = new sourceProperty.constructor();
+              deepInstanceMap.set(sourceProperty, targetProperty);
+            }
+            target[k] = targetProperty;
           }
 
-          // Custom clone
-          if ((<ICustomClone>sourceProperty)._cloneTo) {
-            (<ICustomClone>sourceProperty)._cloneTo(<ICustomClone>targetOProperty);
-          }
           if ((<ICustomClone>sourceProperty).copyFrom) {
-            (<ICustomClone>targetOProperty).copyFrom(<ICustomClone>sourceProperty);
+            // Custom clone
+            (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
+          } else {
+            // Universal clone
+            const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
+            for (let k in sourceProperty) {
+              CloneManager.cloneProperty(
+                <Object>sourceProperty,
+                targetProperty,
+                k,
+                cloneModes[k],
+                srcRoot,
+                targetRoot,
+                deepInstanceMap
+              );
+            }
+
+            // Custom incremental clone
+            if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
+              (<IComponentCustomClone>sourceProperty)._cloneTo(
+                <IComponentCustomClone>targetProperty,
+                srcRoot,
+                targetRoot
+              );
+            }
           }
           break;
       }
@@ -156,9 +198,9 @@ export class CloneManager {
     }
   }
 
-  static deepCloneObject(source: Object, target: Object): void {
+  static deepCloneObject(source: Object, target: Object, deepInstanceMap: Map<Object, Object>): void {
     for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, CloneMode.Deep);
+      CloneManager.cloneProperty(source, target, k, CloneMode.Deep, null, null, deepInstanceMap);
     }
   }
 }
