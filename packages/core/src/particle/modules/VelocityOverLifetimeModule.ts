@@ -8,7 +8,6 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ParticleGenerator } from "../ParticleGenerator";
 
 /**
  * Velocity over lifetime module.
@@ -29,6 +28,19 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
+  /** Velocity over lifetime for x axis. */
+  @deepClone
+  velocityX = new ParticleCompositeCurve(0);
+  /** Velocity over lifetime for z axis. */
+  @deepClone
+  velocityY = new ParticleCompositeCurve(0);
+  /** Velocity over lifetime for z axis. */
+  @deepClone
+  velocityZ = new ParticleCompositeCurve(0);
+
+  /** Velocity space. */
+  space = ParticleSimulationSpace.Local;
+
   /** @internal */
   @ignoreClone
   _velocityRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
@@ -39,92 +51,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _velocityMaxConstant = new Vector3();
   @ignoreClone
   private _velocityMacro: ShaderMacro;
-
-  @deepClone
-  private _velocityX: ParticleCompositeCurve;
-  @deepClone
-  private _velocityY: ParticleCompositeCurve;
-  @deepClone
-  private _velocityZ: ParticleCompositeCurve;
-  private _space = ParticleSimulationSpace.Local;
-
-  /**
-   * Velocity over lifetime for x axis.
-   */
-  get velocityX(): ParticleCompositeCurve {
-    return this._velocityX;
-  }
-
-  set velocityX(value: ParticleCompositeCurve) {
-    const lastValue = this._velocityX;
-    if (value !== lastValue) {
-      this._velocityX = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
-
-  /**
-   * Velocity over lifetime for y axis.
-   */
-  get velocityY(): ParticleCompositeCurve {
-    return this._velocityY;
-  }
-
-  set velocityY(value: ParticleCompositeCurve) {
-    const lastValue = this._velocityY;
-    if (value !== lastValue) {
-      this._velocityY = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
-
-  /**
-   * Velocity over lifetime for z axis.
-   */
-  get velocityZ(): ParticleCompositeCurve {
-    return this._velocityZ;
-  }
-
-  set velocityZ(value: ParticleCompositeCurve) {
-    const lastValue = this._velocityZ;
-    if (value !== lastValue) {
-      this._velocityZ = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
-
-  /**
-   * Velocity space.
-   */
-  get space(): ParticleSimulationSpace {
-    return this._space;
-  }
-
-  set space(value: ParticleSimulationSpace) {
-    if (value !== this._space) {
-      this._space = value;
-      this._generator._renderer._onGeneratorParamsChanged();
-    }
-  }
-
-  override get enabled(): boolean {
-    return this._enabled;
-  }
-
-  override set enabled(value: boolean) {
-    if (value !== this._enabled) {
-      this._enabled = value;
-      this._generator._renderer._onGeneratorParamsChanged();
-    }
-  }
-
-  constructor(generator: ParticleGenerator) {
-    super(generator);
-
-    this.velocityX = new ParticleCompositeCurve(0);
-    this.velocityY = new ParticleCompositeCurve(0);
-    this.velocityZ = new ParticleCompositeCurve(0);
-  }
 
   /**
    * @internal
@@ -195,12 +121,5 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._velocityRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
-  }
-
-  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
-    const renderer = this._generator._renderer;
-    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
-    renderer._onGeneratorParamsChanged();
   }
 }
