@@ -1,15 +1,17 @@
-import { BoundingBox, Vector3 } from "@galacean/engine-math";
+import { Vector3, BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { GLCapabilityType } from "../base/Constant";
-import { deepClone, shallowClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleGenerator } from "./ParticleGenerator";
+import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { TransformModifyFlags } from "../Transform";
 
 /**
  * Particle Renderer Component.
@@ -28,7 +30,7 @@ export class ParticleRenderer extends Renderer {
 
   /** Particle generator. */
   @deepClone
-  readonly generator = new ParticleGenerator(this);
+  readonly generator: ParticleGenerator;
   /** Specifies how much particles stretch depending on their velocity. */
   velocityScale = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
@@ -36,6 +38,13 @@ export class ParticleRenderer extends Renderer {
   /** The pivot of particle. */
   @shallowClone
   pivot = new Vector3();
+
+  /** @internal */
+  @ignoreClone
+  _generatorBounds = new BoundingBox();
+  /** @internal */
+  @ignoreClone
+  _transformedBounds = new BoundingBox();
 
   private _renderMode: ParticleRenderMode;
   private _currentRenderModeMacro: ShaderMacro;
@@ -115,12 +124,15 @@ export class ParticleRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._onGeneratorParamsChanged = this._onGeneratorParamsChanged.bind(this);
+    this.generator = new ParticleGenerator(this);
 
     this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+
+    this._onGeneratorParamsChanged();
   }
 
   /**
@@ -162,8 +174,26 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+    const { generator } = this;
+
+    // Using `isAlive` instead of `firstActiveElement !== firstFreeElement`
+    // Because `firstActiveElement !== firstFreeElement` will cause bounds is merely a point, and cannot be culled forever
+    // Must generate bounds even when there is no particle but in play state
+    if (!generator.isAlive) {
+      const worldPosition = this.entity.transform.worldPosition;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
+      return;
+    }
+    if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
+      generator._updateBoundsSimulationLocal(worldBounds);
+    } else {
+      if (this._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+        generator._generateTransformedBounds();
+        this._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
+      }
+      generator._updateBoundsSimulationWorld(worldBounds);
+    }
   }
 
   /**
@@ -205,4 +235,51 @@ export class ParticleRenderer extends Renderer {
     }
     this.generator._destroy();
   }
+
+  /**
+   * @internal
+   */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyUpdateFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyUpdateFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
+  _onWorldVolumeChanged(): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _onGeneratorParamsChanged(): void {
+    this._dirtyUpdateFlag |=
+      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+  }
+
+  /**
+   * @internal
+   */
+  override _onTransformChanged(type: TransformModifyFlags): void {
+    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+  }
+}
+
+/**
+ * @internal
+ */
+export enum ParticleUpdateFlags {
+  /** On World Transform Changed */
+  TransformVolume = 0x2,
+  /** On Generator Bounds Related Params Changed */
+  GeneratorVolume = 0x4
 }
