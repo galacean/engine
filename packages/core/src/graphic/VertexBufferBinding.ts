@@ -35,7 +35,7 @@ export class VertexBufferBinding {
   }
 
   /**
-   * Vertex size. (in Float32)
+   * Vertex size. (in byte)
    */
   get size(): number {
     return this._size;

@@ -283,9 +283,9 @@ export class SpriteMask extends Renderer {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
     const { _data: meshBuffer, _indices: tempIndices } = chunk;
-    const { offset, size } = chunk._primitive.vertexBufferBindings[0];
+    const { offset, size, stride } = chunk._primitive.vertexBufferBindings[0];
     const indices = meshBuffer._indices;
-    const vertexStartIndex = offset / 9;
+    const vertexStartIndex = offset / stride;
     const len = tempIndices.length;
     let startIndex = meshBuffer._iLen;
     if (elementB) {
@@ -300,7 +300,7 @@ export class SpriteMask extends Renderer {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
     meshBuffer._iLen += len;
-    meshBuffer._vLen = Math.max(meshBuffer._vLen, offset + size);
+    meshBuffer._vLen = Math.max(meshBuffer._vLen, offset / 4 + size / 4);
   }
 
   /**

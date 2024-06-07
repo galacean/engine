@@ -51,7 +51,7 @@ export class SimpleSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset;
+    let index = chunk._primitive.vertexBufferBindings[0].offset / 4;
     for (let i = 0; i < 4; ++i) {
       const { x, y } = spritePositions[i];
       vertices[index] = wE[0] * x + wE[4] * y + wE[12];
@@ -69,7 +69,7 @@ export class SimpleSpriteAssembler {
     const { x: right, y: top } = spriteUVs[3];
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset + 3;
+    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
     vertices[index] = left;
     vertices[index + 1] = bottom;
     vertices[index + 9] = right;
@@ -84,7 +84,7 @@ export class SimpleSpriteAssembler {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset + 5;
+    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 5;
     for (let i = 0; i < 4; ++i) {
       vertices[index] = r;
       vertices[index + 1] = g;
