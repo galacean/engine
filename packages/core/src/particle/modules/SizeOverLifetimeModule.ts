@@ -2,7 +2,6 @@ import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
@@ -23,13 +22,17 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxCurveYProperty = ShaderProperty.getByName("renderer_SOLMaxCurveY");
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_SOLMaxCurveZ");
 
-  private _separateAxes = false;
+  /** Specifies whether the Size is separate on each axis. */
+  separateAxes = false;
+  /** Size curve over lifetime for x axis. */
   @deepClone
-  private _sizeX: ParticleCompositeCurve;
+  sizeX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
+  /** Size curve over lifetime for y axis. */
   @deepClone
-  private _sizeY: ParticleCompositeCurve;
+  sizeY = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
+  /** Size curve over lifetime for z axis. */
   @deepClone
-  private _sizeZ: ParticleCompositeCurve;
+  sizeZ = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
 
   @ignoreClone
   private _enableSeparateMacro: ShaderMacro;
@@ -37,65 +40,6 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   private _isCurveMacro: ShaderMacro;
   @ignoreClone
   private _isRandomTwoMacro: ShaderMacro;
-
-  /**
-   * Specifies whether the Size is separate on each axis.
-   */
-  set separateAxes(value: boolean) {
-    if (value !== this._separateAxes) {
-      this._separateAxes = value;
-      this._generator._renderer._onGeneratorParamsChanged();
-    }
-  }
-
-  get separateAxes(): boolean {
-    return this._separateAxes;
-  }
-
-  /**
-   * Size curve over lifetime for x axis.
-   */
-  get sizeX(): ParticleCompositeCurve {
-    return this._sizeX;
-  }
-
-  set sizeX(value: ParticleCompositeCurve) {
-    const lastValue = this._sizeX;
-    if (value !== lastValue) {
-      this._sizeX = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
-
-  /**
-   * Size curve over lifetime for y axis.
-   */
-  get sizeY(): ParticleCompositeCurve {
-    return this._sizeY;
-  }
-
-  set sizeY(value: ParticleCompositeCurve) {
-    const lastValue = this._sizeY;
-    if (value !== lastValue) {
-      this._sizeY = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
-
-  /**
-   * Size curve over lifetime for z axis.
-   */
-  get sizeZ(): ParticleCompositeCurve {
-    return this._sizeZ;
-  }
-
-  set sizeZ(value: ParticleCompositeCurve) {
-    const lastValue = this._sizeZ;
-    if (value !== lastValue) {
-      this._sizeZ = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
 
   /**
    * Size curve over lifetime.
@@ -106,14 +50,6 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
 
   set size(value: ParticleCompositeCurve) {
     this.sizeX = value;
-  }
-
-  constructor(generator: ParticleGenerator) {
-    super(generator);
-
-    this.sizeX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
-    this.sizeY = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
-    this.sizeZ = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
   }
 
   /**
@@ -168,12 +104,5 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     this._enableSeparateMacro = this._enableMacro(shaderData, this._enableSeparateMacro, enableSeparateMacro);
     this._isCurveMacro = this._enableMacro(shaderData, this._isCurveMacro, isCurveMacro);
     this._isRandomTwoMacro = this._enableMacro(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
-  }
-
-  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
-    const renderer = this._generator._renderer;
-    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
-    renderer._onGeneratorParamsChanged();
   }
 }
