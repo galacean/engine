@@ -19,7 +19,7 @@ import { IPoolElement, Pool } from "../utils/Pool";
  * @internal
  */
 export class Chunk implements IPoolElement {
-  _id: number = -1;
+  _id = -1;
   _data: DynamicGeometryData;
   _primitive: Primitive;
   _subMesh: SubMesh;
@@ -72,17 +72,17 @@ export class DynamicGeometryData {
    * @internal
    * The length of _vertices needed to be uploaded.
    * */
-  _vLen: number = 0;
+  _vertexLen = 0;
   /**
    * @internal
    * The length of _indices needed to be uploaded.
    * */
-  _iLen: number = 0;
+  _indexLen = 0;
 
   /** @internal */
-  _chunkPool: Pool<Chunk> = new Pool(Chunk, 10);
+  _chunkPool = new Pool(Chunk, 10);
   /** @internal */
-  _subMeshPool: Pool<SubMesh> = new Pool(SubMesh, 10);
+  _subMeshPool = new Pool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
     this._engine = engine;
@@ -121,14 +121,14 @@ export class DynamicGeometryData {
   }
 
   clear(): void {
-    this._vLen = this._iLen = 0;
+    this._vertexLen = this._indexLen = 0;
   }
 
   uploadBuffer(): void {
     // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
-    this._vBuffer.setData(this._vertices, 0, 0, this._vLen, SetDataOptions.Discard);
-    this._iBuffer.setData(this._indices, 0, 0, this._iLen, SetDataOptions.Discard);
+    this._vBuffer.setData(this._vertices, 0, 0, this._vertexLen, SetDataOptions.Discard);
+    this._iBuffer.setData(this._indices, 0, 0, this._indexLen, SetDataOptions.Discard);
   }
 
   allocateChunk(vertexCount: number): Chunk | null {

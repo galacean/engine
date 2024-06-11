@@ -5,7 +5,7 @@ import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
-import { IAssembler } from "../assembler/IAssembler";
+import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
@@ -16,10 +16,11 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { Chunk, DynamicGeometryData } from "../../RenderPipeline/DynamicGeometryData";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -35,7 +36,7 @@ export class SpriteRenderer extends Renderer {
   @ignoreClone
   private _drawMode: SpriteDrawMode;
   @assignmentClone
-  private _assembler: IAssembler;
+  private _assembler: ISpriteAssembler;
   @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
@@ -309,6 +310,10 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
+  _getChunkManager(): DynamicGeometryDataManager {
+    return this.engine._batcherManager._dynamicGeometryDataManager2D;
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.sprite) {
       this._assembler.updatePositions(this);
@@ -318,9 +323,6 @@ export class SpriteRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
@@ -371,9 +373,6 @@ export class SpriteRenderer extends Renderer {
     engine._batcherManager.commitRenderData(context, renderData);
   }
 
-  /**
-   * @internal
-   */
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
     const renderDataA = <RenderData2D>elementA.data;
     const renderDataB = <RenderData2D>elementB.data;
@@ -397,9 +396,6 @@ export class SpriteRenderer extends Renderer {
     return renderDataA.texture === renderDataB.texture && renderDataA.material === renderDataB.material;
   }
 
-  /**
-   * @internal
-   */
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
@@ -408,7 +404,7 @@ export class SpriteRenderer extends Renderer {
     const indices = meshBuffer._indices;
     const vertexStartIndex = offset / stride;
     const len = tempIndices.length;
-    let startIndex = meshBuffer._iLen;
+    let startIndex = meshBuffer._indexLen;
     if (elementB) {
       const subMesh = renderDataA.chunk._subMesh;
       subMesh.count += len;
@@ -420,13 +416,10 @@ export class SpriteRenderer extends Renderer {
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-    meshBuffer._iLen += len;
-    meshBuffer._vLen = Math.max(meshBuffer._vLen, offset / 4 + size / 4);
+    meshBuffer._indexLen += len;
+    meshBuffer._vertexLen = Math.max(meshBuffer._vertexLen, offset / 4 + size / 4);
   }
 
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     const sprite = this._sprite;
     if (sprite) {

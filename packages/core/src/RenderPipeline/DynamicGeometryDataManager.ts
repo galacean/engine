@@ -6,7 +6,7 @@ import { Chunk, DynamicGeometryData } from "./DynamicGeometryData";
  */
 export class DynamicGeometryDataManager {
   /** The maximum number of vertex. */
-  static MAX_VERTEX_COUNT: number = 4096;
+  static MAX_VERTEX_COUNT = 4096;
 
   /** @internal */
   _engine: Engine;
