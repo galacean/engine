@@ -85,9 +85,6 @@ export class BasicRenderPipeline {
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
-    // 更新 UI 内容
-    
-
     cullingResults.sort();
     cullingResults.batch(batcherManager);
 
@@ -302,7 +299,8 @@ export class BasicRenderPipeline {
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
     const engine = camera.engine;
-    const renderers = camera.scene._componentsManager._renderers;
+    const componentsManager = camera.scene._componentsManager;
+    const renderers = componentsManager._renderers;
 
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
@@ -321,6 +319,15 @@ export class BasicRenderPipeline {
       }
       renderer._renderFrameCount = engine.time.frameCount;
       renderer._prepareRender(context);
+    }
+
+    // Prepare ui
+    const uiCanvases = componentsManager._uiCanvases;
+    for (let i = 0, l = uiCanvases.length; i < l; ++i) {
+      const uiCanvas = uiCanvases[i];
+      if (uiCanvas.renderCamera === camera) {
+        uiCanvas._prepareRender(context);
+      }
     }
   }
 

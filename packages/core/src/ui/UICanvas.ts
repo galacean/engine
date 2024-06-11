@@ -1,10 +1,14 @@
 import { Camera } from "../Camera";
 import { Component } from "../Component";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ignoreClone } from "../clone/CloneManager";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 
 export class UICanvas extends Component {
+  /** @internal */
+  static _overlayCamera: Camera;
+
   /** @internal */
   _camera: Camera;
 
@@ -25,21 +29,27 @@ export class UICanvas extends Component {
   set renderMode(val: CanvasRenderMode) {
     if (this._renderMode !== val) {
       this._renderMode = val;
-      this._updateCameraProiroty();
+      this._renderCamera && this._updateCameraProiroty(this._renderCamera);
     }
   }
 
   get renderCamera(): Camera {
-    return this._renderCamera;
+    if (this._renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+      return UICanvas._overlayCamera;
+    } else if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera) {
+      return this._renderCamera || UICanvas._overlayCamera;
+    } else {
+      return this._renderCamera;
+    }
   }
 
   set renderCamera(val: Camera) {
     if (this._renderCamera !== val) {
       if (val) {
         this._renderCamera = val;
-        this._updateCameraProiroty();
+        this._updateCameraProiroty(val);
       } else {
-        this._renderCamera.priority &= ~(1 << 30);
+        this._updateCameraProiroty(this._renderCamera);
         this._renderCamera = null;
       }
     }
@@ -74,6 +84,11 @@ export class UICanvas extends Component {
   /**
    * @internal
    */
+  _prepareRender(context: RenderContext): void {}
+
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     this.scene._componentsManager.addUICanvas(this);
   }
@@ -85,11 +100,9 @@ export class UICanvas extends Component {
     this.scene._componentsManager.removeUICanvas(this);
   }
 
-  private _updateCameraProiroty(): void {
-    if (this._renderCamera) {
-      const priority = this._renderCamera.priority;
-      this._renderCamera.priority =
-        this._renderMode === CanvasRenderMode.WorldSpace ? priority & ~(1 << 30) : priority | (1 << 30);
-    }
+  private _updateCameraProiroty(camera: Camera): void {
+    if (this._renderMode === CanvasRenderMode.ScreenSpaceOverlay) return;
+    const priority = camera.priority;
+    camera.priority = this._renderMode === CanvasRenderMode.WorldSpace ? priority & ~(1 << 30) : priority | (1 << 30);
   }
 }

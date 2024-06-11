@@ -1,4 +1,5 @@
 import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 
 export class UIRenderer extends Renderer {
@@ -8,6 +9,18 @@ export class UIRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
   }
+
+  /**
+   * @internal
+   */
+  override _prepareRender(context: RenderContext): void {}
+
+  // /**
+  //  * @internal
+  //  */
+  // protected override _render(context: RenderContext): void {
+  //   console.log(`render ui ${this.entity.name}`);
+  // }
 
   /**
    * @internal
