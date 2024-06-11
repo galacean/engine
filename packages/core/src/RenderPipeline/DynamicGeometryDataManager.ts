@@ -1,5 +1,6 @@
 import { Engine } from "../Engine";
-import { Chunk, DynamicGeometryData } from "./DynamicGeometryData";
+import { DynamicGeometryData } from "./DynamicGeometryData";
+import { Chunk } from "./Chunk";
 
 /**
  * @internal
@@ -44,19 +45,19 @@ export class DynamicGeometryDataManager {
     for (let i = 0; i < len; ++i) {
       chunk = datas[i].allocateChunk(vertexCount);
       if (chunk) {
-        chunk._id = i;
+        chunk.id = i;
         return chunk;
       }
     }
 
     const data = (this._dynamicGeometryDatas[len] ||= new DynamicGeometryData(this._engine, this._maxVertexCount));
     chunk = data.allocateChunk(vertexCount);
-    chunk._id = len;
+    chunk.id = len;
     return chunk;
   }
 
   freeChunk(chunk: Chunk): void {
-    const data = this._dynamicGeometryDatas[chunk._id];
+    const data = this._dynamicGeometryDatas[chunk.id];
     data && data.freeChunk(chunk);
   }
 

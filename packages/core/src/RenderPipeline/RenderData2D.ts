@@ -3,7 +3,7 @@ import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/Pool";
-import { Chunk } from "./DynamicGeometryData";
+import { Chunk } from "./Chunk";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 import { RenderData } from "./RenderData";
 

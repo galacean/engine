@@ -17,7 +17,7 @@ export class SimpleSpriteAssembler {
     const lastChunk = renderer._chunk;
     lastChunk && manager.freeChunk(lastChunk);
     const chunk = manager.allocateChunk(4);
-    chunk._indices = SimpleSpriteAssembler._rectangleTriangles;
+    chunk.indices = SimpleSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }
 
@@ -46,8 +46,8 @@ export class SimpleSpriteAssembler {
     // Update positions
     const spritePositions = sprite._getPositions();
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._data._vertices;
-    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4; i < 4; ++i, o += 9) {
+    const vertices = chunk.data._vertices;
+    for (let i = 0, o = chunk.primitive.vertexBufferBindings[0].offset / 4; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
       vertices[o] = wE[0] * x + wE[4] * y + wE[12];
       vertices[o + 1] = wE[1] * x + wE[5] * y + wE[13];
@@ -62,8 +62,8 @@ export class SimpleSpriteAssembler {
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
     const { _chunk: chunk } = renderer;
-    const vertices = chunk._data._vertices;
-    const offset = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
+    const vertices = chunk.data._vertices;
+    const offset = chunk.primitive.vertexBufferBindings[0].offset / 4 + 3;
     vertices[offset] = left;
     vertices[offset + 1] = bottom;
     vertices[offset + 9] = right;
@@ -77,8 +77,8 @@ export class SimpleSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const chunk = renderer._chunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk._data._vertices;
-    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4 + 5; i < 4; ++i, o += 9) {
+    const vertices = chunk.data._vertices;
+    for (let i = 0, o = chunk.primitive.vertexBufferBindings[0].offset / 4 + 5; i < 4; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;

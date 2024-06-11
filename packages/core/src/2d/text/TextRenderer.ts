@@ -432,7 +432,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.getFromPool();
       const { chunk, texture } = charRenderInfo;
-      renderData.set(this, material, chunk._primitive, chunk._subMesh, texture, chunk);
+      renderData.set(this, material, chunk.primitive, chunk.subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
       renderData.preRender = () => {
@@ -452,7 +452,7 @@ export class TextRenderer extends Renderer {
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
     const renderDataA = <RenderData2D>elementA.data;
     const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
+    if (renderDataA.chunk.data !== renderDataB.chunk.data) {
       return false;
     }
 
@@ -478,17 +478,17 @@ export class TextRenderer extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _data: meshBuffer, _indices: tempIndices } = chunk;
-    const { offset, size, stride } = chunk._primitive.vertexBufferBindings[0];
+    const { data: meshBuffer, indices: tempIndices } = chunk;
+    const { offset, size, stride } = chunk.primitive.vertexBufferBindings[0];
     const indices = meshBuffer._indices;
     const vertexStartIndex = offset / stride;
     const len = tempIndices.length;
     let startIndex = meshBuffer._indexLen;
     if (elementB) {
-      const subMesh = renderDataA.chunk._subMesh;
+      const subMesh = renderDataA.chunk.subMesh;
       subMesh.count += len;
     } else {
-      const subMesh = chunk._subMesh;
+      const subMesh = chunk.subMesh;
       subMesh.start = startIndex;
       subMesh.count = len;
     }
@@ -572,8 +572,8 @@ export class TextRenderer extends Renderer {
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
       const { chunk } = charRenderInfo;
-      const vertices = chunk._data._vertices;
-      let index = chunk._primitive.vertexBufferBindings[0].offset / 4;
+      const vertices = chunk.data._vertices;
+      let index = chunk.primitive.vertexBufferBindings[0].offset / 4;
       for (let i = 0; i < 4; ++i) {
         const position = TextRenderer._worldPositions[i];
         vertices[index] = position.x;
@@ -653,10 +653,10 @@ export class TextRenderer extends Renderer {
               charRenderInfo.init(this.engine);
               const { chunk, localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
-              const vertices = chunk._data._vertices;
+              const vertices = chunk.data._vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
-              let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
+              let index = chunk.primitive.vertexBufferBindings[0].offset / 4 + 3;
               for (let i = 0; i < 4; ++i) {
                 vertices[index] = uvs[i].x;
                 vertices[index + 1] = uvs[i].y;

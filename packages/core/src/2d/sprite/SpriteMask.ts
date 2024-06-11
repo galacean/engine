@@ -10,7 +10,7 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { Chunk } from "../../RenderPipeline/Chunk";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
@@ -248,7 +248,7 @@ export class SpriteMask extends Renderer {
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
     const renderData = engine._renderData2DPool.getFromPool();
-    renderData.set(this, material, chunk._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    renderData.set(this, material, chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
     renderData.preRender = null;
@@ -261,7 +261,7 @@ export class SpriteMask extends Renderer {
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
     const renderDataA = <RenderData2D>elementA.data;
     const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
+    if (renderDataA.chunk.data !== renderDataB.chunk.data) {
       return false;
     }
 
@@ -280,17 +280,17 @@ export class SpriteMask extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _data: meshBuffer, _indices: tempIndices } = chunk;
-    const { offset, size, stride } = chunk._primitive.vertexBufferBindings[0];
+    const { data: meshBuffer, indices: tempIndices } = chunk;
+    const { offset, size, stride } = chunk.primitive.vertexBufferBindings[0];
     const indices = meshBuffer._indices;
     const vertexStartIndex = offset / stride;
     const len = tempIndices.length;
     let startIndex = meshBuffer._indexLen;
     if (elementB) {
-      const subMesh = renderDataA.chunk._subMesh;
+      const subMesh = renderDataA.chunk.subMesh;
       subMesh.count += len;
     } else {
-      const subMesh = chunk._subMesh;
+      const subMesh = chunk.subMesh;
       subMesh.start = startIndex;
       subMesh.count = len;
     }

@@ -13,29 +13,8 @@ import {
   VertexElement,
   VertexElementFormat
 } from "../graphic";
-import { IPoolElement, Pool } from "../utils/Pool";
-
-/**
- * @internal
- */
-export class Chunk implements IPoolElement {
-  _id = -1;
-  _data: DynamicGeometryData;
-  _primitive: Primitive;
-  _subMesh: SubMesh;
-  _indices: number[];
-
-  reset() {
-    this._id = -1;
-    this._data = null;
-    this._subMesh = null;
-    this._indices = null;
-  }
-
-  dispose?(): void {
-    this.reset();
-  }
-}
+import { Pool } from "../utils/Pool";
+import { Chunk } from "./Chunk";
 
 /**
  * @internal
@@ -136,8 +115,8 @@ export class DynamicGeometryData {
     const offset = this._vBuffer.allocate(needByte);
     if (offset !== -1) {
       const chunk = this._chunkPool.alloc();
-      chunk._data = this;
-      const primitive = (chunk._primitive ||= DynamicGeometryData.createPrimitive(this._engine));
+      chunk.data = this;
+      const primitive = (chunk.primitive ||= DynamicGeometryData.createPrimitive(this._engine));
       primitive.setIndexBufferBinding(this._indexBufferBinding);
       const vertexBufferBinding = primitive.vertexBufferBindings[0];
       if (vertexBufferBinding) {
@@ -146,8 +125,8 @@ export class DynamicGeometryData {
       } else {
         primitive.setVertexBufferBinding(0, new VertexBufferBinding(this._vBuffer, 36, offset, needByte));
       }
-      chunk._subMesh = this._subMeshPool.alloc();
-      const { _subMesh: subMesh } = chunk;
+      chunk.subMesh = this._subMeshPool.alloc();
+      const { subMesh: subMesh } = chunk;
       subMesh.topology = MeshTopology.Triangles;
       return chunk;
     }
@@ -156,10 +135,10 @@ export class DynamicGeometryData {
   }
 
   freeChunk(chunk: Chunk): void {
-    const { offset, size } = chunk._primitive.vertexBufferBindings[0];
+    const { offset, size } = chunk.primitive.vertexBufferBindings[0];
     this._vBuffer.free(offset, size);
-    this._subMeshPool.free(chunk._subMesh);
-    chunk.reset();
+    this._subMeshPool.free(chunk.subMesh);
     this._chunkPool.free(chunk);
   }
 }
+export { Chunk };
