@@ -168,8 +168,8 @@ export class DynamicGeometryData {
  */
 export class Area implements IPoolElement {
   constructor(
-    public start: number = -1,
-    public size: number = 0
+    public start: number,
+    public size: number
   ) {}
 
   dispose?(): void {}
