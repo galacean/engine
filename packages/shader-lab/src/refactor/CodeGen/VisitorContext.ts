@@ -45,7 +45,7 @@ export class VisitorContext {
 
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident);
     if (!prop) {
-      this.logger.log(Logger.RED, "referenced attribute not found:", ident);
+      this.logger.error("referenced attribute not found:", ident);
       return;
     }
     this._referencedAttributeList.set(ident, prop);
@@ -56,7 +56,7 @@ export class VisitorContext {
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident);
     if (!prop) {
-      this.logger.log(Logger.RED, "referenced varying not found:", ident);
+      this.logger.error("referenced varying not found:", ident);
       return;
     }
     this._referencedVaryingList.set(ident, prop);

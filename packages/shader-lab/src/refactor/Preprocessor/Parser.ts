@@ -16,7 +16,6 @@ export interface ExpandSegment {
 
 export default class PpParser extends PpError {
   private definedMacros: Map<string, MacroDefine> = new Map();
-  // private includeMacros: MacroExpand[] = [];
   private expandSegmentsStack: ExpandSegment[][] = [[]];
 
   /** Referenced by branch macro or defined operator */

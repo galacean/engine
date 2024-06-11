@@ -13,7 +13,7 @@ export class ParserUtils {
   }
 
   /**
-   * Check if type tb is compatible with type ta.
+   * Check if type `tb` is compatible with type `ta`.
    */
   static typeCompatible(ta: GalaceanDataType, tb: GalaceanDataType | undefined) {
     if (tb == undefined) return true;

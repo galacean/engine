@@ -7,14 +7,14 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getAttributeDeclare(): string {
     return Array.from(this.context._referencedAttributeList.values())
-      .map((item) => `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme}`)
+      .map((item) => `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`)
       .join("\n");
   }
 
   override getVaryingDeclare(): string {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
     return Array.from(this.context._referencedVaryingList.values())
-      .map((item) => `${qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme}`)
+      .map((item) => `${qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`)
       .join("\n");
   }
 
