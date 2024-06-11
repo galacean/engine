@@ -91,6 +91,24 @@ export abstract class CodeGenVisitor {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
     if (call.fnSymbol) {
       this.context._referencedGlobals.set(call.fnSymbol.lexeme, call.fnSymbol);
+
+      const paramList = call.children[2];
+      const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
+
+      if (paramList instanceof ASTNode.FunctionCallParameterList) {
+        const plainParams: string[] = [];
+        const params = paramList.paramNodes;
+
+        for (let i = 0; i < params.length; i++) {
+          if (
+            !this.context.isAttributeStruct(paramInfoList[i].typeInfo.typeLexeme) &&
+            !this.context.isVaryingStruct(paramInfoList[i].typeInfo.typeLexeme)
+          ) {
+            plainParams.push(params[i].codeGen(this));
+          }
+        }
+        return `${call.fnSymbol.lexeme}(${plainParams.join(", ")})`;
+      }
     }
     return this.defaultCodeGen(node.children);
   }
@@ -131,6 +149,18 @@ export abstract class CodeGenVisitor {
   visitFunctionDefinition(node: ASTNode.FunctionDefinition): string {
     this.context._curFn = undefined;
     return this.defaultCodeGen(node.children);
+  }
+
+  visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
+    const params = node.parameterInfoList;
+    return params
+      .filter(
+        (item) =>
+          !this.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
+          !this.context.isVaryingStruct(item.typeInfo.typeLexeme)
+      )
+      .map((item) => `${item.typeInfo.typeLexeme} ${item.ident.lexeme}`)
+      .join(", ");
   }
 
   visitJumpStatement(node: ASTNode.JumpStatement): string {

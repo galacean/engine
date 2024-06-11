@@ -628,6 +628,10 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_parameter_list, loc, children);
     }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitFunctionParameterList(this);
+    }
   }
 
   export class ParameterDeclaration extends TreeNode {
@@ -804,6 +808,17 @@ export namespace ASTNode {
         } else {
           return list.paramSig.concat([decl.type]);
         }
+      }
+    }
+
+    get paramNodes(): AssignmentExpression[] {
+      if (this.children.length === 1) {
+        return [this.children[0] as AssignmentExpression];
+      } else {
+        const list = this.children[0] as FunctionCallParameterList;
+        const decl = this.children[2] as AssignmentExpression;
+
+        return list.paramNodes.concat([decl]);
       }
     }
 

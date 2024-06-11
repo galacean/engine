@@ -62,10 +62,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
+    const globalText = this.getGlobalText();
 
     const attributeDeclare = this.getAttributeDeclare();
     const varyingDeclare = this.getVaryingDeclare();
-    const globalText = this.getGlobalText();
 
     this.context.reset();
 
@@ -75,8 +75,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private fragmentMain(fnNode: ASTNode.FunctionDefinition, data: GLPassShaderData): string {
     this.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
-    const varyingDeclare = this.getVaryingDeclare();
     const globalText = this.getGlobalText();
+    const varyingDeclare = this.getVaryingDeclare();
 
     this.context.reset();
     return `${this.versionText}\n\n${varyingDeclare}\n\n${globalText}\n\nvoid main() ${statements}`;
