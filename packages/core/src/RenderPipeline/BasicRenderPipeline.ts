@@ -249,7 +249,7 @@ export class BasicRenderPipeline {
         continue;
       }
 
-      const renderElement = renderElementPool.getFromPool();
+      const renderElement = renderElementPool.get();
       renderElement.set(element, shaderPasses);
       switch (renderQueueType) {
         case RenderQueueType.Opaque:

@@ -360,7 +360,7 @@ export class SpriteRenderer extends Renderer {
     const camera = context.camera;
     const engine = camera.engine;
     const spriteMaskManager = engine._spriteMaskManager;
-    const renderData = engine._renderData2DPool.getFromPool();
+    const renderData = engine._renderData2DPool.get();
     const chunk = this._chunk;
     renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;

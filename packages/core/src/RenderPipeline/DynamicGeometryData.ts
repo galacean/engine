@@ -13,7 +13,7 @@ import {
   VertexElement,
   VertexElementFormat
 } from "../graphic";
-import { IPoolElement, Pool } from "../utils/Pool";
+import { IPoolElement, ReturnableObjectPool } from "../utils/ReturnableObjectPool";
 import { Chunk } from "./Chunk";
 
 /**
@@ -36,16 +36,16 @@ export class DynamicGeometryData {
    * @internal
    * The length of _indices needed to be uploaded.
    * */
-  indexLen = 0;
+  indiceLen = 0;
 
   /** @internal */
   vertexFreeAreas: Area[] = [];
   /** @internal */
-  areaPool: Pool<Area> = new Pool(Area, 10);
+  areaPool = new ReturnableObjectPool(Area, 10);
   /** @internal */
-  chunkPool = new Pool(Chunk, 10);
+  chunkPool = new ReturnableObjectPool(Chunk, 10);
   /** @internal */
-  subMeshPool = new Pool(SubMesh, 10);
+  subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
     const primitive = (this.primitive = new Primitive(engine));
@@ -81,12 +81,12 @@ export class DynamicGeometryData {
     this.primitive = null;
     this.vertices = null;
     this.indices = null;
-    this.areaPool.dispose();
+    this.areaPool.garbageCollection();
     this.areaPool = null;
   }
 
   clear(): void {
-    this.vertexLen = this.indexLen = 0;
+    this.vertexLen = this.indiceLen = 0;
   }
 
   uploadBuffer(): void {
@@ -94,16 +94,16 @@ export class DynamicGeometryData {
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
     const primitive = this.primitive;
     primitive.vertexBufferBindings[0].buffer.setData(this.vertices, 0, 0, this.vertexLen, SetDataOptions.Discard);
-    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indexLen, SetDataOptions.Discard);
+    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indiceLen, SetDataOptions.Discard);
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
     const vArea = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
     if (vArea) {
-      const chunk = this.chunkPool.alloc();
+      const chunk = this.chunkPool.get();
       chunk.data = this;
       chunk.vertexArea = vArea;
-      chunk.subMesh = this.subMeshPool.alloc();
+      chunk.subMesh = this.subMeshPool.get();
       const { subMesh: subMesh } = chunk;
       subMesh.topology = MeshTopology.Triangles;
       return chunk;
@@ -114,8 +114,8 @@ export class DynamicGeometryData {
 
   freeChunk(chunk: Chunk): void {
     this._freeArea(this.vertexFreeAreas, chunk.vertexArea);
-    this.subMeshPool.free(chunk.subMesh);
-    this.chunkPool.free(chunk);
+    this.subMeshPool.return(chunk.subMesh);
+    this.chunkPool.return(chunk);
   }
 
   private _allocateArea(entries: Area[], needLen: number): Area | null {
@@ -124,7 +124,7 @@ export class DynamicGeometryData {
       const area = entries[i];
       const len = area.size;
       if (len > needLen) {
-        const newArea = pool.alloc();
+        const newArea = pool.get();
         newArea.start = area.start;
         newArea.size = needLen;
         area.start += needLen;
@@ -159,12 +159,12 @@ export class DynamicGeometryData {
       } else if (preEnd === curArea.start) {
         curArea.start = preArea.start;
         curArea.size += preArea.size;
-        pool.free(preArea);
+        pool.return(preArea);
         preArea = curArea;
         notMerge = false;
       } else if (start === curEnd) {
         curArea.size += preArea.size;
-        pool.free(preArea);
+        pool.return(preArea);
         preArea = curArea;
         notMerge = false;
       } else if (start > curEnd) {

@@ -1,5 +1,5 @@
 import { SubMesh } from "../graphic";
-import { IPoolElement } from "../utils/Pool";
+import { IPoolElement } from "../utils/ReturnableObjectPool";
 import { DynamicGeometryData, Area } from "./DynamicGeometryData";
 
 /**

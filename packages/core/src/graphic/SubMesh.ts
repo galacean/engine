@@ -1,4 +1,4 @@
-import { IPoolElement } from "../utils/Pool";
+import { IPoolElement } from "../utils/ReturnableObjectPool";
 import { MeshTopology } from "./enums/MeshTopology";
 
 /**

@@ -16,7 +16,7 @@ import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Pool } from "../../utils/Pool";
+import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
@@ -28,7 +28,7 @@ import { BatchUtils } from "../../RenderPipeline/BatchUtils";
  */
 export class TextRenderer extends Renderer {
   private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
-  private static _charRenderInfoPool: Pool<CharRenderInfo> = new Pool(CharRenderInfo, 50);
+  private static _charRenderInfoPool: ReturnableObjectPool<CharRenderInfo> = new ReturnableObjectPool(CharRenderInfo, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
   private static _worldPositions: Array<Vector3> = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -325,7 +325,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       batcher2D.freeChunk(charRenderInfo.chunk);
       charRenderInfo.chunk = null;
-      pool.free(charRenderInfo);
+      pool.return(charRenderInfo);
     }
     charRenderInfos.length = 0;
 
@@ -426,7 +426,7 @@ export class TextRenderer extends Renderer {
     const shaderData = this.shaderData;
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
-      const renderData = renderData2DPool.getFromPool();
+      const renderData = renderData2DPool.get();
       const { chunk, texture } = charRenderInfo;
       renderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
@@ -598,7 +598,7 @@ export class TextRenderer extends Renderer {
             const charInfo = charFont._getCharInfo(char);
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
-              const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.alloc());
+              const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.get());
               charRenderInfo.init(this.engine);
               const { chunk, localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
@@ -650,7 +650,7 @@ export class TextRenderer extends Renderer {
         const charRenderInfo = charRenderInfos[i];
         this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(charRenderInfo.chunk);
         charRenderInfo.chunk = null;
-        charRenderInfoPool.free(charRenderInfo);
+        charRenderInfoPool.return(charRenderInfo);
       }
       charRenderInfos.length = renderDataCount;
     }

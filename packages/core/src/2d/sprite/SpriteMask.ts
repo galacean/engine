@@ -248,13 +248,13 @@ export class SpriteMask extends Renderer {
 
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
-    const renderData = engine._renderData2DPool.getFromPool();
+    const renderData = engine._renderData2DPool.get();
     renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
     renderData.preRender = null;
     renderData.postRender = null;
-    const renderElement = engine._renderElementPool.getFromPool();
+    const renderElement = engine._renderElementPool.get();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }

@@ -56,7 +56,7 @@ export class BatchUtils {
     const indices = data.indices;
     const vertexStartIndex = start / 9;
     const len = tempIndices.length;
-    let startIndex = data.indexLen;
+    let startIndex = data.indiceLen;
     if (elementB) {
       const subMesh = renderDataA.chunk.subMesh;
       subMesh.count += len;
@@ -68,7 +68,7 @@ export class BatchUtils {
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-    data.indexLen += len;
+    data.indiceLen += len;
     data.vertexLen = Math.max(data.vertexLen, start + vertexArea.size);
   }
 }

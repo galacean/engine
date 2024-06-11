@@ -161,7 +161,7 @@ export class MeshRenderer extends Renderer {
         material = this.engine._meshMagentaMaterial;
       }
 
-      const renderData = meshRenderDataPool.getFromPool();
+      const renderData = meshRenderDataPool.get();
       renderData.usage = RenderDataUsage.Mesh;
       renderData.set(this, material, mesh._primitive, subMeshes[i]);
       batcherManager.commitRenderData(context, renderData);

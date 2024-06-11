@@ -2,7 +2,7 @@ import { Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
 import { Chunk } from "../../RenderPipeline/Chunk";
 import { Engine } from "../../Engine";
-import { IPoolElement } from "../../utils/Pool";
+import { IPoolElement } from "../../utils/ReturnableObjectPool";
 
 /**
  * @internal
