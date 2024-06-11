@@ -22,15 +22,11 @@ export class TiledSpriteAssembler {
   static resetData(renderer: SpriteRenderer, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
-      const chunk = renderer._chunk;
-      if (chunk) {
-        if (chunk.vertexArea.size !== vertexCount * 9) {
-          manager.freeChunk(chunk);
-          const newChunk = manager.allocateChunk(vertexCount);
-          newChunk.indices = [];
-          renderer._chunk = newChunk;
-        }
-      } else {
+      const lastChunk = renderer._chunk;
+      const sizeChanged = lastChunk && lastChunk.vertexArea.size !== vertexCount * 9;
+      sizeChanged && manager.freeChunk(lastChunk);
+
+      if (!lastChunk || sizeChanged) {
         const newChunk = manager.allocateChunk(vertexCount);
         newChunk.indices = [];
         renderer._chunk = newChunk;
