@@ -627,13 +627,19 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const objName = this.content.variable;
     const propName = this.content.properties?.[0].content;
+
+    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])]
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
+      .map((item) => item.serialize(context))
+      .join("");
+
     if (propName) {
       if (objName === context.varyingStructInfo.objectName) {
         const ref = context.varyingStructInfo.reference?.find(
           (ref) => ref.property.content.variableNode.content.variable === propName
         );
         ref && (ref.referenced = true);
-        return this.content.properties.map((item) => item.content).join(".");
+        return propList;
       } else {
         const attribStruct = context.attributeStructListInfo.find((struct) => struct.objectName === objName);
         if (attribStruct) {
@@ -641,7 +647,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
             (ref) => ref.property.content.variableNode.content.variable === propName
           );
           ref && (ref.referenced = true);
-          return this.content.properties.map((item) => item.content).join(".");
+          return propList;
         }
       }
     }
@@ -654,10 +660,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
         });
       }
     }
-    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])]
-      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
-      .map((item) => item.serialize(context))
-      .join("");
+
     return objName + propList;
   }
 }
