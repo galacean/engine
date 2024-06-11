@@ -1,8 +1,6 @@
-import Preprocessor from "./refactor/Preprocessor";
+import Preprocessor from "./Preprocessor";
 
 export { ShaderLab } from "./ShaderLab";
-export { ShaderParser } from "./parser/ShaderParser";
-export { Preprocessor as OldPp } from "./preprocessor";
 export { Preprocessor };
 
 //@ts-ignore

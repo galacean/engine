@@ -1,63 +1,31 @@
+import Lexer from "./Lexer";
+import { Parser } from "./Parser";
+import Preprocessor from "./Preprocessor";
+import { GLES100Visitor, GLES300Visitor } from "./CodeGen";
+import { IEngineType, EngineType, IEngineFunction, EngineFunctions } from "./EngineType";
 import { IShaderLab } from "@galacean/engine-design";
-import { ShaderParser } from "./parser/ShaderParser";
-import { ShaderVisitor } from "./ShaderVisitor";
-import RuntimeContext from "./RuntimeContext";
-import ParsingContext from "./ParsingContext";
-import { Logger } from "@galacean/engine";
-import { Preprocessor } from "./preprocessor";
+
+export enum EBackend {
+  GLES100,
+  GLES300
+}
 
 export class ShaderLab implements IShaderLab {
-  /** @internal */
-  private _parser: ShaderParser;
-  /** @internal */
-  private _visitor: ShaderVisitor;
-  /** @internal */
-  private _context: RuntimeContext;
-  /** @internal for debug */
-  private _extendedSource: string;
+  private parser: Parser;
 
-  /** @internal */
-  get context() {
-    return this._context;
+  constructor(engineTypes: Partial<IEngineType> = {}, engineFunctions: Partial<IEngineFunction> = {}) {
+    this.parser = Parser.create();
+    Object.assign(EngineType, engineTypes);
+    Object.assign(EngineFunctions, engineFunctions);
   }
 
-  constructor() {
-    this._parser = new ShaderParser();
-    this._visitor = new ShaderVisitor();
-    this._context = new RuntimeContext();
-  }
-
-  parseShader(shaderSource: string) {
-    const parsingContext = new ParsingContext(shaderSource);
-    this._context.parsingContext = parsingContext;
-    parsingContext.filterString("EditorProperties");
-    parsingContext.filterString("EditorMacros");
-
-    const preprocessor = new Preprocessor(parsingContext.parseString);
-    this._context.preprocessor = preprocessor;
-
-    const source = preprocessor.process();
-    this._extendedSource = source;
-    this._parser.parse(source);
-    const cst = this._parser.ruleShader();
-    if (this._parser.errors.length > 0) {
-      for (const err of this._parser.errors) {
-        const offset = parsingContext.getTextLineOffsetAt(err.token.startOffset);
-        if (offset) {
-          // @ts-ignore
-          err.token.originStartLine = err.token.startLine;
-          // @ts-ignore
-          err.token.originEndLine = err.token.endLine;
-          err.token.startLine += offset;
-          err.token.endLine += offset;
-        }
-      }
-      Logger.error(`error shaderlab source:`, source);
-      throw this._parser.errors;
-    }
-
-    const ast = this._visitor.visit(cst);
-    const shaderInfo = this._context.parse(ast);
-    return shaderInfo;
+  parseShader(source: string, includeMap: Record<string, string> = {}, backend = EBackend.GLES300) {
+    const preprocessor = new Preprocessor(source, includeMap);
+    const ppdContent = preprocessor.process();
+    const lexer = new Lexer(ppdContent);
+    const tokens = lexer.tokenize();
+    const program = this.parser.parse(tokens);
+    const codeGen = backend === EBackend.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
+    return codeGen.visitShaderProgram(program);
   }
 }
