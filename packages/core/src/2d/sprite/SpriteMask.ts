@@ -14,6 +14,7 @@ import { Chunk } from "../../RenderPipeline/Chunk";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 
 /**
  * A component for masking Sprites.
@@ -259,46 +260,11 @@ export class SpriteMask extends Renderer {
   }
 
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    const renderDataA = <RenderData2D>elementA.data;
-    const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk.data !== renderDataB.chunk.data) {
-      return false;
-    }
-
-    // Compare renderer property
-    const shaderDataA = (<SpriteMask>renderDataA.component).shaderData;
-    const shaderDataB = (<SpriteMask>renderDataB.component).shaderData;
-    const textureProperty = SpriteMask._textureProperty;
-    const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
-
-    return (
-      shaderDataA.getTexture(textureProperty) === shaderDataB.getTexture(textureProperty) &&
-      shaderDataA.getTexture(alphaCutoffProperty) === shaderDataB.getTexture(alphaCutoffProperty)
-    );
+    return BatchUtils.canBatchSpriteMask(elementA, elementB);
   }
 
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
-    const renderDataA = <RenderData2D>elementA.data;
-    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { data: meshBuffer, indices: tempIndices, vertexArea } = chunk;
-    const start = vertexArea.start;
-    const indices = meshBuffer.indices;
-    const vertexStartIndex = start / 9;
-    const len = tempIndices.length;
-    let startIndex = meshBuffer.indexLen;
-    if (elementB) {
-      const subMesh = renderDataA.chunk.subMesh;
-      subMesh.count += len;
-    } else {
-      const subMesh = chunk.subMesh;
-      subMesh.start = startIndex;
-      subMesh.count = len;
-    }
-    for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + tempIndices[i];
-    }
-    meshBuffer.indexLen += len;
-    meshBuffer.vertexLen = Math.max(meshBuffer.vertexLen, start + vertexArea.size);
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   /**

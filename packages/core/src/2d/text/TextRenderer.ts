@@ -21,6 +21,7 @@ import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { ShaderProperty } from "../../shader";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 
 /**
  * Renders a text for 2D graphics.
@@ -383,17 +384,12 @@ export class TextRenderer extends Renderer {
       this._updateTransformShaderData(context, Matrix._identity);
     }
   }
+  d;
 
-  /**
-   * @internal
-   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context: RenderContext): void {
     if (this._isTextNoVisible()) {
       return;
@@ -446,57 +442,12 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    const renderDataA = <RenderData2D>elementA.data;
-    const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk.data !== renderDataB.chunk.data) {
-      return false;
-    }
-
-    const rendererA = <TextRenderer>renderDataA.component;
-    const rendererB = <TextRenderer>renderDataB.component;
-
-    // Compare mask
-    const maskInteractionA = rendererA.maskInteraction;
-    if (
-      maskInteractionA !== rendererB.maskInteraction ||
-      (maskInteractionA !== SpriteMaskInteraction.None && rendererA.maskLayer !== rendererB.maskLayer)
-    ) {
-      return false;
-    }
-
-    // Compare texture and material
-    return renderDataA.texture === renderDataB.texture && renderDataA.material === renderDataB.material;
+    return BatchUtils.canBatchSprite(elementA, elementB);
   }
 
-  /**
-   * @internal
-   */
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
-    const renderDataA = <RenderData2D>elementA.data;
-    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { data: meshBuffer, indices: tempIndices, vertexArea } = chunk;
-    const start = vertexArea.start;
-    const indices = meshBuffer.indices;
-    const vertexStartIndex = start / 9;
-    const len = tempIndices.length;
-    let startIndex = meshBuffer.indexLen;
-    if (elementB) {
-      const subMesh = renderDataA.chunk.subMesh;
-      subMesh.count += len;
-    } else {
-      const subMesh = chunk.subMesh;
-      subMesh.start = startIndex;
-      subMesh.count = len;
-    }
-    for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + tempIndices[i];
-    }
-    meshBuffer.indexLen += len;
-    meshBuffer.vertexLen = Math.max(meshBuffer.vertexLen, start + vertexArea.size);
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   private _updateStencilState(): void {
