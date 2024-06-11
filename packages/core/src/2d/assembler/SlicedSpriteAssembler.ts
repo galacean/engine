@@ -19,7 +19,7 @@ export class SlicedSpriteAssembler {
     const lastChunk = renderer._chunk;
     lastChunk && manager.freeChunk(lastChunk);
     const chunk = manager.allocateChunk(16);
-    chunk._indices = this._rectangleTriangles;
+    chunk._indices = SlicedSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }
 
@@ -77,7 +77,7 @@ export class SlicedSpriteAssembler {
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
     // Renderer's worldMatrix.
-    const { _worldMatrix: worldMatrix } = this;
+    const worldMatrix = SlicedSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix.
     const { elements: pWE } = renderer.entity.transform.worldMatrix;

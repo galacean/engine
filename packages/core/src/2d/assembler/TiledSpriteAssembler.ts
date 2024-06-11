@@ -41,13 +41,22 @@ export class TiledSpriteAssembler {
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     // Calculate row and column
-    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     const vertexCount =
       tileMode === SpriteTileMode.Adaptive
-        ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
-        : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
-    this.resetData(renderer, vertexCount);
+        ? TiledSpriteAssembler._calculateAdaptiveDividing(
+            sprite,
+            width,
+            height,
+            threshold,
+            posRow,
+            posColumn,
+            uvRow,
+            uvColumn
+          )
+        : TiledSpriteAssembler._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+    TiledSpriteAssembler.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
@@ -124,7 +133,7 @@ export class TiledSpriteAssembler {
   }
 
   static updateUVs(renderer: SpriteRenderer): void {
-    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     const chunk = renderer._chunk;

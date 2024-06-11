@@ -17,7 +17,7 @@ export class SimpleSpriteAssembler {
     const lastChunk = renderer._chunk;
     lastChunk && manager.freeChunk(lastChunk);
     const chunk = manager.allocateChunk(4);
-    chunk._indices = this._rectangleTriangles;
+    chunk._indices = SimpleSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }
 
@@ -25,7 +25,7 @@ export class SimpleSpriteAssembler {
     const { width, height, sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
     // Renderer's worldMatrix
-    const { _worldMatrix: worldMatrix } = this;
+    const worldMatrix = SimpleSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
