@@ -108,10 +108,10 @@ export class PostProcessPass extends PipelinePass {
    * @param effect - The post process effect want to be removed
    */
   removeEffect(effect: PostProcessEffect): void {
-    const passes = this._effects;
-    const index = passes.indexOf(effect);
+    const effects = this._effects;
+    const index = effects.indexOf(effect);
     if (index !== -1) {
-      passes.removeByIndex(index);
+      effects.removeByIndex(index);
     }
   }
 }

@@ -107,7 +107,7 @@ export class BasicRenderPipeline {
         this._internalColorTarget,
         viewport.width,
         viewport.height,
-        TextureFormat.R8G8B8A8,
+        camera.enableHDR ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8,
         TextureFormat.Depth24Stencil8,
         false,
         false,
@@ -190,7 +190,7 @@ export class BasicRenderPipeline {
 
     // render post process pass
     if (camera.enablePostProcess) {
-      const postProcesses = camera.scene._postProcessManager._passes.getLoopArray();
+      const postProcesses = scene._postProcessManager._passes.getLoopArray();
       for (let i = 0, length = postProcesses.length; i < length; i++) {
         const pass = postProcesses[i];
         pass.isActive && pass.onRender(context);

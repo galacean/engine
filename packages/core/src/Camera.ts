@@ -8,7 +8,7 @@ import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
 import { VirtualCamera } from "./VirtualCamera";
-import { Logger } from "./base";
+import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraType } from "./enums/CameraType";
@@ -143,7 +143,6 @@ export class Camera extends Component {
    * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
    *
    * @defaultValue `false`
-   *
    * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get opaqueTextureEnabled(): boolean {
@@ -358,24 +357,38 @@ export class Camera extends Component {
 
   /**
    * Whether to enable HDR.
+   * @defaultValue `false`
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get enableHDR(): boolean {
     return this._enableHDR;
   }
 
   set enableHDR(value: boolean) {
-    this._enableHDR = value;
+    if (this.enableHDR !== value) {
+      if (value && !this.engine._hardwareRenderer.canIUse(GLCapabilityType.textureHalfFloat)) {
+        Logger.warn("can't enable HDR in this device.");
+        return;
+      }
+      this._enableHDR = value;
+      this._checkMainCanvasAntialiasWaste();
+    }
   }
 
   /**
    * Whether to enable post process.
+   * @defaultValue `false`
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get enablePostProcess(): boolean {
     return this._enablePostProcess;
   }
 
   set enablePostProcess(value: boolean) {
-    this._enablePostProcess = value;
+    if (this._enablePostProcess !== value) {
+      this._enablePostProcess = value;
+      this._checkMainCanvasAntialiasWaste();
+    }
   }
 
   /**
@@ -391,7 +404,6 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
-      this._checkMainCanvasAntialiasWaste();
     }
   }
 
@@ -780,7 +792,8 @@ export class Camera extends Component {
   }
 
   private _forceUseInternalCanvas(): boolean {
-    return this.opaqueTextureEnabled;
+    // @todo: enablePostProcess && (get whether there is an activated post process effect).
+    return this.enableHDR || this.enablePostProcess || this.opaqueTextureEnabled;
   }
 
   @ignoreClone
@@ -792,7 +805,7 @@ export class Camera extends Component {
 
   private _checkMainCanvasAntialiasWaste(): void {
     if (this.independentCanvasEnabled && Vector4.equals(this._viewport, PipelineUtils.defaultViewport)) {
-      console.warn(
+      Logger.warn(
         "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
       );
     }
