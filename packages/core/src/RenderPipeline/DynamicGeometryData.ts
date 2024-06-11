@@ -21,15 +21,14 @@ import { IPoolElement, Pool } from "../utils/Pool";
 export class Chunk implements IPoolElement {
   _id: number = -1;
   _data: DynamicGeometryData;
+  _primitive: Primitive;
   _subMesh: SubMesh;
-  _vEntry: Entry;
   _indices: number[];
 
   reset() {
     this._id = -1;
     this._data = null;
     this._subMesh = null;
-    this._vEntry = null;
     this._indices = null;
   }
 
@@ -41,21 +40,23 @@ export class Chunk implements IPoolElement {
 /**
  * @internal
  */
-class Entry implements IPoolElement {
-  constructor(
-    public start: number = -1,
-    public len: number = 0
-  ) {}
-
-  dispose?(): void {}
-}
-
-/**
- * @internal
- */
 export class DynamicGeometryData {
+  static POSITION = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
+  static TEXCOORD_0 = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
+  static COLOR_0 = new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0);
+
+  static createPrimitive(engine: Engine): Primitive {
+    const primitive = new Primitive(engine);
+    primitive.isGCIgnored = true;
+    primitive.addVertexElement(this.POSITION);
+    primitive.addVertexElement(this.TEXCOORD_0);
+    primitive.addVertexElement(this.COLOR_0);
+    primitive.vertexBufferBindings.length = 1;
+    return primitive;
+  }
+
   /** @internal */
-  _primitive: Primitive;
+  _engine: Engine;
   /** @internal */
   _vBuffer: Buffer;
   /** @internal */
@@ -64,6 +65,8 @@ export class DynamicGeometryData {
   _vertices: Float32Array;
   /** @internal */
   _indices: Uint16Array;
+  /** @internal */
+  _indexBufferBinding: IndexBufferBinding;
 
   /**
    * @internal
@@ -77,60 +80,44 @@ export class DynamicGeometryData {
   _iLen: number = 0;
 
   /** @internal */
-  _vFreeEntries: Entry[] = [];
-  /** @internal */
-  _entryPool: Pool<Entry> = new Pool(Entry, 10);
-  /** @internal */
   _chunkPool: Pool<Chunk> = new Pool(Chunk, 10);
   /** @internal */
   _subMeshPool: Pool<SubMesh> = new Pool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
-    const primitive = (this._primitive = new Primitive(engine));
-    primitive.isGCIgnored = true;
-    // vertex element
-    primitive.addVertexElement(new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0));
-    primitive.addVertexElement(new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0));
-    primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
+    this._engine = engine;
     const vertexStride = 36;
     // vertices
     const vertexBuffer = (this._vBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
       maxVertexCount * vertexStride,
-      BufferUsage.Dynamic
+      BufferUsage.Dynamic,
+      true
     ));
     vertexBuffer.isGCIgnored = true;
-    primitive.vertexBufferBindings.length = 1;
-    primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
-    // indices
+    // index
     const indexBuffer = (this._iBuffer = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
       maxVertexCount * 8,
-      BufferUsage.Dynamic
+      BufferUsage.Dynamic,
+      true
     ));
     indexBuffer.isGCIgnored = true;
-    primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
-    const vertexLen = maxVertexCount * 9;
-    const indiceLen = maxVertexCount * 4;
-    this._vertices = new Float32Array(vertexLen);
-    this._indices = new Uint16Array(indiceLen);
-    this._vFreeEntries.push(new Entry(0, vertexLen));
+    this._vertices = new Float32Array(vertexBuffer.data.buffer);
+    this._indices = new Uint16Array(indexBuffer.data.buffer);
+    this._indexBufferBinding = new IndexBufferBinding(this._iBuffer, IndexFormat.UInt16);
   }
 
   destroy(): void {
-    this._primitive.destroy();
-    this._primitive = null;
     this._vBuffer.destroy();
     this._vBuffer = null;
     this._iBuffer.destroy();
     this._iBuffer = null;
     this._vertices = null;
     this._indices = null;
-    this._entryPool.dispose();
-    this._entryPool = null;
   }
 
   clear(): void {
@@ -145,11 +132,20 @@ export class DynamicGeometryData {
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
-    const vEntry = this._allocateEntry(this._vFreeEntries, vertexCount * 9);
-    if (vEntry) {
+    const needByte = vertexCount * 36;
+    const offset = this._vBuffer.allocate(needByte);
+    if (offset !== -1) {
       const chunk = this._chunkPool.alloc();
       chunk._data = this;
-      chunk._vEntry = vEntry;
+      const primitive = (chunk._primitive ||= DynamicGeometryData.createPrimitive(this._engine));
+      primitive.setIndexBufferBinding(this._indexBufferBinding);
+      const vertexBufferBinding = primitive.vertexBufferBindings[0];
+      if (vertexBufferBinding) {
+        vertexBufferBinding._offset = offset;
+        vertexBufferBinding._size = needByte;
+      } else {
+        primitive.setVertexBufferBinding(0, new VertexBufferBinding(this._vBuffer, 36, offset, needByte));
+      }
       chunk._subMesh = this._subMeshPool.alloc();
       const { _subMesh: subMesh } = chunk;
       subMesh.topology = MeshTopology.Triangles;
@@ -160,64 +156,10 @@ export class DynamicGeometryData {
   }
 
   freeChunk(chunk: Chunk): void {
-    this._freeEntry(this._vFreeEntries, chunk._vEntry);
+    const { offset, size } = chunk._primitive.vertexBufferBindings[0];
+    this._vBuffer.free(offset, size);
     this._subMeshPool.free(chunk._subMesh);
     chunk.reset();
     this._chunkPool.free(chunk);
-  }
-
-  private _allocateEntry(entries: Entry[], needLen: number): Entry | null {
-    const { _entryPool: pool } = this;
-    for (let i = 0, l = entries.length; i < l; ++i) {
-      const entry = entries[i];
-      const len = entry.len;
-      if (len > needLen) {
-        const newEntry = pool.alloc();
-        newEntry.start = entry.start;
-        newEntry.len = needLen;
-        entry.start += needLen;
-        entry.len -= needLen;
-        return newEntry;
-      } else if (len === needLen) {
-        entries.splice(i, 1);
-        return entry;
-      }
-    }
-    return null;
-  }
-
-  private _freeEntry(entries: Entry[], entry: Entry): void {
-    const entryLen = entries.length;
-    if (entryLen === 0) {
-      entries.push(entry);
-      return;
-    }
-
-    const { _entryPool: pool } = this;
-    let preEntry = entry;
-    let notMerge = true;
-    for (let i = 0; i < entryLen; ++i) {
-      const curEntry = entries[i];
-      const { start, len } = preEntry;
-      const preEnd = start + len;
-      const curEnd = curEntry.start + curEntry.len;
-      if (preEnd < curEntry.start) {
-        notMerge && entries.splice(i, 0, preEntry);
-        return;
-      } else if (preEnd === curEntry.start) {
-        curEntry.start = preEntry.start;
-        curEntry.len += preEntry.len;
-        pool.free(preEntry);
-        preEntry = curEntry;
-        notMerge = false;
-      } else if (start === curEnd) {
-        curEntry.len += preEntry.len;
-        pool.free(preEntry);
-        preEntry = curEntry;
-        notMerge = false;
-      } else if (start > curEnd) {
-        i + 1 === entryLen && entries.push(preEntry);
-      }
-    }
   }
 }
