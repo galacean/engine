@@ -13,49 +13,39 @@ import {
   VertexElement,
   VertexElementFormat
 } from "../graphic";
-import { IPoolElement, ReturnableObjectPool } from "../utils/ReturnableObjectPool";
+import { IPoolElement } from "../utils/ObjectPool";
+import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
 import { Chunk } from "./Chunk";
 
 /**
  * @internal
  */
 export class DynamicGeometryData {
-  /** @internal */
   primitive: Primitive;
-  /** @internal */
   vertices: Float32Array;
-  /** @internal */
   indices: Uint16Array;
 
-  /**
-   * @internal
-   * The length of _vertices needed to be uploaded.
-   * */
+  /** The length of _vertices needed to be uploaded. */
   vertexLen = 0;
-  /**
-   * @internal
-   * The length of _indices needed to be uploaded.
-   * */
+  /** The length of _indices needed to be uploaded. */
   indiceLen = 0;
 
-  /** @internal */
-  vertexFreeAreas: Area[] = [];
-  /** @internal */
+  vertexFreeAreas = new Array<Area>();
   areaPool = new ReturnableObjectPool(Area, 10);
-  /** @internal */
   chunkPool = new ReturnableObjectPool(Chunk, 10);
-  /** @internal */
   subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
     const primitive = (this.primitive = new Primitive(engine));
-    primitive.isGCIgnored = true;
-    // vertex element
+    primitive._addReferCount(1);
+
+    // Vertex element
     primitive.addVertexElement(new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0));
     primitive.addVertexElement(new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0));
     primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
     const vertexStride = 36;
-    // vertices
+
+    // Vertices
     const vertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
@@ -63,12 +53,10 @@ export class DynamicGeometryData {
       BufferUsage.Dynamic,
       true
     );
-    vertexBuffer.isGCIgnored = true;
-    primitive.vertexBufferBindings.length = 1;
     primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
-    // index
+
+    // Index
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
-    indexBuffer.isGCIgnored = true;
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
     this.vertices = new Float32Array(vertexBuffer.data.buffer);
@@ -77,6 +65,7 @@ export class DynamicGeometryData {
   }
 
   destroy(): void {
+    this.primitive._addReferCount(-1);
     this.primitive.destroy();
     this.primitive = null;
     this.vertices = null;
@@ -98,11 +87,11 @@ export class DynamicGeometryData {
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
-    const vArea = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
-    if (vArea) {
+    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
+    if (area) {
       const chunk = this.chunkPool.get();
       chunk.data = this;
-      chunk.vertexArea = vArea;
+      chunk.vertexArea = area;
       chunk.subMesh = this.subMeshPool.get();
       const { subMesh: subMesh } = chunk;
       subMesh.topology = MeshTopology.Triangles;
@@ -118,19 +107,19 @@ export class DynamicGeometryData {
     this.chunkPool.return(chunk);
   }
 
-  private _allocateArea(entries: Area[], needLen: number): Area | null {
-    const { areaPool: pool } = this;
-    for (let i = 0, l = entries.length; i < l; ++i) {
+  private _allocateArea(entries: Area[], needSize: number): Area | null {
+    const pool = this.areaPool;
+    for (let i = 0, n = entries.length; i < n; ++i) {
       const area = entries[i];
-      const len = area.size;
-      if (len > needLen) {
+      const size = area.size;
+      if (size > needSize) {
         const newArea = pool.get();
         newArea.start = area.start;
-        newArea.size = needLen;
-        area.start += needLen;
-        area.size -= needLen;
+        newArea.size = needSize;
+        area.start += needSize;
+        area.size -= needSize;
         return newArea;
-      } else if (len === needLen) {
+      } else if (size === needSize) {
         entries.splice(i, 1);
         return area;
       }
@@ -150,8 +139,8 @@ export class DynamicGeometryData {
     let notMerge = true;
     for (let i = 0; i < areaLen; ++i) {
       const curArea = areas[i];
-      const { start, size: len } = preArea;
-      const preEnd = start + len;
+      const { start, size } = preArea;
+      const preEnd = start + size;
       const curEnd = curArea.start + curArea.size;
       if (preEnd < curArea.start) {
         notMerge && areas.splice(i, 0, preArea);
