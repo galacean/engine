@@ -28,7 +28,7 @@ export class DynamicGeometryData {
   /** The length of _vertices needed to be uploaded. */
   vertexLen = 0;
   /** The length of _indices needed to be uploaded. */
-  indiceLen = 0;
+  indexLen = 0;
 
   vertexFreeAreas = new Array<Area>();
   areaPool = new ReturnableObjectPool(Area, 10);
@@ -75,7 +75,7 @@ export class DynamicGeometryData {
   }
 
   clear(): void {
-    this.vertexLen = this.indiceLen = 0;
+    this.vertexLen = this.indexLen = 0;
   }
 
   uploadBuffer(): void {
@@ -83,7 +83,7 @@ export class DynamicGeometryData {
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
     const primitive = this.primitive;
     primitive.vertexBufferBindings[0].buffer.setData(this.vertices, 0, 0, this.vertexLen, SetDataOptions.Discard);
-    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indiceLen, SetDataOptions.Discard);
+    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indexLen, SetDataOptions.Discard);
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
