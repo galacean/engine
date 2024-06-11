@@ -628,10 +628,9 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
     const objName = this.content.variable;
     const propName = this.content.properties?.[0].content;
 
-    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])]
-      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
-      .map((item) => item.serialize(context))
-      .join("");
+    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])].sort((a, b) =>
+      AstNodeUtils.astSortAsc(a.position, b.position)
+    );
 
     if (propName) {
       if (objName === context.varyingStructInfo.objectName) {
@@ -639,7 +638,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
           (ref) => ref.property.content.variableNode.content.variable === propName
         );
         ref && (ref.referenced = true);
-        return propList;
+        return propList.map((item) => item.content).join(".");
       } else {
         const attribStruct = context.attributeStructListInfo.find((struct) => struct.objectName === objName);
         if (attribStruct) {
@@ -647,7 +646,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
             (ref) => ref.property.content.variableNode.content.variable === propName
           );
           ref && (ref.referenced = true);
-          return propList;
+          return propList.map((item) => item.content).join(".");
         }
       }
     }
@@ -661,7 +660,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
       }
     }
 
-    return objName + propList;
+    return objName + propList.map((item) => item.serialize(context)).join("");
   }
 }
 
