@@ -90,7 +90,7 @@ export class SpriteMaskBatcher {
       const spriteMaskElement = batchedQueue[i];
       const stencilOp = stencilOps[i];
       const renderData = <RenderData2D>spriteMaskElement.data;
-      const primitive = renderData.chunk.primitive;
+      const primitive = renderData.chunk.data.primitive;
 
       if (!spriteMaskElement) {
         return;

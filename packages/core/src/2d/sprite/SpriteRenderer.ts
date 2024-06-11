@@ -361,7 +361,7 @@ export class SpriteRenderer extends Renderer {
     const spriteMaskManager = engine._spriteMaskManager;
     const renderData = engine._renderData2DPool.getFromPool();
     const chunk = this._chunk;
-    renderData.set(this, material, chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.Sprite;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
     renderData.preRender = () => {
@@ -399,12 +399,12 @@ export class SpriteRenderer extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { data: meshBuffer, indices: tempIndices } = chunk;
-    const { offset, size, stride } = chunk.primitive.vertexBufferBindings[0];
-    const indices = meshBuffer._indices;
-    const vertexStartIndex = offset / stride;
+    const { data: meshBuffer, indices: tempIndices, vertexArea } = chunk;
+    const start = vertexArea.start;
+    const indices = meshBuffer.indices;
+    const vertexStartIndex = start / 9;
     const len = tempIndices.length;
-    let startIndex = meshBuffer._indexLen;
+    let startIndex = meshBuffer.indexLen;
     if (elementB) {
       const subMesh = renderDataA.chunk.subMesh;
       subMesh.count += len;
@@ -416,8 +416,8 @@ export class SpriteRenderer extends Renderer {
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-    meshBuffer._indexLen += len;
-    meshBuffer._vertexLen = Math.max(meshBuffer._vertexLen, offset / 4 + size / 4);
+    meshBuffer.indexLen += len;
+    meshBuffer.vertexLen = Math.max(meshBuffer.vertexLen, start + vertexArea.size);
   }
 
   protected override _onDestroy(): void {

@@ -10,36 +10,36 @@ export class DynamicGeometryDataManager {
   static MAX_VERTEX_COUNT = 4096;
 
   /** @internal */
-  _engine: Engine;
+  engine: Engine;
   /** @internal */
-  _dynamicGeometryDatas: DynamicGeometryData[] = [];
+  dynamicGeometryDatas: DynamicGeometryData[] = [];
   /** @internal */
-  _maxVertexCount: number;
+  maxVertexCount: number;
 
   constructor(engine: Engine, maxVertexCount: number = DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
-    this._engine = engine;
-    this._maxVertexCount = maxVertexCount;
+    this.engine = engine;
+    this.maxVertexCount = maxVertexCount;
   }
 
   destroy(): void {
-    const datas = this._dynamicGeometryDatas;
+    const datas = this.dynamicGeometryDatas;
     for (let i = 0, l = datas.length; i < l; ++i) {
       datas[i].destroy();
     }
     datas.length = 0;
-    this._dynamicGeometryDatas = null;
-    this._engine = null;
+    this.dynamicGeometryDatas = null;
+    this.engine = null;
   }
 
   clear() {
-    const datas = this._dynamicGeometryDatas;
+    const datas = this.dynamicGeometryDatas;
     for (let i = 0, l = datas.length; i < l; ++i) {
       datas[i].clear();
     }
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
-    const datas = this._dynamicGeometryDatas;
+    const datas = this.dynamicGeometryDatas;
     const len = datas.length;
     let chunk: Chunk = null;
     for (let i = 0; i < len; ++i) {
@@ -50,19 +50,19 @@ export class DynamicGeometryDataManager {
       }
     }
 
-    const data = (this._dynamicGeometryDatas[len] ||= new DynamicGeometryData(this._engine, this._maxVertexCount));
+    const data = (this.dynamicGeometryDatas[len] ||= new DynamicGeometryData(this.engine, this.maxVertexCount));
     chunk = data.allocateChunk(vertexCount);
     chunk.id = len;
     return chunk;
   }
 
   freeChunk(chunk: Chunk): void {
-    const data = this._dynamicGeometryDatas[chunk.id];
+    const data = this.dynamicGeometryDatas[chunk.id];
     data && data.freeChunk(chunk);
   }
 
   uploadBuffer(): void {
-    const datas = this._dynamicGeometryDatas;
+    const datas = this.dynamicGeometryDatas;
     for (let i = 0, l = datas.length; i < l; ++i) {
       datas[i].uploadBuffer();
     }

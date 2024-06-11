@@ -24,7 +24,7 @@ export class TiledSpriteAssembler {
       const manager = renderer._getChunkManager();
       const chunk = renderer._chunk;
       if (chunk) {
-        if (chunk.primitive.vertexBufferBindings[0].size !== vertexCount * 36) {
+        if (chunk.vertexArea.size !== vertexCount * 9) {
           manager.freeChunk(chunk);
           const newChunk = manager.allocateChunk(vertexCount);
           newChunk.indices = [];
@@ -81,11 +81,11 @@ export class TiledSpriteAssembler {
     const columnLength = posColumn.length - 1;
 
     const { _chunk: chunk } = renderer;
-    const vertices = chunk.data._vertices;
+    const vertices = chunk.data.vertices;
     const indices = chunk.indices;
     let count = 0;
     let trianglesOffset = 0;
-    for (let j = 0, o = chunk.primitive.vertexBufferBindings[0].offset / 4; j < columnLength; j++) {
+    for (let j = 0, o = chunk.vertexArea.start; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++, o += 36) {
         const uvL = uvRow.get(2 * i);
@@ -137,8 +137,8 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     const chunk = renderer._chunk;
-    const vertices = chunk.data._vertices;
-    for (let j = 0, o = chunk.primitive.vertexBufferBindings[0].offset / 4 + 3; j < columnLength; j++) {
+    const vertices = chunk.data.vertices;
+    for (let j = 0, o = chunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++, o += 36) {
         const uvL = uvRow.get(2 * i);
@@ -168,9 +168,9 @@ export class TiledSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.data._vertices;
-    const vertexBufferBinding = chunk.primitive.vertexBufferBindings[0];
-    for (let i = 0, o = vertexBufferBinding.offset / 4 + 5, n = vertexBufferBinding.size / 9; i < n; ++i, o += 9) {
+    const vertices = chunk.data.vertices;
+    const vertexArea = chunk.vertexArea;
+    for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;

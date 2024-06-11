@@ -432,7 +432,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.getFromPool();
       const { chunk, texture } = charRenderInfo;
-      renderData.set(this, material, chunk.primitive, chunk.subMesh, texture, chunk);
+      renderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
       renderData.preRender = () => {
@@ -478,12 +478,12 @@ export class TextRenderer extends Renderer {
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
     const renderDataA = <RenderData2D>elementA.data;
     const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { data: meshBuffer, indices: tempIndices } = chunk;
-    const { offset, size, stride } = chunk.primitive.vertexBufferBindings[0];
-    const indices = meshBuffer._indices;
-    const vertexStartIndex = offset / stride;
+    const { data: meshBuffer, indices: tempIndices, vertexArea } = chunk;
+    const start = vertexArea.start;
+    const indices = meshBuffer.indices;
+    const vertexStartIndex = start / 9;
     const len = tempIndices.length;
-    let startIndex = meshBuffer._indexLen;
+    let startIndex = meshBuffer.indexLen;
     if (elementB) {
       const subMesh = renderDataA.chunk.subMesh;
       subMesh.count += len;
@@ -495,8 +495,8 @@ export class TextRenderer extends Renderer {
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-    meshBuffer._indexLen += len;
-    meshBuffer._vertexLen = Math.max(meshBuffer._vertexLen, offset / 4 + size / 4);
+    meshBuffer.indexLen += len;
+    meshBuffer.vertexLen = Math.max(meshBuffer.vertexLen, start + vertexArea.size);
   }
 
   private _updateStencilState(): void {
@@ -571,15 +571,13 @@ export class TextRenderer extends Renderer {
       // Bottom-Right
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-      const { chunk } = charRenderInfo;
-      const vertices = chunk.data._vertices;
-      let index = chunk.primitive.vertexBufferBindings[0].offset / 4;
-      for (let i = 0; i < 4; ++i) {
+      const chunk = charRenderInfo.chunk;
+      const vertices = chunk.data.vertices;
+      for (let i = 0, o = chunk.vertexArea.start; i < 4; ++i, o += 9) {
         const position = TextRenderer._worldPositions[i];
-        vertices[index] = position.x;
-        vertices[index + 1] = position.y;
-        vertices[index + 2] = position.z;
-        index += 9;
+        vertices[o] = position.x;
+        vertices[o + 1] = position.y;
+        vertices[o + 2] = position.z;
       }
     }
   }
@@ -653,18 +651,17 @@ export class TextRenderer extends Renderer {
               charRenderInfo.init(this.engine);
               const { chunk, localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
-              const vertices = chunk.data._vertices;
+              const vertices = chunk.data.vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
-              let index = chunk.primitive.vertexBufferBindings[0].offset / 4 + 3;
-              for (let i = 0; i < 4; ++i) {
-                vertices[index] = uvs[i].x;
-                vertices[index + 1] = uvs[i].y;
-                vertices[index + 2] = r;
-                vertices[index + 3] = g;
-                vertices[index + 4] = b;
-                vertices[index + 5] = a;
-                index += 9;
+
+              for (let i = 0, o = chunk.vertexArea.start + 3; i < 4; ++i, o += 9) {
+                vertices[o] = uvs[i].x;
+                vertices[o + 1] = uvs[i].y;
+                vertices[o + 2] = r;
+                vertices[o + 3] = g;
+                vertices[o + 4] = b;
+                vertices[o + 5] = a;
               }
 
               const { w, ascent, descent } = charInfo;
