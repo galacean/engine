@@ -483,7 +483,7 @@ export class TextRenderer extends Renderer {
     const indices = meshBuffer._indices;
     const vertexStartIndex = offset / stride;
     const len = tempIndices.length;
-    let startIndex = meshBuffer._iLen;
+    let startIndex = meshBuffer._indexLen;
     if (elementB) {
       const subMesh = renderDataA.chunk._subMesh;
       subMesh.count += len;
@@ -495,8 +495,8 @@ export class TextRenderer extends Renderer {
     for (let i = 0; i < len; ++i) {
       indices[startIndex++] = vertexStartIndex + tempIndices[i];
     }
-    meshBuffer._iLen += len;
-    meshBuffer._vLen = Math.max(meshBuffer._vLen, offset / 4 + size / 4);
+    meshBuffer._indexLen += len;
+    meshBuffer._vertexLen = Math.max(meshBuffer._vertexLen, offset / 4 + size / 4);
   }
 
   private _updateStencilState(): void {

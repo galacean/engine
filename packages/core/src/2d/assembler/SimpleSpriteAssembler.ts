@@ -2,26 +2,22 @@ import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
-import { IAssembler } from "./IAssembler";
+import { ISpriteAssembler } from "./ISpriteAssembler";
 
 /**
  * @internal
  */
-@StaticInterfaceImplement<IAssembler>()
+@StaticInterfaceImplement<ISpriteAssembler>()
 export class SimpleSpriteAssembler {
-  static _rectangleTriangles: number[] = [0, 1, 2, 2, 1, 3];
-  static _worldMatrix: Matrix = new Matrix();
+  static _rectangleTriangles = [0, 1, 2, 2, 1, 3];
+  static _worldMatrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const manager =
-      renderer instanceof SpriteRenderer
-        ? renderer.engine._batcherManager._dynamicGeometryDataManager2D
-        : renderer.engine._spriteMaskManager._batcher._dynamicGeometryDataManager;
-
+    const manager = renderer._getChunkManager();
     const lastChunk = renderer._chunk;
     lastChunk && manager.freeChunk(lastChunk);
     const chunk = manager.allocateChunk(4);
-    chunk._indices = this._rectangleTriangles;
+    chunk._indices = SimpleSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }
 
@@ -29,7 +25,7 @@ export class SimpleSpriteAssembler {
     const { width, height, sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
     // Renderer's worldMatrix
-    const { _worldMatrix: worldMatrix } = this;
+    const worldMatrix = SimpleSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
@@ -51,13 +47,11 @@ export class SimpleSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4;
-    for (let i = 0; i < 4; ++i) {
+    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
-      vertices[index] = wE[0] * x + wE[4] * y + wE[12];
-      vertices[index + 1] = wE[1] * x + wE[5] * y + wE[13];
-      vertices[index + 2] = wE[2] * x + wE[6] * y + wE[14];
-      index += 9;
+      vertices[o] = wE[0] * x + wE[4] * y + wE[12];
+      vertices[o + 1] = wE[1] * x + wE[5] * y + wE[13];
+      vertices[o + 2] = wE[2] * x + wE[6] * y + wE[14];
     }
 
     BoundingBox.transform(sprite._getBounds(), worldMatrix, renderer._bounds);
@@ -69,28 +63,26 @@ export class SimpleSpriteAssembler {
     const { x: right, y: top } = spriteUVs[3];
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
-    vertices[index] = left;
-    vertices[index + 1] = bottom;
-    vertices[index + 9] = right;
-    vertices[index + 10] = bottom;
-    vertices[index + 18] = left;
-    vertices[index + 19] = top;
-    vertices[index + 27] = right;
-    vertices[index + 28] = top;
+    const offset = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
+    vertices[offset] = left;
+    vertices[offset + 1] = bottom;
+    vertices[offset + 9] = right;
+    vertices[offset + 10] = bottom;
+    vertices[offset + 18] = left;
+    vertices[offset + 19] = top;
+    vertices[offset + 27] = right;
+    vertices[offset + 28] = top;
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const { _chunk: chunk } = renderer;
+    const chunk = renderer._chunk;
     const { r, g, b, a } = renderer.color;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 5;
-    for (let i = 0; i < 4; ++i) {
-      vertices[index] = r;
-      vertices[index + 1] = g;
-      vertices[index + 2] = b;
-      vertices[index + 3] = a;
-      index += 9;
+    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4 + 5; i < 4; ++i, o += 9) {
+      vertices[o] = r;
+      vertices[o + 1] = g;
+      vertices[o + 2] = b;
+      vertices[o + 3] = a;
     }
   }
 }

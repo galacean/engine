@@ -1,25 +1,25 @@
 import { Matrix } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
-import { IAssembler } from "./IAssembler";
+import { ISpriteAssembler } from "./ISpriteAssembler";
 
 /**
  * @internal
  */
-@StaticInterfaceImplement<IAssembler>()
+@StaticInterfaceImplement<ISpriteAssembler>()
 export class SlicedSpriteAssembler {
-  static _rectangleTriangles: number[] = [
+  static _rectangleTriangles = [
     0, 1, 4, 1, 5, 4, 1, 2, 5, 2, 6, 5, 2, 3, 6, 3, 7, 6, 4, 5, 8, 5, 9, 8, 5, 6, 9, 6, 10, 9, 6, 7, 10, 7, 11, 10, 8,
     9, 12, 9, 13, 12, 9, 10, 13, 10, 14, 13, 10, 11, 14, 11, 15, 14
   ];
-  static _worldMatrix: Matrix = new Matrix();
+  static _worldMatrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer): void {
-    const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
+    const manager = renderer._getChunkManager();
     const lastChunk = renderer._chunk;
     lastChunk && manager.freeChunk(lastChunk);
     const chunk = manager.allocateChunk(16);
-    chunk._indices = this._rectangleTriangles;
+    chunk._indices = SlicedSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }
 
@@ -77,7 +77,7 @@ export class SlicedSpriteAssembler {
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
     // Renderer's worldMatrix.
-    const { _worldMatrix: worldMatrix } = this;
+    const worldMatrix = SlicedSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix.
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
@@ -100,17 +100,15 @@ export class SlicedSpriteAssembler {
     //  0 - 4 - 8  - 12
     // ------------------------
     // Assemble position and uv.
-    const { _chunk: chunk } = renderer;
+    const chunk = renderer._chunk;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4; i < 4; i++) {
       const rowValue = row[i];
-      for (let j = 0; j < 4; j++) {
+      for (let j = 0; j < 4; j++, o += 9) {
         const columnValue = column[j];
-        vertices[index] = wE[0] * rowValue + wE[4] * columnValue + wE[12];
-        vertices[index + 1] = wE[1] * rowValue + wE[5] * columnValue + wE[13];
-        vertices[index + 2] = wE[2] * rowValue + wE[6] * columnValue + wE[14];
-        index += 9;
+        vertices[o] = wE[0] * rowValue + wE[4] * columnValue + wE[12];
+        vertices[o + 1] = wE[1] * rowValue + wE[5] * columnValue + wE[13];
+        vertices[o + 2] = wE[2] * rowValue + wE[6] * columnValue + wE[14];
       }
     }
 
@@ -121,31 +119,27 @@ export class SlicedSpriteAssembler {
   }
 
   static updateUVs(renderer: SpriteRenderer): void {
-    const { _chunk: chunk } = renderer;
+    const chunk = renderer._chunk;
     const vertices = chunk._data._vertices;
     const spriteUVs = renderer.sprite._getUVs();
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3; i < 4; i++) {
       const rowU = spriteUVs[i].x;
-      for (let j = 0; j < 4; j++) {
-        vertices[index] = rowU;
-        vertices[index + 1] = spriteUVs[j].y;
-        index += 9;
+      for (let j = 0; j < 4; j++, o += 9) {
+        vertices[o] = rowU;
+        vertices[o + 1] = spriteUVs[j].y;
       }
     }
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const { _chunk: chunk } = renderer;
+    const chunk = renderer._chunk;
     const { r, g, b, a } = renderer.color;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 5;
-    for (let i = 0; i < 16; ++i) {
-      vertices[index] = r;
-      vertices[index + 1] = g;
-      vertices[index + 2] = b;
-      vertices[index + 3] = a;
-      index += 9;
+    for (let i = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4 + 5; i < 16; ++i, o += 9) {
+      vertices[o] = r;
+      vertices[o + 1] = g;
+      vertices[o + 2] = b;
+      vertices[o + 3] = a;
     }
   }
 }

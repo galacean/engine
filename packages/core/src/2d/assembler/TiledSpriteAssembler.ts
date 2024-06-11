@@ -4,34 +4,34 @@ import { DisorderedArray } from "../../DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
-import { IAssembler } from "./IAssembler";
+import { ISpriteAssembler } from "./ISpriteAssembler";
 import { Logger } from "../../base";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * @internal
  */
-@StaticInterfaceImplement<IAssembler>()
+@StaticInterfaceImplement<ISpriteAssembler>()
 export class TiledSpriteAssembler {
-  static _worldMatrix: Matrix = new Matrix();
-  static _posRow: DisorderedArray<number> = new DisorderedArray<number>();
-  static _posColumn: DisorderedArray<number> = new DisorderedArray<number>();
-  static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
-  static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
+  static _worldMatrix = new Matrix();
+  static _posRow = new DisorderedArray<number>();
+  static _posColumn = new DisorderedArray<number>();
+  static _uvRow = new DisorderedArray<number>();
+  static _uvColumn = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer, vCount: number): void {
-    if (vCount) {
-      const manager = renderer.engine._batcherManager._dynamicGeometryDataManager2D;
-      const { _chunk: chunk } = renderer;
+  static resetData(renderer: SpriteRenderer, vertexCount: number): void {
+    if (vertexCount) {
+      const manager = renderer._getChunkManager();
+      const chunk = renderer._chunk;
       if (chunk) {
-        if (chunk._primitive.vertexBufferBindings[0].size !== vCount * 36) {
+        if (chunk._primitive.vertexBufferBindings[0].size !== vertexCount * 36) {
           manager.freeChunk(chunk);
-          const newChunk = manager.allocateChunk(vCount);
+          const newChunk = manager.allocateChunk(vertexCount);
           newChunk._indices = [];
           renderer._chunk = newChunk;
         }
       } else {
-        const newChunk = manager.allocateChunk(vCount);
+        const newChunk = manager.allocateChunk(vertexCount);
         newChunk._indices = [];
         renderer._chunk = newChunk;
       }
@@ -41,13 +41,22 @@ export class TiledSpriteAssembler {
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     // Calculate row and column
-    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     const vertexCount =
       tileMode === SpriteTileMode.Adaptive
-        ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
-        : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
-    this.resetData(renderer, vertexCount);
+        ? TiledSpriteAssembler._calculateAdaptiveDividing(
+            sprite,
+            width,
+            height,
+            threshold,
+            posRow,
+            posColumn,
+            uvRow,
+            uvColumn
+          )
+        : TiledSpriteAssembler._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+    TiledSpriteAssembler.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
@@ -74,12 +83,11 @@ export class TiledSpriteAssembler {
     const { _chunk: chunk } = renderer;
     const vertices = chunk._data._vertices;
     const indices = chunk._indices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4;
     let count = 0;
     let trianglesOffset = 0;
-    for (let j = 0; j < columnLength; j++) {
+    for (let j = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4; j < columnLength; j++) {
       const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++) {
+      for (let i = 0; i < rowLength; i++, o += 36) {
         const uvL = uvRow.get(2 * i);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
@@ -100,22 +108,21 @@ export class TiledSpriteAssembler {
         const t = posColumn.get(j + 1);
 
         // left and bottom
-        vertices[index] = wE0 * l + wE4 * b + wE12;
-        vertices[index + 1] = wE1 * l + wE5 * b + wE13;
-        vertices[index + 2] = wE2 * l + wE6 * b + wE14;
+        vertices[o] = wE0 * l + wE4 * b + wE12;
+        vertices[o + 1] = wE1 * l + wE5 * b + wE13;
+        vertices[o + 2] = wE2 * l + wE6 * b + wE14;
         // right and bottom
-        vertices[index + 9] = wE0 * r + wE4 * b + wE12;
-        vertices[index + 10] = wE1 * r + wE5 * b + wE13;
-        vertices[index + 11] = wE2 * r + wE6 * b + wE14;
+        vertices[o + 9] = wE0 * r + wE4 * b + wE12;
+        vertices[o + 10] = wE1 * r + wE5 * b + wE13;
+        vertices[o + 11] = wE2 * r + wE6 * b + wE14;
         // left and top
-        vertices[index + 18] = wE0 * l + wE4 * t + wE12;
-        vertices[index + 19] = wE1 * l + wE5 * t + wE13;
-        vertices[index + 20] = wE2 * l + wE6 * t + wE14;
+        vertices[o + 18] = wE0 * l + wE4 * t + wE12;
+        vertices[o + 19] = wE1 * l + wE5 * t + wE13;
+        vertices[o + 20] = wE2 * l + wE6 * t + wE14;
         // right and top
-        vertices[index + 27] = wE0 * r + wE4 * t + wE12;
-        vertices[index + 28] = wE1 * r + wE5 * t + wE13;
-        vertices[index + 29] = wE2 * r + wE6 * t + wE14;
-        index += 36;
+        vertices[o + 27] = wE0 * r + wE4 * t + wE12;
+        vertices[o + 28] = wE1 * r + wE5 * t + wE13;
+        vertices[o + 29] = wE2 * r + wE6 * t + wE14;
       }
     }
 
@@ -126,15 +133,14 @@ export class TiledSpriteAssembler {
   }
 
   static updateUVs(renderer: SpriteRenderer): void {
-    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-    const { _chunk: chunk } = renderer;
+    const chunk = renderer._chunk;
     const vertices = chunk._data._vertices;
-    let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
-    for (let j = 0; j < columnLength; j++) {
+    for (let j = 0, o = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++) {
+      for (let i = 0; i < rowLength; i++, o += 36) {
         const uvL = uvRow.get(2 * i);
         const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
@@ -144,18 +150,17 @@ export class TiledSpriteAssembler {
         }
 
         // left and bottom
-        vertices[index] = uvL;
-        vertices[index + 1] = uvB;
+        vertices[o] = uvL;
+        vertices[o + 1] = uvB;
         // right and bottom
-        vertices[index + 9] = uvR;
-        vertices[index + 10] = uvB;
+        vertices[o + 9] = uvR;
+        vertices[o + 10] = uvB;
         // left and top
-        vertices[index + 18] = uvL;
-        vertices[index + 19] = uvT;
+        vertices[o + 18] = uvL;
+        vertices[o + 19] = uvT;
         // right and top
-        vertices[index + 27] = uvR;
-        vertices[index + 28] = uvT;
-        index += 36;
+        vertices[o + 27] = uvR;
+        vertices[o + 28] = uvT;
       }
     }
   }
@@ -165,13 +170,11 @@ export class TiledSpriteAssembler {
     const { r, g, b, a } = renderer.color;
     const vertices = chunk._data._vertices;
     const vertexBufferBinding = chunk._primitive.vertexBufferBindings[0];
-    let index = vertexBufferBinding.offset / 4 + 5;
-    for (let i = 0, l = vertexBufferBinding.size / 9; i < l; ++i) {
-      vertices[index] = r;
-      vertices[index + 1] = g;
-      vertices[index + 2] = b;
-      vertices[index + 3] = a;
-      index += 9;
+    for (let i = 0, o = vertexBufferBinding.offset / 4 + 5, n = vertexBufferBinding.size / 9; i < n; ++i, o += 9) {
+      vertices[o] = r;
+      vertices[o + 1] = g;
+      vertices[o + 2] = b;
+      vertices[o + 3] = a;
     }
   }
 
