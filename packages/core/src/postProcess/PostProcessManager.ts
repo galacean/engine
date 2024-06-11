@@ -59,7 +59,7 @@ export class PostProcessManager {
   }
 
   /**
-   * Remove post process.
+   * Remove post process pass.
    * @param pass - The post process pass want to be removed
    */
   removePass(pass: PostProcessPass): void {

@@ -1,6 +1,6 @@
 import { RenderContext } from "../RenderPipeline/RenderContext";
 
-export class PostProcessEffect {
+export abstract class PostProcessEffect {
   private _enabled = true;
 
   /**
@@ -14,5 +14,5 @@ export class PostProcessEffect {
     this._enabled = value;
   }
 
-  onRender(context: RenderContext) {}
+  abstract onRender(context: RenderContext): void;
 }

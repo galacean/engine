@@ -69,22 +69,49 @@ export class PostProcessPass extends PipelinePass {
 
   /**
    * Add post process effect.
-   * @param value - The post process effect want to be added
+   * @param effect - The post process effect want to be added
    */
-  addEffect(value: PostProcessEffect): void;
+  addEffect(effect: PostProcessEffect): void;
 
   /**
    * Add post process at specified index.
-   * @param index - Specified index
-   * @param value - The post process effect want to be added
+   * @param indexOrEffect - Specified index
+   * @param effect - The post process effect want to be added
    */
-  addEffect(index: number, value: PostProcessEffect): void;
+  addEffect(index: number, effect: PostProcessEffect): void;
 
-  addEffect(indexOrValue: number | PostProcessEffect, value?: PostProcessEffect): void {}
+  addEffect(indexOrEffect: number | PostProcessEffect, effect?: PostProcessEffect): void {
+    const effects = this._effects;
+    let index: number;
+
+    if (typeof indexOrEffect === "number") {
+      if (indexOrEffect < 0 || indexOrEffect > effects.length) {
+        throw "The index is out of range.";
+      }
+      index = indexOrEffect;
+    } else {
+      index = effects.length;
+      effect = indexOrEffect;
+    }
+
+    const currentIndex = effects.indexOf(effect);
+    if (currentIndex !== index) {
+      if (currentIndex !== -1) {
+        effects.removeByIndex(currentIndex);
+      }
+      effects.add(index, effect);
+    }
+  }
 
   /**
    * Remove post process effect.
-   * @param value - The post process effect want to be removed
+   * @param effect - The post process effect want to be removed
    */
-  removeEffect(value: PostProcessEffect): void {}
+  removeEffect(effect: PostProcessEffect): void {
+    const passes = this._effects;
+    const index = passes.indexOf(effect);
+    if (index !== -1) {
+      passes.removeByIndex(index);
+    }
+  }
 }
