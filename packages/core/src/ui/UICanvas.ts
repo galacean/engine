@@ -2,6 +2,7 @@ import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ignoreClone } from "../clone/CloneManager";
+import { UIRenderer } from "./UIRenderer";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 
@@ -84,7 +85,15 @@ export class UICanvas extends Component {
   /**
    * @internal
    */
-  _prepareRender(context: RenderContext): void {}
+  _prepareRender(context: RenderContext): void {
+    const children = this.entity.children;
+    for (let i = 0, n = children.length; i < n; ++i) {
+      const uiRenderer = children[i].getComponent(UIRenderer);
+      if (uiRenderer) {
+        
+      }
+    }
+  }
 
   /**
    * @internal
