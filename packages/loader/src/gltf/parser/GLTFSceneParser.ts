@@ -30,6 +30,8 @@ export class GLTFSceneParser extends GLTFParser {
     const sceneNodes = sceneInfo.nodes;
 
     const sceneRoot = new Entity(engine, "GLTF_ROOT");
+    // @ts-ignore
+    sceneRoot._markAsTemplate(glTFResource);
     for (let i = 0; i < sceneNodes.length; i++) {
       const childEntity = context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]);
       sceneRoot.addChild(childEntity);

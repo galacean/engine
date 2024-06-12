@@ -170,7 +170,7 @@ export const E2E_CONFIG = {
     }
   },
   Particle: {
-    meshopt: {
+    dream: {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
