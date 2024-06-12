@@ -628,9 +628,10 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
     const objName = this.content.variable;
     const propName = this.content.properties?.[0].content;
 
-    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])].sort((a, b) =>
-      AstNodeUtils.astSortAsc(a.position, b.position)
-    );
+    const propList = [...(this.content.properties ?? []), ...(this.content.indexes ?? [])]
+      .sort((a, b) => AstNodeUtils.astSortAsc(a.position, b.position))
+      .map((item) => item.serialize(context))
+      .join("");
 
     if (propName) {
       if (objName === context.varyingStructInfo.objectName) {
@@ -638,7 +639,8 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
           (ref) => ref.property.content.variableNode.content.variable === propName
         );
         ref && (ref.referenced = true);
-        return propList.map((item) => item.content).join(".");
+        if (propList.startsWith(".")) return propList.slice(1);
+        return propList;
       } else {
         const attribStruct = context.attributeStructListInfo.find((struct) => struct.objectName === objName);
         if (attribStruct) {
@@ -646,7 +648,8 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
             (ref) => ref.property.content.variableNode.content.variable === propName
           );
           ref && (ref.referenced = true);
-          return propList.map((item) => item.content).join(".");
+          if (propList.startsWith(".")) return propList.slice(1);
+          return propList;
         }
       }
     }
@@ -660,7 +663,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
       }
     }
 
-    return objName + propList.map((item) => item.serialize(context)).join("");
+    return objName + propList;
   }
 }
 
