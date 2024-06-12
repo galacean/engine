@@ -14,7 +14,6 @@ import { Chunk } from "../../RenderPipeline/Chunk";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { MaskElement } from "../../RenderPipeline/MaskElement";
 
 /**
  * A component for masking Sprites.
@@ -29,7 +28,7 @@ export class SpriteMask extends Renderer {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: MaskElement;
+  _renderElement: RenderElement;
 
   /** @internal */
   @ignoreClone
@@ -253,9 +252,9 @@ export class SpriteMask extends Renderer {
     renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
-    const renderElement = engine._maskElementPool.get();
+    const renderElement = engine._renderElementPool.get();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
-    this._maskElement = renderElement;
+    this._renderElement = renderElement;
   }
 
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {

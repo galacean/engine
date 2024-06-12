@@ -2,7 +2,6 @@ import { SpriteMask, SpriteMaskInteraction, SpriteRenderer, TextRenderer } from 
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { StencilOperation } from "../shader";
-import { MaskElement } from "./MaskElement";
 import { RenderElement } from "./RenderElement";
 
 /**
@@ -47,7 +46,7 @@ export class MaskManager {
   }
 
   private _processMasksDiff(renderer: SpriteRenderer | TextRenderer, maskInsertedElements: Array<RenderElement>): void {
-    const maskElementPool = this.engine._maskElementPool;
+    const renderElementPool = this.engine._renderElementPool;
     const preMaskLayer = this._preMaskLayer;
     const curMaskLayer = renderer.maskLayer;
     if (preMaskLayer !== curMaskLayer) {
@@ -56,9 +55,9 @@ export class MaskManager {
       const addLayer = curMaskLayer & ~preMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
 
-      const allMaskElements = masks._elements;
+      const allSpriteMasks = masks._elements;
       for (let i = 0, n = masks.length; i < n; i++) {
-        const mask = allMaskElements[i];
+        const mask = allSpriteMasks[i];
         const influenceLayers = mask.influenceLayers;
 
         if (influenceLayers & commonLayer) {
@@ -66,25 +65,25 @@ export class MaskManager {
         }
 
         if (influenceLayers & addLayer) {
-          const maskElement = maskElementPool.get();
-          this._cloneMaskElement(mask._maskElement, maskElement);
-          maskElement.stencilOperation = StencilOperation.IncrementSaturate;
-          maskInsertedElements.push(maskElement);
+          const renderElement = renderElementPool.get();
+          this._cloneRenderElement(mask._renderElement, renderElement);
+          renderElement.stencilOperation = StencilOperation.IncrementSaturate;
+          maskInsertedElements.push(renderElement);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
-          const maskElement = maskElementPool.get();
-          this._cloneMaskElement(mask._maskElement, maskElement);
-          maskElement.stencilOperation = StencilOperation.DecrementSaturate;
-          maskInsertedElements.push(maskElement);
+          const renderElement = renderElementPool.get();
+          this._cloneRenderElement(mask._renderElement, renderElement);
+          renderElement.stencilOperation = StencilOperation.DecrementSaturate;
+          maskInsertedElements.push(renderElement);
         }
       }
     }
     this._preMaskLayer = curMaskLayer;
   }
 
-  private _cloneMaskElement(srcMaskElement: MaskElement, dstMaskElement: MaskElement): void {
-    dstMaskElement.set(srcMaskElement.data, srcMaskElement.shaderPasses);
+  private _cloneRenderElement(srcRenderElement: RenderElement, dstRenderElement: RenderElement): void {
+    dstRenderElement.set(srcRenderElement.data, srcRenderElement.shaderPasses);
   }
 }

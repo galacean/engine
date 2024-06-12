@@ -48,7 +48,6 @@ import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { XRManager } from "./xr/XRManager";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { MaskManager } from "./RenderPipeline/MaskManager";
-import { MaskElement } from "./RenderPipeline/MaskElement";
 
 ShaderPool.init();
 
@@ -87,8 +86,6 @@ export class Engine extends EventDispatcher {
 
   /* @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
-  _maskElementPool = new ClearableObjectPool(MaskElement);
   /* @internal */
   _renderDataPool = new ClearableObjectPool(RenderData);
   /* @internal */
@@ -351,7 +348,6 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.clear();
-    this._maskElementPool.clear();
     this._renderDataPool.clear();
     this._renderData2DPool.clear();
 
@@ -758,7 +754,6 @@ export class Engine extends EventDispatcher {
 
   private _gc(): void {
     this._renderElementPool.garbageCollection();
-    this._maskElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();
     this._renderData2DPool.garbageCollection();
     this._renderContext.garbageCollection();
