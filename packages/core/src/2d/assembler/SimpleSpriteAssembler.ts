@@ -1,5 +1,6 @@
-import { BoundingBox, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { Image } from "../../ui";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
@@ -12,7 +13,7 @@ export class SimpleSpriteAssembler {
   static _rectangleTriangles = [0, 1, 2, 2, 1, 3];
   static _worldMatrix = new Matrix();
 
-  static resetData(renderer: SpriteRenderer | SpriteMask): void {
+  static resetData(renderer: SpriteRenderer | SpriteMask | Image): void {
     const manager = renderer._getChunkManager();
     const lastChunk = renderer._chunk;
     lastChunk && manager.freeChunk(lastChunk);
@@ -21,16 +22,23 @@ export class SimpleSpriteAssembler {
     renderer._chunk = chunk;
   }
 
-  static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    const { width, height, sprite } = renderer;
-    const { x: pivotX, y: pivotY } = sprite.pivot;
+  static updatePositions(
+    renderer: SpriteRenderer | SpriteMask | Image,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean = false,
+    flipY: boolean = false
+  ): void {
+    const { sprite } = renderer;
+    const { x: pivotX, y: pivotY } = pivot;
     // Renderer's worldMatrix
     const worldMatrix = SimpleSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
-    const sx = renderer.flipX ? -width : width;
-    const sy = renderer.flipY ? -height : height;
+    const sx = flipX ? -width : width;
+    const sy = flipY ? -height : height;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
     (wE[4] = pWE[4] * sy), (wE[5] = pWE[5] * sy), (wE[6] = pWE[6] * sy);
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);

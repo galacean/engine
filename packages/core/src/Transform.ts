@@ -561,8 +561,8 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _parentChange(): void {
-    this._isParentDirty = true;
+  override _onParentChange(seniority: number): void {
+    this._isParentDirty = seniority === 1;
     this._updateAllWorldFlag();
   }
 
@@ -682,10 +682,6 @@ export class Transform extends Component {
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWeWqWs)) {
       this._worldAssociatedChange(TransformModifyFlags.WmWpWeWqWs);
-      const nodeChildren = this._entity._children;
-      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateAllWorldFlag();
-      }
     }
   }
 

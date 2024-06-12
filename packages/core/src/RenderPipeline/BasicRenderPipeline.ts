@@ -298,22 +298,20 @@ export class BasicRenderPipeline {
 
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
-    const engine = camera.engine;
-    const componentsManager = camera.scene._componentsManager;
-    const renderers = componentsManager._renderers;
+    const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
+    const { _renderers: renderers, _uiCanvases: uiCanvases } = camera.scene._componentsManager;
 
-    const elements = renderers._elements;
+    let rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
-      const renderer = elements[i];
-
+      const renderer = rendererElements[i];
       // Filter by camera culling mask
-      if (!(camera.cullingMask & renderer._entity.layer)) {
+      if (!(cullingMask & renderer._entity.layer)) {
         continue;
       }
 
       // Filter by camera frustum
-      if (camera.enableFrustumCulling) {
-        if (!camera._frustum.intersectsBox(renderer.bounds)) {
+      if (enableFrustumCulling) {
+        if (!frustum.intersectsBox(renderer.bounds)) {
           continue;
         }
       }
@@ -322,12 +320,15 @@ export class BasicRenderPipeline {
     }
 
     // Prepare ui
-    const uiCanvases = componentsManager._uiCanvases;
-    for (let i = 0, l = uiCanvases.length; i < l; ++i) {
-      const uiCanvas = uiCanvases[i];
-      if (uiCanvas.renderCamera === camera) {
-        uiCanvas._prepareRender(context);
+    const canvasElements = uiCanvases._elements;
+    for (let i = uiCanvases.length - 1; i >= 0; i--) {
+      const canvas = canvasElements[i];
+      if (canvas.renderCamera !== camera) continue;
+      // Filter by camera culling mask
+      if (!(cullingMask & canvas._entity.layer)) {
+        continue;
       }
+      canvas._prepareRender(context);
     }
   }
 

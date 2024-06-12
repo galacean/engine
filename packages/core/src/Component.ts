@@ -19,6 +19,10 @@ export class Component extends EngineObject {
   @ignoreClone
   protected _phasedActiveInScene: boolean = false;
 
+  /** @internal */
+  @ignoreClone
+  _onParentChangeIndex: number = -1;
+
   @ignoreClone
   private _phasedActive: boolean = false;
   @assignmentClone
@@ -100,12 +104,27 @@ export class Component extends EngineObject {
   /**
    * @internal
    */
-  _onEnableInScene(): void {}
+  _onEnableInScene(): void {
+    const { prototype } = Component;
+    if (this._onParentChange !== prototype._onParentChange) {
+      this._entity._addOnParentChanges(this);
+    }
+  }
 
   /**
    * @internal
    */
-  _onDisableInScene(): void {}
+  _onDisableInScene(): void {
+    const { prototype } = Component;
+    if (this._onParentChange !== prototype._onParentChange) {
+      this._entity._removeOnParentChanges(this);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onParentChange(seniority: number): void {}
 
   /**
    * @internal

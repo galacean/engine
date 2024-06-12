@@ -1,5 +1,6 @@
-import { Matrix } from "@galacean/engine-math";
+import { Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 
@@ -23,8 +24,15 @@ export class SlicedSpriteAssembler {
     renderer._chunk = chunk;
   }
 
-  static updatePositions(renderer: SpriteRenderer): void {
-    const { width, height, sprite } = renderer;
+  static updatePositions(
+    renderer: SpriteRenderer | SpriteMask,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean = false,
+    flipY: boolean = false
+  ): void {
+    const { sprite } = renderer;
     const { border } = sprite;
     // Update local positions.
     const spritePositions = sprite._getPositions();
@@ -73,16 +81,16 @@ export class SlicedSpriteAssembler {
     }
 
     // Update renderer's worldMatrix.
-    const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
-    const localTransX = renderer.width * pivotX;
-    const localTransY = renderer.height * pivotY;
+    const { x: pivotX, y: pivotY } = pivot;
+    const localTransX = width * pivotX;
+    const localTransY = height * pivotY;
     // Renderer's worldMatrix.
     const worldMatrix = SlicedSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix.
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
-    const sx = renderer.flipX ? -1 : 1;
-    const sy = renderer.flipY ? -1 : 1;
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
     (wE[4] = pWE[4] * sy), (wE[5] = pWE[5] * sy), (wE[6] = pWE[6] * sy);
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);

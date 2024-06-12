@@ -1,6 +1,12 @@
 import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { RenderData2D } from "../../RenderPipeline/RenderData2D";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
+import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -15,12 +21,6 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
-import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk, DynamicGeometryData } from "../../RenderPipeline/DynamicGeometryData";
-import { RenderElement } from "../../RenderPipeline/RenderElement";
-import { RenderData2D } from "../../RenderPipeline/RenderData2D";
-import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -315,8 +315,9 @@ export class SpriteRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      this._assembler.updatePositions(this);
+    const { _sprite: sprite } = this;
+    if (sprite) {
+      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot);
     } else {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -324,7 +325,8 @@ export class SpriteRenderer extends Renderer {
   }
 
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -339,7 +341,7 @@ export class SpriteRenderer extends Renderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      this._assembler.updatePositions(this);
+      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 

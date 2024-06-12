@@ -1,7 +1,12 @@
 import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
+import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -9,11 +14,6 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
-import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
-import { RenderData2D } from "../../RenderPipeline/RenderData2D";
-import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * A component for masking Sprites.
@@ -207,8 +207,9 @@ export class SpriteMask extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      SimpleSpriteAssembler.updatePositions(this);
+    const { sprite } = this;
+    if (sprite) {
+      SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
     } else {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -219,7 +220,8 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -235,7 +237,7 @@ export class SpriteMask extends Renderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
@@ -248,7 +250,7 @@ export class SpriteMask extends Renderer {
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
     const renderData = engine._renderData2DPool.getFromPool();
-    renderData.set(this, material, chunk._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    renderData.set(this, material, chunk._primitive, chunk._subMesh, sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
     renderData.preRender = null;

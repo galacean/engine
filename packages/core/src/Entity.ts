@@ -101,6 +101,7 @@ export class Entity extends EngineObject {
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+  private _onParentChanges: DisorderedArray<Component> = new DisorderedArray<Component>();
 
   /**
    * Whether to activate locally.
@@ -321,7 +322,7 @@ export class Entity extends EngineObject {
       }
       activeChangeFlag && child._processActive(activeChangeFlag);
 
-      child._setTransformDirty();
+      child._setParentChange();
     } else {
       child._setParent(this, index);
     }
@@ -582,6 +583,19 @@ export class Entity extends EngineObject {
     this._setActiveComponents(false, activeChangeFlag);
   }
 
+  /** @internal */
+  _addOnParentChanges(component: Component) {
+    component._onParentChangeIndex = this._onParentChanges.length;
+    this._onParentChanges.add(component);
+  }
+
+  /** @internal */
+  _removeOnParentChanges(component: Component) {
+    const replaced = this._onParentChanges.deleteByIndex(component._onParentChangeIndex);
+    replaced && (replaced._onParentChangeIndex = component._onParentChangeIndex);
+    component._onParentChangeIndex = -1;
+  }
+
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     const childCount = children.length;
@@ -648,7 +662,7 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setTransformDirty();
+      this._setParentChange();
     }
   }
 
@@ -703,13 +717,19 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
+  private _setParentChange(seniority: number = 1) {
+    const { _children: children } = this;
+    this._onParentChanges.forEach(
+      (component: Component) => {
+        component._onParentChange(seniority);
+      },
+      (element: Component, index: number) => {
+        element._onParentChangeIndex = index;
       }
+    );
+    seniority = seniority + 1;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i]._setParentChange(seniority);
     }
   }
 
