@@ -319,10 +319,10 @@ export class TextRenderer extends Renderer {
     // Clear render data.
     const pool = TextRenderer._charRenderInfoPool;
     const charRenderInfos = this._charRenderInfos;
-    const batcher2D = this.engine._batcherManager._dynamicGeometryDataManager2D;
+    const chunkManager = this.engine._batcherManager._dynamicGeometryDataManager2D;
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];
-      batcher2D.freeChunk(charRenderInfo.chunk);
+      chunkManager.freeChunk(charRenderInfo.chunk);
       charRenderInfo.chunk = null;
       pool.return(charRenderInfo);
     }
@@ -645,9 +645,10 @@ export class TextRenderer extends Renderer {
     // Revert excess render data to pool.
     const lastRenderDataCount = charRenderInfos.length;
     if (lastRenderDataCount > renderDataCount) {
+      const chunkManager = this.engine._batcherManager._dynamicGeometryDataManager2D;
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
         const charRenderInfo = charRenderInfos[i];
-        this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(charRenderInfo.chunk);
+        chunkManager.freeChunk(charRenderInfo.chunk);
         charRenderInfo.chunk = null;
         charRenderInfoPool.return(charRenderInfo);
       }

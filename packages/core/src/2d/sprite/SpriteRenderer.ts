@@ -396,7 +396,7 @@ export class SpriteRenderer extends Renderer {
     this._sprite = null;
     this._assembler = null;
     if (this._chunk) {
-      this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(this._chunk);
+      this._getChunkManager().freeChunk(this._chunk);
       this._chunk = null;
     }
   }

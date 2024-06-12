@@ -247,7 +247,7 @@ export class SpriteMask extends Renderer {
     }
 
     engine._spriteMaskManager.addMask(this);
-    const { _chunk: chunk } = this;
+    const chunk = this._chunk;
     const renderData = engine._renderData2DPool.get();
     renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
@@ -281,7 +281,7 @@ export class SpriteMask extends Renderer {
 
     this._sprite = null;
     if (this._chunk) {
-      this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(this._chunk);
+      this._getChunkManager().freeChunk(this._chunk);
       this._chunk = null;
     }
   }

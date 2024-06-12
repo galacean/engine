@@ -17,11 +17,11 @@ export class DynamicGeometryDataManager {
   ) {}
 
   allocateChunk(vertexCount: number): Chunk {
-    const datas = this.dynamicGeometryDataArray;
-    const length = datas.length;
+    const dataArray = this.dynamicGeometryDataArray;
+    const length = dataArray.length;
     let chunk: Chunk = null;
     for (let i = 0; i < length; ++i) {
-      chunk = datas[i].allocateChunk(vertexCount);
+      chunk = dataArray[i].allocateChunk(vertexCount);
       if (chunk) {
         chunk.id = i;
         return chunk;

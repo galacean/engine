@@ -83,7 +83,7 @@ export class TiledSpriteAssembler {
     let trianglesOffset = 0;
     for (let j = 0, o = chunk.vertexArea.start; j < columnLength; j++) {
       const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++, o += 36) {
+      for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
@@ -119,6 +119,7 @@ export class TiledSpriteAssembler {
         vertices[o + 27] = wE0 * r + wE4 * t + wE12;
         vertices[o + 28] = wE1 * r + wE5 * t + wE13;
         vertices[o + 29] = wE2 * r + wE6 * t + wE14;
+        o += 36;
       }
     }
 
@@ -136,7 +137,7 @@ export class TiledSpriteAssembler {
     const vertices = chunk.data.vertices;
     for (let j = 0, o = chunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++, o += 36) {
+      for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
         const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
@@ -157,6 +158,7 @@ export class TiledSpriteAssembler {
         // right and top
         vertices[o + 27] = uvR;
         vertices[o + 28] = uvT;
+        o += 36;
       }
     }
   }
