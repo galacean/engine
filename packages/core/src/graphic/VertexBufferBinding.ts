@@ -27,8 +27,6 @@ export class VertexBufferBinding {
    * Create vertex buffer.
    * @param buffer - Vertex buffer
    * @param stride - Vertex buffer stride
-   * @param offset - Vertex start offset of buffer
-   * @param size - Vertex size
    */
   constructor(buffer: Buffer, stride: number) {
     this._buffer = buffer;

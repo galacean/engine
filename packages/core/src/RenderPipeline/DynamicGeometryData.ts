@@ -167,10 +167,13 @@ export class DynamicGeometryData {
  * @internal
  */
 export class Area implements IPoolElement {
-  constructor(
-    public start: number,
-    public size: number
-  ) {}
+  public start: number;
+  public size: number;
+
+  constructor(start: number = 0, size: number = 0) {
+    this.start = start;
+    this.size = size;
+  }
 
   dispose?(): void {}
 }

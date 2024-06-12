@@ -2,7 +2,7 @@ import { Primitive, SubMesh } from "../graphic";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Texture2D } from "../texture";
-import { IPoolElement } from "../utils/ReturnableObjectPool";
+import { IPoolElement } from "../utils/ObjectPool";
 import { Chunk } from "./Chunk";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 import { RenderData } from "./RenderData";

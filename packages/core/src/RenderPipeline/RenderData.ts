@@ -2,7 +2,7 @@ import { SubMesh } from "../graphic";
 import { Primitive } from "../graphic/Primitive";
 import { Material } from "../material";
 import { Renderer } from "../Renderer";
-import { IPoolElement } from "../utils/ReturnableObjectPool";
+import { IPoolElement } from "../utils/ObjectPool";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
