@@ -86,6 +86,7 @@ export class BasicRenderPipeline {
     this._prepareRender(context);
 
     cullingResults.processRenderElements(maskManager, batcherManager);
+    batcherManager.uploadBuffer();
 
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);

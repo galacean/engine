@@ -229,6 +229,5 @@ export class RenderQueue {
    */
   private _batch(batcherManager: BatcherManager): void {
     batcherManager.batch(this.maskInsertedElements, this.batchedElements);
-    batcherManager.uploadBuffer();
   }
 }
