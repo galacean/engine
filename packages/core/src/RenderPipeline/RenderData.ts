@@ -14,9 +14,6 @@ export class RenderData implements IPoolElement {
   usage: RenderDataUsage = RenderDataUsage.Mesh;
   uploadFlag: ForceUploadShaderDataFlag = ForceUploadShaderDataFlag.None;
 
-  preRender: Function;
-  postRender: Function;
-
   priority: number;
   materialPriority: number;
   componentInstanceId: number;

@@ -172,7 +172,7 @@ describe("SpriteMask", async () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
     const texture2d = new Texture2D(engine, 100, 200);
-    const context = { camera: { engine: { spriteMaskManager: { addMask: () => {} } } } };
+    const context = { camera: { engine: { _maskManager: { addSpriteMask: () => {} } } } };
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore

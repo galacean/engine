@@ -1,6 +1,7 @@
 import { RenderQueueType } from "../shader";
 import { RenderQueue } from "./RenderQueue";
 import { BatcherManager } from "./BatcherManager";
+import { MaskManager } from "./MaskManager";
 
 /**
  * @internal
@@ -23,16 +24,10 @@ export class CullingResults {
     this.alphaTestQueue.clear();
   }
 
-  sort(): void {
-    this.opaqueQueue.sort(RenderQueue._compareForOpaque);
-    this.alphaTestQueue.sort(RenderQueue._compareForOpaque);
-    this.transparentQueue.sort(RenderQueue._compareForTransparent);
-  }
-
-  batch(batcherManager: BatcherManager): void {
-    this.opaqueQueue.batch(batcherManager);
-    this.alphaTestQueue.batch(batcherManager);
-    this.transparentQueue.batch(batcherManager);
+  processRenderElements(maskManager: MaskManager, batcherManager: BatcherManager) {
+    this.opaqueQueue.processRenderElements(RenderQueue._compareForOpaque, maskManager, batcherManager);
+    this.alphaTestQueue.processRenderElements(RenderQueue._compareForOpaque, maskManager, batcherManager);
+    this.transparentQueue.processRenderElements(RenderQueue._compareForTransparent, maskManager, batcherManager);
   }
 
   destroy(): void {

@@ -45,9 +45,10 @@ import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
-import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { XRManager } from "./xr/XRManager";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
+import { MaskManager } from "./RenderPipeline/MaskManager";
+import { MaskElement } from "./RenderPipeline/MaskElement";
 
 ShaderPool.init();
 
@@ -70,7 +71,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _batcherManager: BatcherManager;
   /** @internal */
-  _spriteMaskManager: SpriteMaskManager;
+  _maskManager: MaskManager;
 
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
@@ -86,6 +87,8 @@ export class Engine extends EventDispatcher {
 
   /* @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
+  /* @internal */
+  _maskElementPool = new ClearableObjectPool(MaskElement);
   /* @internal */
   _renderDataPool = new ClearableObjectPool(RenderData);
   /* @internal */
@@ -265,7 +268,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
-    this._spriteMaskManager = new SpriteMaskManager(this);
+    this._maskManager = new MaskManager(this);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -348,6 +351,7 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.clear();
+    this._maskElementPool.clear();
     this._renderDataPool.clear();
     this._renderData2DPool.clear();
 
@@ -456,7 +460,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._spriteMaskManager.destroy();
+    this._maskManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
@@ -715,6 +719,7 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
+    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }
@@ -753,6 +758,7 @@ export class Engine extends EventDispatcher {
 
   private _gc(): void {
     this._renderElementPool.garbageCollection();
+    this._maskElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();
     this._renderData2DPool.garbageCollection();
     this._renderContext.garbageCollection();

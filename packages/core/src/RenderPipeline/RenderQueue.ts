@@ -1,11 +1,13 @@
 import { Camera } from "../Camera";
 import { Utils } from "../Utils";
-import { RenderQueueType, Shader } from "../shader";
+import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { BatcherManager } from "./BatcherManager";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
+import { MaskManager } from "./MaskManager";
+import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 /**
  * Render queue.
@@ -49,8 +51,9 @@ export class RenderQueue {
     }
   }
 
-  readonly batchedElements: RenderElement[] = [];
   readonly elements: RenderElement[] = [];
+  readonly maskInsertedElements: RenderElement[] = [];
+  readonly batchedElements: RenderElement[] = [];
 
   private readonly _renderQueueType: RenderQueueType;
 
@@ -65,9 +68,13 @@ export class RenderQueue {
     this.elements.push(element);
   }
 
-  batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this.elements, this.batchedElements);
-    batcherManager.uploadBuffer();
+  /**
+   * Process render elements, include sort, insert mask element and batch.
+   */
+  processRenderElements(compareFunc: Function, maskManager: MaskManager, batcherManager: BatcherManager): void {
+    this._sort(compareFunc);
+    this._insertMask(maskManager);
+    this._batch(batcherManager);
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {
@@ -89,7 +96,9 @@ export class RenderQueue {
       const { data, shaderPasses } = element;
       const { uploadFlag } = data;
 
-      data.preRender && data.preRender();
+      data.usage === RenderDataUsage.Text &&
+        // @ts-ignore
+        data.component.shaderData.setTexture("renderer_SpriteTexture", data.texture);
 
       const compileMacros = Shader._compileMacros;
       const primitive = data.primitive;
@@ -100,6 +109,13 @@ export class RenderQueue {
 
       // union render global macro and material self macro.
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
+
+      // Update stencil state
+      const stencilState = material.renderState.stencilState;
+      //@ts-ignore
+      const stencilOperation = element.stencilOperation || StencilOperation.Keep;
+      stencilState.passOperationFront = stencilOperation;
+      stencilState.passOperationBack = stencilOperation;
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
@@ -177,7 +193,6 @@ export class RenderQueue {
 
         rhi.drawPrimitive(primitive, data.subPrimitive, program);
       }
-      data.postRender && data.postRender();
     }
   }
 
@@ -185,8 +200,9 @@ export class RenderQueue {
    * Clear collection.
    */
   clear(): void {
-    this.batchedElements.length = 0;
     this.elements.length = 0;
+    this.maskInsertedElements.length = 0;
+    this.batchedElements.length = 0;
   }
 
   /**
@@ -197,7 +213,22 @@ export class RenderQueue {
   /**
    * Sort the elements.
    */
-  sort(compareFunc: Function): void {
+  private _sort(compareFunc: Function): void {
     Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
+  }
+
+  /**
+   * Insert mask for elements who need.
+   */
+  private _insertMask(maskManager: MaskManager): void {
+    maskManager.insertMask(this.elements, this.maskInsertedElements);
+  }
+
+  /**
+   * Batch the elements.
+   */
+  private _batch(batcherManager: BatcherManager): void {
+    batcherManager.batch(this.maskInsertedElements, this.batchedElements);
+    batcherManager.uploadBuffer();
   }
 }

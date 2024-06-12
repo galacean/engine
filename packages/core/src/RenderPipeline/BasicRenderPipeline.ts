@@ -71,22 +71,21 @@ export class BasicRenderPipeline {
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
-    const batcherManager = engine._batcherManager;
-    engine._spriteMaskManager.clear();
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
     }
 
+    const batcherManager = engine._batcherManager;
+    const maskManager = engine._maskManager;
     cullingResults.reset();
     batcherManager.clear();
-    engine._spriteMaskManager.clear();
+    maskManager.clear();
 
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
-    cullingResults.sort();
-    cullingResults.batch(batcherManager);
+    cullingResults.processRenderElements(maskManager, batcherManager);
 
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);

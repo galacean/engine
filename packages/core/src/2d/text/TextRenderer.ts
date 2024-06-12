@@ -421,8 +421,6 @@ export class TextRenderer extends Renderer {
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
     const batcherManager = engine._batcherManager;
-    const spriteMaskManager = engine._spriteMaskManager;
-    const shaderData = this.shaderData;
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const renderData = renderData2DPool.get();
@@ -430,13 +428,6 @@ export class TextRenderer extends Renderer {
       renderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
-      renderData.preRender = () => {
-        shaderData.setTexture(TextRenderer._textureProperty, texture);
-        spriteMaskManager.preRender(camera, this);
-      };
-      renderData.postRender = () => {
-        spriteMaskManager.postRender(this);
-      };
       batcherManager.commitRenderData(context, renderData);
     }
   }

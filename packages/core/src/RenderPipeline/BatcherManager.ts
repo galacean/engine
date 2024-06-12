@@ -11,15 +11,20 @@ export class BatcherManager {
   _engine: Engine;
   /** @internal */
   _dynamicGeometryDataManager2D: DynamicGeometryDataManager;
+  /** @internal */
+  _dynamicGeometryDataManagerMask: DynamicGeometryDataManager;
 
   constructor(engine: Engine) {
     this._engine = engine;
     this._dynamicGeometryDataManager2D = new DynamicGeometryDataManager(engine);
+    this._dynamicGeometryDataManagerMask = new DynamicGeometryDataManager(engine, 128);
   }
 
   destroy() {
     this._dynamicGeometryDataManager2D.destroy();
     this._dynamicGeometryDataManager2D = null;
+    this._dynamicGeometryDataManagerMask.destroy();
+    this._dynamicGeometryDataManagerMask = null;
     this._engine = null;
   }
 
@@ -36,15 +41,15 @@ export class BatcherManager {
   }
 
   batch(elements: Array<RenderElement>, batchedElements: Array<RenderElement>): void {
-    const len = elements.length;
-    if (len === 0) {
+    const length = elements.length;
+    if (length === 0) {
       return;
     }
 
     let preElement: RenderElement;
     let preRenderer: Renderer;
     let preUsage: RenderDataUsage;
-    for (let i = 0; i < len; ++i) {
+    for (let i = 0; i < length; ++i) {
       const curElement = elements[i];
       const curRenderer = curElement.data.component;
 
@@ -74,9 +79,11 @@ export class BatcherManager {
 
   uploadBuffer() {
     this._dynamicGeometryDataManager2D.uploadBuffer();
+    this._dynamicGeometryDataManagerMask.uploadBuffer();
   }
 
   clear() {
     this._dynamicGeometryDataManager2D.clear();
+    this._dynamicGeometryDataManagerMask.clear();
   }
 }

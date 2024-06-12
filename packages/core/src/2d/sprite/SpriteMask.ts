@@ -11,10 +11,10 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Chunk } from "../../RenderPipeline/Chunk";
-import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { MaskElement } from "../../RenderPipeline/MaskElement";
 
 /**
  * A component for masking Sprites.
@@ -29,7 +29,7 @@ export class SpriteMask extends Renderer {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: RenderElement;
+  _maskElement: MaskElement;
 
   /** @internal */
   @ignoreClone
@@ -204,7 +204,7 @@ export class SpriteMask extends Renderer {
    * @internal
    */
   _getChunkManager(): DynamicGeometryDataManager {
-    return this.engine._spriteMaskManager._batcher._dynamicGeometryDataManager;
+    return this.engine._batcherManager._dynamicGeometryDataManagerMask;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -246,15 +246,14 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    engine._spriteMaskManager.addMask(this);
+    engine._maskManager.addSpriteMask(this);
+
     const chunk = this._chunk;
     const renderData = engine._renderData2DPool.get();
     renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
-    renderData.preRender = null;
-    renderData.postRender = null;
-    const renderElement = engine._renderElementPool.get();
+    const renderElement = engine._maskElementPool.get();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }
