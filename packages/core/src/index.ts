@@ -41,7 +41,7 @@ export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { XRManager } from "./xr/XRManager";
 export { ReturnableObjectPool as Pool } from "./utils/ReturnableObjectPool";
-export type { IPoolElement } from "./utils/ReturnableObjectPool";
+export type { IPoolElement } from "./utils/ObjectPool";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./shadow/index";
