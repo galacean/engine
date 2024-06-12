@@ -2,8 +2,12 @@ import { CodeGenVisitor } from "./CodeGenVisitor";
 import { Logger } from "../Logger";
 import { ASTNode } from "../Parser/AST";
 import { GLPassShaderData } from "../Parser/ShaderInfo";
-import { ESymbolType } from "../Parser/SymbolTable";
+import { ESymbolType, SymbolInfo } from "../Parser/SymbolTable";
 import { EShaderStage } from "./constants";
+
+type ICodeSegment = [string, number];
+
+const defaultPrecision = `precision mediump float;`;
 
 export abstract class GLESVisitor extends CodeGenVisitor {
   abstract versionText: string;
@@ -63,40 +67,50 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const globalText = this.getGlobalText();
+    const globalText = this.getGlobalText(data);
 
     const attributeDeclare = this.getAttributeDeclare();
     const varyingDeclare = this.getVaryingDeclare();
 
+    const globalCode = [...globalText, ...attributeDeclare, ...varyingDeclare]
+      .sort((a, b) => a[1] - b[1])
+      .map((item) => item[0])
+      .join("\n");
+
     this.context.reset();
 
-    return `${this.versionText}\n\n${attributeDeclare}\n${varyingDeclare}\n\n${globalText}\n\nvoid main() ${statements}`;
+    return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private fragmentMain(fnNode: ASTNode.FunctionDefinition, data: GLPassShaderData): string {
     if (!fnNode) return "";
     this.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
-    const globalText = this.getGlobalText();
+    const globalText = this.getGlobalText(data);
     const varyingDeclare = this.getVaryingDeclare();
 
+    const globalCode = [...globalText, ...varyingDeclare]
+      .sort((a, b) => a[1] - b[1])
+      .map((item) => item[0])
+      .join("\n");
+
     this.context.reset();
-    return `${this.versionText}\n\n${varyingDeclare}\n\n${globalText}\n\nvoid main() ${statements}`;
+    return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private getGlobalText(
+    data: GLPassShaderData,
     textList: [string, number][] = [],
     lastLength: number = 0,
     _serialized: Set<string> = new Set()
-  ): string {
+  ): ICodeSegment[] {
     const { _referencedGlobals } = this.context;
 
     if (lastLength === _referencedGlobals.size) {
-      // TODO
-      return textList
-        .sort((a, b) => a[1] - b[1])
-        .map((item) => item[0])
-        .join("\n");
+      for (const precision of data.globalPrecisions) {
+        textList.push([precision.codeGen(this), precision.location.start.index]);
+      }
+      return textList;
     }
 
     lastLength = _referencedGlobals.size;
@@ -104,15 +118,19 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       if (_serialized.has(ident)) continue;
       _serialized.add(ident);
 
-      if (sm.symType === ESymbolType.VAR) {
-        textList.push([`uniform ${sm.symDataType!.typeLexeme} ${sm.lexeme};`, 0]);
+      if (sm instanceof SymbolInfo) {
+        if (sm.symType === ESymbolType.VAR) {
+          textList.push([`uniform ${sm.astNode.codeGen(this)}`, sm.astNode.location.start.index]);
+        } else {
+          textList.push([sm.astNode!.codeGen(this), sm.astNode!.location.start.index]);
+        }
       } else {
-        textList.push([sm.astNode!.codeGen(this), sm.astNode!.location.start.index]);
+        textList.push([sm.codeGen(this), sm.location.start.index]);
       }
     }
-    return this.getGlobalText(textList, lastLength, _serialized);
+    return this.getGlobalText(data, textList, lastLength, _serialized);
   }
 
-  abstract getAttributeDeclare(): string;
-  abstract getVaryingDeclare(): string;
+  abstract getAttributeDeclare(): ICodeSegment[];
+  abstract getVaryingDeclare(): ICodeSegment[];
 }

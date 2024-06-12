@@ -15,7 +15,6 @@ export default class GrammarUtils {
     if (this.isTerminal(sm)) {
       return ETokenType[sm] ?? EKeyword[sm];
     }
-    if (ENonTerminal[sm] === "constant_expression") debugger;
     return ENonTerminal[sm];
   }
 

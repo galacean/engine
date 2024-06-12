@@ -78,7 +78,7 @@ export default class PpParser extends PpError {
 
     const chunk = this.includeMap[id.lexeme];
     if (!chunk) {
-      this.throw(id.location, `Shader slice "${id}" not founded.`);
+      this.throw(id.location, `Shader slice "${id.lexeme}" not founded.`);
     }
 
     const expanded = this.expandMacroChunk(chunk, { start, end }, id.lexeme);

@@ -1,7 +1,17 @@
-import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey, ShaderFactory } from "@galacean/engine-core";
+import {
+  BlendFactor,
+  BlendOperation,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  RenderStateDataKey,
+  StencilOperation,
+  // @ts-ignore
+  ShaderLib
+} from "@galacean/engine-core";
 import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
-import { ShaderLab, Logger, LoggerLevel } from "@galacean/engine-shader-lab";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
 import { Shader } from "@galacean/engine-core";
 
@@ -114,7 +124,18 @@ describe("ShaderLab", () => {
   let usePass: string;
 
   before(() => {
-    shaderLab = new ShaderLab();
+    shaderLab = new ShaderLab(
+      {
+        _RenderStateElementKey: RenderStateDataKey,
+        RenderQueueType,
+        CompareFunction,
+        StencilOperation,
+        BlendOperation,
+        BlendFactor,
+        CullMode
+      },
+      { Vector2, Vector3, Vector4, Color }
+    );
     shader = shaderLab.parseShader(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
@@ -173,25 +194,21 @@ describe("ShaderLab", () => {
   it("shader tags", () => {
     expect(subShader.tags).not.be.undefined;
     expect(subShader.tags).include({
-      LightMode: "ForwardBase",
-      Tag2: true,
-      Tag3: 1.2
+      LightMode: "ForwardBase"
     });
     expect(pass.tags).include({
       ReplacementTag: "Opaque",
-      Tag2: true,
-      Tag3: 1.9
+      pipelineStage: "DepthOnly"
     });
   });
 
   it("engine shader", async () => {
-    glslValidate(demoShader);
+    glslValidate(demoShader, shaderLab);
   });
 
   it("include", () => {
-    ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLab, { test_common: commonSource, ...ShaderLib });
   });
 
   it("planarShadow shader", () => {

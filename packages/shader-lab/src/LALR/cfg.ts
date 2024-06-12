@@ -394,7 +394,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ENonTerminal.gl_variable_declaration,
     [
       [EKeyword.GL_RenderQueueType, ETokenType.ID, ETokenType.SEMICOLON],
-      [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.SEMICOLON]
+      [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.SEMICOLON],
+      [ENonTerminal.fully_specified_type, ETokenType.ID, ENonTerminal.array_specifier, ETokenType.SEMICOLON]
     ],
     ASTNode.GLVariableDeclaration
   ),

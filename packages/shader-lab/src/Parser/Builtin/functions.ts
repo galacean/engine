@@ -86,7 +86,6 @@ export class BuiltinFunction {
         }
         return true;
       });
-      if (!fun && ident === "pow") debugger;
       if (fun) return { fun, genType: realType };
     }
   }

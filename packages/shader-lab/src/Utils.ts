@@ -27,7 +27,6 @@ export class ParserUtils {
     if (this.isTerminal(sm)) {
       return ETokenType[sm] ?? EKeyword[sm];
     }
-    if (ENonTerminal[sm] === "constant_expression") debugger;
     return ENonTerminal[sm];
   }
 

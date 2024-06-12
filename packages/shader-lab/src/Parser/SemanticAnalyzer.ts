@@ -29,6 +29,13 @@ export default class SematicAnalyzer {
     return this._shaderDataStack[this._shaderDataStack.length - 1];
   }
 
+  reset() {
+    this.semanticStack.length = 0;
+    this._shaderDataStack = [new GLShaderData()];
+    this._scopeStack = [new SymbolTable(this)];
+    this.errors.length = 0;
+  }
+
   newScope() {
     const scope = new SymbolTable(this);
     scope.parent = this.scope;

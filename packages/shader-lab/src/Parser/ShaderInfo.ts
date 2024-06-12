@@ -23,6 +23,8 @@ export class GLPassShaderData extends ShaderData {
 
   vertexMain: ASTNode.FunctionDefinition;
   fragmentMain: ASTNode.FunctionDefinition;
+
+  globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
 }
 
 export class GLSubShaderData extends ShaderData {

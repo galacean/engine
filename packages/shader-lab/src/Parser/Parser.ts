@@ -46,6 +46,7 @@ export default class Parser {
   }
 
   parse(tokens: Generator<Token, Token>) {
+    this.sematicAnalyzer.reset();
     const start = performance.now();
     const { traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);

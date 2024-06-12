@@ -35,25 +35,19 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
     const vs = gl.createShader(gl.VERTEX_SHADER);
     const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-    const fsPrefix = `#version 300 es\nprecision mediump float;
-  precision mediump int;
-`;
-    const fsSource = fsPrefix + pass.fragmentSource;
-    const vsSource = "#version 300 es\nprecision mediump float;\n" + pass.vertexSource;
-
-    gl.shaderSource(vs, ShaderFactory.convertTo300(vsSource));
+    gl.shaderSource(vs, pass.vertexSource);
     gl.compileShader(vs);
 
-    gl.shaderSource(fs, ShaderFactory.convertTo300(fsSource, true));
+    gl.shaderSource(fs, ShaderFactory.convertTo300(pass.fragmentSource, true));
     gl.compileShader(fs);
 
     expect(
       gl.getShaderParameter(vs, gl.COMPILE_STATUS),
-      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(vsSource)}`
+      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(pass.vertexSource)}`
     ).to.be.true;
     expect(
       gl.getShaderParameter(fs, gl.COMPILE_STATUS),
-      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(fsSource)}`
+      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(pass.fragmentSource)}`
     ).to.be.true;
 
     const program = gl.createProgram();
@@ -68,10 +62,10 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
   }
 }
 
-export function glslValidate(shaderSource, _shaderLab?: ShaderLab) {
+export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
   const shaderLab = _shaderLab ?? new ShaderLab();
 
-  const shader = shaderLab.parseShader(shaderSource);
+  const shader = shaderLab.parseShader(shaderSource, includeMap);
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {
     subShader.passes.map((pass) => validateShaderPass(pass));

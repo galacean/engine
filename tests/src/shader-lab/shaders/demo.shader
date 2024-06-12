@@ -25,18 +25,18 @@ Shader "Water" {
 
     BlendFactor material_SrcBlend;
 
-    BlendState blendState {
+    BlendState {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
       ColorWriteMask[0] = 0.8;
-      BlendColor = Vector4(1.0, 1.0, 1.0, 1.0);
+      BlendColor = Color(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
     }
 
     UsePass "pbr/Default/Forward"
 
-    Pass "default22" {
-      Tags { ReplacementTag = "Opaque"}
+    Pass "default" {
+      Tags { ReplacementTag = "Opaque", pipelineStage = "DepthOnly"}
 
       struct a2v {
        vec4 POSITION;
@@ -59,8 +59,6 @@ Shader "Water" {
       vec4 linearToGamma(vec4 linearIn) {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
     }
-
-    BlendState = blendState;
 
     StencilState {
       Enabled = true;

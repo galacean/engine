@@ -5,17 +5,19 @@ import { EShaderStage } from "./constants";
 export class GLES300Visitor extends GLESVisitor {
   versionText: string = "#version 300 es";
 
-  override getAttributeDeclare(): string {
-    return Array.from(this.context._referencedAttributeList.values())
-      .map((item) => `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`)
-      .join("\n");
+  override getAttributeDeclare(): [string, number][] {
+    return Array.from(this.context._referencedAttributeList.values()).map((item) => [
+      `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+      item.ident.location.start.index
+    ]);
   }
 
-  override getVaryingDeclare(): string {
+  override getVaryingDeclare(): [string, number][] {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    return Array.from(this.context._referencedVaryingList.values())
-      .map((item) => `${qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`)
-      .join("\n");
+    return Array.from(this.context._referencedVaryingList.values()).map((item) => [
+      `${qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+      item.ident.location.start.index
+    ]);
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {

@@ -304,7 +304,8 @@ gl_render_queue_assignment:
 // 语义分析检查id类型，比如BlendFactor/RenderQueueType
 gl_variable_declaration:
     fully_specified_type id ';'
-    | render_queue_type id;
+    | fully_specified_type id array_specifier ';'
+    | render_queue_type id ';'
     ;
 
 // 语义分析声明检查
@@ -313,7 +314,7 @@ variable_identifier:
     ;
 
 precision_specifier:
-    // 精度声明
+    // 全局精度声明
     PRECISION precision_qualifier ext_builtin_type_specifier_nonarray ';'
     ;
 
@@ -633,6 +634,7 @@ declaration:
     // invariant qualifier #4.6.1
     | type_qualifier id ';'
     | type_qualifier id identifier_list ';'
+    | precision_specifier
     ;
 
 /* interface_block:

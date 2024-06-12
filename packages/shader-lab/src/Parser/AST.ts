@@ -487,7 +487,7 @@ export namespace ASTNode {
       let sm: VarSymbol;
       if (this.children.length === 3 || this.children.length === 5) {
         const id = this.children[2] as Token;
-        sm = new VarSymbol(id.lexeme, this.typeInfo, false);
+        sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
         sa.scope.insert(sm);
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
@@ -497,7 +497,7 @@ export namespace ASTNode {
         }
         typeInfo.arraySpecifier = arraySpecifier;
         const id = this.children[2] as Token;
-        sm = new VarSymbol(id.lexeme, typeInfo, false);
+        sm = new VarSymbol(id.lexeme, typeInfo, false, this);
         sa.scope.insert(sm);
       }
     }
@@ -663,7 +663,7 @@ export namespace ASTNode {
       } else {
         declarator = this.children[1] as ParameterDeclarator;
       }
-      const varSymbol = new VarSymbol(declarator.ident.lexeme, declarator.typeInfo, false);
+      const varSymbol = new VarSymbol(declarator.ident.lexeme, declarator.typeInfo, false, this);
       sa.scope.insert(varSymbol);
     }
   }
@@ -832,6 +832,10 @@ export namespace ASTNode {
   export class PrecisionSpecifier extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.precision_specifier, loc, children);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      (<GLPassShaderData>sa.shaderData).globalPrecisions.push(this);
     }
   }
 
@@ -1237,9 +1241,9 @@ export namespace ASTNode {
       const ident = this.children[1] as Token;
       let sm: VarSymbol;
       if (type instanceof Token) {
-        sm = new VarSymbol(ident.lexeme, new SymbolType(<EKeyword.GL_RenderQueueType>type.type, ""), false);
+        sm = new VarSymbol(ident.lexeme, new SymbolType(<EKeyword.GL_RenderQueueType>type.type, ""), false, this);
       } else {
-        sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true);
+        sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
       }
 
       sa.scope.insert(sm);
@@ -1462,6 +1466,7 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
+      if (!sa.shaderData) debugger;
       sa.shaderData.settingRenderState = this;
     }
   }

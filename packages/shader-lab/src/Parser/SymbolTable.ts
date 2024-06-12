@@ -13,7 +13,9 @@ type SymbolAstNode =
   | ASTNode.Initializer
   | ASTNode.GLRenderStateDeclaration
   | ASTNode.StructSpecifier
-  | ASTNode.FunctionDefinition;
+  | ASTNode.FunctionDefinition
+  | ASTNode.GLVariableDeclaration
+  | ASTNode.ParameterDeclarator;
 
 export abstract class SymbolInfo {
   readonly symType: ESymbolType;
@@ -32,9 +34,22 @@ export abstract class SymbolInfo {
 
 export class VarSymbol extends SymbolInfo {
   readonly isGlobalVariable: boolean;
-  declare astNode?: ASTNode.Initializer | ASTNode.GLRenderStateDeclaration | undefined;
+  declare astNode:
+    | ASTNode.Initializer
+    | ASTNode.GLRenderStateDeclaration
+    | ASTNode.GLVariableDeclaration
+    | ASTNode.ParameterDeclarator;
 
-  constructor(lexeme: string, dataType: SymbolType, isGlobalVariable: boolean, initAst?: ASTNode.Initializer) {
+  constructor(
+    lexeme: string,
+    dataType: SymbolType,
+    isGlobalVariable: boolean,
+    initAst:
+      | ASTNode.Initializer
+      | ASTNode.GLRenderStateDeclaration
+      | ASTNode.GLVariableDeclaration
+      | ASTNode.ParameterDeclarator
+  ) {
     super(lexeme, ESymbolType.VAR, initAst, dataType);
     this.isGlobalVariable = isGlobalVariable;
   }
