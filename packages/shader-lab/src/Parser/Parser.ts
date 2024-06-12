@@ -63,7 +63,7 @@ export default class Parser {
         nextToken = tokens.next();
         this.printStack(nextToken.value);
       } else if (actionInfo?.action === EAction.Accept) {
-        this.logger.log(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
+        this.logger.debug(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
       } else if (actionInfo?.action === EAction.Reduce) {

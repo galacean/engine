@@ -1,8 +1,9 @@
 export enum LoggerLevel {
   info = 0,
-  warn = 1,
-  error = 2,
-  off = 3
+  debug = 1,
+  warn = 2,
+  error = 3,
+  off = 4
 }
 
 export class Logger {
@@ -27,6 +28,11 @@ export class Logger {
 
   log(...param: any[]) {
     if (Logger._level > LoggerLevel.info) return;
+    this._log(Logger.GREEN, ...param);
+  }
+
+  debug(...param: any[]) {
+    if (Logger._level > LoggerLevel.debug) return;
     this._log(Logger.GREEN, ...param);
   }
 

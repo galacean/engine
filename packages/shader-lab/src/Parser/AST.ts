@@ -1366,13 +1366,10 @@ export namespace ASTNode {
             const engineType = EngineType[valueToken.lexeme];
             const prop = (this.children[4] as Token).lexeme;
 
-            if (!engineType || !engineType[prop]) {
+            if (!engineType || engineType[prop] == undefined) {
               reporter.error(
                 new LocRange(valueToken.location.start, this.location.end),
-                "invalid engine type:",
-                valueToken.lexeme,
-                ".",
-                prop
+                `invalid engine type: ${valueToken.lexeme}.${prop}`
               );
               return;
             }
