@@ -13,141 +13,87 @@ import {
   VertexElement,
   VertexElementFormat
 } from "../graphic";
-import { IPoolElement, Pool } from "../utils/Pool";
-
-/**
- * @internal
- */
-export class Chunk implements IPoolElement {
-  _id = -1;
-  _data: DynamicGeometryData;
-  _primitive: Primitive;
-  _subMesh: SubMesh;
-  _indices: number[];
-
-  reset() {
-    this._id = -1;
-    this._data = null;
-    this._subMesh = null;
-    this._indices = null;
-  }
-
-  dispose?(): void {
-    this.reset();
-  }
-}
+import { IPoolElement } from "../utils/ObjectPool";
+import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
+import { Chunk } from "./Chunk";
 
 /**
  * @internal
  */
 export class DynamicGeometryData {
-  static POSITION = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
-  static TEXCOORD_0 = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
-  static COLOR_0 = new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0);
+  primitive: Primitive;
+  vertices: Float32Array;
+  indices: Uint16Array;
 
-  static createPrimitive(engine: Engine): Primitive {
-    const primitive = new Primitive(engine);
-    primitive.isGCIgnored = true;
-    primitive.addVertexElement(this.POSITION);
-    primitive.addVertexElement(this.TEXCOORD_0);
-    primitive.addVertexElement(this.COLOR_0);
-    primitive.vertexBufferBindings.length = 1;
-    return primitive;
-  }
+  /** The length of _vertices needed to be uploaded. */
+  vertexLen = 0;
+  /** The length of _indices needed to be uploaded. */
+  indexLen = 0;
 
-  /** @internal */
-  _engine: Engine;
-  /** @internal */
-  _vBuffer: Buffer;
-  /** @internal */
-  _iBuffer: Buffer;
-  /** @internal */
-  _vertices: Float32Array;
-  /** @internal */
-  _indices: Uint16Array;
-  /** @internal */
-  _indexBufferBinding: IndexBufferBinding;
-
-  /**
-   * @internal
-   * The length of _vertices needed to be uploaded.
-   * */
-  _vertexLen = 0;
-  /**
-   * @internal
-   * The length of _indices needed to be uploaded.
-   * */
-  _indexLen = 0;
-
-  /** @internal */
-  _chunkPool = new Pool(Chunk, 10);
-  /** @internal */
-  _subMeshPool = new Pool(SubMesh, 10);
+  vertexFreeAreas = new Array<Area>();
+  areaPool = new ReturnableObjectPool(Area, 10);
+  chunkPool = new ReturnableObjectPool(Chunk, 10);
+  subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
-    this._engine = engine;
+    const primitive = (this.primitive = new Primitive(engine));
+    primitive._addReferCount(1);
+
+    // Vertex element
+    primitive.addVertexElement(new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0));
+    primitive.addVertexElement(new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0));
+    primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
     const vertexStride = 36;
-    // vertices
-    const vertexBuffer = (this._vBuffer = new Buffer(
+
+    // Vertices
+    const vertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
       maxVertexCount * vertexStride,
       BufferUsage.Dynamic,
       true
-    ));
-    vertexBuffer.isGCIgnored = true;
-    // index
-    const indexBuffer = (this._iBuffer = new Buffer(
-      engine,
-      BufferBindFlag.IndexBuffer,
-      maxVertexCount * 8,
-      BufferUsage.Dynamic,
-      true
-    ));
-    indexBuffer.isGCIgnored = true;
+    );
+    primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
 
-    this._vertices = new Float32Array(vertexBuffer.data.buffer);
-    this._indices = new Uint16Array(indexBuffer.data.buffer);
-    this._indexBufferBinding = new IndexBufferBinding(this._iBuffer, IndexFormat.UInt16);
+    // Index
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
+    primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
+
+    this.vertices = new Float32Array(vertexBuffer.data.buffer);
+    this.indices = new Uint16Array(indexBuffer.data.buffer);
+    this.vertexFreeAreas.push(new Area(0, maxVertexCount * 9));
   }
 
   destroy(): void {
-    this._vBuffer.destroy();
-    this._vBuffer = null;
-    this._iBuffer.destroy();
-    this._iBuffer = null;
-    this._vertices = null;
-    this._indices = null;
+    this.primitive._addReferCount(-1);
+    this.primitive.destroy();
+    this.primitive = null;
+    this.vertices = null;
+    this.indices = null;
+    this.areaPool.garbageCollection();
+    this.areaPool = null;
   }
 
   clear(): void {
-    this._vertexLen = this._indexLen = 0;
+    this.vertexLen = this.indexLen = 0;
   }
 
   uploadBuffer(): void {
     // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
-    this._vBuffer.setData(this._vertices, 0, 0, this._vertexLen, SetDataOptions.Discard);
-    this._iBuffer.setData(this._indices, 0, 0, this._indexLen, SetDataOptions.Discard);
+    const primitive = this.primitive;
+    primitive.vertexBufferBindings[0].buffer.setData(this.vertices, 0, 0, this.vertexLen, SetDataOptions.Discard);
+    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indexLen, SetDataOptions.Discard);
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
-    const needByte = vertexCount * 36;
-    const offset = this._vBuffer.allocate(needByte);
-    if (offset !== -1) {
-      const chunk = this._chunkPool.alloc();
-      chunk._data = this;
-      const primitive = (chunk._primitive ||= DynamicGeometryData.createPrimitive(this._engine));
-      primitive.setIndexBufferBinding(this._indexBufferBinding);
-      const vertexBufferBinding = primitive.vertexBufferBindings[0];
-      if (vertexBufferBinding) {
-        vertexBufferBinding._offset = offset;
-        vertexBufferBinding._size = needByte;
-      } else {
-        primitive.setVertexBufferBinding(0, new VertexBufferBinding(this._vBuffer, 36, offset, needByte));
-      }
-      chunk._subMesh = this._subMeshPool.alloc();
-      const { _subMesh: subMesh } = chunk;
+    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
+    if (area) {
+      const chunk = this.chunkPool.get();
+      chunk.data = this;
+      chunk.vertexArea = area;
+      chunk.subMesh = this.subMeshPool.get();
+      const { subMesh: subMesh } = chunk;
       subMesh.topology = MeshTopology.Triangles;
       return chunk;
     }
@@ -156,10 +102,75 @@ export class DynamicGeometryData {
   }
 
   freeChunk(chunk: Chunk): void {
-    const { offset, size } = chunk._primitive.vertexBufferBindings[0];
-    this._vBuffer.free(offset, size);
-    this._subMeshPool.free(chunk._subMesh);
-    chunk.reset();
-    this._chunkPool.free(chunk);
+    this._freeArea(this.vertexFreeAreas, chunk.vertexArea);
+    this.subMeshPool.return(chunk.subMesh);
+    this.chunkPool.return(chunk);
   }
+
+  private _allocateArea(entries: Area[], needSize: number): Area | null {
+    const pool = this.areaPool;
+    for (let i = 0, n = entries.length; i < n; ++i) {
+      const area = entries[i];
+      const size = area.size;
+      if (size > needSize) {
+        const newArea = pool.get();
+        newArea.start = area.start;
+        newArea.size = needSize;
+        area.start += needSize;
+        area.size -= needSize;
+        return newArea;
+      } else if (size === needSize) {
+        entries.splice(i, 1);
+        return area;
+      }
+    }
+    return null;
+  }
+
+  private _freeArea(areas: Area[], area: Area): void {
+    const areaLen = areas.length;
+    if (areaLen === 0) {
+      areas.push(area);
+      return;
+    }
+
+    const { areaPool: pool } = this;
+    let preArea = area;
+    let notMerge = true;
+    for (let i = 0; i < areaLen; ++i) {
+      const curArea = areas[i];
+      const { start, size } = preArea;
+      const preEnd = start + size;
+      const curEnd = curArea.start + curArea.size;
+      if (preEnd < curArea.start) {
+        notMerge && areas.splice(i, 0, preArea);
+        return;
+      } else if (preEnd === curArea.start) {
+        curArea.start = preArea.start;
+        curArea.size += preArea.size;
+        pool.return(preArea);
+        preArea = curArea;
+        notMerge = false;
+      } else if (start === curEnd) {
+        curArea.size += preArea.size;
+        pool.return(preArea);
+        preArea = curArea;
+        notMerge = false;
+      } else if (start > curEnd) {
+        i + 1 === areaLen && areas.push(preArea);
+      }
+    }
+  }
+}
+
+/**
+ * @internal
+ */
+export class Area implements IPoolElement {
+  constructor(
+    public start: number,
+    public size: number
+  ) {}
+
+  dispose?(): void {}
 }

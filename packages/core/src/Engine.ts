@@ -14,7 +14,6 @@ import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
@@ -48,6 +47,7 @@ import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat 
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { XRManager } from "./xr/XRManager";
+import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 
 ShaderPool.init();
 
@@ -85,11 +85,11 @@ export class Engine extends EventDispatcher {
   _lastRenderState: RenderState = new RenderState();
 
   /* @internal */
-  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
-  _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
+  _renderDataPool = new ClearableObjectPool(RenderData);
   /* @internal */
-  _renderData2DPool: ClassPool<RenderData2D> = new ClassPool(RenderData2D);
+  _renderData2DPool = new ClearableObjectPool(RenderData2D);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -347,9 +347,9 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._renderElementPool.resetPool();
-    this._renderDataPool.resetPool();
-    this._renderData2DPool.resetPool();
+    this._renderElementPool.clear();
+    this._renderDataPool.clear();
+    this._renderData2DPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;

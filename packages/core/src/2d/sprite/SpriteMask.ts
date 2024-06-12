@@ -10,10 +10,11 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { Chunk } from "../../RenderPipeline/Chunk";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 
 /**
  * A component for masking Sprites.
@@ -247,58 +248,23 @@ export class SpriteMask extends Renderer {
 
     engine._spriteMaskManager.addMask(this);
     const { _chunk: chunk } = this;
-    const renderData = engine._renderData2DPool.getFromPool();
-    renderData.set(this, material, chunk._primitive, chunk._subMesh, this.sprite.texture, chunk);
+    const renderData = engine._renderData2DPool.get();
+    renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.usage = RenderDataUsage.SpriteMask;
     renderData.uploadFlag = ForceUploadShaderDataFlag.None;
     renderData.preRender = null;
     renderData.postRender = null;
-    const renderElement = engine._renderElementPool.getFromPool();
+    const renderElement = engine._renderElementPool.get();
     renderElement.set(renderData, material.shader.subShaders[0].passes);
     this._maskElement = renderElement;
   }
 
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    const renderDataA = <RenderData2D>elementA.data;
-    const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
-      return false;
-    }
-
-    // Compare renderer property
-    const shaderDataA = (<SpriteMask>renderDataA.component).shaderData;
-    const shaderDataB = (<SpriteMask>renderDataB.component).shaderData;
-    const textureProperty = SpriteMask._textureProperty;
-    const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
-
-    return (
-      shaderDataA.getTexture(textureProperty) === shaderDataB.getTexture(textureProperty) &&
-      shaderDataA.getTexture(alphaCutoffProperty) === shaderDataB.getTexture(alphaCutoffProperty)
-    );
+    return BatchUtils.canBatchSpriteMask(elementA, elementB);
   }
 
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
-    const renderDataA = <RenderData2D>elementA.data;
-    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _data: meshBuffer, _indices: tempIndices } = chunk;
-    const { offset, size, stride } = chunk._primitive.vertexBufferBindings[0];
-    const indices = meshBuffer._indices;
-    const vertexStartIndex = offset / stride;
-    const len = tempIndices.length;
-    let startIndex = meshBuffer._indexLen;
-    if (elementB) {
-      const subMesh = renderDataA.chunk._subMesh;
-      subMesh.count += len;
-    } else {
-      const subMesh = chunk._subMesh;
-      subMesh.start = startIndex;
-      subMesh.count = len;
-    }
-    for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + tempIndices[i];
-    }
-    meshBuffer._indexLen += len;
-    meshBuffer._vertexLen = Math.max(meshBuffer._vertexLen, offset / 4 + size / 4);
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   /**

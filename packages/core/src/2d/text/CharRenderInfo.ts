@@ -1,8 +1,8 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
-import { Chunk } from "../../RenderPipeline/DynamicGeometryData";
+import { Chunk } from "../../RenderPipeline/Chunk";
 import { Engine } from "../../Engine";
-import { IPoolElement } from "../../utils/Pool";
+import { IPoolElement } from "../../utils/ReturnableObjectPool";
 
 /**
  * @internal
@@ -18,7 +18,7 @@ export class CharRenderInfo implements IPoolElement {
   init(engine: Engine) {
     if (!this.chunk) {
       this.chunk = engine._batcherManager._dynamicGeometryDataManager2D.allocateChunk(4);
-      this.chunk._indices = CharRenderInfo.triangles;
+      this.chunk.indices = CharRenderInfo.triangles;
     }
   }
 

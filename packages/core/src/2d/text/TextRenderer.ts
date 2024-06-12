@@ -16,18 +16,19 @@ import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Pool } from "../../utils/Pool";
+import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
 import { RenderData2D } from "../../RenderPipeline/RenderData2D";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { ShaderProperty } from "../../shader";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
   private static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
-  private static _charRenderInfoPool: Pool<CharRenderInfo> = new Pool(CharRenderInfo, 50);
+  private static _charRenderInfoPool: ReturnableObjectPool<CharRenderInfo> = new ReturnableObjectPool(CharRenderInfo, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
   private static _worldPositions: Array<Vector3> = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -324,7 +325,7 @@ export class TextRenderer extends Renderer {
       const charRenderInfo = charRenderInfos[i];
       batcher2D.freeChunk(charRenderInfo.chunk);
       charRenderInfo.chunk = null;
-      pool.free(charRenderInfo);
+      pool.return(charRenderInfo);
     }
     charRenderInfos.length = 0;
 
@@ -383,17 +384,12 @@ export class TextRenderer extends Renderer {
       this._updateTransformShaderData(context, Matrix._identity);
     }
   }
+  d;
 
-  /**
-   * @internal
-   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context: RenderContext): void {
     if (this._isTextNoVisible()) {
       return;
@@ -430,9 +426,9 @@ export class TextRenderer extends Renderer {
     const shaderData = this.shaderData;
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
-      const renderData = renderData2DPool.getFromPool();
+      const renderData = renderData2DPool.get();
       const { chunk, texture } = charRenderInfo;
-      renderData.set(this, material, chunk._primitive, chunk._subMesh, texture, chunk);
+      renderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       renderData.usage = RenderDataUsage.Text;
       renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
       renderData.preRender = () => {
@@ -446,57 +442,12 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
   protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    const renderDataA = <RenderData2D>elementA.data;
-    const renderDataB = <RenderData2D>elementB.data;
-    if (renderDataA.chunk._data !== renderDataB.chunk._data) {
-      return false;
-    }
-
-    const rendererA = <TextRenderer>renderDataA.component;
-    const rendererB = <TextRenderer>renderDataB.component;
-
-    // Compare mask
-    const maskInteractionA = rendererA.maskInteraction;
-    if (
-      maskInteractionA !== rendererB.maskInteraction ||
-      (maskInteractionA !== SpriteMaskInteraction.None && rendererA.maskLayer !== rendererB.maskLayer)
-    ) {
-      return false;
-    }
-
-    // Compare texture and material
-    return renderDataA.texture === renderDataB.texture && renderDataA.material === renderDataB.material;
+    return BatchUtils.canBatchSprite(elementA, elementB);
   }
 
-  /**
-   * @internal
-   */
   protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
-    const renderDataA = <RenderData2D>elementA.data;
-    const chunk = elementB ? (<RenderData2D>elementB.data).chunk : renderDataA.chunk;
-    const { _data: meshBuffer, _indices: tempIndices } = chunk;
-    const { offset, size, stride } = chunk._primitive.vertexBufferBindings[0];
-    const indices = meshBuffer._indices;
-    const vertexStartIndex = offset / stride;
-    const len = tempIndices.length;
-    let startIndex = meshBuffer._indexLen;
-    if (elementB) {
-      const subMesh = renderDataA.chunk._subMesh;
-      subMesh.count += len;
-    } else {
-      const subMesh = chunk._subMesh;
-      subMesh.start = startIndex;
-      subMesh.count = len;
-    }
-    for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + tempIndices[i];
-    }
-    meshBuffer._indexLen += len;
-    meshBuffer._vertexLen = Math.max(meshBuffer._vertexLen, offset / 4 + size / 4);
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   private _updateStencilState(): void {
@@ -571,15 +522,13 @@ export class TextRenderer extends Renderer {
       // Bottom-Right
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-      const { chunk } = charRenderInfo;
-      const vertices = chunk._data._vertices;
-      let index = chunk._primitive.vertexBufferBindings[0].offset / 4;
-      for (let i = 0; i < 4; ++i) {
+      const chunk = charRenderInfo.chunk;
+      const vertices = chunk.data.vertices;
+      for (let i = 0, o = chunk.vertexArea.start; i < 4; ++i, o += 9) {
         const position = TextRenderer._worldPositions[i];
-        vertices[index] = position.x;
-        vertices[index + 1] = position.y;
-        vertices[index + 2] = position.z;
-        index += 9;
+        vertices[o] = position.x;
+        vertices[o + 1] = position.y;
+        vertices[o + 2] = position.z;
       }
     }
   }
@@ -649,22 +598,21 @@ export class TextRenderer extends Renderer {
             const charInfo = charFont._getCharInfo(char);
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
-              const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.alloc());
+              const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.get());
               charRenderInfo.init(this.engine);
               const { chunk, localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
-              const vertices = chunk._data._vertices;
+              const vertices = chunk.data.vertices;
               const { uvs } = charInfo;
               const { r, g, b, a } = color;
-              let index = chunk._primitive.vertexBufferBindings[0].offset / 4 + 3;
-              for (let i = 0; i < 4; ++i) {
-                vertices[index] = uvs[i].x;
-                vertices[index + 1] = uvs[i].y;
-                vertices[index + 2] = r;
-                vertices[index + 3] = g;
-                vertices[index + 4] = b;
-                vertices[index + 5] = a;
-                index += 9;
+
+              for (let i = 0, o = chunk.vertexArea.start + 3; i < 4; ++i, o += 9) {
+                vertices[o] = uvs[i].x;
+                vertices[o + 1] = uvs[i].y;
+                vertices[o + 2] = r;
+                vertices[o + 3] = g;
+                vertices[o + 4] = b;
+                vertices[o + 5] = a;
               }
 
               const { w, ascent, descent } = charInfo;
@@ -702,7 +650,7 @@ export class TextRenderer extends Renderer {
         const charRenderInfo = charRenderInfos[i];
         this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(charRenderInfo.chunk);
         charRenderInfo.chunk = null;
-        charRenderInfoPool.free(charRenderInfo);
+        charRenderInfoPool.return(charRenderInfo);
       }
       charRenderInfos.length = renderDataCount;
     }
