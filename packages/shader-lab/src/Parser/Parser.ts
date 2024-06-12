@@ -95,7 +95,7 @@ export default class Parser {
         this.printStack(token);
         continue;
       } else {
-        this.logger.error("parse error at", token.location);
+        this.logger.error(`parse error token ${token} at`, token.location);
         throw "invalid action table";
       }
     }

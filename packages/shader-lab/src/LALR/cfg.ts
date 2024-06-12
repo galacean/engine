@@ -119,7 +119,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_type_param, [
     [ETokenType.INT_CONSTANT],
-    [ETokenType.FLOAT_CONSTANT]
+    [ETokenType.FLOAT_CONSTANT],
+    [EKeyword.TRUE],
+    [EKeyword.FALSE]
   ]),
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_type_param_list, [

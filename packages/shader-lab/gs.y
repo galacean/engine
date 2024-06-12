@@ -138,6 +138,8 @@ gl_editor_prop_type:
 gl_editor_prop_type_param:
     INT_CONSTANT
     | FLOAT_CONSTANT
+    | true
+    | false
     ;
 
 gl_editor_prop_type_param_list:

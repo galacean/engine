@@ -1,7 +1,7 @@
 import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey, ShaderFactory } from "@galacean/engine-core";
 import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab, Logger, LoggerLevel } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
 import { Shader } from "@galacean/engine-core";
 
@@ -12,8 +12,7 @@ import path from "path";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
-
-const shaderLab = new ShaderLab();
+// Logger.setLevel(LoggerLevel.info);
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -107,6 +106,7 @@ vec4 linearToGamma(vec4 linearIn){
 `;
 
 describe("ShaderLab", () => {
+  let shaderLab: ShaderLab;
   let shader: ReturnType<typeof shaderLab.parseShader>;
   let subShader: ISubShaderInfo;
   let passList: ISubShaderInfo["passes"];
@@ -114,6 +114,7 @@ describe("ShaderLab", () => {
   let usePass: string;
 
   before(() => {
+    shaderLab = new ShaderLab();
     shader = shaderLab.parseShader(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;

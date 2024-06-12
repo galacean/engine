@@ -29,7 +29,10 @@ export default class StateItem {
   constructor(production: Production, position: number, lookahead: Iterable<Terminal>) {
     this.production = production;
     this.position = position;
-    this.lookaheadSet = new Set([...lookahead]);
+    this.lookaheadSet = new Set();
+    for (const la of lookahead) {
+      this.lookaheadSet.add(la);
+    }
     this.id = StateItem._id++;
   }
 

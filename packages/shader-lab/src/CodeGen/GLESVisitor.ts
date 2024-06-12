@@ -26,6 +26,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   vertexMain(fnNode: ASTNode.FunctionDefinition, data: GLPassShaderData): string {
+    if (!fnNode) return "";
     const { symbolTable } = data;
 
     this.context.stage = EShaderStage.VERTEX;
@@ -73,6 +74,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private fragmentMain(fnNode: ASTNode.FunctionDefinition, data: GLPassShaderData): string {
+    if (!fnNode) return "";
     this.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
     const globalText = this.getGlobalText();

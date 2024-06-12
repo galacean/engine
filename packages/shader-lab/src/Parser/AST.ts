@@ -1710,18 +1710,6 @@ export namespace ASTNode {
     }
   }
 
-  // export class GLEditorMacroDeclaration extends TreeNode {
-  //   constructor(loc: LocRange, children: NodeChild[]) {
-  //     super(ENonTerminal.gl_editor_macro_declaration, loc, children);
-  //   }
-  // }
-
-  // export class GLEditorPropDeclaration extends TreeNode {
-  //   constructor(loc: LocRange, children: NodeChild[]) {
-  //     super(ENonTerminal.gl_editor_prop_declaration, loc, children);
-  //   }
-  // }
-
   export class GLShaderProgram extends GLProgram {
     shaderData: GLShaderData;
 
