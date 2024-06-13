@@ -95,7 +95,7 @@ export class BasicRenderPipeline {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
     } else {
-      camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
+      camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
     // Check if need to create internal color texture

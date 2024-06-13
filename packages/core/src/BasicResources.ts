@@ -1,4 +1,5 @@
 import { Engine } from "./Engine";
+import { ContentRestorer } from "./asset/ContentRestorer";
 import { Buffer } from "./graphic/Buffer";
 import { VertexElement } from "./graphic/VertexElement";
 import { BufferBindFlag } from "./graphic/enums/BufferBindFlag";
@@ -8,6 +9,9 @@ import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
+import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
+import { Texture2DArray } from "./texture/Texture2DArray";
+import { TextureFormat } from "./texture/enums/TextureFormat";
 
 /**
  * @internal
@@ -16,6 +20,15 @@ export class BasicResources {
   readonly blitMesh: ModelMesh;
   readonly flipYBlitMesh: ModelMesh;
   readonly blitMaterial: Material;
+
+  readonly whiteTexture2D: Texture2D;
+  readonly whiteTextureCube: TextureCube;
+  readonly whiteTexture2DArray: Texture2DArray;
+  readonly uintWhiteTexture2D: Texture2D;
+  readonly magentaTexture2D: Texture2D;
+  readonly magentaTextureCube: TextureCube;
+  readonly magentaTexture2DArray: Texture2DArray;
+  readonly uintMagentaTexture2D: Texture2D;
 
   constructor(engine: Engine) {
     // prettier-ignore
@@ -40,6 +53,53 @@ export class BasicResources {
     this.blitMesh = this._createBlitMesh(engine, vertices);
     this.flipYBlitMesh = this._createBlitMesh(engine, flipYVertices);
     this.blitMaterial = blitMaterial;
+
+    // Create white and magenta textures
+    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
+
+    this.whiteTexture2D = this._create1x1Texture(engine, TextureType.Texture2D, TextureFormat.R8G8B8A8, whitePixel);
+    this.whiteTextureCube = this._create1x1Texture(engine, TextureType.TextureCube, TextureFormat.R8G8B8A8, whitePixel);
+
+    this.magentaTexture2D = this._create1x1Texture(engine, TextureType.Texture2D, TextureFormat.R8G8B8A8, magentaPixel);
+    this.magentaTextureCube = this._create1x1Texture(
+      engine,
+      TextureType.TextureCube,
+      TextureFormat.R8G8B8A8,
+      magentaPixel
+    );
+
+    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
+    if (isWebGL2) {
+      this.whiteTexture2DArray = this._create1x1Texture(
+        engine,
+        TextureType.Texture2DArray,
+        TextureFormat.R8G8B8A8,
+        whitePixel
+      );
+
+      this.magentaTexture2DArray = this._create1x1Texture(
+        engine,
+        TextureType.Texture2DArray,
+        TextureFormat.R8G8B8A8,
+        magentaPixel
+      );
+
+      const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
+      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
+      this.uintWhiteTexture2D = this._create1x1Texture(
+        engine,
+        TextureType.Texture2D,
+        TextureFormat.R32G32B32A32_UInt,
+        whitePixel32
+      );
+      this.uintMagentaTexture2D = this._create1x1Texture(
+        engine,
+        TextureType.Texture2D,
+        TextureFormat.R32G32B32A32_UInt,
+        magentaPixel32
+      );
+    }
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
@@ -50,4 +110,58 @@ export class BasicResources {
     mesh.addSubMesh(0, 4, MeshTopology.TriangleStrip);
     return mesh;
   }
+
+  private _create1x1Texture<T extends Texture>(
+    engine: Engine,
+    type: TextureType,
+    format: TextureFormat,
+    pixel: Uint8Array | Uint32Array
+  ): T {
+    let texture: Texture;
+
+    switch (type) {
+      case TextureType.Texture2D:
+        texture = new Texture2D(engine, 1, 1, format, false);
+        break;
+      case TextureType.Texture2DArray:
+        texture = new Texture2DArray(engine, 1, 1, 1, format, false);
+        break;
+      case TextureType.TextureCube:
+        texture = new TextureCube(engine, 1, format, false);
+        break;
+      default:
+        throw "Invalid texture type";
+    }
+
+    texture.isGCIgnored = true;
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<Texture> {
+        constructor() {
+          super(texture);
+        }
+        restoreContent() {
+          switch (type) {
+            case TextureType.Texture2D:
+              (<Texture2D>this.resource).setPixelBuffer(pixel);
+              break;
+            case TextureType.Texture2DArray:
+              (<Texture2DArray>this.resource).setPixelBuffer(0, pixel);
+              break;
+            case TextureType.TextureCube:
+              for (let i = 0; i < 6; i++) {
+                (<TextureCube>this.resource).setPixelBuffer(TextureCubeFace.PositiveX + i, pixel);
+              }
+              break;
+          }
+        }
+      })()
+    );
+    return texture as T;
+  }
+}
+
+enum TextureType {
+  Texture2D,
+  TextureCube,
+  Texture2DArray
 }
