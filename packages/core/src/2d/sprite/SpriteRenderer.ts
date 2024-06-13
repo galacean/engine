@@ -310,6 +310,20 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSprite(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
   _getChunkManager(): DynamicGeometryDataManager {
     return this.engine._batcherManager._dynamicGeometryDataManager2D;
   }
@@ -365,14 +379,6 @@ export class SpriteRenderer extends Renderer {
     subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.addSubRenderElement(subRenderElement);
     engine._batcherManager.commitRenderData(context, renderData);
-  }
-
-  protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
-  }
-
-  protected override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   protected override _onDestroy(): void {

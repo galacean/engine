@@ -383,7 +383,20 @@ export class TextRenderer extends Renderer {
       this._updateTransformShaderData(context, Matrix._identity);
     }
   }
-  d;
+
+  /**
+   * @internal
+   */
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSprite(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+  }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
@@ -436,14 +449,6 @@ export class TextRenderer extends Renderer {
       renderData.addSubRenderElement(subRenderElement);
     }
     engine._batcherManager.commitRenderData(context, renderData);
-  }
-
-  protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
-  }
-
-  protected override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   private _updateStencilState(): void {

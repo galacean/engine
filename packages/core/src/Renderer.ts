@@ -389,6 +389,18 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
+  /**
+   * @internal
+   */
+  _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return false;
+  }
+
+  /**
+   * @internal
+   */
+  _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
+
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
     const mvMatrix = this._mvMatrix;
@@ -440,18 +452,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
-
-  /**
-   * @internal
-   */
-  protected _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return false;
-  }
-
-  /**
-   * @internal
-   */
-  protected _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
   /**
    * @internal

@@ -203,6 +203,20 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSpriteMask(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
   _getChunkManager(): DynamicGeometryDataManager {
     return this.engine._batcherManager._dynamicGeometryDataManagerMask;
   }
@@ -259,14 +273,6 @@ export class SpriteMask extends Renderer {
     renderElement.set(renderData);
     renderElement.data.addSubRenderElement(subRenderElement);
     this._renderElement = renderElement;
-  }
-
-  protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSpriteMask(elementA, elementB);
-  }
-
-  protected override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
   /**

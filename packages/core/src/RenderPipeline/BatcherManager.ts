@@ -57,23 +57,19 @@ export class BatcherManager {
         const curRenderer = curSubElement.component;
 
         if (preSubElement) {
-          // @ts-ignore
           if (preUsage === curSubElement.data.usage && preRenderer._canBatch(preSubElement, curSubElement)) {
-            // @ts-ignore
             preRenderer._batchRenderElement(preSubElement, curSubElement);
           } else {
             batchedSubElements.push(preSubElement);
             preSubElement = curSubElement;
             preRenderer = curRenderer;
             preUsage = curSubElement.data.usage;
-            // @ts-ignore
             preRenderer._batchRenderElement(preSubElement);
           }
         } else {
           preSubElement = curSubElement;
           preRenderer = curRenderer;
           preUsage = curSubElement.data.usage;
-          // @ts-ignore
           preRenderer._batchRenderElement(preSubElement);
         }
       }
