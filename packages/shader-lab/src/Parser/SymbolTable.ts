@@ -59,7 +59,8 @@ export class FnSymbol extends SymbolInfo {
   declare astNode: ASTNode.FunctionDefinition;
 
   constructor(lexeme: string, astNode: ASTNode.FunctionDefinition) {
-    super(lexeme, ESymbolType.FN, astNode);
+    const type = new SymbolType(astNode.protoType.returnType.type, astNode.protoType.returnType.typeSpecifier.lexeme);
+    super(lexeme, ESymbolType.FN, astNode, type);
   }
 }
 

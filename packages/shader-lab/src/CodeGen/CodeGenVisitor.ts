@@ -163,6 +163,13 @@ export abstract class CodeGenVisitor {
       .join(", ");
   }
 
+  visitFunctionHeader(node: ASTNode.FunctionHeader): string {
+    const returnType = node.returnType.typeSpecifier.lexeme;
+    if (this.context.isAttributeStruct(returnType) || this.context.isVaryingStruct(returnType))
+      return `void ${node.ident.lexeme}(`;
+    return this.defaultCodeGen(node.children);
+  }
+
   visitJumpStatement(node: ASTNode.JumpStatement): string {
     const cmd = node.children[0] as Token;
     if (cmd.type === EKeyword.RETURN) {
@@ -174,6 +181,10 @@ export abstract class CodeGenVisitor {
         );
         if (returnVar?.typeInfo === this.context.varyingStruct?.ident?.lexeme) {
           return "";
+        }
+        const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, ENonTerminal.function_call);
+        if (returnFnCall?.type === this.context.varyingStruct?.ident?.lexeme) {
+          return `${expr.codeGen(this)};`;
         }
       }
     }

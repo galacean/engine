@@ -601,6 +601,10 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.newScope();
     }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitFunctionHeader(this);
+    }
   }
 
   export class FunctionParameterList extends TreeNode {

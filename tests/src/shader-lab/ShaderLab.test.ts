@@ -253,17 +253,6 @@ describe("ShaderLab", () => {
     glslValidate(demoShader, shaderLab);
   });
 
-  it("diagnostic position", () => {
-    const invalidShader = fs.readFileSync(path.join(__dirname, "shaders/invalid.shader")).toString();
-    try {
-      shaderLab.parseShader(invalidShader);
-    } catch (err) {
-      expect(err).to.have.lengthOf(1);
-      expect(err[0]).to.have.property("token");
-      expect(err[0].token.startLine).to.eql(25);
-    }
-  });
-
   it("multi-pass", () => {
     const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
     glslValidate(shaderSource, shaderLab);

@@ -11,9 +11,9 @@ export class VisitorContext {
 
   stage: EShaderStage;
 
-  _referencedAttributeList: Map<string, IParamInfo> = new Map();
+  _referencedAttributeList: Map<string, IParamInfo & { qualifier?: string }> = new Map();
   _referencedGlobals: Map<string, SymbolInfo | ASTNode.PrecisionSpecifier> = new Map();
-  _referencedVaryingList: Map<string, IParamInfo> = new Map();
+  _referencedVaryingList: Map<string, IParamInfo & { qualifier?: string }> = new Map();
 
   _curFn?: ASTNode.FunctionProtoType;
 

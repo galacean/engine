@@ -1,6 +1,11 @@
 import { ASTNode } from "../Parser/AST";
+import { SymbolType } from "../Parser/types";
+import Token from "../Token";
+import { EKeyword, ETokenType, Position } from "../common";
 import { GLESVisitor } from "./GLESVisitor";
 import { EShaderStage } from "./constants";
+
+const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
   versionText: string = "#version 300 es";
@@ -15,7 +20,7 @@ export class GLES300Visitor extends GLESVisitor {
   override getVaryingDeclare(): [string, number][] {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
     return Array.from(this.context._referencedVaryingList.values()).map((item) => [
-      `${qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+      `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
       item.ident.location.start.index
     ]);
   }
@@ -52,5 +57,19 @@ export class GLES300Visitor extends GLESVisitor {
       }
     }
     return ident;
+  }
+
+  override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
+    if (this.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
+      if (!this.context._referencedVaryingList.has(V3_GL_FragColor)) {
+        this.context._referencedVaryingList.set(V3_GL_FragColor, {
+          ident: new Token(ETokenType.ID, V3_GL_FragColor, new Position(0, 0, 0)),
+          typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
+          qualifier: "out"
+        });
+      }
+      return V3_GL_FragColor;
+    }
+    return super.visitVariableIdentifier(node);
   }
 }
