@@ -1467,7 +1467,6 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      if (!sa.shaderData) debugger;
       sa.shaderData.settingRenderState = this;
     }
   }
