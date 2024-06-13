@@ -31,7 +31,7 @@ export class MaskManager {
       const maskInsertedRenderElement = renderElementPool.get();
       maskInsertedElements[i] = maskInsertedRenderElement;
       maskInsertedRenderElement.set(renderElement.data);
-      const subRenderElements = renderElement.subRenderElements;
+      const subRenderElements = renderElement.data.subRenderElements;
       for (let j = 0, n = subRenderElements.length; j < n; ++j) {
         const subRenderElement = subRenderElements[j];
         const renderer = subRenderElement.component;
@@ -40,7 +40,7 @@ export class MaskManager {
         if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
           this._processMasksDiff(<SpriteRenderer | TextRenderer>renderer, maskInsertedRenderElement);
         }
-        maskInsertedRenderElement.addSubRenderElement(subRenderElement);
+        maskInsertedRenderElement.data.addSubRenderElement(subRenderElement);
       }
     }
   }
@@ -75,17 +75,17 @@ export class MaskManager {
 
         if (influenceLayers & addLayer) {
           const subRenderElement = subRenderElementPool.get();
-          this._cloneRenderElement(mask._renderElement.subRenderElements[0], subRenderElement);
+          this._cloneRenderElement(mask._renderElement.data.subRenderElements[0], subRenderElement);
           subRenderElement.stencilOperation = StencilOperation.IncrementSaturate;
-          maskInsertedElement.addSubRenderElement(subRenderElement);
+          maskInsertedElement.data.addSubRenderElement(subRenderElement);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const subRenderElement = subRenderElementPool.get();
-          this._cloneRenderElement(mask._renderElement.subRenderElements[0], subRenderElement);
+          this._cloneRenderElement(mask._renderElement.data.subRenderElements[0], subRenderElement);
           subRenderElement.stencilOperation = StencilOperation.DecrementSaturate;
-          maskInsertedElement.addSubRenderElement(subRenderElement);
+          maskInsertedElement.data.addSubRenderElement(subRenderElement);
         }
       }
     }

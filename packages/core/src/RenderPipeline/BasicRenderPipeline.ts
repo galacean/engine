@@ -298,7 +298,7 @@ export class BasicRenderPipeline {
             renderElement.set(renderData);
             renderElements.set(0, renderElement);
           }
-          renderElement.addSubRenderElement(subRenderElement);
+          renderElement.data.addSubRenderElement(subRenderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.Opaque;
           break;
         case RenderQueueType.AlphaTest:
@@ -308,7 +308,7 @@ export class BasicRenderPipeline {
             renderElement.set(renderData);
             renderElements.set(1, renderElement);
           }
-          renderElement.addSubRenderElement(subRenderElement);
+          renderElement.data.addSubRenderElement(subRenderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.AlphaTest;
           break;
         case RenderQueueType.Transparent:
@@ -318,7 +318,7 @@ export class BasicRenderPipeline {
             renderElement.set(renderData);
             renderElements.set(2, renderElement);
           }
-          renderElement.addSubRenderElement(subRenderElement);
+          renderElement.data.addSubRenderElement(subRenderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.Transparent;
           break;
       }

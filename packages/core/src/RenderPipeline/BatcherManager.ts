@@ -51,7 +51,7 @@ export class BatcherManager {
     let preRenderer: Renderer;
     let preUsage: RenderDataUsage;
     for (let i = 0; i < length; ++i) {
-      const subElements = elements[i].subRenderElements;
+      const subElements = elements[i].data.subRenderElements;
       for (let j = 0, n = subElements.length; j < n; ++j) {
         const curSubElement = subElements[j];
         const curRenderer = curSubElement.component;
