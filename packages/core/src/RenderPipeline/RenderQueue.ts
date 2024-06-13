@@ -73,15 +73,15 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      const { data, subData, shaderPasses } = subElement;
+      const { data, shaderPasses } = subElement;
       const { uploadFlag } = data;
 
       subElement.updateShaderData();
 
       const compileMacros = Shader._compileMacros;
-      const primitive = subData.primitive;
-      const renderer = subData.component;
-      const material = subData.material;
+      const primitive = subElement.primitive;
+      const renderer = subElement.component;
+      const material = subElement.material;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
@@ -169,7 +169,7 @@ export class RenderQueue {
           material.shaderData
         );
 
-        rhi.drawPrimitive(primitive, subData.subPrimitive, program);
+        rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
       }
     }
   }

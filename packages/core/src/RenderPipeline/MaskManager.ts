@@ -34,7 +34,7 @@ export class MaskManager {
       const subRenderElements = renderElement.subRenderElements;
       for (let j = 0, n = subRenderElements.length; j < n; ++j) {
         const subRenderElement = subRenderElements[j];
-        const renderer = subRenderElement.subData.component;
+        const renderer = subRenderElement.component;
         // @ts-ignore
         const maskInteraction = renderer.maskInteraction;
         if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
@@ -93,6 +93,15 @@ export class MaskManager {
   }
 
   private _cloneRenderElement(srcElement: SubRenderElement, dstElement: SubRenderElement): void {
-    dstElement.set(srcElement.data, srcElement.subData, srcElement.shaderPasses);
+    dstElement.set(
+      srcElement.data,
+      srcElement.component,
+      srcElement.material,
+      srcElement.primitive,
+      srcElement.subPrimitive,
+      srcElement.texture,
+      srcElement.chunk
+    );
+    dstElement.setShaderPasses(srcElement.shaderPasses);
   }
 }

@@ -417,7 +417,7 @@ export class TextRenderer extends Renderer {
     const camera = context.camera;
     const engine = camera.engine;
     const shaderData = this.shaderData;
-    const subRenderData2DPool = engine._subRenderData2DPool;
+    const subRenderElementPool = engine._subRenderElementPool;
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
@@ -426,14 +426,14 @@ export class TextRenderer extends Renderer {
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const { chunk, texture } = charRenderInfo;
-      const subRenderData = subRenderData2DPool.get();
-      subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
-      subRenderData.addShaderDataInfo({
+      const subRenderElement = subRenderElementPool.get();
+      subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
+      subRenderElement.addShaderDataInfo({
         applyFunc: shaderData.setTexture.bind(shaderData),
         property: TextRenderer._textureProperty,
         value: texture
       });
-      renderData.addSubRenderData(subRenderData);
+      renderData.addSubRenderElement(subRenderElement);
     }
     engine._batcherManager.commitRenderData(context, renderData);
   }

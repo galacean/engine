@@ -251,13 +251,12 @@ export class SpriteMask extends Renderer {
     const chunk = this._chunk;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort, RenderDataUsage.SpriteMask, ForceUploadShaderDataFlag.None);
-    const subRenderData = engine._subRenderData2DPool.get();
-    subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    renderData.addSubRenderData(subRenderData);
+    const subRenderElement = engine._subRenderElementPool.get();
+    subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    subRenderElement.setShaderPasses(material.shader.subShaders[0].passes);
+    renderData.addSubRenderElement(subRenderElement);
     const renderElement = engine._renderElementPool.get();
     renderElement.set(renderData);
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(renderData, subRenderData, material.shader.subShaders[0].passes);
     renderElement.addSubRenderElement(subRenderElement);
     this._renderElement = renderElement;
   }

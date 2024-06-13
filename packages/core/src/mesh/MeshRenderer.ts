@@ -152,7 +152,7 @@ export class MeshRenderer extends Renderer {
     const subMeshes = mesh.subMeshes;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
-    const subRenderDataPool = engine._subRenderDataPool;
+    const subRenderElementPool = engine._subRenderElementPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       let material = materials[i];
       if (!material) {
@@ -162,9 +162,9 @@ export class MeshRenderer extends Renderer {
         material = this.engine._meshMagentaMaterial;
       }
 
-      const subRenderData = subRenderDataPool.get();
-      subRenderData.set(this, material, mesh._primitive, subMeshes[i]);
-      renderData.addSubRenderData(subRenderData);
+      const subRenderElement = subRenderElementPool.get();
+      subRenderElement.set(renderData, this, material, mesh._primitive, subMeshes[i]);
+      renderData.addSubRenderElement(subRenderElement);
     }
     engine._batcherManager.commitRenderData(context, renderData);
   }

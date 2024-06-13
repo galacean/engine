@@ -1,5 +1,5 @@
 import { IPoolElement } from "../utils/ObjectPool";
-import { SubRenderData } from "./SubRenderData";
+import { SubRenderElement } from "./SubRenderElement";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
@@ -8,7 +8,8 @@ export class RenderData implements IPoolElement {
   distanceForSort: number;
   usage: RenderDataUsage;
   uploadFlag: ForceUploadShaderDataFlag;
-  subRenderDataArray = Array<SubRenderData>();
+  // subRenderDataArray = Array<SubRenderData>();
+  subRenderElements = Array<SubRenderElement>();
 
   set(
     priority: number,
@@ -20,17 +21,17 @@ export class RenderData implements IPoolElement {
     this.distanceForSort = distanceForSort;
     this.usage = usage;
     this.uploadFlag = uploadFlag;
-    this.subRenderDataArray.length = 0;
+    this.subRenderElements.length = 0;
   }
 
-  addSubRenderData(data: SubRenderData): void {
-    this.subRenderDataArray.push(data);
+  addSubRenderElement(element: SubRenderElement): void {
+    this.subRenderElements.push(element);
   }
 
   dispose(): void {
     this.usage = null;
     this.uploadFlag = null;
-    this.subRenderDataArray.length = 0;
-    this.subRenderDataArray = null;
+    this.subRenderElements.length = 0;
+    this.subRenderElements = null;
   }
 }

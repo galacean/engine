@@ -360,10 +360,10 @@ export class SpriteRenderer extends Renderer {
     const engine = camera.engine;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Sprite, ForceUploadShaderDataFlag.None);
-    const subRenderData = engine._subRenderData2DPool.get();
+    const subRenderElement = engine._subRenderElementPool.get();
     const chunk = this._chunk;
-    subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    renderData.addSubRenderData(subRenderData);
+    subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    renderData.addSubRenderElement(subRenderElement);
     engine._batcherManager.commitRenderData(context, renderData);
   }
 

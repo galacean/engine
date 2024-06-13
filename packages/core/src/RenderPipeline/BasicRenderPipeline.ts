@@ -20,8 +20,8 @@ import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { PipelineStage } from "./enums/PipelineStage";
-import { SubRenderData } from "./SubRenderData";
 import { RenderElement } from "./RenderElement";
+import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * Basic render pipeline.
@@ -204,11 +204,11 @@ export class BasicRenderPipeline {
    * @param data - Render data
    */
   pushRenderData(context: RenderContext, data: RenderData): void {
-    const subRenderDataArray = data.subRenderDataArray;
+    const subRenderElements = data.subRenderElements;
     const renderElements = BasicRenderPipeline._tempRenderElements;
-    for (let i = 0, n = subRenderDataArray.length; i < n; ++i) {
-      const subRenderData = subRenderDataArray[i];
-      const { material } = subRenderData;
+    for (let i = 0, n = subRenderElements.length; i < n; ++i) {
+      const subRenderElement = subRenderElements[i];
+      const { material } = subRenderElement;
       const { renderStates } = material;
       const materialSubShader = material.shader.subShaders[0];
       const replacementShader = context.replacementShader;
@@ -224,7 +224,7 @@ export class BasicRenderPipeline {
                 context,
                 renderElements,
                 data,
-                subRenderData,
+                subRenderElement,
                 subShader.passes,
                 renderStates
               );
@@ -236,7 +236,7 @@ export class BasicRenderPipeline {
             context,
             renderElements,
             data,
-            subRenderData,
+            subRenderElement,
             replacementSubShaders[0].passes,
             renderStates
           );
@@ -246,7 +246,7 @@ export class BasicRenderPipeline {
           context,
           renderElements,
           data,
-          subRenderData,
+          subRenderElement,
           materialSubShader.passes,
           renderStates
         );
@@ -265,14 +265,12 @@ export class BasicRenderPipeline {
     context: RenderContext,
     renderElements: Map<number, RenderElement>,
     renderData: RenderData,
-    subRenderData: SubRenderData,
+    subRenderElement: SubRenderElement,
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
     const engine = context.camera.engine;
     const renderElementPool = engine._renderElementPool;
-    const subRenderElementPool = engine._subRenderElementPool;
-
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       // Get render queue type
@@ -280,7 +278,7 @@ export class BasicRenderPipeline {
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
       if (renderState) {
-        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, subRenderData.material.shaderData);
+        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, subRenderElement.material.shaderData);
         renderQueueType = renderState.renderQueueType;
       } else {
         renderQueueType = renderStates[i].renderQueueType;
@@ -290,8 +288,7 @@ export class BasicRenderPipeline {
         continue;
       }
 
-      const subRenderElement = subRenderElementPool.get();
-      subRenderElement.set(renderData, subRenderData, shaderPasses);
+      subRenderElement.setShaderPasses(shaderPasses);
       let renderElement: RenderElement;
       switch (renderQueueType) {
         case RenderQueueType.Opaque:

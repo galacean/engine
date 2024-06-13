@@ -47,9 +47,7 @@ import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { XRManager } from "./xr/XRManager";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { MaskManager } from "./RenderPipeline/MaskManager";
-import { SubRenderData } from "./RenderPipeline/SubRenderData";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
-import { SubRenderData2D } from "./RenderPipeline/SubRenderData2D";
 
 ShaderPool.init();
 
@@ -92,10 +90,6 @@ export class Engine extends EventDispatcher {
   _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
   _renderDataPool = new ClearableObjectPool(RenderData);
-  /* @internal */
-  _subRenderDataPool = new ClearableObjectPool(SubRenderData);
-  /* @internal */
-  _subRenderData2DPool = new ClearableObjectPool(SubRenderData2D);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -356,8 +350,6 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.clear();
     this._subRenderElementPool.clear();
     this._renderDataPool.clear();
-    this._subRenderDataPool.clear();
-    this._subRenderData2DPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -764,8 +756,6 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.garbageCollection();
     this._subRenderElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();
-    this._subRenderDataPool.garbageCollection();
-    this._subRenderData2DPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 
