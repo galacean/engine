@@ -17,7 +17,6 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
-import { RenderData2D } from "./RenderPipeline/RenderData2D";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -48,6 +47,9 @@ import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { XRManager } from "./xr/XRManager";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { MaskManager } from "./RenderPipeline/MaskManager";
+import { SubRenderData } from "./RenderPipeline/SubRenderData";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { SubRenderData2D } from "./RenderPipeline/SubRenderData2D";
 
 ShaderPool.init();
 
@@ -87,9 +89,13 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
+  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
+  /* @internal */
   _renderDataPool = new ClearableObjectPool(RenderData);
   /* @internal */
-  _renderData2DPool = new ClearableObjectPool(RenderData2D);
+  _subRenderDataPool = new ClearableObjectPool(SubRenderData);
+  /* @internal */
+  _subRenderData2DPool = new ClearableObjectPool(SubRenderData2D);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -348,8 +354,10 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.clear();
+    this._subRenderElementPool.clear();
     this._renderDataPool.clear();
-    this._renderData2DPool.clear();
+    this._subRenderDataPool.clear();
+    this._subRenderData2DPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -754,8 +762,10 @@ export class Engine extends EventDispatcher {
 
   private _gc(): void {
     this._renderElementPool.garbageCollection();
+    this._subRenderElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();
-    this._renderData2DPool.garbageCollection();
+    this._subRenderDataPool.garbageCollection();
+    this._subRenderData2DPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 

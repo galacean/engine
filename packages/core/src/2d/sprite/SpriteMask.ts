@@ -14,6 +14,7 @@ import { Chunk } from "../../RenderPipeline/Chunk";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 
 /**
  * A component for masking Sprites.
@@ -248,20 +249,24 @@ export class SpriteMask extends Renderer {
     engine._maskManager.addSpriteMask(this);
 
     const chunk = this._chunk;
-    const renderData = engine._renderData2DPool.get();
-    renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    renderData.usage = RenderDataUsage.SpriteMask;
-    renderData.uploadFlag = ForceUploadShaderDataFlag.None;
+    const renderData = engine._renderDataPool.get();
+    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.SpriteMask, ForceUploadShaderDataFlag.None);
+    const subRenderData = engine._subRenderData2DPool.get();
+    subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    renderData.addSubRenderData(subRenderData);
     const renderElement = engine._renderElementPool.get();
-    renderElement.set(renderData, material.shader.subShaders[0].passes);
+    renderElement.set(renderData);
+    const subRenderElement = engine._subRenderElementPool.get();
+    subRenderElement.set(renderData, subRenderData, material.shader.subShaders[0].passes);
+    renderElement.addSubRenderElement(subRenderElement);
     this._renderElement = renderElement;
   }
 
-  protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
+  protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     return BatchUtils.canBatchSpriteMask(elementA, elementB);
   }
 
-  protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
+  protected override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
     BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 

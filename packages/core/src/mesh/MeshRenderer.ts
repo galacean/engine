@@ -148,10 +148,12 @@ export class MeshRenderer extends Renderer {
       this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
     }
 
-    const materials = this._materials;
+    const { _materials: materials, _engine: engine } = this;
     const subMeshes = mesh.subMeshes;
     const batcherManager = context.camera.engine._batcherManager;
-    const meshRenderDataPool = this._engine._renderDataPool;
+    const renderData = engine._renderDataPool.get();
+    renderData.set(this.priority, this._distanceForSort);
+    const subRenderDataPool = engine._subRenderDataPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       let material = materials[i];
       if (!material) {
@@ -161,9 +163,9 @@ export class MeshRenderer extends Renderer {
         material = this.engine._meshMagentaMaterial;
       }
 
-      const renderData = meshRenderDataPool.get();
-      renderData.usage = RenderDataUsage.Mesh;
-      renderData.set(this, material, mesh._primitive, subMeshes[i]);
+      const subRenderData = subRenderDataPool.get();
+      subRenderData.set(this, material, mesh._primitive, subMeshes[i]);
+      renderData.addSubRenderData(subRenderData);
       batcherManager.commitRenderData(context, renderData);
     }
   }

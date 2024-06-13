@@ -1,20 +1,13 @@
-import { Primitive, SubMesh } from "../graphic";
-import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { Primitive, SubMesh } from "../graphic";
+import { Material } from "../material";
 import { Texture2D } from "../texture";
-import { IPoolElement } from "../utils/ObjectPool";
 import { Chunk } from "./Chunk";
-import { RenderDataUsage } from "./enums/RenderDataUsage";
-import { RenderData } from "./RenderData";
+import { SubRenderData } from "./SubRenderData";
 
-export class RenderData2D extends RenderData implements IPoolElement {
+export class SubRenderData2D extends SubRenderData {
   texture: Texture2D;
   chunk: Chunk;
-
-  constructor() {
-    super();
-    this.usage = RenderDataUsage.Sprite;
-  }
 
   override set(
     component: Renderer,
@@ -30,6 +23,8 @@ export class RenderData2D extends RenderData implements IPoolElement {
   }
 
   override dispose(): void {
-    this.component = this.material = this.texture = this.chunk = null;
+    super.dispose();
+    this.texture = null;
+    this.chunk = null;
   }
 }

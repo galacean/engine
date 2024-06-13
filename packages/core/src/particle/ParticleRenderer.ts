@@ -192,8 +192,12 @@ export class ParticleRenderer extends Renderer {
       material = this.engine._particleMagentaMaterial;
     }
 
-    const renderData = this._engine._renderDataPool.get();
-    renderData.set(this, material, generator._primitive, generator._subPrimitive);
+    const engine = this._engine;
+    const renderData = engine._renderDataPool.get();
+    renderData.set(this.priority, this._distanceForSort);
+    const subRenderData = engine._subRenderDataPool.get();
+    subRenderData.set(this, material, generator._primitive, generator._subPrimitive);
+    renderData.addSubRenderData(subRenderData);
     context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 

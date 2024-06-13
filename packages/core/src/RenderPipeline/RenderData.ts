@@ -1,41 +1,36 @@
-import { SubMesh } from "../graphic";
-import { Primitive } from "../graphic/Primitive";
-import { Material } from "../material";
-import { Renderer } from "../Renderer";
 import { IPoolElement } from "../utils/ObjectPool";
+import { SubRenderData } from "./SubRenderData";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 
 export class RenderData implements IPoolElement {
-  component: Renderer;
-  material: Material;
-  primitive: Primitive;
-  subPrimitive: SubMesh;
-  usage: RenderDataUsage = RenderDataUsage.Mesh;
-  uploadFlag: ForceUploadShaderDataFlag = ForceUploadShaderDataFlag.None;
-
   priority: number;
-  materialPriority: number;
-  componentInstanceId: number;
   distanceForSort: number;
+  usage: RenderDataUsage;
+  uploadFlag: ForceUploadShaderDataFlag;
+  subRenderDataArray = Array<SubRenderData>();
 
-  set(component: Renderer, material: Material, primitive: Primitive, subPrimitive: SubMesh): void {
-    this.component = component;
-    this.material = material;
+  set(
+    priority: number,
+    distanceForSort: number,
+    usage: RenderDataUsage = RenderDataUsage.Mesh,
+    uploadFlag: ForceUploadShaderDataFlag = ForceUploadShaderDataFlag.None
+  ): void {
+    this.priority = priority;
+    this.distanceForSort = distanceForSort;
+    this.usage = usage;
+    this.uploadFlag = uploadFlag;
+    this.subRenderDataArray.length = 0;
+  }
 
-    this.primitive = primitive;
-    this.subPrimitive = subPrimitive;
-
-    this.priority = component.priority;
-    this.materialPriority = material._priority;
-    this.componentInstanceId = component.instanceId;
-    this.distanceForSort = component._distanceForSort;
+  addSubRenderData(data: SubRenderData): void {
+    this.subRenderDataArray.push(data);
   }
 
   dispose(): void {
-    this.component = null;
-    this.material = null;
-    this.primitive = null;
-    this.subPrimitive = null;
+    this.usage = null;
+    this.uploadFlag = null;
+    this.subRenderDataArray.length = 0;
+    this.subRenderDataArray = null;
   }
 }

@@ -17,10 +17,10 @@ import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Chunk } from "../../RenderPipeline/Chunk";
-import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -358,19 +358,20 @@ export class SpriteRenderer extends Renderer {
     // Push primitive
     const camera = context.camera;
     const engine = camera.engine;
-    const renderData = engine._renderData2DPool.get();
+    const renderData = engine._renderDataPool.get();
+    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Sprite, ForceUploadShaderDataFlag.None);
+    const subRenderData = engine._subRenderData2DPool.get();
     const chunk = this._chunk;
-    renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    renderData.usage = RenderDataUsage.Sprite;
-    renderData.uploadFlag = ForceUploadShaderDataFlag.None;
+    subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    renderData.addSubRenderData(subRenderData);
     engine._batcherManager.commitRenderData(context, renderData);
   }
 
-  protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
+  protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     return BatchUtils.canBatchSprite(elementA, elementB);
   }
 
-  protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
+  protected override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
     BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 

@@ -3,6 +3,7 @@ import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { StencilOperation } from "../shader";
 import { RenderElement } from "./RenderElement";
+import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * @internal
@@ -24,15 +25,23 @@ export class MaskManager {
       return;
     }
 
+    const renderElementPool = this.engine._renderElementPool;
     for (let i = 0; i < length; ++i) {
-      const element = elements[i];
-      const renderer = element.data.component;
-      // @ts-ignore
-      const maskInteraction = renderer.maskInteraction;
-      if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
-        this._processMasksDiff(<SpriteRenderer | TextRenderer>renderer, maskInsertedElements);
+      const renderElement = elements[i];
+      const maskInsertedRenderElement = renderElementPool.get();
+      maskInsertedElements[i] = maskInsertedRenderElement;
+      maskInsertedRenderElement.set(renderElement.data);
+      const subRenderElements = renderElement.subRenderElements;
+      for (let j = 0, n = subRenderElements.length; j < n; ++j) {
+        const subRenderElement = subRenderElements[j];
+        const renderer = subRenderElement.subData.component;
+        // @ts-ignore
+        const maskInteraction = renderer.maskInteraction;
+        if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
+          this._processMasksDiff(<SpriteRenderer | TextRenderer>renderer, maskInsertedRenderElement);
+        }
+        maskInsertedRenderElement.addSubRenderElement(subRenderElement);
       }
-      maskInsertedElements.push(element);
     }
   }
 
@@ -45,8 +54,8 @@ export class MaskManager {
     this.clear();
   }
 
-  private _processMasksDiff(renderer: SpriteRenderer | TextRenderer, maskInsertedElements: Array<RenderElement>): void {
-    const renderElementPool = this.engine._renderElementPool;
+  private _processMasksDiff(renderer: SpriteRenderer | TextRenderer, maskInsertedElement: RenderElement): void {
+    const subRenderElementPool = this.engine._subRenderElementPool;
     const preMaskLayer = this._preMaskLayer;
     const curMaskLayer = renderer.maskLayer;
     if (preMaskLayer !== curMaskLayer) {
@@ -65,25 +74,25 @@ export class MaskManager {
         }
 
         if (influenceLayers & addLayer) {
-          const renderElement = renderElementPool.get();
-          this._cloneRenderElement(mask._renderElement, renderElement);
-          renderElement.stencilOperation = StencilOperation.IncrementSaturate;
-          maskInsertedElements.push(renderElement);
+          const subRenderElement = subRenderElementPool.get();
+          this._cloneRenderElement(mask._renderElement.subRenderElements[0], subRenderElement);
+          subRenderElement.stencilOperation = StencilOperation.IncrementSaturate;
+          maskInsertedElement.addSubRenderElement(subRenderElement);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
-          const renderElement = renderElementPool.get();
-          this._cloneRenderElement(mask._renderElement, renderElement);
-          renderElement.stencilOperation = StencilOperation.DecrementSaturate;
-          maskInsertedElements.push(renderElement);
+          const subRenderElement = subRenderElementPool.get();
+          this._cloneRenderElement(mask._renderElement.subRenderElements[0], subRenderElement);
+          subRenderElement.stencilOperation = StencilOperation.DecrementSaturate;
+          maskInsertedElement.addSubRenderElement(subRenderElement);
         }
       }
     }
     this._preMaskLayer = curMaskLayer;
   }
 
-  private _cloneRenderElement(srcRenderElement: RenderElement, dstRenderElement: RenderElement): void {
-    dstRenderElement.set(srcRenderElement.data, srcRenderElement.shaderPasses);
+  private _cloneRenderElement(srcElement: SubRenderElement, dstElement: SubRenderElement): void {
+    dstElement.set(srcElement.data, srcElement.subData, srcElement.shaderPasses);
   }
 }

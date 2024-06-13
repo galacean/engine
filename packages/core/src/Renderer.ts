@@ -12,7 +12,7 @@ import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { RenderElement } from "./RenderPipeline/RenderElement";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 
 /**
  * Basis for all renderers.
@@ -444,14 +444,14 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
+  protected _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     return false;
   }
 
   /**
    * @internal
    */
-  protected _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {}
+  protected _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
   /**
    * @internal

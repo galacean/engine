@@ -8,6 +8,7 @@ import { BatcherManager } from "./BatcherManager";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { MaskManager } from "./MaskManager";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
+import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * Render queue.
@@ -19,17 +20,7 @@ export class RenderQueue {
   static _compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const priorityOrder = dataA.priority - dataB.priority;
-    if (priorityOrder !== 0) {
-      return priorityOrder;
-    }
-    // make sure from the same renderer.
-    const instanceIdDiff = dataA.componentInstanceId - dataB.componentInstanceId;
-    if (instanceIdDiff === 0) {
-      return dataA.materialPriority - dataB.materialPriority;
-    } else {
-      return dataA.distanceForSort - dataB.distanceForSort || instanceIdDiff;
-    }
+    return dataA.priority - dataB.priority || dataA.distanceForSort - dataB.distanceForSort;
   }
 
   /**
@@ -38,22 +29,12 @@ export class RenderQueue {
   static _compareForTransparent(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
-    const priorityOrder = dataA.priority - dataB.priority;
-    if (priorityOrder !== 0) {
-      return priorityOrder;
-    }
-    // make sure from the same renderer.
-    const instanceIdDiff = dataA.componentInstanceId - dataB.componentInstanceId;
-    if (instanceIdDiff === 0) {
-      return dataA.materialPriority - dataB.materialPriority;
-    } else {
-      return dataB.distanceForSort - dataA.distanceForSort || instanceIdDiff;
-    }
+    return dataA.priority - dataB.priority || dataB.distanceForSort - dataA.distanceForSort;
   }
 
   readonly elements: RenderElement[] = [];
   readonly maskInsertedElements: RenderElement[] = [];
-  readonly batchedElements: RenderElement[] = [];
+  readonly batchedSubElements: SubRenderElement[] = [];
 
   private readonly _renderQueueType: RenderQueueType;
 
@@ -78,9 +59,9 @@ export class RenderQueue {
   }
 
   render(camera: Camera, pipelineStageTagValue: string): void {
-    const { batchedElements } = this;
-    const len = batchedElements.length;
-    if (len === 0) {
+    const batchedSubElements = this.batchedSubElements;
+    const length = batchedSubElements.length;
+    if (length === 0) {
       return;
     }
 
@@ -91,19 +72,19 @@ export class RenderQueue {
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this._renderQueueType;
 
-    for (let i = 0; i < len; i++) {
-      const element = batchedElements[i];
-      const { data, shaderPasses } = element;
+    for (let i = 0; i < length; i++) {
+      const subElement = batchedSubElements[i];
+      const { data, subData, shaderPasses } = subElement;
       const { uploadFlag } = data;
 
       data.usage === RenderDataUsage.Text &&
         // @ts-ignore
-        data.component.shaderData.setTexture("renderer_SpriteTexture", data.texture);
+        subData.component.shaderData.setTexture("renderer_SpriteTexture", subData.texture);
 
       const compileMacros = Shader._compileMacros;
-      const primitive = data.primitive;
-      const renderer = data.component;
-      const material = data.material;
+      const primitive = subData.primitive;
+      const renderer = subData.component;
+      const material = subData.material;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
@@ -113,7 +94,7 @@ export class RenderQueue {
       // Update stencil state
       const stencilState = material.renderState.stencilState;
       //@ts-ignore
-      const stencilOperation = element.stencilOperation || StencilOperation.Keep;
+      const stencilOperation = subElement.stencilOperation || StencilOperation.Keep;
       stencilState.passOperationFront = stencilOperation;
       stencilState.passOperationBack = stencilOperation;
 
@@ -191,7 +172,7 @@ export class RenderQueue {
           material.shaderData
         );
 
-        rhi.drawPrimitive(primitive, data.subPrimitive, program);
+        rhi.drawPrimitive(primitive, subData.subPrimitive, program);
       }
     }
   }
@@ -202,7 +183,7 @@ export class RenderQueue {
   clear(): void {
     this.elements.length = 0;
     this.maskInsertedElements.length = 0;
-    this.batchedElements.length = 0;
+    this.batchedSubElements.length = 0;
   }
 
   /**
@@ -228,6 +209,6 @@ export class RenderQueue {
    * Batch the elements.
    */
   private _batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this.maskInsertedElements, this.batchedElements);
+    batcherManager.batch(this.maskInsertedElements, this.batchedSubElements);
   }
 }

@@ -17,10 +17,10 @@ import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
-import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { ShaderProperty } from "../../shader";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 
 /**
  * Renders a text for 2D graphics.
@@ -416,27 +416,28 @@ export class TextRenderer extends Renderer {
 
     const camera = context.camera;
     const engine = camera.engine;
-    const renderData2DPool = engine._renderData2DPool;
+    const subRenderData2DPool = engine._subRenderData2DPool;
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
     const batcherManager = engine._batcherManager;
+    const renderData = engine._renderDataPool.get();
+    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Text, ForceUploadShaderDataFlag.Renderer);
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
-      const renderData = renderData2DPool.get();
       const { chunk, texture } = charRenderInfo;
-      renderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
-      renderData.usage = RenderDataUsage.Text;
-      renderData.uploadFlag = ForceUploadShaderDataFlag.Renderer;
+      const subRenderData = subRenderData2DPool.get();
+      subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
+      renderData.addSubRenderData(subRenderData);
       batcherManager.commitRenderData(context, renderData);
     }
   }
 
-  protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
+  protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     return BatchUtils.canBatchSprite(elementA, elementB);
   }
 
-  protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
+  protected override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
     BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 

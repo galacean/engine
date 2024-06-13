@@ -5,6 +5,7 @@ import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
 import { RenderDataUsage } from "./enums/RenderDataUsage";
 import { DynamicGeometryDataManager } from "./DynamicGeometryDataManager";
+import { SubRenderElement } from "./SubRenderElement";
 
 export class BatcherManager {
   /** @internal */
@@ -40,41 +41,44 @@ export class BatcherManager {
     }
   }
 
-  batch(elements: Array<RenderElement>, batchedElements: Array<RenderElement>): void {
+  batch(elements: Array<RenderElement>, batchedSubElements: Array<SubRenderElement>): void {
     const length = elements.length;
     if (length === 0) {
       return;
     }
 
-    let preElement: RenderElement;
+    let preSubElement: SubRenderElement;
     let preRenderer: Renderer;
     let preUsage: RenderDataUsage;
     for (let i = 0; i < length; ++i) {
-      const curElement = elements[i];
-      const curRenderer = curElement.data.component;
+      const subElements = elements[i].subRenderElements;
+      for (let j = 0, n = subElements.length; j < n; ++j) {
+        const curSubElement = subElements[j];
+        const curRenderer = curSubElement.subData.component;
 
-      if (preElement) {
-        // @ts-ignore
-        if (preUsage === curElement.data.usage && preRenderer._canBatch(preElement, curElement)) {
+        if (preSubElement) {
           // @ts-ignore
-          preRenderer._batchRenderElement(preElement, curElement);
+          if (preUsage === curSubElement.data.usage && preRenderer._canBatch(preSubElement, curSubElement)) {
+            // @ts-ignore
+            preRenderer._batchRenderElement(preSubElement, curSubElement);
+          } else {
+            batchedSubElements.push(preSubElement);
+            preSubElement = curSubElement;
+            preRenderer = curRenderer;
+            preUsage = curSubElement.data.usage;
+            // @ts-ignore
+            preRenderer._batchRenderElement(preSubElement);
+          }
         } else {
-          batchedElements.push(preElement);
-          preElement = curElement;
+          preSubElement = curSubElement;
           preRenderer = curRenderer;
-          preUsage = curElement.data.usage;
+          preUsage = curSubElement.data.usage;
           // @ts-ignore
-          preRenderer._batchRenderElement(preElement);
+          preRenderer._batchRenderElement(preSubElement);
         }
-      } else {
-        preElement = curElement;
-        preRenderer = curRenderer;
-        preUsage = curElement.data.usage;
-        // @ts-ignore
-        preRenderer._batchRenderElement(preElement);
       }
     }
-    preElement && batchedElements.push(preElement);
+    preSubElement && batchedSubElements.push(preSubElement);
   }
 
   uploadBuffer() {

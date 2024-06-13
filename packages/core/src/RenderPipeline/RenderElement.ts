@@ -1,19 +1,23 @@
-import { StencilOperation } from "../shader";
-import { ShaderPass } from "../shader/ShaderPass";
 import { IPoolElement } from "../utils/ObjectPool";
 import { RenderData } from "./RenderData";
+import { SubRenderElement } from "./SubRenderElement";
 
 export class RenderElement implements IPoolElement {
   data: RenderData;
-  shaderPasses: ReadonlyArray<ShaderPass>;
-  stencilOperation: StencilOperation;
+  subRenderElements = Array<SubRenderElement>();
 
-  set(data: RenderData, shaderPasses: ReadonlyArray<ShaderPass>): void {
+  set(data: RenderData): void {
     this.data = data;
-    this.shaderPasses = shaderPasses;
+    this.subRenderElements.length = 0;
+  }
+
+  addSubRenderElement(element: SubRenderElement): void {
+    this.subRenderElements.push(element);
   }
 
   dispose(): void {
-    this.data = this.shaderPasses = null;
+    this.data = null;
+    this.subRenderElements.length = 0;
+    this.subRenderElements = null;
   }
 }

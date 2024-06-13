@@ -20,11 +20,16 @@ import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { PipelineStage } from "./enums/PipelineStage";
+import { SubRenderData } from "./SubRenderData";
+import { RenderElement } from "./RenderElement";
 
 /**
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
+  /** @internal */
+  static _tempRenderElements = new Map<number, RenderElement>();
+
   /** @internal */
   _cullingResults: CullingResults;
 
@@ -199,38 +204,74 @@ export class BasicRenderPipeline {
    * @param data - Render data
    */
   pushRenderData(context: RenderContext, data: RenderData): void {
-    const { material } = data;
-    const { renderStates } = material;
-    const materialSubShader = material.shader.subShaders[0];
-    const replacementShader = context.replacementShader;
+    const subRenderDataArray = data.subRenderDataArray;
+    const renderElements = BasicRenderPipeline._tempRenderElements;
+    for (let i = 0, n = subRenderDataArray.length; i < n; ++i) {
+      const subRenderData = subRenderDataArray[i];
+      const { material } = subRenderData;
+      const { renderStates } = material;
+      const materialSubShader = material.shader.subShaders[0];
+      const replacementShader = context.replacementShader;
 
-    if (replacementShader) {
-      const replacementSubShaders = replacementShader.subShaders;
-      const { replacementTag } = context;
-      if (replacementTag) {
-        for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
-          const subShader = replacementSubShaders[i];
-          if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-            this.pushRenderDataWithShader(context, data, subShader.passes, renderStates);
-            break;
+      if (replacementShader) {
+        const replacementSubShaders = replacementShader.subShaders;
+        const { replacementTag } = context;
+        if (replacementTag) {
+          for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
+            const subShader = replacementSubShaders[j];
+            if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
+              this.pushRenderDataWithShader(
+                context,
+                renderElements,
+                data,
+                subRenderData,
+                subShader.passes,
+                renderStates
+              );
+              break;
+            }
           }
+        } else {
+          this.pushRenderDataWithShader(
+            context,
+            renderElements,
+            data,
+            subRenderData,
+            replacementSubShaders[0].passes,
+            renderStates
+          );
         }
       } else {
-        this.pushRenderDataWithShader(context, data, replacementSubShaders[0].passes, renderStates);
+        this.pushRenderDataWithShader(
+          context,
+          renderElements,
+          data,
+          subRenderData,
+          materialSubShader.passes,
+          renderStates
+        );
       }
-    } else {
-      this.pushRenderDataWithShader(context, data, materialSubShader.passes, renderStates);
     }
+
+    // Push all render elements to render queue.
+    const cullingResults = this._cullingResults;
+    renderElements.get(0) && cullingResults.opaqueQueue.pushRenderElement(renderElements.get(0));
+    renderElements.get(1) && cullingResults.alphaTestQueue.pushRenderElement(renderElements.get(1));
+    renderElements.get(2) && cullingResults.transparentQueue.pushRenderElement(renderElements.get(2));
+    renderElements.clear();
   }
 
   private pushRenderDataWithShader(
     context: RenderContext,
-    element: RenderData,
+    renderElements: Map<number, RenderElement>,
+    renderData: RenderData,
+    subRenderData: SubRenderData,
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
-    const { opaqueQueue, alphaTestQueue, transparentQueue } = this._cullingResults;
-    const renderElementPool = context.camera.engine._renderElementPool;
+    const engine = context.camera.engine;
+    const renderElementPool = engine._renderElementPool;
+    const subRenderElementPool = engine._subRenderElementPool;
 
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
@@ -239,7 +280,7 @@ export class BasicRenderPipeline {
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
       if (renderState) {
-        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, element.material.shaderData);
+        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, subRenderData.material.shaderData);
         renderQueueType = renderState.renderQueueType;
       } else {
         renderQueueType = renderStates[i].renderQueueType;
@@ -249,19 +290,38 @@ export class BasicRenderPipeline {
         continue;
       }
 
-      const renderElement = renderElementPool.get();
-      renderElement.set(element, shaderPasses);
+      const subRenderElement = subRenderElementPool.get();
+      subRenderElement.set(renderData, subRenderData, shaderPasses);
+      let renderElement: RenderElement;
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          opaqueQueue.pushRenderElement(renderElement);
+          renderElement = renderElements.get(0);
+          if (!renderElement) {
+            renderElement = renderElementPool.get();
+            renderElement.set(renderData);
+            renderElements.set(0, renderElement);
+          }
+          renderElement.addSubRenderElement(subRenderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.Opaque;
           break;
         case RenderQueueType.AlphaTest:
-          alphaTestQueue.pushRenderElement(renderElement);
+          renderElement = renderElements.get(1);
+          if (!renderElement) {
+            renderElement = renderElementPool.get();
+            renderElement.set(renderData);
+            renderElements.set(1, renderElement);
+          }
+          renderElement.addSubRenderElement(subRenderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.AlphaTest;
           break;
         case RenderQueueType.Transparent:
-          transparentQueue.pushRenderElement(renderElement);
+          renderElement = renderElements.get(2);
+          if (!renderElement) {
+            renderElement = renderElementPool.get();
+            renderElement.set(renderData);
+            renderElements.set(2, renderElement);
+          }
+          renderElement.addSubRenderElement(subRenderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.Transparent;
           break;
       }
