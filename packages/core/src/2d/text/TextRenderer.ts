@@ -15,9 +15,8 @@ import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
-import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
-import { Shader, ShaderData, ShaderProperty } from "../../shader";
+import { ShaderData, ShaderProperty } from "../../shader";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
@@ -434,7 +433,7 @@ export class TextRenderer extends Renderer {
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
     const renderData = engine._renderDataPool.get();
-    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Text);
+    renderData.set(this.priority, this._distanceForSort);
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const { chunk, texture } = charRenderInfo;

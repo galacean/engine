@@ -1,10 +1,9 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
+import { DynamicGeometryDataManager } from "./DynamicGeometryDataManager";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
-import { RenderDataUsage } from "./enums/RenderDataUsage";
-import { DynamicGeometryDataManager } from "./DynamicGeometryDataManager";
 import { SubRenderElement } from "./SubRenderElement";
 
 export class BatcherManager {
@@ -30,15 +29,7 @@ export class BatcherManager {
   }
 
   commitRenderData(context: RenderContext, data: RenderData): void {
-    switch (data.usage) {
-      case RenderDataUsage.Mesh:
-      case RenderDataUsage.Sprite:
-      case RenderDataUsage.Text:
-        context.camera._renderPipeline.pushRenderData(context, data);
-        break;
-      default:
-        break;
-    }
+    context.camera._renderPipeline.pushRenderData(context, data);
   }
 
   batch(elements: Array<RenderElement>, batchedSubElements: Array<SubRenderElement>): void {
@@ -49,27 +40,27 @@ export class BatcherManager {
 
     let preSubElement: SubRenderElement;
     let preRenderer: Renderer;
-    let preUsage: RenderDataUsage;
+    let preConstructor: Function;
     for (let i = 0; i < length; ++i) {
       const subElements = elements[i].data.subRenderElements;
       for (let j = 0, n = subElements.length; j < n; ++j) {
         const curSubElement = subElements[j];
         const curRenderer = curSubElement.component;
-
+        const curConstructor = curRenderer.constructor;
         if (preSubElement) {
-          if (preUsage === curSubElement.data.usage && preRenderer._canBatch(preSubElement, curSubElement)) {
+          if (preConstructor === curConstructor && preRenderer._canBatch(preSubElement, curSubElement)) {
             preRenderer._batchRenderElement(preSubElement, curSubElement);
           } else {
             batchedSubElements.push(preSubElement);
             preSubElement = curSubElement;
             preRenderer = curRenderer;
-            preUsage = curSubElement.data.usage;
+            preConstructor = curConstructor;
             preRenderer._batchRenderElement(preSubElement);
           }
         } else {
           preSubElement = curSubElement;
           preRenderer = curRenderer;
-          preUsage = curSubElement.data.usage;
+          preConstructor = curConstructor;
           preRenderer._batchRenderElement(preSubElement);
         }
       }

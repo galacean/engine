@@ -1,7 +1,11 @@
 import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { Chunk } from "../../RenderPipeline/Chunk";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -9,11 +13,6 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
-import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk } from "../../RenderPipeline/Chunk";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 
 /**
  * A component for masking Sprites.
@@ -263,7 +262,7 @@ export class SpriteMask extends Renderer {
 
     const chunk = this._chunk;
     const renderData = engine._renderDataPool.get();
-    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.SpriteMask);
+    renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     subRenderElement.setShaderPasses(material.shader.subShaders[0].passes);
