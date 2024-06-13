@@ -20,16 +20,12 @@ import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { PipelineStage } from "./enums/PipelineStage";
-import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  /** @internal */
-  static _tempRenderElements = new Map<number, RenderElement>();
-
   /** @internal */
   _cullingResults: CullingResults;
 
@@ -205,7 +201,6 @@ export class BasicRenderPipeline {
    */
   pushRenderData(context: RenderContext, data: RenderData): void {
     const subRenderElements = data.subRenderElements;
-    const renderElements = BasicRenderPipeline._tempRenderElements;
     for (let i = 0, n = subRenderElements.length; i < n; ++i) {
       const subRenderElement = subRenderElements[i];
       const { material } = subRenderElement;
@@ -220,55 +215,27 @@ export class BasicRenderPipeline {
           for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
             const subShader = replacementSubShaders[j];
             if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              this.pushRenderDataWithShader(
-                context,
-                renderElements,
-                data,
-                subRenderElement,
-                subShader.passes,
-                renderStates
-              );
+              this.pushRenderDataWithShader(context, data, subRenderElement, subShader.passes, renderStates);
               break;
             }
           }
         } else {
-          this.pushRenderDataWithShader(
-            context,
-            renderElements,
-            data,
-            subRenderElement,
-            replacementSubShaders[0].passes,
-            renderStates
-          );
+          this.pushRenderDataWithShader(context, data, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
       } else {
-        this.pushRenderDataWithShader(
-          context,
-          renderElements,
-          data,
-          subRenderElement,
-          materialSubShader.passes,
-          renderStates
-        );
+        this.pushRenderDataWithShader(context, data, subRenderElement, materialSubShader.passes, renderStates);
       }
     }
-
-    // Push all render elements to render queue.
-    const cullingResults = this._cullingResults;
-    renderElements.get(0) && cullingResults.opaqueQueue.pushRenderElement(renderElements.get(0));
-    renderElements.get(1) && cullingResults.alphaTestQueue.pushRenderElement(renderElements.get(1));
-    renderElements.get(2) && cullingResults.transparentQueue.pushRenderElement(renderElements.get(2));
-    renderElements.clear();
   }
 
   private pushRenderDataWithShader(
     context: RenderContext,
-    renderElements: Map<number, RenderElement>,
     renderData: RenderData,
     subRenderElement: SubRenderElement,
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
+    const cullingResults = this._cullingResults;
     const engine = context.camera.engine;
     const renderElementPool = engine._renderElementPool;
     let renderQueueAddedFlags = RenderQueueAddedFlag.None;
@@ -289,36 +256,19 @@ export class BasicRenderPipeline {
       }
 
       subRenderElement.setShaderPasses(shaderPasses);
-      let renderElement: RenderElement;
+      const renderElement = renderElementPool.get();
+      renderElement.set(renderData);
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          renderElement = renderElements.get(0);
-          if (!renderElement) {
-            renderElement = renderElementPool.get();
-            renderElement.set(renderData);
-            renderElements.set(0, renderElement);
-          }
-          renderElement.data.addSubRenderElement(subRenderElement);
+          cullingResults.opaqueQueue.pushRenderElement(renderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.Opaque;
           break;
         case RenderQueueType.AlphaTest:
-          renderElement = renderElements.get(1);
-          if (!renderElement) {
-            renderElement = renderElementPool.get();
-            renderElement.set(renderData);
-            renderElements.set(1, renderElement);
-          }
-          renderElement.data.addSubRenderElement(subRenderElement);
+          cullingResults.alphaTestQueue.pushRenderElement(renderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.AlphaTest;
           break;
         case RenderQueueType.Transparent:
-          renderElement = renderElements.get(2);
-          if (!renderElement) {
-            renderElement = renderElementPool.get();
-            renderElement.set(renderData);
-            renderElements.set(2, renderElement);
-          }
-          renderElement.data.addSubRenderElement(subRenderElement);
+          cullingResults.transparentQueue.pushRenderElement(renderElement);
           renderQueueAddedFlags |= RenderQueueAddedFlag.Transparent;
           break;
       }
