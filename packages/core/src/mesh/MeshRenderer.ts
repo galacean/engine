@@ -150,7 +150,6 @@ export class MeshRenderer extends Renderer {
 
     const { _materials: materials, _engine: engine } = this;
     const subMeshes = mesh.subMeshes;
-    const batcherManager = context.camera.engine._batcherManager;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderDataPool = engine._subRenderDataPool;
@@ -166,8 +165,8 @@ export class MeshRenderer extends Renderer {
       const subRenderData = subRenderDataPool.get();
       subRenderData.set(this, material, mesh._primitive, subMeshes[i]);
       renderData.addSubRenderData(subRenderData);
-      batcherManager.commitRenderData(context, renderData);
     }
+    engine._batcherManager.commitRenderData(context, renderData);
   }
 
   private _setMesh(mesh: Mesh): void {
