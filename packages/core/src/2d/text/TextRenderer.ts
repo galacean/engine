@@ -416,6 +416,7 @@ export class TextRenderer extends Renderer {
 
     const camera = context.camera;
     const engine = camera.engine;
+    const shaderData = this.shaderData;
     const subRenderData2DPool = engine._subRenderData2DPool;
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
@@ -428,6 +429,11 @@ export class TextRenderer extends Renderer {
       const { chunk, texture } = charRenderInfo;
       const subRenderData = subRenderData2DPool.get();
       subRenderData.set(this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
+      subRenderData.addShaderDataInfo({
+        applyFunc: shaderData.setTexture.bind(shaderData),
+        property: TextRenderer._textureProperty,
+        value: texture
+      });
       renderData.addSubRenderData(subRenderData);
       batcherManager.commitRenderData(context, renderData);
     }

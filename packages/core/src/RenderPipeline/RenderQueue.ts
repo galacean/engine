@@ -7,7 +7,6 @@ import { RenderElement } from "./RenderElement";
 import { BatcherManager } from "./BatcherManager";
 import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { MaskManager } from "./MaskManager";
-import { RenderDataUsage } from "./enums/RenderDataUsage";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
@@ -77,9 +76,7 @@ export class RenderQueue {
       const { data, subData, shaderPasses } = subElement;
       const { uploadFlag } = data;
 
-      data.usage === RenderDataUsage.Text &&
-        // @ts-ignore
-        subData.component.shaderData.setTexture("renderer_SpriteTexture", subData.texture);
+      subElement.updateShaderData();
 
       const compileMacros = Shader._compileMacros;
       const primitive = subData.primitive;

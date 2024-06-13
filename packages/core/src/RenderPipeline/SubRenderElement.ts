@@ -20,4 +20,12 @@ export class SubRenderElement implements IPoolElement {
     this.subData = null;
     this.shaderPasses = null;
   }
+
+  updateShaderData(): void {
+    const shaderDataInfos = this.subData.shaderDataInfos;
+    for (let i = 0, n = shaderDataInfos.length; i < n; ++i) {
+      const shaderDataInfo = shaderDataInfos[i];
+      shaderDataInfo.applyFunc(shaderDataInfo.property, shaderDataInfo.value);
+    }
+  }
 }
