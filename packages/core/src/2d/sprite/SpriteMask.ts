@@ -11,7 +11,6 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Chunk } from "../../RenderPipeline/Chunk";
-import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
@@ -264,7 +263,7 @@ export class SpriteMask extends Renderer {
 
     const chunk = this._chunk;
     const renderData = engine._renderDataPool.get();
-    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.SpriteMask, ForceUploadShaderDataFlag.None);
+    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.SpriteMask);
     const subRenderElement = engine._subRenderElementPool.get();
     subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
     subRenderElement.setShaderPasses(material.shader.subShaders[0].passes);

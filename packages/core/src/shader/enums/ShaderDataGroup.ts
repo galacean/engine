@@ -9,5 +9,7 @@ export enum ShaderDataGroup {
   /** Renderer group. */
   Renderer,
   /** material group. */
-  Material
+  Material,
+  /** render element group. */
+  RenderElement
 }

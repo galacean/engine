@@ -17,16 +17,16 @@ import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
-import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
-import { ShaderProperty } from "../../shader";
+import { Shader, ShaderData, ShaderProperty } from "../../shader";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
-  private static _textureProperty = ShaderProperty.getByName("renderer_SpriteTexture");
+  private static _textureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
   private static _tempVec30 = new Vector3();
   private static _tempVec31 = new Vector3();
@@ -303,7 +303,7 @@ export class TextRenderer extends Renderer {
     const { engine } = this;
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
-    this.setMaterial(engine._spriteDefaultMaterial);
+    this.setMaterial(engine._textDefaultMaterial);
   }
 
   /**
@@ -429,23 +429,22 @@ export class TextRenderer extends Renderer {
 
     const camera = context.camera;
     const engine = camera.engine;
-    const shaderData = this.shaderData;
     const subRenderElementPool = engine._subRenderElementPool;
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
     const renderData = engine._renderDataPool.get();
-    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Text, ForceUploadShaderDataFlag.Renderer);
+    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Text);
     for (let i = 0; i < charCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const { chunk, texture } = charRenderInfo;
       const subRenderElement = subRenderElementPool.get();
       subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
-      subRenderElement.addShaderDataInfo({
-        applyFunc: shaderData.setTexture.bind(shaderData),
-        property: TextRenderer._textureProperty,
-        value: texture
-      });
+      // TODO
+      if (!subRenderElement.shaderData) {
+        subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
+      }
+      subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderData.addSubRenderElement(subRenderElement);
     }
     engine._batcherManager.commitRenderData(context, renderData);

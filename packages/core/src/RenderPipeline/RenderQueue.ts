@@ -5,7 +5,6 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { BatcherManager } from "./BatcherManager";
-import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
 import { MaskManager } from "./MaskManager";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -73,15 +72,13 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      const { data, shaderPasses } = subElement;
-      const { uploadFlag } = data;
-
-      subElement.updateShaderData();
+      const { shaderPasses } = subElement;
 
       const compileMacros = Shader._compileMacros;
       const primitive = subElement.primitive;
       const renderer = subElement.component;
       const material = subElement.material;
+      const renderElementRenderData = subElement.shaderData;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
@@ -119,6 +116,7 @@ export class RenderQueue {
           program.uploadAll(program.cameraUniformBlock, cameraData);
           program.uploadAll(program.rendererUniformBlock, rendererData);
           program.uploadAll(program.materialUniformBlock, materialData);
+          renderElementRenderData && program.uploadAll(program.renderElementUniformBlock, renderElementRenderData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
           program.uploadUnGroupTextures();
           program._uploadSceneId = sceneId;
@@ -130,30 +128,32 @@ export class RenderQueue {
           if (program._uploadSceneId !== sceneId) {
             program.uploadAll(program.sceneUniformBlock, sceneData);
             program._uploadSceneId = sceneId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Scene) {
+          } else if (switchProgram) {
             program.uploadTextures(program.sceneUniformBlock, sceneData);
           }
 
           if (program._uploadCameraId !== cameraId) {
             program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCameraId = cameraId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Camera) {
+          } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
 
           if (program._uploadRendererId !== rendererId) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRendererId = rendererId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Renderer) {
+          } else if (switchProgram) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
 
           if (program._uploadMaterialId !== materialId) {
             program.uploadAll(program.materialUniformBlock, materialData);
             program._uploadMaterialId = materialId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Material) {
+          } else if (switchProgram) {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
+
+          renderElementRenderData && program.uploadAll(program.renderElementUniformBlock, renderElementRenderData);
 
           // We only consider switchProgram case, because UnGroup texture's value is always default.
           if (switchProgram) {

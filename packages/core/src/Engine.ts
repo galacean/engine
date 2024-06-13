@@ -98,6 +98,8 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _spriteDefaultMaterials: Material[] = [];
   /* @internal */
+  _textDefaultMaterial: Material;
+  /* @internal */
   _spriteMaskDefaultMaterial: Material;
   /* @internal */
   _textDefaultFont: Font;
@@ -260,6 +262,7 @@ export class Engine extends EventDispatcher {
     spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
       SpriteMaskInteraction.VisibleOutsideMask
     );
+    this._textDefaultMaterial = this._createTextMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
@@ -715,6 +718,23 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createTextMaterial(): Material {
+    const material = new Material(this, Shader.find("Text"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
     renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;

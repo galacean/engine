@@ -17,7 +17,6 @@ import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
 import { Chunk } from "../../RenderPipeline/Chunk";
-import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
 import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
@@ -373,7 +372,7 @@ export class SpriteRenderer extends Renderer {
     const camera = context.camera;
     const engine = camera.engine;
     const renderData = engine._renderDataPool.get();
-    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Sprite, ForceUploadShaderDataFlag.None);
+    renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Sprite);
     const subRenderElement = engine._subRenderElementPool.get();
     const chunk = this._chunk;
     subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
