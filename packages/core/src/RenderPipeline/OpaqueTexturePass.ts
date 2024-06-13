@@ -5,7 +5,6 @@ import { Texture, Texture2D, TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
-import { CullingResults } from "./CullingResults";
 import { PipelinePass } from "./PipelinePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
@@ -48,7 +47,7 @@ export class OpaqueTexturePass extends PipelinePass {
     this._renderTarget = opaqueRenderTarget;
   }
 
-  onRender(context: RenderContext, _: CullingResults): void {
+  onRender(context: RenderContext): void {
     PipelineUtils.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }

@@ -178,7 +178,7 @@ export class BasicRenderPipeline {
 
       const opaqueTexturePass = this._opaqueTexturePass;
       opaqueTexturePass.onConfig(camera, colorTarget.getColorTexture(0));
-      opaqueTexturePass.onRender(context, cullingResults);
+      opaqueTexturePass.onRender(context);
 
       // Should revert to original render target
       rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);

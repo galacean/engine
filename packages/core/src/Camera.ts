@@ -21,6 +21,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
@@ -162,7 +163,15 @@ export class Camera extends Component {
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    if (this._renderTarget) {
+    const offscreenColorTexture = this.renderTarget?.getColorTexture(0);
+
+    if (
+      this._renderTarget &&
+      (!this.enableHDR ||
+        (offscreenColorTexture &&
+          (offscreenColorTexture.format === TextureFormat.R16G16B16A16 ||
+            offscreenColorTexture.format === TextureFormat.R32G32B32A32)))
+    ) {
       return false;
     }
 
@@ -792,7 +801,7 @@ export class Camera extends Component {
   }
 
   private _forceUseInternalCanvas(): boolean {
-    // @todo: enablePostProcess && (get whether there is an activated post process effect).
+    // @todo: enablePostProcess && (whether there is an activated post process effect).
     return this.enableHDR || this.enablePostProcess || this.opaqueTextureEnabled;
   }
 
