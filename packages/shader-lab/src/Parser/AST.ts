@@ -761,7 +761,7 @@ export namespace ASTNode {
   }
 
   export class FunctionCallGeneric extends ExpressionAstNode {
-    fnSymbol: FnSymbol | undefined;
+    fnSymbol: FnSymbol | StructSymbol | undefined;
 
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_call_generic, loc, children);

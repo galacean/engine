@@ -11,7 +11,6 @@ import { LALR1 } from "../LALR";
 import { ParserUtils } from "../Utils";
 import { Logger } from "../Logger";
 import { ParseError } from "../Error";
-
 export default class Parser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
@@ -30,13 +29,18 @@ export default class Parser {
     return this.gotoTable.get(this.curState);
   }
 
+  static _singleton: Parser;
+
   static create() {
-    const grammar = createGrammar();
-    const generator = new LALR1(grammar);
-    generator.generate();
-    const parser = new Parser(generator.actionTable, generator.gotoTable, grammar);
-    addTranslationRule(parser.sematicAnalyzer);
-    return parser;
+    if (!this._singleton) {
+      const grammar = createGrammar();
+      const generator = new LALR1(grammar);
+      generator.generate();
+      this._singleton = new Parser(generator.actionTable, generator.gotoTable, grammar);
+      addTranslationRule(this._singleton.sematicAnalyzer);
+    }
+
+    return this._singleton;
   }
 
   private constructor(actionTable: StateActionTable, gotoTable: StateGotoTable, grammar: Grammar) {

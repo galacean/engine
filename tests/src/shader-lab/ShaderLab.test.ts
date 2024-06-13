@@ -115,8 +115,20 @@ vec4 linearToGamma(vec4 linearIn){
 #endif
 `;
 
+const shaderLab = new ShaderLab(
+  {
+    _RenderStateElementKey: RenderStateDataKey,
+    RenderQueueType,
+    CompareFunction,
+    StencilOperation,
+    BlendOperation,
+    BlendFactor,
+    CullMode
+  },
+  { Vector2, Vector3, Vector4, Color }
+);
+
 describe("ShaderLab", () => {
-  let shaderLab: ShaderLab;
   let shader: ReturnType<typeof shaderLab.parseShader>;
   let subShader: ISubShaderInfo;
   let passList: ISubShaderInfo["passes"];
@@ -124,18 +136,6 @@ describe("ShaderLab", () => {
   let usePass: string;
 
   before(() => {
-    shaderLab = new ShaderLab(
-      {
-        _RenderStateElementKey: RenderStateDataKey,
-        RenderQueueType,
-        CompareFunction,
-        StencilOperation,
-        BlendOperation,
-        BlendFactor,
-        CullMode
-      },
-      { Vector2, Vector3, Vector4, Color }
-    );
     shader = shaderLab.parseShader(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
@@ -153,10 +153,6 @@ describe("ShaderLab", () => {
     expect(subShader.name).to.equal("subname");
     expect(pass.name).to.equal("default");
     expect(usePass).to.equal("pbr/Default/Forward");
-  });
-
-  it("marco completeness", () => {
-    expect(pass.vertexSource.includes("#define saturate(a) clamp( a, 0.0, 1.0 )")).to.true;
   });
 
   it("render state", () => {

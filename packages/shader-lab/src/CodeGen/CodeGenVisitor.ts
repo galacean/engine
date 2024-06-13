@@ -3,7 +3,7 @@ import Token from "../Token";
 import { EKeyword } from "../common";
 import { Logger } from "../Logger";
 import { ASTNode, TreeNode } from "../Parser/AST";
-import { ESymbolType, VarSymbol } from "../Parser/SymbolTable";
+import { ESymbolType, FnSymbol, VarSymbol } from "../Parser/SymbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../Parser/types";
 import { VisitorContext } from "./VisitorContext";
@@ -89,7 +89,7 @@ export abstract class CodeGenVisitor {
 
   visitFunctionCall(node: ASTNode.FunctionCall): string {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
-    if (call.fnSymbol) {
+    if (call.fnSymbol instanceof FnSymbol) {
       this.context._referencedGlobals.set(call.fnSymbol.lexeme, call.fnSymbol);
 
       const paramList = call.children[2];

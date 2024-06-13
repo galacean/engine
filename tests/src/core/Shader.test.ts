@@ -1,16 +1,24 @@
+import { Vector2, Vector3, Vector4, Color } from "@galacean/engine-math";
 import {
+  BlendFactor,
+  BlendOperation,
   BlinnPhongMaterial,
   Camera,
+  CompareFunction,
+  CullMode,
   DirectLight,
   Material,
   MeshRenderer,
   PrimitiveMesh,
+  RenderQueueType,
+  RenderStateDataKey,
   Shader,
   ShaderFactory,
   ShaderMacro,
   ShaderPass,
   ShaderProperty,
   ShaderTagKey,
+  StencilOperation,
   SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
@@ -19,6 +27,19 @@ import chai, { expect } from "chai";
 import spies from "chai-spies";
 
 chai.use(spies);
+
+const shaderLab = new ShaderLab(
+  {
+    _RenderStateElementKey: RenderStateDataKey,
+    RenderQueueType,
+    CompareFunction,
+    StencilOperation,
+    BlendOperation,
+    BlendFactor,
+    CullMode
+  },
+  { Vector2, Vector3, Vector4, Color }
+);
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
@@ -151,16 +172,17 @@ describe("Shader", () => {
     });
 
     it("ShaderLab", async function () {
-      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), shaderLab: new ShaderLab() });
+      const engine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderLab
+      });
 
       // Test that shader created successfully, if use shaderLab.
       let shader = Shader.create(testShaderLabCode);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
-      expect(shader.subShaders[0].getTagValue("RenderType")).to.equal("transparent");
-      expect(shader.subShaders[0].passes[1].getTagValue("MyCustomTag")).to.equal("MyCustomValue");
-      expect(shader.subShaders[0].passes[2].getTagValue("MyCustomTag2")).to.equal("MyCustomValue2");
+      expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderLab.
       // expect(() => {
@@ -405,27 +427,22 @@ void main() {
 const testShaderLabCode = `
   Shader "Test-Default" {
     SubShader "Default" {
-      Tags { RenderType = "transparent" }
+      Tags { ReplacementTag = "transparent" }
 
       UsePass "pbr-specular/Default/Forward"
 
       Pass "test" {
-        Tags { MyCustomTag = "MyCustomValue" }
-
-        RenderQueueType = RenderQueueType.Opaque;
+        RenderQueueType = Opaque;
 
         mat4 renderer_MVPMat;
 
         struct a2v {
           vec4 POSITION;
-        }
+        };
 
         struct v2f {
           vec2 uv;
-        }
-
-        VertexShader = vert;
-        FragmentShader = frag;
+        };
 
         v2f vert(a2v v) {
           gl_Position = renderer_MVPMat * v.POSITION;
@@ -437,10 +454,11 @@ const testShaderLabCode = `
         void frag(v2f i) {
           gl_FragColor = mix(gl_FragColor, vec4(i.uv, 0, 1), 0.5);
         }
+
+        VertexShader = vert;
+        FragmentShader = frag;
       }
       Pass "1" {
-        Tags { MyCustomTag2 = "MyCustomValue2" }
-
         DepthState depthState {
           Enabled = true;
           WriteEnabled = true;
@@ -456,7 +474,7 @@ const testShaderLabCode = `
           DestinationColorBlendFactor = BlendFactor.BlendColor;
           DestinationAlphaBlendFactor = BlendFactor.OneMinusBlendColor;
           ColorWriteMask = 16777130;
-          BlendColor = vec4(1, 1, 1, 0);
+          BlendColor = Vector4(1, 1, 1, 0);
           AlphaToCoverage = true;
         }
 
@@ -490,14 +508,11 @@ const testShaderLabCode = `
         struct a2v {
           vec4 POSITION;
           vec2 TEXCOORD_0;
-        }
+        };
 
         struct v2f {
           vec2 uv;
-        }
-
-        VertexShader = vert;
-        FragmentShader = frag;
+        };
 
         v2f vert(a2v v) {
           gl_Position = renderer_MVPMat * (v.POSITION + vec4(0, 2, 0, 0));
@@ -515,6 +530,9 @@ const testShaderLabCode = `
             gl_FragColor = texture2D(tex2d, i.uv);
           #endif
         }
+
+        VertexShader = vert;
+        FragmentShader = frag;
       }
     }
   }

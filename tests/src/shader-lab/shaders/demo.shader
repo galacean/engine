@@ -72,6 +72,8 @@ Shader "Water" {
     DepthState = depthState;
     RasterState = rasterState;
 
+    RenderQueueType = Opaque;
+
     #define SCENE_SHADOW_TYPE 3
 
       v2f vert(a2v v) {

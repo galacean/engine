@@ -126,6 +126,9 @@ export default class SymbolTable {
         found = entry.find((item) => item.symType === type);
       } else {
         found = entry.find((item) => {
+          // struct constructor
+          if (item.symType === ESymbolType.STRUCT) return true;
+
           const itemParams = (<ASTNode.FunctionDefinition>item.astNode)?.protoType.paramSig;
           if (item.symType !== ESymbolType.FN || signature?.length !== itemParams?.length) return false;
           for (let i = 0; i < signature?.length ?? 0; i++) {
