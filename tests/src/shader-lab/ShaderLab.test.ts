@@ -155,6 +155,10 @@ describe("ShaderLab", () => {
     expect(usePass).to.equal("pbr/Default/Forward");
   });
 
+  it("marco completeness", () => {
+    expect(pass.vertexSource.includes("#define saturate(a) clamp( a, 0.0, 1.0 )")).to.true;
+  });
+
   it("render state", () => {
     expect(pass.renderStates).not.be.null;
 
@@ -242,8 +246,13 @@ describe("ShaderLab", () => {
 
     const shaderInstance = Shader.create(demoShader);
     expect(shaderInstance).instanceOf(Shader);
-    expect(Shader.create.bind(null, demoShader)).to.throw('Shader named "Gem" already exists.');
+
+    const errorSpy = chai.spy.on(console, "error");
+    Shader.create(demoShader);
+    expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
     shaderInstance.destroy();
+    chai.spy.restore(console, "error");
+
     const sameNameShader = Shader.create(demoShader);
     expect(sameNameShader).instanceOf(Shader);
   });
