@@ -43,6 +43,7 @@ Shader "Water" {
       struct a2v {
        vec4 POSITION;
        vec2 TEXCOORD_0; 
+       mat3 TBN;
       }
 
       struct v2f {
@@ -88,6 +89,7 @@ Shader "Water" {
         vec4 tmp = renderer_MVMat * POSITION;
         o.v_position = tmp.xyz;
         gl_Position = renderer_MVPMat * v.POSITION;
+        vec3 tangentW = v.TBN[0];
         return o;
       }
 
