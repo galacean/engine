@@ -421,7 +421,6 @@ export class TextRenderer extends Renderer {
     const material = this.getMaterial();
     const charRenderInfos = this._charRenderInfos;
     const charCount = charRenderInfos.length;
-    const batcherManager = engine._batcherManager;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort, RenderDataUsage.Text, ForceUploadShaderDataFlag.Renderer);
     for (let i = 0; i < charCount; ++i) {
@@ -435,8 +434,8 @@ export class TextRenderer extends Renderer {
         value: texture
       });
       renderData.addSubRenderData(subRenderData);
-      batcherManager.commitRenderData(context, renderData);
     }
+    engine._batcherManager.commitRenderData(context, renderData);
   }
 
   protected override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
