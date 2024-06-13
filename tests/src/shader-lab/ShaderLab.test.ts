@@ -11,7 +11,7 @@ import {
 } from "@galacean/engine-core";
 import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { Logger, LoggerLevel, ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
 import { Shader } from "@galacean/engine-core";
 
@@ -22,7 +22,7 @@ import path from "path";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
-// Logger.setLevel(LoggerLevel.info);
+Logger.setLevel(LoggerLevel.debug);
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;

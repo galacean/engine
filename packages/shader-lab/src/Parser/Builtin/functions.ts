@@ -290,6 +290,10 @@ BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, EKe
 BuiltinFunction._create("textureLod", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC3, EKeyword.FLOAT);
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, EKeyword.VEC3, EKeyword.FLOAT);
 
+BuiltinFunction._create("textureCube", EKeyword.SAMPLER_CUBE, EKeyword.VEC3);
+BuiltinFunction._create("textureCube", EKeyword.SAMPLER_CUBE, EKeyword.VEC3, EKeyword.FLOAT);
+BuiltinFunction._create("textureCubeLod", EKeyword.SAMPLER_CUBE, EKeyword.VEC3, EKeyword.FLOAT);
+
 BuiltinFunction._create(
   "textureOffset",
   EGenType.GVec4,

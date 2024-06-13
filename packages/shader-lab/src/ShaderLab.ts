@@ -4,6 +4,7 @@ import Preprocessor from "./Preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./CodeGen";
 import { IEngineType, EngineType, IEngineFunction, EngineFunctions } from "./EngineType";
 import { IShaderLab } from "@galacean/engine-design";
+import { Logger } from "./Logger";
 
 export enum EBackend {
   GLES100,
@@ -21,6 +22,7 @@ export class ShaderLab implements IShaderLab {
 
   parseShader(source: string, includeMap: Record<string, string> = {}, backend = EBackend.GLES300) {
     const preprocessor = new Preprocessor(source, includeMap);
+    Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     const ppdContent = preprocessor.process();
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();

@@ -10,6 +10,7 @@ import { addTranslationRule, createGrammar } from "../LALR/cfg";
 import { LALR1 } from "../LALR";
 import { ParserUtils } from "../Utils";
 import { Logger } from "../Logger";
+import { ParseError } from "../Error";
 
 export default class Parser {
   readonly actionTable: StateActionTable;
@@ -17,7 +18,7 @@ export default class Parser {
   readonly grammar: Grammar;
   readonly sematicAnalyzer: SematicAnalyzer;
   private traceBackStack: (TraceStackItem | number)[] = [];
-  private logger = new Logger("Parser");
+  logger = new Logger("Parser");
 
   private get curState() {
     return this.traceBackStack[this.traceBackStack.length - 1] as number;
@@ -96,8 +97,8 @@ export default class Parser {
         this.printStack(token);
         continue;
       } else {
-        this.logger.error(`parse error token ${token} at`, token.location);
-        throw "invalid action table";
+        this.logger.errorLoc(token.location, `parse error token ${token}`);
+        throw new ParseError(`invalid action table by token ${token.lexeme}`, token.location);
       }
     }
   }

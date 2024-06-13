@@ -137,7 +137,9 @@ gl_editor_prop_type:
 
 gl_editor_prop_type_param:
     INT_CONSTANT
+    | '-' INT_CONSTANT
     | FLOAT_CONSTANT
+    | '-' FLOAT_CONSTANT
     | true
     | false
     ;

@@ -1,7 +1,7 @@
 import { Logger } from "../Logger";
 import { ASTNode } from "./AST";
 import SematicAnalyzer from "./SemanticAnalyzer";
-import { GalaceanDataType, SymbolType } from "./types";
+import { GalaceanDataType, SymbolType, TypeAny } from "./types";
 
 export enum ESymbolType {
   VAR,
@@ -128,6 +128,7 @@ export default class SymbolTable {
           const itemParams = (<ASTNode.FunctionDefinition>item.astNode)?.protoType.paramSig;
           if (item.symType !== ESymbolType.FN || signature?.length !== itemParams?.length) return false;
           for (let i = 0; i < signature?.length ?? 0; i++) {
+            if (signature[i] === TypeAny || itemParams[i] === TypeAny) continue;
             if (signature[i] !== itemParams![i]) return false;
           }
           return true;

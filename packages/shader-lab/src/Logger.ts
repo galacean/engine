@@ -1,5 +1,7 @@
+import { LocRange } from "./common";
+
 export enum LoggerLevel {
-  info = 0,
+  log = 0,
   debug = 1,
   warn = 2,
   error = 3,
@@ -16,6 +18,8 @@ export class Logger {
     return Logger._level < LoggerLevel.off;
   }
 
+  static convertSourceIndex: (index: number) => { sourceFile: string; index: number };
+
   readonly name: string;
 
   constructor(name: string) {
@@ -27,7 +31,7 @@ export class Logger {
   }
 
   log(...param: any[]) {
-    if (Logger._level > LoggerLevel.info) return;
+    if (Logger._level > LoggerLevel.log) return;
     this._log(Logger.GREEN, ...param);
   }
 
@@ -44,6 +48,12 @@ export class Logger {
   error(...param: any[]) {
     if (Logger._level > LoggerLevel.error) return;
     this._log(Logger.RED, ...param);
+  }
+
+  errorLoc(loc: LocRange, ...param: any[]) {
+    if (Logger._level > LoggerLevel.error) return;
+    const locInfo = Logger.convertSourceIndex(loc.start.index);
+    this._log(Logger.RED, `<loc: ${locInfo.index} at ${locInfo.sourceFile}>`, ...param);
   }
 
   static RED = 1;

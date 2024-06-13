@@ -1,7 +1,7 @@
 import { Logger } from "../Logger";
 import { LocRange } from "../common";
 import { TreeNode } from "./AST";
-import { SemanticError } from "./Error";
+import { SemanticError } from "../Error";
 import { EShaderDataType, GLPassShaderData, GLShaderData, GLSubShaderData, ShaderData } from "./ShaderInfo";
 import SymbolTable from "./SymbolTable";
 import { NodeChild } from "./types";
@@ -70,7 +70,7 @@ export default class SematicAnalyzer {
   }
 
   error(loc: LocRange, ...param: any[]) {
-    this.logger.error(`<line: ${loc.start.line}, column: ${loc.start.column}>`, ...param);
+    this.logger.errorLoc(loc, ...param);
 
     const err = new SemanticError(param.join(""), loc);
     this.errors.push(err);

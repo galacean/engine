@@ -1,3 +1,9 @@
+void Gerstner() {
+    // #ifdef CALCULATE_NORMALS
+    nrml += GerstnerNormal4( position, amplitude, frequency, speed, directionAB, directionCD, normalStr );
+    // #endif
+  }
+
 #if defined(SCENE_SHADOW_TYPE ) && defined( RENDERER_IS_RECEIVE_SHADOWS )
 #define SCENE_IS_CALCULATE_SHADOWS
 #endif
@@ -6,9 +12,6 @@
 
 #define TT 1.0 // comments
 #define QQ
-
-#define SCENE_IS_CALCULATE_SHADOWS
-#define SCENE_SHADOW_CASCADED_COUNT 1
 
 vec4 a = vec4(TT,1.0,3.0,4.0);
 

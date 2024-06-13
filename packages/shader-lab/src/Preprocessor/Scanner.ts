@@ -126,6 +126,7 @@ export default class PpScanner extends PpError {
    */
   scanToken(onToken?: OnToken): PpToken | undefined {
     this.skipSpace();
+    this.skipComments();
     if (this.isEnd()) return;
     const start = this._current;
     while (/[\w#.]/.test(this.curChar()) && !this.isEnd()) {
@@ -267,8 +268,6 @@ export default class PpScanner extends PpError {
 
   private advanceToDirective(onToken?: OnToken): PpToken | undefined {
     while (true) {
-      this.skipSpace();
-      this.skipComments();
       const token = this.scanToken(onToken);
       if (token?.lexeme.startsWith("#")) return token;
       if (this.isEnd()) return;
