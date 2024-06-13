@@ -8,7 +8,6 @@ export class RenderData implements IPoolElement {
   distanceForSort: number;
   usage: RenderDataUsage;
   uploadFlag: ForceUploadShaderDataFlag;
-  // subRenderDataArray = Array<SubRenderData>();
   subRenderElements = Array<SubRenderElement>();
 
   set(
