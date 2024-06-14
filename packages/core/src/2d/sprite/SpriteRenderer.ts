@@ -387,7 +387,7 @@ export class SpriteRenderer extends Renderer {
     this._sprite = null;
     this._assembler = null;
     if (this._chunk) {
-      this._getChunkManager().freeChunk(this._chunk);
+      this._getChunkManager().freeSubChunk(this._chunk);
       this._chunk = null;
     }
   }

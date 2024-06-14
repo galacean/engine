@@ -691,7 +691,7 @@ export class TextRenderer extends Renderer {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const chunk = (textChunk.chunk = this._getChunkManager().allocateChunk(count * 4));
+    const chunk = (textChunk.chunk = this._getChunkManager().allocateSubChunk(count * 4));
     const vertices = chunk.primitiveChunk.vertices;
     const indices = (chunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
@@ -729,7 +729,7 @@ export class TextRenderer extends Renderer {
         charRenderInfoPool.return(charRenderInfos[j]);
       }
       charRenderInfos.length = 0;
-      manager.freeChunk(textChunk.chunk);
+      manager.freeSubChunk(textChunk.chunk);
       textChunk.chunk = null;
       textChunk.texture = null;
     }

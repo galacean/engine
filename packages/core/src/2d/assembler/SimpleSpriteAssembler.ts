@@ -15,8 +15,8 @@ export class SimpleSpriteAssembler {
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
     const manager = renderer._getChunkManager();
     const lastChunk = renderer._chunk;
-    lastChunk && manager.freeChunk(lastChunk);
-    const chunk = manager.allocateChunk(4);
+    lastChunk && manager.freeSubChunk(lastChunk);
+    const chunk = manager.allocateSubChunk(4);
     chunk.indices = SimpleSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }

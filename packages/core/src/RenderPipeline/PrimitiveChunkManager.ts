@@ -16,7 +16,7 @@ export class PrimitiveChunkManager {
     public maxVertexCount = PrimitiveChunkManager.MAX_VERTEX_COUNT
   ) {}
 
-  allocateChunk(vertexCount: number): SubPrimitiveChunk {
+  allocateSubChunk(vertexCount: number): SubPrimitiveChunk {
     const dataArray = this.primitiveChunkArray;
     const length = dataArray.length;
     let chunk: SubPrimitiveChunk = null;
@@ -34,7 +34,7 @@ export class PrimitiveChunkManager {
     return chunk;
   }
 
-  freeChunk(chunk: SubPrimitiveChunk): void {
+  freeSubChunk(chunk: SubPrimitiveChunk): void {
     this.primitiveChunkArray[chunk.id].freeSubChunk(chunk);
   }
 

@@ -24,10 +24,10 @@ export class TiledSpriteAssembler {
       const manager = renderer._getChunkManager();
       const lastChunk = renderer._chunk;
       const sizeChanged = lastChunk && lastChunk.vertexArea.size !== vertexCount * 9;
-      sizeChanged && manager.freeChunk(lastChunk);
+      sizeChanged && manager.freeSubChunk(lastChunk);
 
       if (!lastChunk || sizeChanged) {
-        const newChunk = manager.allocateChunk(vertexCount);
+        const newChunk = manager.allocateSubChunk(vertexCount);
         newChunk.indices = [];
         renderer._chunk = newChunk;
       }

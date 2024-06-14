@@ -17,8 +17,8 @@ export class SlicedSpriteAssembler {
   static resetData(renderer: SpriteRenderer): void {
     const manager = renderer._getChunkManager();
     const lastChunk = renderer._chunk;
-    lastChunk && manager.freeChunk(lastChunk);
-    const chunk = manager.allocateChunk(16);
+    lastChunk && manager.freeSubChunk(lastChunk);
+    const chunk = manager.allocateSubChunk(16);
     chunk.indices = SlicedSpriteAssembler._rectangleTriangles;
     renderer._chunk = chunk;
   }
