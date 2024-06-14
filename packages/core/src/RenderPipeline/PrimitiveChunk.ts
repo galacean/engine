@@ -98,7 +98,7 @@ export class PrimitiveChunk {
     const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
     if (area) {
       const subChunk = this.subChunkPool.get();
-      subChunk.primitiveChunk = this;
+      subChunk.chunk = this;
       subChunk.vertexArea = area;
       subChunk.subMesh = this.subMeshPool.get();
       const { subMesh: subMesh } = subChunk;

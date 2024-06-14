@@ -102,7 +102,7 @@ export class SlicedSpriteAssembler {
     // Assemble position and uv.
     const subChunk = renderer._subChunk;
     subChunk.updateBuffer();
-    const vertices = subChunk.primitiveChunk.vertices;
+    const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start; i < 4; i++) {
       const rowValue = row[i];
       for (let j = 0; j < 4; j++, o += 9) {
@@ -121,7 +121,7 @@ export class SlicedSpriteAssembler {
 
   static updateUVs(renderer: SpriteRenderer): void {
     const subChunk = renderer._subChunk;
-    const vertices = subChunk.primitiveChunk.vertices;
+    const vertices = subChunk.chunk.vertices;
     const spriteUVs = renderer.sprite._getUVs();
     for (let i = 0, o = subChunk.vertexArea.start + 3; i < 4; i++) {
       const rowU = spriteUVs[i].x;
@@ -135,7 +135,7 @@ export class SlicedSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = subChunk.primitiveChunk.vertices;
+    const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;

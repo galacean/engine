@@ -367,8 +367,8 @@ export class SpriteRenderer extends Renderer {
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
-    const chunk = this._subChunk;
-    subRenderElement.set(renderData, this, material, chunk.primitiveChunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    const subChunk = this._subChunk;
+    subRenderElement.set(renderData, this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     renderData.addSubRenderElement(subRenderElement);
     engine._batcherManager.commitRenderData(context, renderData);
   }

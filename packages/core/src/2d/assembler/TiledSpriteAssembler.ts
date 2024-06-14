@@ -78,7 +78,7 @@ export class TiledSpriteAssembler {
 
     const subChunk = renderer._subChunk;
     subChunk.updateBuffer();
-    const vertices = subChunk.primitiveChunk.vertices;
+    const vertices = subChunk.chunk.vertices;
     const indices = subChunk.indices;
     let count = 0;
     let trianglesOffset = 0;
@@ -135,7 +135,7 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     const subChunk = renderer._subChunk;
-    const vertices = subChunk.primitiveChunk.vertices;
+    const vertices = subChunk.chunk.vertices;
     for (let j = 0, o = subChunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
@@ -167,7 +167,7 @@ export class TiledSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = subChunk.primitiveChunk.vertices;
+    const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;

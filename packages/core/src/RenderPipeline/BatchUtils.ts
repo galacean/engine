@@ -6,62 +6,56 @@ import { SubRenderElement } from "./SubRenderElement";
  */
 export class BatchUtils {
   static canBatchSprite(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    if (elementA.subChunk.primitiveChunk !== elementB.subChunk.primitiveChunk) {
+    if (elementA.subChunk.chunk !== elementB.subChunk.chunk) {
       return false;
     }
 
     const rendererA = <SpriteRenderer>elementA.component;
     const rendererB = <SpriteRenderer>elementB.component;
-
-    // Compare mask
     const maskInteractionA = rendererA.maskInteraction;
-    if (
-      maskInteractionA !== rendererB.maskInteraction ||
-      (maskInteractionA !== SpriteMaskInteraction.None && rendererA.maskLayer !== rendererB.maskLayer)
-    ) {
-      return false;
-    }
 
-    // Compare texture and material
-    return elementA.texture === elementB.texture && elementA.material === elementB.material;
+    // Compare mask, texture and material
+    return (
+      maskInteractionA === rendererB.maskInteraction &&
+      (maskInteractionA === SpriteMaskInteraction.None || rendererA.maskLayer === rendererB.maskLayer) &&
+      elementA.texture === elementB.texture &&
+      elementA.material === elementB.material
+    );
   }
 
   static canBatchSpriteMask(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    if (elementA.subChunk.primitiveChunk !== elementB.subChunk.primitiveChunk) {
+    if (elementA.subChunk.chunk !== elementB.subChunk.chunk) {
       return false;
     }
 
-    // Compare renderer property
-    const shaderDataA = (<SpriteMask>elementA.component).shaderData;
-    const shaderDataB = (<SpriteMask>elementB.component).shaderData;
-    const textureProperty = SpriteMask._textureProperty;
     const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
 
+    // Compare renderer property
     return (
-      shaderDataA.getTexture(textureProperty) === shaderDataB.getTexture(textureProperty) &&
-      shaderDataA.getTexture(alphaCutoffProperty) === shaderDataB.getTexture(alphaCutoffProperty)
+      elementA.texture === elementB.texture &&
+      (<SpriteMask>elementA.component).shaderData.getFloat(alphaCutoffProperty) ===
+        (<SpriteMask>elementB.component).shaderData.getFloat(alphaCutoffProperty)
     );
   }
 
   static batchRenderElementFor2D(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    const chunk = elementB ? elementB.subChunk : elementA.subChunk;
-    const { primitiveChunk: data, indices: tempIndices, vertexArea } = chunk;
-    const start = vertexArea.start;
-    const indices = data.indices;
-    const vertexStartIndex = start / 9;
-    const len = tempIndices.length;
-    let startIndex = data.updateIndexLength;
+    const subChunk = elementB ? elementB.subChunk : elementA.subChunk;
+    const { chunk, indices: subChunkIndices, vertexArea } = subChunk;
+    const indices = chunk.indices;
+    const vertexStartIndex = vertexArea.start / 9;
+    const len = subChunkIndices.length;
+    let startIndex = chunk.updateIndexLength;
     if (elementB) {
       const subMesh = elementA.subChunk.subMesh;
       subMesh.count += len;
     } else {
-      const subMesh = chunk.subMesh;
+      const subMesh = subChunk.subMesh;
       subMesh.start = startIndex;
       subMesh.count = len;
     }
     for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + tempIndices[i];
+      indices[startIndex++] = vertexStartIndex + subChunkIndices[i];
     }
-    data.updateIndexLength += len;
+    chunk.updateIndexLength += len;
   }
 }

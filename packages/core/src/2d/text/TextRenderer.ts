@@ -435,7 +435,7 @@ export class TextRenderer extends Renderer {
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(renderData, this, material, subChunk.primitiveChunk.primitive, subChunk.subMesh, texture, subChunk);
+      subRenderElement.set(renderData, this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
       if (!subRenderElement.shaderData) {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
       }
@@ -522,7 +522,7 @@ export class TextRenderer extends Renderer {
         // Bottom-Right
         Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-        const vertices = subChunk.primitiveChunk.vertices;
+        const vertices = subChunk.chunk.vertices;
         for (let k = 0, o = subChunk.vertexArea.start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
           worldPositions[k].copyToArray(vertices, o);
         }
@@ -691,11 +691,11 @@ export class TextRenderer extends Renderer {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const chunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
-    const vertices = chunk.primitiveChunk.vertices;
-    const indices = (chunk.indices = []);
+    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
+    const vertices = subChunk.chunk.vertices;
+    const indices = (subChunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
-    for (let i = 0, ii = 0, io = 0, vo = chunk.vertexArea.start + 3; i < count; ++i, io += 4) {
+    for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
       charRenderInfo.indexInChunk = i;
 
@@ -715,7 +715,7 @@ export class TextRenderer extends Renderer {
       }
     }
 
-    return chunk;
+    return subChunk;
   }
 
   private _freeTextChunks(): void {

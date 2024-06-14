@@ -268,7 +268,7 @@ export class SpriteMask extends Renderer {
       renderData,
       this,
       material,
-      chunk.primitiveChunk.primitive,
+      chunk.chunk.primitive,
       chunk.subMesh,
       this.sprite.texture,
       chunk

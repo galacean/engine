@@ -7,21 +7,21 @@ import { Area, PrimitiveChunk } from "./PrimitiveChunk";
  */
 export class SubPrimitiveChunk implements IPoolElement {
   id = -1;
-  primitiveChunk: PrimitiveChunk;
+  chunk: PrimitiveChunk;
   vertexArea: Area;
   subMesh: SubMesh;
   indices: number[];
 
   updateBuffer(): void {
-    const { primitiveChunk } = this;
+    const { chunk } = this;
     const { start, size } = this.vertexArea;
-    primitiveChunk.updateVertexStart = Math.min(primitiveChunk.updateVertexStart, start);
-    primitiveChunk.updateVertexLength = Math.max(primitiveChunk.updateVertexLength, start + size);
+    chunk.updateVertexStart = Math.min(chunk.updateVertexStart, start);
+    chunk.updateVertexLength = Math.max(chunk.updateVertexLength, start + size);
   }
 
   dispose?(): void {
     this.id = -1;
-    this.primitiveChunk = null;
+    this.chunk = null;
     this.vertexArea = null;
     this.subMesh = null;
     this.indices = null;
