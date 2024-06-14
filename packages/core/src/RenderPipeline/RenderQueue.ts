@@ -66,7 +66,7 @@ export class RenderQueue {
     this._batch(batcherManager);
   }
 
-  render(camera: Camera, pipelineStageTagValue: string): void {
+  render(camera: Camera, pipelineStageTagValue: string, isMask: boolean = false): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
@@ -82,12 +82,10 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      const maskInteraction = subElement.component._maskInteraction;
-      maskInteraction &&
-        maskInteraction !== SpriteMaskInteraction.None &&
+      subElement.component._maskInteraction !== SpriteMaskInteraction.None &&
         this._drawMask(subElement, camera, pipelineStageTagValue);
-      const { shaderPasses } = subElement;
 
+      const { shaderPasses } = subElement;
       const compileMacros = Shader._compileMacros;
       const primitive = subElement.primitive;
       const renderer = subElement.component;
@@ -99,12 +97,13 @@ export class RenderQueue {
       // union render global macro and material self macro.
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 
-      // Update stencil state
-      const stencilState = material.renderState.stencilState;
-      //@ts-ignore
-      const stencilOperation = subElement.stencilOperation || StencilOperation.Keep;
-      stencilState.passOperationFront = stencilOperation;
-      stencilState.passOperationBack = stencilOperation;
+      // TODO: Mask should not modify material's render state
+      if (isMask) {
+        const stencilState = material.renderState.stencilState;
+        const stencilOperation = subElement.stencilOperation || StencilOperation.Keep;
+        stencilState.passOperationFront = stencilOperation;
+        stencilState.passOperationBack = stencilOperation;
+      }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
@@ -229,6 +228,6 @@ export class RenderQueue {
     const engine = camera.engine;
     engine._maskManager.buildMaskRenderElement(element, renderQueue);
     renderQueue._batch(engine._batcherManager);
-    renderQueue.render(camera, pipelineStageTagValue);
+    renderQueue.render(camera, pipelineStageTagValue, true);
   }
 }
