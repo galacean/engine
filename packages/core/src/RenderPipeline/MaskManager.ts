@@ -2,7 +2,7 @@ import { SpriteMask, SpriteMaskInteraction, SpriteRenderer, TextRenderer } from 
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { StencilOperation } from "../shader";
-import { RenderElement } from "./RenderElement";
+import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
@@ -19,29 +19,12 @@ export class MaskManager {
     this.allSpriteMasks.add(mask);
   }
 
-  insertMask(elements: Array<RenderElement>, maskInsertedElements: Array<RenderElement>): void {
-    const length = elements.length;
-    if (length === 0) {
-      return;
-    }
-
-    const renderElementPool = this.engine._renderElementPool;
-    for (let i = 0; i < length; ++i) {
-      const renderElement = elements[i];
-      const maskInsertedRenderElement = renderElementPool.get();
-      maskInsertedElements[i] = maskInsertedRenderElement;
-      maskInsertedRenderElement.set(renderElement.data);
-      const subRenderElements = renderElement.data.subRenderElements;
-      for (let j = 0, n = subRenderElements.length; j < n; ++j) {
-        const subRenderElement = subRenderElements[j];
-        const renderer = subRenderElement.component;
-        // @ts-ignore
-        const maskInteraction = renderer.maskInteraction;
-        if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
-          this._processMasksDiff(<SpriteRenderer | TextRenderer>renderer, maskInsertedRenderElement);
-        }
-        maskInsertedRenderElement.data.addSubRenderElement(subRenderElement);
-      }
+  buildMaskRenderElement(element: SubRenderElement, renderQueue: RenderQueue): void {
+    const renderer = element.component;
+    // @ts-ignore
+    const maskInteraction = renderer.maskInteraction;
+    if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
+      this._processMasksDiff(<SpriteRenderer | TextRenderer>renderer, renderQueue);
     }
   }
 
@@ -54,8 +37,7 @@ export class MaskManager {
     this.clear();
   }
 
-  private _processMasksDiff(renderer: SpriteRenderer | TextRenderer, maskInsertedElement: RenderElement): void {
-    const subRenderElementPool = this.engine._subRenderElementPool;
+  private _processMasksDiff(renderer: SpriteRenderer | TextRenderer, renderQueue: RenderQueue): void {
     const preMaskLayer = this._preMaskLayer;
     const curMaskLayer = renderer.maskLayer;
     if (preMaskLayer !== curMaskLayer) {
@@ -74,34 +56,17 @@ export class MaskManager {
         }
 
         if (influenceLayers & addLayer) {
-          const subRenderElement = subRenderElementPool.get();
-          this._cloneRenderElement(mask._renderElement.data.subRenderElements[0], subRenderElement);
-          subRenderElement.stencilOperation = StencilOperation.IncrementSaturate;
-          maskInsertedElement.data.addSubRenderElement(subRenderElement);
+          mask._renderElement.data.subRenderElements[0].stencilOperation = StencilOperation.IncrementSaturate;
+          renderQueue.pushRenderElement(mask._renderElement);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
-          const subRenderElement = subRenderElementPool.get();
-          this._cloneRenderElement(mask._renderElement.data.subRenderElements[0], subRenderElement);
-          subRenderElement.stencilOperation = StencilOperation.DecrementSaturate;
-          maskInsertedElement.data.addSubRenderElement(subRenderElement);
+          mask._renderElement.data.subRenderElements[0].stencilOperation = StencilOperation.DecrementSaturate;
+          renderQueue.pushRenderElement(mask._renderElement);
         }
       }
     }
     this._preMaskLayer = curMaskLayer;
-  }
-
-  private _cloneRenderElement(srcElement: SubRenderElement, dstElement: SubRenderElement): void {
-    dstElement.set(
-      srcElement.data,
-      srcElement.component,
-      srcElement.material,
-      srcElement.primitive,
-      srcElement.subPrimitive,
-      srcElement.texture,
-      srcElement.chunk
-    );
-    dstElement.setShaderPasses(srcElement.shaderPasses);
   }
 }

@@ -2,16 +2,27 @@ import { Camera } from "../Camera";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { BatcherManager } from "./BatcherManager";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { BatcherManager } from "./BatcherManager";
-import { MaskManager } from "./MaskManager";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * Render queue.
  */
 export class RenderQueue {
+  /** @internal */
+  static _renderQueue: RenderQueue;
+  /**
+   * @internal
+   */
+  static getRenderQueue(): RenderQueue {
+    if (!RenderQueue._renderQueue) {
+      RenderQueue._renderQueue = new RenderQueue(RenderQueueType.Transparent);
+    }
+    return RenderQueue._renderQueue;
+  }
+
   /**
    * @internal
    */
@@ -31,10 +42,9 @@ export class RenderQueue {
   }
 
   readonly elements: RenderElement[] = [];
-  readonly maskInsertedElements: RenderElement[] = [];
   readonly batchedSubElements: SubRenderElement[] = [];
 
-  private readonly _renderQueueType: RenderQueueType;
+  private _renderQueueType: RenderQueueType;
 
   constructor(renderQueueType: RenderQueueType) {
     this._renderQueueType = renderQueueType;
@@ -50,13 +60,12 @@ export class RenderQueue {
   /**
    * Process render elements, include sort, insert mask element and batch.
    */
-  processRenderElements(compareFunc: Function, maskManager: MaskManager, batcherManager: BatcherManager): void {
+  processRenderElements(compareFunc: Function, batcherManager: BatcherManager): void {
     this._sort(compareFunc);
-    this._insertMask(maskManager);
     this._batch(batcherManager);
   }
 
-  render(camera: Camera, pipelineStageTagValue: string): void {
+  render(camera: Camera, pipelineStageTagValue: string, needDrawMask: boolean = true): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
@@ -72,6 +81,7 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
+      needDrawMask && this._drawMask(subElement, camera, pipelineStageTagValue);
       const { shaderPasses } = subElement;
 
       const compileMacros = Shader._compileMacros;
@@ -179,7 +189,6 @@ export class RenderQueue {
    */
   clear(): void {
     this.elements.length = 0;
-    this.maskInsertedElements.length = 0;
     this.batchedSubElements.length = 0;
   }
 
@@ -189,6 +198,13 @@ export class RenderQueue {
   destroy(): void {}
 
   /**
+   * @internal
+   */
+  _setRenderQueueType(type: RenderQueueType): void {
+    this._renderQueueType = type;
+  }
+
+  /**
    * Sort the elements.
    */
   private _sort(compareFunc: Function): void {
@@ -196,16 +212,19 @@ export class RenderQueue {
   }
 
   /**
-   * Insert mask for elements who need.
-   */
-  private _insertMask(maskManager: MaskManager): void {
-    maskManager.insertMask(this.elements, this.maskInsertedElements);
-  }
-
-  /**
    * Batch the elements.
    */
   private _batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this.maskInsertedElements, this.batchedSubElements);
+    batcherManager.batch(this.elements, this.batchedSubElements);
+  }
+
+  private _drawMask(element: SubRenderElement, camera: Camera, pipelineStageTagValue: string): void {
+    const renderQueue = RenderQueue.getRenderQueue();
+    renderQueue._setRenderQueueType(this._renderQueueType);
+    renderQueue.clear();
+    const engine = camera.engine;
+    engine._maskManager.buildMaskRenderElement(element, renderQueue);
+    renderQueue._batch(engine._batcherManager);
+    renderQueue.render(camera, pipelineStageTagValue, false);
   }
 }

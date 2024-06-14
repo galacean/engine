@@ -19,8 +19,8 @@ import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
-import { PipelineStage } from "./enums/PipelineStage";
 import { SubRenderElement } from "./SubRenderElement";
+import { PipelineStage } from "./enums/PipelineStage";
 
 /**
  * Basic render pipeline.
@@ -86,7 +86,7 @@ export class BasicRenderPipeline {
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
-    cullingResults.processRenderElements(maskManager, batcherManager);
+    cullingResults.processRenderElements(batcherManager);
     batcherManager.uploadBuffer();
 
     if (depthPassEnabled) {

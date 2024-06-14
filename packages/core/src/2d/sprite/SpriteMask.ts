@@ -269,7 +269,6 @@ export class SpriteMask extends Renderer {
     renderData.addSubRenderElement(subRenderElement);
     const renderElement = engine._renderElementPool.get();
     renderElement.set(renderData);
-    renderElement.data.addSubRenderElement(subRenderElement);
     this._renderElement = renderElement;
   }
 
