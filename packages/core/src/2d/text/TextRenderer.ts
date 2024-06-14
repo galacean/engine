@@ -1,11 +1,19 @@
 import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { Chunk } from "../../RenderPipeline/Chunk";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ShaderData, ShaderProperty } from "../../shader";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
+import { Texture2D } from "../../texture";
+import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -15,11 +23,6 @@ import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
-import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
-import { ShaderData, ShaderProperty } from "../../shader";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 
 /**
  * Renders a text for 2D graphics.
@@ -31,6 +34,9 @@ export class TextRenderer extends Renderer {
   private static _tempVec31 = new Vector3();
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
 
+  /** @internal */
+  @ignoreClone
+  _chunkMap = new Map<Texture2D, Chunk>();
   /** @internal */
   @assignmentClone
   _subFont: SubFont = null;
@@ -318,14 +324,14 @@ export class TextRenderer extends Renderer {
     // Clear render data.
     const pool = TextRenderer._charRenderInfoPool;
     const charRenderInfos = this._charRenderInfos;
-    const chunkManager = this.engine._batcherManager._dynamicGeometryDataManager2D;
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];
-      chunkManager.freeChunk(charRenderInfo.chunk);
-      charRenderInfo.chunk = null;
       pool.return(charRenderInfo);
     }
     charRenderInfos.length = 0;
+
+    this._freeChunkMap();
+    this._chunkMap = null;
 
     this._subFont && (this._subFont = null);
   }
@@ -397,6 +403,13 @@ export class TextRenderer extends Renderer {
     BatchUtils.batchRenderElementFor2D(elementA, elementB);
   }
 
+  /**
+   * @internal
+   */
+  _getChunkManager(): DynamicGeometryDataManager {
+    return this.engine._batcherManager._dynamicGeometryDataManager2D;
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
@@ -430,22 +443,19 @@ export class TextRenderer extends Renderer {
     const engine = camera.engine;
     const subRenderElementPool = engine._subRenderElementPool;
     const material = this.getMaterial();
-    const charRenderInfos = this._charRenderInfos;
-    const charCount = charRenderInfos.length;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
-    for (let i = 0; i < charCount; ++i) {
-      const charRenderInfo = charRenderInfos[i];
-      const { chunk, texture } = charRenderInfo;
+    const chunkMap = this._chunkMap;
+    chunkMap.forEach((chunk, texture) => {
+      // TODO
       const subRenderElement = subRenderElementPool.get();
       subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
-      // TODO
       if (!subRenderElement.shaderData) {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
       }
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderData.addSubRenderElement(subRenderElement);
-    }
+    });
     engine._batcherManager.commitRenderData(context, renderData);
   }
 
@@ -497,6 +507,7 @@ export class TextRenderer extends Renderer {
     const worldPosition2 = worldPositions[2];
     const worldPosition3 = worldPositions[3];
 
+    const chunkMap = this._chunkMap;
     for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const { localPositions } = charRenderInfo;
@@ -521,10 +532,12 @@ export class TextRenderer extends Renderer {
       // Bottom-Right
       Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-      const chunk = charRenderInfo.chunk;
+      // TODO
+      const chunk = chunkMap.get(charRenderInfo.texture);
       const vertices = chunk.data.vertices;
-      for (let i = 0, o = chunk.vertexArea.start; i < 4; ++i, o += 9) {
-        const position = TextRenderer._worldPositions[i];
+      const { start } = chunk.vertexArea;
+      for (let j = 0, o = start + charRenderInfo.indexInChunk * 36; j < 4; ++j, o += 9) {
+        const position = TextRenderer._worldPositions[j];
         vertices[o] = position.x;
         vertices[o + 1] = position.y;
         vertices[o + 2] = position.z;
@@ -534,7 +547,7 @@ export class TextRenderer extends Renderer {
 
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
-    const { color, _charRenderInfos: charRenderInfos, _subFont: charFont } = this;
+    const { _charRenderInfos: charRenderInfos, _subFont: charFont } = this;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
@@ -598,22 +611,9 @@ export class TextRenderer extends Renderer {
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
               const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.get());
-              charRenderInfo.init(this.engine);
-              const { chunk, localPositions } = charRenderInfo;
+              const { localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
-              const vertices = chunk.data.vertices;
-              const { uvs } = charInfo;
-              const { r, g, b, a } = color;
-
-              for (let i = 0, o = chunk.vertexArea.start + 3; i < 4; ++i, o += 9) {
-                vertices[o] = uvs[i].x;
-                vertices[o + 1] = uvs[i].y;
-                vertices[o + 2] = r;
-                vertices[o + 3] = g;
-                vertices[o + 4] = b;
-                vertices[o + 5] = a;
-              }
-
+              charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
               const left = startX * pixelsPerUnitReciprocal;
               const right = (startX + w) * pixelsPerUnitReciprocal;
@@ -645,11 +645,8 @@ export class TextRenderer extends Renderer {
     // Revert excess render data to pool.
     const lastRenderDataCount = charRenderInfos.length;
     if (lastRenderDataCount > renderDataCount) {
-      const chunkManager = this.engine._batcherManager._dynamicGeometryDataManager2D;
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
         const charRenderInfo = charRenderInfos[i];
-        chunkManager.freeChunk(charRenderInfo.chunk);
-        charRenderInfo.chunk = null;
         charRenderInfoPool.return(charRenderInfo);
       }
       charRenderInfos.length = renderDataCount;
@@ -659,6 +656,33 @@ export class TextRenderer extends Renderer {
       charRenderInfos.sort((a, b) => {
         return a.texture.instanceId - b.texture.instanceId;
       });
+
+    // Reset chunk
+    this._freeChunkMap();
+    const chunkMap = this._chunkMap;
+    let texture = null;
+    let count = 0;
+    for (let i = 0; i < renderDataCount; ++i) {
+      const curTexture = charRenderInfos[i].texture;
+      if (i === 0) {
+        texture = curTexture;
+        count = 1;
+        continue;
+      }
+
+      if (texture === curTexture) {
+        count++;
+      } else {
+        const chunk = this._initChunk(count, i);
+        chunkMap.set(texture, chunk);
+        texture = curTexture;
+        count = 1;
+      }
+    }
+    if (count > 0) {
+      const chunk = this._initChunk(count, renderDataCount);
+      this._chunkMap.set(texture, chunk);
+    }
   }
 
   /**
@@ -676,6 +700,44 @@ export class TextRenderer extends Renderer {
       (this.enableWrapping && this.width <= 0) ||
       (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
     );
+  }
+
+  private _freeChunkMap(): void {
+    const chunkMap = this._chunkMap;
+    chunkMap.size > 0 && chunkMap.clear();
+  }
+
+  private _initChunk(count: number, endIndex: number): Chunk {
+    const { r, g, b, a } = this.color;
+    const charRenderInfos = this._charRenderInfos;
+    const tempIndices = CharRenderInfo.triangles;
+    const tempIndicesLength = tempIndices.length;
+    const chunk = this._getChunkManager().allocateChunk(count * 4);
+    const vertices = chunk.data.vertices;
+    const indices = (chunk.indices = []);
+    let indexInChunk = 0;
+    for (let i = endIndex - count, ii = 0, io = 0, vo = chunk.vertexArea.start + 3; i < endIndex; ++i, io += 4) {
+      const charRenderInfo = charRenderInfos[i];
+      charRenderInfo.indexInChunk = indexInChunk++;
+
+      // Set indices
+      for (let j = 0; j < tempIndicesLength; ++j) {
+        indices[ii++] = tempIndices[j] + io;
+      }
+
+      // Set uv and color for vertices
+      for (let j = 0; j < 4; ++j, vo += 9) {
+        const uv = charRenderInfo.uvs[j];
+        vertices[vo] = uv.x;
+        vertices[vo + 1] = uv.y;
+        vertices[vo + 2] = r;
+        vertices[vo + 3] = g;
+        vertices[vo + 4] = b;
+        vertices[vo + 5] = a;
+      }
+    }
+
+    return chunk;
   }
 }
 
