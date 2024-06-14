@@ -1,9 +1,9 @@
 import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
@@ -368,9 +368,17 @@ export class SpriteRenderer extends Renderer {
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
-    subRenderElement.set(renderData, this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    subRenderElement.set(
+      renderData,
+      this,
+      material,
+      subChunk.chunk.primitive,
+      subChunk.subMesh,
+      this.sprite.texture,
+      subChunk
+    );
     renderData.addSubRenderElement(subRenderElement);
-    engine._batcherManager.commitRenderData(context, renderData);
+    camera._renderPipeline.pushRenderData(context, renderData);
   }
 
   protected override _onDestroy(): void {

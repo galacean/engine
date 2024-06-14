@@ -2,9 +2,9 @@ import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
@@ -442,7 +442,7 @@ export class TextRenderer extends Renderer {
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderData.addSubRenderElement(subRenderElement);
     }
-    engine._batcherManager.commitRenderData(context, renderData);
+    camera._renderPipeline.pushRenderData(context, renderData);
   }
 
   private _updateStencilState(): void {

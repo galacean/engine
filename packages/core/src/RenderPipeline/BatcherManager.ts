@@ -1,8 +1,6 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
-import { RenderContext } from "./RenderContext";
-import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -26,10 +24,6 @@ export class BatcherManager {
     this._primitiveChunkManagerMask.destroy();
     this._primitiveChunkManagerMask = null;
     this._engine = null;
-  }
-
-  commitRenderData(context: RenderContext, data: RenderData): void {
-    context.camera._renderPipeline.pushRenderData(context, data);
   }
 
   batch(elements: Array<RenderElement>, batchedSubElements: Array<SubRenderElement>): void {

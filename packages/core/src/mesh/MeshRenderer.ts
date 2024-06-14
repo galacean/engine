@@ -165,7 +165,7 @@ export class MeshRenderer extends Renderer {
       subRenderElement.set(renderData, this, material, mesh._primitive, subMeshes[i]);
       renderData.addSubRenderElement(subRenderElement);
     }
-    engine._batcherManager.commitRenderData(context, renderData);
+    context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 
   private _setMesh(mesh: Mesh): void {
