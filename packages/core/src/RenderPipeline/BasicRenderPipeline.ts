@@ -80,7 +80,6 @@ export class BasicRenderPipeline {
     const batcherManager = engine._batcherManager;
     const maskManager = engine._maskManager;
     cullingResults.reset();
-    batcherManager.clear();
     maskManager.clear();
 
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);

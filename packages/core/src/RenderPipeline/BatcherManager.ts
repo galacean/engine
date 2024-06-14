@@ -72,9 +72,4 @@ export class BatcherManager {
     this._dynamicGeometryDataManager2D.uploadBuffer();
     this._dynamicGeometryDataManagerMask.uploadBuffer();
   }
-
-  clear() {
-    this._dynamicGeometryDataManager2D.clear();
-    this._dynamicGeometryDataManagerMask.clear();
-  }
 }

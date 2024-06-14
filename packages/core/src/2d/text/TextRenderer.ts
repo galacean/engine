@@ -495,6 +495,7 @@ export class TextRenderer extends Renderer {
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { chunk, charRenderInfos } = textChunks[i];
+      chunk.updateBuffer();
       for (let j = 0, m = charRenderInfos.length; j < m; ++j) {
         const charRenderInfo = charRenderInfos[j];
         const { localPositions } = charRenderInfo;
@@ -633,34 +634,38 @@ export class TextRenderer extends Renderer {
       });
 
     this._freeTextChunks();
+
     if (renderDataCount === 0) {
       return;
     }
 
     const textChunks = this._textChunks;
-    let texture = charRenderInfos[0].texture;
-    let textChunk = new TextChunk();
-    textChunks.push(textChunk);
-    textChunk.texture = texture;
-    let charInfos = textChunk.charRenderInfos;
-    charInfos.push(charRenderInfos[0]);
+    let curTextChunk = new TextChunk();
+    textChunks.push(curTextChunk);
+
+    const curCharRenderInfo = charRenderInfos[0];
+    let curTexture = curCharRenderInfo.texture;
+    curTextChunk.texture = curTexture;
+    let curCharInfos = curTextChunk.charRenderInfos;
+    curCharInfos.push(curCharRenderInfo);
+
     for (let i = 1; i < renderDataCount; ++i) {
-      const curCharRenderInfo = charRenderInfos[i];
-      const curTexture = curCharRenderInfo.texture;
-      if (texture !== curTexture) {
-        this._initChunk(textChunk, charInfos.length, i);
-        // Create new text chunk.
-        texture = curTexture;
-        textChunk = new TextChunk();
-        textChunks.push(textChunk);
-        textChunk.texture = curTexture;
-        charInfos = textChunk.charRenderInfos;
+      const charRenderInfo = charRenderInfos[i];
+      const texture = charRenderInfo.texture;
+      if (curTexture !== texture) {
+        this._buildChunk(curTextChunk, curCharInfos.length);
+
+        curTextChunk = new TextChunk();
+        textChunks.push(curTextChunk);
+        curTexture = texture;
+        curTextChunk.texture = texture;
+        curCharInfos = curTextChunk.charRenderInfos;
       }
-      charInfos.push(curCharRenderInfo);
+      curCharInfos.push(charRenderInfo);
     }
-    const charLength = charInfos.length;
+    const charLength = curCharInfos.length;
     if (charLength > 0) {
-      this._initChunk(textChunk, charLength, renderDataCount);
+      this._buildChunk(curTextChunk, charLength);
     }
     charRenderInfos.length = 0;
   }
@@ -682,7 +687,7 @@ export class TextRenderer extends Renderer {
     );
   }
 
-  private _initChunk(textChunk: TextChunk, count: number, endIndex: number): Chunk {
+  private _buildChunk(textChunk: TextChunk, count: number): Chunk {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;

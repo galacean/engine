@@ -25,10 +25,9 @@ export class DynamicGeometryData {
   vertices: Float32Array;
   indices: Uint16Array;
 
-  /** The length of _vertices needed to be uploaded. */
-  vertexLen = 0;
-  /** The length of _indices needed to be uploaded. */
-  indexLen = 0;
+  updateVertexStart = Number.MAX_SAFE_INTEGER;
+  updateVertexLength = Number.MIN_SAFE_INTEGER;
+  updateIndexLength = 0;
 
   vertexFreeAreas = new Array<Area>();
   areaPool = new ReturnableObjectPool(Area, 10);
@@ -74,16 +73,24 @@ export class DynamicGeometryData {
     this.areaPool = null;
   }
 
-  clear(): void {
-    this.vertexLen = this.indexLen = 0;
-  }
-
   uploadBuffer(): void {
     // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
     const primitive = this.primitive;
-    primitive.vertexBufferBindings[0].buffer.setData(this.vertices, 0, 0, this.vertexLen, SetDataOptions.Discard);
-    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indexLen, SetDataOptions.Discard);
+    if (this.updateVertexStart !== Number.MAX_SAFE_INTEGER && this.updateVertexLength !== Number.MIN_SAFE_INTEGER) {
+      primitive.vertexBufferBindings[0].buffer.setData(
+        this.vertices,
+        this.updateVertexStart * 4,
+        this.updateVertexStart,
+        this.updateVertexLength,
+        SetDataOptions.Discard
+      );
+    }
+
+    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
+
+    this.updateVertexStart = Number.MAX_SAFE_INTEGER;
+    this.updateVertexLength = this.updateIndexLength = 0;
   }
 
   allocateChunk(vertexCount: number): Chunk | null {

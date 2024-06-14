@@ -1,6 +1,6 @@
 import { SubMesh } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
-import { DynamicGeometryData, Area } from "./DynamicGeometryData";
+import { Area, DynamicGeometryData } from "./DynamicGeometryData";
 
 /**
  * @internal
@@ -11,6 +11,13 @@ export class Chunk implements IPoolElement {
   vertexArea: Area;
   subMesh: SubMesh;
   indices: number[];
+
+  updateBuffer(): void {
+    const { data } = this;
+    const { start, size } = this.vertexArea;
+    data.updateVertexStart = Math.min(data.updateVertexStart, start);
+    data.updateVertexLength = Math.max(data.updateVertexLength, start + size);
+  }
 
   dispose?(): void {
     this.id = -1;

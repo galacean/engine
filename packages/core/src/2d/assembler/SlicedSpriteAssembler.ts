@@ -101,6 +101,7 @@ export class SlicedSpriteAssembler {
     // ------------------------
     // Assemble position and uv.
     const chunk = renderer._chunk;
+    chunk.updateBuffer();
     const vertices = chunk.data.vertices;
     for (let i = 0, o = chunk.vertexArea.start; i < 4; i++) {
       const rowValue = row[i];

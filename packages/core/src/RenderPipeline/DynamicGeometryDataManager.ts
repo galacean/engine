@@ -45,13 +45,6 @@ export class DynamicGeometryDataManager {
     }
   }
 
-  clear(): void {
-    const dataArray = this.dynamicGeometryDataArray;
-    for (let i = 0, n = dataArray.length; i < n; ++i) {
-      dataArray[i].clear();
-    }
-  }
-
   destroy(): void {
     const dataArray = this.dynamicGeometryDataArray;
     for (let i = 0, n = dataArray.length; i < n; ++i) {
