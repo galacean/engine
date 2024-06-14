@@ -89,6 +89,8 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
+  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
+  /* @internal */
   _renderDataPool = new ClearableObjectPool(RenderData);
 
   /* @internal */
@@ -352,6 +354,7 @@ export class Engine extends EventDispatcher {
 
     this._renderElementPool.clear();
     this._subRenderElementPool.clear();
+    this._textSubRenderElementPool.clear();
     this._renderDataPool.clear();
 
     this.xrManager?._update();
@@ -775,6 +778,7 @@ export class Engine extends EventDispatcher {
   private _gc(): void {
     this._renderElementPool.garbageCollection();
     this._subRenderElementPool.garbageCollection();
+    this._textSubRenderElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();
     this._renderContext.garbageCollection();
   }

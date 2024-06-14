@@ -441,14 +441,14 @@ export class TextRenderer extends Renderer {
 
     const camera = context.camera;
     const engine = camera.engine;
-    const subRenderElementPool = engine._subRenderElementPool;
+    const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const chunkMap = this._chunkMap;
     chunkMap.forEach((chunk, texture) => {
       // TODO
-      const subRenderElement = subRenderElementPool.get();
+      const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       if (!subRenderElement.shaderData) {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
