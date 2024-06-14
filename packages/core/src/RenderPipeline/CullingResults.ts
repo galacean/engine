@@ -24,10 +24,10 @@ export class CullingResults {
     this.alphaTestQueue.clear();
   }
 
-  processRenderElements(batcherManager: BatcherManager) {
-    this.opaqueQueue.processRenderElements(RenderQueue._compareForOpaque, batcherManager);
-    this.alphaTestQueue.processRenderElements(RenderQueue._compareForOpaque, batcherManager);
-    this.transparentQueue.processRenderElements(RenderQueue._compareForTransparent, batcherManager);
+  batch(batcherManager: BatcherManager) {
+    this.opaqueQueue.batch(RenderQueue._compareForOpaque, batcherManager);
+    this.alphaTestQueue.batch(RenderQueue._compareForOpaque, batcherManager);
+    this.transparentQueue.batch(RenderQueue._compareForTransparent, batcherManager);
   }
 
   destroy(): void {

@@ -59,9 +59,9 @@ export class RenderQueue {
   }
 
   /**
-   * Process render elements, include sort, insert mask element and batch.
+   * Batch render elements.
    */
-  processRenderElements(compareFunc: Function, batcherManager: BatcherManager): void {
+  batch(compareFunc: Function, batcherManager: BatcherManager): void {
     this._sort(compareFunc);
     this._batch(batcherManager);
   }

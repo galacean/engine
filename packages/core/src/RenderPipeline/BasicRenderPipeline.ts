@@ -85,7 +85,7 @@ export class BasicRenderPipeline {
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
-    cullingResults.processRenderElements(batcherManager);
+    cullingResults.batch(batcherManager);
     batcherManager.uploadBuffer();
 
     if (depthPassEnabled) {
