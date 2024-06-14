@@ -36,7 +36,7 @@ export class TextRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _chunkMap = new Map<Texture2D, Chunk>();
+  _textChunks = Array<TextChunk>();
   /** @internal */
   @assignmentClone
   _subFont: SubFont = null;
@@ -330,9 +330,6 @@ export class TextRenderer extends Renderer {
     }
     charRenderInfos.length = 0;
 
-    this._freeChunkMap();
-    this._chunkMap = null;
-
     this._subFont && (this._subFont = null);
   }
 
@@ -445,9 +442,10 @@ export class TextRenderer extends Renderer {
     const material = this.getMaterial();
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
-    const chunkMap = this._chunkMap;
-    chunkMap.forEach((chunk, texture) => {
-      // TODO
+    const textChunks = this._textChunks;
+    for (let i = 0, n = textChunks.length; i < n; ++i) {
+      const textChunk = textChunks[i];
+      const { chunk, texture } = textChunk;
       const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       if (!subRenderElement.shaderData) {
@@ -455,7 +453,7 @@ export class TextRenderer extends Renderer {
       }
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderData.addSubRenderElement(subRenderElement);
-    });
+    }
     engine._batcherManager.commitRenderData(context, renderData);
   }
 
@@ -507,40 +505,43 @@ export class TextRenderer extends Renderer {
     const worldPosition2 = worldPositions[2];
     const worldPosition3 = worldPositions[3];
 
-    const chunkMap = this._chunkMap;
-    for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
-      const charRenderInfo = charRenderInfos[i];
-      const { localPositions } = charRenderInfo;
-      const { x: topLeftX, y: topLeftY } = localPositions;
+    const textChunks = this._textChunks;
+    for (let i = 0, n = textChunks.length; i < n; ++i) {
+      const textChunk = textChunks[i];
+      const charInfos = textChunk.charRenderInfos;
+      const chunk = textChunk.chunk;
+      for (let j = 0, m = charInfos.length; j < m; ++j) {
+        const charRenderInfo = charInfos[j];
+        const { localPositions } = charRenderInfo;
+        const { x: topLeftX, y: topLeftY } = localPositions;
 
-      // Top-Left
-      worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
-      worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
-      worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
+        // Top-Left
+        worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
+        worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
+        worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
 
-      // Right offset
-      Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
+        // Right offset
+        Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
 
-      // Top-Right
-      Vector3.add(worldPosition0, worldPosition1, worldPosition1);
+        // Top-Right
+        Vector3.add(worldPosition0, worldPosition1, worldPosition1);
 
-      // Up offset
-      Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
+        // Up offset
+        Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
 
-      // Bottom-Left
-      Vector3.add(worldPosition0, worldPosition2, worldPosition3);
-      // Bottom-Right
-      Vector3.add(worldPosition1, worldPosition2, worldPosition2);
+        // Bottom-Left
+        Vector3.add(worldPosition0, worldPosition2, worldPosition3);
+        // Bottom-Right
+        Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-      // TODO
-      const chunk = chunkMap.get(charRenderInfo.texture);
-      const vertices = chunk.data.vertices;
-      const { start } = chunk.vertexArea;
-      for (let j = 0, o = start + charRenderInfo.indexInChunk * 36; j < 4; ++j, o += 9) {
-        const position = TextRenderer._worldPositions[j];
-        vertices[o] = position.x;
-        vertices[o + 1] = position.y;
-        vertices[o + 2] = position.z;
+        const vertices = chunk.data.vertices;
+        const { start } = chunk.vertexArea;
+        for (let k = 0, o = start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
+          const position = TextRenderer._worldPositions[k];
+          vertices[o] = position.x;
+          vertices[o + 1] = position.y;
+          vertices[o + 2] = position.z;
+        }
       }
     }
   }
@@ -657,31 +658,35 @@ export class TextRenderer extends Renderer {
         return a.texture.instanceId - b.texture.instanceId;
       });
 
-    // Reset chunk
-    this._freeChunkMap();
-    const chunkMap = this._chunkMap;
-    let texture = null;
-    let count = 0;
-    for (let i = 0; i < renderDataCount; ++i) {
-      const curTexture = charRenderInfos[i].texture;
-      if (i === 0) {
-        texture = curTexture;
-        count = 1;
-        continue;
-      }
-
-      if (texture === curTexture) {
-        count++;
-      } else {
-        const chunk = this._initChunk(count, i);
-        chunkMap.set(texture, chunk);
-        texture = curTexture;
-        count = 1;
-      }
+    const textChunks = this._textChunks;
+    textChunks.length = 0;
+    if (renderDataCount === 0) {
+      return;
     }
-    if (count > 0) {
-      const chunk = this._initChunk(count, renderDataCount);
-      this._chunkMap.set(texture, chunk);
+
+    let texture = charRenderInfos[0].texture;
+    let textChunk = new TextChunk();
+    textChunks.push(textChunk);
+    textChunk.texture = texture;
+    let charInfos = textChunk.charRenderInfos;
+    charInfos.push(charRenderInfos[0]);
+    for (let i = 1; i < renderDataCount; ++i) {
+      const curCharRenderInfo = charRenderInfos[i];
+      const curTexture = curCharRenderInfo.texture;
+      if (texture !== curTexture) {
+        this._initChunk(textChunk, charInfos.length, i);
+        // Create new text chunk.
+        texture = curTexture;
+        textChunk = new TextChunk();
+        textChunks.push(textChunk);
+        textChunk.texture = curTexture;
+        charInfos = textChunk.charRenderInfos;
+      }
+      charInfos.push(curCharRenderInfo);
+    }
+    const charLength = charInfos.length;
+    if (charLength > 0) {
+      this._initChunk(textChunk, charLength, renderDataCount);
     }
   }
 
@@ -702,17 +707,17 @@ export class TextRenderer extends Renderer {
     );
   }
 
-  private _freeChunkMap(): void {
-    const chunkMap = this._chunkMap;
-    chunkMap.size > 0 && chunkMap.clear();
-  }
+  // private _freeChunkMap(): void {
+  //   const chunkMap = this._chunkMap;
+  //   chunkMap.size > 0 && chunkMap.clear();
+  // }
 
-  private _initChunk(count: number, endIndex: number): Chunk {
+  private _initChunk(textChunk: TextChunk, count: number, endIndex: number): Chunk {
     const { r, g, b, a } = this.color;
     const charRenderInfos = this._charRenderInfos;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const chunk = this._getChunkManager().allocateChunk(count * 4);
+    const chunk = (textChunk.chunk = this._getChunkManager().allocateChunk(count * 4));
     const vertices = chunk.data.vertices;
     const indices = (chunk.indices = []);
     let indexInChunk = 0;
@@ -739,6 +744,12 @@ export class TextRenderer extends Renderer {
 
     return chunk;
   }
+}
+
+class TextChunk {
+  charRenderInfos = new Array<CharRenderInfo>();
+  chunk: Chunk;
+  texture: Texture2D;
 }
 
 enum DirtyFlag {
