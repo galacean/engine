@@ -76,21 +76,22 @@ export class DynamicGeometryData {
   uploadBuffer(): void {
     // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
-    const primitive = this.primitive;
-    if (this.updateVertexStart !== Number.MAX_SAFE_INTEGER && this.updateVertexLength !== Number.MIN_SAFE_INTEGER) {
+    const { primitive, updateVertexStart, updateVertexLength } = this;
+    if (updateVertexStart !== Number.MAX_SAFE_INTEGER && updateVertexLength !== Number.MIN_SAFE_INTEGER) {
       primitive.vertexBufferBindings[0].buffer.setData(
         this.vertices,
-        this.updateVertexStart * 4,
-        this.updateVertexStart,
-        this.updateVertexLength,
+        updateVertexStart * 4,
+        updateVertexStart,
+        updateVertexLength,
         SetDataOptions.Discard
       );
+
+      this.updateVertexStart = Number.MAX_SAFE_INTEGER;
+      this.updateVertexLength = Number.MIN_SAFE_INTEGER;
     }
 
     primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
-
-    this.updateVertexStart = Number.MAX_SAFE_INTEGER;
-    this.updateVertexLength = this.updateIndexLength = 0;
+    this.updateIndexLength = 0;
   }
 
   allocateChunk(vertexCount: number): Chunk | null {
