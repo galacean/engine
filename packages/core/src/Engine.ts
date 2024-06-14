@@ -265,7 +265,6 @@ export class Engine extends EventDispatcher {
       this.xrManager._initialize(this, xrDevice);
     }
 
-
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
     } else {
