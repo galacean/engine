@@ -1,3 +1,4 @@
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { Camera } from "../Camera";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
@@ -65,7 +66,7 @@ export class RenderQueue {
     this._batch(batcherManager);
   }
 
-  render(camera: Camera, pipelineStageTagValue: string, needDrawMask: boolean = true): void {
+  render(camera: Camera, pipelineStageTagValue: string): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
@@ -81,7 +82,10 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      needDrawMask && this._drawMask(subElement, camera, pipelineStageTagValue);
+      const maskInteraction = subElement.component._maskInteraction;
+      maskInteraction &&
+        maskInteraction !== SpriteMaskInteraction.None &&
+        this._drawMask(subElement, camera, pipelineStageTagValue);
       const { shaderPasses } = subElement;
 
       const compileMacros = Shader._compileMacros;
@@ -225,6 +229,6 @@ export class RenderQueue {
     const engine = camera.engine;
     engine._maskManager.buildMaskRenderElement(element, renderQueue);
     renderQueue._batch(engine._batcherManager);
-    renderQueue.render(camera, pipelineStageTagValue, false);
+    renderQueue.render(camera, pipelineStageTagValue);
   }
 }

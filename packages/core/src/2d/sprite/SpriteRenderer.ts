@@ -1,6 +1,10 @@
 import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { Chunk } from "../../RenderPipeline/Chunk";
+import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -11,14 +15,9 @@ import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
-import { Chunk } from "../../RenderPipeline/Chunk";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -57,11 +56,6 @@ export class SpriteRenderer extends Renderer {
   private _flipX: boolean = false;
   @assignmentClone
   private _flipY: boolean = false;
-
-  @assignmentClone
-  private _maskLayer: number = SpriteMaskLayer.Layer0;
-  @assignmentClone
-  private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
 
   /**
    * The draw mode of the sprite renderer.

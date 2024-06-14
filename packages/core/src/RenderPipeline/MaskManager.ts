@@ -1,4 +1,4 @@
-import { SpriteMask, SpriteMaskInteraction, SpriteRenderer, TextRenderer } from "../2d";
+import { SpriteMask } from "../2d";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { StencilOperation } from "../shader";
@@ -21,25 +21,8 @@ export class MaskManager {
 
   buildMaskRenderElement(element: SubRenderElement, renderQueue: RenderQueue): void {
     const renderer = element.component;
-    // @ts-ignore
-    const maskInteraction = renderer.maskInteraction;
-    if (maskInteraction && maskInteraction !== SpriteMaskInteraction.None) {
-      this._processMasksDiff(<SpriteRenderer | TextRenderer>renderer, renderQueue);
-    }
-  }
-
-  clear(): void {
-    this.allSpriteMasks.length = 0;
-    this._preMaskLayer = 0;
-  }
-
-  destroy(): void {
-    this.clear();
-  }
-
-  private _processMasksDiff(renderer: SpriteRenderer | TextRenderer, renderQueue: RenderQueue): void {
     const preMaskLayer = this._preMaskLayer;
-    const curMaskLayer = renderer.maskLayer;
+    const curMaskLayer = renderer._maskLayer;
     if (preMaskLayer !== curMaskLayer) {
       const masks = this.allSpriteMasks;
       const commonLayer = preMaskLayer & curMaskLayer;
@@ -68,5 +51,14 @@ export class MaskManager {
       }
     }
     this._preMaskLayer = curMaskLayer;
+  }
+
+  clear(): void {
+    this.allSpriteMasks.length = 0;
+    this._preMaskLayer = 0;
+  }
+
+  destroy(): void {
+    this.clear();
   }
 }

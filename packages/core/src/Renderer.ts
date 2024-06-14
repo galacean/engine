@@ -13,6 +13,8 @@ import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
+import { SpriteMaskLayer } from "./2d";
 
 /**
  * Basis for all renderers.
@@ -48,6 +50,12 @@ export class Renderer extends Component implements IComponentCustomClone {
   _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
+  /** @internal */
+  @assignmentClone
+  _maskInteraction: number = SpriteMaskInteraction.None;
+  /** @internal */
+  @assignmentClone
+  _maskLayer: number = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -55,6 +63,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _materials: Material[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
+  @ignoreClone
+  protected _rendererLayer: Vector4 = new Vector4();
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -72,9 +82,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
-
-  @ignoreClone
-  protected _rendererLayer: Vector4 = new Vector4();
 
   /**
    * ShaderData related to renderer.

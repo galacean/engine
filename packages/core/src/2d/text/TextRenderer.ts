@@ -16,7 +16,6 @@ import { Texture2D } from "../../texture";
 import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { CharRenderInfo } from "./CharRenderInfo";
@@ -71,10 +70,6 @@ export class TextRenderer extends Renderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
-  @assignmentClone
-  private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  @assignmentClone
-  private _maskLayer: number = SpriteMaskLayer.Layer0;
 
   /**
    * Rendering color for the Text.
