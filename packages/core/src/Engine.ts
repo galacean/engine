@@ -14,9 +14,12 @@ import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
+import { BatcherManager } from "./RenderPipeline/BatcherManager";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -43,11 +46,8 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { BatcherManager } from "./RenderPipeline/BatcherManager";
-import { XRManager } from "./xr/XRManager";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
-import { MaskManager } from "./RenderPipeline/MaskManager";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { XRManager } from "./xr/XRManager";
 
 ShaderPool.init();
 
@@ -523,8 +523,7 @@ export class Engine extends EventDispatcher {
   _render(scenes: ReadonlyArray<Scene>): void {
     // Update `Renderer` logic and shader data
     const deltaTime = this.time.deltaTime;
-    const sceneCount = scenes.length;
-    for (let i = 0; i < sceneCount; i++) {
+    for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callRendererOnUpdate(deltaTime);
@@ -532,7 +531,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire script `onBeginRender` and `onEndRender`
-    for (let i = 0; i < sceneCount; i++) {
+    for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       const cameras = scene._componentsManager._activeCameras;
