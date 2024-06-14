@@ -44,7 +44,16 @@ export class SubRenderElement implements IPoolElement {
   }
 
   dispose(): void {
+    this.component = null;
+    this.material = null;
+    this.primitive = null;
+    this.subPrimitive = null;
+
     this.data = null;
     this.shaderPasses = null;
+
+    this.texture && (this.texture = null);
+    this.chunk && (this.chunk = null);
+    this.shaderData && (this.shaderData = null);
   }
 }
