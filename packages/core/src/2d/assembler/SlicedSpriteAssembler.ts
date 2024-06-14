@@ -16,11 +16,11 @@ export class SlicedSpriteAssembler {
 
   static resetData(renderer: SpriteRenderer): void {
     const manager = renderer._getChunkManager();
-    const lastChunk = renderer._chunk;
-    lastChunk && manager.freeSubChunk(lastChunk);
-    const chunk = manager.allocateSubChunk(16);
-    chunk.indices = SlicedSpriteAssembler._rectangleTriangles;
-    renderer._chunk = chunk;
+    const lastSubChunk = renderer._subChunk;
+    lastSubChunk && manager.freeSubChunk(lastSubChunk);
+    const subChunk = manager.allocateSubChunk(16);
+    subChunk.indices = SlicedSpriteAssembler._rectangleTriangles;
+    renderer._subChunk = subChunk;
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
@@ -100,10 +100,10 @@ export class SlicedSpriteAssembler {
     //  0 - 4 - 8  - 12
     // ------------------------
     // Assemble position and uv.
-    const chunk = renderer._chunk;
-    chunk.updateBuffer();
-    const vertices = chunk.primitiveChunk.vertices;
-    for (let i = 0, o = chunk.vertexArea.start; i < 4; i++) {
+    const subChunk = renderer._subChunk;
+    subChunk.updateBuffer();
+    const vertices = subChunk.primitiveChunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start; i < 4; i++) {
       const rowValue = row[i];
       for (let j = 0; j < 4; j++, o += 9) {
         const columnValue = column[j];
@@ -120,10 +120,10 @@ export class SlicedSpriteAssembler {
   }
 
   static updateUVs(renderer: SpriteRenderer): void {
-    const chunk = renderer._chunk;
-    const vertices = chunk.primitiveChunk.vertices;
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.primitiveChunk.vertices;
     const spriteUVs = renderer.sprite._getUVs();
-    for (let i = 0, o = chunk.vertexArea.start + 3; i < 4; i++) {
+    for (let i = 0, o = subChunk.vertexArea.start + 3; i < 4; i++) {
       const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++, o += 9) {
         vertices[o] = rowU;
@@ -133,10 +133,10 @@ export class SlicedSpriteAssembler {
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const chunk = renderer._chunk;
+    const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.primitiveChunk.vertices;
-    for (let i = 0, o = chunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
+    const vertices = subChunk.primitiveChunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;

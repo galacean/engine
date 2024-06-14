@@ -28,7 +28,7 @@ export class SpriteRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _chunk: SubPrimitiveChunk;
+  _subChunk: SubPrimitiveChunk;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
@@ -367,7 +367,7 @@ export class SpriteRenderer extends Renderer {
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
-    const chunk = this._chunk;
+    const chunk = this._subChunk;
     subRenderElement.set(renderData, this, material, chunk.primitiveChunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.addSubRenderElement(subRenderElement);
     engine._batcherManager.commitRenderData(context, renderData);
@@ -386,9 +386,9 @@ export class SpriteRenderer extends Renderer {
     this._color = null;
     this._sprite = null;
     this._assembler = null;
-    if (this._chunk) {
-      this._getChunkManager().freeSubChunk(this._chunk);
-      this._chunk = null;
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
     }
   }
 

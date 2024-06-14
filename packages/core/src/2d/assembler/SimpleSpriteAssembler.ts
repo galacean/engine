@@ -14,11 +14,11 @@ export class SimpleSpriteAssembler {
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
     const manager = renderer._getChunkManager();
-    const lastChunk = renderer._chunk;
-    lastChunk && manager.freeSubChunk(lastChunk);
-    const chunk = manager.allocateSubChunk(4);
-    chunk.indices = SimpleSpriteAssembler._rectangleTriangles;
-    renderer._chunk = chunk;
+    const lastSubChunk = renderer._subChunk;
+    lastSubChunk && manager.freeSubChunk(lastSubChunk);
+    const subChunk = manager.allocateSubChunk(4);
+    subChunk.indices = SimpleSpriteAssembler._rectangleTriangles;
+    renderer._subChunk = subChunk;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
@@ -45,10 +45,10 @@ export class SimpleSpriteAssembler {
     // ---------------
     // Update positions
     const spritePositions = sprite._getPositions();
-    const chunk = renderer._chunk;
-    chunk.updateBuffer();
-    const vertices = chunk.primitiveChunk.vertices;
-    for (let i = 0, o = chunk.vertexArea.start; i < 4; ++i, o += 9) {
+    const subChunk = renderer._subChunk;
+    subChunk.updateBuffer();
+    const vertices = subChunk.primitiveChunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
       vertices[o] = wE[0] * x + wE[4] * y + wE[12];
       vertices[o + 1] = wE[1] * x + wE[5] * y + wE[13];
@@ -62,9 +62,9 @@ export class SimpleSpriteAssembler {
     const spriteUVs = renderer.sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
-    const { _chunk: chunk } = renderer;
-    const vertices = chunk.primitiveChunk.vertices;
-    const offset = chunk.vertexArea.start + 3;
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.primitiveChunk.vertices;
+    const offset = subChunk.vertexArea.start + 3;
     vertices[offset] = left;
     vertices[offset + 1] = bottom;
     vertices[offset + 9] = right;
@@ -76,10 +76,10 @@ export class SimpleSpriteAssembler {
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const chunk = renderer._chunk;
+    const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.primitiveChunk.vertices;
-    for (let i = 0, o = chunk.vertexArea.start + 5; i < 4; ++i, o += 9) {
+    const vertices = subChunk.primitiveChunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start + 5; i < 4; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;

@@ -1,12 +1,12 @@
 import { MathUtil, Matrix } from "@galacean/engine-math";
-import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { DisorderedArray } from "../../DisorderedArray";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
+import { Logger } from "../../base";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
-import { Logger } from "../../base";
-import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 
 /**
  * @internal
@@ -22,14 +22,14 @@ export class TiledSpriteAssembler {
   static resetData(renderer: SpriteRenderer, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
-      const lastChunk = renderer._chunk;
-      const sizeChanged = lastChunk && lastChunk.vertexArea.size !== vertexCount * 9;
-      sizeChanged && manager.freeSubChunk(lastChunk);
+      const lastSubChunk = renderer._subChunk;
+      const sizeChanged = lastSubChunk && lastSubChunk.vertexArea.size !== vertexCount * 9;
+      sizeChanged && manager.freeSubChunk(lastSubChunk);
 
-      if (!lastChunk || sizeChanged) {
-        const newChunk = manager.allocateSubChunk(vertexCount);
-        newChunk.indices = [];
-        renderer._chunk = newChunk;
+      if (!lastSubChunk || sizeChanged) {
+        const newSubChunk = manager.allocateSubChunk(vertexCount);
+        newSubChunk.indices = [];
+        renderer._subChunk = newSubChunk;
       }
     }
   }
@@ -76,13 +76,13 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
 
-    const chunk = renderer._chunk;
-    chunk.updateBuffer();
-    const vertices = chunk.primitiveChunk.vertices;
-    const indices = chunk.indices;
+    const subChunk = renderer._subChunk;
+    subChunk.updateBuffer();
+    const vertices = subChunk.primitiveChunk.vertices;
+    const indices = subChunk.indices;
     let count = 0;
     let trianglesOffset = 0;
-    for (let j = 0, o = chunk.vertexArea.start; j < columnLength; j++) {
+    for (let j = 0, o = subChunk.vertexArea.start; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
@@ -134,9 +134,9 @@ export class TiledSpriteAssembler {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-    const chunk = renderer._chunk;
-    const vertices = chunk.primitiveChunk.vertices;
-    for (let j = 0, o = chunk.vertexArea.start + 3; j < columnLength; j++) {
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.primitiveChunk.vertices;
+    for (let j = 0, o = subChunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
@@ -165,10 +165,10 @@ export class TiledSpriteAssembler {
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const { _chunk: chunk } = renderer;
+    const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.primitiveChunk.vertices;
-    const vertexArea = chunk.vertexArea;
+    const vertices = subChunk.primitiveChunk.vertices;
+    const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;

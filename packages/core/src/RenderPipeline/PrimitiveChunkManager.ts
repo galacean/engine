@@ -19,23 +19,23 @@ export class PrimitiveChunkManager {
   allocateSubChunk(vertexCount: number): SubPrimitiveChunk {
     const dataArray = this.primitiveChunkArray;
     const length = dataArray.length;
-    let chunk: SubPrimitiveChunk = null;
+    let subChunk: SubPrimitiveChunk = null;
     for (let i = 0; i < length; ++i) {
-      chunk = dataArray[i].allocateSubChunk(vertexCount);
-      if (chunk) {
-        chunk.id = i;
-        return chunk;
+      subChunk = dataArray[i].allocateSubChunk(vertexCount);
+      if (subChunk) {
+        subChunk.id = i;
+        return subChunk;
       }
     }
 
     const data = (this.primitiveChunkArray[length] ||= new PrimitiveChunk(this.engine, this.maxVertexCount));
-    chunk = data.allocateSubChunk(vertexCount);
-    chunk.id = length;
-    return chunk;
+    subChunk = data.allocateSubChunk(vertexCount);
+    subChunk.id = length;
+    return subChunk;
   }
 
-  freeSubChunk(chunk: SubPrimitiveChunk): void {
-    this.primitiveChunkArray[chunk.id].freeSubChunk(chunk);
+  freeSubChunk(subChunk: SubPrimitiveChunk): void {
+    this.primitiveChunkArray[subChunk.id].freeSubChunk(subChunk);
   }
 
   uploadBuffer(): void {

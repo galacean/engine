@@ -6,7 +6,7 @@ import { SubRenderElement } from "./SubRenderElement";
  */
 export class BatchUtils {
   static canBatchSprite(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    if (elementA.chunk.primitiveChunk !== elementB.chunk.primitiveChunk) {
+    if (elementA.subChunk.primitiveChunk !== elementB.subChunk.primitiveChunk) {
       return false;
     }
 
@@ -27,7 +27,7 @@ export class BatchUtils {
   }
 
   static canBatchSpriteMask(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    if (elementA.chunk.primitiveChunk !== elementB.chunk.primitiveChunk) {
+    if (elementA.subChunk.primitiveChunk !== elementB.subChunk.primitiveChunk) {
       return false;
     }
 
@@ -44,7 +44,7 @@ export class BatchUtils {
   }
 
   static batchRenderElementFor2D(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    const chunk = elementB ? elementB.chunk : elementA.chunk;
+    const chunk = elementB ? elementB.subChunk : elementA.subChunk;
     const { primitiveChunk: data, indices: tempIndices, vertexArea } = chunk;
     const start = vertexArea.start;
     const indices = data.indices;
@@ -52,7 +52,7 @@ export class BatchUtils {
     const len = tempIndices.length;
     let startIndex = data.updateIndexLength;
     if (elementB) {
-      const subMesh = elementA.chunk.subMesh;
+      const subMesh = elementA.subChunk.subMesh;
       subMesh.count += len;
     } else {
       const subMesh = chunk.subMesh;

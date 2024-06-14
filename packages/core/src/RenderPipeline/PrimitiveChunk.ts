@@ -31,7 +31,7 @@ export class PrimitiveChunk {
 
   vertexFreeAreas = new Array<Area>();
   areaPool = new ReturnableObjectPool(Area, 10);
-  chunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
+  subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
   subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
@@ -97,22 +97,22 @@ export class PrimitiveChunk {
   allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
     const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
     if (area) {
-      const chunk = this.chunkPool.get();
-      chunk.primitiveChunk = this;
-      chunk.vertexArea = area;
-      chunk.subMesh = this.subMeshPool.get();
-      const { subMesh: subMesh } = chunk;
+      const subChunk = this.subChunkPool.get();
+      subChunk.primitiveChunk = this;
+      subChunk.vertexArea = area;
+      subChunk.subMesh = this.subMeshPool.get();
+      const { subMesh: subMesh } = subChunk;
       subMesh.topology = MeshTopology.Triangles;
-      return chunk;
+      return subChunk;
     }
 
     return null;
   }
 
-  freeSubChunk(chunk: SubPrimitiveChunk): void {
-    this._freeArea(this.vertexFreeAreas, chunk.vertexArea);
-    this.subMeshPool.return(chunk.subMesh);
-    this.chunkPool.return(chunk);
+  freeSubChunk(subChunk: SubPrimitiveChunk): void {
+    this._freeArea(this.vertexFreeAreas, subChunk.vertexArea);
+    this.subMeshPool.return(subChunk.subMesh);
+    this.subChunkPool.return(subChunk);
   }
 
   private _allocateArea(entries: Area[], needSize: number): Area | null {

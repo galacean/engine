@@ -1,10 +1,10 @@
 import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
@@ -31,7 +31,7 @@ export class SpriteMask extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _chunk: SubPrimitiveChunk;
+  _subChunk: SubPrimitiveChunk;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -260,11 +260,19 @@ export class SpriteMask extends Renderer {
 
     engine._maskManager.addSpriteMask(this);
 
-    const chunk = this._chunk;
+    const chunk = this._subChunk;
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(renderData, this, material, chunk.primitiveChunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    subRenderElement.set(
+      renderData,
+      this,
+      material,
+      chunk.primitiveChunk.primitive,
+      chunk.subMesh,
+      this.sprite.texture,
+      chunk
+    );
     subRenderElement.setShaderPasses(material.shader.subShaders[0].passes);
     renderData.addSubRenderElement(subRenderElement);
     const renderElement = engine._renderElementPool.get();
@@ -285,9 +293,9 @@ export class SpriteMask extends Renderer {
     super._onDestroy();
 
     this._sprite = null;
-    if (this._chunk) {
-      this._getChunkManager().freeSubChunk(this._chunk);
-      this._chunk = null;
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
     }
   }
 

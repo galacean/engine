@@ -433,9 +433,9 @@ export class TextRenderer extends Renderer {
     renderData.set(this.priority, this._distanceForSort);
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
-      const { chunk, texture } = textChunks[i];
+      const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(renderData, this, material, chunk.primitiveChunk.primitive, chunk.subMesh, texture, chunk);
+      subRenderElement.set(renderData, this, material, subChunk.primitiveChunk.primitive, subChunk.subMesh, texture, subChunk);
       if (!subRenderElement.shaderData) {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
       }
@@ -494,8 +494,8 @@ export class TextRenderer extends Renderer {
 
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
-      const { chunk, charRenderInfos } = textChunks[i];
-      chunk.updateBuffer();
+      const { subChunk, charRenderInfos } = textChunks[i];
+      subChunk.updateBuffer();
       for (let j = 0, m = charRenderInfos.length; j < m; ++j) {
         const charRenderInfo = charRenderInfos[j];
         const { localPositions } = charRenderInfo;
@@ -522,8 +522,8 @@ export class TextRenderer extends Renderer {
         // Bottom-Right
         Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-        const vertices = chunk.primitiveChunk.vertices;
-        for (let k = 0, o = chunk.vertexArea.start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
+        const vertices = subChunk.primitiveChunk.vertices;
+        for (let k = 0, o = subChunk.vertexArea.start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
           worldPositions[k].copyToArray(vertices, o);
         }
       }
@@ -691,7 +691,7 @@ export class TextRenderer extends Renderer {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const chunk = (textChunk.chunk = this._getChunkManager().allocateSubChunk(count * 4));
+    const chunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
     const vertices = chunk.primitiveChunk.vertices;
     const indices = (chunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
@@ -729,8 +729,8 @@ export class TextRenderer extends Renderer {
         charRenderInfoPool.return(charRenderInfos[j]);
       }
       charRenderInfos.length = 0;
-      manager.freeSubChunk(textChunk.chunk);
-      textChunk.chunk = null;
+      manager.freeSubChunk(textChunk.subChunk);
+      textChunk.subChunk = null;
       textChunk.texture = null;
     }
     textChunks.length = 0;
@@ -739,7 +739,7 @@ export class TextRenderer extends Renderer {
 
 class TextChunk {
   charRenderInfos = new Array<CharRenderInfo>();
-  chunk: SubPrimitiveChunk;
+  subChunk: SubPrimitiveChunk;
   texture: Texture2D;
 }
 
