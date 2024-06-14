@@ -15,12 +15,12 @@ import {
 } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
 import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
-import { Chunk } from "./Chunk";
+import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 /**
  * @internal
  */
-export class DynamicGeometryData {
+export class PrimitiveChunk {
   primitive: Primitive;
   vertices: Float32Array;
   indices: Uint16Array;
@@ -31,7 +31,7 @@ export class DynamicGeometryData {
 
   vertexFreeAreas = new Array<Area>();
   areaPool = new ReturnableObjectPool(Area, 10);
-  chunkPool = new ReturnableObjectPool(Chunk, 10);
+  chunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
   subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
@@ -94,11 +94,11 @@ export class DynamicGeometryData {
     this.updateIndexLength = 0;
   }
 
-  allocateChunk(vertexCount: number): Chunk | null {
+  allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
     const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
     if (area) {
       const chunk = this.chunkPool.get();
-      chunk.data = this;
+      chunk.primitiveChunk = this;
       chunk.vertexArea = area;
       chunk.subMesh = this.subMeshPool.get();
       const { subMesh: subMesh } = chunk;
@@ -109,7 +109,7 @@ export class DynamicGeometryData {
     return null;
   }
 
-  freeChunk(chunk: Chunk): void {
+  freeSubChunk(chunk: SubPrimitiveChunk): void {
     this._freeArea(this.vertexFreeAreas, chunk.vertexArea);
     this.subMeshPool.return(chunk.subMesh);
     this.chunkPool.return(chunk);

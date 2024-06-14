@@ -6,7 +6,7 @@ import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 import { Logger } from "../../base";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 
 /**
  * @internal
@@ -78,7 +78,7 @@ export class TiledSpriteAssembler {
 
     const chunk = renderer._chunk;
     chunk.updateBuffer();
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     const indices = chunk.indices;
     let count = 0;
     let trianglesOffset = 0;
@@ -135,7 +135,7 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     const chunk = renderer._chunk;
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     for (let j = 0, o = chunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
@@ -167,7 +167,7 @@ export class TiledSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const { _chunk: chunk } = renderer;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     const vertexArea = chunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
@@ -238,14 +238,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
       return rowCount * columnCount;
     }
 
@@ -375,14 +375,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
       return rowCount * columnCount;
     }
 

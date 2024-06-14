@@ -1,8 +1,8 @@
 import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { Chunk } from "../../RenderPipeline/Chunk";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
@@ -28,7 +28,7 @@ export class SpriteRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _chunk: Chunk;
+  _chunk: SubPrimitiveChunk;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
@@ -316,8 +316,8 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  _getChunkManager(): DynamicGeometryDataManager {
-    return this.engine._batcherManager._dynamicGeometryDataManager2D;
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager._primitiveChunkManager2D;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -368,7 +368,7 @@ export class SpriteRenderer extends Renderer {
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     const chunk = this._chunk;
-    subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    subRenderElement.set(renderData, this, material, chunk.primitiveChunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
     renderData.addSubRenderElement(subRenderElement);
     engine._batcherManager.commitRenderData(context, renderData);
   }

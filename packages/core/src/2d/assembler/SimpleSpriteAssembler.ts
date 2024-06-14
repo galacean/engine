@@ -47,7 +47,7 @@ export class SimpleSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const chunk = renderer._chunk;
     chunk.updateBuffer();
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     for (let i = 0, o = chunk.vertexArea.start; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
       vertices[o] = wE[0] * x + wE[4] * y + wE[12];
@@ -63,7 +63,7 @@ export class SimpleSpriteAssembler {
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
     const { _chunk: chunk } = renderer;
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     const offset = chunk.vertexArea.start + 3;
     vertices[offset] = left;
     vertices[offset + 1] = bottom;
@@ -78,7 +78,7 @@ export class SimpleSpriteAssembler {
   static updateColor(renderer: SpriteRenderer): void {
     const chunk = renderer._chunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     for (let i = 0, o = chunk.vertexArea.start + 5; i < 4; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;

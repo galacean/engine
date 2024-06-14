@@ -2,8 +2,8 @@ import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { Chunk } from "../../RenderPipeline/Chunk";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer } from "../../Renderer";
@@ -392,8 +392,8 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
-  _getChunkManager(): DynamicGeometryDataManager {
-    return this.engine._batcherManager._dynamicGeometryDataManager2D;
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager._primitiveChunkManager2D;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -435,7 +435,7 @@ export class TextRenderer extends Renderer {
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { chunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
+      subRenderElement.set(renderData, this, material, chunk.primitiveChunk.primitive, chunk.subMesh, texture, chunk);
       if (!subRenderElement.shaderData) {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
       }
@@ -522,7 +522,7 @@ export class TextRenderer extends Renderer {
         // Bottom-Right
         Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
-        const vertices = chunk.data.vertices;
+        const vertices = chunk.primitiveChunk.vertices;
         for (let k = 0, o = chunk.vertexArea.start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
           worldPositions[k].copyToArray(vertices, o);
         }
@@ -687,12 +687,12 @@ export class TextRenderer extends Renderer {
     );
   }
 
-  private _buildChunk(textChunk: TextChunk, count: number): Chunk {
+  private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
     const chunk = (textChunk.chunk = this._getChunkManager().allocateChunk(count * 4));
-    const vertices = chunk.data.vertices;
+    const vertices = chunk.primitiveChunk.vertices;
     const indices = (chunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
     for (let i = 0, ii = 0, io = 0, vo = chunk.vertexArea.start + 3; i < count; ++i, io += 4) {
@@ -739,7 +739,7 @@ export class TextRenderer extends Renderer {
 
 class TextChunk {
   charRenderInfos = new Array<CharRenderInfo>();
-  chunk: Chunk;
+  chunk: SubPrimitiveChunk;
   texture: Texture2D;
 }
 

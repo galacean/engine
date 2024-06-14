@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
-import { DynamicGeometryDataManager } from "./DynamicGeometryDataManager";
+import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
@@ -10,21 +10,21 @@ export class BatcherManager {
   /** @internal */
   _engine: Engine;
   /** @internal */
-  _dynamicGeometryDataManager2D: DynamicGeometryDataManager;
+  _primitiveChunkManager2D: PrimitiveChunkManager;
   /** @internal */
-  _dynamicGeometryDataManagerMask: DynamicGeometryDataManager;
+  _primitiveChunkManagerMask: PrimitiveChunkManager;
 
   constructor(engine: Engine) {
     this._engine = engine;
-    this._dynamicGeometryDataManager2D = new DynamicGeometryDataManager(engine);
-    this._dynamicGeometryDataManagerMask = new DynamicGeometryDataManager(engine, 128);
+    this._primitiveChunkManager2D = new PrimitiveChunkManager(engine);
+    this._primitiveChunkManagerMask = new PrimitiveChunkManager(engine, 128);
   }
 
   destroy() {
-    this._dynamicGeometryDataManager2D.destroy();
-    this._dynamicGeometryDataManager2D = null;
-    this._dynamicGeometryDataManagerMask.destroy();
-    this._dynamicGeometryDataManagerMask = null;
+    this._primitiveChunkManager2D.destroy();
+    this._primitiveChunkManager2D = null;
+    this._primitiveChunkManagerMask.destroy();
+    this._primitiveChunkManagerMask = null;
     this._engine = null;
   }
 
@@ -69,7 +69,7 @@ export class BatcherManager {
   }
 
   uploadBuffer() {
-    this._dynamicGeometryDataManager2D.uploadBuffer();
-    this._dynamicGeometryDataManagerMask.uploadBuffer();
+    this._primitiveChunkManager2D.uploadBuffer();
+    this._primitiveChunkManagerMask.uploadBuffer();
   }
 }
