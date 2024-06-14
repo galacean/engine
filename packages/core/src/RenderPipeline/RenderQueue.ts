@@ -16,7 +16,7 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static getRenderQueue(): RenderQueue {
+  static _getRenderQueue(): RenderQueue {
     if (!RenderQueue._renderQueue) {
       RenderQueue._renderQueue = new RenderQueue(RenderQueueType.Transparent);
     }
@@ -219,7 +219,7 @@ export class RenderQueue {
   }
 
   private _drawMask(element: SubRenderElement, camera: Camera, pipelineStageTagValue: string): void {
-    const renderQueue = RenderQueue.getRenderQueue();
+    const renderQueue = RenderQueue._getRenderQueue();
     renderQueue._setRenderQueueType(this._renderQueueType);
     renderQueue.clear();
     const engine = camera.engine;
