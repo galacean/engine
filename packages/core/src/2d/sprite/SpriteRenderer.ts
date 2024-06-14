@@ -81,7 +81,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
     }
   }
 
@@ -96,7 +96,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       }
     }
   }
@@ -113,7 +113,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       }
     }
   }
@@ -178,7 +178,7 @@ export class SpriteRenderer extends Renderer {
     if (this._customWidth !== value) {
       this._customWidth = value;
       if (this._drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       } else {
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
       }
@@ -205,7 +205,7 @@ export class SpriteRenderer extends Renderer {
     if (this._customHeight !== value) {
       this._customHeight = value;
       if (this._drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       } else {
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
       }
@@ -309,8 +309,8 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
   }
 
   /**
@@ -368,15 +368,7 @@ export class SpriteRenderer extends Renderer {
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
-    subRenderElement.set(
-      renderData,
-      this,
-      material,
-      subChunk.chunk.primitive,
-      subChunk.subMesh,
-      this.sprite.texture,
-      subChunk
-    );
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     renderData.addSubRenderElement(subRenderElement);
     camera._renderPipeline.pushRenderData(context, renderData);
   }
@@ -445,7 +437,7 @@ export class SpriteRenderer extends Renderer {
         if (this._drawMode === SpriteDrawMode.Sliced) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
         } else {
           // When the width and height of `SpriteRenderer` are `undefined`,
           // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
@@ -455,11 +447,12 @@ export class SpriteRenderer extends Renderer {
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData);
+        this._drawMode === SpriteDrawMode.Sliced &&
+          (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV);
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
@@ -482,10 +475,10 @@ enum SpriteRendererUpdateFlags {
   UV = 0x2,
   /** Color. */
   Color = 0x4,
-  /** Vertex data. */
-  VertexData = 0x7,
   /** Automatic Size. */
   AutomaticSize = 0x8,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
   /** All. */
   All = 0xff
 }

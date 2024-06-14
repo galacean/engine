@@ -385,8 +385,8 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
-  override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
   }
 
   /**
@@ -435,7 +435,7 @@ export class TextRenderer extends Renderer {
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(renderData, this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+      subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
       if (!subRenderElement.shaderData) {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
       }

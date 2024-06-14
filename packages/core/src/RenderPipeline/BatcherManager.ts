@@ -43,19 +43,19 @@ export class BatcherManager {
         const curConstructor = curRenderer.constructor;
         if (preSubElement) {
           if (preConstructor === curConstructor && preRenderer._canBatch(preSubElement, curSubElement)) {
-            preRenderer._batchRenderElement(preSubElement, curSubElement);
+            preRenderer._batch(preSubElement, curSubElement);
           } else {
             batchedSubElements.push(preSubElement);
             preSubElement = curSubElement;
             preRenderer = curRenderer;
             preConstructor = curConstructor;
-            preRenderer._batchRenderElement(preSubElement);
+            preRenderer._batch(preSubElement);
           }
         } else {
           preSubElement = curSubElement;
           preRenderer = curRenderer;
           preConstructor = curConstructor;
-          preRenderer._batchRenderElement(preSubElement);
+          preRenderer._batch(preSubElement);
         }
       }
     }

@@ -32,13 +32,14 @@ export class BatchUtils {
 
     // Compare renderer property
     return (
+      elementA.stencilOperation === elementB.stencilOperation &&
       elementA.texture === elementB.texture &&
       (<SpriteMask>elementA.component).shaderData.getFloat(alphaCutoffProperty) ===
         (<SpriteMask>elementB.component).shaderData.getFloat(alphaCutoffProperty)
     );
   }
 
-  static batchRenderElementFor2D(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+  static batchFor2D(elementA: SubRenderElement, elementB?: SubRenderElement): void {
     const subChunk = elementB ? elementB.subChunk : elementA.subChunk;
     const { chunk, indices: subChunkIndices, vertexArea } = subChunk;
     const indices = chunk.indices;

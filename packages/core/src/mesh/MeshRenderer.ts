@@ -162,7 +162,7 @@ export class MeshRenderer extends Renderer {
       }
 
       const subRenderElement = subRenderElementPool.get();
-      subRenderElement.set(renderData, this, material, mesh._primitive, subMeshes[i]);
+      subRenderElement.set(this, material, mesh._primitive, subMeshes[i]);
       renderData.addSubRenderElement(subRenderElement);
     }
     context.camera._renderPipeline.pushRenderData(context, renderData);

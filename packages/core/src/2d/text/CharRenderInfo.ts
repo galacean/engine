@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { Vector2, Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
 import { IPoolElement } from "../../utils/ObjectPool";
 
@@ -11,7 +11,7 @@ export class CharRenderInfo implements IPoolElement {
   texture: Texture2D;
   /** x:Top y:Left z:Bottom w:Right */
   localPositions = new Vector4();
-  uvs: Array<Vector2>;
+  uvs: Vector2[];
   indexInChunk: number;
 
   dispose(): void {

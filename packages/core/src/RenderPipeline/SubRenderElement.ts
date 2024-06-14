@@ -4,7 +4,6 @@ import { Material } from "../material";
 import { ShaderData, ShaderPass, StencilOperation } from "../shader";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/ObjectPool";
-import { RenderData } from "./RenderData";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 export class SubRenderElement implements IPoolElement {
@@ -13,7 +12,6 @@ export class SubRenderElement implements IPoolElement {
   primitive: Primitive;
   subPrimitive: SubMesh;
 
-  data: RenderData;
   shaderPasses: ReadonlyArray<ShaderPass>;
   stencilOperation: StencilOperation;
 
@@ -22,7 +20,6 @@ export class SubRenderElement implements IPoolElement {
   shaderData?: ShaderData;
 
   set(
-    data: RenderData,
     component: Renderer,
     material: Material,
     primitive: Primitive,
@@ -30,7 +27,6 @@ export class SubRenderElement implements IPoolElement {
     texture?: Texture2D,
     subChunk?: SubPrimitiveChunk
   ): void {
-    this.data = data;
     this.component = component;
     this.material = material;
     this.primitive = primitive;
@@ -49,7 +45,6 @@ export class SubRenderElement implements IPoolElement {
     this.primitive = null;
     this.subPrimitive = null;
 
-    this.data = null;
     this.shaderPasses = null;
 
     this.texture && (this.texture = null);

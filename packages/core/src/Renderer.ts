@@ -406,7 +406,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
+  _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;

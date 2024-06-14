@@ -208,8 +208,8 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  override _batchRenderElement(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
   }
 
   /**
@@ -264,15 +264,7 @@ export class SpriteMask extends Renderer {
     const renderData = engine._renderDataPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(
-      renderData,
-      this,
-      material,
-      chunk.chunk.primitive,
-      chunk.subMesh,
-      this.sprite.texture,
-      chunk
-    );
+    subRenderElement.set(this, material, chunk.chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
     subRenderElement.setShaderPasses(material.shader.subShaders[0].passes);
     renderData.addSubRenderElement(subRenderElement);
     const renderElement = engine._renderElementPool.get();
