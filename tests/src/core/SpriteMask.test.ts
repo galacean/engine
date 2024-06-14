@@ -176,11 +176,11 @@ describe("SpriteMask", async () => {
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore
-    const { _chunk: chunk } = spriteMask;
-    const vertices = chunk.data.vertices;
+    const subChunk = spriteMask._subChunk;
+    const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk.vertexArea.start;
+    let index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -206,7 +206,7 @@ describe("SpriteMask", async () => {
     spriteMask._render(context);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));

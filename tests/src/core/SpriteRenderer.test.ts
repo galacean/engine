@@ -184,11 +184,11 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.width = 4;
     spriteRenderer.height = 5;
     // @ts-ignore
-    const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk.data.vertices;
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk.vertexArea.start;
+    let index = subChunk.vertexArea.start;
     sprite.pivot = new Vector2(0.5, 0.5);
     // @ts-ignore
     spriteRenderer._assembler.updatePositions(spriteRenderer);
@@ -215,7 +215,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -237,7 +237,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -261,11 +261,11 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
-    const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk.data.vertices;
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk.vertexArea.start;
+    let index = subChunk.vertexArea.start;
     sprite.pivot = new Vector2(0, 0);
     sprite.border = new Vector4(0.3, 0.3, 0.3, 0.3);
     spriteRenderer.width = 0.5;
@@ -320,7 +320,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 16; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -368,11 +368,11 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
-    const chunk = spriteRenderer._chunk;
-    const vertices = chunk.data.vertices;
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk.vertexArea.start;
+    let index = subChunk.vertexArea.start;
     spriteRenderer.width = 5;
     spriteRenderer.height = 5;
     sprite.pivot = new Vector2(0, 0);
@@ -475,7 +475,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 40; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -570,7 +570,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 56; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -696,7 +696,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 56; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -825,7 +825,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 16; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -871,7 +871,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 16; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -919,7 +919,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 16; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -965,7 +965,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 16; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -1013,7 +1013,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -1035,7 +1035,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -1059,7 +1059,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 80; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -1233,7 +1233,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._assembler.updateUVs(spriteRenderer);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 80; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -1542,7 +1542,7 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     expect(spriteRenderer._assembler).to.eq(null);
     // @ts-ignore
-    expect(spriteRenderer._chunk).to.eq(null);
+    expect(spriteRenderer._subChunk).to.eq(null);
   });
 
   it("_render", () => {
@@ -1553,11 +1553,11 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     spriteRenderer._render(context);
     // @ts-ignore
-    const { _chunk: chunk } = spriteRenderer;
-    const vertices = chunk.data.vertices;
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk.vertexArea.start;
+    let index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -1583,7 +1583,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer._render(context);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk.vertexArea.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
