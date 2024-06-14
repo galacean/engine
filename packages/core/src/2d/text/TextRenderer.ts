@@ -33,6 +33,7 @@ export class TextRenderer extends Renderer {
   private static _tempVec30 = new Vector3();
   private static _tempVec31 = new Vector3();
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  private static _charRenderInfos: CharRenderInfo[] = [];
 
   /** @internal */
   @ignoreClone
@@ -41,8 +42,6 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   _subFont: SubFont = null;
   /** @internal */
-  @ignoreClone
-  _charRenderInfos: CharRenderInfo[] = [];
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
 
@@ -321,14 +320,9 @@ export class TextRenderer extends Renderer {
     }
 
     super._onDestroy();
-    // Clear render data.
-    const pool = TextRenderer._charRenderInfoPool;
-    const charRenderInfos = this._charRenderInfos;
-    for (let i = 0, n = charRenderInfos.length; i < n; ++i) {
-      const charRenderInfo = charRenderInfos[i];
-      pool.return(charRenderInfo);
-    }
-    charRenderInfos.length = 0;
+
+    this._freeTextChunks();
+    this._textChunks = null;
 
     this._subFont && (this._subFont = null);
   }
@@ -444,8 +438,7 @@ export class TextRenderer extends Renderer {
     renderData.set(this.priority, this._distanceForSort);
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
-      const textChunk = textChunks[i];
-      const { chunk, texture } = textChunk;
+      const { chunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(renderData, this, material, chunk.data.primitive, chunk.subMesh, texture, chunk);
       if (!subRenderElement.shaderData) {
@@ -489,7 +482,6 @@ export class TextRenderer extends Renderer {
   private _updatePosition(): void {
     const { transform } = this.entity;
     const e = transform.worldMatrix.elements;
-    const charRenderInfos = this._charRenderInfos;
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
@@ -507,18 +499,18 @@ export class TextRenderer extends Renderer {
 
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
-      const textChunk = textChunks[i];
-      const charInfos = textChunk.charRenderInfos;
-      const chunk = textChunk.chunk;
-      for (let j = 0, m = charInfos.length; j < m; ++j) {
-        const charRenderInfo = charInfos[j];
+      const { chunk, charRenderInfos } = textChunks[i];
+      for (let j = 0, m = charRenderInfos.length; j < m; ++j) {
+        const charRenderInfo = charRenderInfos[j];
         const { localPositions } = charRenderInfo;
         const { x: topLeftX, y: topLeftY } = localPositions;
 
         // Top-Left
-        worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
-        worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
-        worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
+        worldPosition0.set(
+          topLeftX * e0 + topLeftY * e4 + e12,
+          topLeftX * e1 + topLeftY * e5 + e13,
+          topLeftX * e2 + topLeftY * e6 + e14
+        );
 
         // Right offset
         Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
@@ -535,12 +527,8 @@ export class TextRenderer extends Renderer {
         Vector3.add(worldPosition1, worldPosition2, worldPosition2);
 
         const vertices = chunk.data.vertices;
-        const { start } = chunk.vertexArea;
-        for (let k = 0, o = start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
-          const position = TextRenderer._worldPositions[k];
-          vertices[o] = position.x;
-          vertices[o + 1] = position.y;
-          vertices[o + 2] = position.z;
+        for (let k = 0, o = chunk.vertexArea.start + charRenderInfo.indexInChunk * 36; k < 4; ++k, o += 9) {
+          worldPositions[k].copyToArray(vertices, o);
         }
       }
     }
@@ -548,7 +536,8 @@ export class TextRenderer extends Renderer {
 
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
-    const { _charRenderInfos: charRenderInfos, _subFont: charFont } = this;
+    const charRenderInfos = TextRenderer._charRenderInfos;
+    const charFont = this._subFont;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
@@ -611,7 +600,7 @@ export class TextRenderer extends Renderer {
             const charInfo = charFont._getCharInfo(char);
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
-              const charRenderInfo = (charRenderInfos[renderDataCount++] ||= charRenderInfoPool.get());
+              const charRenderInfo = (charRenderInfos[renderDataCount++] = charRenderInfoPool.get());
               const { localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
@@ -643,27 +632,17 @@ export class TextRenderer extends Renderer {
       max.set(0, 0, 0);
     }
 
-    // Revert excess render data to pool.
-    const lastRenderDataCount = charRenderInfos.length;
-    if (lastRenderDataCount > renderDataCount) {
-      for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
-        const charRenderInfo = charRenderInfos[i];
-        charRenderInfoPool.return(charRenderInfo);
-      }
-      charRenderInfos.length = renderDataCount;
-    }
-
     charFont._getLastIndex() > 0 &&
       charRenderInfos.sort((a, b) => {
         return a.texture.instanceId - b.texture.instanceId;
       });
 
-    const textChunks = this._textChunks;
-    textChunks.length = 0;
+    this._freeTextChunks();
     if (renderDataCount === 0) {
       return;
     }
 
+    const textChunks = this._textChunks;
     let texture = charRenderInfos[0].texture;
     let textChunk = new TextChunk();
     textChunks.push(textChunk);
@@ -688,6 +667,7 @@ export class TextRenderer extends Renderer {
     if (charLength > 0) {
       this._initChunk(textChunk, charLength, renderDataCount);
     }
+    charRenderInfos.length = 0;
   }
 
   /**
@@ -707,23 +687,17 @@ export class TextRenderer extends Renderer {
     );
   }
 
-  // private _freeChunkMap(): void {
-  //   const chunkMap = this._chunkMap;
-  //   chunkMap.size > 0 && chunkMap.clear();
-  // }
-
   private _initChunk(textChunk: TextChunk, count: number, endIndex: number): Chunk {
     const { r, g, b, a } = this.color;
-    const charRenderInfos = this._charRenderInfos;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
     const chunk = (textChunk.chunk = this._getChunkManager().allocateChunk(count * 4));
     const vertices = chunk.data.vertices;
     const indices = (chunk.indices = []);
-    let indexInChunk = 0;
-    for (let i = endIndex - count, ii = 0, io = 0, vo = chunk.vertexArea.start + 3; i < endIndex; ++i, io += 4) {
+    const charRenderInfos = textChunk.charRenderInfos;
+    for (let i = 0, ii = 0, io = 0, vo = chunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
-      charRenderInfo.indexInChunk = indexInChunk++;
+      charRenderInfo.indexInChunk = i;
 
       // Set indices
       for (let j = 0; j < tempIndicesLength; ++j) {
@@ -733,8 +707,7 @@ export class TextRenderer extends Renderer {
       // Set uv and color for vertices
       for (let j = 0; j < 4; ++j, vo += 9) {
         const uv = charRenderInfo.uvs[j];
-        vertices[vo] = uv.x;
-        vertices[vo + 1] = uv.y;
+        uv.copyToArray(vertices, vo);
         vertices[vo + 2] = r;
         vertices[vo + 3] = g;
         vertices[vo + 4] = b;
@@ -743,6 +716,24 @@ export class TextRenderer extends Renderer {
     }
 
     return chunk;
+  }
+
+  private _freeTextChunks(): void {
+    const textChunks = this._textChunks;
+    const charRenderInfoPool = TextRenderer._charRenderInfoPool;
+    const manager = this._getChunkManager();
+    for (let i = 0, n = textChunks.length; i < n; ++i) {
+      const textChunk = textChunks[i];
+      const { charRenderInfos } = textChunk;
+      for (let j = 0, m = charRenderInfos.length; j < m; ++j) {
+        charRenderInfoPool.return(charRenderInfos[j]);
+      }
+      charRenderInfos.length = 0;
+      manager.freeChunk(textChunk.chunk);
+      textChunk.chunk = null;
+      textChunk.texture = null;
+    }
+    textChunks.length = 0;
   }
 }
 
