@@ -5,6 +5,8 @@ import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D, TextureFormat } from "../texture";
+import { Material } from "../material";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
 /**
  * @internal
@@ -121,25 +123,35 @@ export class PipelineUtils {
     source: Texture2D,
     destination: RenderTarget | null,
     mipLevel: number = 0,
-    viewport?: Vector4
+    viewport?: Vector4,
+    material?: Material
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
-    const blitMaterial = basicResources.blitMaterial;
+    const blitMaterial = material || basicResources.blitMaterial;
     const rhi = engine._hardwareRenderer;
-
     const context = engine._renderContext;
+    const originalFlipProjection = context.flipProjection;
+
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
-    context.flipProjection = destination ? true : false;
+    context.flipProjection = !!destination;
 
     rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, context.flipProjection, 0);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;
-    const pass = blitMaterial.shader.subShaders[0].passes[0];
-    const program = pass._getShaderProgram(engine, Shader._compileMacros);
 
     rendererShaderData.setTexture(PipelineUtils._blitTextureProperty, source);
     rendererShaderData.setFloat(PipelineUtils._blitMipLevelProperty, mipLevel);
+
+    const pass = blitMaterial.shader.subShaders[0].passes[0];
+    const compileMacros = Shader._compileMacros;
+
+    ShaderMacroCollection.unionCollection(
+      context.camera._globalShaderMacro,
+      blitMaterial.shaderData._macroCollection,
+      compileMacros
+    );
+    const program = pass._getShaderProgram(engine, compileMacros);
 
     program.bind();
     program.groupingOtherUniformBlock();
@@ -155,5 +167,8 @@ export class PipelineUtils {
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
+
+    // @todo: should revert RT
+    context.flipProjection = originalFlipProjection;
   }
 }

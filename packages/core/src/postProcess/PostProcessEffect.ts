@@ -14,5 +14,7 @@ export abstract class PostProcessEffect {
     this._enabled = value;
   }
 
+  constructor(public readonly engine) {}
+
   abstract onRender(context: RenderContext): void;
 }

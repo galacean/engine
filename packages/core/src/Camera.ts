@@ -724,6 +724,13 @@ export class Camera extends Component {
     this._invViewProjMat = null;
   }
 
+  /**
+   * @internal
+   */
+  _getInternalColorTextureFormat(): TextureFormat {
+    return this._enableHDR ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8;
+  }
+
   private _updatePixelViewport(): void {
     let width: number, height: number;
 

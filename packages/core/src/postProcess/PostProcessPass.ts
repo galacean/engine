@@ -1,11 +1,16 @@
+import { Engine } from "../Engine";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessEffect } from "./PostProcessEffect";
+import { PostProcessManager } from "./PostProcessManager";
 
 export class PostProcessPass extends PipelinePass {
   private _isActive = true;
   private _effects = new SafeLoopArray<PostProcessEffect>();
+
+  /** The name of pass. */
+  name: string;
 
   /**
    * Whether to activate current post process.
@@ -25,11 +30,27 @@ export class PostProcessPass extends PipelinePass {
     return this._effects.getArray();
   }
 
+  /**
+   * Create a post process pass.
+   * @param engine - The engine the pass belongs to
+   * @param name - The pass name if need
+   */
+  constructor(engine: Engine, name?: string) {
+    super(engine);
+    this.name = name;
+  }
+
   override onRender(context: RenderContext): void {
     const effects = this._effects.getLoopArray();
     for (let i = 0, length = effects.length; i < length; i++) {
       const effect = effects[i];
-      effect.enabled && effect.onRender(context);
+      if (effect.enabled) {
+        // Should blit to resolve the MSAA
+        context.srcRT._blitRenderTarget();
+        context.destRT = PostProcessManager._getTransformRT();
+        effect.onRender(context);
+        context.srcRT = context.destRT;
+      }
     }
   }
 
@@ -96,6 +117,9 @@ export class PostProcessPass extends PipelinePass {
 
     const currentIndex = effects.indexOf(effect);
     if (currentIndex !== index) {
+      if (effect.engine !== this.engine) {
+        throw "The post process effect is not belong to this engine.";
+      }
       if (currentIndex !== -1) {
         effects.removeByIndex(currentIndex);
       }

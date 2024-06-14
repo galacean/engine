@@ -1,8 +1,61 @@
+import { Engine } from "../Engine";
+import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
+import { RenderTarget, TextureFormat } from "../texture";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessPass } from "./PostProcessPass";
 
 export class PostProcessManager {
+  private static _transformRT: RenderTarget[] = [];
+  private static _rtIdentifier = 0;
+
+  /**
+   * @internal
+   */
+  static _recreateTransformRT(
+    engine: Engine,
+    width: number,
+    height: number,
+    textureFormat: TextureFormat,
+    msaaSamples: number
+  ): void {
+    for (let i = 0; i < 2; i++) {
+      this._transformRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
+        engine,
+        this._transformRT[i],
+        width,
+        height,
+        textureFormat,
+        null,
+        false,
+        false,
+        msaaSamples
+      );
+    }
+  }
+
+  /**
+   * @internal
+   */
+  static _getTransformRT(): RenderTarget {
+    this._rtIdentifier = (this._rtIdentifier + 1) % 2;
+
+    return this._transformRT[this._rtIdentifier];
+  }
+
+  /**
+   * @internal
+   */
+  static _releaseTransformRT(): void {
+    for (let i = 0; i < this._transformRT.length; i++) {
+      const rt = this._transformRT[i];
+      rt.getColorTexture(0)?.destroy(true);
+      rt.destroy(true);
+    }
+
+    this._transformRT.length = 0;
+  }
+
   /** @internal */
   _passes = new SafeLoopArray<PostProcessPass>();
 
@@ -11,6 +64,13 @@ export class PostProcessManager {
    */
   get passes(): ReadonlyArray<PostProcessPass> {
     return this._passes.getArray();
+  }
+
+  /**
+   * Engine to which the current PostProcessManager belongs
+   */
+  get engine(): Engine {
+    return this.scene.engine;
   }
 
   /**
@@ -48,7 +108,7 @@ export class PostProcessManager {
 
     const currentIndex = passes.indexOf(pass);
     if (currentIndex !== index) {
-      if (pass.engine !== this.scene.engine) {
+      if (pass.engine !== this.engine) {
         throw "The post process pass is not belong to this engine.";
       }
       if (currentIndex !== -1) {

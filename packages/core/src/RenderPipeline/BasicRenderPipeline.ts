@@ -22,6 +22,7 @@ import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { PipelineStage } from "./enums/PipelineStage";
+import { PostProcessManager } from "../postProcess";
 
 /**
  * Basic render pipeline.
@@ -107,7 +108,7 @@ export class BasicRenderPipeline {
         this._internalColorTarget,
         viewport.width,
         viewport.height,
-        camera.enableHDR ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8,
+        camera._getInternalColorTextureFormat(),
         TextureFormat.Depth24Stencil8,
         false,
         false,
@@ -141,16 +142,15 @@ export class BasicRenderPipeline {
     const { engine, scene } = camera;
     const { background } = scene;
 
-    const internalColorTarget = this._internalColorTarget;
     const rhi = engine._hardwareRenderer;
-    const colorTarget = camera.renderTarget ?? internalColorTarget;
-    const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget !== null;
+    const internalColorTarget = this._internalColorTarget;
+    const colorTarget = internalColorTarget ?? camera.renderTarget;
+    const colorViewport = colorTarget ? PipelineUtils.defaultViewport : camera.viewport;
+    const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
 
     if (context.flipProjection !== needFlipProjection) {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
       this._updateMVPShaderData(context);
-      // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
       engine._renderCount++;
     }
 
@@ -189,19 +189,49 @@ export class BasicRenderPipeline {
     transparentQueue.render(camera, PipelineStage.Forward);
 
     // render post process pass
+    const postProcessManager = scene._postProcessManager;
     if (camera.enablePostProcess) {
-      const postProcesses = scene._postProcessManager._passes.getLoopArray();
+      const viewport = camera.pixelViewport;
+
+      PostProcessManager._recreateTransformRT(
+        engine,
+        viewport.width,
+        viewport.height,
+        camera._getInternalColorTextureFormat(),
+        camera.msaaSamples
+      );
+      // Should blit to resolve the MSAA
+      // colorTarget._blitRenderTarget();
+      context.srcRT = colorTarget;
+      // context.destRT = PostProcessManager._getTransformRT();
+
+      const postProcesses = postProcessManager._passes.getLoopArray();
+
       for (let i = 0, length = postProcesses.length; i < length; i++) {
         const pass = postProcesses[i];
         pass.isActive && pass.onRender(context);
       }
+
+      // @todo: depends on all effects
+      // Should blit to resolve the MSAA
+      const lastPostRT = context.srcRT;
+      lastPostRT._blitRenderTarget();
+      PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
+    } else {
+      PostProcessManager._releaseTransformRT();
     }
 
     colorTarget?._blitRenderTarget();
     colorTarget?.generateMipmaps();
 
-    if (internalColorTarget) {
-      PipelineUtils.blitTexture(engine, <Texture2D>internalColorTarget.getColorTexture(0), null, 0, camera.viewport);
+    if (internalColorTarget && internalColorTarget != camera.renderTarget) {
+      PipelineUtils.blitTexture(
+        engine,
+        <Texture2D>internalColorTarget.getColorTexture(0),
+        camera.renderTarget,
+        0,
+        camera.renderTarget ? colorViewport : camera.viewport
+      );
     }
   }
 

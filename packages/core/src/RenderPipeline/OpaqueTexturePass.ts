@@ -3,7 +3,6 @@ import { Engine } from "../Engine";
 import { Downsampling } from "../enums/Downsampling";
 import { Texture, Texture2D, TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
-import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { PipelinePass } from "./PipelinePass";
 import { PipelineUtils } from "./PipelineUtils";
@@ -34,7 +33,7 @@ export class OpaqueTexturePass extends PipelinePass {
       this._renderTarget,
       viewport.width * sizeScale,
       viewport.height * sizeScale,
-      TextureFormat.R8G8B8A8,
+      camera._getInternalColorTextureFormat(),
       null,
       false,
       false,
