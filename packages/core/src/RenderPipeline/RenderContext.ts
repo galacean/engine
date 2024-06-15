@@ -74,6 +74,7 @@ export enum RendererUpdateType {
   WorldMatrix = 0x1,
   viewMatrix = 0x2,
   ProjectionMatrix = 0x4,
-  viewProjectionMatrix = 0x3,
+  WorldViewMatrix = 0x3,
+  viewProjectionMatrix = 0x6,
   All = 0x7
 }

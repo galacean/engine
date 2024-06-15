@@ -82,14 +82,9 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      const renderer = subElement.component;
+      const { component: renderer, batched } = subElement;
 
-      const batched = subElement.batched;
-
-      if (
-        rendererUpdateType & (RendererUpdateType.WorldMatrix | RendererUpdateType.viewMatrix) ||
-        renderer._shaderDataBatched != batched
-      ) {
+      if (rendererUpdateType & RendererUpdateType.WorldViewMatrix || renderer._shaderDataBatched != batched) {
         // All need updated
         renderer._updateShaderData(context, false, batched);
         renderer._shaderDataBatched = subElement.batched;
