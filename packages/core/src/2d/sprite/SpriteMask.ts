@@ -180,6 +180,14 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt 
+    super._updateShaderData(context, onlyMVP, true);
+  }
+
+  /**
+   * @internal
+   */
   override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;

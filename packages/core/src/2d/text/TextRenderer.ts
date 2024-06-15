@@ -365,6 +365,14 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateShaderData(context, onlyMVP, true);
+  }
+
+  /**
+   * @internal
+   */
   override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     return BatchUtils.canBatchSprite(elementA, elementB);
   }
