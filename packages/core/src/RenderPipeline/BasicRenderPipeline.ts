@@ -17,7 +17,7 @@ import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
-import { RenderContext } from "./RenderContext";
+import { RenderContext, RendererUpdateType } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -66,6 +66,8 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
+    context.rendererUpdateType = RendererUpdateType.All;
+
     const camera = this._camera;
     const { scene, engine } = camera;
     const cullingResults = this._cullingResults;
@@ -75,6 +77,7 @@ export class BasicRenderPipeline {
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
+      context.rendererUpdateType = RendererUpdateType.None;
     }
 
     const batcherManager = engine._batcherManager;
@@ -82,6 +85,8 @@ export class BasicRenderPipeline {
     cullingResults.reset();
     maskManager.clear();
 
+    // Depth use camera's view and projection matrix
+    context.rendererUpdateType |= RendererUpdateType.viewProjectionMatrix;
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
@@ -91,6 +96,7 @@ export class BasicRenderPipeline {
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
+      context.rendererUpdateType = RendererUpdateType.None;
     } else {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
     }
@@ -145,9 +151,9 @@ export class BasicRenderPipeline {
     const needFlipProjection = (camera.renderTarget && cubeFace == undefined) || internalColorTarget !== null;
 
     if (context.flipProjection !== needFlipProjection) {
+      // Just add projection matrix update type is enough
+      context.rendererUpdateType |= RendererUpdateType.ProjectionMatrix;
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
-      // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
-      engine._renderCount++;
     }
 
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);

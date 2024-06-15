@@ -34,6 +34,8 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
+  rendererUpdateType = RendererUpdateType.None;
+
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean): void {
     this.virtualCamera = virtualCamera;
     this.flipProjection = flipProjection;
@@ -65,4 +67,13 @@ export class RenderContext {
   garbageCollection(): void {
     this.camera = null;
   }
+}
+
+export enum RendererUpdateType {
+  None = 0,
+  WorldMatrix = 0x1,
+  viewMatrix = 0x2,
+  ProjectionMatrix = 0x4,
+  viewProjectionMatrix = 0x3,
+  All = 0x7
 }

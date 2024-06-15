@@ -3,7 +3,7 @@ import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
-import { RenderContext } from "./RenderContext";
+import { RenderContext, RendererUpdateType } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -72,7 +72,7 @@ export class RenderQueue {
       return;
     }
 
-    const { camera } = context;
+    const { camera, rendererUpdateType } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
     const { shaderData: sceneData, instanceId: sceneId } = scene;
     const renderCount = engine._renderCount;
@@ -85,16 +85,17 @@ export class RenderQueue {
       const renderer = subElement.component;
 
       const batched = subElement.batched;
-      if (renderer._shaderDataRenderCounter !== renderCount || renderer._shaderDataBatched != batched) {
-        // Renderer world matrix need updated
+
+      if (
+        rendererUpdateType & (RendererUpdateType.WorldMatrix | RendererUpdateType.viewMatrix) ||
+        renderer._shaderDataBatched != batched
+      ) {
+        // All need updated
         renderer._updateShaderData(context, false, batched);
-        renderer._shaderDataRenderCounter = renderCount;
         renderer._shaderDataBatched = subElement.batched;
-        renderer._shaderDataProjectionFlipped = context.flipProjection;
-      } else if (renderer._shaderDataProjectionFlipped !== context.flipProjection) {
-        // Camera projection matrix need updated
+      } else if (rendererUpdateType & RendererUpdateType.ProjectionMatrix) {
+        // Only projection matrix need updated
         renderer._updateShaderData(context, true, batched);
-        renderer._shaderDataProjectionFlipped = context.flipProjection;
       }
 
       renderer._maskInteraction !== SpriteMaskInteraction.None &&

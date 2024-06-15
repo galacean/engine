@@ -59,13 +59,7 @@ export class Renderer extends Component implements IComponentCustomClone {
 
   /** @internal */
   @ignoreClone
-  _shaderDataRenderCounter: number = -1;
-  /** @internal */
-  @ignoreClone
   _shaderDataBatched: boolean = false;
-  /** @internal */
-  @ignoreClone
-  _shaderDataProjectionFlipped: boolean = false;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;

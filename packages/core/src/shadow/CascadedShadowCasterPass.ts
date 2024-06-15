@@ -2,7 +2,7 @@ import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/en
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RenderContext, RendererUpdateType } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";
@@ -228,12 +228,13 @@ export class CascadedShadowCasterPass extends PipelinePass {
         rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
         // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
         rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
-        // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
-        engine._renderCount++;
 
         opaqueQueue.render(context, PipelineStage.ShadowCaster);
         alphaTestQueue.render(context, PipelineStage.ShadowCaster);
         rhi.setGlobalDepthBias(0, 0);
+
+        // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
+        engine._renderCount++;
       }
     }
   }
@@ -379,6 +380,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
+
+    // Every light use self virtual camera
+    context.rendererUpdateType |= RendererUpdateType.viewProjectionMatrix;
     context.applyVirtualCamera(virtualCamera, true);
   }
 }
