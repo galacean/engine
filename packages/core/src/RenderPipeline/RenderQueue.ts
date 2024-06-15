@@ -8,58 +8,36 @@ import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
- * Render queue.
+ * @internal
  */
 export class RenderQueue {
-  /** @internal */
-  static _renderQueue: RenderQueue;
-  /**
-   * @internal
-   */
-  static _getRenderQueue(): RenderQueue {
-    if (!RenderQueue._renderQueue) {
-      RenderQueue._renderQueue = new RenderQueue(RenderQueueType.Transparent);
-    }
-    return RenderQueue._renderQueue;
+  private static _maskRenderQueue: RenderQueue;
+
+  static getMaskRenderQueue(): RenderQueue {
+    return (RenderQueue._maskRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
-  /**
-   * @internal
-   */
-  static _compareForOpaque(a: RenderElement, b: RenderElement): number {
+  static compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
     return dataA.priority - dataB.priority || dataA.distanceForSort - dataB.distanceForSort;
   }
 
-  /**
-   * @internal
-   */
-  static _compareForTransparent(a: RenderElement, b: RenderElement): number {
+  static compareForTransparent(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
     return dataA.priority - dataB.priority || dataB.distanceForSort - dataA.distanceForSort;
   }
 
-  readonly elements: RenderElement[] = [];
-  readonly batchedSubElements: SubRenderElement[] = [];
+  readonly elements = new Array<RenderElement>();
+  readonly batchedSubElements = new Array<SubRenderElement>();
 
-  private _renderQueueType: RenderQueueType;
+  constructor(public renderQueueType: RenderQueueType) {}
 
-  constructor(renderQueueType: RenderQueueType) {
-    this._renderQueueType = renderQueueType;
-  }
-
-  /**
-   * Push a render element.
-   */
   pushRenderElement(element: RenderElement): void {
     this.elements.push(element);
   }
 
-  /**
-   * Batch render elements.
-   */
   batch(compareFunc: Function, batcherManager: BatcherManager): void {
     this._sort(compareFunc);
     this._batch(batcherManager);
@@ -78,7 +56,7 @@ export class RenderQueue {
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
-    const renderQueueType = this._renderQueueType;
+    const renderQueueType = this.renderQueueType;
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
@@ -198,43 +176,24 @@ export class RenderQueue {
     }
   }
 
-  /**
-   * Clear collection.
-   */
   clear(): void {
     this.elements.length = 0;
     this.batchedSubElements.length = 0;
   }
 
-  /**
-   * Destroy internal resources.
-   */
   destroy(): void {}
 
-  /**
-   * @internal
-   */
-  _setRenderQueueType(type: RenderQueueType): void {
-    this._renderQueueType = type;
-  }
-
-  /**
-   * Sort the elements.
-   */
   private _sort(compareFunc: Function): void {
     Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
   }
 
-  /**
-   * Batch the elements.
-   */
   private _batch(batcherManager: BatcherManager): void {
     batcherManager.batch(this.elements, this.batchedSubElements);
   }
 
   private _drawMask(element: SubRenderElement, context: RenderContext, pipelineStageTagValue: string): void {
-    const renderQueue = RenderQueue._getRenderQueue();
-    renderQueue._setRenderQueueType(this._renderQueueType);
+    const renderQueue = RenderQueue.getMaskRenderQueue();
+    renderQueue.renderQueueType = this.renderQueueType;
     renderQueue.clear();
     const engine = context.camera.engine;
     engine._maskManager.buildMaskRenderElement(element, renderQueue);

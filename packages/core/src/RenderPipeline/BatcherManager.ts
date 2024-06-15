@@ -4,26 +4,23 @@ import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
+/**
+ * @internal
+ */
 export class BatcherManager {
-  /** @internal */
-  _engine: Engine;
-  /** @internal */
-  _primitiveChunkManager2D: PrimitiveChunkManager;
-  /** @internal */
-  _primitiveChunkManagerMask: PrimitiveChunkManager;
+  primitiveChunkManager2D: PrimitiveChunkManager;
+  primitiveChunkManagerMask: PrimitiveChunkManager;
 
   constructor(engine: Engine) {
-    this._engine = engine;
-    this._primitiveChunkManager2D = new PrimitiveChunkManager(engine);
-    this._primitiveChunkManagerMask = new PrimitiveChunkManager(engine, 128);
+    this.primitiveChunkManager2D = new PrimitiveChunkManager(engine);
+    this.primitiveChunkManagerMask = new PrimitiveChunkManager(engine, 128);
   }
 
   destroy() {
-    this._primitiveChunkManager2D.destroy();
-    this._primitiveChunkManager2D = null;
-    this._primitiveChunkManagerMask.destroy();
-    this._primitiveChunkManagerMask = null;
-    this._engine = null;
+    this.primitiveChunkManager2D.destroy();
+    this.primitiveChunkManagerMask.destroy();
+    this.primitiveChunkManager2D = null;
+    this.primitiveChunkManagerMask = null;
   }
 
   batch(elements: RenderElement[], batchedSubElements: SubRenderElement[]): void {
@@ -61,7 +58,7 @@ export class BatcherManager {
   }
 
   uploadBuffer() {
-    this._primitiveChunkManager2D.uploadBuffer();
-    this._primitiveChunkManagerMask.uploadBuffer();
+    this.primitiveChunkManager2D.uploadBuffer();
+    this.primitiveChunkManagerMask.uploadBuffer();
   }
 }

@@ -25,9 +25,9 @@ export class CullingResults {
   }
 
   batch(batcherManager: BatcherManager) {
-    this.opaqueQueue.batch(RenderQueue._compareForOpaque, batcherManager);
-    this.alphaTestQueue.batch(RenderQueue._compareForOpaque, batcherManager);
-    this.transparentQueue.batch(RenderQueue._compareForTransparent, batcherManager);
+    this.opaqueQueue.batch(RenderQueue.compareForOpaque, batcherManager);
+    this.alphaTestQueue.batch(RenderQueue.compareForOpaque, batcherManager);
+    this.transparentQueue.batch(RenderQueue.compareForTransparent, batcherManager);
   }
 
   destroy(): void {

@@ -211,7 +211,7 @@ export class SpriteMask extends Renderer {
    * @internal
    */
   _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager._primitiveChunkManagerMask;
+    return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {

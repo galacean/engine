@@ -312,7 +312,7 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager._primitiveChunkManager2D;
+    return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
