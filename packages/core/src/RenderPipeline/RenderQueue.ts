@@ -63,10 +63,10 @@ export class RenderQueue {
       const { component: renderer, batched } = subElement;
 
       // @todo: Can optimize update view projection matrix updated
-      if (rendererUpdateType & RendererUpdateType.WorldViewMatrix || renderer._shaderDataBatched != batched) {
+      if (rendererUpdateType & RendererUpdateType.WorldViewMatrix || renderer._batchedTransformShaderData != batched) {
         // Update world matrix and view matrix and model matrix
         renderer._updateShaderData(context, false, batched);
-        renderer._shaderDataBatched = subElement.batched;
+        renderer._batchedTransformShaderData = subElement.batched;
       } else if (rendererUpdateType & RendererUpdateType.ProjectionMatrix) {
         // Only projection matrix need updated
         renderer._updateShaderData(context, true, batched);

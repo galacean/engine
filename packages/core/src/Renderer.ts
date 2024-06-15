@@ -52,14 +52,13 @@ export class Renderer extends Component implements IComponentCustomClone {
   _renderFrameCount: number;
   /** @internal */
   @assignmentClone
-  _maskInteraction: number = SpriteMaskInteraction.None;
+  _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
   @assignmentClone
-  _maskLayer: number = SpriteMaskLayer.Layer0;
-
+  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
   /** @internal */
   @ignoreClone
-  _shaderDataBatched: boolean = false;
+  _batchedTransformShaderData: boolean = false;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -412,13 +411,13 @@ export class Renderer extends Component implements IComponentCustomClone {
   _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    const shaderData = this.shaderData;
-    const mvInvMatrix = this._mvInvMatrix;
+    const { shaderData, _mvInvMatrix: mvInvMatrix } = this;
     if (batched) {
-      Matrix.invert(context.viewMatrix, mvInvMatrix);
-
       // @ts-ignore
       const identityMatrix = Matrix._identity;
+
+      Matrix.invert(context.viewMatrix, mvInvMatrix);
+
       shaderData.setMatrix(Renderer._localMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, context.viewMatrix);
@@ -444,10 +443,10 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   protected _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    const mvpMatrix = this._mvpMatrix;
     if (batched) {
       this.shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
     } else {
+      const mvpMatrix = this._mvpMatrix;
       Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
       this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     }
