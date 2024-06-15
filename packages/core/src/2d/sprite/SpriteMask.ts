@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix } from "@galacean/engine-math";
+import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -183,19 +183,6 @@ export class SpriteMask extends Renderer {
   override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
-  }
-
-  /**
-   * @internal
-   */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
   }
 
   /**

@@ -11,6 +11,7 @@ export class SubRenderElement implements IPoolElement {
   material: Material;
   primitive: Primitive;
   subPrimitive: SubMesh;
+  batched: boolean;
 
   shaderPasses: ReadonlyArray<ShaderPass>;
   stencilOperation: StencilOperation;

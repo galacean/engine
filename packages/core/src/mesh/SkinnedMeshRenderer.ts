@@ -126,16 +126,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
     const { entity, skin } = this;
     const worldMatrix = (skin?.rootBone ?? entity).transform.worldMatrix;
 
     if (onlyMVP) {
-      this._updateMVPShaderData(context, worldMatrix);
+      this._updateMVPShaderData(context, worldMatrix, batched);
       return;
     }
 
-    this._updateTransformShaderData(context, worldMatrix);
+    this._updateTransformShaderData(context, worldMatrix, batched);
 
     const shaderData = this.shaderData;
 

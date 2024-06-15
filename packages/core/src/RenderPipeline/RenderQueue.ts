@@ -1,5 +1,4 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
-import { Camera } from "../Camera";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -66,13 +65,14 @@ export class RenderQueue {
     this._batch(batcherManager);
   }
 
-  render(camera: Camera, pipelineStageTagValue: string, isMask: boolean = false): void {
+  render(context: RenderContext, pipelineStageTagValue: string, isMask: boolean = false): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
       return;
     }
 
+    const { camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
     const { shaderData: sceneData, instanceId: sceneId } = scene;
     const renderCount = engine._renderCount;
@@ -82,13 +82,28 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      subElement.component._maskInteraction !== SpriteMaskInteraction.None &&
-        this._drawMask(subElement, camera, pipelineStageTagValue);
+      const renderer = subElement.component;
+
+      const batched = subElement.batched;
+      if (renderer._shaderDataRenderCounter !== renderCount || renderer._shaderDataBatched != batched) {
+        // Renderer world matrix need updated
+        renderer._updateShaderData(context, false, batched);
+        renderer._shaderDataRenderCounter = renderCount;
+        renderer._shaderDataBatched = subElement.batched;
+        renderer._shaderDataProjectionFlipped = context.flipProjection;
+      } else if (renderer._shaderDataProjectionFlipped !== context.flipProjection) {
+        // Camera projection matrix need updated
+        renderer._updateShaderData(context, true, batched);
+        renderer._shaderDataProjectionFlipped = context.flipProjection;
+      }
+
+      renderer._maskInteraction !== SpriteMaskInteraction.None &&
+        this._drawMask(subElement, context, pipelineStageTagValue);
 
       const { shaderPasses } = subElement;
       const compileMacros = Shader._compileMacros;
       const primitive = subElement.primitive;
-      const renderer = subElement.component;
+
       const material = subElement.material;
       const renderElementRenderData = subElement.shaderData;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
@@ -221,13 +236,13 @@ export class RenderQueue {
     batcherManager.batch(this.elements, this.batchedSubElements);
   }
 
-  private _drawMask(element: SubRenderElement, camera: Camera, pipelineStageTagValue: string): void {
+  private _drawMask(element: SubRenderElement, context: RenderContext, pipelineStageTagValue: string): void {
     const renderQueue = RenderQueue._getRenderQueue();
     renderQueue._setRenderQueueType(this._renderQueueType);
     renderQueue.clear();
-    const engine = camera.engine;
+    const engine = context.camera.engine;
     engine._maskManager.buildMaskRenderElement(element, renderQueue);
     renderQueue._batch(engine._batcherManager);
-    renderQueue.render(camera, pipelineStageTagValue, true);
+    renderQueue.render(context, pipelineStageTagValue, true);
   }
 }

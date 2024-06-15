@@ -231,8 +231,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
         // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
         engine._renderCount++;
 
-        opaqueQueue.render(camera, PipelineStage.ShadowCaster);
-        alphaTestQueue.render(camera, PipelineStage.ShadowCaster);
+        opaqueQueue.render(context, PipelineStage.ShadowCaster);
+        alphaTestQueue.render(context, PipelineStage.ShadowCaster);
         rhi.setGlobalDepthBias(0, 0);
       }
     }

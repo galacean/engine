@@ -1,4 +1,4 @@
-import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -284,19 +284,6 @@ export class SpriteRenderer extends Renderer {
     target._assembler.resetData(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
-  }
-
-  /**
-   * @internal
-   */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
   }
 
   /**

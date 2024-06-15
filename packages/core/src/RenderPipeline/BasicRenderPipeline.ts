@@ -146,7 +146,6 @@ export class BasicRenderPipeline {
 
     if (context.flipProjection !== needFlipProjection) {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
-      this._updateMVPShaderData(context);
       // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
       engine._renderCount++;
     }
@@ -158,8 +157,8 @@ export class BasicRenderPipeline {
       rhi.clearRenderTarget(camera.engine, clearFlags, color);
     }
 
-    opaqueQueue.render(camera, PipelineStage.Forward);
-    alphaTestQueue.render(camera, PipelineStage.Forward);
+    opaqueQueue.render(context, PipelineStage.Forward);
+    alphaTestQueue.render(context, PipelineStage.Forward);
     if (clearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
@@ -183,7 +182,7 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
     }
 
-    transparentQueue.render(camera, PipelineStage.Forward);
+    transparentQueue.render(context, PipelineStage.Forward);
 
     colorTarget?._blitRenderTarget();
     colorTarget?.generateMipmaps();
@@ -349,17 +348,6 @@ export class BasicRenderPipeline {
       }
       renderer._renderFrameCount = engine.time.frameCount;
       renderer._prepareRender(context);
-    }
-  }
-
-  private _updateMVPShaderData(context: RenderContext) {
-    const camera = context.camera;
-    const renderers = camera.scene._componentsManager._renderers;
-
-    const elements = renderers._elements;
-    for (let i = renderers.length - 1; i >= 0; --i) {
-      const renderer = elements[i];
-      renderer._updateShaderData(context, true);
     }
   }
 }

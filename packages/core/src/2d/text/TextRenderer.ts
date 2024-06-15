@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
@@ -360,19 +360,6 @@ export class TextRenderer extends Renderer {
       this._resetSubFont();
     }
     return this._subFont;
-  }
-
-  /**
-   * @internal
-   */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
   }
 
   /**

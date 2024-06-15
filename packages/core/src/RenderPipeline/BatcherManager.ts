@@ -26,36 +26,34 @@ export class BatcherManager {
     this._engine = null;
   }
 
-  batch(elements: Array<RenderElement>, batchedSubElements: Array<SubRenderElement>): void {
-    const length = elements.length;
-    if (length === 0) {
-      return;
-    }
-
+  batch(elements: RenderElement[], batchedSubElements: SubRenderElement[]): void {
     let preSubElement: SubRenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
-    for (let i = 0; i < length; ++i) {
+    for (let i = 0, n = elements.length; i < n; ++i) {
       const subElements = elements[i].data.subRenderElements;
-      for (let j = 0, n = subElements.length; j < n; ++j) {
-        const curSubElement = subElements[j];
-        const curRenderer = curSubElement.component;
-        const curConstructor = curRenderer.constructor;
+      for (let j = 0, m = subElements.length; j < m; ++j) {
+        const subElement = subElements[j];
+        const renderer = subElement.component;
+        const constructor = renderer.constructor;
         if (preSubElement) {
-          if (preConstructor === curConstructor && preRenderer._canBatch(preSubElement, curSubElement)) {
-            preRenderer._batch(preSubElement, curSubElement);
+          if (preConstructor === constructor && preRenderer._canBatch(preSubElement, subElement)) {
+            preRenderer._batch(preSubElement, subElement);
+            preSubElement.batched = true;
           } else {
             batchedSubElements.push(preSubElement);
-            preSubElement = curSubElement;
-            preRenderer = curRenderer;
-            preConstructor = curConstructor;
+            preSubElement = subElement;
+            preRenderer = renderer;
+            preConstructor = constructor;
             preRenderer._batch(preSubElement);
+            preSubElement.batched = false;
           }
         } else {
-          preSubElement = curSubElement;
-          preRenderer = curRenderer;
-          preConstructor = curConstructor;
+          preSubElement = subElement;
+          preRenderer = renderer;
+          preConstructor = constructor;
           preRenderer._batch(preSubElement);
+          preSubElement.batched = false;
         }
       }
     }

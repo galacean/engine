@@ -169,7 +169,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, _: boolean): void {
+  override _updateShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
