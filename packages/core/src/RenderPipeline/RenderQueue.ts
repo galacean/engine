@@ -50,9 +50,9 @@ export class RenderQueue {
       return;
     }
 
-    const { camera, rendererUpdateType } = context;
+    const { rendererUpdateType, camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
-    const { shaderData: sceneData, instanceId: sceneId } = scene;
+    const { instanceId: sceneId, shaderData: sceneData } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
@@ -62,8 +62,9 @@ export class RenderQueue {
       const subElement = batchedSubElements[i];
       const { component: renderer, batched } = subElement;
 
+      // @todo: Can optimize update view projection matrix updated
       if (rendererUpdateType & RendererUpdateType.WorldViewMatrix || renderer._shaderDataBatched != batched) {
-        // All need updated
+        // Update world matrix and view matrix and model matrix
         renderer._updateShaderData(context, false, batched);
         renderer._shaderDataBatched = subElement.batched;
       } else if (rendererUpdateType & RendererUpdateType.ProjectionMatrix) {
@@ -74,19 +75,15 @@ export class RenderQueue {
       renderer._maskInteraction !== SpriteMaskInteraction.None &&
         this._drawMask(context, pipelineStageTagValue, subElement);
 
-      const { shaderPasses } = subElement;
       const compileMacros = Shader._compileMacros;
-      const primitive = subElement.primitive;
-
-      const material = subElement.material;
-      const renderElementRenderData = subElement.shaderData;
+      const { primitive, material, shaderPasses, shaderData: renderElementRenderData } = subElement;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
-      // union render global macro and material self macro.
+      // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 
-      // TODO: Mask should not modify material's render state, will delete this code after mask refactor.
+      // TODO: Mask should not modify material's render state, will delete this code after mask refactor
       if (isMaskQueue) {
         const stencilState = material.renderState.stencilState;
         const stencilOperation = subElement.stencilOperation || StencilOperation.Keep;
