@@ -38,12 +38,12 @@ export class RenderQueue {
     this.elements.push(element);
   }
 
-  batch(compareFunc: Function, batcherManager: BatcherManager): void {
+  sortBatch(compareFunc: Function, batcherManager: BatcherManager): void {
     this._sort(compareFunc);
     this._batch(batcherManager);
   }
 
-  render(context: RenderContext, pipelineStageTagValue: string, isMask: boolean = false): void {
+  render(context: RenderContext, pipelineStageTagValue: string, isMaskQueue: boolean = false): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
@@ -72,7 +72,7 @@ export class RenderQueue {
       }
 
       renderer._maskInteraction !== SpriteMaskInteraction.None &&
-        this._drawMask(subElement, context, pipelineStageTagValue);
+        this._drawMask(context, pipelineStageTagValue, subElement);
 
       const { shaderPasses } = subElement;
       const compileMacros = Shader._compileMacros;
@@ -86,8 +86,8 @@ export class RenderQueue {
       // union render global macro and material self macro.
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 
-      // TODO: Mask should not modify material's render state
-      if (isMask) {
+      // TODO: Mask should not modify material's render state, will delete this code after mask refactor.
+      if (isMaskQueue) {
         const stencilState = material.renderState.stencilState;
         const stencilOperation = subElement.stencilOperation || StencilOperation.Keep;
         stencilState.passOperationFront = stencilOperation;
@@ -191,13 +191,14 @@ export class RenderQueue {
     batcherManager.batch(this.elements, this.batchedSubElements);
   }
 
-  private _drawMask(element: SubRenderElement, context: RenderContext, pipelineStageTagValue: string): void {
-    const renderQueue = RenderQueue.getMaskRenderQueue();
-    renderQueue.renderQueueType = this.renderQueueType;
-    renderQueue.clear();
+  private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {
+    const maskQueue = RenderQueue.getMaskRenderQueue();
+    maskQueue.renderQueueType = this.renderQueueType;
+    maskQueue.clear();
+
     const engine = context.camera.engine;
-    engine._maskManager.buildMaskRenderElement(element, renderQueue);
-    renderQueue._batch(engine._batcherManager);
-    renderQueue.render(context, pipelineStageTagValue, true);
+    engine._maskManager.buildMaskRenderElement(master, maskQueue);
+    maskQueue._batch(engine._batcherManager);
+    maskQueue.render(context, pipelineStageTagValue, true);
   }
 }
