@@ -39,14 +39,14 @@ export class PrimitiveChunkManager {
   }
 
   uploadBuffer(): void {
-    const dataArray = this.primitiveChunks;
-    for (let i = 0, n = dataArray.length; i < n; ++i) {
-      dataArray[i].uploadBuffer();
+    const { primitiveChunks } = this;
+    for (let i = 0, n = primitiveChunks.length; i < n; ++i) {
+      primitiveChunks[i].uploadBuffer();
     }
   }
 
   destroy(): void {
-    const primitiveChunks = this.primitiveChunks;
+    const { primitiveChunks } = this;
     for (let i = 0, n = primitiveChunks.length; i < n; ++i) {
       primitiveChunks[i].destroy();
     }
