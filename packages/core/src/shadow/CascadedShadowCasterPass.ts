@@ -380,7 +380,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
-
     // Every light use self virtual camera
     context.rendererUpdateType |= RendererUpdateType.viewProjectionMatrix;
     context.applyVirtualCamera(virtualCamera, true);
