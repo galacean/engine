@@ -3,7 +3,7 @@ import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
-import { RenderContext, RendererDataUpdateFlag } from "./RenderContext";
+import { RenderContext, ContextRendererUpdateFlag } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -63,11 +63,11 @@ export class RenderQueue {
       const { component: renderer, batched } = subElement;
 
       // @todo: Can optimize update view projection matrix updated
-      if (rendererUpdateFlag & RendererDataUpdateFlag.WorldViewMatrix || renderer._batchedTransformShaderData != batched) {
+      if (rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix || renderer._batchedTransformShaderData != batched) {
         // Update world matrix and view matrix and model matrix
         renderer._updateTransformShaderData(context, false, batched);
         renderer._batchedTransformShaderData = subElement.batched;
-      } else if (rendererUpdateFlag & RendererDataUpdateFlag.ProjectionMatrix) {
+      } else if (rendererUpdateFlag & ContextRendererUpdateFlag.ProjectionMatrix) {
         // Only projection matrix need updated
         renderer._updateTransformShaderData(context, true, batched);
       }

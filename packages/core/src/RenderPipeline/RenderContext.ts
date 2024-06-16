@@ -6,7 +6,6 @@ import { ShaderTagKey } from "../shader/ShaderTagKey";
 
 /**
  * @internal
- * Rendering context.
  */
 export class RenderContext {
   static vpMatrixProperty = ShaderProperty.getByName("camera_VPMat");
@@ -34,7 +33,7 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
-  rendererUpdateFlag = RendererDataUpdateFlag.None;
+  rendererUpdateFlag = ContextRendererUpdateFlag.None;
 
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean): void {
     this.virtualCamera = virtualCamera;
@@ -69,7 +68,10 @@ export class RenderContext {
   }
 }
 
-export enum RendererDataUpdateFlag {
+/**
+ * @internal
+ */
+export enum ContextRendererUpdateFlag {
   None = 0,
   WorldMatrix = 0x1,
   viewMatrix = 0x2,
