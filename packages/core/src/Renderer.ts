@@ -334,7 +334,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
     }
 
-    // Only update once per frame
+    // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
       this._updateRendererShaderData(context);
     }
