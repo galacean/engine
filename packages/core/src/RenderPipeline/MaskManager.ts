@@ -1,6 +1,5 @@
 import { SpriteMask } from "../2d";
 import { DisorderedArray } from "../DisorderedArray";
-import { Engine } from "../Engine";
 import { RenderQueueType } from "../shader";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
@@ -23,8 +22,6 @@ export class MaskManager {
   allSpriteMasks = new DisorderedArray<SpriteMask>();
 
   private _preMaskLayer = 0;
-
-  constructor(public engine: Engine) {}
 
   addSpriteMask(mask: SpriteMask): void {
     this.allSpriteMasks.add(mask);

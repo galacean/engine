@@ -177,11 +177,9 @@ export class SpriteRenderer extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      if (this._drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
-      } else {
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-      }
+      this._drawMode === SpriteDrawMode.Tiled
+        ? SpriteRendererUpdateFlags.WorldVolumeAndUV
+        : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -204,11 +202,10 @@ export class SpriteRenderer extends Renderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      if (this._drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
-      } else {
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-      }
+      this._dirtyUpdateFlag |=
+        this._drawMode === SpriteDrawMode.Tiled
+          ? SpriteRendererUpdateFlags.WorldVolumeAndUV
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -475,5 +472,5 @@ enum SpriteRendererUpdateFlags {
   /** WorldVolume and UV. */
   WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
   /** All. */
-  All = 0xff
+  All = 0xf
 }
