@@ -35,16 +35,16 @@ export class PrimitiveChunk {
   subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
-    const primitive = (this.primitive = new Primitive(engine));
-    primitive._addReferCount(1);
+    const primitive = new Primitive(engine);
 
-    // Vertex element
+    // Vertex elements
     primitive.addVertexElement(new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0));
     primitive.addVertexElement(new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0));
     primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
-    const vertexStride = 36;
+    primitive._addReferCount(1);
 
     // Vertices
+    const vertexStride = 36;
     const vertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
@@ -54,23 +54,35 @@ export class PrimitiveChunk {
     );
     primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
 
-    // Index
-    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
+    // Indices
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 3, BufferUsage.Dynamic, true);
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
+    this.primitive = primitive;
     this.vertices = new Float32Array(vertexBuffer.data.buffer);
     this.indices = new Uint16Array(indexBuffer.data.buffer);
     this.vertexFreeAreas.push(new Area(0, maxVertexCount * 9));
   }
 
-  destroy(): void {
-    this.primitive._addReferCount(-1);
-    this.primitive.destroy();
-    this.primitive = null;
-    this.vertices = null;
-    this.indices = null;
-    this.areaPool.garbageCollection();
-    this.areaPool = null;
+  allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
+    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
+    if (area) {
+      const subChunk = this.subChunkPool.get();
+      subChunk.chunk = this;
+      subChunk.vertexArea = area;
+      subChunk.subMesh = this.subMeshPool.get();
+      const { subMesh: subMesh } = subChunk;
+      subMesh.topology = MeshTopology.Triangles;
+      return subChunk;
+    }
+
+    return null;
+  }
+
+  freeSubChunk(subChunk: SubPrimitiveChunk): void {
+    this._freeArea(this.vertexFreeAreas, subChunk.vertexArea);
+    this.subMeshPool.return(subChunk.subMesh);
+    this.subChunkPool.return(subChunk);
   }
 
   uploadBuffer(): void {
@@ -94,25 +106,14 @@ export class PrimitiveChunk {
     this.updateIndexLength = 0;
   }
 
-  allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
-    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
-    if (area) {
-      const subChunk = this.subChunkPool.get();
-      subChunk.chunk = this;
-      subChunk.vertexArea = area;
-      subChunk.subMesh = this.subMeshPool.get();
-      const { subMesh: subMesh } = subChunk;
-      subMesh.topology = MeshTopology.Triangles;
-      return subChunk;
-    }
-
-    return null;
-  }
-
-  freeSubChunk(subChunk: SubPrimitiveChunk): void {
-    this._freeArea(this.vertexFreeAreas, subChunk.vertexArea);
-    this.subMeshPool.return(subChunk.subMesh);
-    this.subChunkPool.return(subChunk);
+  destroy(): void {
+    this.primitive._addReferCount(-1);
+    this.primitive.destroy();
+    this.primitive = null;
+    this.vertices = null;
+    this.indices = null;
+    this.areaPool.garbageCollection();
+    this.areaPool = null;
   }
 
   private _allocateArea(entries: Area[], needSize: number): Area | null {
@@ -175,13 +176,10 @@ export class PrimitiveChunk {
  * @internal
  */
 export class Area implements IPoolElement {
-  public start: number;
-  public size: number;
-
-  constructor(start: number = 0, size: number = 0) {
-    this.start = start;
-    this.size = size;
-  }
+  constructor(
+    public start?: number,
+    public size?: number
+  ) {}
 
   dispose?(): void {}
 }
