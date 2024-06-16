@@ -570,7 +570,6 @@ export class Camera extends Component {
    * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
-    this._engine._renderCount++;
     const context = this.engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
@@ -610,6 +609,7 @@ export class Camera extends Component {
       clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);
+    this._engine._renderCount++;
   }
 
   /**
