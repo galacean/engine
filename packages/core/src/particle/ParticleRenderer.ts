@@ -161,6 +161,14 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Don't need to update transform shader data, temp solution
+    super._updateTransformShaderData(context, onlyMVP, true);
+  }
+
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
     worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
