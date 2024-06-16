@@ -1,7 +1,8 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
+import { RenderQueueFlags } from "./BasicRenderPipeline";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
-import { RenderElement } from "./RenderElement";
+import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
@@ -23,14 +24,21 @@ export class BatcherManager {
     this.primitiveChunkManagerMask = null;
   }
 
-  batch(elements: RenderElement[], batchedSubElements: SubRenderElement[]): void {
+  batch(renderQueue: RenderQueue): void {
+    const { elements, batchedSubElements, renderQueueType } = renderQueue;
     let preSubElement: SubRenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
     for (let i = 0, n = elements.length; i < n; ++i) {
-      const subElements = elements[i].data.subRenderElements;
+      const subElements = elements[i].subRenderElements;
       for (let j = 0, m = subElements.length; j < m; ++j) {
         const subElement = subElements[j];
+
+        // Some sub render elements may not belong to the current render queue
+        if (!(subElement.renderQueueFlags & (<RenderQueueFlags>(1 << renderQueueType)))) {
+          continue;
+        }
+
         const renderer = subElement.component;
         const constructor = renderer.constructor;
         if (preSubElement) {

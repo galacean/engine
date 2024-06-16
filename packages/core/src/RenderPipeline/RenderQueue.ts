@@ -5,31 +5,27 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
 import { MaskManager } from "./MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
-import { RenderElement } from "./RenderElement";
+import { RenderData } from "./RenderData";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * @internal
  */
 export class RenderQueue {
-  static compareForOpaque(a: RenderElement, b: RenderElement): number {
-    const dataA = a.data;
-    const dataB = b.data;
-    return dataA.priority - dataB.priority || dataA.distanceForSort - dataB.distanceForSort;
+  static compareForOpaque(a: RenderData, b: RenderData): number {
+    return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
   }
 
-  static compareForTransparent(a: RenderElement, b: RenderElement): number {
-    const dataA = a.data;
-    const dataB = b.data;
-    return dataA.priority - dataB.priority || dataB.distanceForSort - dataA.distanceForSort;
+  static compareForTransparent(a: RenderData, b: RenderData): number {
+    return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
   }
 
-  readonly elements = new Array<RenderElement>();
+  readonly elements = new Array<RenderData>();
   readonly batchedSubElements = new Array<SubRenderElement>();
 
   constructor(public renderQueueType: RenderQueueType) {}
 
-  pushRenderElement(element: RenderElement): void {
+  pushRenderElement(element: RenderData): void {
     this.elements.push(element);
   }
 
@@ -191,7 +187,7 @@ export class RenderQueue {
   }
 
   private _batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this.elements, this.batchedSubElements);
+    batcherManager.batch(this);
   }
 
   private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {

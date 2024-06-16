@@ -18,7 +18,6 @@ import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { MaskManager } from "./RenderPipeline/MaskManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderData } from "./RenderPipeline/RenderData";
-import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
@@ -84,8 +83,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _lastRenderState: RenderState = new RenderState();
 
-  /* @internal */
-  _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
   _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
@@ -352,7 +349,6 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._renderElementPool.clear();
     this._subRenderElementPool.clear();
     this._textSubRenderElementPool.clear();
     this._renderDataPool.clear();
@@ -775,7 +771,6 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
-    this._renderElementPool.garbageCollection();
     this._subRenderElementPool.garbageCollection();
     this._textSubRenderElementPool.garbageCollection();
     this._renderDataPool.garbageCollection();

@@ -1,10 +1,12 @@
 import { IPoolElement } from "../utils/ObjectPool";
+import { RenderQueueFlags } from "./BasicRenderPipeline";
 import { SubRenderElement } from "./SubRenderElement";
 
 export class RenderData implements IPoolElement {
   priority: number;
   distanceForSort: number;
   subRenderElements = Array<SubRenderElement>();
+  renderQueueFlags: RenderQueueFlags;
 
   set(priority: number, distanceForSort: number): void {
     this.priority = priority;

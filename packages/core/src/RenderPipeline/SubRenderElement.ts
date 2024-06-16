@@ -4,6 +4,7 @@ import { Material } from "../material";
 import { ShaderData, ShaderPass } from "../shader";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/ObjectPool";
+import { RenderQueueFlags } from "./BasicRenderPipeline";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 export class SubRenderElement implements IPoolElement {
@@ -14,6 +15,7 @@ export class SubRenderElement implements IPoolElement {
   shaderPasses: ReadonlyArray<ShaderPass>;
   shaderData?: ShaderData;
   batched: boolean;
+  renderQueueFlags: RenderQueueFlags;
 
   // @todo: maybe should remove later
   texture?: Texture2D;

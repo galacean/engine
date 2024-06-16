@@ -17,7 +17,7 @@ import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
-import { RenderContext, ContextRendererUpdateFlag } from "./RenderContext";
+import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -204,7 +204,7 @@ export class BasicRenderPipeline {
    * @param data - Render data
    */
   pushRenderData(context: RenderContext, data: RenderData): void {
-    let renderQueueAddedFlags = RenderQueueAddedFlag.None;
+    data.renderQueueFlags = RenderQueueFlags.None;
     const subRenderElements = data.subRenderElements;
     for (let i = 0, n = subRenderElements.length; i < n; ++i) {
       const subRenderElement = subRenderElements[i];
@@ -212,7 +212,7 @@ export class BasicRenderPipeline {
       const { renderStates } = material;
       const materialSubShader = material.shader.subShaders[0];
       const replacementShader = context.replacementShader;
-
+      subRenderElement.renderQueueFlags = RenderQueueFlags.None;
       if (replacementShader) {
         const replacementSubShaders = replacementShader.subShaders;
         const { replacementTag } = context;
@@ -220,51 +220,26 @@ export class BasicRenderPipeline {
           for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
             const subShader = replacementSubShaders[j];
             if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              renderQueueAddedFlags = this.pushRenderDataWithShader(
-                context,
-                data,
-                subRenderElement,
-                subShader.passes,
-                renderStates,
-                renderQueueAddedFlags
-              );
+              this.pushRenderDataWithShader(data, subRenderElement, subShader.passes, renderStates);
               break;
             }
           }
         } else {
-          renderQueueAddedFlags = this.pushRenderDataWithShader(
-            context,
-            data,
-            subRenderElement,
-            replacementSubShaders[0].passes,
-            renderStates,
-            renderQueueAddedFlags
-          );
+          this.pushRenderDataWithShader(data, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
       } else {
-        renderQueueAddedFlags = this.pushRenderDataWithShader(
-          context,
-          data,
-          subRenderElement,
-          materialSubShader.passes,
-          renderStates,
-          renderQueueAddedFlags
-        );
+        this.pushRenderDataWithShader(data, subRenderElement, materialSubShader.passes, renderStates);
       }
     }
   }
 
   private pushRenderDataWithShader(
-    context: RenderContext,
     renderData: RenderData,
     subRenderElement: SubRenderElement,
     shaderPasses: ReadonlyArray<ShaderPass>,
-    renderStates: ReadonlyArray<RenderState>,
-    renderQueueAddedFlags: RenderQueueAddedFlag
-  ): RenderQueueAddedFlag {
+    renderStates: ReadonlyArray<RenderState>
+  ): void {
     const cullingResults = this._cullingResults;
-    const engine = context.camera.engine;
-    const renderElementPool = engine._renderElementPool;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       // Get render queue type
       let renderQueueType: RenderQueueType;
@@ -279,29 +254,28 @@ export class BasicRenderPipeline {
 
       subRenderElement.shaderPasses = shaderPasses;
 
-      if (renderQueueAddedFlags & (<RenderQueueAddedFlag>(1 << renderQueueType))) {
+      if (renderData.renderQueueFlags & (<RenderQueueFlags>(1 << renderQueueType))) {
         continue;
       }
 
-      const renderElement = renderElementPool.get();
-      renderElement.set(renderData);
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          cullingResults.opaqueQueue.pushRenderElement(renderElement);
-          renderQueueAddedFlags |= RenderQueueAddedFlag.Opaque;
+          cullingResults.opaqueQueue.pushRenderElement(renderData);
+          renderData.renderQueueFlags |= RenderQueueFlags.Opaque;
+          subRenderElement.renderQueueFlags |= RenderQueueFlags.Opaque;
           break;
         case RenderQueueType.AlphaTest:
-          cullingResults.alphaTestQueue.pushRenderElement(renderElement);
-          renderQueueAddedFlags |= RenderQueueAddedFlag.AlphaTest;
+          cullingResults.alphaTestQueue.pushRenderElement(renderData);
+          renderData.renderQueueFlags |= RenderQueueFlags.AlphaTest;
+          subRenderElement.renderQueueFlags |= RenderQueueFlags.AlphaTest;
           break;
         case RenderQueueType.Transparent:
-          cullingResults.transparentQueue.pushRenderElement(renderElement);
-          renderQueueAddedFlags |= RenderQueueAddedFlag.Transparent;
+          cullingResults.transparentQueue.pushRenderElement(renderData);
+          renderData.renderQueueFlags |= RenderQueueFlags.Transparent;
+          subRenderElement.renderQueueFlags |= RenderQueueFlags.Transparent;
           break;
       }
     }
-
-    return renderQueueAddedFlags;
   }
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {
@@ -358,7 +332,7 @@ export class BasicRenderPipeline {
   }
 }
 
-enum RenderQueueAddedFlag {
+export enum RenderQueueFlags {
   None = 0x0,
   Opaque = 0x1,
   AlphaTest = 0x2,
