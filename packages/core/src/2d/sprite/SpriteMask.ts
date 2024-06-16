@@ -3,7 +3,7 @@ import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { RenderData } from "../../RenderPipeline/RenderData";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
@@ -27,7 +27,7 @@ export class SpriteMask extends Renderer {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _renderElement: RenderData;
+  _renderElement: RenderElement;
 
   /** @internal */
   @ignoreClone
@@ -256,14 +256,14 @@ export class SpriteMask extends Renderer {
     engine._maskManager.addSpriteMask(this);
 
     const chunk = this._subChunk;
-    const renderData = engine._renderDataPool.get();
+    const renderData = engine._renderElementPool.get();
     renderData.set(this.priority, this._distanceForSort);
 
     const subRenderElement = engine._subRenderElementPool.get();
     subRenderElement.set(this, material, chunk.chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
     subRenderElement.shaderPasses =  material.shader.subShaders[0].passes;
     subRenderElement.renderQueueFlags = 1 << material.renderState.renderQueueType;
-    
+
     renderData.addSubRenderElement(subRenderElement);
     this._renderElement = renderData;
   }

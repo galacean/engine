@@ -5,27 +5,27 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
 import { MaskManager } from "./MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
-import { RenderData } from "./RenderData";
+import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * @internal
  */
 export class RenderQueue {
-  static compareForOpaque(a: RenderData, b: RenderData): number {
+  static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
   }
 
-  static compareForTransparent(a: RenderData, b: RenderData): number {
+  static compareForTransparent(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
   }
 
-  readonly elements = new Array<RenderData>();
+  readonly elements = new Array<RenderElement>();
   readonly batchedSubElements = new Array<SubRenderElement>();
 
   constructor(public renderQueueType: RenderQueueType) {}
 
-  pushRenderElement(element: RenderData): void {
+  pushRenderElement(element: RenderElement): void {
     this.elements.push(element);
   }
 

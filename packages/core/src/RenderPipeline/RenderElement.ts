@@ -2,7 +2,7 @@ import { IPoolElement } from "../utils/ObjectPool";
 import { RenderQueueFlags } from "./BasicRenderPipeline";
 import { SubRenderElement } from "./SubRenderElement";
 
-export class RenderData implements IPoolElement {
+export class RenderElement implements IPoolElement {
   priority: number;
   distanceForSort: number;
   subRenderElements = Array<SubRenderElement>();

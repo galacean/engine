@@ -18,7 +18,7 @@ import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
-import { RenderData } from "./RenderData";
+import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
 
@@ -201,11 +201,11 @@ export class BasicRenderPipeline {
   /**
    * Push render data to render queue.
    * @param context - Render context
-   * @param data - Render data
+   * @param renderElement - Render element
    */
-  pushRenderData(context: RenderContext, data: RenderData): void {
-    data.renderQueueFlags = RenderQueueFlags.None;
-    const subRenderElements = data.subRenderElements;
+  pushRenderElement(context: RenderContext, renderElement: RenderElement): void {
+    renderElement.renderQueueFlags = RenderQueueFlags.None;
+    const subRenderElements = renderElement.subRenderElements;
     for (let i = 0, n = subRenderElements.length; i < n; ++i) {
       const subRenderElement = subRenderElements[i];
       const { material } = subRenderElement;
@@ -220,21 +220,21 @@ export class BasicRenderPipeline {
           for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
             const subShader = replacementSubShaders[j];
             if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              this.pushRenderDataWithShader(data, subRenderElement, subShader.passes, renderStates);
+              this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes, renderStates);
               break;
             }
           }
         } else {
-          this.pushRenderDataWithShader(data, subRenderElement, replacementSubShaders[0].passes, renderStates);
+          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
       } else {
-        this.pushRenderDataWithShader(data, subRenderElement, materialSubShader.passes, renderStates);
+        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
       }
     }
   }
 
-  private pushRenderDataWithShader(
-    renderData: RenderData,
+  private pushRenderElementByType(
+    renderElement: RenderElement,
     subRenderElement: SubRenderElement,
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
@@ -254,24 +254,24 @@ export class BasicRenderPipeline {
 
       subRenderElement.shaderPasses = shaderPasses;
 
-      if (renderData.renderQueueFlags & (<RenderQueueFlags>(1 << renderQueueType))) {
+      if (renderElement.renderQueueFlags & (<RenderQueueFlags>(1 << renderQueueType))) {
         continue;
       }
 
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          cullingResults.opaqueQueue.pushRenderElement(renderData);
-          renderData.renderQueueFlags |= RenderQueueFlags.Opaque;
+          cullingResults.opaqueQueue.pushRenderElement(renderElement);
+          renderElement.renderQueueFlags |= RenderQueueFlags.Opaque;
           subRenderElement.renderQueueFlags |= RenderQueueFlags.Opaque;
           break;
         case RenderQueueType.AlphaTest:
-          cullingResults.alphaTestQueue.pushRenderElement(renderData);
-          renderData.renderQueueFlags |= RenderQueueFlags.AlphaTest;
+          cullingResults.alphaTestQueue.pushRenderElement(renderElement);
+          renderElement.renderQueueFlags |= RenderQueueFlags.AlphaTest;
           subRenderElement.renderQueueFlags |= RenderQueueFlags.AlphaTest;
           break;
         case RenderQueueType.Transparent:
-          cullingResults.transparentQueue.pushRenderElement(renderData);
-          renderData.renderQueueFlags |= RenderQueueFlags.Transparent;
+          cullingResults.transparentQueue.pushRenderElement(renderElement);
+          renderElement.renderQueueFlags |= RenderQueueFlags.Transparent;
           subRenderElement.renderQueueFlags |= RenderQueueFlags.Transparent;
           break;
       }

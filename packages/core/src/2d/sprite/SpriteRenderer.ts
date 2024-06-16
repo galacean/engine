@@ -356,13 +356,13 @@ export class SpriteRenderer extends Renderer {
     // Push primitive
     const camera = context.camera;
     const engine = camera.engine;
-    const renderData = engine._renderDataPool.get();
+    const renderData = engine._renderElementPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     renderData.addSubRenderElement(subRenderElement);
-    camera._renderPipeline.pushRenderData(context, renderData);
+    camera._renderPipeline.pushRenderElement(context, renderData);
   }
 
   protected override _onDestroy(): void {

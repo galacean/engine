@@ -424,7 +424,7 @@ export class TextRenderer extends Renderer {
     const engine = camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const renderData = engine._renderDataPool.get();
+    const renderData = engine._renderElementPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -437,7 +437,7 @@ export class TextRenderer extends Renderer {
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderData.addSubRenderElement(subRenderElement);
     }
-    camera._renderPipeline.pushRenderData(context, renderData);
+    camera._renderPipeline.pushRenderElement(context, renderData);
   }
 
   private _updateStencilState(): void {
