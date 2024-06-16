@@ -8,17 +8,17 @@ import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 export class SubRenderElement implements IPoolElement {
   component: Renderer;
-  material: Material;
   primitive: Primitive;
+  material: Material;
   subPrimitive: SubMesh;
+  shaderPasses: ReadonlyArray<ShaderPass>;
+  shaderData?: ShaderData;
   batched: boolean;
 
-  shaderPasses: ReadonlyArray<ShaderPass>;
+  // @todo: maybe should remove later
   stencilOperation: StencilOperation;
-
   texture?: Texture2D;
   subChunk?: SubPrimitiveChunk;
-  shaderData?: ShaderData;
 
   set(
     component: Renderer,
@@ -36,20 +36,15 @@ export class SubRenderElement implements IPoolElement {
     this.subChunk = subChunk;
   }
 
-  setShaderPasses(shaderPasses: ReadonlyArray<ShaderPass>): void {
-    this.shaderPasses = shaderPasses;
-  }
-
   dispose(): void {
     this.component = null;
     this.material = null;
     this.primitive = null;
     this.subPrimitive = null;
-
     this.shaderPasses = null;
+    this.shaderData && (this.shaderData = null);
 
     this.texture && (this.texture = null);
     this.subChunk && (this.subChunk = null);
-    this.shaderData && (this.shaderData = null);
   }
 }
