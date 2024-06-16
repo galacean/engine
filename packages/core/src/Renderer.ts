@@ -334,6 +334,11 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
     }
 
+    // Only update once per frame
+    if (this._renderFrameCount !== this.engine.time.frameCount) {
+      this._updateRendererShaderData(context);
+    }
+
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -385,17 +390,13 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  _updateShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const entity = this.entity;
-    const worldMatrix = entity.transform.worldMatrix;
+  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    const worldMatrix = this.entity.transform.worldMatrix;
     if (onlyMVP) {
-      this._updateMVPShaderData(context, worldMatrix, batched);
+      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
       return;
     }
-    this._updateTransformShaderData(context, worldMatrix, batched);
-
-    const layer = entity.layer;
-    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+    this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
   }
 
   /**
@@ -410,7 +411,12 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
-  protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
+  protected _updateRendererShaderData(context: RenderContext): void {
+    const { layer } = this.entity;
+    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+  }
+
+  protected _updateWorldViewRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
     const { shaderData, _mvInvMatrix: mvInvMatrix } = this;
     if (batched) {
       // @ts-ignore
@@ -439,10 +445,10 @@ export class Renderer extends Component implements IComponentCustomClone {
       shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
     }
 
-    this._updateMVPShaderData(context, worldMatrix, batched);
+    this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
   }
 
-  protected _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
+  protected _updateProjectionRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
     if (batched) {
       this.shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
     } else {

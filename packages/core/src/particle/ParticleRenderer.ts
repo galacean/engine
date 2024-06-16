@@ -166,10 +166,7 @@ export class ParticleRenderer extends Renderer {
     worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
   }
 
-  /**
-   * @internal
-   */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  protected override _updateRendererShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);

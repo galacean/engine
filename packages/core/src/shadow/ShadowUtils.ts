@@ -187,8 +187,8 @@ export class ShadowUtils {
         renderer.castShadows &&
         ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
       ) {
-        renderer._renderFrameCount = renderer.engine.time.frameCount;
         renderer._prepareRender(context);
+        renderer._renderFrameCount = renderer.engine.time.frameCount;
       }
     }
   }
