@@ -3,7 +3,7 @@ import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
-import { RenderContext, RendererUpdateType } from "./RenderContext";
+import { RenderContext, RendererDataUpdateFlag } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -50,7 +50,7 @@ export class RenderQueue {
       return;
     }
 
-    const { rendererUpdateType, camera } = context;
+    const { rendererUpdateFlag, camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
     const { instanceId: sceneId, shaderData: sceneData } = scene;
     const renderCount = engine._renderCount;
@@ -63,11 +63,11 @@ export class RenderQueue {
       const { component: renderer, batched } = subElement;
 
       // @todo: Can optimize update view projection matrix updated
-      if (rendererUpdateType & RendererUpdateType.WorldViewMatrix || renderer._batchedTransformShaderData != batched) {
+      if (rendererUpdateFlag & RendererDataUpdateFlag.WorldViewMatrix || renderer._batchedTransformShaderData != batched) {
         // Update world matrix and view matrix and model matrix
         renderer._updateTransformShaderData(context, false, batched);
         renderer._batchedTransformShaderData = subElement.batched;
-      } else if (rendererUpdateType & RendererUpdateType.ProjectionMatrix) {
+      } else if (rendererUpdateFlag & RendererDataUpdateFlag.ProjectionMatrix) {
         // Only projection matrix need updated
         renderer._updateTransformShaderData(context, true, batched);
       }

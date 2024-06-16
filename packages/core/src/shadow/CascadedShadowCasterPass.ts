@@ -2,7 +2,7 @@ import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/en
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderContext, RendererUpdateType } from "../RenderPipeline/RenderContext";
+import { RenderContext, RendererDataUpdateFlag } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";
@@ -381,7 +381,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
     // Every light use self virtual camera
-    context.rendererUpdateType |= RendererUpdateType.viewProjectionMatrix;
+    context.rendererUpdateFlag |= RendererDataUpdateFlag.viewProjectionMatrix;
     context.applyVirtualCamera(virtualCamera, true);
   }
 }

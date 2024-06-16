@@ -70,9 +70,10 @@ export class PrimitiveChunk {
       const subChunk = this.subChunkPool.get();
       subChunk.chunk = this;
       subChunk.vertexArea = area;
-      subChunk.subMesh = this.subMeshPool.get();
-      const { subMesh: subMesh } = subChunk;
+
+      const subMesh = this.subMeshPool.get();
       subMesh.topology = MeshTopology.Triangles;
+      subChunk.subMesh = subMesh;
       return subChunk;
     }
 

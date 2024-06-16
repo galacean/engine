@@ -17,7 +17,7 @@ import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
-import { RenderContext, RendererUpdateType } from "./RenderContext";
+import { RenderContext, RendererDataUpdateFlag } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -66,7 +66,7 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
-    context.rendererUpdateType = RendererUpdateType.All;
+    context.rendererUpdateFlag = RendererDataUpdateFlag.All;
 
     const camera = this._camera;
     const { scene, engine } = camera;
@@ -77,7 +77,7 @@ export class BasicRenderPipeline {
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
-      context.rendererUpdateType = RendererUpdateType.None;
+      context.rendererUpdateFlag = RendererDataUpdateFlag.None;
     }
 
     const batcherManager = engine._batcherManager;
@@ -86,7 +86,7 @@ export class BasicRenderPipeline {
     maskManager.clear();
 
     // Depth use camera's view and projection matrix
-    context.rendererUpdateType |= RendererUpdateType.viewProjectionMatrix;
+    context.rendererUpdateFlag |= RendererDataUpdateFlag.viewProjectionMatrix;
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
@@ -96,7 +96,7 @@ export class BasicRenderPipeline {
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
-      context.rendererUpdateType = RendererUpdateType.None;
+      context.rendererUpdateFlag = RendererDataUpdateFlag.None;
     } else {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._whiteTexture2D);
     }
@@ -152,7 +152,7 @@ export class BasicRenderPipeline {
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
-      context.rendererUpdateType |= RendererUpdateType.ProjectionMatrix;
+      context.rendererUpdateFlag |= RendererDataUpdateFlag.ProjectionMatrix;
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
