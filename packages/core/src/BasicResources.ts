@@ -121,13 +121,21 @@ export class BasicResources {
 
     switch (type) {
       case TextureType.Texture2D:
-        texture = new Texture2D(engine, 1, 1, format, false);
+        const texture2D = new Texture2D(engine, 1, 1, format, false);
+        texture2D.setPixelBuffer(pixel);
+        texture = texture2D;
         break;
       case TextureType.Texture2DArray:
-        texture = new Texture2DArray(engine, 1, 1, 1, format, false);
+        const texture2DArray = new Texture2DArray(engine, 1, 1, 1, format, false);
+        texture2DArray.setPixelBuffer(0, pixel);
+        texture = texture2DArray;
         break;
       case TextureType.TextureCube:
-        texture = new TextureCube(engine, 1, format, false);
+        const textureCube = new TextureCube(engine, 1, format, false);
+        for (let i = 0; i < 6; i++) {
+          textureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, pixel);
+        }
+        texture = textureCube;
         break;
       default:
         throw "Invalid texture type";
