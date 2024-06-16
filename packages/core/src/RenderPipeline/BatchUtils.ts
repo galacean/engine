@@ -32,7 +32,6 @@ export class BatchUtils {
 
     // Compare renderer property
     return (
-      elementA.stencilOperation === elementB.stencilOperation &&
       elementA.texture === elementB.texture &&
       (<SpriteMask>elementA.component).shaderData.getFloat(alphaCutoffProperty) ===
         (<SpriteMask>elementB.component).shaderData.getFloat(alphaCutoffProperty)

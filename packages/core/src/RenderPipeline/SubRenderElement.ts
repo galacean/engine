@@ -1,7 +1,7 @@
 import { Renderer } from "../Renderer";
 import { Primitive, SubMesh } from "../graphic";
 import { Material } from "../material";
-import { ShaderData, ShaderPass, StencilOperation } from "../shader";
+import { ShaderData, ShaderPass } from "../shader";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/ObjectPool";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
@@ -16,7 +16,6 @@ export class SubRenderElement implements IPoolElement {
   batched: boolean;
 
   // @todo: maybe should remove later
-  stencilOperation: StencilOperation;
   texture?: Texture2D;
   subChunk?: SubPrimitiveChunk;
 

@@ -3,7 +3,8 @@ import { Utils } from "../Utils";
 import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
-import { RenderContext, ContextRendererUpdateFlag } from "./RenderContext";
+import { MaskManager } from "./MaskManager";
+import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -11,12 +12,6 @@ import { SubRenderElement } from "./SubRenderElement";
  * @internal
  */
 export class RenderQueue {
-  private static _maskRenderQueue: RenderQueue;
-
-  static getMaskRenderQueue(): RenderQueue {
-    return (RenderQueue._maskRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
-  }
-
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     const dataA = a.data;
     const dataB = b.data;
@@ -43,7 +38,11 @@ export class RenderQueue {
     this._batch(batcherManager);
   }
 
-  render(context: RenderContext, pipelineStageTagValue: string, isMaskQueue: boolean = false): void {
+  render(
+    context: RenderContext,
+    pipelineStageTagValue: string,
+    maskType: RenderQueueMaskType = RenderQueueMaskType.No
+  ): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
@@ -63,7 +62,10 @@ export class RenderQueue {
       const { component: renderer, batched } = subElement;
 
       // @todo: Can optimize update view projection matrix updated
-      if (rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix || renderer._batchedTransformShaderData != batched) {
+      if (
+        rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix ||
+        renderer._batchedTransformShaderData != batched
+      ) {
         // Update world matrix and view matrix and model matrix
         renderer._updateTransformShaderData(context, false, batched);
         renderer._batchedTransformShaderData = subElement.batched;
@@ -84,11 +86,15 @@ export class RenderQueue {
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 
       // TODO: Mask should not modify material's render state, will delete this code after mask refactor
-      if (isMaskQueue) {
-        const stencilState = material.renderState.stencilState;
-        const stencilOperation = subElement.stencilOperation || StencilOperation.Keep;
-        stencilState.passOperationFront = stencilOperation;
-        stencilState.passOperationBack = stencilOperation;
+      if (maskType !== RenderQueueMaskType.No) {
+        const operation =
+          maskType === RenderQueueMaskType.Increment
+            ? StencilOperation.IncrementSaturate
+            : StencilOperation.DecrementSaturate;
+
+        const { stencilState } = material.renderState;
+        stencilState.passOperationFront = operation;
+        stencilState.passOperationBack = operation;
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
@@ -189,13 +195,26 @@ export class RenderQueue {
   }
 
   private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {
-    const maskQueue = RenderQueue.getMaskRenderQueue();
-    maskQueue.renderQueueType = this.renderQueueType;
-    maskQueue.clear();
+    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
+    incrementMaskQueue.renderQueueType = this.renderQueueType;
+    incrementMaskQueue.clear();
+
+    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+    decrementMaskQueue.renderQueueType = this.renderQueueType;
+    decrementMaskQueue.clear();
 
     const engine = context.camera.engine;
-    engine._maskManager.buildMaskRenderElement(master, maskQueue);
-    maskQueue._batch(engine._batcherManager);
-    maskQueue.render(context, pipelineStageTagValue, true);
+    engine._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
+
+    incrementMaskQueue._batch(engine._batcherManager);
+    incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    decrementMaskQueue._batch(engine._batcherManager);
+    decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
   }
+}
+
+enum RenderQueueMaskType {
+  No,
+  Increment,
+  Decrement
 }
