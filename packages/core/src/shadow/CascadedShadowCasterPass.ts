@@ -217,7 +217,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
       }
 
       if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {
-        const { _batcherManager: batcherManager } = engine;
+        const batcherManager = engine._batcherManager;
         opaqueQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
         alphaTestQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
 
