@@ -217,6 +217,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
       }
 
       if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {
+        // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
+        engine._renderCount++;
+
         const batcherManager = engine._batcherManager;
         opaqueQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
         alphaTestQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
@@ -232,9 +235,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
         opaqueQueue.render(context, PipelineStage.ShadowCaster);
         alphaTestQueue.render(context, PipelineStage.ShadowCaster);
         rhi.setGlobalDepthBias(0, 0);
-
-        // @todo: It is more appropriate to prevent duplication based on `virtualCamera` at `RenderQueue#render`.
-        engine._renderCount++;
       }
     }
   }
