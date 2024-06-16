@@ -254,7 +254,7 @@ export class BasicRenderPipeline {
 
       subRenderElement.shaderPasses = shaderPasses;
 
-      if (renderElement.renderQueueFlags & (<RenderQueueFlags>(1 << renderQueueType))) {
+      if (renderElement.renderQueueFlags & (1 << renderQueueType)) {
         continue;
       }
 

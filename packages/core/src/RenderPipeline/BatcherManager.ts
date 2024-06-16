@@ -1,6 +1,5 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
-import { RenderQueueFlags } from "./BasicRenderPipeline";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
@@ -35,7 +34,7 @@ export class BatcherManager {
         const subElement = subElements[j];
 
         // Some sub render elements may not belong to the current render queue
-        if (!(subElement.renderQueueFlags & (<RenderQueueFlags>(1 << renderQueueType)))) {
+        if (!(subElement.renderQueueFlags & (1 << renderQueueType))) {
           continue;
         }
 
