@@ -1,5 +1,6 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
@@ -255,17 +256,18 @@ export class SpriteMask extends Renderer {
 
     engine._maskManager.addSpriteMask(this);
 
-    const chunk = this._subChunk;
-    const renderData = engine._renderElementPool.get();
-    renderData.set(this.priority, this._distanceForSort);
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
 
+    const chunk = this._subChunk;
     const subRenderElement = engine._subRenderElementPool.get();
     subRenderElement.set(this, material, chunk.chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    subRenderElement.shaderPasses =  material.shader.subShaders[0].passes;
-    subRenderElement.renderQueueFlags = 1 << material.renderState.renderQueueType;
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    // Mask sub render element can in any render queue, or it will be filtered by mask
+    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
 
-    renderData.addSubRenderElement(subRenderElement);
-    this._renderElement = renderData;
+    renderElement.addSubRenderElement(subRenderElement);
+    this._renderElement = renderElement;
   }
 
   /**

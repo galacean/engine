@@ -336,5 +336,6 @@ export enum RenderQueueFlags {
   None = 0x0,
   Opaque = 0x1,
   AlphaTest = 0x2,
-  Transparent = 0x4
+  Transparent = 0x4,
+  All = 0x7
 }

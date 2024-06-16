@@ -41,9 +41,9 @@ export class MaskManager {
       const addLayer = curMaskLayer & ~preMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
 
-      const allSpriteMasks = masks._elements;
+      const maskElements = masks._elements;
       for (let i = 0, n = masks.length; i < n; i++) {
-        const mask = allSpriteMasks[i];
+        const mask = maskElements[i];
         const influenceLayers = mask.influenceLayers;
 
         if (influenceLayers & commonLayer) {
