@@ -13,7 +13,6 @@ import { ShaderData, ShaderProperty } from "../../shader";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
-import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
@@ -28,7 +27,6 @@ import { TextUtils } from "./TextUtils";
  */
 export class TextRenderer extends Renderer {
   private static _textureProperty = ShaderProperty.getByName("renderElement_TextTexture");
-  private static _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
   private static _tempVec30 = new Vector3();
   private static _tempVec31 = new Vector3();
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -490,7 +488,6 @@ export class TextRenderer extends Renderer {
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, charRenderInfos } = textChunks[i];
-      subChunk.updateBuffer();
       for (let j = 0, m = charRenderInfos.length; j < m; ++j) {
         const charRenderInfo = charRenderInfos[j];
         const { localPositions } = charRenderInfo;
@@ -533,7 +530,7 @@ export class TextRenderer extends Renderer {
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-    const charRenderInfoPool = TextRenderer._charRenderInfoPool;
+    const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
     let renderElementCount = 0;
 
@@ -715,7 +712,7 @@ export class TextRenderer extends Renderer {
 
   private _freeTextChunks(): void {
     const textChunks = this._textChunks;
-    const charRenderInfoPool = TextRenderer._charRenderInfoPool;
+    const charRenderInfoPool = this.engine._charRenderInfoPool;
     const manager = this._getChunkManager();
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const textChunk = textChunks[i];

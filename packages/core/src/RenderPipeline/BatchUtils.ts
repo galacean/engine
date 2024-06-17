@@ -53,11 +53,14 @@ export class BatchUtils {
       subMesh.count = length;
     }
 
-    const vertexOffset = subChunk.vertexArea.start / 9;
+    const { start, size } = subChunk.vertexArea;
+    const vertexOffset = start / 9;
     const indices = chunk.indices;
     for (let i = 0; i < length; ++i) {
       indices[startIndex++] = vertexOffset + subChunkIndices[i];
     }
     chunk.updateIndexLength += length;
+    chunk.updateVertexStart = Math.min(chunk.updateVertexStart, start);
+    chunk.updateVertexLength = Math.max(chunk.updateVertexLength, start + size);
   }
 }

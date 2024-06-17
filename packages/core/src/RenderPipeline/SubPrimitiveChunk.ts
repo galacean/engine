@@ -12,13 +12,6 @@ export class SubPrimitiveChunk implements IPoolElement {
   subMesh: SubMesh;
   indices: number[];
 
-  updateBuffer(): void {
-    const { chunk } = this;
-    const { start, size } = this.vertexArea;
-    chunk.updateVertexStart = Math.min(chunk.updateVertexStart, start);
-    chunk.updateVertexLength = Math.max(chunk.updateVertexLength, start + size);
-  }
-
   dispose?(): void {
     this.id = -1;
     this.chunk = null;

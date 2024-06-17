@@ -8,6 +8,7 @@ import {
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
+import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
@@ -46,6 +47,7 @@ import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
+import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
 
 ShaderPool.init();
@@ -89,6 +91,8 @@ export class Engine extends EventDispatcher {
   _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
   _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
+  /* @internal */
+  _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
   /* @internal */
   _basicResources: BasicResources;

@@ -212,7 +212,6 @@ export class BasicRenderPipeline {
       const { renderStates } = material;
       const materialSubShader = material.shader.subShaders[0];
       const replacementShader = context.replacementShader;
-      subRenderElement.renderQueueFlags = RenderQueueFlags.None;
       if (replacementShader) {
         const replacementSubShaders = replacementShader.subShaders;
         const { replacementTag } = context;
@@ -252,29 +251,27 @@ export class BasicRenderPipeline {
         renderQueueType = renderStates[i].renderQueueType;
       }
 
-      subRenderElement.shaderPasses = shaderPasses;
+      const flag = 1 << renderQueueType;
 
-      if (renderElement.renderQueueFlags & (1 << renderQueueType)) {
+      subRenderElement.shaderPasses = shaderPasses;
+      subRenderElement.renderQueueFlags |= flag;
+
+      if (renderElement.renderQueueFlags & flag) {
         continue;
       }
 
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
           cullingResults.opaqueQueue.pushRenderElement(renderElement);
-          renderElement.renderQueueFlags |= RenderQueueFlags.Opaque;
-          subRenderElement.renderQueueFlags |= RenderQueueFlags.Opaque;
           break;
         case RenderQueueType.AlphaTest:
           cullingResults.alphaTestQueue.pushRenderElement(renderElement);
-          renderElement.renderQueueFlags |= RenderQueueFlags.AlphaTest;
-          subRenderElement.renderQueueFlags |= RenderQueueFlags.AlphaTest;
           break;
         case RenderQueueType.Transparent:
           cullingResults.transparentQueue.pushRenderElement(renderElement);
-          renderElement.renderQueueFlags |= RenderQueueFlags.Transparent;
-          subRenderElement.renderQueueFlags |= RenderQueueFlags.Transparent;
           break;
       }
+      renderElement.renderQueueFlags |= flag;
     }
   }
 

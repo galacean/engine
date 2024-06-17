@@ -77,7 +77,6 @@ export class TiledSpriteAssembler {
     const columnLength = posColumn.length - 1;
 
     const subChunk = renderer._subChunk;
-    subChunk.updateBuffer();
     const vertices = subChunk.chunk.vertices;
     const indices = subChunk.indices;
     let count = 0;

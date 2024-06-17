@@ -46,7 +46,6 @@ export class SimpleSpriteAssembler {
     // Update positions
     const spritePositions = sprite._getPositions();
     const subChunk = renderer._subChunk;
-    subChunk.updateBuffer();
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
