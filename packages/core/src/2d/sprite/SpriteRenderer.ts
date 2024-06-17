@@ -1,4 +1,4 @@
-import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -177,11 +177,9 @@ export class SpriteRenderer extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      if (this._drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
-      } else {
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-      }
+      this._drawMode === SpriteDrawMode.Tiled
+        ? SpriteRendererUpdateFlags.WorldVolumeAndUV
+        : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -204,11 +202,10 @@ export class SpriteRenderer extends Renderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      if (this._drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
-      } else {
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-      }
+      this._dirtyUpdateFlag |=
+        this._drawMode === SpriteDrawMode.Tiled
+          ? SpriteRendererUpdateFlags.WorldVolumeAndUV
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -279,24 +276,19 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
-    target._assembler.resetData(target);
-    target.sprite = this._sprite;
-    target.drawMode = this._drawMode;
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
+  override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+    target._assembler.resetData(target);
+    target.sprite = this._sprite;
+    target.drawMode = this._drawMode;
   }
 
   /**
@@ -317,7 +309,7 @@ export class SpriteRenderer extends Renderer {
    * @internal
    */
   _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager._primitiveChunkManager2D;
+    return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -364,13 +356,13 @@ export class SpriteRenderer extends Renderer {
     // Push primitive
     const camera = context.camera;
     const engine = camera.engine;
-    const renderData = engine._renderDataPool.get();
+    const renderData = engine._renderElementPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     renderData.addSubRenderElement(subRenderElement);
-    camera._renderPipeline.pushRenderData(context, renderData);
+    camera._renderPipeline.pushRenderElement(context, renderData);
   }
 
   protected override _onDestroy(): void {
@@ -480,5 +472,5 @@ enum SpriteRendererUpdateFlags {
   /** WorldVolume and UV. */
   WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
   /** All. */
-  All = 0xff
+  All = 0xf
 }

@@ -161,15 +161,20 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Don't need to update transform shader data, temp solution
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, _: boolean): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    worldBounds.min.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+    worldBounds.max.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+  }
+
+  protected override _updateRendererShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
@@ -193,12 +198,12 @@ export class ParticleRenderer extends Renderer {
     }
 
     const engine = this._engine;
-    const renderData = engine._renderDataPool.get();
+    const renderData = engine._renderElementPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     subRenderElement.set(this, material, generator._primitive, generator._subPrimitive);
     renderData.addSubRenderElement(subRenderElement);
-    context.camera._renderPipeline.pushRenderData(context, renderData);
+    context.camera._renderPipeline.pushRenderElement(context, renderData);
   }
 
   protected override _onDestroy(): void {

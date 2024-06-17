@@ -1,61 +1,63 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
-import { RenderElement } from "./RenderElement";
+import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
 
+/**
+ * @internal
+ */
 export class BatcherManager {
-  /** @internal */
-  _engine: Engine;
-  /** @internal */
-  _primitiveChunkManager2D: PrimitiveChunkManager;
-  /** @internal */
-  _primitiveChunkManagerMask: PrimitiveChunkManager;
+  primitiveChunkManager2D: PrimitiveChunkManager;
+  primitiveChunkManagerMask: PrimitiveChunkManager;
 
   constructor(engine: Engine) {
-    this._engine = engine;
-    this._primitiveChunkManager2D = new PrimitiveChunkManager(engine);
-    this._primitiveChunkManagerMask = new PrimitiveChunkManager(engine, 128);
+    this.primitiveChunkManager2D = new PrimitiveChunkManager(engine);
+    this.primitiveChunkManagerMask = new PrimitiveChunkManager(engine, 128);
   }
 
   destroy() {
-    this._primitiveChunkManager2D.destroy();
-    this._primitiveChunkManager2D = null;
-    this._primitiveChunkManagerMask.destroy();
-    this._primitiveChunkManagerMask = null;
-    this._engine = null;
+    this.primitiveChunkManager2D.destroy();
+    this.primitiveChunkManagerMask.destroy();
+    this.primitiveChunkManager2D = null;
+    this.primitiveChunkManagerMask = null;
   }
 
-  batch(elements: Array<RenderElement>, batchedSubElements: Array<SubRenderElement>): void {
-    const length = elements.length;
-    if (length === 0) {
-      return;
-    }
-
+  batch(renderQueue: RenderQueue): void {
+    const { elements, batchedSubElements, renderQueueType } = renderQueue;
     let preSubElement: SubRenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
-    for (let i = 0; i < length; ++i) {
-      const subElements = elements[i].data.subRenderElements;
-      for (let j = 0, n = subElements.length; j < n; ++j) {
-        const curSubElement = subElements[j];
-        const curRenderer = curSubElement.component;
-        const curConstructor = curRenderer.constructor;
+    for (let i = 0, n = elements.length; i < n; ++i) {
+      const subElements = elements[i].subRenderElements;
+      for (let j = 0, m = subElements.length; j < m; ++j) {
+        const subElement = subElements[j];
+
+        // Some sub render elements may not belong to the current render queue
+        if (!(subElement.renderQueueFlags & (1 << renderQueueType))) {
+          continue;
+        }
+
+        const renderer = subElement.component;
+        const constructor = renderer.constructor;
         if (preSubElement) {
-          if (preConstructor === curConstructor && preRenderer._canBatch(preSubElement, curSubElement)) {
-            preRenderer._batch(preSubElement, curSubElement);
+          if (preConstructor === constructor && preRenderer._canBatch(preSubElement, subElement)) {
+            preRenderer._batch(preSubElement, subElement);
+            preSubElement.batched = true;
           } else {
             batchedSubElements.push(preSubElement);
-            preSubElement = curSubElement;
-            preRenderer = curRenderer;
-            preConstructor = curConstructor;
-            preRenderer._batch(preSubElement);
+            preSubElement = subElement;
+            preRenderer = renderer;
+            preConstructor = constructor;
+            renderer._batch(subElement);
+            subElement.batched = false;
           }
         } else {
-          preSubElement = curSubElement;
-          preRenderer = curRenderer;
-          preConstructor = curConstructor;
-          preRenderer._batch(preSubElement);
+          preSubElement = subElement;
+          preRenderer = renderer;
+          preConstructor = constructor;
+          renderer._batch(subElement);
+          subElement.batched = false;
         }
       }
     }
@@ -63,7 +65,7 @@ export class BatcherManager {
   }
 
   uploadBuffer() {
-    this._primitiveChunkManager2D.uploadBuffer();
-    this._primitiveChunkManagerMask.uploadBuffer();
+    this.primitiveChunkManager2D.uploadBuffer();
+    this.primitiveChunkManagerMask.uploadBuffer();
   }
 }

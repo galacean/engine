@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
@@ -365,14 +365,9 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
@@ -393,7 +388,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager._primitiveChunkManager2D;
+    return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -429,7 +424,7 @@ export class TextRenderer extends Renderer {
     const engine = camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const renderData = engine._renderDataPool.get();
+    const renderData = engine._renderElementPool.get();
     renderData.set(this.priority, this._distanceForSort);
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -442,7 +437,7 @@ export class TextRenderer extends Renderer {
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderData.addSubRenderElement(subRenderElement);
     }
-    camera._renderPipeline.pushRenderData(context, renderData);
+    camera._renderPipeline.pushRenderElement(context, renderData);
   }
 
   private _updateStencilState(): void {

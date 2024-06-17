@@ -17,7 +17,6 @@ import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { MaskManager } from "./RenderPipeline/MaskManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
@@ -90,8 +89,6 @@ export class Engine extends EventDispatcher {
   _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
   _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
-  /* @internal */
-  _renderDataPool = new ClearableObjectPool(RenderData);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -270,7 +267,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
-    this._maskManager = new MaskManager(this);
+    this._maskManager = new MaskManager();
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -352,10 +349,9 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._renderElementPool.clear();
     this._subRenderElementPool.clear();
     this._textSubRenderElementPool.clear();
-    this._renderDataPool.clear();
+    this._renderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -523,7 +519,7 @@ export class Engine extends EventDispatcher {
   _render(scenes: ReadonlyArray<Scene>): void {
     // Update `Renderer` logic and shader data
     const deltaTime = this.time.deltaTime;
-    for (let i = 0; i < scenes.length; i++) {
+    for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callRendererOnUpdate(deltaTime);
@@ -531,7 +527,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire script `onBeginRender` and `onEndRender`
-    for (let i = 0; i < scenes.length; i++) {
+    for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       const cameras = scene._componentsManager._activeCameras;
@@ -775,10 +771,9 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
-    this._renderElementPool.garbageCollection();
     this._subRenderElementPool.garbageCollection();
     this._textSubRenderElementPool.garbageCollection();
-    this._renderDataPool.garbageCollection();
+    this._renderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 

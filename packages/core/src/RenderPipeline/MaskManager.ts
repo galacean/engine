@@ -1,7 +1,6 @@
 import { SpriteMask } from "../2d";
 import { DisorderedArray } from "../DisorderedArray";
-import { Engine } from "../Engine";
-import { StencilOperation } from "../shader";
+import { RenderQueueType } from "../shader";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -9,17 +8,30 @@ import { SubRenderElement } from "./SubRenderElement";
  * @internal
  */
 export class MaskManager {
+  private static _maskIncrementRenderQueue: RenderQueue;
+  private static _maskDecrementRenderQueue: RenderQueue;
+
+  static getMaskIncrementRenderQueue(): RenderQueue {
+    return (MaskManager._maskIncrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
+  }
+
+  static getMaskDecrementRenderQueue(): RenderQueue {
+    return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
+  }
+
   allSpriteMasks = new DisorderedArray<SpriteMask>();
 
   private _preMaskLayer = 0;
-
-  constructor(public engine: Engine) {}
 
   addSpriteMask(mask: SpriteMask): void {
     this.allSpriteMasks.add(mask);
   }
 
-  buildMaskRenderElement(element: SubRenderElement, renderQueue: RenderQueue): void {
+  buildMaskRenderElement(
+    element: SubRenderElement,
+    incrementMaskQueue: RenderQueue,
+    decrementMaskQueue: RenderQueue
+  ): void {
     const renderer = element.component;
     const preMaskLayer = this._preMaskLayer;
     const curMaskLayer = renderer._maskLayer;
@@ -29,9 +41,9 @@ export class MaskManager {
       const addLayer = curMaskLayer & ~preMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
 
-      const allSpriteMasks = masks._elements;
+      const maskElements = masks._elements;
       for (let i = 0, n = masks.length; i < n; i++) {
-        const mask = allSpriteMasks[i];
+        const mask = maskElements[i];
         const influenceLayers = mask.influenceLayers;
 
         if (influenceLayers & commonLayer) {
@@ -39,14 +51,12 @@ export class MaskManager {
         }
 
         if (influenceLayers & addLayer) {
-          mask._renderElement.data.subRenderElements[0].stencilOperation = StencilOperation.IncrementSaturate;
-          renderQueue.pushRenderElement(mask._renderElement);
+          incrementMaskQueue.pushRenderElement(mask._renderElement);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
-          mask._renderElement.data.subRenderElements[0].stencilOperation = StencilOperation.DecrementSaturate;
-          renderQueue.pushRenderElement(mask._renderElement);
+          decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
       }
     }

@@ -1,5 +1,6 @@
-import { BoundingBox, Matrix } from "@galacean/engine-math";
+import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
@@ -180,22 +181,17 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
-    target.sprite = this._sprite;
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
+  override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.sprite = this._sprite;
   }
 
   /**
@@ -216,7 +212,7 @@ export class SpriteMask extends Renderer {
    * @internal
    */
   _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager._primitiveChunkManagerMask;
+    return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -260,15 +256,17 @@ export class SpriteMask extends Renderer {
 
     engine._maskManager.addSpriteMask(this);
 
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+
     const chunk = this._subChunk;
-    const renderData = engine._renderDataPool.get();
-    renderData.set(this.priority, this._distanceForSort);
     const subRenderElement = engine._subRenderElementPool.get();
     subRenderElement.set(this, material, chunk.chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    subRenderElement.setShaderPasses(material.shader.subShaders[0].passes);
-    renderData.addSubRenderElement(subRenderElement);
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(renderData);
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    // Mask sub render element can in any render queue, or it will be filtered by mask
+    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+
+    renderElement.addSubRenderElement(subRenderElement);
     this._renderElement = renderElement;
   }
 

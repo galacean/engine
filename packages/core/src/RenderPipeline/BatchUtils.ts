@@ -32,7 +32,6 @@ export class BatchUtils {
 
     // Compare renderer property
     return (
-      elementA.stencilOperation === elementB.stencilOperation &&
       elementA.texture === elementB.texture &&
       (<SpriteMask>elementA.component).shaderData.getFloat(alphaCutoffProperty) ===
         (<SpriteMask>elementB.component).shaderData.getFloat(alphaCutoffProperty)
@@ -41,22 +40,24 @@ export class BatchUtils {
 
   static batchFor2D(elementA: SubRenderElement, elementB?: SubRenderElement): void {
     const subChunk = elementB ? elementB.subChunk : elementA.subChunk;
-    const { chunk, indices: subChunkIndices, vertexArea } = subChunk;
-    const indices = chunk.indices;
-    const vertexStartIndex = vertexArea.start / 9;
-    const len = subChunkIndices.length;
+    const { chunk, indices: subChunkIndices } = subChunk;
+
+    const length = subChunkIndices.length;
     let startIndex = chunk.updateIndexLength;
     if (elementB) {
-      const subMesh = elementA.subChunk.subMesh;
-      subMesh.count += len;
+      elementA.subChunk.subMesh.count += length;
     } else {
+      // Reset subMesh
       const subMesh = subChunk.subMesh;
       subMesh.start = startIndex;
-      subMesh.count = len;
+      subMesh.count = length;
     }
-    for (let i = 0; i < len; ++i) {
-      indices[startIndex++] = vertexStartIndex + subChunkIndices[i];
+
+    const vertexOffset = subChunk.vertexArea.start / 9;
+    const indices = chunk.indices;
+    for (let i = 0; i < length; ++i) {
+      indices[startIndex++] = vertexOffset + subChunkIndices[i];
     }
-    chunk.updateIndexLength += len;
+    chunk.updateIndexLength += length;
   }
 }
