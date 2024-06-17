@@ -211,6 +211,29 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    this._renderElement = new RenderElement();
+    this._renderElement.addSubRenderElement(new SubRenderElement());
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+
+    if (this._renderElement) {
+      const subRenderElement = this._renderElement.subRenderElements[0];
+      subRenderElement.dispose();
+      this._renderElement.dispose();
+      this._renderElement = null;
+    }
+  }
+
+  /**
+   * @internal
+   */
   _getChunkManager(): PrimitiveChunkManager {
     return this.engine._batcherManager.primitiveChunkManagerMask;
   }
@@ -256,18 +279,15 @@ export class SpriteMask extends Renderer {
 
     engine._maskManager.addSpriteMask(this);
 
-    const renderElement = engine._renderElementPool.get();
+    const renderElement = this._renderElement;
+    const subRenderElement = renderElement.subRenderElements[0];
     renderElement.set(this.priority, this._distanceForSort);
 
-    const chunk = this._subChunk;
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, chunk.chunk.primitive, chunk.subMesh, this.sprite.texture, chunk);
+    const subChunk = this._subChunk;
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-    // Mask sub render element can in any render queue, or it will be filtered by mask
     subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-
     renderElement.addSubRenderElement(subRenderElement);
-    this._renderElement = renderElement;
   }
 
   /**
