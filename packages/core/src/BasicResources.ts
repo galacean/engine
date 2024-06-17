@@ -52,7 +52,6 @@ export class BasicResources {
 
     // Create white and magenta textures
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
 
     this.whiteTexture2D = this._create1x1Texture(engine, TextureType.Texture2D, TextureFormat.R8G8B8A8, whitePixel);
     this.whiteTextureCube = this._create1x1Texture(engine, TextureType.TextureCube, TextureFormat.R8G8B8A8, whitePixel);
