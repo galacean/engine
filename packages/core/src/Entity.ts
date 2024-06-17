@@ -12,6 +12,7 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { PointerEvent } from "./input/pointer/PointerEvent";
 
 /**
  * Entity, be used as components container.
@@ -102,6 +103,8 @@ export class Entity extends EngineObject {
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
   private _onParentChanges: DisorderedArray<Component> = new DisorderedArray<Component>();
+
+  _onPointerCallBacksArray: DisorderedArray<(event: PointerEvent) => void>[];
 
   /**
    * Whether to activate locally.
@@ -257,6 +260,18 @@ export class Entity extends EngineObject {
   getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
     this._getComponentsInChildren<T>(type, results);
+    return results;
+  }
+
+  /**
+   * Get the components which match the type of the entity and it's parent.
+   * @param type - The component type
+   * @param results - The components collection
+   * @returns	The components collection which match the type
+   */
+  getComponentsIncludeParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+    results.length = 0;
+    this._getComponentsInParent<T>(type, results);
     return results;
   }
 
@@ -584,16 +599,29 @@ export class Entity extends EngineObject {
   }
 
   /** @internal */
-  _addOnParentChanges(component: Component) {
+  _addOnParentChanges(component: Component): void {
     component._onParentChangeIndex = this._onParentChanges.length;
     this._onParentChanges.add(component);
   }
 
   /** @internal */
-  _removeOnParentChanges(component: Component) {
+  _removeOnParentChanges(component: Component): void {
     const replaced = this._onParentChanges.deleteByIndex(component._onParentChangeIndex);
     replaced && (replaced._onParentChangeIndex = component._onParentChangeIndex);
     component._onParentChangeIndex = -1;
+  }
+
+  /** @internal */
+  _addOnPointerEvent(
+    type: PointerEventType,
+    script: Script,
+    callback: (event: PointerEvent) => void,
+    useCapture: boolean = false
+  ): void {
+    const onPointerCallBacksArray = (this._onPointerCallBacksArray ||= []);
+    const onPointerCallBacks = (onPointerCallBacksArray[type] ||= new DisorderedArray<(event: PointerEvent) => void>());
+    script._onPointerEventIndexArray[type] = onPointerCallBacks.length;
+    onPointerCallBacks.add(callback);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -664,6 +692,16 @@ export class Entity extends EngineObject {
       }
       this._setParentChange();
     }
+  }
+
+  private _getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
+    for (let i = this._components.length - 1; i >= 0; i--) {
+      const component = this._components[i];
+      if (component instanceof type) {
+        results.push(component);
+      }
+    }
+    this.parent?._getComponentsInParent<T>(type, results);
   }
 
   private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
@@ -770,4 +808,12 @@ export class Entity extends EngineObject {
     }
     return this._invModelMatrix;
   }
+}
+
+enum PointerEventType {
+  Down,
+  Up,
+  Click,
+  Enter,
+  Exit
 }

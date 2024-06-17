@@ -48,6 +48,7 @@ import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 import { XRManager } from "./xr/XRManager";
+import { CanvasRenderMode } from "./ui";
 
 ShaderPool.init();
 
@@ -382,7 +383,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire `onPointerXX`
-    physicsInitialized && inputManager._firePointerScript(scenes);
+    inputManager._firePointerScript(scenes);
 
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {
@@ -534,7 +535,9 @@ export class Engine extends EventDispatcher {
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      const cameras = scene._componentsManager._activeCameras;
+
+      const componentsManager = scene._componentsManager;
+      const cameras = componentsManager._activeCameras;
 
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
@@ -543,7 +546,6 @@ export class Engine extends EventDispatcher {
 
       cameras.forEach(
         (camera: Camera) => {
-          const componentsManager = scene._componentsManager;
           componentsManager.callCameraOnBeginRender(camera);
           camera.render();
           componentsManager.callCameraOnEndRender(camera);
@@ -557,6 +559,12 @@ export class Engine extends EventDispatcher {
           camera._cameraIndex = index;
         }
       );
+
+      // const uiCanvases = componentsManager._uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]._elements;
+      // for (let i = uiCanvases.length - 1; i >= 0; i--) {
+      //   const uiCanvas = uiCanvases[i];
+      //   uiCanvas._prepareRender
+      // }
     }
   }
 

@@ -17,9 +17,9 @@ export class ComponentsManager {
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
   /* @internal */
-  _uiCanvasNeedSorting: boolean = false;
+  _uiCanvasSortingFlag: number = 0;
   /** @internal */
-  _uiCanvases: DisorderedArray<UICanvas> = new DisorderedArray();
+  _uiCanvasesArray: DisorderedArray<UICanvas>[];
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -75,41 +75,33 @@ export class ComponentsManager {
   }
 
   addUICanvas(uiCanvas: UICanvas) {
-    uiCanvas._uiCanvasIndex = this._uiCanvases.length;
-    this._uiCanvases.add(uiCanvas);
-    this._uiCanvasNeedSorting = true;
+    const { renderMode } = uiCanvas;
+    const uiCanvases = (this._uiCanvasesArray[renderMode] ||= new DisorderedArray());
+    uiCanvas._uiCanvasIndex = uiCanvases.length;
+    uiCanvases.add(uiCanvas);
+    this._uiCanvasSortingFlag |= 1 << renderMode;
   }
 
   removeUICanvas(uiCanvas: UICanvas) {
-    const replaced = this._uiCanvases.deleteByIndex(uiCanvas._uiCanvasIndex);
-    replaced && (replaced._uiCanvasIndex = uiCanvas._uiCanvasIndex);
-    uiCanvas._uiCanvasIndex = -1;
-    this._uiCanvasNeedSorting = true;
+    const { renderMode } = uiCanvas;
+    const uiCanvases = this._uiCanvasesArray[renderMode];
+    if (uiCanvases) {
+      const replaced = uiCanvases.deleteByIndex(uiCanvas._uiCanvasIndex);
+      replaced && (replaced._uiCanvasIndex = uiCanvas._uiCanvasIndex);
+      uiCanvas._uiCanvasIndex = -1;
+      this._uiCanvasSortingFlag |= 1 << renderMode;
+    }
   }
 
   sortUICanvases(): void {
-    if (this._uiCanvasNeedSorting) {
-      const uiCanvases = this._uiCanvases;
-      uiCanvases.sort((a, b) => {
-        const renderModeA = a.renderMode;
-        const renderModeOrder = b.renderMode - renderModeA;
-        if (renderModeOrder !== 0) {
-          return renderModeOrder;
-        }
-
-        if (renderModeA === CanvasRenderMode.ScreenSpaceOverlay) {
-          return a.sortOrder - b.sortOrder;
-        } else if (renderModeA === CanvasRenderMode.ScreenSpaceCamera) {
-          return b.distance - a.distance;
-        } else {
-          return 0;
-        }
-      });
-      for (let i = 0, n = uiCanvases.length; i < n; i++) {
-        uiCanvases.get(i)._uiCanvasIndex = i;
-      }
-      this._uiCanvasNeedSorting = false;
+    const { _uiCanvasSortingFlag: uiCanvasSortingFlag, _uiCanvasesArray: uiCanvasesArray } = this;
+    if (uiCanvasSortingFlag & (1 << CanvasRenderMode.ScreenSpaceOverlay)) {
+      uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay].sort((a, b) => a.sortOrder - b.sortOrder);
     }
+    if (uiCanvasSortingFlag & (1 << CanvasRenderMode.ScreenSpaceCamera)) {
+      uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera].sort((a, b) => b.distance - a.distance);
+    }
+    this._uiCanvasSortingFlag = 0;
   }
 
   addOnStartScript(script: Script) {
@@ -303,7 +295,6 @@ export class ComponentsManager {
    */
   _gc() {
     this._renderers.garbageCollection();
-    this._uiCanvases.garbageCollection();
     this._onStartScripts.garbageCollection();
     this._onUpdateScripts.garbageCollection();
     this._onLateUpdateScripts.garbageCollection();
@@ -311,5 +302,9 @@ export class ComponentsManager {
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
     this._activeCameras.garbageCollection();
+    const { _uiCanvasesArray: uiCanvasesArray } = this;
+    for (let i = 0, n = uiCanvasesArray.length; i < n; i++) {
+      uiCanvasesArray[i]?.garbageCollection();
+    }
   }
 }

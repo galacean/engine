@@ -1,4 +1,4 @@
-import { Matrix } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Ray, Vector2, Vector4 } from "@galacean/engine-math";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { DynamicGeometryDataManager } from "../RenderPipeline/DynamicGeometryDataManager";
@@ -7,11 +7,17 @@ import { Renderer } from "../Renderer";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
+import { Camera } from "../Camera";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
+  private static _uiCanvas: UICanvas[] = [];
+
   protected _canvas: UICanvas;
   protected _uiTransform: UITransform;
+  protected _localBounds: BoundingBox = new BoundingBox();
+  protected _rayCastTarget: boolean = true;
+  protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
 
   get canvas(): UICanvas {
     return this._canvas;
@@ -20,6 +26,24 @@ export class UIRenderer extends Renderer {
   set canvas(val: UICanvas) {
     if (this._canvas !== val) {
       this._canvas = val;
+    }
+  }
+
+  get rayCastTarget(): boolean {
+    return this._rayCastTarget;
+  }
+
+  set rayCastTarget(value: boolean) {
+    this._rayCastTarget = value;
+  }
+
+  get rayCastPadding(): Vector4 {
+    return this._rayCastPadding;
+  }
+
+  set rayCastPadding(value: Vector4) {
+    if (this._rayCastPadding !== value) {
+      this._rayCastPadding.copyFrom(value);
     }
   }
 
@@ -67,11 +91,14 @@ export class UIRenderer extends Renderer {
       componentsManager.addOnUpdateRenderers(this);
     }
     this._uiTransform._updateFlagManager.addListener(this._onTransformChanged);
-    let { _entity: entity } = this;
-    while (entity.parent) {
-      entity = entity.parent;
+    const uiCanvas = this._entity.getComponentsIncludeParent(UICanvas, UIRenderer._uiCanvas);
+    for (let i = uiCanvas.length - 1; i >= 0; i--) {
+      const canvas = uiCanvas[i];
+      if (canvas.enabled) {
+        this._canvas = canvas;
+        break;
+      }
     }
-    this._canvas = entity._isRoot ? entity.getComponent(UICanvas) : null;
   }
 
   /**
@@ -86,11 +113,23 @@ export class UIRenderer extends Renderer {
   }
 
   override _onParentChange(seniority: number): void {
-    let { _entity: entity } = this;
-    while (entity.parent) {
-      entity = entity.parent;
+    const uiCanvas = this._entity.getComponentsIncludeParent(UICanvas, UIRenderer._uiCanvas);
+    for (let i = uiCanvas.length - 1; i >= 0; i--) {
+      const canvas = uiCanvas[i];
+      if (canvas.enabled) {
+        this._canvas = canvas;
+        break;
+      }
     }
-    this._canvas = entity._isRoot ? entity.getComponent(UICanvas) : null;
+  }
+
+  /** @internal */
+  _raycast(ray: Ray, camera?: Camera): boolean {
+    const { max, min } = this._localBounds;
+    if (max.z === min.z) {
+      // 面片
+    }
+    return false;
   }
 
   /**

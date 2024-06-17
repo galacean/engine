@@ -1,4 +1,4 @@
-import { MathUtil, Vector2 } from "@galacean/engine-math";
+import { MathUtil, Ray, Vector2 } from "@galacean/engine-math";
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
@@ -7,6 +7,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Transform } from "../Transform";
 import { Logger } from "../base";
 import { ignoreClone } from "../clone/CloneManager";
+import { HitResult } from "../physics";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
@@ -28,6 +29,27 @@ export class UICanvas extends Component {
   private _uiTransform: UITransform;
   private _referenceResolution: Vector2 = new Vector2(750, 1624);
   private _isRootCanvas: boolean = false;
+  private _enableBlocked: boolean = true;
+  // 节点改变，UI 组件 enable or disable
+  private _canvasHierarchyDirty: boolean = false;
+
+  /** @internal */
+  get renderers(): UIRenderer[] {
+    if (this._canvasHierarchyDirty) {
+      this._renderers.length = 0;
+      this._walk(this.entity, this._renderers);
+      this._canvasHierarchyDirty = false;
+    }
+    return this._renderers;
+  }
+
+  get enableBlocked(): boolean {
+    return this._enableBlocked;
+  }
+
+  set enableBlocked(value: boolean) {
+    this._enableBlocked = value;
+  }
 
   get referenceResolution(): Vector2 {
     return this._referenceResolution;
@@ -147,18 +169,20 @@ export class UICanvas extends Component {
   }
 
   _prepareRender(context: RenderContext): void {
-    const { _renderers: renderers } = this;
-    // 先清空，后续需要设置 dirty
-    renderers.length = 0;
-    this._walk(this.entity, renderers);
+    const { renderers } = this;
+    const { frameCount } = this.engine.time;
     const distanceForSort = this._distance;
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
       renderer._distanceForSort = distanceForSort;
+      renderer._renderFrameCount = frameCount;
       renderer._prepareRender(context);
     }
   }
 
+  /**
+   * @internal
+   */
   _setIsRootCanvas(value: boolean): void {
     if (this._isRootCanvas !== value) {
       this._isRootCanvas = value;
@@ -182,6 +206,22 @@ export class UICanvas extends Component {
    */
   override _onDisableInScene(): void {
     this._isRootCanvas && this.scene._componentsManager.removeUICanvas(this);
+  }
+
+  /**
+   * @internal
+   */
+  rayCast(ray: Ray, out: HitResult[], camera?: Camera): void {
+    // 获取这个画布上所有的 renderer
+    const { renderers } = this;
+    const uiPath: UIRenderer[] = [];
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const renderer = renderers[i];
+      if (!renderer.rayCastTarget) continue;
+      if (renderer._raycast(ray, camera)) {
+        uiPath.push(renderer);
+      }
+    }
   }
 
   private _onReferenceResolutionChanged(): void {
@@ -276,11 +316,13 @@ export class UICanvas extends Component {
   private _walk(entity: Entity, out: UIRenderer[]): void {
     const { _children: children } = entity;
     for (let i = 0, n = children.length; i < n; i++) {
-      const { _components: components } = children[i];
+      const child = children[i];
+      const { _components: components } = child;
       for (let j = 0, m = components.length; j < m; j++) {
         const component = components[j];
         component instanceof UIRenderer && out.push(component);
       }
+      this._walk(child, out);
     }
   }
 

@@ -20,6 +20,7 @@ import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { PipelineStage } from "./enums/PipelineStage";
+import { CanvasRenderMode } from "../ui";
 
 /**
  * Basic render pipeline.
@@ -299,7 +300,7 @@ export class BasicRenderPipeline {
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
-    const { _renderers: renderers, _uiCanvases: uiCanvases } = camera.scene._componentsManager;
+    const { _renderers: renderers, _uiCanvasesArray: uiCanvasesArray } = camera.scene._componentsManager;
 
     let rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
@@ -319,11 +320,21 @@ export class BasicRenderPipeline {
       renderer._prepareRender(context);
     }
 
-    // Prepare ui
-    const canvasElements = uiCanvases._elements;
-    for (let i = uiCanvases.length - 1; i >= 0; i--) {
-      const canvas = canvasElements[i];
+    // Screen Space Camera UI
+    let canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera]._elements;
+    for (let i = canvases.length - 1; i >= 0; i--) {
+      const canvas = canvases[i];
       if (canvas.renderCamera !== camera) continue;
+      // Filter by camera culling mask
+      if (!(cullingMask & canvas._entity.layer)) {
+        continue;
+      }
+      canvas._prepareRender(context);
+    }
+    // World Space UI
+    canvases = uiCanvasesArray[CanvasRenderMode.WorldSpace]._elements;
+    for (let i = canvases.length - 1; i >= 0; i--) {
+      const canvas = canvases[i];
       // Filter by camera culling mask
       if (!(cullingMask & canvas._entity.layer)) {
         continue;

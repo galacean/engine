@@ -2,6 +2,8 @@ import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Pointer } from "./input";
+import { PointerEvent } from "./input/pointer/PointerEvent";
+import { PointerEventType } from "./input/pointer/PointerEventType";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
 
@@ -30,6 +32,10 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
+  /** @internal */
+  @ignoreClone
+  _onPointerEventIndexArray: number[] = [];
+  /** @internal */
   @ignoreClone
   _entityScriptsIndex: number = -1;
 
@@ -121,31 +127,31 @@ export class Script extends Component {
    * Called when the pointer is down while over the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerDown(pointer: Pointer): void {}
+  onPointerDown(event: PointerEvent): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerUp(pointer: Pointer): void {}
+  onPointerUp(event: PointerEvent): void {}
 
   /**
    * Called when the pointer is down and up with the same collider.
    * @param pointer - The pointer that triggered
    */
-  onPointerClick(pointer: Pointer): void {}
+  onPointerClick(event: PointerEvent): void {}
 
   /**
    * Called when the pointer is enters the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerEnter(pointer: Pointer): void {}
+  onPointerEnter(event: PointerEvent): void {}
 
   /**
    * Called when the pointer is no longer over the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerExit(pointer: Pointer): void {}
+  onPointerExit(event: PointerEvent): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape and is still holding down.
@@ -203,7 +209,23 @@ export class Script extends Component {
     if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
       componentsManager.addOnPhysicsUpdateScript(this);
     }
-    this._entity._addScript(this);
+    const { _entity: entity } = this;
+    if (this.onPointerDown !== prototype.onPointerDown) {
+      entity._addOnPointerEvent(PointerEventType.Down, this, this.onPointerDown);
+    }
+    if (this.onPointerUp !== prototype.onPointerUp) {
+      entity._addOnPointerEvent(PointerEventType.Up, this, this.onPointerUp);
+    }
+    if (this.onPointerClick !== prototype.onPointerClick) {
+      entity._addOnPointerEvent(PointerEventType.Click, this, this.onPointerClick);
+    }
+    if (this.onPointerEnter !== prototype.onPointerEnter) {
+      entity._addOnPointerEvent(PointerEventType.Enter, this, this.onPointerEnter);
+    }
+    if (this.onPointerExit !== prototype.onPointerExit) {
+      entity._addOnPointerEvent(PointerEventType.Exit, this, this.onPointerExit);
+    }
+    entity._addScript(this);
   }
 
   /**

@@ -1,11 +1,12 @@
 import { Ray, Vector2 } from "@galacean/engine-math";
+import { Camera } from "../../Camera";
 import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
-import { Entity } from "../../Entity";
 import { Scene } from "../../Scene";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { HitResult } from "../../physics";
+import { HitResult, PhysicsScene } from "../../physics";
+import { CanvasRenderMode } from "../../ui";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
@@ -128,7 +129,9 @@ export class PointerManager implements IInput {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
       pointer._firePointerDrag();
-      const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+      const hitResults = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+      if (hitResults.length > 0) {
+      }
       pointer._firePointerExitAndEnter(rayCastEntity);
       const length = events.length;
       if (length > 0) {
@@ -234,40 +237,93 @@ export class PointerManager implements IInput {
     }
   }
 
-  private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number): Entity {
-    const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+  private _pointerRayCast(
+    scenes: readonly Scene[],
+    normalizedX: number,
+    normalizedY: number,
+    out: HitResult[]
+  ): HitResult[] {
+    const overlayUIHitResults = [];
+    const cameraUIHitResults = [];
+    const worldUIHitResults = [];
+
+    const { _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+    const { _physicsInitialized: physicsInitialized } = this._engine;
+    let threeDimensionalHitDistance = Number.MAX_VALUE;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) {
         continue;
       }
-      const { _activeCameras: cameras } = scene._componentsManager;
-      const elements = cameras._elements;
-
-      for (let j = cameras.length - 1; j >= 0; j--) {
-        const camera = elements[j];
-        if (camera.renderTarget) {
-          continue;
+      const { _componentsManager: componentsManager } = scene;
+      const { _activeCameras: cameras, _uiCanvasesArray: uiCanvasesArray } = componentsManager;
+      componentsManager.sortUICanvases();
+      const uiCanvasesOverlay = uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]._elements;
+      for (let j = uiCanvasesOverlay.length - 1; j >= 0; j--) {
+        uiCanvasesOverlay[j].rayCast(ray, overlayUIHitResults);
+        if (overlayUIHitResults.length > 0) {
+          // 检测到了 overlay ，不需要再检测后面的了
+          break;
         }
-        const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
-        if (normalizedX >= vpX && normalizedY >= vpY && normalizedX - vpX <= vpW && normalizedY - vpY <= vpH) {
-          point.set((normalizedX - vpX) / vpW, (normalizedY - vpY) / vpH);
-          if (
-            scene.physics.raycast(
-              camera.viewportPointToRay(point, ray),
-              Number.MAX_VALUE,
-              camera.cullingMask,
-              hitResult
-            )
-          ) {
-            return hitResult.entity;
-          } else if (camera.clearFlags & CameraClearFlags.Color) {
-            return null;
+      }
+      if (physicsInitialized) {
+        const { physics } = scene;
+        const elements = cameras._elements;
+        for (let k = cameras.length - 1; k >= 0; k--) {
+          const camera = elements[k];
+          if (camera.renderTarget) {
+            continue;
           }
+          if (this._rayCast3D(physics, camera, normalizedX, normalizedY, hitResult)) {
+            threeDimensionalHitDistance = hitResult.distance;
+            break;
+          }
+          if (camera.clearFlags & CameraClearFlags.Color) {
+            break;
+          }
+        }
+      }
+
+      // 检测 screenspace-camera 和 worldspace
+      const uiCanvasesCamera = uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera]._elements;
+      for (let l = uiCanvasesCamera.length - 1; l >= 0; l--) {
+        uiCanvasesCamera[l].rayCast(ray, out);
+        if (out.length > 0) {
+          break;
+        }
+      }
+      const uiCanvasesWorld = uiCanvasesArray[CanvasRenderMode.WorldSpace]._elements;
+      for (let l = uiCanvasesWorld.length - 1; l >= 0; l--) {
+        uiCanvasesWorld[l].rayCast(ray, out);
+        if (out.length > 0) {
+          break;
         }
       }
     }
     return null;
+  }
+
+  private _rayCast3D(
+    physics: PhysicsScene,
+    camera: Camera,
+    normalizedX: number,
+    normalizedY: number,
+    hitResult: HitResult
+  ): boolean {
+    const { _tempPoint: point, _tempRay: ray } = PointerManager;
+    const { viewport } = camera;
+    const x = (normalizedX - viewport.x) / viewport.z;
+    const y = (normalizedY - viewport.y) / viewport.w;
+    if (x >= 0 && y >= 0 && x <= 1 && y <= 1) {
+      return physics.raycast(
+        camera.viewportPointToRay(point.set(x, y), ray),
+        camera.farClipPlane,
+        camera.cullingMask,
+        hitResult
+      );
+    } else {
+      return false;
+    }
   }
 
   private _addEventListener(): void {
