@@ -25,10 +25,6 @@ export class BasicResources {
   readonly whiteTextureCube: TextureCube;
   readonly whiteTexture2DArray: Texture2DArray;
   readonly uintWhiteTexture2D: Texture2D;
-  readonly magentaTexture2D: Texture2D;
-  readonly magentaTextureCube: TextureCube;
-  readonly magentaTexture2DArray: Texture2DArray;
-  readonly uintMagentaTexture2D: Texture2D;
 
   constructor(engine: Engine) {
     // prettier-ignore
@@ -61,14 +57,6 @@ export class BasicResources {
     this.whiteTexture2D = this._create1x1Texture(engine, TextureType.Texture2D, TextureFormat.R8G8B8A8, whitePixel);
     this.whiteTextureCube = this._create1x1Texture(engine, TextureType.TextureCube, TextureFormat.R8G8B8A8, whitePixel);
 
-    this.magentaTexture2D = this._create1x1Texture(engine, TextureType.Texture2D, TextureFormat.R8G8B8A8, magentaPixel);
-    this.magentaTextureCube = this._create1x1Texture(
-      engine,
-      TextureType.TextureCube,
-      TextureFormat.R8G8B8A8,
-      magentaPixel
-    );
-
     const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     if (isWebGL2) {
       this.whiteTexture2DArray = this._create1x1Texture(
@@ -78,26 +66,12 @@ export class BasicResources {
         whitePixel
       );
 
-      this.magentaTexture2DArray = this._create1x1Texture(
-        engine,
-        TextureType.Texture2DArray,
-        TextureFormat.R8G8B8A8,
-        magentaPixel
-      );
-
       const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
-      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
       this.uintWhiteTexture2D = this._create1x1Texture(
         engine,
         TextureType.Texture2D,
         TextureFormat.R32G32B32A32_UInt,
         whitePixel32
-      );
-      this.uintMagentaTexture2D = this._create1x1Texture(
-        engine,
-        TextureType.Texture2D,
-        TextureFormat.R32G32B32A32_UInt,
-        magentaPixel32
       );
     }
   }
