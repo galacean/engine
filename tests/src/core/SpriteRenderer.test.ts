@@ -1549,7 +1549,7 @@ describe("SpriteRenderer", async () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
     const texture2d = new Texture2D(engine, 100, 200);
-    const context = { camera: { engine: engine, _renderPipeline: { pushRenderData: () => {} } } };
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
     // @ts-ignore
     spriteRenderer._render(context);
     // @ts-ignore

@@ -74,7 +74,7 @@ export class RenderQueue {
         this._drawMask(context, pipelineStageTagValue, subElement);
 
       const compileMacros = Shader._compileMacros;
-      const { primitive, material, shaderPasses, shaderData: renderElementRenderData } = subElement;
+      const { primitive, material, shaderPasses, shaderData: renderElementShaderData } = subElement;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
@@ -117,7 +117,7 @@ export class RenderQueue {
           program.uploadAll(program.cameraUniformBlock, cameraData);
           program.uploadAll(program.rendererUniformBlock, rendererData);
           program.uploadAll(program.materialUniformBlock, materialData);
-          renderElementRenderData && program.uploadAll(program.renderElementUniformBlock, renderElementRenderData);
+          renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
           program.uploadUnGroupTextures();
           program._uploadSceneId = sceneId;
@@ -154,7 +154,7 @@ export class RenderQueue {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
 
-          renderElementRenderData && program.uploadAll(program.renderElementUniformBlock, renderElementRenderData);
+          renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
 
           // We only consider switchProgram case, because UnGroup texture's value is always default.
           if (switchProgram) {

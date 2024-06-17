@@ -424,8 +424,8 @@ export class TextRenderer extends Renderer {
     const engine = camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const renderData = engine._renderElementPool.get();
-    renderData.set(this.priority, this._distanceForSort);
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
@@ -435,9 +435,9 @@ export class TextRenderer extends Renderer {
         subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
       }
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
-      renderData.addSubRenderElement(subRenderElement);
+      renderElement.addSubRenderElement(subRenderElement);
     }
-    camera._renderPipeline.pushRenderElement(context, renderData);
+    camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   private _updateStencilState(): void {
@@ -535,7 +535,7 @@ export class TextRenderer extends Renderer {
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = TextRenderer._charRenderInfoPool;
     const linesLen = lines.length;
-    let renderDataCount = 0;
+    let renderElementCount = 0;
 
     if (linesLen > 0) {
       const { _pixelsPerUnit } = Engine;
@@ -591,7 +591,7 @@ export class TextRenderer extends Renderer {
             const charInfo = charFont._getCharInfo(char);
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
-              const charRenderInfo = (charRenderInfos[renderDataCount++] = charRenderInfoPool.get());
+              const charRenderInfo = (charRenderInfos[renderElementCount++] = charRenderInfoPool.get());
               const { localPositions } = charRenderInfo;
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
@@ -630,7 +630,7 @@ export class TextRenderer extends Renderer {
 
     this._freeTextChunks();
 
-    if (renderDataCount === 0) {
+    if (renderElementCount === 0) {
       return;
     }
 
@@ -644,7 +644,7 @@ export class TextRenderer extends Renderer {
     let curCharInfos = curTextChunk.charRenderInfos;
     curCharInfos.push(curCharRenderInfo);
 
-    for (let i = 1; i < renderDataCount; ++i) {
+    for (let i = 1; i < renderElementCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const texture = charRenderInfo.texture;
       if (curTexture !== texture) {

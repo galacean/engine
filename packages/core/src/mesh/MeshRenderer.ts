@@ -149,8 +149,8 @@ export class MeshRenderer extends Renderer {
 
     const { _materials: materials, _engine: engine } = this;
     const subMeshes = mesh.subMeshes;
-    const renderData = engine._renderElementPool.get();
-    renderData.set(this.priority, this._distanceForSort);
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
     const subRenderElementPool = engine._subRenderElementPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       let material = materials[i];
@@ -163,9 +163,9 @@ export class MeshRenderer extends Renderer {
 
       const subRenderElement = subRenderElementPool.get();
       subRenderElement.set(this, material, mesh._primitive, subMeshes[i]);
-      renderData.addSubRenderElement(subRenderElement);
+      renderElement.addSubRenderElement(subRenderElement);
     }
-    context.camera._renderPipeline.pushRenderElement(context, renderData);
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   private _setMesh(mesh: Mesh): void {
