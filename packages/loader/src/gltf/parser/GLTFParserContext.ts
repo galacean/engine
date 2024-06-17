@@ -120,7 +120,7 @@ export class GLTFParserContext {
         const animatorController = glTFResource.animatorController;
 
         if (animatorController) {
-          const animator = glTFResource._root.addComponent(Animator);
+          const animator = glTFResource._defaultSceneRoot.addComponent(Animator);
           animator.animatorController = animatorController;
         }
 

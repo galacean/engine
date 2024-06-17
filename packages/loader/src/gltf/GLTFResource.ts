@@ -14,9 +14,11 @@ import {
 import { PrefabResource } from "../prefab";
 
 /**
- * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * The glTF asset in runtime, usually, `defaultSceneRoot` is only needed to use.
  */
-export class GLTFResource extends PrefabResource {
+export class GLTFResource extends ReferResource {
+  /** glTF file url. */
+  readonly url: string;
   /** The array of loaded textures. */
   readonly textures?: Texture2D[];
   /** The array of loaded materials. */
@@ -29,6 +31,9 @@ export class GLTFResource extends PrefabResource {
   readonly animations?: AnimationClip[];
   /** The loaded  AnimatorController. */
   readonly animatorController?: AnimatorController;
+
+  /** @internal */
+  _defaultSceneRoot: Entity;
 
   /** @internal */
   _sceneRoots: Entity[];
@@ -46,7 +51,8 @@ export class GLTFResource extends PrefabResource {
    * @internal
    */
   constructor(engine: Engine, url: string) {
-    super(engine, url);
+    super(engine);
+    this.url = url;
   }
 
   /**
@@ -55,7 +61,7 @@ export class GLTFResource extends PrefabResource {
    * @returns Root entity
    */
   instantiateSceneRoot(sceneIndex?: number): Entity {
-    const sceneRoot = sceneIndex === undefined ? this._root : this._sceneRoots[sceneIndex];
+    const sceneRoot = sceneIndex === undefined ? this._defaultSceneRoot : this._sceneRoots[sceneIndex];
     return sceneRoot.clone();
   }
 
@@ -110,6 +116,6 @@ export class GLTFResource extends PrefabResource {
    * RootEntity after SceneParser.
    */
   get defaultSceneRoot(): Entity {
-    return this._root;
+    return this._defaultSceneRoot;
   }
 }

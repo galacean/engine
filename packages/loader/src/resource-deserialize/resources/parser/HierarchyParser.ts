@@ -2,13 +2,10 @@ import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
 import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
-import { PrefabParserContext, PrefabResource } from "../../../prefab";
+import { PrefabResource } from "../../../prefab";
 
 /** @Internal */
-export default abstract class HierarchyParser<
-  T extends Scene | PrefabResource,
-  V extends ParserContext<IHierarchyFile, T>
-> {
+export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
   /**
    * The promise of parsed object.
    */
@@ -24,7 +21,7 @@ export default abstract class HierarchyParser<
   private prefabPromiseMap = new Map<
     string,
     {
-      resolve: (context: PrefabParserContext) => void;
+      resolve: (context: ParserContext<IHierarchyFile, Entity>) => void;
       reject: (reason: any) => void;
     }[]
   >();
@@ -235,7 +232,7 @@ export default abstract class HierarchyParser<
         })
         .then((prefabResource: PrefabResource) => {
           const entity = prefabResource.instantiate();
-          const instanceContext = new PrefabParserContext(engine);
+          const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine);
           if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
           this._generateInstanceContext(entity, instanceContext, "");
@@ -254,7 +251,7 @@ export default abstract class HierarchyParser<
   private _parseStrippedEntity(entityConfig: IStrippedEntity): Promise<Entity> {
     this.context.strippedIds.push(entityConfig.id);
 
-    return new Promise<PrefabParserContext>((resolve, reject) => {
+    return new Promise<ParserContext<IHierarchyFile, Entity>>((resolve, reject) => {
       const cbArray = this.prefabPromiseMap.get((<IStrippedEntity>entityConfig).prefabInstanceId) ?? [];
       cbArray.push({ resolve, reject });
       this.prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, cbArray);

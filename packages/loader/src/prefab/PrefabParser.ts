@@ -1,12 +1,11 @@
-import { Engine } from "@galacean/engine-core";
-import { PrefabParserContext } from "./PrefabParserContext";
-import HierarchyParser from "../resource-deserialize/resources/parser/HierarchyParser";
+import { Engine, Entity } from "@galacean/engine-core";
+import { HierarchyParser } from "../resource-deserialize/resources/parser/HierarchyParser";
 import { PrefabResource } from "./PrefabResource";
-import { IHierarchyFile } from "../resource-deserialize";
+import { IHierarchyFile, ParserContext } from "../resource-deserialize";
 
-export class PrefabParser extends HierarchyParser<PrefabResource, PrefabParserContext> {
+export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<IHierarchyFile, Entity>> {
   static parse(engine: Engine, url: string, data: IHierarchyFile): Promise<PrefabResource> {
-    const context = new PrefabParserContext(engine);
+    const context = new ParserContext<IHierarchyFile, Entity>(engine);
     const prefabResource = new PrefabResource(engine, url);
     const parser = new PrefabParser(data, context, prefabResource);
     parser.start();
@@ -15,7 +14,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, PrefabParserCo
 
   constructor(
     data: IHierarchyFile,
-    context: PrefabParserContext,
+    context: ParserContext<IHierarchyFile, Entity>,
     public readonly prefabResource: PrefabResource
   ) {
     super(data, context);
