@@ -55,7 +55,7 @@ export class PrimitiveChunk {
     primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
 
     // Indices
-    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 3, BufferUsage.Dynamic, true);
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
     this.primitive = primitive;
