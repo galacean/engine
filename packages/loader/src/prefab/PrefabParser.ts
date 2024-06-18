@@ -22,8 +22,6 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<
 
   protected override handleRootEntity(id: string): void {
     const rootEntity = this.context.entityMap.get(id);
-    // @ts-ignore
-    rootEntity._isTemplateRoot = true;
     this.prefabResource._root = rootEntity;
     this.context.entityMap.forEach((entity) => {
       // @ts-ignore

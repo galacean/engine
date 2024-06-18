@@ -98,9 +98,6 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
 
-  /** @internal */
-  _isTemplateRoot: boolean = false;
-
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -437,27 +434,25 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const srcEntity = this;
-    const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
+    const cloneEntity = new Entity(this._engine, this.name);
 
     const templateResource = this._templateResource;
     if (templateResource) {
-      cloneEntity._isTemplateRoot = srcEntity._isTemplateRoot;
       cloneEntity._templateResource = templateResource;
       templateResource._addReferCount(1);
     }
 
-    cloneEntity.layer = srcEntity.layer;
-    cloneEntity._isActive = srcEntity._isActive;
+    cloneEntity.layer = this.layer;
+    cloneEntity._isActive = this._isActive;
     const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = srcEntity;
+    const { transform: srcTransform } = this;
     cloneTransform.position = srcTransform.position;
     cloneTransform.rotation = srcTransform.rotation;
     cloneTransform.scale = srcTransform.scale;
 
-    const children = srcEntity._children;
-    for (let i = 0, n = srcEntity._children.length; i < n; i++) {
-      cloneEntity.addChild(children[i]._createCloneEntity());
+    const srcChildren = this._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
     }
     return cloneEntity;
   }
