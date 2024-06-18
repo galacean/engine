@@ -20,11 +20,17 @@ export class MaskManager {
   }
 
   allSpriteMasks = new DisorderedArray<SpriteMask>();
-
-  private _preMaskLayer = 0;
+  preMaskLayer = 0;
 
   addSpriteMask(mask: SpriteMask): void {
+    mask._rendererIndex = this.allSpriteMasks.length;
     this.allSpriteMasks.add(mask);
+  }
+
+  removeSpriteMask(mask: SpriteMask): void {
+    const replaced = this.allSpriteMasks.deleteByIndex(mask._rendererIndex);
+    replaced && (replaced._rendererIndex = mask._rendererIndex);
+    mask._rendererIndex = -1;
   }
 
   buildMaskRenderElement(
@@ -32,43 +38,30 @@ export class MaskManager {
     incrementMaskQueue: RenderQueue,
     decrementMaskQueue: RenderQueue
   ): void {
-    const renderer = element.component;
-    const preMaskLayer = this._preMaskLayer;
-    const curMaskLayer = renderer._maskLayer;
+    const preMaskLayer = this.preMaskLayer;
+    const curMaskLayer = element.component._maskLayer;
     if (preMaskLayer !== curMaskLayer) {
       const masks = this.allSpriteMasks;
       const commonLayer = preMaskLayer & curMaskLayer;
-      const addLayer = curMaskLayer & ~preMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
-
       const maskElements = masks._elements;
       for (let i = 0, n = masks.length; i < n; i++) {
         const mask = maskElements[i];
         const influenceLayers = mask.influenceLayers;
 
         if (influenceLayers & commonLayer) {
-          continue;
-        }
-
-        if (influenceLayers & addLayer) {
+          // Do nothing
+        } else if (influenceLayers & curMaskLayer) {
           incrementMaskQueue.pushRenderElement(mask._renderElement);
-          continue;
-        }
-
-        if (influenceLayers & reduceLayer) {
+        } else if (influenceLayers & reduceLayer) {
           decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
       }
+      this.preMaskLayer = curMaskLayer;
     }
-    this._preMaskLayer = curMaskLayer;
-  }
-
-  clear(): void {
-    this.allSpriteMasks.length = 0;
-    this._preMaskLayer = 0;
   }
 
   destroy(): void {
-    this.clear();
+    this.allSpriteMasks.length = 0;
   }
 }

@@ -81,9 +81,7 @@ export class BasicRenderPipeline {
     }
 
     const batcherManager = engine._batcherManager;
-    const maskManager = engine._maskManager;
     cullingResults.reset();
-    maskManager.clear();
 
     // Depth use camera's view and projection matrix
     context.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;

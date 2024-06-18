@@ -52,6 +52,7 @@ export class RenderQueue {
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
+    scene._maskManager.preMaskLayer = 0;
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
@@ -64,7 +65,7 @@ export class RenderQueue {
       ) {
         // Update world matrix and view matrix and model matrix
         renderer._updateTransformShaderData(context, false, batched);
-        renderer._batchedTransformShaderData = subElement.batched;
+        renderer._batchedTransformShaderData = batched;
       } else if (rendererUpdateFlag & ContextRendererUpdateFlag.ProjectionMatrix) {
         // Only projection matrix need updated
         renderer._updateTransformShaderData(context, true, batched);
@@ -199,8 +200,9 @@ export class RenderQueue {
     decrementMaskQueue.renderQueueType = this.renderQueueType;
     decrementMaskQueue.clear();
 
-    const engine = context.camera.engine;
-    engine._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
+    const camera = context.camera;
+    const engine = camera.engine;
+    camera.scene._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
 
     incrementMaskQueue._batch(engine._batcherManager);
     incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
