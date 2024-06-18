@@ -42,7 +42,7 @@ export class GLTFSceneParser extends GLTFParser {
 
     if (isDefaultScene) {
       // @ts-ignore
-      sceneRoot._isPrefabRoot = true;
+      sceneRoot._isTemplateRoot = true;
       glTFResource._defaultSceneRoot = sceneRoot;
     }
 

@@ -99,7 +99,7 @@ export class Entity extends EngineObject {
   _isTemplate: boolean = false;
 
   /** @internal */
-  _isPrefabRoot: boolean = false;
+  _isTemplateRoot: boolean = false;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
@@ -442,7 +442,7 @@ export class Entity extends EngineObject {
 
     const templateResource = this._templateResource;
     if (templateResource) {
-      cloneEntity._isPrefabRoot = srcEntity._isPrefabRoot;
+      cloneEntity._isTemplateRoot = srcEntity._isTemplateRoot;
       cloneEntity._templateResource = templateResource;
       templateResource._addReferCount(1);
     }
