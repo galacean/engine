@@ -45,11 +45,11 @@ export class PostProcessPass extends PipelinePass {
     for (let i = 0, length = effects.length; i < length; i++) {
       const effect = effects[i];
       if (effect.enabled) {
-        // Should blit to resolve the MSAA
-        context.srcRT._blitRenderTarget();
-        context.destRT = PostProcessManager._getTransformRT();
         effect.onRender(context);
+        // Should blit to resolve the MSAA
+        context.destRT._blitRenderTarget();
         context.srcRT = context.destRT;
+        context.destRT = PostProcessManager._getSwapRT();
       }
     }
   }

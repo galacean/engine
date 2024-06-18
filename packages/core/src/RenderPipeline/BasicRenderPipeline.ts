@@ -8,6 +8,7 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
+import { PostProcessManager } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
@@ -22,7 +23,6 @@ import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { PipelineStage } from "./enums/PipelineStage";
-import { PostProcessManager } from "../postProcess";
 
 /**
  * Basic render pipeline.
@@ -193,7 +193,7 @@ export class BasicRenderPipeline {
     if (camera.enablePostProcess) {
       const viewport = camera.pixelViewport;
 
-      PostProcessManager._recreateTransformRT(
+      PostProcessManager._recreateSwapRT(
         engine,
         viewport.width,
         viewport.height,
@@ -201,9 +201,9 @@ export class BasicRenderPipeline {
         camera.msaaSamples
       );
       // Should blit to resolve the MSAA
-      // colorTarget._blitRenderTarget();
+      colorTarget._blitRenderTarget();
       context.srcRT = colorTarget;
-      // context.destRT = PostProcessManager._getTransformRT();
+      context.destRT = PostProcessManager._getSwapRT();
 
       const postProcesses = postProcessManager._passes.getLoopArray();
 
@@ -212,13 +212,11 @@ export class BasicRenderPipeline {
         pass.isActive && pass.onRender(context);
       }
 
-      // @todo: depends on all effects
-      // Should blit to resolve the MSAA
+      // @todo: should depends on all effects
       const lastPostRT = context.srcRT;
-      lastPostRT._blitRenderTarget();
       PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
     } else {
-      PostProcessManager._releaseTransformRT();
+      PostProcessManager._releaseSwapRT();
     }
 
     colorTarget?._blitRenderTarget();

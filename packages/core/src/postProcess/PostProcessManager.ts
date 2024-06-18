@@ -1,7 +1,7 @@
 import { Engine } from "../Engine";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
-import { RenderTarget, TextureFormat } from "../texture";
+import { RenderTarget, TextureFormat, TextureWrapMode } from "../texture";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessPass } from "./PostProcessPass";
 
@@ -12,7 +12,7 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  static _recreateTransformRT(
+  static _recreateSwapRT(
     engine: Engine,
     width: number,
     height: number,
@@ -31,13 +31,15 @@ export class PostProcessManager {
         false,
         msaaSamples
       );
+      const colorTexture = this._transformRT[i].getColorTexture(0);
+      colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
     }
   }
 
   /**
    * @internal
    */
-  static _getTransformRT(): RenderTarget {
+  static _getSwapRT(): RenderTarget {
     this._rtIdentifier = (this._rtIdentifier + 1) % 2;
 
     return this._transformRT[this._rtIdentifier];
@@ -46,7 +48,7 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  static _releaseTransformRT(): void {
+  static _releaseSwapRT(): void {
     for (let i = 0; i < this._transformRT.length; i++) {
       const rt = this._transformRT[i];
       rt.getColorTexture(0)?.destroy(true);

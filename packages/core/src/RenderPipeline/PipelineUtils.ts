@@ -117,14 +117,17 @@ export class PipelineUtils {
    * @param destination - Destination render target
    * @param mipLevel - Mip level to blit
    * @param viewport - Viewport
+   * @param material - The material to use when blitting
+   * @param passIndex - pass index to use of the provided material
    */
   static blitTexture(
     engine: Engine,
     source: Texture2D,
     destination: RenderTarget | null,
     mipLevel: number = 0,
-    viewport?: Vector4,
-    material?: Material
+    viewport: Vector4 = PipelineUtils.defaultViewport,
+    material: Material = null,
+    passIndex: number = 0
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -136,14 +139,14 @@ export class PipelineUtils {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    rhi.activeRenderTarget(destination, viewport ?? PipelineUtils.defaultViewport, context.flipProjection, 0);
+    rhi.activeRenderTarget(destination, viewport, context.flipProjection, 0);
 
     const rendererShaderData = PipelineUtils._rendererShaderData;
 
     rendererShaderData.setTexture(PipelineUtils._blitTextureProperty, source);
     rendererShaderData.setFloat(PipelineUtils._blitMipLevelProperty, mipLevel);
 
-    const pass = blitMaterial.shader.subShaders[0].passes[0];
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
