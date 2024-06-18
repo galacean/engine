@@ -429,9 +429,7 @@ export class TextRenderer extends Renderer {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      if (!subRenderElement.shaderData) {
-        subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
-      }
+      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderElement.addSubRenderElement(subRenderElement);
     }

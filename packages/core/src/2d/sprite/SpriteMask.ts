@@ -301,12 +301,7 @@ export class SpriteMask extends Renderer {
       this._subChunk = null;
     }
 
-    if (this._renderElement) {
-      const subRenderElement = this._renderElement.subRenderElements[0];
-      subRenderElement.dispose();
-      this._renderElement.dispose();
-      this._renderElement = null;
-    }
+    this._renderElement = null;
   }
 
   private _calDefaultSize(): void {

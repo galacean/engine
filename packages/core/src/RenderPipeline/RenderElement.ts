@@ -20,6 +20,5 @@ export class RenderElement implements IPoolElement {
 
   dispose(): void {
     this.subRenderElements.length = 0;
-    this.subRenderElements = null;
   }
 }

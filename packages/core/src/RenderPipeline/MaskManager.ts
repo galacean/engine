@@ -50,8 +50,10 @@ export class MaskManager {
         const influenceLayers = mask.influenceLayers;
 
         if (influenceLayers & commonLayer) {
-          // Do nothing
-        } else if (influenceLayers & curMaskLayer) {
+          continue;
+        }
+
+        if (influenceLayers & curMaskLayer) {
           incrementMaskQueue.pushRenderElement(mask._renderElement);
         } else if (influenceLayers & reduceLayer) {
           decrementMaskQueue.pushRenderElement(mask._renderElement);
