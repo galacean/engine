@@ -8,3 +8,9 @@ export { Preprocessor };
 export const version = `__buildVersion`;
 
 console.log(`Galacean ShaderLab version: ${version}`);
+
+// #if _DEBUG
+console.log("mode: debug");
+// #else
+console.log("mode: release");
+// #endif

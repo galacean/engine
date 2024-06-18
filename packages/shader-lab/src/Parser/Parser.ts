@@ -66,7 +66,9 @@ export default class Parser {
       if (actionInfo?.action === EAction.Shift) {
         traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
+        // #if _DEBUG
         this.printStack(nextToken.value);
+        // #endif
       } else if (actionInfo?.action === EAction.Accept) {
         this.logger.debug(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
@@ -90,7 +92,9 @@ export default class Parser {
             values.unshift(astNode);
           }
         }
+        // #if _DEBUG
         this.printStack(token);
+        // #endif
         translationRule?.(sematicAnalyzer, ...values);
 
         const gotoTable = this.stateGotoTable;
@@ -98,7 +102,9 @@ export default class Parser {
 
         const nextState = gotoTable?.get(reduceProduction.goal)!;
         traceBackStack.push(nextState);
+        // #if _DEBUG
         this.printStack(token);
+        // #endif
         continue;
       } else {
         this.logger.errorLoc(token.location, `parse error token ${token}`);
@@ -107,7 +113,8 @@ export default class Parser {
     }
   }
 
-  printStack(nextToken: Token) {
+  // #if _DEBUG
+  private printStack(nextToken: Token) {
     if (!Logger.enabled) return;
 
     let str = "";
@@ -119,4 +126,5 @@ export default class Parser {
     str += `State${this.traceBackStack[this.traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
     this.logger.log(str);
   }
+  // #endif
 }

@@ -7,7 +7,6 @@ import SematicAnalyzer from "./SemanticAnalyzer";
 import { EShaderDataType, GLPassShaderData, GLShaderData, GLSubShaderData, ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./SymbolTable";
 import { ParserUtils } from "../Utils";
-// import { EEnginePropType, EnginePropTypeList } from "./constants";
 import { EngineFunctions, EngineType } from "../EngineType";
 import {
   ASTNodeConstructor,
@@ -100,11 +99,13 @@ export namespace ASTNode {
       super(ENonTerminal.jump_statement, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
         // TODO: check the equality of function return type declared and this type.
       }
     }
+    // #endif
 
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitJumpStatement(this);
@@ -246,10 +247,7 @@ export namespace ASTNode {
       super(ENonTerminal.fully_specified_type, loc, children);
     }
 
-    // equal(other: FullySpecifiedType) {
-    //   return this.typeSpecifier.equal(other.typeSpecifier);
-    // }
-
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (typeof this.type === "string") {
         // Custom type, check declaration
@@ -259,6 +257,7 @@ export namespace ASTNode {
         }
       }
     }
+    // #endif
   }
 
   export class TypeQualifier extends TreeNode {
@@ -1259,6 +1258,7 @@ export namespace ASTNode {
       super(ENonTerminal.gl_render_queue_assignment, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const variable = this.children[2] as Token;
       const builtinType = EngineType.RenderQueueType[<any>variable.lexeme];
@@ -1275,6 +1275,7 @@ export namespace ASTNode {
         sa.shaderData.renderStates[1][key] = variable.lexeme;
       }
     }
+    // #endif
   }
 
   export class VariableIdentifier extends TreeNode {
@@ -1302,9 +1303,11 @@ export namespace ASTNode {
       }
 
       this.symbolInfo = sa.scope.lookup(token.lexeme, ESymbolType.VAR);
+      // #if _DEBUG
       if (!this.symbolInfo) {
         sa.error(this.location, "undeclared identifier:", token.lexeme);
       }
+      // #endif
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -1327,9 +1330,11 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
+      // #if _DEBUG
       if (sa.shaderData.dataType !== EShaderDataType.Pass) {
         sa.error(this.location, "main shader entry cannot be declared outside pass scope.");
       }
+      // #endif
 
       const shaderData = sa.shaderData as GLPassShaderData;
       const variable = this.children[2] as Token;
@@ -1371,10 +1376,12 @@ export namespace ASTNode {
             const prop = (this.children[4] as Token).lexeme;
 
             if (!engineType || engineType[prop] == undefined) {
+              // #if _DEBUG
               reporter.error(
                 new LocRange(valueToken.location.start, this.location.end),
                 `invalid engine type: ${valueToken.lexeme}.${prop}`
               );
+              // #endif
               return;
             }
 
@@ -1415,10 +1422,12 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const typeToken = this.children[0] as Token;
       this.engineType = EngineFunctions[typeToken.lexeme];
+      // #if _DEBUG
       if (this.engineType == undefined) {
         sa.error(this.location, "invalid engine type:", typeToken.lexeme);
         return;
       }
+      // #endif
     }
   }
 

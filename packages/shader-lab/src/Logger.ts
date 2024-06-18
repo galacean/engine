@@ -52,8 +52,11 @@ export class Logger {
 
   errorLoc(loc: LocRange, ...param: any[]) {
     if (Logger._level > LoggerLevel.error) return;
+    // #if _DEBUG
     const locInfo = Logger.convertSourceIndex(loc.start.index);
-    this._log(Logger.RED, `<loc: ${locInfo.index} at ${locInfo.sourceFile}>`, ...param);
+    this._log(Logger.RED, `<loc: ${locInfo.index} at ${locInfo.sourceFile}>`);
+    // #endif
+    this._log(Logger.RED, ...param);
   }
 
   static RED = 1;
