@@ -1,12 +1,12 @@
 import { MathUtil, Matrix } from "@galacean/engine-math";
-import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { DisorderedArray } from "../../DisorderedArray";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
+import { Logger } from "../../base";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
-import { Logger } from "../../base";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
 
 /**
  * @internal
@@ -22,14 +22,14 @@ export class TiledSpriteAssembler {
   static resetData(renderer: SpriteRenderer, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
-      const lastChunk = renderer._chunk;
-      const sizeChanged = lastChunk && lastChunk.vertexArea.size !== vertexCount * 9;
-      sizeChanged && manager.freeChunk(lastChunk);
+      const lastSubChunk = renderer._subChunk;
+      const sizeChanged = lastSubChunk && lastSubChunk.vertexArea.size !== vertexCount * 9;
+      sizeChanged && manager.freeSubChunk(lastSubChunk);
 
-      if (!lastChunk || sizeChanged) {
-        const newChunk = manager.allocateChunk(vertexCount);
-        newChunk.indices = [];
-        renderer._chunk = newChunk;
+      if (!lastSubChunk || sizeChanged) {
+        const newSubChunk = manager.allocateSubChunk(vertexCount);
+        newSubChunk.indices = [];
+        renderer._subChunk = newSubChunk;
       }
     }
   }
@@ -76,14 +76,14 @@ export class TiledSpriteAssembler {
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
 
-    const { _chunk: chunk } = renderer;
-    const vertices = chunk.data.vertices;
-    const indices = chunk.indices;
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const indices = subChunk.indices;
     let count = 0;
     let trianglesOffset = 0;
-    for (let j = 0, o = chunk.vertexArea.start; j < columnLength; j++) {
+    for (let j = 0, o = subChunk.vertexArea.start; j < columnLength; j++) {
       const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++, o += 36) {
+      for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
@@ -119,6 +119,7 @@ export class TiledSpriteAssembler {
         vertices[o + 27] = wE0 * r + wE4 * t + wE12;
         vertices[o + 28] = wE1 * r + wE5 * t + wE13;
         vertices[o + 29] = wE2 * r + wE6 * t + wE14;
+        o += 36;
       }
     }
 
@@ -132,11 +133,11 @@ export class TiledSpriteAssembler {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-    const chunk = renderer._chunk;
-    const vertices = chunk.data.vertices;
-    for (let j = 0, o = chunk.vertexArea.start + 3; j < columnLength; j++) {
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    for (let j = 0, o = subChunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
-      for (let i = 0; i < rowLength; i++, o += 36) {
+      for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
         const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
@@ -157,15 +158,16 @@ export class TiledSpriteAssembler {
         // right and top
         vertices[o + 27] = uvR;
         vertices[o + 28] = uvT;
+        o += 36;
       }
     }
   }
 
   static updateColor(renderer: SpriteRenderer): void {
-    const { _chunk: chunk } = renderer;
+    const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const vertices = chunk.data.vertices;
-    const vertexArea = chunk.vertexArea;
+    const vertices = subChunk.chunk.vertices;
+    const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
@@ -235,14 +237,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
       return rowCount * columnCount;
     }
 
@@ -372,14 +374,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > DynamicGeometryDataManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${DynamicGeometryDataManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
       return rowCount * columnCount;
     }
 

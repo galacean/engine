@@ -1,7 +1,12 @@
-import { BoundingBox, Matrix } from "@galacean/engine-math";
+import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -9,12 +14,6 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
-import { RenderDataUsage } from "../../RenderPipeline/enums/RenderDataUsage";
-import { Chunk } from "../../RenderPipeline/Chunk";
-import { RenderData2D } from "../../RenderPipeline/RenderData2D";
-import { ForceUploadShaderDataFlag } from "../../RenderPipeline/enums/ForceUploadShaderDataFlag";
-import { DynamicGeometryDataManager } from "../../RenderPipeline/DynamicGeometryDataManager";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 
 /**
  * A component for masking Sprites.
@@ -29,11 +28,11 @@ export class SpriteMask extends Renderer {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: RenderElement;
+  _renderElement: RenderElement;
 
   /** @internal */
   @ignoreClone
-  _chunk: Chunk;
+  _subChunk: SubPrimitiveChunk;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -182,6 +181,14 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
+  }
+
+  /**
+   * @internal
+   */
   override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
@@ -190,21 +197,45 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (this.getMaterial().shader === this.engine._spriteDefaultMaterial.shader || onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSpriteMask(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    this._renderElement = new RenderElement();
+    this._renderElement.addSubRenderElement(new SubRenderElement());
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+
+    if (this._renderElement) {
+      const subRenderElement = this._renderElement.subRenderElements[0];
+      subRenderElement.dispose();
+      this._renderElement.dispose();
+      this._renderElement = null;
     }
   }
 
   /**
    * @internal
    */
-  _getChunkManager(): DynamicGeometryDataManager {
-    return this.engine._spriteMaskManager._batcher._dynamicGeometryDataManager;
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -246,25 +277,17 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    engine._spriteMaskManager.addMask(this);
-    const { _chunk: chunk } = this;
-    const renderData = engine._renderData2DPool.get();
-    renderData.set(this, material, chunk.data.primitive, chunk.subMesh, this.sprite.texture, chunk);
-    renderData.usage = RenderDataUsage.SpriteMask;
-    renderData.uploadFlag = ForceUploadShaderDataFlag.None;
-    renderData.preRender = null;
-    renderData.postRender = null;
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(renderData, material.shader.subShaders[0].passes);
-    this._maskElement = renderElement;
-  }
+    engine._maskManager.addSpriteMask(this);
 
-  protected override _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    return BatchUtils.canBatchSpriteMask(elementA, elementB);
-  }
+    const renderElement = this._renderElement;
+    const subRenderElement = renderElement.subRenderElements[0];
+    renderElement.set(this.priority, this._distanceForSort);
 
-  protected override _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {
-    BatchUtils.batchRenderElementFor2D(elementA, elementB);
+    const subChunk = this._subChunk;
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    renderElement.addSubRenderElement(subRenderElement);
   }
 
   /**
@@ -280,9 +303,9 @@ export class SpriteMask extends Renderer {
     super._onDestroy();
 
     this._sprite = null;
-    if (this._chunk) {
-      this.engine._batcherManager._dynamicGeometryDataManager2D.freeChunk(this._chunk);
-      this._chunk = null;
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
     }
   }
 

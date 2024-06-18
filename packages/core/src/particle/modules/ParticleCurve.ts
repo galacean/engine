@@ -1,14 +1,19 @@
+import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
 export class ParticleCurve {
+  @ignoreClone
+  private _updateManager = new UpdateFlagManager();
   @deepClone
-  private _keys: CurveKey[] = [];
+  private _keys = new Array<CurveKey>();
   @ignoreClone
   private _typeArray: Float32Array;
-  private _typeArrayDirty: boolean = false;
+  private _typeArrayDirty = false;
+  @ignoreClone
+  private _updateDispatch: () => void;
 
   /**
    * The keys of the curve.
@@ -22,6 +27,8 @@ export class ParticleCurve {
    * @param keys - The keys of the curve
    */
   constructor(...keys: CurveKey[]) {
+    this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
+
     for (let i = 0, n = keys.length; i < n; i++) {
       const key = keys[i];
       this.addKey(key);
@@ -50,6 +57,8 @@ export class ParticleCurve {
 
     const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
     this._addKey(keys, key);
+    key._registerOnValueChanged(this._updateDispatch);
+    this._updateDispatch();
     this._typeArrayDirty = true;
   }
 
@@ -60,6 +69,9 @@ export class ParticleCurve {
   removeKey(index: number): void {
     this._keys.splice(index, 1);
     this._typeArrayDirty = true;
+    const removeKey = this._keys[index];
+    removeKey._unRegisterOnValueChanged(this._updateDispatch);
+    this._updateDispatch();
   }
 
   /**
@@ -92,6 +104,20 @@ export class ParticleCurve {
     return typeArray;
   }
 
+  /**
+   * @internal
+   */
+  _registerOnValueChanged(listener: () => void): void {
+    this._updateManager.addListener(listener);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterOnValueChanged(listener: () => void): void {
+    this._updateManager.removeListener(listener);
+  }
+
   private _addKey(keys: CurveKey[], key: CurveKey): void {
     const count = keys.length;
     const time = key.time;
@@ -110,13 +136,58 @@ export class ParticleCurve {
  * The key of the curve.
  */
 export class CurveKey {
+  @ignoreClone
+  private _updateManager = new UpdateFlagManager();
+  private _time: number;
+  private _value: number;
+
+  /**
+   * The key time.
+   */
+  get time(): number {
+    return this._time;
+  }
+
+  set time(value: number) {
+    if (value !== this._time) {
+      this._time = value;
+      this._updateManager.dispatch();
+    }
+  }
+
+  /**
+   * The key value.
+   */
+  get value(): number {
+    return this._value;
+  }
+
+  set value(value: number) {
+    if (value !== this._value) {
+      this._value = value;
+      this._updateManager.dispatch();
+    }
+  }
+
   /**
    * Create a new key.
    */
-  constructor(
-    /** The key time. */
-    public time: number,
-    /** The key value. */
-    public value: number
-  ) {}
+  constructor(time: number, value: number) {
+    this._time = time;
+    this._value = value;
+  }
+
+  /**
+   * @internal
+   */
+  _registerOnValueChanged(listener: () => void): void {
+    this._updateManager.addListener(listener);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterOnValueChanged(listener: () => void): void {
+    this._updateManager.removeListener(listener);
+  }
 }

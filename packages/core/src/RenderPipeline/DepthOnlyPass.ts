@@ -57,8 +57,9 @@ export class DepthOnlyPass extends PipelinePass {
     rhi.scissor(0, 0, renderTarget.width, renderTarget.height);
     rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
-    cullingResults.opaqueQueue.render(camera, PipelineStage.DepthOnly);
-    cullingResults.alphaTestQueue.render(camera, PipelineStage.DepthOnly);
+    engine._renderCount++;
+    cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
+    cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this._renderTarget.depthTexture);
   }

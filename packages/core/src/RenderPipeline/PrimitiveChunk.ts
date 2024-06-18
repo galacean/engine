@@ -15,37 +15,36 @@ import {
 } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
 import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
-import { Chunk } from "./Chunk";
+import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 /**
  * @internal
  */
-export class DynamicGeometryData {
+export class PrimitiveChunk {
   primitive: Primitive;
   vertices: Float32Array;
   indices: Uint16Array;
 
-  /** The length of _vertices needed to be uploaded. */
-  vertexLen = 0;
-  /** The length of _indices needed to be uploaded. */
-  indexLen = 0;
+  updateVertexStart = Number.MAX_SAFE_INTEGER;
+  updateVertexLength = Number.MIN_SAFE_INTEGER;
+  updateIndexLength = 0;
 
   vertexFreeAreas = new Array<Area>();
   areaPool = new ReturnableObjectPool(Area, 10);
-  chunkPool = new ReturnableObjectPool(Chunk, 10);
+  subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
   subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
-    const primitive = (this.primitive = new Primitive(engine));
-    primitive._addReferCount(1);
+    const primitive = new Primitive(engine);
 
-    // Vertex element
+    // Vertex elements
     primitive.addVertexElement(new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0));
     primitive.addVertexElement(new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0));
     primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
-    const vertexStride = 36;
+    primitive._addReferCount(1);
 
     // Vertices
+    const vertexStride = 36;
     const vertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
@@ -55,13 +54,57 @@ export class DynamicGeometryData {
     );
     primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
 
-    // Index
+    // Indices
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
+    this.primitive = primitive;
     this.vertices = new Float32Array(vertexBuffer.data.buffer);
     this.indices = new Uint16Array(indexBuffer.data.buffer);
     this.vertexFreeAreas.push(new Area(0, maxVertexCount * 9));
+  }
+
+  allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
+    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
+    if (area) {
+      const subChunk = this.subChunkPool.get();
+      subChunk.chunk = this;
+      subChunk.vertexArea = area;
+
+      const subMesh = this.subMeshPool.get();
+      subMesh.topology = MeshTopology.Triangles;
+      subChunk.subMesh = subMesh;
+      return subChunk;
+    }
+
+    return null;
+  }
+
+  freeSubChunk(subChunk: SubPrimitiveChunk): void {
+    this._freeArea(this.vertexFreeAreas, subChunk.vertexArea);
+    this.subMeshPool.return(subChunk.subMesh);
+    this.subChunkPool.return(subChunk);
+  }
+
+  uploadBuffer(): void {
+    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
+    // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
+    const { primitive, updateVertexStart, updateVertexLength } = this;
+    if (updateVertexStart !== Number.MAX_SAFE_INTEGER && updateVertexLength !== Number.MIN_SAFE_INTEGER) {
+      primitive.vertexBufferBindings[0].buffer.setData(
+        this.vertices,
+        updateVertexStart * 4,
+        updateVertexStart,
+        updateVertexLength,
+        SetDataOptions.Discard
+      );
+
+      this.updateVertexStart = Number.MAX_SAFE_INTEGER;
+      this.updateVertexLength = Number.MIN_SAFE_INTEGER;
+    }
+
+    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
+    this.updateIndexLength = 0;
   }
 
   destroy(): void {
@@ -72,39 +115,6 @@ export class DynamicGeometryData {
     this.indices = null;
     this.areaPool.garbageCollection();
     this.areaPool = null;
-  }
-
-  clear(): void {
-    this.vertexLen = this.indexLen = 0;
-  }
-
-  uploadBuffer(): void {
-    // Set data option use Discard, or will resulted in performance slowdown when open antialias and cross-rendering of 3D and 2D elements.
-    // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
-    const primitive = this.primitive;
-    primitive.vertexBufferBindings[0].buffer.setData(this.vertices, 0, 0, this.vertexLen, SetDataOptions.Discard);
-    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.indexLen, SetDataOptions.Discard);
-  }
-
-  allocateChunk(vertexCount: number): Chunk | null {
-    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
-    if (area) {
-      const chunk = this.chunkPool.get();
-      chunk.data = this;
-      chunk.vertexArea = area;
-      chunk.subMesh = this.subMeshPool.get();
-      const { subMesh: subMesh } = chunk;
-      subMesh.topology = MeshTopology.Triangles;
-      return chunk;
-    }
-
-    return null;
-  }
-
-  freeChunk(chunk: Chunk): void {
-    this._freeArea(this.vertexFreeAreas, chunk.vertexArea);
-    this.subMeshPool.return(chunk.subMesh);
-    this.chunkPool.return(chunk);
   }
 
   private _allocateArea(entries: Area[], needSize: number): Area | null {
@@ -167,13 +177,10 @@ export class DynamicGeometryData {
  * @internal
  */
 export class Area implements IPoolElement {
-  public start: number;
-  public size: number;
-
-  constructor(start: number = 0, size: number = 0) {
-    this.start = start;
-    this.size = size;
-  }
+  constructor(
+    public start?: number,
+    public size?: number
+  ) {}
 
   dispose?(): void {}
 }

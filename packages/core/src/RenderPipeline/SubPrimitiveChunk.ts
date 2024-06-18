@@ -1,20 +1,20 @@
 import { SubMesh } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
-import { DynamicGeometryData, Area } from "./DynamicGeometryData";
+import { Area, PrimitiveChunk } from "./PrimitiveChunk";
 
 /**
  * @internal
  */
-export class Chunk implements IPoolElement {
+export class SubPrimitiveChunk implements IPoolElement {
   id = -1;
-  data: DynamicGeometryData;
+  chunk: PrimitiveChunk;
   vertexArea: Area;
   subMesh: SubMesh;
   indices: number[];
 
   dispose?(): void {
     this.id = -1;
-    this.data = null;
+    this.chunk = null;
     this.vertexArea = null;
     this.subMesh = null;
     this.indices = null;

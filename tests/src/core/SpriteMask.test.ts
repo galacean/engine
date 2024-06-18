@@ -172,15 +172,15 @@ describe("SpriteMask", async () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
     const texture2d = new Texture2D(engine, 100, 200);
-    const context = { camera: { engine: { spriteMaskManager: { addMask: () => {} } } } };
+    const context = { camera: { engine: { _maskManager: { addSpriteMask: () => {} } } } };
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore
-    const { _chunk: chunk } = spriteMask;
-    const vertices = chunk._data._vertices;
+    const subChunk = spriteMask._subChunk;
+    const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
-    let index = chunk._vAera.start;
+    let index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -206,7 +206,7 @@ describe("SpriteMask", async () => {
     spriteMask._render(context);
     positions.length = 0;
     uvs.length = 0;
-    index = chunk._vAera.start;
+    index = subChunk.vertexArea.start;
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
