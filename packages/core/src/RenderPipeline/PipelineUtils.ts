@@ -14,8 +14,11 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 export class PipelineUtils {
   private static _blitTextureProperty = ShaderProperty.getByName("renderer_BlitTexture");
   private static _blitMipLevelProperty = ShaderProperty.getByName("renderer_BlitMipLevel");
+  // x: 1/width, y: 1/height, z: width, w: height
+  private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize");
 
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
+  private static _texelSize = new Vector4();
 
   static readonly defaultViewport = new Vector4(0, 0, 1, 1);
 
@@ -145,6 +148,8 @@ export class PipelineUtils {
 
     rendererShaderData.setTexture(PipelineUtils._blitTextureProperty, source);
     rendererShaderData.setFloat(PipelineUtils._blitMipLevelProperty, mipLevel);
+    PipelineUtils._texelSize.set(1 / source.width, 1 / source.height, source.width, source.height);
+    rendererShaderData.setVector4(PipelineUtils._blitTexelSizeProperty, PipelineUtils._texelSize);
 
     const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;

@@ -1,4 +1,4 @@
-import { Color, MathUtil, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
@@ -12,12 +12,14 @@ export class BloomEffect extends PostProcessEffect {
   static readonly SHADER_NAME = "postProcessEffect-bloom";
 
   private static _hqMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_HQ");
-  // x: threshold (gamma), y: threshold knee, z: scatter
+  // x: threshold (gamma), y: threshold knee, z: scatter, w:intensity
   private static _bloomParams = ShaderProperty.getByName("material_BloomParams");
+  private static _tintProp = ShaderProperty.getByName("material_BloomTint");
 
   private _material: Material;
   private _threshold: number;
   private _scatter: number;
+  private _intensity: number;
   private _highQualityFiltering = false;
 
   /**
@@ -40,9 +42,19 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   /**
-   * Controls the strength of the bloom filter.
+   * Controls the strength of the bloom effect.
    */
-  intensity = 0;
+  get intensity(): number {
+    return this._intensity;
+  }
+
+  set intensity(value: number) {
+    if (value !== this._intensity) {
+      this._intensity = value;
+      const params = this._material.shaderData.getVector4(BloomEffect._bloomParams);
+      params.w = value;
+    }
+  }
 
   /**
    * Controls the radius of the bloom effect.
@@ -61,9 +73,18 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   /**
-   * Specifies the tint of the bloom filter.
+   * Specifies the tint of the bloom effect.
    */
-  tint = new Color(1, 1, 1, 1);
+  get tint(): Color {
+    return this._material.shaderData.getColor(BloomEffect._tintProp);
+  }
+
+  set tint(value: Color) {
+    const tintColor = this._material.shaderData.getColor(BloomEffect._tintProp);
+    if (value !== tintColor) {
+      tintColor.copyFrom(value);
+    }
+  }
 
   /**
    * Controls whether to use bicubic sampling instead of bilinear sampling for the upSampling passes.
@@ -105,9 +126,11 @@ export class BloomEffect extends PostProcessEffect {
 
     const shaderData = this._material.shaderData;
     shaderData.setVector4(BloomEffect._bloomParams, new Vector4());
+    shaderData.setColor(BloomEffect._tintProp, new Color(1, 1, 1, 1));
 
     this.threshold = 0.9;
     this.scatter = 0.7;
+    this.intensity = 1;
   }
 
   override onRender(context: RenderContext): void {
@@ -122,10 +145,11 @@ export class BloomEffect extends PostProcessEffect {
   }
 }
 
-const FragPrefilter = `
+const fragPrefilter = `
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
-uniform vec4 material_BloomParams;  // x: threshold (gamma), y: threshold knee, z: scatter
+uniform vec4 material_BloomParams;  // x: threshold (gamma), y: threshold knee, z: scatter, w: intensity
+uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 
 #define HALF_MAX  65504.0 // (2 - 2^-10) * 2^15
 #define Threshold      material_BloomParams.x
@@ -137,8 +161,35 @@ float max3(float a, float b, float c){
 }
 
 void main(){
-  vec4 textureColor = texture2D(renderer_BlitTexture, v_uv);
-  vec3 color = textureColor.rgb;
+  #ifdef BLOOM_HQ
+    vec2 texelSize = renderer_texelSize.xy;
+    vec4 A = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, -1.0));
+    vec4 B = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(0.0, -1.0));
+    vec4 C = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, -1.0));
+    vec4 D = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(-0.5, -0.5));
+    vec4 E = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(0.5, -0.5));
+    vec4 F = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, 0.0));
+    vec4 G = texture2D(renderer_BlitTexture, v_uv);
+    vec4 H = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, 0.0));
+    vec4 I = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(-0.5, 0.5));
+    vec4 J = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(0.5, 0.5));
+    vec4 K = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, 1.0));
+    vec4 L = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(0.0, 1.0));
+    vec4 M = texture2D(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, 1.0));
+
+    vec2 scale = vec2(0.5, 0.125);
+    vec2 div = (1.0 / 4.0) * scale;
+
+    vec4 samplerColor = (D + E + I + J) * div.x;
+    samplerColor += (A + B + G + F) * div.y;
+    samplerColor += (B + C + H + G) * div.y;
+    samplerColor += (F + G + L + K) * div.y;
+    samplerColor += (G + H + M + L) * div.y;
+  #else
+    vec4 samplerColor = texture2D(renderer_BlitTexture, v_uv);
+  #endif
+
+  vec3 color = samplerColor.rgb;
 
   // User controlled clamp to limit crazy high broken spec
   color = min(color, HALF_MAX);
@@ -153,9 +204,9 @@ void main(){
   // Clamp colors to positive once in prefilter. Encode can have a sqrt, and sqrt(-x) == NaN. Up/Downsample passes would then spread the NaN.
   color = max(color, 0.0);
 
-  gl_FragColor = vec4(color, textureColor.a);
+  gl_FragColor = vec4(color, samplerColor.a);
 
 }
 `;
 
-Shader.create(BloomEffect.SHADER_NAME, [new ShaderPass("Bloom Prefilter", blitVs, FragPrefilter)]);
+Shader.create(BloomEffect.SHADER_NAME, [new ShaderPass("Bloom Prefilter", blitVs, fragPrefilter)]);
