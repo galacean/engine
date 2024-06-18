@@ -4,7 +4,7 @@ import Production from "./Production";
 import GrammarUtils from "./Utils";
 
 export default class StateItem {
-  private static _id = 0;
+  static _id = 0;
 
   readonly production: Production;
   readonly position: number;
