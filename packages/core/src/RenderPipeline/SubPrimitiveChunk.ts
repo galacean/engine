@@ -1,6 +1,7 @@
 import { SubMesh } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
-import { Area, PrimitiveChunk } from "./PrimitiveChunk";
+import { Area } from "./Area";
+import { PrimitiveChunk } from "./PrimitiveChunk";
 
 /**
  * @internal

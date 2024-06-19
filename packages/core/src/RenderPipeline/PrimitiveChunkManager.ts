@@ -1,7 +1,8 @@
 import { Engine } from "../Engine";
 import { SubMesh } from "../graphic";
 import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
-import { Area, PrimitiveChunk } from "./PrimitiveChunk";
+import { Area } from "./Area";
+import { PrimitiveChunk } from "./PrimitiveChunk";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 /**

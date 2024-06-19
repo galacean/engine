@@ -33,6 +33,9 @@ export class SpriteMask extends Renderer {
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _maskIndex: number = -1;
 
   @ignoreClone
   private _sprite: Sprite = null;

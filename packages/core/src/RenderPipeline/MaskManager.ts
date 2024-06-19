@@ -23,14 +23,14 @@ export class MaskManager {
   preMaskLayer = 0;
 
   addSpriteMask(mask: SpriteMask): void {
-    mask._rendererIndex = this.allSpriteMasks.length;
+    mask._maskIndex = this.allSpriteMasks.length;
     this.allSpriteMasks.add(mask);
   }
 
   removeSpriteMask(mask: SpriteMask): void {
-    const replaced = this.allSpriteMasks.deleteByIndex(mask._rendererIndex);
-    replaced && (replaced._rendererIndex = mask._rendererIndex);
-    mask._rendererIndex = -1;
+    const replaced = this.allSpriteMasks.deleteByIndex(mask._maskIndex);
+    replaced && (replaced._maskIndex = mask._maskIndex);
+    mask._maskIndex = -1;
   }
 
   buildMaskRenderElement(

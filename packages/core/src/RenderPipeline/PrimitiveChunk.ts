@@ -13,21 +13,9 @@ import {
   VertexElement,
   VertexElementFormat
 } from "../graphic";
-import { IPoolElement } from "../utils/ObjectPool";
 import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
+import { Area } from "./Area";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
-
-/**
- * @internal
- */
-export class Area implements IPoolElement {
-  constructor(
-    public start?: number,
-    public size?: number
-  ) {}
-
-  dispose?(): void {}
-}
 
 /**
  * @internal
