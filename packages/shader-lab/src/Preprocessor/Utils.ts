@@ -1,9 +1,17 @@
 import LocRange from "../common/LocRange";
 import { ExpandSegment } from "./Parser";
+// #if _DEBUG
 import PpSourceMap, { MapRange } from "./PpSourceMap";
+// #endif
 
 export class PpUtils {
-  static expand(segments: ExpandSegment[], source: string, sourceMap?: PpSourceMap) {
+  static expand(
+    segments: ExpandSegment[],
+    source: string,
+    // #if _DEBUG
+    sourceMap?: PpSourceMap
+    //#endif
+  ) {
     const ret: string[] = [];
     let startIdx = 0;
     let generatedIdx = 0;
@@ -14,11 +22,13 @@ export class PpUtils {
 
       const generatedIdxEnd = generatedIdx + originSlice.length + seg.replace.length;
 
+      // #if _DEBUG
       const mapRange = new MapRange(seg.block, seg.rangeInBlock, {
         start: generatedIdx + originSlice.length,
         end: generatedIdxEnd
       });
       sourceMap?.addMapRange(mapRange);
+      // #endif
 
       startIdx = seg.rangeInBlock.end;
       generatedIdx = generatedIdxEnd;

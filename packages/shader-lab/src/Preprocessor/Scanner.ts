@@ -2,7 +2,9 @@ import LexerUtils from "../Lexer/Utils";
 import LocRange from "../common/LocRange";
 import Position from "../common/Position";
 import { PpError } from "./PpError";
-import PpSourceMap, { IIdxRange } from "./PpSourceMap";
+// #if _DEBUG
+import PpSourceMap from "./PpSourceMap";
+// #endif
 import PpToken, { EOF } from "./PpToken";
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
@@ -10,14 +12,6 @@ import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 export type OnToken = (token: PpToken, scanner: PpScanner) => void;
 
 export default class PpScanner extends PpError {
-  private _source: string;
-  get source() {
-    return this._source;
-  }
-
-  readonly file: string;
-  readonly blockRange?: IIdxRange;
-
   private _current = 0;
   get current() {
     return this._current;
@@ -27,14 +21,30 @@ export default class PpScanner extends PpError {
   private column: number = 0;
 
   private macroLvl = 0;
+  private _source: string;
+  get source() {
+    return this._source;
+  }
 
+  // #if _DEBUG
   readonly sourceMap = new PpSourceMap();
+  readonly file: string;
+  readonly blockRange?: IIdxRange;
+  // #endif
 
-  constructor(source: string, file = "__main__", blockRange?: IIdxRange) {
+  constructor(
+    source: string,
+    // #if _DEBUG
+    file = "__main__",
+    blockRange?: IIdxRange
+    // #endif
+  ) {
     super();
+    this._source = source;
+    // #if _DEBUG
     this.file = file;
     this.blockRange = blockRange;
-    this._source = source;
+    // #endif
   }
 
   curChar() {

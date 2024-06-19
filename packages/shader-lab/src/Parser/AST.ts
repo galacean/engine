@@ -1,4 +1,6 @@
+// #if _DEBUG
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./Builtin";
+// #endif
 import { CodeGenVisitor } from "../CodeGen";
 import { ENonTerminal } from "./GrammarSymbol";
 import Token from "../Token";
@@ -780,15 +782,19 @@ export namespace ASTNode {
             paramSig = paramList.paramSig as any;
           }
         }
+        // #if _DEBUG
         const builtinFn = BuiltinFunction.getFn(fnIdent, ...(paramSig ?? []));
         if (builtinFn) {
           this.type = BuiltinFunction.getReturnType(builtinFn.fun, builtinFn.genType);
           return;
         }
+        // #endif
 
         const fnSymbol = sa.scope.lookup(fnIdent, ESymbolType.FN, paramSig);
         if (!fnSymbol) {
+          // #if _DEBUG
           sa.error(this.location, "no overload function type found:", functionIdentifier.ident);
+          // #endif
           return;
         }
         this.type = fnSymbol.symDataType?.type;
@@ -1279,7 +1285,12 @@ export namespace ASTNode {
   }
 
   export class VariableIdentifier extends TreeNode {
-    symbolInfo: VarSymbol | BuiltinVariable | null;
+    symbolInfo:
+      | VarSymbol
+      // #if _DEBUG
+      | BuiltinVariable
+      // #endif
+      | null;
     get lexeme(): string {
       return (<Token>this.children[0]).lexeme;
     }
@@ -1296,11 +1307,13 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const token = this.children[0] as Token;
 
+      // #if _DEBUG
       const builtinVar = BuiltinVariable.getVar(token.lexeme);
       if (builtinVar) {
         this.symbolInfo = builtinVar;
         return;
       }
+      // #endif
 
       this.symbolInfo = sa.scope.lookup(token.lexeme, ESymbolType.VAR);
       // #if _DEBUG

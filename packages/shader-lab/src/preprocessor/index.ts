@@ -14,7 +14,9 @@ export default class Preprocessor {
     return this.parser.parse(this.scanner);
   }
 
+  // #if _DEBUG
   convertSourceIndex(index: number) {
     return this.scanner.sourceMap.map(index);
   }
+  // #endif
 }

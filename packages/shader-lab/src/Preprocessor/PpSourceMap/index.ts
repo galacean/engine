@@ -1,8 +1,4 @@
-export interface IIdxRange {
-  start: number;
-  end: number;
-}
-
+// #if _DEBUG
 export class BlockInfo {
   readonly sourceFile: string;
   readonly rangeInFile?: IIdxRange;
@@ -74,3 +70,4 @@ export default class PpSourceMap {
     };
   }
 }
+// #endif
