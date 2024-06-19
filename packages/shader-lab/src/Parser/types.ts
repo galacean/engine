@@ -16,9 +16,11 @@ export class SymbolType {
     this.typeLexeme = typeLexeme;
   }
 
+  // #if _DEBUG
   toString() {
     return `${this.type}_${this.arraySpecifier?.size ?? ""}`;
   }
+  // #endif
 }
 
 export class StructProp implements IParamInfo {

@@ -175,10 +175,12 @@ export namespace ASTNode {
       super(ENonTerminal.initializer_list, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const init = this.children[0] as Initializer | InitializerList;
       this.type = init.type;
     }
+    // #endif
   }
 
   export class Initializer extends ExpressionAstNode {
@@ -186,6 +188,7 @@ export namespace ASTNode {
       super(ENonTerminal.initializer, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AssignmentExpression>this.children[0]).type;
@@ -193,6 +196,7 @@ export namespace ASTNode {
         this.type = (<InitializerList>this.children[1]).type;
       }
     }
+    // #endif
   }
 
   export class SingleDeclaration extends TreeNode {
@@ -490,9 +494,11 @@ export namespace ASTNode {
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
+        // #if _DEBUG
         if (typeInfo.arraySpecifier && arraySpecifier) {
           sa.error(arraySpecifier.location, "array of array is not supported.");
         }
+        // #endif
         typeInfo.arraySpecifier = arraySpecifier;
         const id = this.children[2] as Token;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
@@ -831,8 +837,6 @@ export namespace ASTNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.function_call_parameter_list, loc, children);
     }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {}
   }
 
   export class PrecisionSpecifier extends TreeNode {
@@ -876,6 +880,7 @@ export namespace ASTNode {
       super(ENonTerminal.assignment_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
@@ -885,6 +890,7 @@ export namespace ASTNode {
         this.type = expr.type ?? TypeAny;
       }
     }
+    // #endif
   }
 
   export class AssignmentOperator extends TreeNode {
@@ -898,6 +904,7 @@ export namespace ASTNode {
       super(ENonTerminal.expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -907,6 +914,7 @@ export namespace ASTNode {
         this.type = expr.type;
       }
     }
+    // #endif
   }
 
   export class PrimaryExpression extends ExpressionAstNode {
@@ -968,9 +976,11 @@ export namespace ASTNode {
       super(ENonTerminal.unary_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.type = (this.children[0] as PostfixExpression).type;
     }
+    // #endif
   }
 
   export class MultiplicativeExpression extends ExpressionAstNode {
@@ -978,6 +988,7 @@ export namespace ASTNode {
       super(ENonTerminal.multiplicative_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (this.children[0] as UnaryExpression).type;
@@ -989,6 +1000,7 @@ export namespace ASTNode {
         }
       }
     }
+    // #endif
   }
 
   export class AdditiveExpression extends ExpressionAstNode {
@@ -996,6 +1008,7 @@ export namespace ASTNode {
       super(ENonTerminal.additive_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (this.children[0] as MultiplicativeExpression).type;
@@ -1007,16 +1020,19 @@ export namespace ASTNode {
         }
       }
     }
+    // #endif
   }
 
   export class ShiftExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.shift_expression, loc, children);
     }
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
     }
+    // #endif
   }
 
   export class RelationalExpression extends ExpressionAstNode {
@@ -1024,6 +1040,7 @@ export namespace ASTNode {
       super(ENonTerminal.relational_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ShiftExpression>this.children[0]).type;
@@ -1031,6 +1048,7 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
+    // #endif
   }
 
   export class EqualityExpression extends ExpressionAstNode {
@@ -1038,6 +1056,7 @@ export namespace ASTNode {
       super(ENonTerminal.equality_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<RelationalExpression>this.children[0]).type;
@@ -1045,6 +1064,7 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
+    // #endif
   }
 
   export class AndExpression extends ExpressionAstNode {
@@ -1052,6 +1072,7 @@ export namespace ASTNode {
       super(ENonTerminal.and_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1059,6 +1080,7 @@ export namespace ASTNode {
         this.type = EKeyword.UINT;
       }
     }
+    // #endif
   }
 
   export class ExclusiveOrExpression extends ExpressionAstNode {
@@ -1066,6 +1088,7 @@ export namespace ASTNode {
       super(ENonTerminal.exclusive_or_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1073,6 +1096,7 @@ export namespace ASTNode {
         this.type = EKeyword.UINT;
       }
     }
+    // #endif
   }
 
   export class InclusiveOrExpression extends ExpressionAstNode {
@@ -1080,6 +1104,7 @@ export namespace ASTNode {
       super(ENonTerminal.inclusive_or_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
@@ -1087,6 +1112,7 @@ export namespace ASTNode {
         this.type = EKeyword.UINT;
       }
     }
+    // #endif
   }
 
   export class LogicalAndExpression extends ExpressionAstNode {
@@ -1094,6 +1120,7 @@ export namespace ASTNode {
       super(ENonTerminal.logical_and_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<InclusiveOrExpression>this.children[0]).type;
@@ -1101,6 +1128,7 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
+    // #endif
   }
 
   export class LogicalXorExpression extends ExpressionAstNode {
@@ -1108,6 +1136,7 @@ export namespace ASTNode {
       super(ENonTerminal.logical_xor_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalAndExpression>this.children[0]).type;
@@ -1115,6 +1144,7 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
+    // #endif
   }
 
   export class LogicalOrExpression extends ExpressionAstNode {
@@ -1122,6 +1152,7 @@ export namespace ASTNode {
       super(ENonTerminal.logical_or_expression, loc, children);
     }
 
+    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalXorExpression>this.children[0]).type;
@@ -1129,6 +1160,7 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
+    // #endif
   }
 
   export class ConditionalExpression extends ExpressionAstNode {
@@ -1293,7 +1325,7 @@ export namespace ASTNode {
     }
 
     get typeInfo(): GalaceanDataType {
-      if (this.symbolInfo instanceof VarSymbol) return this.symbolInfo?.symDataType.type;
+      if (this.symbolInfo instanceof VarSymbol) return this.symbolInfo.symDataType.type;
       return this.symbolInfo?.type;
     }
 
