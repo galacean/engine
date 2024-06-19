@@ -1,11 +1,11 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ClearableObjectPool } from "../utils/ClearableObjectPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
@@ -48,7 +48,7 @@ export class Animator extends Component {
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
-  private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
+  private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
@@ -236,7 +236,7 @@ export class Animator extends Component {
 
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = {};
-    this._animationEventHandlerPool.resetPool();
+    this._animationEventHandlerPool.clear();
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
@@ -347,7 +347,7 @@ export class Animator extends Component {
       eventHandlers.length = 0;
       for (let i = 0, n = events.length; i < n; i++) {
         const event = events[i];
-        const eventHandler = eventHandlerPool.getFromPool();
+        const eventHandler = eventHandlerPool.get();
         const funcName = event.functionName;
         const { handlers } = eventHandler;
 

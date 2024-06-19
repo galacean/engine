@@ -1,17 +1,17 @@
-import { Vector3, BoundingBox } from "@galacean/engine-math";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
+import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { ParticleRenderMode } from "./enums/ParticleRenderMode";
-import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleGenerator } from "./ParticleGenerator";
+import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
-import { TransformModifyFlags } from "../Transform";
+import { ParticleStopMode } from "./enums/ParticleStopMode";
 
 /**
  * Particle Renderer Component.
@@ -173,6 +173,10 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Don't need to update transform shader data, temp solution
+    super._updateTransformShaderData(context, onlyMVP, true);
+  }
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const { generator } = this;
 
@@ -196,10 +200,7 @@ export class ParticleRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
-  override _updateShaderData(context: RenderContext, _: boolean): void {
+  protected override _updateRendererShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
@@ -222,9 +223,13 @@ export class ParticleRenderer extends Renderer {
       material = this.engine._particleMagentaMaterial;
     }
 
-    const renderData = this._engine._renderDataPool.getFromPool();
-    renderData.setX(this, material, generator._primitive, generator._subPrimitive);
-    context.camera._renderPipeline.pushRenderData(context, renderData);
+    const engine = this._engine;
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+    const subRenderElement = engine._subRenderElementPool.get();
+    subRenderElement.set(this, material, generator._primitive, generator._subPrimitive);
+    renderElement.addSubRenderElement(subRenderElement);
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   protected override _onDestroy(): void {

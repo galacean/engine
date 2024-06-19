@@ -1,12 +1,16 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { VertexData2D } from "../data/VertexData2D";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
@@ -24,11 +28,14 @@ export class SpriteMask extends Renderer {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: RenderElement;
+  _renderElement: RenderElement;
 
   /** @internal */
   @ignoreClone
-  _verticesData: VertexData2D;
+  _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _maskIndex: number = -1;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -168,11 +175,20 @@ export class SpriteMask extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._verticesData = new VertexData2D(4, [], []);
     SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
+    this._renderElement = new RenderElement();
+    this._renderElement.addSubRenderElement(new SubRenderElement());
     this._onSpriteChange = this._onSpriteChange.bind(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
@@ -186,6 +202,40 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSpriteMask(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    this.scene._maskManager.addSpriteMask(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+    this.scene._maskManager.removeSpriteMask(this);
+  }
+
+  /**
+   * @internal
+   */
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManagerMask;
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.sprite) {
       SimpleSpriteAssembler.updatePositions(this);
@@ -196,7 +246,6 @@ export class SpriteMask extends Renderer {
   }
 
   /**
-   * @internal
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
@@ -226,18 +275,18 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    context.camera._renderPipeline._allSpriteMasks.add(this);
+    const renderElement = this._renderElement;
+    const subRenderElement = renderElement.subRenderElements[0];
+    renderElement.set(this.priority, this._distanceForSort);
 
-    const renderData = engine._spriteMaskRenderDataPool.getFromPool();
-    renderData.set(this, material, this._verticesData);
-
-    const renderElement = engine._renderElementPool.getFromPool();
-    renderElement.set(renderData, material.shader.subShaders[0].passes);
-    this._maskElement = renderElement;
+    const subChunk = this._subChunk;
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    renderElement.addSubRenderElement(subRenderElement);
   }
 
   /**
-   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {
@@ -250,7 +299,12 @@ export class SpriteMask extends Renderer {
     super._onDestroy();
 
     this._sprite = null;
-    this._verticesData = null;
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
+    }
+
+    this._renderElement = null;
   }
 
   private _calDefaultSize(): void {

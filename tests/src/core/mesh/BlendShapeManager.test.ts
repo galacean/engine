@@ -9,7 +9,8 @@ import {
   VertexBufferBinding,
   Buffer,
   BufferBindFlag,
-  BufferUsage
+  BufferUsage,
+  UnlitMaterial
 } from "@galacean/engine-core";
 import { WebGLEngine, WebGLMode } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
@@ -55,6 +56,7 @@ describe("BlendShapeManager", () => {
   it("_updateShaderData", () => {
     const skinnedMREntity = rootEntity1.createChild("skinnedMR");
     const meshRendererWebgl2 = skinnedMREntity.addComponent(SkinnedMeshRenderer);
+    meshRendererWebgl2.setMaterial(new UnlitMaterial(meshRendererWebgl2.engine));
     const blendShapeWeights0_5 = new BlendShape("BlendShape1");
     blendShapeWeights0_5.addFrame(
       new BlendShapeFrame(
