@@ -1,6 +1,6 @@
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
-import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { WrapMode } from "./enums/WrapMode";
 import { StateMachineScript } from "./StateMachineScript";
 
@@ -59,20 +59,6 @@ export class AnimatorState {
     this._onClipChanged();
 
     clip && clip._updateFlagManager.addListener(this._onClipChanged);
-  }
-
-  /**
-   * The start time of this state's clip
-   */
-  get startTime() {
-    return this._clip.length * this._clipStartTime;
-  }
-
-  /**
-   * The end time of this state's clip
-   */
-  get endTime() {
-    return this._clip.length * this._clipEndTime;
   }
 
   /**
@@ -136,9 +122,7 @@ export class AnimatorState {
       transitions.splice(index + 1, 0, transition);
     }
 
-    if (transition.solo) {
-      !this._hasSoloTransition && this._updateSoloTransition(true);
-    }
+    transition.solo && !this._hasSoloTransition && this._updateSoloTransition(true);
 
     return transition;
   }

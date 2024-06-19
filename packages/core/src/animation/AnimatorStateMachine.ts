@@ -1,5 +1,5 @@
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -16,13 +16,10 @@ export class AnimatorStateMachine {
    * @remarks When the Animator's AnimatorController changed or the Animator's onEnable be triggered.
    */
   defaultState: AnimatorState;
-  /** @internal */
-  _entryTransitions: AnimatorStateTransition[] = [];
-  /** @internal */
-  _anyStateTransitions: AnimatorStateTransition[] = [];
 
-  /** @internal */
-  _statesMap: AnimatorStateMap = {};
+  private _entryTransitions: AnimatorStateTransition[] = [];
+  private _anyStateTransitions: AnimatorStateTransition[] = [];
+  private _statesMap: AnimatorStateMap = {};
 
   /**
    * The list of entry transitions in the state machine.

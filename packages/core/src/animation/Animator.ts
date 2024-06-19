@@ -8,7 +8,7 @@ import { Logger } from "../base/Logger";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { KeyframeValueType } from "./Keyframe";
 import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
@@ -1153,7 +1153,7 @@ export class Animator extends Component {
 
       if (!stateMachine) continue;
 
-      const entryTransitions = stateMachine._entryTransitions;
+      const entryTransitions = stateMachine.entryTransitions;
       const length = entryTransitions.length;
       if (length) {
         for (let j = 0, m = length; j < m; j++) {

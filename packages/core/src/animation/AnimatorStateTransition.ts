@@ -12,20 +12,23 @@ export class AnimatorStateTransition {
   /** The time at which the destination state will start. This is represented in normalized time. */
   offset: number = 0;
   /** ExitTime represents the exact time at which the transition can take effect. This is represented in normalized time. */
-  exitTime: number = 1;
+  exitTime: number = 1.0;
   /** The destination state of the transition. */
   destinationState: AnimatorState;
   /** Mutes the transition. The transition will never occur. */
   mute: boolean = false;
   /** Is the transition destination the exit of the current state machine. */
   isExit: boolean = false;
+
   /** @internal */
   _srcState: AnimatorState;
 
   private _conditions: AnimatorCondition[] = [];
   private _solo = false;
 
-  /** Mutes all other transitions in the source state. */
+  /**
+   * Mutes all other transitions in the source state.
+   */
   get solo(): boolean {
     return this._solo;
   }
@@ -33,11 +36,7 @@ export class AnimatorStateTransition {
   set solo(value: boolean) {
     if (this._solo === value) return;
     this._solo = value;
-    if (value) {
-      this._srcState && this._srcState._updateSoloTransition(true);
-    } else {
-      this._srcState && this._srcState._updateSoloTransition();
-    }
+    this._srcState?._updateSoloTransition(value ? true : undefined);
   }
   /**
    * The conditions in the transition.
@@ -68,7 +67,7 @@ export class AnimatorStateTransition {
     param: AnimatorConditionMode | AnimatorCondition,
     parameter?: string,
     threshold?: AnimatorControllerParameterValue
-  ) {
+  ): AnimatorCondition {
     if (typeof param === "object") {
       this._conditions.push(param);
       return param;
