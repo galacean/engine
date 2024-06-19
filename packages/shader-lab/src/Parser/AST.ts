@@ -354,12 +354,6 @@ export namespace ASTNode {
       this.arraySize = (this.children?.[1] as ArraySpecifier)?.size;
       this.lexeme = (this.children![0] as TypeSpecifierNonArray).lexeme;
     }
-
-    equal(other: TypeSpecifier): boolean {
-      const arraySpecifier = this.children[1] as ArraySpecifier;
-      const otherArraySpecifier = other.children[1] as ArraySpecifier;
-      return this.type === other.type && arraySpecifier?.size === otherArraySpecifier?.size;
-    }
   }
 
   export class ArraySpecifier extends TreeNode {
@@ -420,7 +414,9 @@ export namespace ASTNode {
         const child = this.children[0];
         if (child instanceof Token) {
           this.value = Number(child.lexeme);
-        } else {
+        }
+        // #if _DEBUG
+        else {
           const id = child as VariableIdentifier;
           if (!id.symbolInfo) {
             sa.error(id.location, "undeclared symbol:", id.lexeme);
@@ -430,6 +426,7 @@ export namespace ASTNode {
             return;
           }
         }
+        // #endif
       }
     }
   }
@@ -797,7 +794,7 @@ export namespace ASTNode {
           // #endif
           return;
         }
-        this.type = fnSymbol.symDataType?.type;
+        this.type = fnSymbol?.symDataType?.type;
         this.fnSymbol = fnSymbol;
       }
     }

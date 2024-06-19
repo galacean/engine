@@ -9,9 +9,11 @@ export default class PpToken<T extends PpTokenType = PpTokenType> extends BaseTo
     return this.lexeme.length;
   }
 
+  // #if _DEBUG
   override toString() {
     return `<${EPpKeyword[this.type] ?? EPpToken[this.type]}, ${this.lexeme}>`;
   }
+  // #endif
 }
 
 export const EOF = new PpToken(EPpToken.EOF, "/EOF");

@@ -28,9 +28,11 @@ export class MacroDefine extends PpError {
     if (this.isFunction) {
       const argsTextList = this.args!.map((item) => item.lexeme);
 
+      // #if _DEBUG
       if (args.length !== this.args?.length) {
         this.throw(this.location, "mismatched function macro");
       }
+      // #endif
       const replaceRegex = new RegExp(`\\b(${argsTextList.join("|")})\\b`, "g");
       return this.body.lexeme.replaceAll(replaceRegex, (_, m) => {
         const idx = argsTextList.findIndex((item) => item === m);

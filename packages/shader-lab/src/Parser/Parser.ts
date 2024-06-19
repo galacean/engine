@@ -10,7 +10,7 @@ import { addTranslationRule, createGrammar } from "../LALR/cfg";
 import { LALR1 } from "../LALR";
 import { ParserUtils } from "../Utils";
 import { Logger } from "../Logger";
-import { ParseError } from "../Error";
+
 export default class Parser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
@@ -108,7 +108,9 @@ export default class Parser {
         continue;
       } else {
         this.logger.errorLoc(token.location, `parse error token ${token}`);
-        throw new ParseError(`invalid action table by token ${token.lexeme}`, token.location);
+        // #if _DEBUG
+        throw `invalid action table by token ${token.lexeme}`;
+        // #endif
       }
     }
   }

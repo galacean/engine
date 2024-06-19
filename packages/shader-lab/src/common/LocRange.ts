@@ -9,7 +9,9 @@ export default class LocRange {
     this.end = end;
   }
 
+  // #if _DEBUG
   toString() {
     return `Loc<start: line ${this.start.line}, column ${this.start.column}; end: line ${this.end.line}, column ${this.end.column}>`;
   }
+  // #endif
 }

@@ -100,6 +100,7 @@ export default class SymbolTable {
     const { lexeme } = sm;
 
     const entry = this.table.get(lexeme) ?? [];
+    // #if _DEBUG
     if (
       sm.symType === ESymbolType.FN &&
       entry.findIndex((item) => item.symType === ESymbolType.FN && item.symDataType === sm.symDataType) !== -1
@@ -110,6 +111,7 @@ export default class SymbolTable {
       this.logger.log(Logger.RED, "symbol exist:", lexeme);
       return;
     }
+    // #endif
     entry.push(sm);
     this.table.set(lexeme, entry);
   }

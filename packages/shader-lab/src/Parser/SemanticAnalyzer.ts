@@ -1,7 +1,9 @@
 import { Logger } from "../Logger";
 import { LocRange } from "../common";
 import { TreeNode } from "./AST";
+// #if _DEBUG
 import { SemanticError } from "../Error";
+// #endif
 import { EShaderDataType, GLPassShaderData, GLShaderData, GLSubShaderData, ShaderData } from "./ShaderInfo";
 import SymbolTable from "./SymbolTable";
 import { NodeChild } from "./types";
@@ -18,7 +20,9 @@ export default class SematicAnalyzer {
   private _scopeStack: SymbolTable[] = [new SymbolTable(this)];
   private translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
   acceptRule?: TranslationRule = undefined;
+  // #if _DEBUG
   readonly errors: SemanticError[] = [];
+  // #endif
   logger = new Logger("semantic analyzer");
 
   get scope() {
@@ -33,7 +37,9 @@ export default class SematicAnalyzer {
     this.semanticStack.length = 0;
     this._shaderDataStack = [new GLShaderData()];
     this._scopeStack = [new SymbolTable(this)];
+    // #if _DEBUG
     this.errors.length = 0;
+    // #endif
   }
 
   newScope() {
@@ -69,6 +75,7 @@ export default class SematicAnalyzer {
     return this.translationRuleTable.get(pid);
   }
 
+  // #if _DEBUG
   error(loc: LocRange, ...param: any[]) {
     this.logger.errorLoc(loc, ...param);
 
@@ -76,4 +83,5 @@ export default class SematicAnalyzer {
     this.errors.push(err);
     return err;
   }
+  // #endif
 }

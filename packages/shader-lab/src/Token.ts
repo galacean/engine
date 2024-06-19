@@ -22,9 +22,11 @@ export class BaseToken<T> {
 }
 
 export default class Token extends BaseToken<TokenType> {
+  // #if _DEBUG
   override toString() {
     return `<${ETokenType[this.type] ?? EKeyword[this.type]}, ${this.lexeme}>`;
   }
+  // #endif
 }
 
 export const EOF = new Token(ETokenType.EOF, "/EOF");

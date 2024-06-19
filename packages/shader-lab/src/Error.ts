@@ -1,3 +1,4 @@
+// #if _DEBUG
 import { LocRange } from "./common";
 
 export abstract class GSError extends Error {
@@ -22,3 +23,4 @@ export class ParseError extends GSError {
     this.name = "ParseError";
   }
 }
+// #endif

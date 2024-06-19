@@ -18,7 +18,9 @@ export class Logger {
     return Logger._level < LoggerLevel.off;
   }
 
+  // #if _DEBUG
   static convertSourceIndex: (index: number) => { sourceFile: string; index: number };
+  // #endif
 
   readonly name: string;
 

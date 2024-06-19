@@ -12,6 +12,7 @@ export class ParserUtils {
     return ParserUtils.unwrapNodeByType(child, type);
   }
 
+  // #if _DEBUG
   /**
    * Check if type `tb` is compatible with type `ta`.
    */
@@ -29,6 +30,7 @@ export class ParserUtils {
     }
     return ENonTerminal[sm];
   }
+  // #endif
 
   static isTerminal(sm: GrammarSymbol) {
     return sm < ENonTerminal.START;

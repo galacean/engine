@@ -158,12 +158,14 @@ export default class LALR1 {
       if (terminal === EKeyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
         return;
       } else {
+        // #if _DEBUG
         console.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}>`,
           Utils.printAction(exist),
           " -> ",
           Utils.printAction(action)
         );
+        // #endif
       }
     }
     table.set(terminal, action);
