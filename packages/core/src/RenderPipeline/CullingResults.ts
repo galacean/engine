@@ -1,7 +1,6 @@
 import { RenderQueueType } from "../shader";
-import { RenderQueue } from "./RenderQueue";
 import { BatcherManager } from "./BatcherManager";
-import { MaskManager } from "./MaskManager";
+import { RenderQueue } from "./RenderQueue";
 
 /**
  * @internal

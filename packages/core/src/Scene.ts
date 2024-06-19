@@ -18,6 +18,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 
 /**
  * Scene.
@@ -52,6 +53,8 @@ export class Scene extends EngineObject {
   _lightManager: LightManager = new LightManager();
   /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
+  /** @internal */
+  _maskManager: MaskManager = new MaskManager();
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
@@ -504,6 +507,7 @@ export class Scene extends EngineObject {
     this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
     this._componentsManager.handlingInvalidScripts();
+    this._maskManager.destroy();
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);

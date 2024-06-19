@@ -1,6 +1,5 @@
 import { MathUtil, Matrix } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
-import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
@@ -38,6 +37,7 @@ export class TiledSpriteAssembler {
     const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
+    const maxVertexCount = renderer._getChunkManager().maxVertexCount;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     const vertexCount =
       tileMode === SpriteTileMode.Adaptive
@@ -49,9 +49,19 @@ export class TiledSpriteAssembler {
             posRow,
             posColumn,
             uvRow,
-            uvColumn
+            uvColumn,
+            maxVertexCount
           )
-        : TiledSpriteAssembler._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+        : TiledSpriteAssembler._calculateContinuousDividing(
+            sprite,
+            width,
+            height,
+            posRow,
+            posColumn,
+            uvRow,
+            uvColumn,
+            maxVertexCount
+          );
     TiledSpriteAssembler.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
@@ -184,7 +194,8 @@ export class TiledSpriteAssembler {
     posRow: DisorderedArray<number>,
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
-    uvColumn: DisorderedArray<number>
+    uvColumn: DisorderedArray<number>,
+    maxVertexCount: number
   ): number {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
@@ -237,14 +248,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > maxVertexCount) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${maxVertexCount}).`);
       return rowCount * columnCount;
     }
 
@@ -324,7 +335,8 @@ export class TiledSpriteAssembler {
     posRow: DisorderedArray<number>,
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
-    uvColumn: DisorderedArray<number>
+    uvColumn: DisorderedArray<number>,
+    maxVertexCount: number
   ): number {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
@@ -374,14 +386,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > maxVertexCount) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${maxVertexCount}).`);
       return rowCount * columnCount;
     }
 

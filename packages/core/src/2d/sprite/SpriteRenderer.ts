@@ -81,7 +81,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
     }
   }
 
@@ -96,7 +96,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
       }
     }
   }
@@ -113,7 +113,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
       }
     }
   }
@@ -177,9 +177,10 @@ export class SpriteRenderer extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._drawMode === SpriteDrawMode.Tiled
-        ? SpriteRendererUpdateFlags.WorldVolumeAndUV
-        : RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |=
+        this._drawMode === SpriteDrawMode.Tiled
+          ? SpriteRendererUpdateFlags.VertexData
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -204,7 +205,7 @@ export class SpriteRenderer extends Renderer {
       this._customHeight = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.WorldVolumeAndUV
+          ? SpriteRendererUpdateFlags.VertexData
           : RendererUpdateFlags.WorldVolume;
     }
   }
@@ -471,6 +472,8 @@ enum SpriteRendererUpdateFlags {
   AutomaticSize = 0x8,
   /** WorldVolume and UV. */
   WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
+  /** Vertex data.*/
+  VertexData = SpriteRendererUpdateFlags.WorldVolumeAndUV | SpriteRendererUpdateFlags.Color,
   /** All. */
   All = 0xf
 }

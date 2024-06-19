@@ -16,7 +16,6 @@ import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
-import { MaskManager } from "./RenderPipeline/MaskManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
@@ -70,8 +69,6 @@ export class Engine extends EventDispatcher {
 
   /** @internal */
   _batcherManager: BatcherManager;
-  /** @internal */
-  _maskManager: MaskManager;
 
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
@@ -271,7 +268,6 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
-    this._maskManager = new MaskManager();
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -463,7 +459,6 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._maskManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 

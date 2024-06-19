@@ -33,6 +33,9 @@ export class SpriteMask extends Renderer {
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _maskIndex: number = -1;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -175,6 +178,8 @@ export class SpriteMask extends Renderer {
     SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
+    this._renderElement = new RenderElement();
+    this._renderElement.addSubRenderElement(new SubRenderElement());
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
@@ -213,8 +218,7 @@ export class SpriteMask extends Renderer {
    */
   override _onEnableInScene(): void {
     super._onEnableInScene();
-    this._renderElement = new RenderElement();
-    this._renderElement.addSubRenderElement(new SubRenderElement());
+    this.scene._maskManager.addSpriteMask(this);
   }
 
   /**
@@ -222,13 +226,7 @@ export class SpriteMask extends Renderer {
    */
   override _onDisableInScene(): void {
     super._onDisableInScene();
-
-    if (this._renderElement) {
-      const subRenderElement = this._renderElement.subRenderElements[0];
-      subRenderElement.dispose();
-      this._renderElement.dispose();
-      this._renderElement = null;
-    }
+    this.scene._maskManager.removeSpriteMask(this);
   }
 
   /**
@@ -277,8 +275,6 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    engine._maskManager.addSpriteMask(this);
-
     const renderElement = this._renderElement;
     const subRenderElement = renderElement.subRenderElements[0];
     renderElement.set(this.priority, this._distanceForSort);
@@ -307,6 +303,8 @@ export class SpriteMask extends Renderer {
       this._getChunkManager().freeSubChunk(this._subChunk);
       this._subChunk = null;
     }
+
+    this._renderElement = null;
   }
 
   private _calDefaultSize(): void {

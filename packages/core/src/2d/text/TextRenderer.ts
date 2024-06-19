@@ -429,9 +429,7 @@ export class TextRenderer extends Renderer {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      if (!subRenderElement.shaderData) {
-        subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
-      }
+      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderElement.addSubRenderElement(subRenderElement);
     }
@@ -635,6 +633,7 @@ export class TextRenderer extends Renderer {
     let curTextChunk = new TextChunk();
     textChunks.push(curTextChunk);
 
+    const chunkMaxVertexCount = this._getChunkManager().maxVertexCount;
     const curCharRenderInfo = charRenderInfos[0];
     let curTexture = curCharRenderInfo.texture;
     curTextChunk.texture = curTexture;
@@ -644,7 +643,7 @@ export class TextRenderer extends Renderer {
     for (let i = 1; i < renderElementCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const texture = charRenderInfo.texture;
-      if (curTexture !== texture) {
+      if (curTexture !== texture || curCharInfos.length * 4 + 4 > chunkMaxVertexCount) {
         this._buildChunk(curTextChunk, curCharInfos.length);
 
         curTextChunk = new TextChunk();

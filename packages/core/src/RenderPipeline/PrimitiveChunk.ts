@@ -13,14 +13,18 @@ import {
   VertexElement,
   VertexElementFormat
 } from "../graphic";
-import { IPoolElement } from "../utils/ObjectPool";
 import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
+import { Area } from "./Area";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 /**
  * @internal
  */
 export class PrimitiveChunk {
+  static areaPool = new ReturnableObjectPool(Area, 10);
+  static subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
+  static subMeshPool = new ReturnableObjectPool(SubMesh, 10);
+
   primitive: Primitive;
   vertices: Float32Array;
   indices: Uint16Array;
@@ -29,10 +33,7 @@ export class PrimitiveChunk {
   updateVertexLength = Number.MIN_SAFE_INTEGER;
   updateIndexLength = 0;
 
-  vertexFreeAreas = new Array<Area>();
-  areaPool = new ReturnableObjectPool(Area, 10);
-  subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
-  subMeshPool = new ReturnableObjectPool(SubMesh, 10);
+  vertexFreeAreas: Array<Area>;
 
   constructor(engine: Engine, maxVertexCount: number) {
     const primitive = new Primitive(engine);
@@ -61,17 +62,17 @@ export class PrimitiveChunk {
     this.primitive = primitive;
     this.vertices = new Float32Array(vertexBuffer.data.buffer);
     this.indices = new Uint16Array(indexBuffer.data.buffer);
-    this.vertexFreeAreas.push(new Area(0, maxVertexCount * 9));
+    this.vertexFreeAreas = [new Area(0, maxVertexCount * 9)];
   }
 
   allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
-    const area = this._allocateArea(this.vertexFreeAreas, vertexCount * 9);
+    const area = this._allocateArea(vertexCount * 9);
     if (area) {
-      const subChunk = this.subChunkPool.get();
+      const subChunk = PrimitiveChunk.subChunkPool.get();
       subChunk.chunk = this;
       subChunk.vertexArea = area;
 
-      const subMesh = this.subMeshPool.get();
+      const subMesh = PrimitiveChunk.subMeshPool.get();
       subMesh.topology = MeshTopology.Triangles;
       subChunk.subMesh = subMesh;
       return subChunk;
@@ -81,9 +82,9 @@ export class PrimitiveChunk {
   }
 
   freeSubChunk(subChunk: SubPrimitiveChunk): void {
-    this._freeArea(this.vertexFreeAreas, subChunk.vertexArea);
-    this.subMeshPool.return(subChunk.subMesh);
-    this.subChunkPool.return(subChunk);
+    this._freeArea(subChunk.vertexArea);
+    PrimitiveChunk.subMeshPool.return(subChunk.subMesh);
+    PrimitiveChunk.subChunkPool.return(subChunk);
   }
 
   uploadBuffer(): void {
@@ -113,14 +114,13 @@ export class PrimitiveChunk {
     this.primitive = null;
     this.vertices = null;
     this.indices = null;
-    this.areaPool.garbageCollection();
-    this.areaPool = null;
   }
 
-  private _allocateArea(entries: Area[], needSize: number): Area | null {
-    const pool = this.areaPool;
-    for (let i = 0, n = entries.length; i < n; ++i) {
-      const area = entries[i];
+  private _allocateArea(needSize: number): Area | null {
+    const areas = this.vertexFreeAreas;
+    const pool = PrimitiveChunk.areaPool;
+    for (let i = 0, n = areas.length; i < n; ++i) {
+      const area = areas[i];
       const size = area.size;
       if (size > needSize) {
         const newArea = pool.get();
@@ -130,57 +130,48 @@ export class PrimitiveChunk {
         area.size -= needSize;
         return newArea;
       } else if (size === needSize) {
-        entries.splice(i, 1);
+        areas.splice(i, 1);
+        pool.return(area);
         return area;
       }
     }
     return null;
   }
 
-  private _freeArea(areas: Area[], area: Area): void {
+  private _freeArea(area: Area): void {
+    const areas = this.vertexFreeAreas;
     const areaLen = areas.length;
     if (areaLen === 0) {
       areas.push(area);
       return;
     }
 
-    const { areaPool: pool } = this;
+    const pool = PrimitiveChunk.areaPool;
     let preArea = area;
     let notMerge = true;
     for (let i = 0; i < areaLen; ++i) {
       const curArea = areas[i];
-      const { start, size } = preArea;
-      const preEnd = start + size;
-      const curEnd = curArea.start + curArea.size;
-      if (preEnd < curArea.start) {
+      const { start: preStart, size } = preArea;
+      const { start: curStart } = curArea;
+      const preEnd = preStart + size;
+      const curEnd = curStart + curArea.size;
+      if (preEnd < curStart) {
         notMerge && areas.splice(i, 0, preArea);
         return;
-      } else if (preEnd === curArea.start) {
-        curArea.start = preArea.start;
-        curArea.size += preArea.size;
+      } else if (preEnd === curStart) {
+        curArea.start = preStart;
+        curArea.size += size;
         pool.return(preArea);
         preArea = curArea;
         notMerge = false;
-      } else if (start === curEnd) {
-        curArea.size += preArea.size;
+      } else if (preStart === curEnd) {
+        curArea.size += size;
         pool.return(preArea);
         preArea = curArea;
         notMerge = false;
-      } else if (start > curEnd) {
+      } else if (preStart > curEnd) {
         i + 1 === areaLen && areas.push(preArea);
       }
     }
   }
-}
-
-/**
- * @internal
- */
-export class Area implements IPoolElement {
-  constructor(
-    public start?: number,
-    public size?: number
-  ) {}
-
-  dispose?(): void {}
 }
