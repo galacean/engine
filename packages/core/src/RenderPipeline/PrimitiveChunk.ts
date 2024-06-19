@@ -14,14 +14,14 @@ import {
   VertexElementFormat
 } from "../graphic";
 import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
-import { Area } from "./Area";
+import { VertexArea } from "./VertexArea";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 /**
  * @internal
  */
 export class PrimitiveChunk {
-  static areaPool = new ReturnableObjectPool(Area, 10);
+  static areaPool = new ReturnableObjectPool(VertexArea, 10);
   static subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
   static subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
@@ -33,7 +33,7 @@ export class PrimitiveChunk {
   updateVertexLength = Number.MIN_SAFE_INTEGER;
   updateIndexLength = 0;
 
-  vertexFreeAreas: Array<Area>;
+  vertexFreeAreas: Array<VertexArea>;
 
   constructor(engine: Engine, maxVertexCount: number) {
     const primitive = new Primitive(engine);
@@ -62,7 +62,7 @@ export class PrimitiveChunk {
     this.primitive = primitive;
     this.vertices = new Float32Array(vertexBuffer.data.buffer);
     this.indices = new Uint16Array(indexBuffer.data.buffer);
-    this.vertexFreeAreas = [new Area(0, maxVertexCount * 9)];
+    this.vertexFreeAreas = [new VertexArea(0, maxVertexCount * 9)];
   }
 
   allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
@@ -116,7 +116,7 @@ export class PrimitiveChunk {
     this.indices = null;
   }
 
-  private _allocateArea(needSize: number): Area | null {
+  private _allocateArea(needSize: number): VertexArea | null {
     const areas = this.vertexFreeAreas;
     const pool = PrimitiveChunk.areaPool;
     for (let i = 0, n = areas.length; i < n; ++i) {
@@ -138,7 +138,7 @@ export class PrimitiveChunk {
     return null;
   }
 
-  private _freeArea(area: Area): void {
+  private _freeArea(area: VertexArea): void {
     const areas = this.vertexFreeAreas;
     const areaLen = areas.length;
     if (areaLen === 0) {

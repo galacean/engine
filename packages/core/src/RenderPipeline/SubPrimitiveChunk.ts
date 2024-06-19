@@ -1,6 +1,6 @@
 import { SubMesh } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
-import { Area } from "./Area";
+import { VertexArea } from "./VertexArea";
 import { PrimitiveChunk } from "./PrimitiveChunk";
 
 /**
@@ -8,7 +8,7 @@ import { PrimitiveChunk } from "./PrimitiveChunk";
  */
 export class SubPrimitiveChunk implements IPoolElement {
   chunk: PrimitiveChunk;
-  vertexArea: Area;
+  vertexArea: VertexArea;
   subMesh: SubMesh;
   indices: number[];
 

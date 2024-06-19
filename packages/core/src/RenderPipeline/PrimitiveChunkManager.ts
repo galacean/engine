@@ -1,7 +1,4 @@
 import { Engine } from "../Engine";
-import { SubMesh } from "../graphic";
-import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
-import { Area } from "./Area";
 import { PrimitiveChunk } from "./PrimitiveChunk";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
@@ -13,9 +10,6 @@ export class PrimitiveChunkManager {
   static MAX_VERTEX_COUNT = 4096;
 
   primitiveChunks = new Array<PrimitiveChunk>();
-  areaPool = new ReturnableObjectPool(Area, 10);
-  subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
-  subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(
     public engine: Engine,
@@ -54,9 +48,6 @@ export class PrimitiveChunkManager {
     for (let i = 0, n = primitiveChunks.length; i < n; ++i) {
       primitiveChunks[i].destroy();
     }
-    this.areaPool = null;
-    this.subChunkPool = null;
-    this.subMeshPool = null;
     primitiveChunks.length = 0;
     this.primitiveChunks = null;
     this.engine = null;

@@ -3,7 +3,7 @@ import { IPoolElement } from "../utils/ObjectPool";
 /**
  * @internal
  */
-export class Area implements IPoolElement {
+export class VertexArea implements IPoolElement {
   constructor(
     public start?: number,
     public size?: number
