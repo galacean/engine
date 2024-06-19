@@ -134,6 +134,8 @@ export class AnimatorState {
   removeTransition(transition: AnimatorStateTransition): void {
     const index = this._transitions.indexOf(transition);
     index !== -1 && this._transitions.splice(index, 1);
+    transition._srcState = null;
+
     this._updateSoloTransition();
   }
 
