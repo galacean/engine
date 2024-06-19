@@ -394,9 +394,9 @@ export class Renderer extends Component implements IComponentCustomClone {
     const worldMatrix = this.entity.transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-      return;
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
     }
-    this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
   }
 
   /**

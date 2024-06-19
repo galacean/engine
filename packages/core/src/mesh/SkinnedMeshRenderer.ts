@@ -123,9 +123,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const worldMatrix = (this.skin?.rootBone ?? this.entity).transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-      return;
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
     }
-    this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
   }
 
   /**

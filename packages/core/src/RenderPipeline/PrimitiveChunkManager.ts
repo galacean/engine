@@ -26,19 +26,19 @@ export class PrimitiveChunkManager {
     const length = primitiveChunks.length;
     let subChunk: SubPrimitiveChunk = null;
     for (let i = 0; i < length; ++i) {
-      subChunk = primitiveChunks[i].allocateSubChunk(this, vertexCount);
+      subChunk = primitiveChunks[i].allocateSubChunk(vertexCount);
       if (subChunk) {
         return subChunk;
       }
     }
 
     const data = (primitiveChunks[length] ||= new PrimitiveChunk(this.engine, this.maxVertexCount));
-    subChunk = data.allocateSubChunk(this, vertexCount);
+    subChunk = data.allocateSubChunk(vertexCount);
     return subChunk;
   }
 
   freeSubChunk(subChunk: SubPrimitiveChunk): void {
-    subChunk.chunk.freeSubChunk(this, subChunk);
+    subChunk.chunk.freeSubChunk(subChunk);
   }
 
   uploadBuffer(): void {

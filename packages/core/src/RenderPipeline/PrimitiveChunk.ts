@@ -8,18 +8,35 @@ import {
   MeshTopology,
   Primitive,
   SetDataOptions,
+  SubMesh,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
 } from "../graphic";
 import { IPoolElement } from "../utils/ObjectPool";
-import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
+import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 /**
  * @internal
  */
+export class Area implements IPoolElement {
+  constructor(
+    public start?: number,
+    public size?: number
+  ) {}
+
+  dispose?(): void {}
+}
+
+/**
+ * @internal
+ */
 export class PrimitiveChunk {
+  static areaPool = new ReturnableObjectPool(Area, 10);
+  static subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
+  static subMeshPool = new ReturnableObjectPool(SubMesh, 10);
+
   primitive: Primitive;
   vertices: Float32Array;
   indices: Uint16Array;
@@ -29,9 +46,6 @@ export class PrimitiveChunk {
   updateIndexLength = 0;
 
   vertexFreeAreas: Array<Area>;
-  // areaPool = new ReturnableObjectPool(Area, 10);
-  // subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
-  // subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
   constructor(engine: Engine, maxVertexCount: number) {
     const primitive = new Primitive(engine);
@@ -63,14 +77,14 @@ export class PrimitiveChunk {
     this.vertexFreeAreas = [new Area(0, maxVertexCount * 9)];
   }
 
-  allocateSubChunk(manager: PrimitiveChunkManager, vertexCount: number): SubPrimitiveChunk | null {
-    const area = this._allocateArea(manager, vertexCount * 9);
+  allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
+    const area = this._allocateArea(vertexCount * 9);
     if (area) {
-      const subChunk = manager.subChunkPool.get();
+      const subChunk = PrimitiveChunk.subChunkPool.get();
       subChunk.chunk = this;
       subChunk.vertexArea = area;
 
-      const subMesh = manager.subMeshPool.get();
+      const subMesh = PrimitiveChunk.subMeshPool.get();
       subMesh.topology = MeshTopology.Triangles;
       subChunk.subMesh = subMesh;
       return subChunk;
@@ -79,10 +93,10 @@ export class PrimitiveChunk {
     return null;
   }
 
-  freeSubChunk(manager: PrimitiveChunkManager, subChunk: SubPrimitiveChunk): void {
-    this._freeArea(manager, subChunk.vertexArea);
-    manager.subMeshPool.return(subChunk.subMesh);
-    manager.subChunkPool.return(subChunk);
+  freeSubChunk(subChunk: SubPrimitiveChunk): void {
+    this._freeArea(subChunk.vertexArea);
+    PrimitiveChunk.subMeshPool.return(subChunk.subMesh);
+    PrimitiveChunk.subChunkPool.return(subChunk);
   }
 
   uploadBuffer(): void {
@@ -114,9 +128,9 @@ export class PrimitiveChunk {
     this.indices = null;
   }
 
-  private _allocateArea(manager: PrimitiveChunkManager, needSize: number): Area | null {
+  private _allocateArea(needSize: number): Area | null {
     const areas = this.vertexFreeAreas;
-    const pool = manager.areaPool;
+    const pool = PrimitiveChunk.areaPool;
     for (let i = 0, n = areas.length; i < n; ++i) {
       const area = areas[i];
       const size = area.size;
@@ -136,7 +150,7 @@ export class PrimitiveChunk {
     return null;
   }
 
-  private _freeArea(manager: PrimitiveChunkManager, area: Area): void {
+  private _freeArea(area: Area): void {
     const areas = this.vertexFreeAreas;
     const areaLen = areas.length;
     if (areaLen === 0) {
@@ -144,7 +158,7 @@ export class PrimitiveChunk {
       return;
     }
 
-    const { areaPool: pool } = manager;
+    const pool = PrimitiveChunk.areaPool;
     let preArea = area;
     let notMerge = true;
     for (let i = 0; i < areaLen; ++i) {
@@ -172,16 +186,4 @@ export class PrimitiveChunk {
       }
     }
   }
-}
-
-/**
- * @internal
- */
-export class Area implements IPoolElement {
-  constructor(
-    public start?: number,
-    public size?: number
-  ) {}
-
-  dispose?(): void {}
 }
