@@ -11,7 +11,6 @@ import {
   Skin,
   Texture2D
 } from "@galacean/engine-core";
-import { PrefabResource } from "../prefab";
 
 /**
  * The glTF asset in runtime, usually, `defaultSceneRoot` is only needed to use.
@@ -34,7 +33,6 @@ export class GLTFResource extends ReferResource {
 
   /** @internal */
   _defaultSceneRoot: Entity;
-
   /** @internal */
   _sceneRoots: Entity[];
   /** @internal */
