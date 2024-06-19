@@ -11,6 +11,7 @@ export const updateForE2E = (engine, deltaTime = 100) => {
   for (let i = 0; i < 10; ++i) {
     engine.update();
   }
+  engine._hardwareRenderer._gl.finish();
 };
 
 let screenshotCanvas: HTMLCanvasElement = null;
