@@ -1,4 +1,4 @@
-import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
 /**
@@ -10,5 +10,5 @@ export class AnimatorCondition {
   /** The name of the parameter used in the condition. */
   parameter: string;
   /** The AnimatorParameter's threshold value for the condition to be true. */
-  threshold?: AnimatorControllerParameterValue;
+  threshold?: AnimatorControllerParameterValueType;
 }

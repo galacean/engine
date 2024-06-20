@@ -102,7 +102,7 @@ export class AnimatorState {
   addTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    let transition: AnimatorStateTransition | AnimatorState;
+    let transition: AnimatorStateTransition;
     if (transitionOrAnimatorState instanceof AnimatorState) {
       transition = new AnimatorStateTransition();
       transition.destinationState = transitionOrAnimatorState;

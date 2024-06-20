@@ -22,7 +22,7 @@ import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
 
 /**
  * The controller of the animation system.
@@ -79,14 +79,14 @@ export class Animator extends Component {
    * The layers in the animator's controller.
    */
   get layers(): Readonly<AnimatorControllerLayer[]> {
-    return this._animatorController._layers;
+    return this._animatorController?._layers;
   }
 
   /**
    * The parameters in the animator's controller.
    */
   get parameters(): Readonly<AnimatorControllerParameter[]> {
-    return this._animatorController._parameters;
+    return this._animatorController?._parameters;
   }
 
   /**
@@ -241,7 +241,7 @@ export class Animator extends Component {
    * @param name - The layer's name.
    */
   findLayerByName(name: string): AnimatorControllerLayer {
-    return this._animatorController._layersMap[name];
+    return this._animatorController?._layersMap[name];
   }
 
   /**
@@ -249,14 +249,14 @@ export class Animator extends Component {
    * @param name - The name of the parameter
    */
   getParameter(name: string): AnimatorControllerParameter {
-    return this._animatorController._parametersMap[name] || null;
+    return this._animatorController?._parametersMap[name] || null;
   }
 
   /**
    * Set the value of the given parameter.
    * @param name - The name of the parameter
    */
-  setParameter(name: string, value: AnimatorControllerParameterValue) {
+  setParameter(name: string, value: AnimatorControllerParameterValueType) {
     const controller = this._animatorController;
     const parameter = controller._parametersMap[name];
     if (parameter) {
@@ -507,9 +507,7 @@ export class Animator extends Component {
   }
 
   private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number, aniUpdate: boolean): void {
-    let { blendingMode, weight, stateMachine } = this._animatorController.layers[layerIndex];
-
-    if (!stateMachine) return;
+    let { blendingMode, weight } = this._animatorController.layers[layerIndex];
 
     const layerData = this._animatorLayersData[layerIndex];
     const { srcPlayData, destPlayData } = layerData;
@@ -811,7 +809,7 @@ export class Animator extends Component {
     layerIndex: number,
     lastClipTime: number,
     clipTime: number
-  ) {
+  ): void {
     const { state } = playState;
     const clipDuration = state.clip.length;
     let targetTransition: AnimatorStateTransition = null;
@@ -884,7 +882,7 @@ export class Animator extends Component {
     layerIndex: number,
     lastClipTime: number,
     curClipTime: number
-  ) {
+  ): AnimatorStateTransition {
     const { state } = playState;
     let transitionIndex = playState.currentTransitionIndex;
     const duration = state._getDuration();
@@ -910,7 +908,7 @@ export class Animator extends Component {
     layerIndex: number,
     lastClipTime: number,
     curClipTime: number
-  ) {
+  ): AnimatorStateTransition {
     const { state } = playState;
     let transitionIndex = playState.currentTransitionIndex;
     const duration = playState.state._getDuration();
@@ -930,7 +928,7 @@ export class Animator extends Component {
     return null;
   }
 
-  _applyTransition(transition: AnimatorStateTransition, layerIndex: number) {
+  private _applyTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     if (transition.isExit) {
       this._checkEntryState();
       return;
@@ -938,12 +936,12 @@ export class Animator extends Component {
     this._crossFadeByTransition(transition, layerIndex);
   }
 
-  private _checkConditions(state: AnimatorState, transition: AnimatorStateTransition) {
-    const { mute, conditions, solo } = transition;
+  private _checkConditions(state: AnimatorState, transition: AnimatorStateTransition): boolean {
+    if (transition.mute) return false;
 
-    if (mute) return false;
+    if (state?._hasSoloTransition && !transition.solo) return false;
 
-    if (state && state._hasSoloTransition && !solo) return false;
+    const { conditions } = transition;
 
     let allPass = true;
     for (let i = 0, n = conditions.length; i < n; ++i) {
@@ -1153,7 +1151,7 @@ export class Animator extends Component {
 
       if (!stateMachine) continue;
 
-      const entryTransitions = stateMachine.entryTransitions;
+      const { entryTransitions } = stateMachine;
       const length = entryTransitions.length;
       if (length) {
         for (let j = 0, m = length; j < m; j++) {

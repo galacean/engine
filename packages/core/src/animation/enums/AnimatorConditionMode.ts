@@ -1,5 +1,5 @@
 /**
- * The mode of the condition.
+ * The mode of the animator condition.
  */
 export enum AnimatorConditionMode {
   /** The condition is true when the parameter value is true. */

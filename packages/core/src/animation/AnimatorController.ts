@@ -1,5 +1,5 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 
@@ -35,9 +35,9 @@ export class AnimatorController {
   /**
    * Add a parameter to the controller.
    * @param name - The name of the parameter
-   * @param defaultValue - The defaultValue of the parameter
+   * @param value - The value of the parameter
    */
-  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter;
+  addParameter(name: string, value?: AnimatorControllerParameterValueType): AnimatorControllerParameter;
 
   /**
    * Add a parameter to the controller.
@@ -45,19 +45,16 @@ export class AnimatorController {
    */
   addParameter(parameter: AnimatorControllerParameter): AnimatorControllerParameter;
 
-  addParameter(param: AnimatorControllerParameter | string, defaultValue?: AnimatorControllerParameterValue) {
+  addParameter(param: AnimatorControllerParameter | string, value?: AnimatorControllerParameterValueType) {
     if (typeof param === "string") {
-      const parameter = new AnimatorControllerParameter();
-      parameter.name = param;
-      parameter.value = defaultValue;
-      this._parametersMap[param] = parameter;
-      this._parameters.push(parameter);
-      return parameter;
-    } else {
-      this._parametersMap[param.name] = param;
-      this._parameters.push(param);
-      return param;
+      const name = param;
+      param = new AnimatorControllerParameter();
+      param.name = name;
+      param.value = value;
     }
+    this._parametersMap[param.name] = param;
+    this._parameters.push(param);
+    return param;
   }
 
   /**

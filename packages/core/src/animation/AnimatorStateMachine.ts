@@ -101,15 +101,7 @@ export class AnimatorStateMachine {
   addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    let transition: AnimatorStateTransition | AnimatorState;
-    if (transitionOrAnimatorState instanceof AnimatorState) {
-      transition = new AnimatorStateTransition();
-      transition.destinationState = transitionOrAnimatorState;
-    } else {
-      transition = transitionOrAnimatorState;
-    }
-    this._entryTransitions.push(transition);
-    return transition;
+    return this._addTransition(transitionOrAnimatorState, this._entryTransitions);
   }
 
   /**
@@ -117,8 +109,7 @@ export class AnimatorStateMachine {
    * @param transition - The transition
    */
   removeEntryStateTransition(transition: AnimatorStateTransition): void {
-    const index = this._entryTransitions.indexOf(transition);
-    index !== -1 && this._entryTransitions.splice(index, 1);
+    this._removeTransition(transition, this._entryTransitions);
   }
 
   /**
@@ -130,19 +121,10 @@ export class AnimatorStateMachine {
    * Add an any transition to the destination state.
    * @param animatorState - The destination state
    */
-
   addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    let transition: AnimatorStateTransition | AnimatorState;
-    if (transitionOrAnimatorState instanceof AnimatorState) {
-      transition = new AnimatorStateTransition();
-      transition.destinationState = transitionOrAnimatorState;
-    } else {
-      transition = transitionOrAnimatorState;
-    }
-    this._anyStateTransitions.push(transition);
-    return transition;
+    return this._addTransition(transitionOrAnimatorState, this._anyStateTransitions);
   }
 
   /**
@@ -150,7 +132,26 @@ export class AnimatorStateMachine {
    * @param transition - The transition
    */
   removeAnyStateTransition(transition: AnimatorStateTransition): void {
-    const index = this._anyStateTransitions.indexOf(transition);
-    index !== -1 && this._anyStateTransitions.splice(index, 1);
+    this._removeTransition(transition, this._anyStateTransitions);
+  }
+
+  private _addTransition(
+    transitionOrAnimatorState: AnimatorStateTransition | AnimatorState,
+    transitions: AnimatorStateTransition[]
+  ): AnimatorStateTransition {
+    let transition: AnimatorStateTransition;
+    if (transitionOrAnimatorState instanceof AnimatorState) {
+      transition = new AnimatorStateTransition();
+      transition.destinationState = transitionOrAnimatorState;
+    } else {
+      transition = transitionOrAnimatorState;
+    }
+    transitions.push(transition);
+    return transition;
+  }
+
+  private _removeTransition(transition: AnimatorStateTransition, transitions: AnimatorStateTransition[]): void {
+    const index = transitions.indexOf(transition);
+    index !== -1 && transitions.splice(index, 1);
   }
 }
