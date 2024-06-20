@@ -76,7 +76,10 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.color.set(1, 0, 0, 1);
     expect(Color.equals(spriteRenderer.color, new Color(1, 0, 0, 1))).to.eq(true);
     spriteRenderer.color = new Color(0, 1, 0, 1);
-    expect(spriteRenderer.color).to.deep.eq(new Color(0, 1, 0, 1));
+    expect(spriteRenderer.color.r).to.eq(0);
+    expect(spriteRenderer.color.g).to.eq(1);
+    expect(spriteRenderer.color.b).to.eq(0);
+    expect(spriteRenderer.color.a).to.eq(1);
   });
 
   it("get set flip", () => {
