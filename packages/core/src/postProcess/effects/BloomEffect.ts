@@ -5,8 +5,19 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Material } from "../../material";
 import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
-import { Texture2D } from "../../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../../texture";
 import { PostProcessEffect } from "../PostProcessEffect";
+
+export enum BloomDownScaleMode {
+  /**
+   *  Use this to select half size as the starting resolution.
+   */
+  Half,
+  /**
+   *  Use this to select quarter size as the starting resolution.
+   */
+  Quarter
+}
 
 export class BloomEffect extends PostProcessEffect {
   static readonly SHADER_NAME = "postProcessEffect-bloom";
@@ -27,8 +38,20 @@ export class BloomEffect extends PostProcessEffect {
   private _material: Material;
   private _threshold: number;
   private _scatter: number;
-  private _intensity: number;
   private _highQualityFiltering = false;
+
+  private _mipDownRT: RenderTarget[] = [];
+  private _mipUpRT: RenderTarget[] = [];
+
+  /**
+   * Controls the maximum number of iterations in the effect processing sequence.
+   */
+  maxIterations = 6;
+
+  /**
+   * Controls the starting resolution that this effect begins processing.
+   */
+  downScale = BloomDownScaleMode.Half;
 
   /**
    * Set the level of brightness to filter out pixels under this level.
@@ -70,15 +93,11 @@ export class BloomEffect extends PostProcessEffect {
    * Controls the strength of the bloom effect.
    */
   get intensity(): number {
-    return this._intensity;
+    return this._material.shaderData.getVector4(BloomEffect._bloomParams).w;
   }
 
   set intensity(value: number) {
-    if (value !== this._intensity) {
-      this._intensity = value;
-      const params = this._material.shaderData.getVector4(BloomEffect._bloomParams);
-      params.w = value;
-    }
+    this._material.shaderData.getVector4(BloomEffect._bloomParams).w = value;
   }
 
   /**
@@ -142,16 +161,20 @@ export class BloomEffect extends PostProcessEffect {
 
   constructor(engine: Engine) {
     super(engine);
-    this._material = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
-    const depthState = this._material.renderState.depthState;
+
+    const material = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
+    const depthState = material.renderState.depthState;
 
     depthState.enabled = false;
     depthState.writeEnabled = false;
 
-    const shaderData = this._material.shaderData;
+    const shaderData = material.shaderData;
     shaderData.setVector4(BloomEffect._bloomParams, new Vector4());
+    shaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4(1, 1, 0, 0));
+    shaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
     shaderData.setColor(BloomEffect._tintProp, new Color(1, 1, 1, 1));
 
+    this._material = material;
     this.threshold = 0.9;
     this.scatter = 0.7;
     this.intensity = 1;
@@ -159,13 +182,143 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   override onRender(context: RenderContext): void {
+    const engine = this.engine;
+    const camera = context.camera;
+    const material = this._material;
+    const shaderData = material.shaderData;
+    const downRes = this.downScale === BloomDownScaleMode.Half ? 1 : 2;
+    const pixelViewport = camera.pixelViewport;
+    const tw = pixelViewport.width >> downRes;
+    const th = pixelViewport.height >> downRes;
+
+    // Determine the iteration count
+    const maxSize = Math.max(tw, th);
+    const iterations = Math.floor(Math.log2(maxSize) - 1);
+    const mipCount = Math.min(Math.max(iterations, 1), this.maxIterations);
+
+    // Prefilter
+    let mipWidth = tw,
+      mipHeight = th;
+    for (let i = 0; i < mipCount; i++) {
+      this._mipUpRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
+        engine,
+        this._mipUpRT[i],
+        mipWidth,
+        mipHeight,
+        camera._getInternalColorTextureFormat(),
+        null,
+        false,
+        false,
+        camera.msaaSamples,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
+      );
+      this._mipDownRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
+        engine,
+        this._mipDownRT[i],
+        mipWidth,
+        mipHeight,
+        camera._getInternalColorTextureFormat(),
+        null,
+        false,
+        false,
+        camera.msaaSamples,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
+      );
+
+      mipWidth = Math.max(1, Math.floor(mipWidth / 2));
+      mipHeight = Math.max(1, Math.floor(mipHeight / 2));
+    }
+
     PipelineUtils.blitTexture(
-      this.engine,
+      engine,
+      <Texture2D>context.srcRT.getColorTexture(0),
+      this._mipDownRT[0],
+      undefined,
+      undefined,
+      material,
+      0,
+      true
+    );
+
+    // Down sample - gaussian pyramid
+    var lastDown = this._mipDownRT[0];
+    for (let i = 1; i < mipCount; i++) {
+      // Classic two pass gaussian blur - use mipUp as a temporary target
+      // First pass does 2x downsampling + 9-tap gaussian
+      // Second pass does 9-tap gaussian using a 5-tap filter + bilinear filtering
+      PipelineUtils.blitTexture(
+        engine,
+        <Texture2D>lastDown.getColorTexture(0),
+        this._mipUpRT[i],
+        undefined,
+        undefined,
+        material,
+        1,
+        true
+      );
+      PipelineUtils.blitTexture(
+        engine,
+        <Texture2D>this._mipUpRT[i].getColorTexture(0),
+        this._mipDownRT[i],
+        undefined,
+        undefined,
+        material,
+        2,
+        true
+      );
+
+      lastDown = this._mipDownRT[i];
+    }
+
+    // Up sample (bilinear by default, HQ filtering does bicubic instead
+    for (let i = mipCount - 2; i >= 0; i--) {
+      const lowMip = i == mipCount - 2 ? this._mipDownRT[i + 1] : this._mipUpRT[i + 1];
+      const highMip = this._mipDownRT[i];
+      const dst = this._mipUpRT[i];
+
+      shaderData.setTexture(BloomEffect._lowMipTextureProp, lowMip.getColorTexture(0));
+      if (this.highQualityFiltering) {
+        const texelSizeLow = shaderData.getVector4(BloomEffect._lowMipTexelSizeProp);
+        texelSizeLow.set(1 / lowMip.width, 1 / lowMip.height, lowMip.width, lowMip.height);
+      }
+
+      PipelineUtils.blitTexture(
+        engine,
+        <Texture2D>highMip.getColorTexture(0),
+        dst,
+        undefined,
+        undefined,
+        material,
+        3,
+        true
+      );
+    }
+
+    // Setup bloom on uber
+    const dirtTexture = this.dirtTexture;
+    if (dirtTexture) {
+      const dirtTilingOffset = shaderData.getVector4(BloomEffect._dirtTilingOffsetProp);
+      const dirtRatio = dirtTexture.width / dirtTexture.height;
+      const screenRatio = camera.aspectRatio;
+      if (dirtRatio > screenRatio) {
+        dirtTilingOffset.set(screenRatio / dirtRatio, 1, (1 - dirtTilingOffset.x) * 0.5, 0);
+      } else if (dirtRatio < screenRatio) {
+        dirtTilingOffset.set(1, dirtRatio / screenRatio, 0, (1 - dirtTilingOffset.y) * 0.5);
+      }
+    }
+
+    shaderData.setTexture(BloomEffect._bloomTextureProp, this._mipUpRT[0].getColorTexture(0));
+
+    PipelineUtils.blitTexture(
+      engine,
       <Texture2D>context.srcRT.getColorTexture(0),
       context.destRT,
       undefined,
       undefined,
-      this._material
+      material,
+      4
     );
   }
 }
@@ -343,11 +496,11 @@ const fragBlurV = `
     vec2 texelSize = renderer_texelSize.xy * 2.0;
 
     // Optimized bilinear 5-tap gaussian on the same-sized source (9-tap equivalent)
-    mediump vec4 c0 = sampleTexture(renderer_BlitTexture, v_uv - vec2(0.0, vec2(texelSize.y * 3.23076923));
-    mediump vec4 c1 = sampleTexture(renderer_BlitTexture, v_uv - vec2(0.0, vec2(texelSize.y * 1.38461538));
+    mediump vec4 c0 = sampleTexture(renderer_BlitTexture, v_uv - vec2(0.0, texelSize.y * 3.23076923));
+    mediump vec4 c1 = sampleTexture(renderer_BlitTexture, v_uv - vec2(0.0, texelSize.y * 1.38461538));
     mediump vec4 c2 = sampleTexture(renderer_BlitTexture, v_uv);
-    mediump vec4 c3 = sampleTexture(renderer_BlitTexture, v_uv + vec2(0.0, vec2(texelSize.y * 1.38461538));
-    mediump vec4 c4 = sampleTexture(renderer_BlitTexture, v_uv + vec2(0.0, vec2(texelSize.y * 3.23076923));
+    mediump vec4 c3 = sampleTexture(renderer_BlitTexture, v_uv + vec2(0.0, texelSize.y * 1.38461538));
+    mediump vec4 c4 = sampleTexture(renderer_BlitTexture, v_uv + vec2(0.0, texelSize.y * 3.23076923));
 
     gl_FragColor = c0 * 0.07027027 + c1 * 0.31621622
                         + c2 * 0.22702703
@@ -399,7 +552,7 @@ const fragUber = `
   ${fragCommonFunction}
 
   void main(){
-    mediump vec4 color = vec4(0.0);
+    mediump vec4 color = sampleTexture(renderer_BlitTexture, v_uv);
 
     #ifdef BLOOM_HQ
       mediump vec4 bloom = SampleTexture2DBicubic(material_BloomTexture, v_uv, renderer_texelSize);
@@ -411,7 +564,7 @@ const fragUber = `
     color += bloom * material_BloomTint;
 
     #ifdef BLOOM_DIRT
-      mediump vec4 dirt = sampleTexture(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw).xyz;
+      mediump vec4 dirt = sampleTexture(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
       dirt *= material_BloomDirtIntensity;
       // Additive bloom (artist friendly)
       color += dirt * bloom;
@@ -422,7 +575,6 @@ const fragUber = `
     #ifndef ENGINE_IS_COLORSPACE_GAMMA
       gl_FragColor = linearToGamma(gl_FragColor);
     #endif
-
   }
 `;
 

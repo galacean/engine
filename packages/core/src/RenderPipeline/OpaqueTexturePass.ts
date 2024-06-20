@@ -37,12 +37,11 @@ export class OpaqueTexturePass extends PipelinePass {
       null,
       false,
       false,
-      1
+      1,
+      TextureWrapMode.Clamp,
+      isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear
     );
 
-    const colorTexture = opaqueRenderTarget.getColorTexture(0);
-    colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
-    colorTexture.filterMode = isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this._renderTarget = opaqueRenderTarget;
   }
 

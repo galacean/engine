@@ -1,7 +1,7 @@
 import { Engine } from "../Engine";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
-import { RenderTarget, TextureFormat, TextureWrapMode } from "../texture";
+import { RenderTarget, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessPass } from "./PostProcessPass";
 
@@ -29,10 +29,10 @@ export class PostProcessManager {
         null,
         false,
         false,
-        msaaSamples
+        msaaSamples,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
       );
-      const colorTexture = this._transformRT[i].getColorTexture(0);
-      colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
     }
   }
 
