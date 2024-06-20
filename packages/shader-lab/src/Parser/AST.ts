@@ -56,6 +56,14 @@ export namespace ASTNode {
     return node;
   }
 
+  // #if !_DEBUG
+  export class TrivialNode extends TreeNode {
+    constructor(loc: LocRange, children: NodeChild[]) {
+      super(ENonTerminal._ignore, loc, children);
+    }
+  }
+  // #endif
+
   export class SubShaderScopeBrace extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.subshader_scope_brace, loc, children);
@@ -114,6 +122,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class ConditionOpt extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.conditionopt, loc, children);
@@ -155,6 +164,7 @@ export namespace ASTNode {
       super(ENonTerminal.expression_statement, loc, children);
     }
   }
+  // #endif
 
   export abstract class ExpressionAstNode extends TreeNode {
     protected _type?: GalaceanDataType;
@@ -170,17 +180,16 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class InitializerList extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.initializer_list, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const init = this.children[0] as Initializer | InitializerList;
       this.type = init.type;
     }
-    // #endif
   }
 
   export class Initializer extends ExpressionAstNode {
@@ -188,7 +197,6 @@ export namespace ASTNode {
       super(ENonTerminal.initializer, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AssignmentExpression>this.children[0]).type;
@@ -196,8 +204,8 @@ export namespace ASTNode {
         this.type = (<InitializerList>this.children[1]).type;
       }
     }
-    // #endif
   }
+  // #endif
 
   export class SingleDeclaration extends TreeNode {
     typeSpecifier: TypeSpecifier;
@@ -320,6 +328,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class StorageQualifier extends BasicTypeQualifier {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(loc, ENonTerminal.storage_qualifier, children);
@@ -343,11 +352,16 @@ export namespace ASTNode {
       super(loc, ENonTerminal.invariant_qualifier, children);
     }
   }
+  // #endif
 
   export class TypeSpecifier extends TreeNode {
     type: GalaceanDataType;
     lexeme: string;
     arraySize?: number;
+
+    get isCustom() {
+      return typeof this.type === "string";
+    }
 
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.type_specifier, loc, children);
@@ -692,6 +706,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class SimpleStatement extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.simple_statement, loc, children);
@@ -703,6 +718,7 @@ export namespace ASTNode {
       super(ENonTerminal.compound_statement, loc, children);
     }
   }
+  // #endif
 
   export class CompoundStatementNoScope extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -710,11 +726,13 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class Statement extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.statement, loc, children);
     }
   }
+  // #endif
 
   export class StatementList extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -893,11 +911,13 @@ export namespace ASTNode {
     // #endif
   }
 
+  // #if _DEBUG
   export class AssignmentOperator extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.assignment_operator, loc, children);
     }
   }
+  // #endif
 
   export class Expression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -965,30 +985,32 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class UnaryOperator extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.unary_operator, loc, children);
     }
   }
+  // #endif
 
+  // #if _DEBUG
   export class UnaryExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.unary_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.type = (this.children[0] as PostfixExpression).type;
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class MultiplicativeExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.multiplicative_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (this.children[0] as UnaryExpression).type;
@@ -1000,15 +1022,15 @@ export namespace ASTNode {
         }
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class AdditiveExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.additive_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (this.children[0] as MultiplicativeExpression).type;
@@ -1020,27 +1042,28 @@ export namespace ASTNode {
         }
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class ShiftExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.shift_expression, loc, children);
     }
-    // #if _DEBUG
+
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class RelationalExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.relational_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ShiftExpression>this.children[0]).type;
@@ -1048,15 +1071,15 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class EqualityExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.equality_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<RelationalExpression>this.children[0]).type;
@@ -1064,15 +1087,15 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class AndExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.and_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1080,15 +1103,15 @@ export namespace ASTNode {
         this.type = EKeyword.UINT;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class ExclusiveOrExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.exclusive_or_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1096,15 +1119,15 @@ export namespace ASTNode {
         this.type = EKeyword.UINT;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class InclusiveOrExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.inclusive_or_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
@@ -1112,15 +1135,15 @@ export namespace ASTNode {
         this.type = EKeyword.UINT;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class LogicalAndExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.logical_and_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<InclusiveOrExpression>this.children[0]).type;
@@ -1128,15 +1151,15 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class LogicalXorExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.logical_xor_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalAndExpression>this.children[0]).type;
@@ -1144,15 +1167,15 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class LogicalOrExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.logical_or_expression, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalXorExpression>this.children[0]).type;
@@ -1160,9 +1183,10 @@ export namespace ASTNode {
         this.type = EKeyword.BOOL;
       }
     }
-    // #endif
   }
+  // #endif
 
+  // #if _DEBUG
   export class ConditionalExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.conditional_expression, loc, children);
@@ -1174,6 +1198,7 @@ export namespace ASTNode {
       }
     }
   }
+  // #endif
 
   export class StructSpecifier extends TreeNode {
     ident?: Token;
@@ -1286,14 +1311,18 @@ export namespace ASTNode {
 
       sa.scope.insert(sm);
     }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitGlobalVariableDeclaration(this);
+    }
   }
 
+  // #if _DEBUG
   export class GLRenderQueueAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_render_queue_assignment, loc, children);
     }
 
-    // #if _DEBUG
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const variable = this.children[2] as Token;
       const builtinType = EngineType.RenderQueueType[<any>variable.lexeme];
@@ -1310,8 +1339,8 @@ export namespace ASTNode {
         sa.shaderData.renderStates[1][key] = variable.lexeme;
       }
     }
-    // #endif
   }
+  // #endif
 
   export class VariableIdentifier extends TreeNode {
     symbolInfo:
@@ -1630,6 +1659,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class GLPassGlobalDeclaration extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_pass_global_declaration, loc, children);
@@ -1641,6 +1671,7 @@ export namespace ASTNode {
       super(ENonTerminal.gl_pass_global_declaration_list, loc, children);
     }
   }
+  // #endif
 
   abstract class GLProgram extends TreeNode {
     abstract shaderData: ShaderData;
@@ -1709,6 +1740,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class GLTagAssignmentList extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_tag_assignment_list, loc, children);
@@ -1738,6 +1770,7 @@ export namespace ASTNode {
       super(ENonTerminal.gl_subshader_global_declaration_list, loc, children);
     }
   }
+  // #endif
 
   export class GLSubShaderProgram extends GLProgram {
     shaderData: GLSubShaderData;
@@ -1754,6 +1787,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _DEBUG
   export class GLShaderGlobalDeclarationList extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_shader_global_declaration_list, loc, children);
@@ -1765,6 +1799,7 @@ export namespace ASTNode {
       super(ENonTerminal.gl_shader_global_declaration, loc, children);
     }
   }
+  // #endif
 
   export class GLShaderProgram extends GLProgram {
     shaderData: GLShaderData;

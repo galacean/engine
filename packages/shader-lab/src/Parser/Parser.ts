@@ -76,7 +76,9 @@ export default class Parser {
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
+        // #if _DEBUG
         this.logger.log(`Reduce: ${reduceProduction.toString()}`);
+        // #endif
         const translationRule = sematicAnalyzer.getTranslationRule(reduceProduction.id);
 
         const values: (TreeNode | Token)[] = [];

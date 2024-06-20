@@ -145,7 +145,9 @@ export enum ENonTerminal {
   scope_brace,
   scope_end_brace,
   subshader_scope_brace,
-  pass_scope_brace
+  pass_scope_brace,
+
+  _ignore
 }
 
 export type GrammarSymbol = Terminal | ENonTerminal;

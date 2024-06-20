@@ -130,6 +130,14 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
+  visitGlobalVariableDeclaration(node: ASTNode.GLVariableDeclaration): string {
+    const fullType = node.children[0];
+    if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
+      this.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
+    }
+    return this.defaultCodeGen(node.children);
+  }
+
   visitDeclaration(node: ASTNode.Declaration): string {
     const child = node.children[0];
     if (

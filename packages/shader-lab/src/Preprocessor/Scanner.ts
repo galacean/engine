@@ -196,6 +196,18 @@ export default class PpScanner extends PpError {
     return { token, nextDirective: directive };
   }
 
+  // #if !_DEBUG
+  scanPairedBlock(lc = "{", rc = "}") {
+    this.scanToChar(lc);
+    let lvl = 0;
+    do {
+      if (this.curChar() === lc) lvl += 1;
+      else if (this.curChar() === rc) lvl -= 1;
+      this._advance();
+    } while (lvl > 0);
+  }
+  // #endif
+
   /**
    * @returns end position
    */

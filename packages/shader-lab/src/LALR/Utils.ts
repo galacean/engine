@@ -29,11 +29,11 @@ export default class GrammarUtils {
       ret.push([
         [goal, ...opt],
         (sa, ...children) => {
-          if (!children[0] || !astType) return;
+          if (!children[0]) return;
           const start = children[0].location.start;
           const end = children[children.length - 1].location.end;
           const location = new LocRange(start, end);
-          ASTNode.create(astType, sa, location, children);
+          ASTNode.create(astType ?? ASTNode.TrivialNode, sa, location, children);
         }
       ]);
     }

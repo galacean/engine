@@ -40,7 +40,7 @@ export default class PpParser extends PpError {
 
   parse(scanner: PpScanner): string {
     while (!scanner.isEnd()) {
-      const directive = scanner.scanDirective(this.expandToken.bind(this))!;
+      const directive = scanner.scanDirective(this.onToken.bind(this))!;
       if (scanner.isEnd()) break;
       switch (directive.type) {
         case EPpKeyword.define:
@@ -563,6 +563,22 @@ export default class PpParser extends PpError {
       replace: ""
     });
     this.definedMacros.delete(macro.lexeme);
+  }
+
+  private onToken(token: PpToken, scanner: PpScanner) {
+    // #if !_DEBUG
+    this.skipEditorBlock(token, scanner);
+    // #endif
+    this.expandToken(token, scanner);
+  }
+
+  private skipEditorBlock(token: PpToken, scanner: PpScanner) {
+    if (token.lexeme === "EditorProperties" || token.lexeme === "EditorMacros") {
+      const start = scanner.current - token.length;
+      scanner.scanPairedBlock();
+      const end = scanner.current;
+      this.expandSegments.push({ rangeInBlock: { start, end }, replace: "" });
+    }
   }
 
   private expandToken(token: PpToken, scanner: PpScanner) {
