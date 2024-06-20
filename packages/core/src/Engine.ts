@@ -105,6 +105,8 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _spriteMaskDefaultMaterial: Material;
   /* @internal */
+  _uiDefaultMaterial: Material;
+  /* @internal */
   _textDefaultFont: Font;
   /* @internal */
   _renderContext: RenderContext = new RenderContext();
@@ -265,6 +267,8 @@ export class Engine extends EventDispatcher {
     spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
       SpriteMaskInteraction.VisibleOutsideMask
     );
+
+    this._uiDefaultMaterial = this._createUIMaterial();
     this._textDefaultMaterial = this._createTextMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
@@ -384,7 +388,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire `onPointerXX`
-    physicsInitialized && inputManager._firePointerScript(scenes);
+    inputManager._firePointerScript(scenes);
 
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {
@@ -535,7 +539,9 @@ export class Engine extends EventDispatcher {
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      const cameras = scene._componentsManager._activeCameras;
+
+      const componentsManager = scene._componentsManager;
+      const cameras = componentsManager._activeCameras;
 
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
@@ -544,7 +550,6 @@ export class Engine extends EventDispatcher {
 
       cameras.forEach(
         (camera: Camera) => {
-          const componentsManager = scene._componentsManager;
           componentsManager.callCameraOnBeginRender(camera);
           camera.render();
           componentsManager.callCameraOnEndRender(camera);
@@ -558,6 +563,12 @@ export class Engine extends EventDispatcher {
           camera._cameraIndex = index;
         }
       );
+
+      // const uiCanvases = componentsManager._uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]._elements;
+      // for (let i = uiCanvases.length - 1; i >= 0; i--) {
+      //   const uiCanvas = uiCanvases[i];
+      //   uiCanvas._prepareRender
+      // }
     }
   }
 
@@ -728,6 +739,23 @@ export class Engine extends EventDispatcher {
 
   private _createTextMaterial(): Material {
     const material = new Material(this, Shader.find("Text"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createUIMaterial(): Material {
+    const material = new Material(this, Shader.find("ui"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
     target.enabled = true;

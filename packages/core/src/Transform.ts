@@ -1,9 +1,9 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlagManager } from "./UpdateFlagManager";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.

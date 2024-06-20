@@ -8,10 +8,13 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { Pointer } from "./input";
+import { PointerEventType } from "./input/pointer/PointerEventType";
 
 /**
  * Entity, be used as components container.
@@ -94,13 +97,16 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-
   /** @internal */
   _isTemplate: boolean = false;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+
+  _onPointerCallBacksArray: DisorderedArray<(event: Pointer) => void>[];
 
   /**
    * Whether to activate locally.
@@ -210,6 +216,7 @@ export class Entity extends EngineObject {
     const component = new type(this);
     this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
+    this._updateFlagManager.dispatch(EntityModifyFlags.AddComponent, component);
     return component;
   }
 
@@ -256,6 +263,18 @@ export class Entity extends EngineObject {
   getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
     this._getComponentsInChildren<T>(type, results);
+    return results;
+  }
+
+  /**
+   * Get the components which match the type of the entity and it's parent.
+   * @param type - The component type
+   * @param results - The components collection
+   * @returns	The components collection which match the type
+   */
+  getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+    results.length = 0;
+    this.parent?._getComponentsInParent<T>(type, results);
     return results;
   }
 
@@ -321,7 +340,7 @@ export class Entity extends EngineObject {
       }
       activeChangeFlag && child._processActive(activeChangeFlag);
 
-      child._setTransformDirty();
+      child._setParentChange();
     } else {
       child._setParent(this, index);
     }
@@ -411,8 +430,9 @@ export class Entity extends EngineObject {
       activeChangeFlag && child._processInActive(activeChangeFlag);
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
+      children.length--;
+      this._updateFlagManager.dispatch(EntityModifyFlags.DelChild, child);
     }
-    children.length = 0;
   }
 
   /**
@@ -513,6 +533,7 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
+    this._updateFlagManager = null;
   }
 
   /**
@@ -555,6 +576,7 @@ export class Entity extends EngineObject {
       }
       this._parent = null;
       this._siblingIndex = -1;
+      oldParent._updateFlagManager.dispatch(EntityModifyFlags.DelChild, this);
     }
   }
 
@@ -582,6 +604,19 @@ export class Entity extends EngineObject {
     this._setActiveComponents(false, activeChangeFlag);
   }
 
+  /** @internal */
+  _addOnPointerEvent(
+    type: PointerEventType,
+    script: Script,
+    callback: (event: Pointer) => void,
+    useCapture: boolean = false
+  ): void {
+    const onPointerCallBacksArray = (this._onPointerCallBacksArray ||= []);
+    const onPointerCallBacks = (onPointerCallBacksArray[type] ||= new DisorderedArray<(event: Pointer) => void>());
+    script._onPointerEventIndexArray[type] = onPointerCallBacks.length;
+    onPointerCallBacks.add(callback);
+  }
+
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     const childCount = children.length;
@@ -598,6 +633,7 @@ export class Entity extends EngineObject {
         children[i]._siblingIndex++;
       }
     }
+    this._updateFlagManager.dispatch(EntityModifyFlags.AddChild, child);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
@@ -648,8 +684,18 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setTransformDirty();
+      this._setParentChange();
     }
+  }
+
+  private _getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
+    for (let i = this._components.length - 1; i >= 0; i--) {
+      const component = this._components[i];
+      if (component instanceof type) {
+        results.push(component);
+      }
+    }
+    this.parent?._getComponentsInParent<T>(type, results);
   }
 
   private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
@@ -703,14 +749,9 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
-      }
-    }
+  private _setParentChange() {
+    this.transform._parentChange();
+    this._updateFlagManager.dispatch(EntityModifyFlags.Parent);
   }
 
   private _setSiblingIndex(sibling: Entity[], target: number): void {
@@ -750,4 +791,12 @@ export class Entity extends EngineObject {
     }
     return this._invModelMatrix;
   }
+}
+
+export enum EntityModifyFlags {
+  Parent = 0x1,
+  AddChild = 0x2,
+  DelChild = 0x4,
+  AddComponent = 0x8,
+  DelComponent = 0x10
 }

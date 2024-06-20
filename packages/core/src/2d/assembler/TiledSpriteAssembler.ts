@@ -1,8 +1,9 @@
-import { MathUtil, Matrix } from "@galacean/engine-math";
+import { MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { Image } from "../../ui";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
@@ -19,7 +20,7 @@ export class TiledSpriteAssembler {
   static _uvRow = new DisorderedArray<number>();
   static _uvColumn = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer, vertexCount: number): void {
+  static resetData(renderer: SpriteRenderer | Image, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
       const lastSubChunk = renderer._subChunk;
@@ -34,8 +35,15 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updatePositions(renderer: SpriteRenderer): void {
-    const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
+  static updatePositions(
+    renderer: SpriteRenderer | Image,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean = false,
+    flipY: boolean = false
+  ): void {
+    const { sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
@@ -54,16 +62,16 @@ export class TiledSpriteAssembler {
         : TiledSpriteAssembler._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
     TiledSpriteAssembler.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
-    const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
-    const localTransX = renderer.width * pivotX;
-    const localTransY = renderer.height * pivotY;
+    const { x: pivotX, y: pivotY } = pivot;
+    const localTransX = width * pivotX;
+    const localTransY = height * pivotY;
     // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = TiledSpriteAssembler;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
-    const sx = renderer.flipX ? -1 : 1;
-    const sy = renderer.flipY ? -1 : 1;
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
     let wE0: number, wE1: number, wE2: number;
     let wE4: number, wE5: number, wE6: number;
     (wE0 = wE[0] = pWE[0] * sx), (wE1 = wE[1] = pWE[1] * sx), (wE2 = wE[2] = pWE[2] * sx);
