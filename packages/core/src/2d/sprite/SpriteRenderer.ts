@@ -1,18 +1,20 @@
-import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
-import { IAssembler } from "../assembler/IAssembler";
+import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
-import { VertexData2D } from "../data/VertexData2D";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
@@ -26,12 +28,12 @@ export class SpriteRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _verticesData: VertexData2D;
+  _subChunk: SubPrimitiveChunk;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
   @assignmentClone
-  private _assembler: IAssembler;
+  private _assembler: ISpriteAssembler;
   @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
@@ -54,11 +56,6 @@ export class SpriteRenderer extends Renderer {
   private _flipX: boolean = false;
   @assignmentClone
   private _flipY: boolean = false;
-
-  @assignmentClone
-  private _maskLayer: number = SpriteMaskLayer.Layer0;
-  @assignmentClone
-  private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
 
   /**
    * The draw mode of the sprite renderer.
@@ -84,7 +81,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
     }
   }
 
@@ -99,7 +96,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
       }
     }
   }
@@ -116,7 +113,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
       }
     }
   }
@@ -157,6 +154,7 @@ export class SpriteRenderer extends Renderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     }
   }
 
@@ -179,7 +177,10 @@ export class SpriteRenderer extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |=
+        this._drawMode === SpriteDrawMode.Tiled
+          ? SpriteRendererUpdateFlags.VertexData
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -202,7 +203,10 @@ export class SpriteRenderer extends Renderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |=
+        this._drawMode === SpriteDrawMode.Tiled
+          ? SpriteRendererUpdateFlags.VertexData
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -264,10 +268,18 @@ export class SpriteRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._verticesData = new VertexData2D(4, [], [], null, this._color);
     this.drawMode = SpriteDrawMode.Simple;
+    this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
@@ -283,19 +295,24 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-      return;
-    }
-    // @ts-ignore
-    this._updateTransformShaderData(context, Matrix._identity);
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSprite(elementA, elementB);
   }
 
   /**
    * @internal
    */
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManager2D;
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.sprite) {
       this._assembler.updatePositions(this);
@@ -305,9 +322,6 @@ export class SpriteRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
@@ -334,16 +348,24 @@ export class SpriteRenderer extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
     }
 
+    // Update color
+    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.Color) {
+      this._assembler.updateColor(this);
+      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.Color;
+    }
+
     // Push primitive
-    const texture = this.sprite.texture;
-    const renderData = this._engine._spriteRenderDataPool.getFromPool();
-    renderData.set(this, material, this._verticesData, texture);
-    context.camera._renderPipeline.pushRenderData(context, renderData);
+    const camera = context.camera;
+    const engine = camera.engine;
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+    const subRenderElement = engine._subRenderElementPool.get();
+    const subChunk = this._subChunk;
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.addSubRenderElement(subRenderElement);
+    camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     const sprite = this._sprite;
     if (sprite) {
@@ -357,7 +379,10 @@ export class SpriteRenderer extends Renderer {
     this._color = null;
     this._sprite = null;
     this._assembler = null;
-    this._verticesData = null;
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
+    }
   }
 
   private _calDefaultSize(): void {
@@ -405,7 +430,7 @@ export class SpriteRenderer extends Renderer {
         if (this._drawMode === SpriteDrawMode.Sliced) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
         } else {
           // When the width and height of `SpriteRenderer` are `undefined`,
           // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
@@ -415,11 +440,12 @@ export class SpriteRenderer extends Renderer {
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData);
+        this._drawMode === SpriteDrawMode.Sliced &&
+          (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV);
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
@@ -440,10 +466,14 @@ export class SpriteRenderer extends Renderer {
 enum SpriteRendererUpdateFlags {
   /** UV. */
   UV = 0x2,
-  /** WorldVolume and UV . */
-  RenderData = 0x3,
+  /** Color. */
+  Color = 0x4,
   /** Automatic Size. */
-  AutomaticSize = 0x4,
+  AutomaticSize = 0x8,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
+  /** Vertex data.*/
+  VertexData = SpriteRendererUpdateFlags.WorldVolumeAndUV | SpriteRendererUpdateFlags.Color,
   /** All. */
-  All = 0x7
+  All = 0xf
 }

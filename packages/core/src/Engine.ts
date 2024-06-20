@@ -8,20 +8,17 @@ import {
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
+import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { ClassPool } from "./RenderPipeline/ClassPool";
+import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
-import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
-import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
-import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
-import { TextRenderData } from "./RenderPipeline/TextRenderData";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -48,6 +45,8 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { ClearableObjectPool } from "./utils/ClearableObjectPool";
+import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
 
 ShaderPool.init();
@@ -69,6 +68,8 @@ export class Engine extends EventDispatcher {
   readonly xrManager: XRManager;
 
   /** @internal */
+  _batcherManager: BatcherManager;
+
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -82,15 +83,13 @@ export class Engine extends EventDispatcher {
   _lastRenderState: RenderState = new RenderState();
 
   /* @internal */
-  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
-  _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
+  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
-  _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
+  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
-  _spriteMaskRenderDataPool: ClassPool<SpriteMaskRenderData> = new ClassPool(SpriteMaskRenderData);
-  /* @internal */
-  _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
+  _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -98,6 +97,8 @@ export class Engine extends EventDispatcher {
   _spriteDefaultMaterial: Material;
   /** @internal */
   _spriteDefaultMaterials: Material[] = [];
+  /* @internal */
+  _textDefaultMaterial: Material;
   /* @internal */
   _spriteMaskDefaultMaterial: Material;
   /* @internal */
@@ -126,8 +127,6 @@ export class Engine extends EventDispatcher {
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
-  /** @internal */
-  _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _canSpriteBatch: boolean = true;
   /** @internal */
@@ -253,7 +252,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    this._spriteMaskManager = new SpriteMaskManager(this);
     const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
     this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
       SpriteMaskInteraction.None
@@ -264,10 +262,12 @@ export class Engine extends EventDispatcher {
     spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
       SpriteMaskInteraction.VisibleOutsideMask
     );
+    this._textDefaultMaterial = this._createTextMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
+    this._batcherManager = new BatcherManager(this);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -349,11 +349,9 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._renderElementPool.resetPool();
-    this._renderDataPool.resetPool();
-    this._spriteRenderDataPool.resetPool();
-    this._spriteMaskRenderDataPool.resetPool();
-    this._textRenderDataPool.resetPool();
+    this._subRenderElementPool.clear();
+    this._textSubRenderElementPool.clear();
+    this._renderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -459,13 +457,13 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
+    this._batcherManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation
     this.pause();
 
-    this._spriteMaskManager.destroy();
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
@@ -559,7 +557,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * @internal
-   * Standalone for CanvasRenderer plugin.
    */
   _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
@@ -718,6 +715,24 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createTextMaterial(): Material {
+    const material = new Material(this, Shader.find("Text"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }
@@ -755,11 +770,9 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
+    this._subRenderElementPool.garbageCollection();
+    this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
-    this._renderDataPool.garbageCollection();
-    this._spriteRenderDataPool.garbageCollection();
-    this._spriteMaskRenderDataPool.garbageCollection();
-    this._textRenderDataPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 
