@@ -1,2 +1,2 @@
 export { BloomDownScaleMode, BloomEffect } from "./BloomEffect";
-export { TonemappingEffect } from "./TonemappingEffect";
+export { TonemappingEffect, TonemappingMode } from "./TonemappingEffect";

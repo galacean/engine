@@ -8,6 +8,9 @@ import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../../texture";
 import { PostProcessEffect } from "../PostProcessEffect";
 
+/**
+ * This controls the size of the bloom texture.
+ */
 export enum BloomDownScaleMode {
   /**
    *  Use this to select half size as the starting resolution.
