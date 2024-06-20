@@ -296,6 +296,7 @@ export class TextRenderer extends Renderer {
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
     this.setMaterial(engine._textDefaultMaterial);
+    //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
   }
 
@@ -309,6 +310,10 @@ export class TextRenderer extends Renderer {
     }
 
     super._onDestroy();
+
+    //@ts-ignore
+    this._color._onValueChanged = null;
+    this._color = null;
 
     this._freeTextChunks();
     this._textChunks = null;

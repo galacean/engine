@@ -272,6 +272,7 @@ export class SpriteRenderer extends Renderer {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
+    //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
   }
 
@@ -376,7 +377,7 @@ export class SpriteRenderer extends Renderer {
 
     super._onDestroy();
 
-    this._entity = null;
+    //@ts-ignore
     this._color._onValueChanged = null;
     this._color = null;
     this._sprite = null;
