@@ -13,6 +13,7 @@ import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, Texture2D, TextureCubeFace, TextureFormat, TextureWrapMode } from "../texture";
+import { CanvasRenderMode } from "../ui";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
@@ -303,27 +304,51 @@ export class BasicRenderPipeline {
 
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
-    const engine = camera.engine;
-    const componentsManager = camera.scene._componentsManager;
-    const renderers = componentsManager._renderers;
+    const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
+    const { _renderers: renderers, _uiCanvasesArray: uiCanvasesArray } = camera.scene._componentsManager;
 
-    const elements = renderers._elements;
+    let rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
-      const renderer = elements[i];
-
+      const renderer = rendererElements[i];
       // Filter by camera culling mask
-      if (!(camera.cullingMask & renderer._entity.layer)) {
+      if (!(cullingMask & renderer._entity.layer)) {
         continue;
       }
 
       // Filter by camera frustum
-      if (camera.enableFrustumCulling) {
-        if (!camera._frustum.intersectsBox(renderer.bounds)) {
+      if (enableFrustumCulling) {
+        if (!frustum.intersectsBox(renderer.bounds)) {
           continue;
         }
       }
       renderer._prepareRender(context);
       renderer._renderFrameCount = engine.time.frameCount;
+    }
+
+    // Screen Space Camera UI
+    let canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera]?._elements;
+    if (canvases) {
+      for (let i = canvases.length - 1; i >= 0; i--) {
+        const canvas = canvases[i];
+        if (canvas.renderCamera !== camera) continue;
+        // Filter by camera culling mask
+        if (!(cullingMask & canvas._entity.layer)) {
+          continue;
+        }
+        canvas._prepareRender(context);
+      }
+    }
+    // World Space UI
+    canvases = uiCanvasesArray[CanvasRenderMode.WorldSpace]?._elements;
+    if (canvases) {
+      for (let i = canvases.length - 1; i >= 0; i--) {
+        const canvas = canvases[i];
+        // Filter by camera culling mask
+        if (!(cullingMask & canvas._entity.layer)) {
+          continue;
+        }
+        canvas._prepareRender(context);
+      }
     }
   }
 }

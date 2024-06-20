@@ -314,8 +314,9 @@ export class SpriteRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      this._assembler.updatePositions(this);
+    const { _sprite: sprite } = this;
+    if (sprite) {
+      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot);
     } else {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -323,7 +324,8 @@ export class SpriteRenderer extends Renderer {
   }
 
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -338,7 +340,7 @@ export class SpriteRenderer extends Renderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      this._assembler.updatePositions(this);
+      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 

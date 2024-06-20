@@ -237,8 +237,9 @@ export class SpriteMask extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      SimpleSpriteAssembler.updatePositions(this);
+    const { sprite } = this;
+    if (sprite) {
+      SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
     } else {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -249,7 +250,8 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -265,7 +267,7 @@ export class SpriteMask extends Renderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
