@@ -79,7 +79,6 @@ export class TextRenderer extends Renderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._setDirtyFlagTrue(DirtyFlag.Color);
     }
   }
 

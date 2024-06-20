@@ -154,7 +154,6 @@ export class SpriteRenderer extends Renderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     }
   }
 
