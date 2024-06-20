@@ -5,7 +5,6 @@ import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Transform } from "../Transform";
-import { Logger } from "../base";
 import { ignoreClone } from "../clone/CloneManager";
 import { HitResult } from "../physics";
 import { UIRenderer } from "./UIRenderer";
@@ -99,8 +98,6 @@ export class UICanvas extends Component {
           componentsManager.removeUICanvas(preMode, this);
           componentsManager.addUICanvas(mode, this);
         }
-      } else {
-        Logger.error("「根画布」");
       }
     }
   }
@@ -129,8 +126,6 @@ export class UICanvas extends Component {
           componentsManager.removeUICanvas(preMode, this);
           componentsManager.addUICanvas(curMode, this);
         }
-      } else {
-        Logger.error("「根画布」「渲染模式 ScreenSpaceCamera 」");
       }
     }
   }
@@ -144,8 +139,6 @@ export class UICanvas extends Component {
       this._resolutionAdaptationStrategy = val;
       if (this._isRootCanvas && this._renderMode !== CanvasRenderMode.WorldSpace) {
         this._adapterSizeInScreenSpace();
-      } else {
-        Logger.error("「根画布」「渲染模式 ScreenSpaceXXX 」");
       }
     }
   }
@@ -170,8 +163,6 @@ export class UICanvas extends Component {
       this._distance = val;
       if (isRootCanvas && renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
         this._adapterPoseInScreenSpace();
-      } else {
-        Logger.error("「根画布」 「渲染模式 ScreenSpaceCamera 」 「设置相机」");
       }
     }
   }
