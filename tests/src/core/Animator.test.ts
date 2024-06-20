@@ -1,6 +1,7 @@
 import {
   AnimationEvent,
   Animator,
+  AnimatorConditionMode,
   AnimatorControllerLayer,
   AnimatorLayerBlendingMode,
   AnimatorLayerMask,
@@ -301,5 +302,75 @@ describe("Animator test", function () {
     state.clip.addEvent(event0);
     animator.update(10);
     expect(TestScript.prototype.event0).to.have.been.called.exactly(1);
+  });
+
+  it("stateMachine", () => {
+    animator.animatorController.addParameter("playerSpeed", 1);
+    const stateMachine = animator.animatorController.layers[0].stateMachine;
+    const idleState = animator.findAnimatorState("Survey");
+    const walkState = animator.findAnimatorState("Walk");
+    const runState = animator.findAnimatorState("Run");
+    {
+      // handle idle state
+      const toWalkTransition = new AnimatorStateTransition();
+      toWalkTransition.destinationState = walkState;
+      toWalkTransition.exitTime = 0.5;
+      toWalkTransition.duration = 0.3;
+      toWalkTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0);
+      idleState.addTransition(toWalkTransition);
+
+      const exitTransition = new AnimatorStateTransition();
+      exitTransition.isExit = true;
+      exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+      idleState.addTransition(exitTransition);
+    }
+    {
+      // handle walk state
+      const toRunTransition = new AnimatorStateTransition();
+      toRunTransition.destinationState = runState;
+      toRunTransition.duration = 0.3;
+      toRunTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0.5);
+      walkState.addTransition(toRunTransition);
+
+      const toIdleTransition = new AnimatorStateTransition();
+      toIdleTransition.destinationState = idleState;
+      toIdleTransition.duration = 0.3;
+      toIdleTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+      walkState.addTransition(toIdleTransition);
+    }
+    {
+      // handle run state
+      const toWalkTransition = new AnimatorStateTransition();
+      toWalkTransition.destinationState = walkState;
+      toWalkTransition.duration = 0.3;
+      toWalkTransition.addCondition(AnimatorConditionMode.Less, "playerSpeed", 0.5);
+      runState.addTransition(toWalkTransition);
+    }
+
+    stateMachine.addEntryStateTransition(idleState);
+
+    const anyTransition = stateMachine.addAnyStateTransition(idleState);
+    anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    anyTransition.duration = 0.3;
+
+    for (let i = 0; i < 10; ++i) {
+      animator.update(500);
+    }
+
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+
+    animator.setParameter("playerSpeed", 0.4);
+    for (let i = 0; i < 10; ++i) {
+      animator.update(500);
+    }
+
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+
+    animator.setParameter("playerSpeed", 0);
+    for (let i = 0; i < 10; ++i) {
+      animator.update(500);
+    }
+
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
   });
 });
