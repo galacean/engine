@@ -356,14 +356,14 @@ describe("Animator test", function () {
     }
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    animator.animatorController.setParameter("playerSpeed", 0.4);
+    animator.animatorController.setParameterValue("playerSpeed", 0.4);
     for (let i = 0; i < 10; ++i) {
       animator.update(500);
     }
 
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    animator.animatorController.setParameter("playerSpeed", 0);
+    animator.animatorController.setParameterValue("playerSpeed", 0);
     for (let i = 0; i < 10; ++i) {
       animator.update(500);
     }

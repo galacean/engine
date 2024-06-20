@@ -80,8 +80,9 @@ export class AnimatorController {
   /**
    * Set the value of the given parameter.
    * @param name - The name of the parameter
+   * @param value - The value of the parameter
    */
-  setParameter(name: string, value: AnimatorControllerParameterValueType) {
+  setParameterValue(name: string, value: AnimatorControllerParameterValueType) {
     const parameter = this._parametersMap[name];
     if (parameter && parameter.value !== value) {
       parameter.value = value;
