@@ -128,6 +128,18 @@ export class AnimatorState {
   }
 
   /**
+   * Add an outgoing transition to exit of the stateMachine.
+   * @param exitTime - The time at which the transition can take effect. This is represented in normalized time.
+   */
+  addExitTransition(exitTime: number = 1.0): AnimatorStateTransition {
+    const transition = new AnimatorStateTransition();
+    transition._srcState = this;
+    transition._isExit = true;
+    transition.exitTime = exitTime;
+
+    return this.addTransition(transition);
+  }
+  /**
    * Remove a transition from the state.
    * @param transition - The transition
    */

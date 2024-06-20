@@ -60,10 +60,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         toWalkTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0);
         idleState.addTransition(toWalkTransition);
 
-        const exitTransition = new AnimatorStateTransition();
-        exitTransition.isExit = true;
+        const exitTransition = idleState.addExitTransition();
         exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
-        idleState.addTransition(exitTransition);
       }
       {
         // handle walk state

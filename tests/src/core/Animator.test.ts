@@ -319,10 +319,8 @@ describe("Animator test", function () {
       toWalkTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0);
       idleState.addTransition(toWalkTransition);
 
-      const exitTransition = new AnimatorStateTransition();
-      exitTransition.isExit = true;
+      const exitTransition = idleState.addExitTransition();
       exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
-      idleState.addTransition(exitTransition);
     }
     {
       // handle walk state
@@ -356,17 +354,16 @@ describe("Animator test", function () {
     for (let i = 0; i < 10; ++i) {
       animator.update(500);
     }
-
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    animator.setParameter("playerSpeed", 0.4);
+    animator.animatorController.setParameter("playerSpeed", 0.4);
     for (let i = 0; i < 10; ++i) {
       animator.update(500);
     }
 
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    animator.setParameter("playerSpeed", 0);
+    animator.animatorController.setParameter("playerSpeed", 0);
     for (let i = 0; i < 10; ++i) {
       animator.update(500);
     }

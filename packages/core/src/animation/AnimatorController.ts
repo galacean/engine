@@ -70,6 +70,25 @@ export class AnimatorController {
   }
 
   /**
+   * Get the parameter by name.
+   * @param name - The name of the parameter
+   */
+  getParameter(name: string): AnimatorControllerParameter {
+    return this._parametersMap[name] || null;
+  }
+
+  /**
+   * Set the value of the given parameter.
+   * @param name - The name of the parameter
+   */
+  setParameter(name: string, value: AnimatorControllerParameterValueType) {
+    const parameter = this._parametersMap[name];
+    if (parameter && parameter.value !== value) {
+      parameter.value = value;
+    }
+  }
+
+  /**
    * Get the layer by name.
    * @param name - The layer's name.
    */

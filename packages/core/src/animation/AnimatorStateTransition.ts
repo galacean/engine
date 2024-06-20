@@ -17,14 +17,21 @@ export class AnimatorStateTransition {
   destinationState: AnimatorState;
   /** Mutes the transition. The transition will never occur. */
   mute: boolean = false;
-  /** Is the transition destination the exit of the current state machine. */
-  isExit: boolean = false;
 
   /** @internal */
   _srcState: AnimatorState;
+  /** @internal */
+  _isExit: boolean = false;
 
   private _conditions: AnimatorCondition[] = [];
   private _solo = false;
+
+  /**
+   * Is the transition destination the exit of the current state machine.
+   */
+  get isExit(): Readonly<boolean> {
+    return this._isExit;
+  }
 
   /**
    * Mutes all other transitions in the source state.
@@ -48,12 +55,12 @@ export class AnimatorStateTransition {
   /**
    * Add a condition to a transition.
    * @param mode - The AnimatorCondition mode of the condition
-   * @param parameter - The name of the parameter
+   * @param parameterName - The name of the parameter
    * @param threshold - The threshold value of the condition
    */
   addCondition(
     mode: AnimatorConditionMode,
-    parameter: string,
+    parameterName: string,
     threshold?: AnimatorControllerParameterValueType
   ): AnimatorCondition;
 
@@ -65,7 +72,7 @@ export class AnimatorStateTransition {
 
   addCondition(
     param: AnimatorConditionMode | AnimatorCondition,
-    parameter?: string,
+    parameterName?: string,
     threshold?: AnimatorControllerParameterValueType
   ): AnimatorCondition {
     if (typeof param === "object") {
@@ -74,7 +81,7 @@ export class AnimatorStateTransition {
     } else {
       const condition = new AnimatorCondition();
       condition.mode = param;
-      condition.parameter = parameter;
+      condition.parameterName = parameterName;
       condition.threshold = threshold;
       this._conditions.push(condition);
       return condition;
