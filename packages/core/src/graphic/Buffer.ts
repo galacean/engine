@@ -3,27 +3,14 @@ import { TypedArray } from "../base";
 import { Engine } from "../Engine";
 import { IPlatformBuffer } from "../renderingHardwareInterface";
 import { UpdateFlagManager } from "../UpdateFlagManager";
-import { IPoolElement, Pool } from "../utils/Pool";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
 import { BufferUsage } from "./enums/BufferUsage";
 import { SetDataOptions } from "./enums/SetDataOptions";
-
-class Area implements IPoolElement {
-  constructor(
-    public offset: number = -1,
-    public size: number = 0
-  ) {}
-
-  dispose?(): void {}
-}
 
 /**
  * Buffer.
  */
 export class Buffer extends GraphicsResource {
-  /** @internal */
-  static _areaPool: Pool<Area> = new Pool(Area, 100);
-
   /** @internal */
   _dataUpdateManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -33,7 +20,6 @@ export class Buffer extends GraphicsResource {
   private _platformBuffer: IPlatformBuffer;
   private _readable: boolean;
   private _data: Uint8Array;
-  private _freeAreas: Area[] = [];
 
   /**
    * Buffer binding flag.
@@ -122,10 +108,6 @@ export class Buffer extends GraphicsResource {
       this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLengthOrData, bufferUsage);
       if (readable) {
         this._data = new Uint8Array(byteLengthOrData);
-        const area = Buffer._areaPool.alloc();
-        area.offset = 0;
-        area.size = byteLengthOrData;
-        this._freeAreas.push(area);
       }
     } else {
       const data = byteLengthOrData;
@@ -141,10 +123,6 @@ export class Buffer extends GraphicsResource {
                 (<ArrayBufferView>data).byteOffset + byteLength
               );
         this._data = new Uint8Array(buffer);
-        const area = Buffer._areaPool.alloc();
-        area.offset = 0;
-        area.size = byteLength;
-        this._freeAreas.push(area);
       }
     }
   }
@@ -251,83 +229,6 @@ export class Buffer extends GraphicsResource {
   markAsUnreadable(): void {
     this._data = null;
     this._readable = false;
-  }
-
-  /**
-   * Alloc sub buffer from this buffer.
-   * @param need - the byte need to alloc
-   * @returns number
-   */
-  allocate(need: number): number {
-    if (!this._readable) {
-      throw "Buffer is not readable.";
-    }
-
-    const pool = Buffer._areaPool;
-    const freeAreas = this._freeAreas;
-    for (let i = 0, l = freeAreas.length; i < l; ++i) {
-      const area = freeAreas[i];
-      const len = area.size;
-      if (len > need) {
-        const offset = area.offset;
-        area.offset += need;
-        area.size -= need;
-        return offset;
-      } else if (len === need) {
-        const notNeedAreas = freeAreas.splice(i, 1);
-        pool.free(notNeedAreas[0]);
-        return area.offset;
-      }
-    }
-    return -1;
-  }
-
-  /**
-   * Free sub buffer from this buffer.
-   * @param offset - the start offset
-   * @param size -
-   */
-  free(offset: number, size: number): void {
-    if (!this._readable) {
-      throw "Buffer is not readable.";
-    }
-
-    const pool = Buffer._areaPool;
-    const freeAreas = this._freeAreas;
-    const area = pool.alloc();
-    area.offset = offset;
-    area.size = size;
-    const areaLen = freeAreas.length;
-    if (areaLen === 0) {
-      freeAreas.push(area);
-      return;
-    }
-
-    let preArea = area;
-    let notMerge = true;
-    for (let i = 0; i < areaLen; ++i) {
-      const curArea = freeAreas[i];
-      const { offset, size } = preArea;
-      const preEnd = offset + size;
-      const curEnd = curArea.offset + curArea.size;
-      if (preEnd < curArea.offset) {
-        notMerge && freeAreas.splice(i, 0, preArea);
-        return;
-      } else if (preEnd === curArea.offset) {
-        curArea.offset = preArea.offset;
-        curArea.size += preArea.size;
-        pool.free(preArea);
-        preArea = curArea;
-        notMerge = false;
-      } else if (offset === curEnd) {
-        curArea.size += preArea.size;
-        pool.free(preArea);
-        preArea = curArea;
-        notMerge = false;
-      } else if (offset > curEnd) {
-        i + 1 === areaLen && freeAreas.push(preArea);
-      }
-    }
   }
 
   override _rebuild(): void {

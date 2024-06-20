@@ -1,4 +1,4 @@
-import { IPoolElement } from "../../utils/Pool";
+import { IPoolElement } from "../../utils/ObjectPool";
 import { AnimationEvent } from "../AnimationEvent";
 /**
  * @internal

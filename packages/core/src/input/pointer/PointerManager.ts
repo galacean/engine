@@ -124,38 +124,38 @@ export class PointerManager implements IInput {
    * @internal
    */
   _firePointerScript(scenes: readonly Scene[]) {
-    const { _pointers: pointers, _canvas: canvas } = this;
-    for (let i = 0, n = pointers.length; i < n; i++) {
-      const pointer = pointers[i];
-      const { _events: events, position } = pointer;
-      pointer._firePointerDrag();
-      const hitResults = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
-      if (hitResults.length > 0) {
-      }
-      pointer._firePointerExitAndEnter(rayCastEntity);
-      const length = events.length;
-      if (length > 0) {
-        for (let i = 0; i < length; i++) {
-          const event = events[i];
-          switch (event.type) {
-            case "pointerdown":
-              pointer.phase = PointerPhase.Down;
-              pointer._firePointerDown(rayCastEntity);
-              break;
-            case "pointerup":
-              pointer.phase = PointerPhase.Up;
-              pointer._firePointerUpAndClick(rayCastEntity);
-              break;
-            case "pointerleave":
-            case "pointercancel":
-              pointer.phase = PointerPhase.Leave;
-              pointer._firePointerExitAndEnter(null);
-              break;
-          }
-        }
-        events.length = 0;
-      }
-    }
+    // const { _pointers: pointers, _canvas: canvas } = this;
+    // for (let i = 0, n = pointers.length; i < n; i++) {
+    //   const pointer = pointers[i];
+    //   const { _events: events, position } = pointer;
+    //   pointer._firePointerDrag();
+    //   const hitResults = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+    //   if (hitResults.length > 0) {
+    //   }
+    //   pointer._firePointerExitAndEnter(rayCastEntity);
+    //   const length = events.length;
+    //   if (length > 0) {
+    //     for (let i = 0; i < length; i++) {
+    //       const event = events[i];
+    //       switch (event.type) {
+    //         case "pointerdown":
+    //           pointer.phase = PointerPhase.Down;
+    //           pointer._firePointerDown(rayCastEntity);
+    //           break;
+    //         case "pointerup":
+    //           pointer.phase = PointerPhase.Up;
+    //           pointer._firePointerUpAndClick(rayCastEntity);
+    //           break;
+    //         case "pointerleave":
+    //         case "pointercancel":
+    //           pointer.phase = PointerPhase.Leave;
+    //           pointer._firePointerExitAndEnter(null);
+    //           break;
+    //       }
+    //     }
+    //     events.length = 0;
+    //   }
+    // }
   }
 
   /**

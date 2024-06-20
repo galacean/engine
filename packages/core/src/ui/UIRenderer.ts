@@ -1,33 +1,19 @@
-import { BoundingBox, Matrix, Ray, Vector2, Vector4 } from "@galacean/engine-math";
+import { BoundingBox, Ray, Vector4 } from "@galacean/engine-math";
+import { Camera } from "../Camera";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
-import { DynamicGeometryDataManager } from "../RenderPipeline/DynamicGeometryDataManager";
+import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { UICanvas } from "./UICanvas";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
-import { Camera } from "../Camera";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
-  private static _uiCanvas: UICanvas[] = [];
-
-  protected _canvas: UICanvas;
   protected _uiTransform: UITransform;
   protected _localBounds: BoundingBox = new BoundingBox();
   protected _rayCastTarget: boolean = true;
   protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
-  get canvas(): UICanvas {
-    return this._canvas;
-  }
-
-  set canvas(val: UICanvas) {
-    if (this._canvas !== val) {
-      this._canvas = val;
-    }
-  }
 
   get rayCastTarget(): boolean {
     return this._rayCastTarget;
@@ -58,22 +44,22 @@ export class UIRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    if (onlyMVP) {
-      // @ts-ignore
-      this._updateMVPShaderData(context, Matrix._identity);
-    } else {
-      // @ts-ignore
-      this._updateTransformShaderData(context, Matrix._identity);
-    }
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
    * @internal
    */
   override _prepareRender(context: RenderContext): void {
-    this._updateShaderData(context, true);
+    // Update once per frame per renderer, not influenced by batched
+    if (this._renderFrameCount !== this.engine.time.frameCount) {
+      this._updateRendererShaderData(context);
+    }
+
     this._render(context);
+
     // union camera global macro and renderer macro.
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
@@ -90,15 +76,7 @@ export class UIRenderer extends Renderer {
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
-    this._uiTransform._updateFlagManager.addListener(this._onTransformChanged);
-    const uiCanvas = this._entity.getComponentsIncludeParent(UICanvas, UIRenderer._uiCanvas);
-    for (let i = uiCanvas.length - 1; i >= 0; i--) {
-      const canvas = uiCanvas[i];
-      if (canvas.enabled) {
-        this._canvas = canvas;
-        break;
-      }
-    }
+    this._uiTransform._updateFlagManager.addListener(this._onUITransformChanged);
   }
 
   /**
@@ -109,18 +87,7 @@ export class UIRenderer extends Renderer {
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
-    this._uiTransform._updateFlagManager.removeListener(this._onTransformChanged);
-  }
-
-  override _onParentChange(seniority: number): void {
-    const uiCanvas = this._entity.getComponentsIncludeParent(UICanvas, UIRenderer._uiCanvas);
-    for (let i = uiCanvas.length - 1; i >= 0; i--) {
-      const canvas = uiCanvas[i];
-      if (canvas.enabled) {
-        this._canvas = canvas;
-        break;
-      }
-    }
+    this._uiTransform._updateFlagManager.removeListener(this._onUITransformChanged);
   }
 
   /** @internal */
@@ -135,8 +102,8 @@ export class UIRenderer extends Renderer {
   /**
    * @internal
    */
-  _getChunkManager(): DynamicGeometryDataManager {
-    return this.engine._batcherManager._dynamicGeometryDataManager2D;
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
   protected _onUITransformChanged(flag: UITransformModifyFlags): void {}

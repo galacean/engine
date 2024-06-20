@@ -53,6 +53,7 @@ export * from "./mesh/index";
 export * from "./particle/index";
 export * from "./physics/index";
 export * from "./renderingHardwareInterface/index";
+export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 export * from "./shader/index";
 export * from "./shaderlib/index";
 export * from "./shadow/index";
@@ -60,8 +61,4 @@ export * from "./sky/index";
 export * from "./texture/index";
 export * from "./trail/index";
 export * from "./ui";
-export { Pool } from "./utils/Pool";
-export type { IPoolElement } from "./utils/Pool";
 export { XRManager } from "./xr/XRManager";
-
-export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";

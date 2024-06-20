@@ -1,105 +1,97 @@
-import { Camera } from "../Camera";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { Utils } from "../Utils";
-import { RenderQueueType, Shader } from "../shader";
+import { RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { RenderContext } from "./RenderContext";
-import { RenderElement } from "./RenderElement";
 import { BatcherManager } from "./BatcherManager";
-import { ForceUploadShaderDataFlag } from "./enums/ForceUploadShaderDataFlag";
+import { MaskManager } from "./MaskManager";
+import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
+import { RenderElement } from "./RenderElement";
+import { SubRenderElement } from "./SubRenderElement";
 
 /**
- * Render queue.
+ * @internal
  */
 export class RenderQueue {
-  /**
-   * @internal
-   */
-  static _compareForOpaque(a: RenderElement, b: RenderElement): number {
-    const dataA = a.data;
-    const dataB = b.data;
-    const priorityOrder = dataA.priority - dataB.priority;
-    if (priorityOrder !== 0) {
-      return priorityOrder;
-    }
-    // make sure from the same renderer.
-    const instanceIdDiff = dataA.componentInstanceId - dataB.componentInstanceId;
-    if (instanceIdDiff === 0) {
-      return dataA.materialPriority - dataB.materialPriority;
-    } else {
-      return dataA.distanceForSort - dataB.distanceForSort || instanceIdDiff;
-    }
+  static compareForOpaque(a: RenderElement, b: RenderElement): number {
+    return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
   }
 
-  /**
-   * @internal
-   */
-  static _compareForTransparent(a: RenderElement, b: RenderElement): number {
-    const dataA = a.data;
-    const dataB = b.data;
-    const priorityOrder = dataA.priority - dataB.priority;
-    if (priorityOrder !== 0) {
-      return priorityOrder;
-    }
-    // make sure from the same renderer.
-    const instanceIdDiff = dataA.componentInstanceId - dataB.componentInstanceId;
-    if (instanceIdDiff === 0) {
-      return dataA.materialPriority - dataB.materialPriority;
-    } else {
-      return dataB.distanceForSort - dataA.distanceForSort || instanceIdDiff;
-    }
+  static compareForTransparent(a: RenderElement, b: RenderElement): number {
+    return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
   }
 
-  readonly batchedElements: RenderElement[] = [];
-  readonly elements: RenderElement[] = [];
+  readonly elements = new Array<RenderElement>();
+  readonly batchedSubElements = new Array<SubRenderElement>();
 
-  private readonly _renderQueueType: RenderQueueType;
+  constructor(public renderQueueType: RenderQueueType) {}
 
-  constructor(renderQueueType: RenderQueueType) {
-    this._renderQueueType = renderQueueType;
-  }
-
-  /**
-   * Push a render element.
-   */
   pushRenderElement(element: RenderElement): void {
     this.elements.push(element);
   }
 
-  batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this.elements, this.batchedElements);
-    batcherManager.uploadBuffer();
+  sortBatch(compareFunc: Function, batcherManager: BatcherManager): void {
+    this._sort(compareFunc);
+    this._batch(batcherManager);
   }
 
-  render(camera: Camera, pipelineStageTagValue: string): void {
-    const { batchedElements } = this;
-    const len = batchedElements.length;
-    if (len === 0) {
+  render(
+    context: RenderContext,
+    pipelineStageTagValue: string,
+    maskType: RenderQueueMaskType = RenderQueueMaskType.No
+  ): void {
+    const batchedSubElements = this.batchedSubElements;
+    const length = batchedSubElements.length;
+    if (length === 0) {
       return;
     }
 
+    const { rendererUpdateFlag, camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
-    const { shaderData: sceneData, instanceId: sceneId } = scene;
+    const { instanceId: sceneId, shaderData: sceneData } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
-    const renderQueueType = this._renderQueueType;
+    const renderQueueType = this.renderQueueType;
 
-    for (let i = 0; i < len; i++) {
-      const element = batchedElements[i];
-      const { data, shaderPasses } = element;
-      const { uploadFlag } = data;
+    for (let i = 0; i < length; i++) {
+      const subElement = batchedSubElements[i];
+      const { component: renderer, batched } = subElement;
 
-      data.preRender && data.preRender();
+      // @todo: Can optimize update view projection matrix updated
+      if (
+        rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix ||
+        renderer._batchedTransformShaderData != batched
+      ) {
+        // Update world matrix and view matrix and model matrix
+        renderer._updateTransformShaderData(context, false, batched);
+        renderer._batchedTransformShaderData = subElement.batched;
+      } else if (rendererUpdateFlag & ContextRendererUpdateFlag.ProjectionMatrix) {
+        // Only projection matrix need updated
+        renderer._updateTransformShaderData(context, true, batched);
+      }
+
+      renderer._maskInteraction !== SpriteMaskInteraction.None &&
+        this._drawMask(context, pipelineStageTagValue, subElement);
 
       const compileMacros = Shader._compileMacros;
-      const primitive = data.primitive;
-      const renderer = data.component;
-      const material = data.material;
+      const { primitive, material, shaderPasses, shaderData: renderElementShaderData } = subElement;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
-      // union render global macro and material self macro.
+      // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
+
+      // TODO: Mask should not modify material's render state, will delete this code after mask refactor
+      if (maskType !== RenderQueueMaskType.No) {
+        const operation =
+          maskType === RenderQueueMaskType.Increment
+            ? StencilOperation.IncrementSaturate
+            : StencilOperation.DecrementSaturate;
+
+        const { stencilState } = material.renderState;
+        stencilState.passOperationFront = operation;
+        stencilState.passOperationBack = operation;
+      }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
@@ -125,6 +117,7 @@ export class RenderQueue {
           program.uploadAll(program.cameraUniformBlock, cameraData);
           program.uploadAll(program.rendererUniformBlock, rendererData);
           program.uploadAll(program.materialUniformBlock, materialData);
+          renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
           program.uploadUnGroupTextures();
           program._uploadSceneId = sceneId;
@@ -136,30 +129,32 @@ export class RenderQueue {
           if (program._uploadSceneId !== sceneId) {
             program.uploadAll(program.sceneUniformBlock, sceneData);
             program._uploadSceneId = sceneId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Scene) {
+          } else if (switchProgram) {
             program.uploadTextures(program.sceneUniformBlock, sceneData);
           }
 
           if (program._uploadCameraId !== cameraId) {
             program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCameraId = cameraId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Camera) {
+          } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
 
           if (program._uploadRendererId !== rendererId) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRendererId = rendererId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Renderer) {
+          } else if (switchProgram) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
 
           if (program._uploadMaterialId !== materialId) {
             program.uploadAll(program.materialUniformBlock, materialData);
             program._uploadMaterialId = materialId;
-          } else if (switchProgram || uploadFlag & ForceUploadShaderDataFlag.Material) {
+          } else if (switchProgram) {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
+
+          renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
 
           // We only consider switchProgram case, because UnGroup texture's value is always default.
           if (switchProgram) {
@@ -175,29 +170,47 @@ export class RenderQueue {
           material.shaderData
         );
 
-        rhi.drawPrimitive(primitive, data.subPrimitive, program);
+        rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
       }
-      data.postRender && data.postRender();
     }
   }
 
-  /**
-   * Clear collection.
-   */
   clear(): void {
-    this.batchedElements.length = 0;
     this.elements.length = 0;
+    this.batchedSubElements.length = 0;
   }
 
-  /**
-   * Destroy internal resources.
-   */
   destroy(): void {}
 
-  /**
-   * Sort the elements.
-   */
-  sort(compareFunc: Function): void {
+  private _sort(compareFunc: Function): void {
     Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
   }
+
+  private _batch(batcherManager: BatcherManager): void {
+    batcherManager.batch(this);
+  }
+
+  private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {
+    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
+    incrementMaskQueue.renderQueueType = this.renderQueueType;
+    incrementMaskQueue.clear();
+
+    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+    decrementMaskQueue.renderQueueType = this.renderQueueType;
+    decrementMaskQueue.clear();
+
+    const engine = context.camera.engine;
+    engine._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
+
+    incrementMaskQueue._batch(engine._batcherManager);
+    incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    decrementMaskQueue._batch(engine._batcherManager);
+    decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+  }
+}
+
+enum RenderQueueMaskType {
+  No,
+  Increment,
+  Decrement
 }

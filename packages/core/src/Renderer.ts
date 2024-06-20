@@ -1,9 +1,12 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
+import { SpriteMaskLayer } from "./2d";
+import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
@@ -12,7 +15,6 @@ import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { RenderElement } from "./RenderPipeline/RenderElement";
 
 /**
  * Basis for all renderers.
@@ -48,6 +50,15 @@ export class Renderer extends Component implements IComponentCustomClone {
   _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
+  /** @internal */
+  @assignmentClone
+  _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+  /** @internal */
+  @assignmentClone
+  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
+  /** @internal */
+  @ignoreClone
+  _batchedTransformShaderData: boolean = false;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -55,6 +66,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _materials: Material[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
+  @ignoreClone
+  protected _rendererLayer: Vector4 = new Vector4();
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -72,9 +85,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
-
-  @ignoreClone
-  protected _rendererLayer: Vector4 = new Vector4();
 
   /**
    * ShaderData related to renderer.
@@ -324,7 +334,11 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
     }
 
-    this._updateShaderData(context, false);
+    // Update once per frame per renderer, not influenced by batched
+    if (this._renderFrameCount !== this.engine.time.frameCount) {
+      this._updateRendererShaderData(context);
+    }
+
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -376,43 +390,72 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    const entity = this.entity;
-    const worldMatrix = entity.transform.worldMatrix;
+  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    const worldMatrix = this.entity.transform.worldMatrix;
     if (onlyMVP) {
-      this._updateMVPShaderData(context, worldMatrix);
+      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
       return;
     }
-    this._updateTransformShaderData(context, worldMatrix);
+    this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
+  }
 
-    const layer = entity.layer;
+  /**
+   * @internal
+   */
+  _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return false;
+  }
+
+  /**
+   * @internal
+   */
+  _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
+
+  protected _updateRendererShaderData(context: RenderContext): void {
+    const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
-    const shaderData = this.shaderData;
-    const mvMatrix = this._mvMatrix;
-    const mvInvMatrix = this._mvInvMatrix;
-    const normalMatrix = this._normalMatrix;
+  protected _updateWorldViewRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
+    const { shaderData, _mvInvMatrix: mvInvMatrix } = this;
+    if (batched) {
+      // @ts-ignore
+      const identityMatrix = Matrix._identity;
 
-    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.invert(mvMatrix, mvInvMatrix);
-    Matrix.invert(worldMatrix, normalMatrix);
-    normalMatrix.transpose();
+      Matrix.invert(context.viewMatrix, mvInvMatrix);
 
-    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
-    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
-    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
-    this._updateMVPShaderData(context, worldMatrix);
+      shaderData.setMatrix(Renderer._localMatrixProperty, identityMatrix);
+      shaderData.setMatrix(Renderer._worldMatrixProperty, identityMatrix);
+      shaderData.setMatrix(Renderer._mvMatrixProperty, context.viewMatrix);
+      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
+      shaderData.setMatrix(Renderer._normalMatrixProperty, identityMatrix);
+    } else {
+      const mvMatrix = this._mvMatrix;
+      const normalMatrix = this._normalMatrix;
+
+      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+      Matrix.invert(mvMatrix, mvInvMatrix);
+      Matrix.invert(worldMatrix, normalMatrix);
+      normalMatrix.transpose();
+
+      shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
+      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
+      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+    }
+
+    this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
   }
 
-  protected _updateMVPShaderData(context: RenderContext, worldMatrix: Matrix): void {
-    const mvpMatrix = this._mvpMatrix;
-
-    Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
-    this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+  protected _updateProjectionRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
+    if (batched) {
+      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
+    } else {
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+    }
   }
 
   /**
@@ -440,18 +483,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
-
-  /**
-   * @internal
-   */
-  protected _canBatch(elementA: RenderElement, elementB: RenderElement): boolean {
-    return false;
-  }
-
-  /**
-   * @internal
-   */
-  protected _batchRenderElement(elementA: RenderElement, elementB?: RenderElement): void {}
 
   /**
    * @internal

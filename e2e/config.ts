@@ -168,5 +168,12 @@ export const E2E_CONFIG = {
       caseFileName: "physx-collision",
       threshold: 0.1
     }
+  },
+  Particle: {
+    meshopt: {
+      category: "Particle",
+      caseFileName: "particleRenderer-dream",
+      threshold: 0.3
+    }
   }
 };

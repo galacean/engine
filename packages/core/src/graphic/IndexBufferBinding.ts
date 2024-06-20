@@ -28,8 +28,6 @@ export class IndexBufferBinding {
    * Create index buffer binding.
    * @param buffer - Index buffer
    * @param format - Index buffer format
-   * @param offset - Index start offset of buffer
-   * @param size - Index size
    */
   constructor(buffer: Buffer, format: IndexFormat) {
     this._buffer = buffer;

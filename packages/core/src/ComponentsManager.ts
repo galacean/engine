@@ -19,7 +19,7 @@ export class ComponentsManager {
   /* @internal */
   _uiCanvasSortingFlag: number = 0;
   /** @internal */
-  _uiCanvasesArray: DisorderedArray<UICanvas>[];
+  _uiCanvasesArray: DisorderedArray<UICanvas>[] = [];
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -74,23 +74,21 @@ export class ComponentsManager {
     renderer._rendererIndex = -1;
   }
 
-  addUICanvas(uiCanvas: UICanvas) {
-    const { renderMode } = uiCanvas;
-    const uiCanvases = (this._uiCanvasesArray[renderMode] ||= new DisorderedArray());
+  addUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
+    const uiCanvases = (this._uiCanvasesArray[mode] ||= new DisorderedArray());
     uiCanvas._uiCanvasIndex = uiCanvases.length;
     uiCanvases.add(uiCanvas);
-    this._uiCanvasSortingFlag |= 1 << renderMode;
+    this._uiCanvasSortingFlag |= 1 << mode;
   }
 
-  removeUICanvas(uiCanvas: UICanvas) {
-    const { renderMode } = uiCanvas;
-    const uiCanvases = this._uiCanvasesArray[renderMode];
+  removeUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
+    const uiCanvases = this._uiCanvasesArray[mode];
     if (uiCanvases) {
       const replaced = uiCanvases.deleteByIndex(uiCanvas._uiCanvasIndex);
       replaced && (replaced._uiCanvasIndex = uiCanvas._uiCanvasIndex);
-      uiCanvas._uiCanvasIndex = -1;
-      this._uiCanvasSortingFlag |= 1 << renderMode;
+      this._uiCanvasSortingFlag |= 1 << mode;
     }
+    uiCanvas._uiCanvasIndex = -1;
   }
 
   sortUICanvases(): void {

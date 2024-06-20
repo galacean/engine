@@ -8,6 +8,7 @@ import {
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
+import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
@@ -15,12 +16,10 @@ import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
-import { ClassPool } from "./RenderPipeline/ClassPool";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderData } from "./RenderPipeline/RenderData";
-import { RenderData2D } from "./RenderPipeline/RenderData2D";
 import { RenderElement } from "./RenderPipeline/RenderElement";
-import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -47,8 +46,9 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { ClearableObjectPool } from "./utils/ClearableObjectPool";
+import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-import { CanvasRenderMode } from "./ui";
 
 ShaderPool.init();
 
@@ -71,7 +71,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _batcherManager: BatcherManager;
   /** @internal */
-  _spriteMaskManager: SpriteMaskManager;
+  _maskManager: MaskManager;
 
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
@@ -86,11 +86,13 @@ export class Engine extends EventDispatcher {
   _lastRenderState: RenderState = new RenderState();
 
   /* @internal */
-  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
-  _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
+  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
-  _renderData2DPool: ClassPool<RenderData2D> = new ClassPool(RenderData2D);
+  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
+  /* @internal */
+  _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -98,6 +100,8 @@ export class Engine extends EventDispatcher {
   _spriteDefaultMaterial: Material;
   /** @internal */
   _spriteDefaultMaterials: Material[] = [];
+  /* @internal */
+  _textDefaultMaterial: Material;
   /* @internal */
   _spriteMaskDefaultMaterial: Material;
   /* @internal */
@@ -265,12 +269,13 @@ export class Engine extends EventDispatcher {
     );
 
     this._uiDefaultMaterial = this._createUIMaterial();
+    this._textDefaultMaterial = this._createTextMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
-    this._spriteMaskManager = new SpriteMaskManager(this);
+    this._maskManager = new MaskManager();
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -352,9 +357,9 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._renderElementPool.resetPool();
-    this._renderDataPool.resetPool();
-    this._renderData2DPool.resetPool();
+    this._subRenderElementPool.clear();
+    this._textSubRenderElementPool.clear();
+    this._renderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -462,7 +467,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._spriteMaskManager.destroy();
+    this._maskManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
@@ -523,8 +528,7 @@ export class Engine extends EventDispatcher {
   _render(scenes: ReadonlyArray<Scene>): void {
     // Update `Renderer` logic and shader data
     const deltaTime = this.time.deltaTime;
-    const sceneCount = scenes.length;
-    for (let i = 0; i < sceneCount; i++) {
+    for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       scene._componentsManager.callRendererOnUpdate(deltaTime);
@@ -532,7 +536,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire script `onBeginRender` and `onEndRender`
-    for (let i = 0; i < sceneCount; i++) {
+    for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
 
@@ -728,6 +732,24 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createTextMaterial(): Material {
+    const material = new Material(this, Shader.find("Text"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }
@@ -782,9 +804,9 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
+    this._subRenderElementPool.garbageCollection();
+    this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
-    this._renderDataPool.garbageCollection();
-    this._renderData2DPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 

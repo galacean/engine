@@ -127,31 +127,31 @@ export class Script extends Component {
    * Called when the pointer is down while over the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerDown(event: PointerEvent): void {}
+  onPointerDown(event: Pointer): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerUp(event: PointerEvent): void {}
+  onPointerUp(event: Pointer): void {}
 
   /**
    * Called when the pointer is down and up with the same collider.
    * @param pointer - The pointer that triggered
    */
-  onPointerClick(event: PointerEvent): void {}
+  onPointerClick(event: Pointer): void {}
 
   /**
    * Called when the pointer is enters the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerEnter(event: PointerEvent): void {}
+  onPointerEnter(event: Pointer): void {}
 
   /**
    * Called when the pointer is no longer over the ColliderShape.
    * @param pointer - The pointer that triggered
    */
-  onPointerExit(event: PointerEvent): void {}
+  onPointerExit(event: Pointer): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape and is still holding down.

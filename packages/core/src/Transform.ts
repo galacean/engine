@@ -1,9 +1,9 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlagManager } from "./UpdateFlagManager";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.
@@ -561,8 +561,8 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  override _onParentChange(seniority: number): void {
-    this._isParentDirty = seniority === 1;
+  _parentChange(): void {
+    this._isParentDirty = true;
     this._updateAllWorldFlag();
   }
 
@@ -682,6 +682,10 @@ export class Transform extends Component {
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWeWqWs)) {
       this._worldAssociatedChange(TransformModifyFlags.WmWpWeWqWs);
+      const nodeChildren = this._entity._children;
+      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
+        nodeChildren[i].transform?._updateAllWorldFlag();
+      }
     }
   }
 

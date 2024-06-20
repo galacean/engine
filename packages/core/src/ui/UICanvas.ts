@@ -2,7 +2,7 @@ import { MathUtil, Ray, Vector2 } from "@galacean/engine-math";
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
-import { Entity } from "../Entity";
+import { Entity, EntityModifyFlags } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Transform } from "../Transform";
 import { Logger } from "../base";
@@ -27,18 +27,18 @@ export class UICanvas extends Component {
   private _renderers: UIRenderer[] = [];
   private _transform: Transform;
   private _uiTransform: UITransform;
-  private _referenceResolution: Vector2 = new Vector2(750, 1624);
+  private _referenceResolution: Vector2 = new Vector2(800, 600);
   private _isRootCanvas: boolean = false;
   private _enableBlocked: boolean = true;
-  // 节点改变，UI 组件 enable or disable
-  private _canvasHierarchyDirty: boolean = false;
+  private _parents: Entity[] = [];
+  private _hierarchyDirty: boolean = true;
 
   /** @internal */
   get renderers(): UIRenderer[] {
-    if (this._canvasHierarchyDirty) {
+    if (this._hierarchyDirty) {
       this._renderers.length = 0;
       this._walk(this.entity, this._renderers);
-      this._canvasHierarchyDirty = false;
+      // this._canvasHierarchyDirty = false;
     }
     return this._renderers;
   }
@@ -77,14 +77,27 @@ export class UICanvas extends Component {
         if (preMode !== mode) {
           if (preMode === CanvasRenderMode.ScreenSpaceCamera) {
             this._removeCameraListener(camera);
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = null;
           } else if (preMode === CanvasRenderMode.ScreenSpaceOverlay) {
             this._removeCanvasListener();
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = null;
           }
           if (mode === CanvasRenderMode.ScreenSpaceCamera) {
             this._addCameraListener(camera);
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
           } else if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
             this._addCanvasListener();
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
           }
+          this._adapterPoseInScreenSpace();
+          this._adapterSizeInScreenSpace();
+          const { _componentsManager: componentsManager } = this.scene;
+          componentsManager.removeUICanvas(preMode, this);
+          componentsManager.addUICanvas(mode, this);
         }
       } else {
         Logger.error("「根画布」");
@@ -102,6 +115,8 @@ export class UICanvas extends Component {
       this._renderCamera = val;
       if (this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera) {
         preCamera ? this._removeCameraListener(preCamera) : this._removeCanvasListener();
+        const preMode = preCamera ? CanvasRenderMode.ScreenSpaceCamera : CanvasRenderMode.ScreenSpaceOverlay;
+        const curMode = val ? CanvasRenderMode.ScreenSpaceCamera : CanvasRenderMode.ScreenSpaceOverlay;
         if (val) {
           this._addCameraListener(val);
         } else {
@@ -109,6 +124,11 @@ export class UICanvas extends Component {
         }
         this._adapterPoseInScreenSpace();
         this._adapterSizeInScreenSpace();
+        if (preMode !== curMode) {
+          const { _componentsManager: componentsManager } = this.scene;
+          componentsManager.removeUICanvas(preMode, this);
+          componentsManager.addUICanvas(curMode, this);
+        }
       } else {
         Logger.error("「根画布」「渲染模式 ScreenSpaceCamera 」");
       }
@@ -160,12 +180,14 @@ export class UICanvas extends Component {
     super(entity);
     this._transform = entity.getComponent(Transform);
     this._uiTransform = entity.getComponent(UITransform);
-    this._onCanvasSizeChange = this._onCanvasSizeChange.bind(this);
-    this._onCameraPropertyChange = this._onCameraPropertyChange.bind(this);
-    this._onCameraTransformChange = this._onCameraTransformChange.bind(this);
+    this._onEntityListener = this._onEntityListener.bind(this);
+    this._onParentListener = this._onParentListener.bind(this);
+    this._onCanvasSizeListener = this._onCanvasSizeListener.bind(this);
+    this._onCameraPropertyListener = this._onCameraPropertyListener.bind(this);
+    this._onCameraTransformListener = this._onCameraTransformListener.bind(this);
     this._onReferenceResolutionChanged = this._onReferenceResolutionChanged.bind(this);
     // @ts-ignore
-    this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged.bind(this);
+    this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
   }
 
   _prepareRender(context: RenderContext): void {
@@ -183,29 +205,19 @@ export class UICanvas extends Component {
   /**
    * @internal
    */
-  _setIsRootCanvas(value: boolean): void {
-    if (this._isRootCanvas !== value) {
-      this._isRootCanvas = value;
-      if (value) {
-        this.scene._componentsManager.addUICanvas(this);
-      } else {
-        this.scene._componentsManager.removeUICanvas(this);
-      }
-    }
-  }
-
-  /**
-   * @internal
-   */
   override _onEnableInScene(): void {
-    this._setIsRootCanvas(this.entity._isRoot);
+    this._entity._updateFlagManager.addListener(this._onEntityListener);
+    this._addParentListener();
+    this._setIsRootCanvas(this._checkIsRootCanvas());
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this._isRootCanvas && this.scene._componentsManager.removeUICanvas(this);
+    this._entity._updateFlagManager.removeListener(this._onEntityListener);
+    this._removeParentListener();
+    this._setIsRootCanvas(false);
   }
 
   /**
@@ -222,35 +234,6 @@ export class UICanvas extends Component {
         uiPath.push(renderer);
       }
     }
-  }
-
-  private _onReferenceResolutionChanged(): void {
-    if (this._isRootCanvas && this.renderMode !== CanvasRenderMode.WorldSpace) {
-      this._adapterSizeInScreenSpace();
-    } else {
-      Logger.error("「根画布」「渲染模式 ScreenSpaceXXX 」");
-    }
-  }
-
-  private _onCameraTransformChange(): void {
-    this._adapterPoseInScreenSpace();
-  }
-
-  private _onCameraPropertyChange(flag: CameraModifyFlags): void {
-    switch (flag) {
-      case CameraModifyFlags.NearPlane:
-      case CameraModifyFlags.FarPlane:
-        break;
-      default:
-        this._adapterSizeInScreenSpace();
-        break;
-    }
-  }
-
-  private _onCanvasSizeChange(): void {
-    const { canvas } = this.engine;
-    this._transform.setWorldPosition(canvas.width / 2, canvas.height / 2, 0);
-    this._adapterSizeInScreenSpace();
   }
 
   private _adapterPoseInScreenSpace(): void {
@@ -327,24 +310,149 @@ export class UICanvas extends Component {
   }
 
   private _addCameraListener(camera: Camera): void {
-    camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformChange);
-    camera._updateFlagManager.addListener(this._onCameraPropertyChange);
-  }
-
-  private _addCanvasListener(): void {
-    this.engine.canvas._sizeUpdateFlagManager.addListener(this._onCanvasSizeChange);
+    camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformListener);
+    camera._updateFlagManager.addListener(this._onCameraPropertyListener);
   }
 
   private _removeCameraListener(camera: Camera): void {
-    camera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformChange);
-    camera._updateFlagManager.removeListener(this._onCameraPropertyChange);
+    camera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformListener);
+    camera._updateFlagManager.removeListener(this._onCameraPropertyListener);
+  }
+
+  private _onCameraPropertyListener(flag: CameraModifyFlags): void {
+    switch (flag) {
+      case CameraModifyFlags.NearPlane:
+      case CameraModifyFlags.FarPlane:
+        break;
+      default:
+        this._adapterSizeInScreenSpace();
+        break;
+    }
+  }
+
+  private _onCameraTransformListener(): void {
+    this._adapterPoseInScreenSpace();
+  }
+
+  private _addCanvasListener(): void {
+    this.engine.canvas._sizeUpdateFlagManager.addListener(this._onCanvasSizeListener);
   }
 
   private _removeCanvasListener(): void {
-    this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeChange);
+    this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
-  override _onParentChange(seniority: number): void {
-    this._setIsRootCanvas(this.entity._isRoot);
+  private _onCanvasSizeListener(): void {
+    const { canvas } = this.engine;
+    this._transform.setWorldPosition(canvas.width / 2, canvas.height / 2, 0);
+    this._adapterSizeInScreenSpace();
+  }
+
+  private _addParentListener(): void {
+    const { _parents: parents } = this;
+    let entity = this.entity;
+    while (entity.parent) {
+      entity = entity.parent;
+      parents.push(entity);
+      entity._updateFlagManager.addListener(this._onParentListener);
+    }
+  }
+
+  private _removeParentListener(): void {
+    const { _parents: parents } = this;
+    for (let i = 0, n = parents.length; i < n; i++) {
+      parents[i]._updateFlagManager.removeListener(this._onParentListener);
+    }
+    parents.length = 0;
+  }
+
+  private _onEntityListener(flag: EntityModifyFlags, param?: any): void {
+    if (flag === EntityModifyFlags.Parent) {
+      this._removeParentListener();
+      this._addParentListener();
+      this._setIsRootCanvas(this._checkIsRootCanvas());
+    }
+  }
+
+  private _onParentListener(flag: EntityModifyFlags, param?: any): void {
+    switch (flag) {
+      case EntityModifyFlags.Parent:
+        this._removeParentListener();
+        this._addParentListener();
+        this._setIsRootCanvas(this._checkIsRootCanvas());
+        break;
+      case EntityModifyFlags.AddComponent:
+        param instanceof UICanvas && this._setIsRootCanvas(false);
+        break;
+      case EntityModifyFlags.DelComponent:
+        param instanceof UICanvas && this._setIsRootCanvas(this._checkIsRootCanvas());
+        break;
+      default:
+        break;
+    }
+  }
+
+  private _onReferenceResolutionChanged(): void {
+    this._adapterSizeInScreenSpace();
+  }
+
+  private _checkIsRootCanvas(): boolean {
+    const canvases = this.entity.getComponentsInParent(UICanvas, []);
+    for (let i = 0, n = canvases.length; i < n; i++) {
+      if (canvases[i].enabled) return false;
+    }
+    return true;
+  }
+
+  private _setIsRootCanvas(value: boolean): void {
+    if (this._isRootCanvas !== value) {
+      this._isRootCanvas = value;
+      const { _renderMode: renderMode } = this;
+      if (value) {
+        switch (renderMode) {
+          case CanvasRenderMode.ScreenSpaceCamera:
+            if (this._renderCamera) {
+              this._addCameraListener(this._renderCamera);
+            } else {
+              this._addCanvasListener();
+            }
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
+            this._adapterPoseInScreenSpace();
+            this._adapterSizeInScreenSpace();
+            break;
+          case CanvasRenderMode.ScreenSpaceOverlay:
+            this._addCanvasListener();
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
+            this._adapterPoseInScreenSpace();
+            this._adapterSizeInScreenSpace();
+            break;
+          default:
+            break;
+        }
+        this.scene._componentsManager.addUICanvas(renderMode, this);
+      } else {
+        switch (renderMode) {
+          case CanvasRenderMode.ScreenSpaceCamera:
+            if (this._renderCamera) {
+              this._removeCameraListener(this._renderCamera);
+            } else {
+              this._removeCanvasListener();
+            }
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = null;
+            break;
+          case CanvasRenderMode.ScreenSpaceOverlay:
+            this._removeCanvasListener();
+            // @ts-ignore
+            this._referenceResolution._onValueChanged = null;
+            break;
+          default:
+            break;
+        }
+        this.scene._componentsManager.removeUICanvas(renderMode, this);
+      }
+    }
   }
 }
