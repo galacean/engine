@@ -494,7 +494,7 @@ export class Animator extends Component {
     const { srcPlayData: playData, destPlayData, layerState } = layerData;
     const { stateMachine } = this._animatorController.layers[layerIndex];
     const { entryTransitions } = stateMachine;
-    console.log(333, "_updateData", deltaTime);
+
     switch (layerState) {
       case LayerState.Standby:
         if (entryTransitions.length) {
