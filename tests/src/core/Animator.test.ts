@@ -38,8 +38,6 @@ describe("Animator test", function () {
     const defaultSceneRoot = resource.defaultSceneRoot;
     rootEntity.addChild(defaultSceneRoot);
     animator = defaultSceneRoot.getComponent(Animator);
-
-    engine.run();
   });
 
   after(function () {
@@ -191,7 +189,7 @@ describe("Animator test", function () {
   it("animation cross fade", () => {
     animator.play("Walk");
     animator.crossFade("Run", 0.5);
-    animator.update(1);
+    animator.update(0.1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];
@@ -211,7 +209,6 @@ describe("Animator test", function () {
     walkState.addTransition(transition);
 
     animator.play("Walk");
-
     animator.update(walkState.clip.length - 0.1);
     animator.update(0.1);
 
@@ -225,10 +222,10 @@ describe("Animator test", function () {
 
   it("animation fix cross fade", () => {
     animator.play("Walk");
-    animator.update(1);
+    animator.update(0.1);
     animator.crossFade("Survey", 5);
     animator.crossFade("Run", 0.5);
-    animator.update(10);
+    animator.update(0.1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];
@@ -308,8 +305,12 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     const stateMachine = animator.animatorController.layers[0].stateMachine;
     const idleState = animator.findAnimatorState("Survey");
+    idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
     const runState = animator.findAnimatorState("Run");
+    runState.clearTransitions();
+
     {
       // handle idle state
       const toWalkTransition = new AnimatorStateTransition();
@@ -351,22 +352,16 @@ describe("Animator test", function () {
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
 
-    for (let i = 0; i < 10; ++i) {
-      animator.update(500);
-    }
+    animator.update(10);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
     animator.animatorController.setParameterValue("playerSpeed", 0.4);
-    for (let i = 0; i < 10; ++i) {
-      animator.update(500);
-    }
+    animator.update(10);
 
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
     animator.animatorController.setParameterValue("playerSpeed", 0);
-    for (let i = 0; i < 10; ++i) {
-      animator.update(500);
-    }
+    animator.update(10);
 
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
   });
