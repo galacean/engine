@@ -1,11 +1,11 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ClearableObjectPool } from "../utils/ClearableObjectPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
@@ -51,7 +51,7 @@ export class Animator extends Component {
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
-  private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
+  private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
@@ -246,7 +246,7 @@ export class Animator extends Component {
 
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = {};
-    this._animationEventHandlerPool.resetPool();
+    this._animationEventHandlerPool.clear();
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
@@ -357,7 +357,7 @@ export class Animator extends Component {
       eventHandlers.length = 0;
       for (let i = 0, n = events.length; i < n; i++) {
         const event = events[i];
-        const eventHandler = eventHandlerPool.getFromPool();
+        const eventHandler = eventHandlerPool.get();
         const funcName = event.functionName;
         const { handlers } = eventHandler;
 
@@ -1010,6 +1010,24 @@ export class Animator extends Component {
     }
   }
 
+  private _playState(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
+    const name = state.name;
+    if (!state.clip) {
+      Logger.warn(`The state named ${name} has no AnimationClip data.`);
+      return false;
+    }
+
+    const animatorLayerData = this._getAnimatorLayerData(layerIndex);
+    const animatorStateData = this._getAnimatorStateData(name, state, animatorLayerData, layerIndex);
+
+    this._preparePlay(animatorLayerData, state);
+
+    animatorLayerData.layerState = LayerState.Playing;
+    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
+
+    return true;
+  }
+
   private _applyTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     if (transition.isExit) {
       this._checkEntryState();
@@ -1068,24 +1086,6 @@ export class Animator extends Component {
       }
     }
     return allPass;
-  }
-
-  private _playState(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
-    const name = state.name;
-    if (!state.clip) {
-      Logger.warn(`The state named ${name} has no AnimationClip data.`);
-      return false;
-    }
-
-    const animatorLayerData = this._getAnimatorLayerData(layerIndex);
-    const animatorStateData = this._getAnimatorStateData(name, state, animatorLayerData, layerIndex);
-
-    this._preparePlay(animatorLayerData, state);
-
-    animatorLayerData.layerState = LayerState.Playing;
-    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
-
-    return true;
   }
 
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {

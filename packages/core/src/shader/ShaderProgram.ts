@@ -38,6 +38,7 @@ export class ShaderProgram {
   readonly cameraUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly rendererUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly materialUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
+  readonly renderElementUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly otherUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
 
   /** @internal */
@@ -215,6 +216,13 @@ export class ShaderProgram {
           this.materialUniformBlock.textureUniforms.push(uniform);
         } else {
           this.materialUniformBlock.constUniforms.push(uniform);
+        }
+        break;
+      case ShaderDataGroup.RenderElement:
+        if (isTexture) {
+          this.renderElementUniformBlock.textureUniforms.push(uniform);
+        } else {
+          this.renderElementUniformBlock.constUniforms.push(uniform);
         }
         break;
       default:

@@ -104,7 +104,7 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
-    CloneManager.deepCloneObject(this.renderStates, target.renderStates);
+    CloneManager.deepCloneObject(this.renderStates, target.renderStates, new Map<Object, Object>());
   }
 
   override _addReferCount(value: number): void {

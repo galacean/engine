@@ -61,6 +61,4 @@ export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
 
-// Export for CanvasRenderer plugin.
-export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";

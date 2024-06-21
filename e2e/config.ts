@@ -116,6 +116,11 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-basic",
       threshold: 0.2
+    },
+    transparent: {
+      category: "Shadow",
+      caseFileName: "shadow-transparent",
+      threshold: 0.2
     }
   },
   Primitive: {
@@ -167,6 +172,13 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-collision",
       threshold: 0.1
+    }
+  },
+  Particle: {
+    particle: {
+      category: "Particle",
+      caseFileName: "particleRenderer-dream",
+      threshold: 0.3
     }
   }
 };
