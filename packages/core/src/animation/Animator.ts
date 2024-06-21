@@ -107,8 +107,6 @@ export class Animator extends Component {
       this._reset();
     }
 
-    this._playFrameCount = this.engine.time.frameCount;
-
     const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
     const { state, layerIndex: playLayerIndex } = stateInfo;
 
@@ -128,6 +126,7 @@ export class Animator extends Component {
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
 
+    this._playFrameCount = this.engine.time.frameCount;
     this.update(0);
   }
 
@@ -149,7 +148,11 @@ export class Animator extends Component {
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
-    this._crossFadeByTransition(manuallyTransition, playLayerIndex);
+
+    if (this._crossFadeByTransition(manuallyTransition, playLayerIndex)) {
+      this._playFrameCount = this.engine.time.frameCount;
+      this.update(0);
+    }
   }
 
   /**
@@ -994,8 +997,6 @@ export class Animator extends Component {
       this._reset();
     }
 
-    this._playFrameCount = this.engine.time.frameCount;
-
     if (!crossState) {
       return false;
     }
@@ -1036,7 +1037,6 @@ export class Animator extends Component {
 
     animatorLayerData.crossFadeTransition = transition;
 
-    this.update(0);
     return true;
   }
 
