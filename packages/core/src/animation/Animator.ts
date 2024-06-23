@@ -502,6 +502,7 @@ export class Animator extends Component {
           const entryTransition = this._applyTransitionsByCondition(null, entryTransitions, layerIndex);
           entryTransition && this._updateState(stateMachine, layerIndex, deltaTime);
         } else {
+          // CM: are you sure this will play the default state?
           const defaultState = stateMachine.defaultState;
           defaultState && this._preparePlay(defaultState, layerIndex);
           // CM: not update this frame?
@@ -1025,6 +1026,7 @@ export class Animator extends Component {
     if (transition.isExit) {
       // CM: This is single layer, not all layers
       this._checkEntryState();
+      // CM: This will play the default state?
       return;
     }
     this._prepareCrossFadeByTransition(transition, layerIndex);
