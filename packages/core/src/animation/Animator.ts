@@ -529,7 +529,8 @@ export class Animator extends Component {
     const { srcPlayData } = layerData;
     const { state, playState: lastPlayState, clipTime: lastClipTime } = srcPlayData;
 
-    const actualDeltaTime = state.speed * this.speed * deltaTime;
+    const actualSpeed = state.speed * this.speed;
+    const actualDeltaTime = actualSpeed * deltaTime;
     srcPlayData.update(actualDeltaTime);
     const { clipTime, playState } = srcPlayData;
 
@@ -556,19 +557,21 @@ export class Animator extends Component {
 
     if (transition) {
       const clipDuration = state.clip.length;
-      const startTime = state.clipStartTime * clipDuration;
-      const endTime = state.clipEndTime * clipDuration;
+      const clipEndTime = state.clipEndTime * clipDuration;
       const exitTime = transition.exitTime * state._getDuration();
       let costTime = 0;
-      if (this.speed * state.speed >= 0) {
-        if (lastClipTime + actualDeltaTime > endTime) {
-          costTime = exitTime + endTime - lastClipTime;
+
+      if (actualSpeed >= 0) {
+        // CM: Need discussion
+        if (lastClipTime + actualDeltaTime > clipEndTime) {
+          costTime = exitTime + clipEndTime - lastClipTime;
         } else {
           costTime = exitTime - lastClipTime;
         }
       } else {
+        const startTime = state.clipStartTime * clipDuration;
         if (lastClipTime + actualDeltaTime < startTime) {
-          costTime = endTime - exitTime + lastClipTime - startTime;
+          costTime = clipEndTime - exitTime + lastClipTime - startTime;
         }
       }
       const remainDeltaTime = deltaTime - costTime;
