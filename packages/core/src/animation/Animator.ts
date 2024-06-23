@@ -1106,6 +1106,7 @@ export class Animator extends Component {
     const offset = duration * transition.offset;
     animatorLayerData.destPlayData.reset(crossState, animatorStateData, offset);
 
+    // CM: maybe prepare can merge
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:
       case LayerState.Finished:
