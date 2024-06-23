@@ -475,7 +475,7 @@ export class Animator extends Component {
           const defaultState = stateMachine.defaultState;
           defaultState && this.play(defaultState.name, layerIndex);
         }
-        // CM: transitions logic should be here
+        // CM: transitions logic should not be here
         break;
       case LayerState.Playing:
         this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
