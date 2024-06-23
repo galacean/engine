@@ -556,7 +556,7 @@ export class Animator extends Component {
 
     const { transitions } = state;
     const transition =
-      this._checkStateTransitions(srcPlayData, transitions, layerIndex, lastClipTime, clipTime, actualDeltaTime) ||
+      this._applyStateTransitions(srcPlayData, transitions, layerIndex, lastClipTime, clipTime, actualDeltaTime) ||
       this._applyTransitionsByCondition(state, stateMachine.anyStateTransitions, layerIndex);
 
     if (transition) {
@@ -816,7 +816,7 @@ export class Animator extends Component {
     const actualDeltaTime = state.speed * this.speed * deltaTime;
 
     const transition =
-      this._checkStateTransitions(playData, transitions, layerIndex, clipTime, playData.clipTime, actualDeltaTime) ||
+      this._applyStateTransitions(playData, transitions, layerIndex, clipTime, playData.clipTime, actualDeltaTime) ||
       this._applyTransitionsByCondition(state, stateMachine.anyStateTransitions, layerIndex);
 
     if (transition) {
@@ -878,7 +878,7 @@ export class Animator extends Component {
     }
   }
 
-  private _checkStateTransitions(
+  private _applyStateTransitions(
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
     layerIndex: number,
