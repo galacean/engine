@@ -115,8 +115,9 @@ export class Animator extends Component {
       return;
     }
 
-    if (this._preparePlayState(state, stateInfo.layerIndex, normalizedTimeOffset)) {
+    if (this._preparePlay(state, stateInfo.layerIndex, normalizedTimeOffset)) {
       this._playFrameCount = this.engine.time.frameCount;
+      // CM: Should single layer
       this.update(0);
     }
   }
@@ -140,8 +141,9 @@ export class Animator extends Component {
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
 
-    if (this._crossFadeByTransition(manuallyTransition, playLayerIndex)) {
+    if (this._prepareCrossFadeByTransition(manuallyTransition, playLayerIndex)) {
       this._playFrameCount = this.engine.time.frameCount;
+      // CM: Should single layer
       this.update(0);
     }
   }
@@ -500,7 +502,7 @@ export class Animator extends Component {
           entryTransition && this._updateStateData(stateMachine, layerIndex, deltaTime);
         } else {
           const defaultState = stateMachine.defaultState;
-          defaultState && this._preparePlayState(defaultState, layerIndex);
+          defaultState && this._preparePlay(defaultState, layerIndex);
           // CM: not update this frame?
         }
         break;
@@ -1000,7 +1002,7 @@ export class Animator extends Component {
     }
   }
 
-  private _preparePlayState(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
+  private _preparePlay(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
     const name = state.name;
     if (!state.clip) {
       Logger.warn(`The state named ${name} has no AnimationClip data.`);
@@ -1024,7 +1026,7 @@ export class Animator extends Component {
       this._checkEntryState();
       return;
     }
-    this._crossFadeByTransition(transition, layerIndex);
+    this._prepareCrossFadeByTransition(transition, layerIndex);
   }
 
   private _checkConditions(state: AnimatorState, transition: AnimatorStateTransition): boolean {
@@ -1079,7 +1081,7 @@ export class Animator extends Component {
     return allPass;
   }
 
-  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {
+  private _prepareCrossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
     }
@@ -1241,7 +1243,7 @@ export class Animator extends Component {
         for (let j = 0, m = length; j < m; j++) {
           const transition = entryTransitions[j];
           if (this._checkConditions(null, transition)) {
-            this._crossFadeByTransition(transition, i);
+            this._prepareCrossFadeByTransition(transition, i);
             break;
           }
         }
