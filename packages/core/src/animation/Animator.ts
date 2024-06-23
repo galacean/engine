@@ -1085,6 +1085,7 @@ export class Animator extends Component {
   }
 
   private _prepareCrossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {
+    // CM: Maybe should not in here now, and auto play logic is missing
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
     }
