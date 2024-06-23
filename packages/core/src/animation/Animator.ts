@@ -1020,6 +1020,7 @@ export class Animator extends Component {
 
   private _applyTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     if (transition.isExit) {
+      // CM: This is single layer, not all layers
       this._checkEntryState();
       return;
     }
