@@ -1,0 +1,155 @@
+---
+order: 0
+title: 纹理总览
+type: 图形
+group: 纹理
+label: Graphics/Texture
+---
+
+纹理（[Texture](/apis/core/#Texture)）, 是在 3D 渲染中最常用到的资源。我们在给模型着色时，需要给每个片元设置一个颜色值，这个色值除了直接手动设置，我们还可以选择从纹理中读取纹素来进行着色，来达到更加丰富的美术效果。
+
+> 值得注意的是，图片、canvas 画布、原始数据、视频等都可以用来当作纹理，Galacean 引擎目前支持所有 WebGL 标准的纹理。
+
+我们会发现，引擎中大量的问题都来源于不同空间之间的映射（例如 MVP 变换），纹理也是如此，开发者不仅需要了解图片空间到纹理空间的映射关系，也需要了解纹素到像素的映射规则。
+
+本文将主要介绍：
+
+- 纹理的类型，纹理空间和通用属性
+- [2D 纹理](/docs/graphics-texture-2d)
+- [立方纹理](/docs/graphics-texture-cube)
+- [通过纹理播放视频](/docs/graphics-texture-2d)
+- [设置天空纹理](/docs/graphics-background-sky)
+- [离屏渲染纹理](/docs/graphics-texture-rtt)
+- 使用[压缩纹理](/docs/graphics-texture-compression)
+
+## 纹理类型
+
+| 类型                                     | 描述                                                               |
+| :--------------------------------------- | :----------------------------------------------------------------- |
+| [2D 纹理](/docs/graphics-texture-2d)    | 最常用的美术资源，使用二维 UV 坐标进行采样                         |
+| [立方纹理](/docs/graphics-texture-cube) | 6 张 2D 纹理组成了一个立方纹理，可以用来实现天空盒、环境反射等特效 |
+| 2D 纹理数组                              | 只占用一个纹理单元，非常适合用来实现需要切换纹理图集的需求         |
+
+## 纹理空间
+
+纹理空间是由纹理形状决定的， 2D 纹理对应需要使用二维空间向量进行纹理采样，相应地，立方纹理需要使用三维空间向量进行纹理采样。
+
+<div style="display: flex; gap: 20px;">
+  <figure style="flex:1;">
+  <img alt="Texture 2D" src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lQ29R7W1ufsAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" >
+  <figcaption style="text-align:center; color: #889096;font-size:12px">Texture 2D</figcaption>
+	</figure>
+  <figure style="flex:1;">
+    <img alt="Texture Cube" src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*X752S5pQSB0AAAAAAAAAAAAAARQnAQ" style="zoom:80%;">
+    <figcaption style="text-align:center; color: #889096;font-size:12px">Texture Cube</figcaption>
+  </figure>
+</div>
+
+## 通用属性
+
+虽然纹理类型多样，但他们都有一些相似的基本属性与设置：
+
+| 属性                                                            | 值                                                                                                                                                                                         |
+| :-------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 循环模式 U（[wrapModeU](/apis/core/#Texture-wrapModeU)）         | 截取模式（[Clamp](/apis/core/#TextureWrapMode-Clamp)）、 重复模式（[Repeat](/apis/core/#TextureWrapMode-Repeat)）、镜像重复模式（[Mirror](/apis/core/#TextureWrapMode-Mirror)）               |
+| 循环模式 V（[wrapModeV](/apis/core/#Texture-wrapModeV)）         | 截取模式（[Clamp](/apis/core/#TextureWrapMode-Clamp)）、重复模式（[Repeat](/apis/core/#TextureWrapMode-Repeat)）、 镜像重复模式（[Mirror](/apis/core/#TextureWrapMode-Mirror)）               |
+| 过滤模式（[filterMode](/apis/core/#Texture-filterMode)）         | 点过滤（[Point](/apis/core/#TextureFilterMode-Point)）、双线性过滤（[Bilinear](/apis/core/#TextureFilterMode-Bilinear)）、 三线性过滤（[Trilinear](/apis/core/#TextureFilterMode-Trilinear)） |
+| 各向异性过滤等级（[anisoLevel](/apis/core/#Texture-anisoLevel)） | 1 ~ 16 ,具体要看设备支持情况                                                                                                                                                               |
+
+### 循环模式
+
+纹理采样的范围为`[0,1]`，那么当纹理 UV 坐标超出这个范围时，我们可以通过设置循环模式来控制如何进行超出部分的采样。
+
+| 采样循环模式 | 解释                          |
+| :----------- | :---------------------------- |
+| Clamp        | 超出范围采样边缘纹素          |
+| Repeat       | 超出范围从 [0,1] 开始重新采样 |
+| Mirror       | 超出范围从 [1,0] 开始镜像采样 |
+
+<playground src="wrap-mode.ts"></playground>
+
+### 过滤模式
+
+一般来说，纹素和屏幕像素不会刚好对应，我们可以通过设置过滤模式来控制放大（Mag）和缩小（Min）模式下分别的过滤模式。
+
+| 采样过滤模式 | 解释                                                   |
+| :----------- | :----------------------------------------------------- |
+| Point        | 使用距离采样点最近的纹素                               |
+| Bilinear     | 使用距离最近的 2\*2 纹素矩阵的平均值                   |
+| Trilinear    | 在双线性过滤的基础上，对 mipmap 层级也进行了平均值过滤 |
+
+<playground src="filter-mode.ts"></playground>
+
+### 各向异性过滤等级
+
+各向异性过滤技术可以使纹理在倾斜角度下观看会更加清晰。如下图，纹理的尽头随着各向异性过滤等级的增加会愈加清晰。但请慎重使用，数值越大，GPU 的计算量就会越大。
+
+<playground src="texture-aniso.ts"></playground>
+
+## 通用设置
+
+| 设置             | 值                        |
+| :--------------- | :------------------------ |
+| mipmap           | 多级纹理渐变（默认开启）  |
+| flipY            | 翻转 Y 轴（默认关闭）     |
+| premultiplyAlpha | 预乘透明通道（默认关闭）  |
+| format           | 纹理格式（默认 R8G8B8A8） |
+
+### mipmap
+
+**引擎默认开启 [mipmap](/apis/core/#Texture-generateMipmaps)**（多级纹理渐变），mipmap 用来解决从低分辨率屏幕中采样高分辨率纹理时的精度和性能问题，即能在合适的距离时选取不同分辨率的纹理，如下图：
+
+![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ)
+
+需要注意的是，WebGL2.0 支持**任意分辨率**的纹理，会根据 [mipmap](http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf) 算法进行一层层的 mip，但是如果您的环境是在 WebGL1.0 环境，那么请务必上传**2 次幂纹理**，如 1024 \* 512 这种分辨率的纹理,否则 Galacean 会检测到环境不可使用 mipmap，自动降级关闭 mipmap 功能，在视觉上带来一些意外情况。
+
+如果需要改变 mipmap 的默认行为，可以通过脚本来实现，参数详见 [API](/apis/core/#Texture2D-constructor)：
+
+```typescript
+const texture = new Texture2D(
+  engine,
+  width,
+  height,
+  TextureFormat.R8G8B8A8,
+  false
+); // 第 5 个参数
+```
+
+立方纹理脚本写法，详见 [API](/apis/core/#TextureCube-constructor)：
+
+```typescript
+const cubeTexture = new TextureCube(
+  engine,
+  size,
+  TextureFormat.R8G8B8A8,
+  false
+); // 第 4 个参数
+```
+
+<playground src="texture-mipmap.ts"></playground>
+
+### flipY
+
+flipY 用来控制纹理是否翻转 Y 轴，即上下颠倒，**引擎和编辑器默认关闭**，如果需要改变 flipY 的默认行为，可以通过 [setImageSource](/apis/core/#Texture2D-setImageSource) 方法来实现：
+
+```typescript
+const texture = new Texture2D(engine, width, height);
+texture.setImageSource(img, 0, true); // 第 3 个参数
+```
+
+### premultiplyAlpha
+
+premultiplyAlpha 用来控制纹理是否预乘 alpha(透明) 通道，**引擎和编辑器默认关闭**，如果需要改变 premultiplyAlpha 的默认行为，可以通过 [setImageSource](/apis/core/#Texture2D-setImageSource) 方法来实现：
+
+```typescript
+const texture = new Texture2D(engine, width, height);
+texture.setImageSource(img, 0, undefined, true); // 第 4 个参数
+```
+
+### format
+
+引擎默认使用 `TextureFormat.R8G8B8A8` 作为纹理格式, 即红蓝绿、透明通道分别使用 1 个字节，每个通道允许保存 【0 ～ 255】 大小的颜色值。引擎支持配置不同的纹理格式，具体可以参考 [TextureFormat](/apis/core/#TextureFormat)。比如我们不需要使用透明通道，即 A 通道，那么我们可以使用 `TextureFormat.R8G8B8`：
+
+```typescript
+const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8);
+```

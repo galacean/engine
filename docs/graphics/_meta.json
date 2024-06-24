@@ -1,0 +1,35 @@
+{
+  "camera": {
+    "title": "相机"
+  },
+  "background": {
+    "title": "背景"
+  },
+  "light": {
+    "title": "灯光"
+  },
+  "renderer": {
+    "title": "渲染器"
+  },
+  "model": {
+    "title": "模型"
+  },
+  "mesh": {
+    "title": "网格"
+  },
+  "material": {
+    "title": "材质"
+  },
+  "shader": {
+    "title": "着色器"
+  },
+  "texture": {
+    "title": "纹理"
+  },
+  "2D": {
+    "title": "2D"
+  },
+  "particle": {
+    "title": "粒子"
+  }
+}

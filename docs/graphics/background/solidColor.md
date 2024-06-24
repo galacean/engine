@@ -1,0 +1,36 @@
+---
+order: 1
+title: 纯色
+type: 图形
+group: 背景
+label: Graphics/Background
+---
+
+当场景的背景类型设置为纯色时，画布的渲染区域会在相机渲染前被填充上对应的纯色背景。
+
+## 设置纯色背景
+
+依据路径 **[层级面板](/docs/interface-hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface-inspector)** -> **Background 栏** 设置 **Mode** 为 **Solid Color**，然后选择期望的背景色，可以看到场景的背景发生实时变化。
+
+![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*RDQ-T5h7YdEAAAAAAAAAAAAADhuCAQ/original)
+
+同样的，在脚本中也可通过如下代码进行设置：
+
+```typescript
+// 获取当前场景的背景实例
+const background = scene.background;
+// 设置背景类型为纯色
+background.mode = BackgroundMode.SolidColor;
+// 设置特定的背景色
+background.solidColor.set(0.25, 0.25, 0.25, 1.0);
+// 设置为(0,0,0,0) 可以透出网页背景
+background.solidColor.set(0, 0, 0, 0);
+```
+
+## 属性
+
+需要注意的是，背景的相关属性都在场景的 `background` 属性中，获取到该属性实例后才修改相关属性才能生效。
+
+| 属性       | 作用         |
+| :--------- | :----------- |
+| solidColor | 设置背景颜色 |
