@@ -173,7 +173,7 @@ export class BloomEffect extends PostProcessEffect {
 
     const shaderData = material.shaderData;
     shaderData.setVector4(BloomEffect._bloomParams, new Vector4());
-    shaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4(1, 1, 0, 0));
+    shaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
     shaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
     shaderData.setColor(BloomEffect._tintProp, new Color(1, 1, 1, 1));
 
@@ -309,6 +309,8 @@ export class BloomEffect extends PostProcessEffect {
         dirtTilingOffset.set(screenRatio / dirtRatio, 1, (1 - dirtTilingOffset.x) * 0.5, 0);
       } else if (dirtRatio < screenRatio) {
         dirtTilingOffset.set(1, dirtRatio / screenRatio, 0, (1 - dirtTilingOffset.y) * 0.5);
+      } else {
+        dirtTilingOffset.set(1, 1, 0, 0);
       }
     }
 
@@ -496,7 +498,7 @@ const fragBlurV = `
   ${fragCommonFunction}
 
   void main(){
-    vec2 texelSize = renderer_texelSize.xy * 2.0;
+    vec2 texelSize = renderer_texelSize.xy;
 
     // Optimized bilinear 5-tap gaussian on the same-sized source (9-tap equivalent)
     mediump vec4 c0 = sampleTexture(renderer_BlitTexture, v_uv - vec2(0.0, texelSize.y * 3.23076923));
