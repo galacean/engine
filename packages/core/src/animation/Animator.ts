@@ -522,11 +522,15 @@ export class Animator extends Component {
     deltaTime: number
   ): void {
     const { srcPlayData } = layerData;
-    const { state, playState: lastPlayState, clipTime: lastClipTime } = srcPlayData;
+    const { state } = srcPlayData;
 
     const actualSpeed = state.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
     const isBackwards = actualSpeed < 0;
+
+    isBackwards && srcPlayData.update(0, isBackwards);
+
+    const { playState: lastPlayState, clipTime: lastClipTime } = srcPlayData;
 
     const { transitions } = state;
     const transition =
@@ -628,12 +632,10 @@ export class Animator extends Component {
   ) {
     const { srcPlayData, destPlayData } = layerData;
     const { speed } = this;
-    const { state: srcState, stateData: srcStateData, playState: lastSrcPlayState } = srcPlayData;
+    const { state: srcState, stateData: srcStateData } = srcPlayData;
     const { eventHandlers: srcEventHandlers } = srcStateData;
-    const { state: destState, stateData: destStateData, playState: lastDstPlayState } = destPlayData;
+    const { state: destState, stateData: destStateData } = destPlayData;
     const { eventHandlers: destEventHandlers } = destStateData;
-    const { clipTime: lastSrcClipTime } = srcPlayData;
-    const { clipTime: lastDestClipTime } = destPlayData;
 
     const destStateDuration = destState._getDuration();
     const transitionDuration = destStateDuration * layerData.crossFadeTransition.duration;
@@ -644,6 +646,12 @@ export class Animator extends Component {
     const isDestBackwards = actualDestSpeed < 0;
     const actualSrcDeltaTime = actualSrcSpeed * deltaTime;
     const actualDestDeltaTime = actualDestSpeed * deltaTime;
+
+    isSrcBackwards && srcPlayData.update(0, isSrcBackwards);
+    isDestBackwards && destPlayData.update(0, isDestBackwards);
+
+    const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
+    const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
 
     let destCostTime = 0;
     if (!isDestBackwards) {
@@ -756,9 +764,8 @@ export class Animator extends Component {
     deltaTime: number
   ) {
     const { destPlayData } = layerData;
-    const { state, stateData, playState: lastPlayState } = destPlayData;
+    const { state, stateData } = destPlayData;
     const { eventHandlers } = stateData;
-    const { clipTime: lastDestClipTime } = destPlayData;
 
     const stateDuration = state._getDuration();
     const transitionDuration = stateDuration * layerData.crossFadeTransition.duration;
@@ -766,6 +773,9 @@ export class Animator extends Component {
     const actualSpeed = state.speed * this.speed;
     const isDestBackwards = actualSpeed < 0;
     const actualDeltaTime = actualSpeed * deltaTime;
+
+    isDestBackwards && destPlayData.update(0, isDestBackwards);
+    const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
 
     let destCostTime = 0;
     if (!isDestBackwards) {
