@@ -1,5 +1,5 @@
 import { testCaseList } from "./test-case";
-import { Preprocessor } from "@galacean/engine-shader-lab";
+import { Preprocessor } from "@galacean/engine-shader-lab/";
 // @ts-ignore
 import { ShaderLib } from "@galacean/engine-core";
 import { expect } from "chai";
