@@ -192,7 +192,7 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime: number): void {
     this._onUpdateAnimations.forEach(
       (element: Animator) => {
-        element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
+        element.update(deltaTime);
       },
       (element: Animator, index: number) => {
         element._onUpdateIndex = index;

@@ -25,10 +25,9 @@ export class AnimatorStatePlayData {
     this.currentTransitionIndex = 0;
   }
 
-  update(actualDeltaTime: number): void {
-    this.frameTime += actualDeltaTime;
-
-    const isBackwards = actualDeltaTime < 0;
+  update(deltaTime: number, isBackwards = false): void {
+    isBackwards && (deltaTime = -deltaTime);
+    this.frameTime += deltaTime;
     const state = this.state;
     let time = this.frameTime;
     const duration = state._getDuration();
