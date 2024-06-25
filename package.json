@@ -11,7 +11,7 @@
     "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=release BUILD_TYPE=MODULE rollup -cw -m inline",
-    "watch:module:debug": "cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
+    "watch:debug": "cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "cross-env NODE_ENV=release BUILD_TYPE=UMD rollup -cw -m inline",
     "watch:umd:debug": "cross-env NODE_ENV=development BUILD_TYPE=UMD rollup -cw -m inline",
     "b:types": "pnpm -r --filter=./packages/* run b:types",

@@ -35,5 +35,7 @@ e2e/.dev/mpa
 .husky/post-commit
 .husky/pre-push
 .husky/post-merge
+
+# For bison generated files used by ShaderLab
 *.tab.c
 *.output
