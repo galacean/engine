@@ -54,6 +54,11 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-stateMachineScript",
       threshold: 0.1
+    },
+    stateMachine: {
+      category: "Animator",
+      caseFileName: "animator-stateMachine",
+      threshold: 0.1
     }
   },
   GLTF: {
@@ -170,7 +175,7 @@ export const E2E_CONFIG = {
     }
   },
   Particle: {
-    meshopt: {
+    particle: {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3

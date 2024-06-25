@@ -1,17 +1,24 @@
-import { ShaderPass } from "../shader/ShaderPass";
-import { IPoolElement } from "./IPoolElement";
-import { RenderData } from "./RenderData";
+import { IPoolElement } from "../utils/ObjectPool";
+import { RenderQueueFlags } from "./BasicRenderPipeline";
+import { SubRenderElement } from "./SubRenderElement";
 
 export class RenderElement implements IPoolElement {
-  data: RenderData;
-  shaderPasses: ReadonlyArray<ShaderPass>;
+  priority: number;
+  distanceForSort: number;
+  subRenderElements = Array<SubRenderElement>();
+  renderQueueFlags: RenderQueueFlags;
 
-  set(data: RenderData, shaderPasses: ReadonlyArray<ShaderPass>): void {
-    this.data = data;
-    this.shaderPasses = shaderPasses;
+  set(priority: number, distanceForSort: number): void {
+    this.priority = priority;
+    this.distanceForSort = distanceForSort;
+    this.subRenderElements.length = 0;
+  }
+
+  addSubRenderElement(element: SubRenderElement): void {
+    this.subRenderElements.push(element);
   }
 
   dispose(): void {
-    this.data = this.shaderPasses = null;
+    this.subRenderElements.length = 0;
   }
 }
