@@ -81,63 +81,63 @@
 %token string_const 
 
 %%
-gl_shader_program:
-    shader string_const '{' gl_shader_global_declaration_list '}'
+gs_shader_program:
+    shader string_const '{' gs_shader_global_declaration_list '}'
     ;
 
-gl_editor_prop_declaration:
-    EditorProperties '{' gl_editor_prop_item_list '}'
+gs_editor_prop_declaration:
+    EditorProperties '{' gs_editor_prop_item_list '}'
     ;
 
-gl_editor_macro_declaration:
-    EditorMacros '{' gl_editor_macro_item_list '}'
+gs_editor_macro_declaration:
+    EditorMacros '{' gs_editor_macro_item_list '}'
     ;
 
-gl_editor_prop_group:
-    id '(' string_const ')' '{' gl_editor_prop_item_list '}'
+gs_editor_prop_group:
+    id '(' string_const ')' '{' gs_editor_prop_item_list '}'
     ;
 
-gl_editor_macro_group:
-    id '(' string_const ')' '{' gl_editor_macro_item_list '}'
+gs_editor_macro_group:
+    id '(' string_const ')' '{' gs_editor_macro_item_list '}'
     ;
 
-gl_editor_prop_item_list:
-    gl_editor_prop_item ';'
-    | gl_editor_prop_group
-    | gl_editor_prop_item_list gl_editor_prop_item ';'
-    | gl_editor_prop_item_list gl_editor_prop_group
+gs_editor_prop_item_list:
+    gs_editor_prop_item ';'
+    | gs_editor_prop_group
+    | gs_editor_prop_item_list gs_editor_prop_item ';'
+    | gs_editor_prop_item_list gs_editor_prop_group
     ;
 
-gl_editor_macro_item_list:
-    gl_editor_macro_item ';'
-    | gl_editor_macro_group
-    | gl_editor_macro_item_list gl_editor_macro_item ';'
-    | gl_editor_macro_item_list gl_editor_macro_group
+gs_editor_macro_item_list:
+    gs_editor_macro_item ';'
+    | gs_editor_macro_group
+    | gs_editor_macro_item_list gs_editor_macro_item ';'
+    | gs_editor_macro_item_list gs_editor_macro_group
     ;
 
-gl_editor_prop_item:
-    id '(' string_const ',' gl_editor_prop_type ')'
-    | id '(' string_const ',' gl_editor_prop_type ')' '=' gl_editor_prop_type_param
-    | id '(' string_const ',' gl_editor_prop_type ')' '=' '(' gl_editor_prop_type_param_list ')'
+gs_editor_prop_item:
+    id '(' string_const ',' gs_editor_prop_type ')'
+    | id '(' string_const ',' gs_editor_prop_type ')' '=' gs_editor_prop_type_param
+    | id '(' string_const ',' gs_editor_prop_type ')' '=' '(' gs_editor_prop_type_param_list ')'
     ;
 
-gl_editor_macro_item:
-    gl_editor_macro_item_declarator
-    | '[' Off ']' gl_editor_macro_item_declarator
-    | '[' On ']' gl_editor_macro_item_declarator
+gs_editor_macro_item:
+    gs_editor_macro_item_declarator
+    | '[' Off ']' gs_editor_macro_item_declarator
+    | '[' On ']' gs_editor_macro_item_declarator
     ;
 
-gl_editor_macro_item_declarator:
-    gl_editor_prop_item
+gs_editor_macro_item_declarator:
+    gs_editor_prop_item
     | id '(' string_const ')'
     ;
 
-gl_editor_prop_type:
+gs_editor_prop_type:
     id
-    | id '(' gl_editor_prop_type_param_list ')'
+    | id '(' gs_editor_prop_type_param_list ')'
     ;
 
-gl_editor_prop_type_param:
+gs_editor_prop_type_param:
     INT_CONSTANT
     | '-' INT_CONSTANT
     | FLOAT_CONSTANT
@@ -146,63 +146,63 @@ gl_editor_prop_type_param:
     | false
     ;
 
-gl_editor_prop_type_param_list:
-    gl_editor_prop_type_param
-    | gl_editor_prop_type_param_list ',' gl_editor_prop_type_param
+gs_editor_prop_type_param_list:
+    gs_editor_prop_type_param
+    | gs_editor_prop_type_param_list ',' gs_editor_prop_type_param
     ;
 
-gl_common_global_declaration:
-    gl_variable_declaration
-    | gl_render_queue_assignment
-    | gl_render_state_assignment
+gs_common_global_declaration:
+    gs_variable_declaration
+    | gs_render_queue_assignment
+    | gs_render_state_assignment
     | struct_specifier
     | function_definition
-    | gl_render_state_declaration
+    | gs_render_state_declaration
     ;
 
-gl_shader_global_declaration:
-    gl_common_global_declaration
-    | gl_editor_prop_declaration
-    | gl_editor_macro_declaration
-    | gl_subshader_program
+gs_shader_global_declaration:
+    gs_common_global_declaration
+    | gs_editor_prop_declaration
+    | gs_editor_macro_declaration
+    | gs_subshader_program
     ;
 
-gl_shader_global_declaration_list:
-    gl_shader_global_declaration
-    | gl_shader_global_declaration_list gl_shader_global_declaration
+gs_shader_global_declaration_list:
+    gs_shader_global_declaration
+    | gs_shader_global_declaration_list gs_shader_global_declaration
     ;
 
 
-gl_subshader_program:
-    subshader string_const subshader_scope_brace gl_subshader_global_declaration_list scope_end_brace
+gs_subshader_program:
+    subshader string_const subshader_scope_brace gs_subshader_global_declaration_list scope_end_brace
     ;
 
-gl_subshader_global_declaration_list:
-    gl_subshader_global_declaration
-    | gl_subshader_global_declaration_list gl_subshader_global_declaration
+gs_subshader_global_declaration_list:
+    gs_subshader_global_declaration
+    | gs_subshader_global_declaration_list gs_subshader_global_declaration
     ;
 
-gl_subshader_global_declaration:
-    gl_common_global_declaration
-    | gl_tag_specifier
-    | gl_pass_program
-    | gl_use_pass_declaration
+gs_subshader_global_declaration:
+    gs_common_global_declaration
+    | gs_tag_specifier
+    | gs_pass_program
+    | gs_use_pass_declaration
     ;
 
-gl_tag_specifier:
-    tags '{' gl_tag_assignment_list  '}';
+gs_tag_specifier:
+    tags '{' gs_tag_assignment_list  '}';
 
-gl_tag_assignment_list:
+gs_tag_assignment_list:
     /** empty */
-    | gl_tag_assignment
-    | gl_tag_assignment_list ',' gl_tag_assignment
+    | gs_tag_assignment
+    | gs_tag_assignment_list ',' gs_tag_assignment
     ;
 
-gl_tag_assignment:
-    gl_tag_id '=' gl_tag_value
+gs_tag_assignment:
+    gs_tag_id '=' gs_tag_value
     ;
 
-gl_tag_id:
+gs_tag_id:
     /** TODO:  */
     ReplacementTag
     | LightMode
@@ -210,98 +210,98 @@ gl_tag_id:
     ;
 
 // TODO: 
-gl_tag_value:
+gs_tag_value:
     string_const
     | INT_CONSTANT
     | true
     | false
     ;
 
-gl_pass_program:
-    pass string_const pass_scope_brace gl_pass_global_declaration_list scope_end_brace
+gs_pass_program:
+    pass string_const pass_scope_brace gs_pass_global_declaration_list scope_end_brace
     ;
 
-gl_pass_global_declaration_list:
-    gl_pass_global_declaration
-    | gl_pass_global_declaration_list gl_pass_global_declaration
+gs_pass_global_declaration_list:
+    gs_pass_global_declaration
+    | gs_pass_global_declaration_list gs_pass_global_declaration
     ;
 
-gl_pass_global_declaration:
-    gl_common_global_declaration
-    | gl_main_shader_assignment
-    | gl_tag_specifier
+gs_pass_global_declaration:
+    gs_common_global_declaration
+    | gs_main_shader_assignment
+    | gs_tag_specifier
     | precision_specifier
     ;
 
-gl_use_pass_declaration:
+gs_use_pass_declaration:
     UsePass string_const
     ;
 
-gl_render_state_declarator:
+gs_render_state_declarator:
     blend_state
     | depth_state
     | stencil_state
     | raster_state
     ;
 
-gl_render_state_assignment:
-    gl_render_state_declarator '=' id ';'
-    | gl_render_state_declarator '{' gl_render_state_prop_list '}'
+gs_render_state_assignment:
+    gs_render_state_declarator '=' id ';'
+    | gs_render_state_declarator '{' gs_render_state_prop_list '}'
     ;
 
-gl_render_state_declaration:
-    gl_render_state_declarator id '{' gl_render_state_prop_list '}'
+gs_render_state_declaration:
+    gs_render_state_declarator id '{' gs_render_state_prop_list '}'
     ;
 
-gl_render_state_prop_list:
-    gl_render_state_prop_assignment
-    | gl_render_state_prop_assignment gl_render_state_prop_list
+gs_render_state_prop_list:
+    gs_render_state_prop_assignment
+    | gs_render_state_prop_assignment gs_render_state_prop_list
     ;
 
-gl_render_state_prop_assignment:
-    gl_render_state_prop '=' id ';'
-    gl_render_state_prop '=' true ';'
-    gl_render_state_prop '=' false ';'
-    gl_render_state_prop '=' INT_CONSTANT ';'
-    gl_render_state_prop '=' FLOAT_CONSTANT ';'
-    gl_render_state_prop '=' id '.' id ';'
-    gl_render_state_prop '=' gl_engine_type_init ';'
+gs_render_state_prop_assignment:
+    gs_render_state_prop '=' id ';'
+    gs_render_state_prop '=' true ';'
+    gs_render_state_prop '=' false ';'
+    gs_render_state_prop '=' INT_CONSTANT ';'
+    gs_render_state_prop '=' FLOAT_CONSTANT ';'
+    gs_render_state_prop '=' id '.' id ';'
+    gs_render_state_prop '=' gs_engine_type_init ';'
     ;
 
-gl_engine_type:
+gs_engine_type:
     id
     ;
 
-gl_engine_type_init:
-    gl_engine_type '(' gl_engine_type_init_param_list ')'
+gs_engine_type_init:
+    gs_engine_type '(' gs_engine_type_init_param_list ')'
     ;
 
-gl_engine_type_init_param_list:
+gs_engine_type_init_param_list:
     INT_CONSTANT
     | FLOAT_CONSTANT
-    | gl_engine_type_init_param_list ',' INT_CONSTANT
-    | gl_engine_type_init_param_list ',' FLOAT_CONSTANT
+    | gs_engine_type_init_param_list ',' INT_CONSTANT
+    | gs_engine_type_init_param_list ',' FLOAT_CONSTANT
     ;
 
-gl_render_state_prop:
+gs_render_state_prop:
     id '[' INT_CONSTANT ']'
     | id
     ;
 
-gl_mian_shader_entry:
+gs_mian_shader_entry:
     VertexShader
     | FragmentShader
     ;
 
-gl_main_shader_assignment:
-    gl_mian_shader_entry '=' id ';'
+gs_main_shader_assignment:
+    gs_mian_shader_entry '=' id ';'
     ;
 
-gl_render_queue_assignment:
+gs_render_queue_assignment:
     render_queue_type '=' id ';'
     ;
 
-gl_variable_declaration:
+gs_variable_declaration:
     fully_specified_type id ';'
     | fully_specified_type id array_specifier ';'
     | render_queue_type id ';'
