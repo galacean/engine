@@ -528,6 +528,7 @@ export class Animator extends Component {
     const actualDeltaTime = actualSpeed * deltaTime;
     const isBackwards = actualSpeed < 0;
 
+    // update clipTime
     isBackwards && srcPlayData.update(0, isBackwards);
 
     const { playState: lastPlayState, clipTime: lastClipTime } = srcPlayData;
@@ -644,7 +645,6 @@ export class Animator extends Component {
     const actualDestSpeed = destState.speed * speed;
     const isSrcBackwards = actualSrcSpeed < 0;
     const isDestBackwards = actualDestSpeed < 0;
-    const actualSrcDeltaTime = actualSrcSpeed * deltaTime;
     const actualDestDeltaTime = actualDestSpeed * deltaTime;
 
     isSrcBackwards && srcPlayData.update(0, isSrcBackwards);
@@ -664,18 +664,13 @@ export class Animator extends Component {
       destCostTime =
         destStateDuration - lastDestClipTime - actualDestDeltaTime > transitionDuration
           ? transitionDuration - (destStateDuration - lastDestClipTime)
-          : actualDestDeltaTime;
+          : -actualDestDeltaTime;
     }
 
-    const costTime = actualDestSpeed === 0 ? 0 : destCostTime / actualDestSpeed;
+    const costTime = actualDestSpeed === 0 ? 0 : destCostTime / Math.abs(actualDestSpeed);
 
-    if (destCostTime === actualDestDeltaTime) {
-      srcPlayData.update(Math.abs(actualSrcDeltaTime), isSrcBackwards);
-      destPlayData.update(Math.abs(actualDestDeltaTime), isDestBackwards);
-    } else {
-      srcPlayData.update(Math.abs(costTime * actualSrcSpeed), isSrcBackwards);
-      destPlayData.update(destCostTime, isDestBackwards);
-    }
+    srcPlayData.update(costTime * Math.abs(actualSrcSpeed), isSrcBackwards);
+    destPlayData.update(destCostTime, isDestBackwards);
 
     const { clipTime: srcClipTime, playState: srcPlayState } = srcPlayData;
     const { clipTime: destClipTime, playState: destPlayState, frameTime } = destPlayData;
@@ -788,10 +783,10 @@ export class Animator extends Component {
       destCostTime =
         stateDuration - lastDestClipTime - actualDeltaTime > transitionDuration
           ? transitionDuration - (stateDuration - lastDestClipTime)
-          : actualDeltaTime;
+          : -actualDeltaTime;
     }
 
-    const costTime = actualSpeed === 0 ? 0 : destCostTime / actualSpeed;
+    const costTime = actualSpeed === 0 ? 0 : destCostTime / Math.abs(actualSpeed);
 
     destPlayData.update(destCostTime, isDestBackwards);
 

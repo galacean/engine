@@ -433,6 +433,11 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     animator.speed = -1;
     const stateMachine = animator.animatorController.layers[0].stateMachine;
+    //@ts-ignore
+    stateMachine._entryTransitions.length = 0;
+    //@ts-ignore
+    stateMachine._anyStateTransitions.length = 0;
+
     const idleState = animator.findAnimatorState("Survey");
     idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
@@ -510,39 +515,39 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(idleToWalkTime - 0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(0.001);
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(walkToRunTime - 0.001);
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(0.001);
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(walkToRunTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    // animator.animatorController.setParameterValue("playerSpeed", 0.4);
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(runToWalkTime - 0.001);
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(0.001);
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    animator.animatorController.setParameterValue("playerSpeed", 0.4);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(runToWalkTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    // animator.animatorController.setParameterValue("playerSpeed", 0);
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(anyToIdleTime - 0.001);
-    // // apply any transition not walk to idle
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
-    // // @ts-ignore
-    // animator.engine.time._frameCount++;
-    // animator.update(0.001);
-    // expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+    animator.animatorController.setParameterValue("playerSpeed", 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(anyToIdleTime - 0.001);
+    // apply any transition not walk to idle
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
   });
 });
