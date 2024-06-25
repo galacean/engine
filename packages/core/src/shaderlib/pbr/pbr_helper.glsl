@@ -11,7 +11,7 @@ float getAARoughnessFactor(vec3 normal) {
     // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
     #ifdef HAS_DERIVATIVES
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
-        return MIN_PERCEPTUAL_ROUGHNESS + max( max(dxy.x, dxy.y), dxy.z );
+        return min(MIN_PERCEPTUAL_ROUGHNESS + max( max(dxy.x, dxy.y), dxy.z ), 1.0);
     #else
         return MIN_PERCEPTUAL_ROUGHNESS;
     #endif
