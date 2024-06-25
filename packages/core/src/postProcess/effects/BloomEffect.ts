@@ -45,11 +45,10 @@ export class BloomEffect extends PostProcessEffect {
 
   private _mipDownRT: RenderTarget[] = [];
   private _mipUpRT: RenderTarget[] = [];
-
   /**
    * Controls the maximum number of iterations in the effect processing sequence.
    */
-  maxIterations = 6;
+  private _maxIterations = 6;
 
   /**
    * Controls the starting resolution that this effect begins processing.
@@ -197,7 +196,7 @@ export class BloomEffect extends PostProcessEffect {
     // Determine the iteration count
     const maxSize = Math.max(tw, th);
     const iterations = Math.floor(Math.log2(maxSize) - 1);
-    const mipCount = Math.min(Math.max(iterations, 1), this.maxIterations);
+    const mipCount = Math.min(Math.max(iterations, 1), this._maxIterations);
 
     // Prefilter
     let mipWidth = tw,
