@@ -1,7 +1,7 @@
 export { ShaderLab } from "./ShaderLab";
 
 // #if _DEVELOPMENT
-import Preprocessor from "./Preprocessor";
+import Preprocessor from "./preprocessor";
 export { Logger, LoggerLevel } from "./Logger";
 export { Preprocessor };
 // #endif

@@ -1,8 +1,8 @@
-import { ENonTerminal, GrammarSymbol } from "./Parser/GrammarSymbol";
+import { ENonTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
 import Token from "./Token";
 import { EKeyword, ETokenType } from "./common";
-import { TreeNode } from "./Parser/AST";
-import { GalaceanDataType } from "./Parser/types";
+import { TreeNode } from "./parser/AST";
+import { GalaceanDataType } from "./parser/types";
 
 export class ParserUtils {
   static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: ENonTerminal): T | undefined {

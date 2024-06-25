@@ -1,7 +1,7 @@
-import Lexer from "./Lexer";
-import { Parser } from "./Parser";
-import Preprocessor from "./Preprocessor";
-import { GLES100Visitor, GLES300Visitor } from "./CodeGen";
+import Lexer from "./lexer";
+import { Parser } from "./parser";
+import Preprocessor from "./preprocessor";
+import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { IEngineType, EngineType, IEngineFunction, EngineFunctions } from "./EngineType";
 import { IShaderLab } from "@galacean/engine-design";
 import { Logger } from "./Logger";

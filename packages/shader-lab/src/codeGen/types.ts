@@ -1,13 +1,13 @@
-type IRenderState = [
+export type IRenderState = [
   /** Constant RenderState. */
-  Record<number, boolean | string | number | Color>,
+  Record<number, boolean | string | number | any>,
   /** Variable RenderState. */
   Record<number, string>
 ];
 
-type ITag = Record<string, number | string | boolean>;
+export type ITag = Record<string, number | string | boolean>;
 
-interface IPassCodeGenResult {
+export interface IPassCodeGenResult {
   name: string;
   vertexSource: string;
   fragmentSource: string;
@@ -15,14 +15,14 @@ interface IPassCodeGenResult {
   tags?: ITag;
 }
 
-interface ISubShaderCodeGenResult {
+export interface ISubShaderCodeGenResult {
   name: string;
   passes: (IPassCodeGenResult | string)[];
   renderStates?: IRenderState;
   tags?: ITag;
 }
 
-interface IShaderCodeGenResult {
+export interface IShaderCodeGenResult {
   name: string;
   subShaders: ISubShaderCodeGenResult[];
   renderStates?: IRenderState;
