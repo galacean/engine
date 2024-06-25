@@ -9,7 +9,7 @@ export default class PpToken<T extends PpTokenType = PpTokenType> extends BaseTo
     return this.lexeme.length;
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   override toString() {
     return `<${EPpKeyword[this.type] ?? EPpToken[this.type]}, ${this.lexeme}>`;
   }

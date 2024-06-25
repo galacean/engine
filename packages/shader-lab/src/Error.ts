@@ -1,4 +1,4 @@
-// #if _DEBUG
+// #if _DEVELOPMENT
 import { LocRange } from "./common";
 
 export abstract class GSError extends Error {

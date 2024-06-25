@@ -1,4 +1,4 @@
-// #if _DEBUG
+// #if _DEVELOPMENT
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./Builtin";
 // #endif
 import { CodeGenVisitor } from "../CodeGen";
@@ -56,7 +56,7 @@ export namespace ASTNode {
     return node;
   }
 
-  // #if !_DEBUG
+  // #if !_DEVELOPMENTMENT
   export class TrivialNode extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal._ignore, loc, children);
@@ -109,7 +109,7 @@ export namespace ASTNode {
       super(ENonTerminal.jump_statement, loc, children);
     }
 
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
         // TODO: check the equality of function return type declared and this type.
@@ -122,7 +122,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class ConditionOpt extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.conditionopt, loc, children);
@@ -180,7 +180,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class InitializerList extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.initializer_list, loc, children);
@@ -261,7 +261,7 @@ export namespace ASTNode {
       super(ENonTerminal.fully_specified_type, loc, children);
     }
 
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (typeof this.type === "string") {
         // Custom type, check declaration
@@ -328,7 +328,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class StorageQualifier extends BasicTypeQualifier {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(loc, ENonTerminal.storage_qualifier, children);
@@ -433,7 +433,7 @@ export namespace ASTNode {
         if (child instanceof Token) {
           this.value = Number(child.lexeme);
         }
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         else {
           const id = child as VariableIdentifier;
           if (!id.symbolInfo) {
@@ -508,7 +508,7 @@ export namespace ASTNode {
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         if (typeInfo.arraySpecifier && arraySpecifier) {
           sa.error(arraySpecifier.location, "array of array is not supported.");
         }
@@ -706,7 +706,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class SimpleStatement extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.simple_statement, loc, children);
@@ -726,7 +726,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class Statement extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.statement, loc, children);
@@ -803,7 +803,7 @@ export namespace ASTNode {
             paramSig = paramList.paramSig as any;
           }
         }
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         const builtinFn = BuiltinFunction.getFn(fnIdent, ...(paramSig ?? []));
         if (builtinFn) {
           this.type = BuiltinFunction.getReturnType(builtinFn.fun, builtinFn.genType);
@@ -813,7 +813,7 @@ export namespace ASTNode {
 
         const fnSymbol = sa.scope.lookup(fnIdent, ESymbolType.FN, paramSig);
         if (!fnSymbol) {
-          // #if _DEBUG
+          // #if _DEVELOPMENT
           sa.error(this.location, "no overload function type found:", functionIdentifier.ident);
           // #endif
           return;
@@ -898,7 +898,7 @@ export namespace ASTNode {
       super(ENonTerminal.assignment_expression, loc, children);
     }
 
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
@@ -911,7 +911,7 @@ export namespace ASTNode {
     // #endif
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class AssignmentOperator extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.assignment_operator, loc, children);
@@ -924,7 +924,7 @@ export namespace ASTNode {
       super(ENonTerminal.expression, loc, children);
     }
 
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -985,7 +985,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class UnaryOperator extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.unary_operator, loc, children);
@@ -993,7 +993,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class UnaryExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.unary_expression, loc, children);
@@ -1005,7 +1005,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class MultiplicativeExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.multiplicative_expression, loc, children);
@@ -1025,7 +1025,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class AdditiveExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.additive_expression, loc, children);
@@ -1045,7 +1045,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class ShiftExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.shift_expression, loc, children);
@@ -1058,7 +1058,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class RelationalExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.relational_expression, loc, children);
@@ -1074,7 +1074,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class EqualityExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.equality_expression, loc, children);
@@ -1090,7 +1090,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class AndExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.and_expression, loc, children);
@@ -1106,7 +1106,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class ExclusiveOrExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.exclusive_or_expression, loc, children);
@@ -1122,7 +1122,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class InclusiveOrExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.inclusive_or_expression, loc, children);
@@ -1138,7 +1138,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class LogicalAndExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.logical_and_expression, loc, children);
@@ -1154,7 +1154,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class LogicalXorExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.logical_xor_expression, loc, children);
@@ -1170,7 +1170,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class LogicalOrExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.logical_or_expression, loc, children);
@@ -1186,7 +1186,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class ConditionalExpression extends ExpressionAstNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.conditional_expression, loc, children);
@@ -1317,7 +1317,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class GLRenderQueueAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_render_queue_assignment, loc, children);
@@ -1345,7 +1345,7 @@ export namespace ASTNode {
   export class VariableIdentifier extends TreeNode {
     symbolInfo:
       | VarSymbol
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       | BuiltinVariable
       // #endif
       | null;
@@ -1365,7 +1365,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const token = this.children[0] as Token;
 
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       const builtinVar = BuiltinVariable.getVar(token.lexeme);
       if (builtinVar) {
         this.symbolInfo = builtinVar;
@@ -1374,7 +1374,7 @@ export namespace ASTNode {
       // #endif
 
       this.symbolInfo = sa.scope.lookup(token.lexeme, ESymbolType.VAR);
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       if (!this.symbolInfo) {
         sa.error(this.location, "undeclared identifier:", token.lexeme);
       }
@@ -1401,7 +1401,7 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       if (sa.shaderData.dataType !== EShaderDataType.Pass) {
         sa.error(this.location, "main shader entry cannot be declared outside pass scope.");
       }
@@ -1447,7 +1447,7 @@ export namespace ASTNode {
             const prop = (this.children[4] as Token).lexeme;
 
             if (!engineType || engineType[prop] == undefined) {
-              // #if _DEBUG
+              // #if _DEVELOPMENT
               reporter.error(
                 new LocRange(valueToken.location.start, this.location.end),
                 `invalid engine type: ${valueToken.lexeme}.${prop}`
@@ -1493,7 +1493,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const typeToken = this.children[0] as Token;
       this.engineType = EngineFunctions[typeToken.lexeme];
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       if (this.engineType == undefined) {
         sa.error(this.location, "invalid engine type:", typeToken.lexeme);
         return;
@@ -1659,7 +1659,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class GLPassGlobalDeclaration extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_pass_global_declaration, loc, children);
@@ -1740,7 +1740,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class GLTagAssignmentList extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_tag_assignment_list, loc, children);
@@ -1787,7 +1787,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   export class GLShaderGlobalDeclarationList extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
       super(ENonTerminal.gl_shader_global_declaration_list, loc, children);

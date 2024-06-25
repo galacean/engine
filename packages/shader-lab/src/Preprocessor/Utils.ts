@@ -1,6 +1,6 @@
 import LocRange from "../common/LocRange";
 import { ExpandSegment } from "./Parser";
-// #if _DEBUG
+// #if _DEVELOPMENT
 import PpSourceMap, { MapRange } from "./PpSourceMap";
 // #endif
 
@@ -8,7 +8,7 @@ export class PpUtils {
   static expand(
     segments: ExpandSegment[],
     source: string,
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     sourceMap?: PpSourceMap
     //#endif
   ) {
@@ -22,7 +22,7 @@ export class PpUtils {
 
       const generatedIdxEnd = generatedIdx + originSlice.length + seg.replace.length;
 
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       const mapRange = new MapRange(seg.block, seg.rangeInBlock, {
         start: generatedIdx + originSlice.length,
         end: generatedIdxEnd

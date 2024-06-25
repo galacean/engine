@@ -22,7 +22,7 @@ export class BaseToken<T> {
 }
 
 export default class Token extends BaseToken<TokenType> {
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   override toString() {
     return `<${ETokenType[this.type] ?? EKeyword[this.type]}, ${this.lexeme}>`;
   }

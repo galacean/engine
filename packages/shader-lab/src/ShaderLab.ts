@@ -22,7 +22,7 @@ export class ShaderLab implements IShaderLab {
 
   parseShader(source: string, includeMap: Record<string, string> = {}, backend = EBackend.GLES300) {
     const preprocessor = new Preprocessor(source, includeMap);
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif
     const ppdContent = preprocessor.process();

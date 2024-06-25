@@ -2,7 +2,7 @@ import LexerUtils from "../Lexer/Utils";
 import LocRange from "../common/LocRange";
 import { MacroDefine } from "./MacroDefine";
 import { PpError } from "./PpError";
-// #if _DEBUG
+// #if _DEVELOPMENT
 import PpSourceMap, { BlockInfo } from "./PpSourceMap";
 // #endif
 import PpToken from "./PpToken";
@@ -12,7 +12,7 @@ import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import { IIndexRange } from "./IndexRange";
 
 export interface ExpandSegment {
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   block?: BlockInfo;
   // #endif
   rangeInBlock: IIndexRange;
@@ -87,11 +87,11 @@ export default class PpParser extends PpError {
     }
 
     const expanded = this.expandMacroChunk(chunk, { start, end }, id.lexeme);
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     const block = new BlockInfo(id.lexeme, undefined, expanded.sourceMap);
     // #endif
     this.expandSegments.push({
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       block,
       // #endif
       rangeInBlock: { start: start.index, end: end.index },
@@ -115,12 +115,12 @@ export default class PpParser extends PpError {
 
       const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
 
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
 
       this.expandSegments.push({
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         block,
         // #endif
         rangeInBlock: { start: bodyChunk.location.start.index, end: end.index },
@@ -146,11 +146,11 @@ export default class PpParser extends PpError {
     if (directive === EPpKeyword.else) {
       const { token: elseChunk } = scanner.scanMacroBranchChunk();
       const expanded = this.expandMacroChunk(elseChunk.lexeme, elseChunk.location, scanner);
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
       this.expandSegments.push({
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         block,
         // #endif
         rangeInBlock: { start: start, end: scanner.current },
@@ -162,22 +162,22 @@ export default class PpParser extends PpError {
       if (!!constantExpr) {
         const end = scanner.scanRemainMacro();
         const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif
         this.expandSegments.push({
-          // #if _DEBUG
+          // #if _DEVELOPMENT
           block,
           // #endif
           rangeInBlock: { start: start, end: end.index },
           replace: expanded.content
         });
       } else {
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         const block = new BlockInfo(scanner.file, scanner.blockRange);
         // #endif
         this.expandSegments.push({
-          // #if _DEBUG
+          // #if _DEVELOPMENT
           block,
           // #endif
           rangeInBlock: { start: start, end: scanner.current },
@@ -406,7 +406,7 @@ export default class PpParser extends PpError {
     parentScanner: PpScanner
   ): {
     content: string;
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     sourceMap: PpSourceMap;
     // #endif
   };
@@ -416,7 +416,7 @@ export default class PpParser extends PpError {
     file: string
   ): {
     content: string;
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     sourceMap: PpSourceMap;
     // #endif
   };
@@ -426,7 +426,7 @@ export default class PpParser extends PpError {
     scannerOrFile: PpScanner | string
   ): {
     content: string;
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     sourceMap: PpSourceMap;
     // #endif
   } {
@@ -441,7 +441,7 @@ export default class PpParser extends PpError {
     this.expandSegmentsStack.pop();
     return {
       content: ret,
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       sourceMap: scanner.sourceMap
       // #endif
     };
@@ -460,11 +460,11 @@ export default class PpParser extends PpError {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getPosition() : scanner.scanRemainMacro();
 
       const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       const blockInfo = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
       this.expandSegments.push({
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         block: blockInfo,
         // #endif
         rangeInBlock: { start: bodyChunk.location.start.index, end: end.index },
@@ -479,11 +479,11 @@ export default class PpParser extends PpError {
   }
 
   private addEmptyReplace(scanner: PpScanner, start: number) {
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     const block = new BlockInfo(scanner.file, scanner.blockRange);
     // #endif
     this.expandSegments.push({
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       block,
       // #endif
       rangeInBlock: { start, end: scanner.current },
@@ -501,11 +501,11 @@ export default class PpParser extends PpError {
     if (!!constantExpr) {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getPosition() : scanner.scanRemainMacro();
       const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
       this.expandSegments.push({
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         block,
         // #endif
         rangeInBlock: { start: bodyChunk.location.start.index, end: end.index },
@@ -537,11 +537,11 @@ export default class PpParser extends PpError {
     const macroDefine = new MacroDefine(macro, macroBody, new LocRange(start, end), macroArgs);
     this.definedMacros.set(macro.lexeme, macroDefine);
 
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     const block = new BlockInfo(scanner.file, scanner.blockRange);
     // #endif
     this.expandSegments.push({
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       block,
       // #endif
       rangeInBlock: { start: start.index, end: scanner.current },
@@ -553,11 +553,11 @@ export default class PpParser extends PpError {
     const start = scanner.current - 6;
     const macro = scanner.scanWord();
 
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     const block = new BlockInfo(scanner.file, scanner.blockRange);
     // #endif
     this.expandSegments.push({
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       block,
       // #endif
       rangeInBlock: { start, end: scanner.current },
@@ -567,7 +567,7 @@ export default class PpParser extends PpError {
   }
 
   private onToken(token: PpToken, scanner: PpScanner) {
-    // #if !_DEBUG
+    // #if !_DEVELOPMENTMENT
     this.skipEditorBlock(token, scanner);
     // #endif
     this.expandToken(token, scanner);
@@ -611,11 +611,11 @@ export default class PpParser extends PpError {
         const range = new LocRange(token.location!.start, scanner.getPosition());
         replace = macro.expand(...args);
         const expanded = this.expandMacroChunk(replace, range, scanner);
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif
         this.expandSegments.push({
-          // #if _DEBUG
+          // #if _DEVELOPMENT
           block,
           // #endif
           rangeInBlock: { start: token.location!.start.index, end: scanner.current },
@@ -623,11 +623,11 @@ export default class PpParser extends PpError {
         });
       } else {
         const expanded = this.expandMacroChunk(replace, token.location, scanner);
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif
         this.expandSegments.push({
-          // #if _DEBUG
+          // #if _DEVELOPMENT
           block,
           // #endif
           rangeInBlock: { start: token.location.start.index, end: token.location.end.index },

@@ -100,7 +100,7 @@ export default class SymbolTable {
     const { lexeme } = sm;
 
     const entry = this.table.get(lexeme) ?? [];
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     if (
       sm.symType === ESymbolType.FN &&
       entry.findIndex((item) => item.symType === ESymbolType.FN && item.symDataType === sm.symDataType) !== -1

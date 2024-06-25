@@ -16,7 +16,7 @@ export class SymbolType {
     this.typeLexeme = typeLexeme;
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   toString() {
     return `${this.type}_${this.arraySpecifier?.size ?? ""}`;
   }

@@ -2,7 +2,7 @@ import LexerUtils from "../Lexer/Utils";
 import LocRange from "../common/LocRange";
 import Position from "../common/Position";
 import { PpError } from "./PpError";
-// #if _DEBUG
+// #if _DEVELOPMENT
 import PpSourceMap from "./PpSourceMap";
 // #endif
 import PpToken, { EOF } from "./PpToken";
@@ -27,7 +27,7 @@ export default class PpScanner extends PpError {
     return this._source;
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
   readonly blockRange?: IIndexRange;
@@ -35,14 +35,14 @@ export default class PpScanner extends PpError {
 
   constructor(
     source: string,
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     file = "__main__",
     blockRange?: IIndexRange
     // #endif
   ) {
     super();
     this._source = source;
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     this.file = file;
     this.blockRange = blockRange;
     // #endif
@@ -197,7 +197,7 @@ export default class PpScanner extends PpError {
     return { token, nextDirective: directive };
   }
 
-  // #if !_DEBUG
+  // #if !_DEVELOPMENTMENT
   scanPairedBlock(lc = "{", rc = "}") {
     this.scanToChar(lc);
     let lvl = 0;

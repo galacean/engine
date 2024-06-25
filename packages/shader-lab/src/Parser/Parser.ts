@@ -66,7 +66,7 @@ export default class Parser {
       if (actionInfo?.action === EAction.Shift) {
         traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         this.printStack(nextToken.value);
         // #endif
       } else if (actionInfo?.action === EAction.Accept) {
@@ -76,7 +76,7 @@ export default class Parser {
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         this.logger.log(`Reduce: ${reduceProduction.toString()}`);
         // #endif
         const translationRule = sematicAnalyzer.getTranslationRule(reduceProduction.id);
@@ -94,7 +94,7 @@ export default class Parser {
             values.unshift(astNode);
           }
         }
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         this.printStack(token);
         // #endif
         translationRule?.(sematicAnalyzer, ...values);
@@ -104,20 +104,20 @@ export default class Parser {
 
         const nextState = gotoTable?.get(reduceProduction.goal)!;
         traceBackStack.push(nextState);
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         this.printStack(token);
         // #endif
         continue;
       } else {
         this.logger.errorLoc(token.location, `parse error token ${token}`);
-        // #if _DEBUG
+        // #if _DEVELOPMENT
         throw `invalid action table by token ${token.lexeme}`;
         // #endif
       }
     }
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   private printStack(nextToken: Token) {
     if (!Logger.enabled) return;
 

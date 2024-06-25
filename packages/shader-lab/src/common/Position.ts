@@ -1,19 +1,19 @@
 export default class Position {
   index: number;
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   line: number;
   column: number;
   // #endif
 
   constructor(
     index: number,
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     line: number,
     column: number
     // #endif
   ) {
     this.index = index;
-    // #if _DEBUG
+    // #if _DEVELOPMENT
     this.line = line;
     this.column = column;
     // #endif
@@ -23,14 +23,14 @@ export default class Position {
   offset(count: number) {
     return new Position(
       this.index + count,
-      // #if _DEBUG
+      // #if _DEVELOPMENT
       this.line,
       this.column + count
       // #endif
     );
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENTMENT
   toString() {
     return `Pos<line ${this.line}, column ${this.column}, index ${this.index}>`;
   }

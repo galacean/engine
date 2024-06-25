@@ -12,7 +12,7 @@ export class ParserUtils {
     return ParserUtils.unwrapNodeByType(child, type);
   }
 
-  // #if _DEBUG
+  // #if _DEVELOPMENT
   /**
    * Check if type `tb` is compatible with type `ta`.
    */
