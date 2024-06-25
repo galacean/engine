@@ -160,7 +160,6 @@ gl_common_global_declaration:
     | gl_render_state_declaration
     ;
 
-// 此外还包含变量声明、函数声明、渲染状态声明、结构体声明
 gl_shader_global_declaration:
     gl_common_global_declaration
     | gl_editor_prop_declaration
@@ -204,13 +203,13 @@ gl_tag_assignment:
     ;
 
 gl_tag_id:
-    /** 待补充 */
+    /** TODO:  */
     ReplacementTag
     | LightMode
     | pipeline_stage
     ;
 
-// TODO: 需确认
+// TODO: 
 gl_tag_value:
     string_const
     | INT_CONSTANT
@@ -231,7 +230,6 @@ gl_pass_global_declaration:
     gl_common_global_declaration
     | gl_main_shader_assignment
     | gl_tag_specifier
-    // 精度声明
     | precision_specifier
     ;
 
@@ -260,7 +258,6 @@ gl_render_state_prop_list:
     | gl_render_state_prop_assignment gl_render_state_prop_list
     ;
 
-// 语义分析检测key值
 gl_render_state_prop_assignment:
     gl_render_state_prop '=' id ';'
     gl_render_state_prop '=' true ';'
@@ -271,7 +268,6 @@ gl_render_state_prop_assignment:
     gl_render_state_prop '=' gl_engine_type_init ';'
     ;
 
-// Vector2 / Vector3 / Vector4 / Color
 gl_engine_type:
     id
     ;
@@ -305,24 +301,20 @@ gl_render_queue_assignment:
     render_queue_type '=' id ';'
     ;
 
-// 语义分析检查id类型，比如BlendFactor/RenderQueueType
 gl_variable_declaration:
     fully_specified_type id ';'
     | fully_specified_type id array_specifier ';'
     | render_queue_type id ';'
     ;
 
-// 语义分析声明检查
 variable_identifier:
     id
     ;
 
 precision_specifier:
-    // 全局精度声明
     PRECISION precision_qualifier ext_builtin_type_specifier_nonarray ';'
     ;
 
-// TODO: more
 ext_builtin_type_specifier_nonarray:
     void
     | float
@@ -335,7 +327,6 @@ type_specifier_nonarray:
     | id
     ;
 
-// TODO: current
 struct_specifier:
     struct id '{' struct_declaration_list '}' ;
     | struct '{' struct_declaration_list '}' ;
@@ -631,18 +622,10 @@ simple_statement:
 declaration:
     function_prototype ';'
     | init_declarator_list ';'
-    // interface block #4.3.7 ，引擎暂不支持
-    | type_qualifier id '{' struct_declaration_list '}' ';'
-    | type_qualifier id '{' struct_declaration_list '}' id ';'
-    | type_qualifier id '{' struct_declaration_list '}' id array_specifier ';'
-    // invariant qualifier #4.6.1
     | type_qualifier id ';'
     | type_qualifier id identifier_list ';'
     | precision_specifier
     ;
-
-/* interface_block:
-    type_qualifier */
 
 identifier_list:
     ',' id
@@ -679,7 +662,7 @@ expression_statement:
     | expression ';'
     ;
 
-// dangling else ambiguity
+// Dangling else ambiguity
 selection_statement:
     IF '(' expression ')' statement
     | IF '(' expression ')' statement ELSE statement

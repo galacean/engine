@@ -127,7 +127,7 @@ if_macro:
   ;
 
 branch_macro:
-  /** empty */
+  /** Empty */
   | hash_else macro_expression
   | hash_elif pp_constant_expression macro_expression branch_macro
   ;
@@ -142,4 +142,4 @@ ifndef_macro:
 
 include_macro:
   hash_include '"' id '"'
-%%
+%% 
