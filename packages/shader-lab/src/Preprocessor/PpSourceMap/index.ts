@@ -1,10 +1,12 @@
+import { IIndexRange } from "../IndexRange";
+
 // #if _DEBUG
 export class BlockInfo {
   readonly sourceFile: string;
-  readonly rangeInFile?: IIdxRange;
+  readonly rangeInFile?: IIndexRange;
   readonly sourceMap?: PpSourceMap;
 
-  constructor(sourceFile?: string, rangeInFile?: IIdxRange, sourceMap?: PpSourceMap) {
+  constructor(sourceFile?: string, rangeInFile?: IIndexRange, sourceMap?: PpSourceMap) {
     this.sourceFile = sourceFile ?? "__main__";
     this.rangeInFile = rangeInFile;
     this.sourceMap = sourceMap;
@@ -12,10 +14,10 @@ export class BlockInfo {
 }
 
 export class MapRange {
-  sourceLoc: { block: BlockInfo; rangeInBlock: IIdxRange };
+  sourceLoc: { block: BlockInfo; rangeInBlock: IIndexRange };
   generatedLoc: { start: number; end: number };
 
-  constructor(sourceBlock: BlockInfo, rangeInBlock: IIdxRange, generatedLoc: { start: number; end: number }) {
+  constructor(sourceBlock: BlockInfo, rangeInBlock: IIndexRange, generatedLoc: { start: number; end: number }) {
     this.sourceLoc = { block: sourceBlock, rangeInBlock };
     this.generatedLoc = generatedLoc;
   }

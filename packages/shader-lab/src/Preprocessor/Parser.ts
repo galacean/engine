@@ -9,12 +9,13 @@ import PpToken from "./PpToken";
 import PpScanner from "./Scanner";
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
+import { IIndexRange } from "./IndexRange";
 
 export interface ExpandSegment {
   // #if _DEBUG
   block?: BlockInfo;
   // #endif
-  rangeInBlock: IIdxRange;
+  rangeInBlock: IIndexRange;
   replace: string;
 }
 

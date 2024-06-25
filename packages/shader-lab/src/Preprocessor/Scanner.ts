@@ -8,6 +8,7 @@ import PpSourceMap from "./PpSourceMap";
 import PpToken, { EOF } from "./PpToken";
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
+import { IIndexRange } from "../Preprocessor/IndexRange";
 
 export type OnToken = (token: PpToken, scanner: PpScanner) => void;
 
@@ -29,14 +30,14 @@ export default class PpScanner extends PpError {
   // #if _DEBUG
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
-  readonly blockRange?: IIdxRange;
+  readonly blockRange?: IIndexRange;
   // #endif
 
   constructor(
     source: string,
     // #if _DEBUG
     file = "__main__",
-    blockRange?: IIdxRange
+    blockRange?: IIndexRange
     // #endif
   ) {
     super();
