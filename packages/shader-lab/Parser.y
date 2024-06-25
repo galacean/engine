@@ -1,3 +1,5 @@
+// For cft conflict test, used by bison
+
 %token shader
 %token subshader
 %token pass

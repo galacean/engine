@@ -1,3 +1,5 @@
+// For cft conflict test, used by bison
+
 %token hash_define
 %token hash_undef
 %token hash_if
