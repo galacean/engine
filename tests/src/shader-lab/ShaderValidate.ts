@@ -66,7 +66,7 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
   const shaderLab = _shaderLab ?? new ShaderLab();
 
   const start = performance.now();
-  const shader = shaderLab.parseShader(shaderSource, includeMap);
+  const shader = shaderLab.parseShader(shaderSource, [], includeMap);
   console.log("parse time: ", (performance.now() - start).toFixed(2));
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {

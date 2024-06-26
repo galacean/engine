@@ -34,9 +34,13 @@ export default class PpParser extends PpError {
 
   constructor(includeMap: Record<string, string>) {
     super();
-    const gl_es = new PpToken(EPpToken.id, "GL_ES");
-    this.definedMacros.set("GL_ES", new MacroDefine(gl_es, new PpToken(EPpToken.id, "1")));
+    this.addPredefinedMacro("GL_ES");
     this.includeMap = includeMap;
+  }
+
+  addPredefinedMacro(macro: string) {
+    const tk = new PpToken(EPpToken.id, macro);
+    this.definedMacros.set(macro, new MacroDefine(tk, new PpToken(EPpToken.id, "1")));
   }
 
   parse(scanner: PpScanner): string {

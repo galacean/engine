@@ -20,8 +20,16 @@ export class ShaderLab implements IShaderLab {
     Object.assign(EngineFunctions, engineFunctions);
   }
 
-  parseShader(source: string, includeMap: Record<string, string> = {}, backend = EBackend.GLES300) {
+  parseShader(
+    source: string,
+    macros: string[] = [],
+    includeMap: Record<string, string> = {},
+    backend = EBackend.GLES300
+  ) {
     const preprocessor = new Preprocessor(source, includeMap);
+    for (const macro of macros) {
+      preprocessor.addPredefinedMacro(macro);
+    }
     // #if _DEVELOPMENT
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif

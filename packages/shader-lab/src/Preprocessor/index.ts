@@ -14,6 +14,10 @@ export default class Preprocessor {
     return this.parser.parse(this.scanner);
   }
 
+  addPredefinedMacro(macro: string) {
+    this.parser.addPredefinedMacro(macro);
+  }
+
   // #if _DEVELOPMENT
   convertSourceIndex(index: number) {
     return this.scanner.sourceMap.map(index);

@@ -7,5 +7,5 @@ export interface IShaderLab {
   /**
    * parsing shader source code.
    */
-  parseShader(shaderSource: string): IShaderInfo;
+  parseShader(shaderSource: string, macros?: string[]): IShaderInfo;
 }
