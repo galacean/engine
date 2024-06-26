@@ -29,6 +29,7 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
+import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 
 /**
  * Particle Generator.
@@ -58,6 +59,9 @@ export class ParticleGenerator {
   /** Velocity over lifetime module. */
   @deepClone
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
+  /** Limit velocity over lifetime module. */
+  @deepClone
+  readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
   @deepClone
   readonly sizeOverLifetime: SizeOverLifetimeModule;
@@ -163,6 +167,7 @@ export class ParticleGenerator {
 
     this.main = new MainModule(this);
     this.velocityOverLifetime = new VelocityOverLifetimeModule(this);
+    this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
 
     this.emission.enabled = true;
@@ -479,6 +484,7 @@ export class ParticleGenerator {
   _updateShaderData(shaderData: ShaderData): void {
     this.main._updateShaderData(shaderData);
     this.velocityOverLifetime._updateShaderData(shaderData);
+    this.limitVelocityOverLifetime._updateShaderData(shaderData);
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
     this.rotationOverLifetime._updateShaderData(shaderData);
@@ -817,6 +823,20 @@ export class ParticleGenerator {
       instanceVertices[offset + 35] = 1;
       instanceVertices[offset + 36] = 0;
       instanceVertices[offset + 37] = 0;
+    }
+
+    // Limit velocity random
+    const limitVelocityOverLifetime = this.limitVelocityOverLifetime;
+    if (
+      limitVelocityOverLifetime.enabled &&
+      limitVelocityOverLifetime.speedX.mode === ParticleCurveMode.TwoConstants &&
+      limitVelocityOverLifetime.speedY.mode === ParticleCurveMode.TwoConstants &&
+      limitVelocityOverLifetime.speedZ.mode === ParticleCurveMode.TwoConstants
+    ) {
+      const rand = limitVelocityOverLifetime._speedRand;
+      instanceVertices[offset + 38] = rand.random();
+      instanceVertices[offset + 39] = rand.random();
+      instanceVertices[offset + 40] = rand.random();
     }
 
     this._firstFreeElement = nextFreeElement;

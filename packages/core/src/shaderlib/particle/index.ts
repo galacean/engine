@@ -1,5 +1,6 @@
 import particle_common from "./particle_common.glsl";
 import velocity_over_lifetime_module from "./velocity_over_lifetime_module.glsl";
+import limit_velocity_over_lifetime_module from "./limit_velocity_over_lifetime_module.glsl";
 import rotation_over_lifetime_module from "./rotation_over_lifetime_module.glsl";
 import size_over_lifetime_module from "./size_over_lifetime_module.glsl";
 import color_over_lifetime_module from "./color_over_lifetime_module.glsl";
@@ -14,6 +15,7 @@ import particle_mesh from "./particle_mesh.glsl";
 export default {
   particle_common,
   velocity_over_lifetime_module,
+  limit_velocity_over_lifetime_module,
   rotation_over_lifetime_module,
   size_over_lifetime_module,
   color_over_lifetime_module,

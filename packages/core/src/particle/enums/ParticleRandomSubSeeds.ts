@@ -11,6 +11,7 @@ export enum ParticleRandomSubSeeds {
   StartLifetime = 0x8d2c8431,
   StartSpeed = 0xf3857f6f,
   VelocityOverLifetime = 0xe0fbd834,
+  LimitVelocityOverLifetime = 0xa3b1c908,
   ColorOverLifetime = 0x13740583,
   SizeOverLifetime = 0x591bc05c,
   RotationOverLifetime = 0x40eb95e4,

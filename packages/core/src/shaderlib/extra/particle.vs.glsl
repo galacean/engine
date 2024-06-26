@@ -18,6 +18,7 @@ attribute float a_StartSpeed;
 
 //#if defined(COLOR_OVER_LIFETIME) || defined(RENDERER_COL_RANDOM_GRADIENTS) || defined(RENDERER_SOL_RANDOM_CURVES) || defined(RENDERER_SOL_RANDOM_CURVES_SEPARATE) || defined(ROTATION_OVER_LIFE_TIME_RANDOM_CONSTANTS) || defined(ROTATION_OVER_LIFETIME_RANDOM_CURVES)
     attribute vec4 a_Random0;
+    attribute vec3 a_Random2;
 //#endif
 
 #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
@@ -36,6 +37,7 @@ varying vec4 v_Color;
 uniform float renderer_CurrentTime;
 uniform vec3 renderer_Gravity;
 uniform vec2 u_DragConstant;
+uniform float renderer_Dampen;
 uniform vec3 renderer_WorldPosition;
 uniform vec4 renderer_WorldRotation;
 uniform bool renderer_ThreeDStartRotation;
@@ -57,8 +59,10 @@ uniform float renderer_StretchedBillboardLengthScale;
 uniform float renderer_StretchedBillboardSpeedScale;
 uniform int renderer_SimulationSpace;
 
+#include <common>
 #include <particle_common>
 #include <velocity_over_lifetime_module>
+#include <limit_velocity_over_lifetime_module>
 #include <color_over_lifetime_module>
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
@@ -68,10 +72,15 @@ void main() {
     float age = renderer_CurrentTime - a_DirectionTime.w;
     float normalizedAge = age / a_ShapePositionStartLifeTime.w;
     vec3 lifeVelocity;
+    vec3 limitLifeVelocity;
     if (normalizedAge < 1.0) {
         vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
         #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
             lifeVelocity = computeParticleLifeVelocity(normalizedAge); 
+        #endif
+
+        #if defined(RENDERER_LIMIT_VOL_CONSTANT) || defined(RENDERER_LIMIT_VOL_CURVE) || defined(RENDERER_LIMIT_VOL_RANDOM_CONSTANT) || defined(RENDERER_LIMIT_VOL_RANDOM_CURVE)
+            limitLifeVelocity = computeParticleLimitLifeVelocity(normalizedAge);
         #endif
         
         vec3 gravityVelocity = renderer_Gravity * age;
@@ -85,7 +94,7 @@ void main() {
 
         //drag
         vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
-        vec3 center = computeParticlePosition(startVelocity, lifeVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData); //计算粒子位置
+        vec3 center = computeParticlePosition(startVelocity, lifeVelocity, limitLifeVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData,renderer_Dampen); //计算粒子位置
 
         #include <sphere_billboard>
         #include <stretched_billboard>
