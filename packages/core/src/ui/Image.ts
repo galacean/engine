@@ -8,12 +8,12 @@ import { SpriteModifyFlags } from "../2d/enums/SpriteModifyFlags";
 import { Entity } from "../Entity";
 import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ShaderProperty } from "../shader";
 import { UIRenderer } from "./UIRenderer";
+import { RenderQueueFlags } from "../RenderPipeline/BasicRenderPipeline";
 
 export class Image extends UIRenderer {
   /** @internal */
@@ -30,9 +30,6 @@ export class Image extends UIRenderer {
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
-  /** @internal */
-  @ignoreClone
-  _subChunk: SubPrimitiveChunk;
 
   /**
    * The draw mode of the sprite renderer.
@@ -129,10 +126,7 @@ export class Image extends UIRenderer {
   }
 
   set color(value: Color) {
-    if (this._color !== value) {
-      this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
-    }
+    this._color !== value && this._color.copyFrom(value);
   }
 
   /**
@@ -145,6 +139,9 @@ export class Image extends UIRenderer {
     this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
+    this._onColorChange = this._onColorChange.bind(this);
+    // @ts-ignore
+    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   /**
@@ -188,15 +185,11 @@ export class Image extends UIRenderer {
     // Push primitive
     const camera = context.camera;
     const { engine } = camera;
-
-    // Push primitive
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElement = engine._subRenderElementPool.get();
+    const subRenderElement = (this._subRenderElement = engine._subRenderElementPool.get());
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    renderElement.addSubRenderElement(subRenderElement);
-    camera._renderPipeline.pushRenderElement(context, renderElement);
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    subRenderElement.renderQueueFlags = RenderQueueFlags.Transparent;
   }
 
   /**
@@ -268,6 +261,10 @@ export class Image extends UIRenderer {
         this.sprite = null;
         break;
     }
+  }
+
+  private _onColorChange(): void {
+    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
   }
 }
 

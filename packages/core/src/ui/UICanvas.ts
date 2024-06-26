@@ -4,19 +4,19 @@ import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Transform } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
 import { HitResult } from "../physics";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component {
   /** @internal */
-  @ignoreClone
   _uiCanvasIndex: number = -1;
+  /** @internal */
+  _isRootCanvas: boolean = false;
 
   private _renderMode: CanvasRenderMode = CanvasRenderMode.ScreenSpaceOverlay;
   private _renderCamera: Camera;
@@ -24,13 +24,14 @@ export class UICanvas extends Component {
   private _sortOrder: number = 0;
   private _distance: number = 10;
   private _renderers: UIRenderer[] = [];
-  private _transform: Transform;
-  private _uiTransform: UITransform;
+  private _transform: UITransform;
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  private _isRootCanvas: boolean = false;
   private _enableBlocked: boolean = true;
   private _parents: Entity[] = [];
   private _hierarchyDirty: boolean = true;
+
+  /** @internal */
+  _renderElement: RenderElement;
 
   /** @internal */
   get renderers(): UIRenderer[] {
@@ -169,8 +170,7 @@ export class UICanvas extends Component {
 
   constructor(entity: Entity) {
     super(entity);
-    this._transform = entity.getComponent(Transform);
-    this._uiTransform = entity.getComponent(UITransform);
+    this._transform = <UITransform>entity.transform;
     this._onEntityListener = this._onEntityListener.bind(this);
     this._onParentListener = this._onParentListener.bind(this);
     this._onCanvasSizeListener = this._onCanvasSizeListener.bind(this);
@@ -184,12 +184,13 @@ export class UICanvas extends Component {
   _prepareRender(context: RenderContext): void {
     const { renderers } = this;
     const { frameCount } = this.engine.time;
-    const distanceForSort = this._distance;
+    const renderElement = (this._renderElement = this.engine._renderElementPool.get());
+    renderElement.set(0, this._distance);
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      renderer._distanceForSort = distanceForSort;
       renderer._renderFrameCount = frameCount;
       renderer._prepareRender(context);
+      renderer._subRenderElement && renderElement.addSubRenderElement(renderer._subRenderElement);
     }
   }
 
@@ -284,7 +285,7 @@ export class UICanvas extends Component {
         break;
     }
     this.entity.transform.setScale(expectX, expectY, expectZ);
-    this._uiTransform.rect.set(curWidth / expectX, curHeight / expectY);
+    this._transform.rect.set(curWidth / expectX, curHeight / expectY);
   }
 
   private _walk(entity: Entity, out: UIRenderer[]): void {

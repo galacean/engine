@@ -15,6 +15,7 @@ import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Pointer } from "./input";
 import { PointerEventType } from "./input/pointer/PointerEventType";
+import { UITransform } from "./ui";
 
 /**
  * Entity, be used as components container.
@@ -76,8 +77,6 @@ export class Entity extends EngineObject {
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -104,9 +103,14 @@ export class Entity extends EngineObject {
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
+  private _transform: Transform;
   private _activeChangedComponents: Component[];
 
   _onPointerCallBacksArray: DisorderedArray<(event: Pointer) => void>[];
+
+  get transform(): Transform {
+    return this._transform;
+  }
 
   /**
    * Whether to activate locally.
@@ -202,8 +206,8 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    this._transform = this.addComponent(Transform);
+    this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
   }
 
   /**
@@ -410,6 +414,7 @@ export class Entity extends EngineObject {
    */
   createChild(name?: string): Entity {
     const child = new Entity(this.engine, name);
+    this._transform instanceof UITransform && child.addComponent(UITransform);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -464,8 +469,8 @@ export class Entity extends EngineObject {
 
     cloneEntity.layer = srcEntity.layer;
     cloneEntity._isActive = srcEntity._isActive;
-    const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = srcEntity;
+    const { _transform: cloneTransform } = cloneEntity;
+    const { _transform: srcTransform } = srcEntity;
     cloneTransform.position = srcTransform.position;
     cloneTransform.rotation = srcTransform.rotation;
     cloneTransform.scale = srcTransform.scale;
@@ -750,7 +755,7 @@ export class Entity extends EngineObject {
   }
 
   private _setParentChange() {
-    this.transform._parentChange();
+    this._transform._parentChange();
     this._updateFlagManager.dispatch(EntityModifyFlags.Parent);
   }
 
@@ -786,7 +791,7 @@ export class Entity extends EngineObject {
    */
   getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;

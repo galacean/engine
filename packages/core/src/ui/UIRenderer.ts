@@ -7,6 +7,9 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
+import { ignoreClone } from "../clone/CloneManager";
+import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
+import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
@@ -14,6 +17,13 @@ export class UIRenderer extends Renderer {
   protected _localBounds: BoundingBox = new BoundingBox();
   protected _rayCastTarget: boolean = true;
   protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
+
+  /** @internal */
+  @ignoreClone
+  _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _subRenderElement: SubRenderElement;
 
   get rayCastTarget(): boolean {
     return this._rayCastTarget;
@@ -46,7 +56,13 @@ export class UIRenderer extends Renderer {
    */
   override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
     //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+    // super._updateTransformShaderData(context, onlyMVP, true);
+    const worldMatrix = this.entity.transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateProjectionRelatedShaderData(context, worldMatrix, true);
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, true);
+    }
   }
 
   /**

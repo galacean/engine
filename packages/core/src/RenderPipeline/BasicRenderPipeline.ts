@@ -338,6 +338,7 @@ export class BasicRenderPipeline {
           continue;
         }
         canvas._prepareRender(context);
+        this.pushRenderElement(context, canvas._renderElement);
       }
     }
     // World Space UI
@@ -350,6 +351,7 @@ export class BasicRenderPipeline {
           continue;
         }
         canvas._prepareRender(context);
+        this.pushRenderElement(context, canvas._renderElement);
       }
     }
   }
