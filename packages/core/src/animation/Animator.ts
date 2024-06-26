@@ -354,7 +354,8 @@ export class Animator extends Component {
         eventHandler.event = event;
         handlers.length = 0;
         for (let j = scriptCount - 1; j >= 0; j--) {
-          const handler = <Function>scripts[j][funcName];
+          const script = scripts[j];
+          const handler = <Function>script[funcName].bind(script);
           handler && handlers.push(handler);
         }
         eventHandlers.push(eventHandler);
