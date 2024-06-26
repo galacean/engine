@@ -12,10 +12,10 @@ export enum EBackend {
 }
 
 export class ShaderLab implements IShaderLab {
-  private parser: Parser;
+  private _parser: Parser;
 
   constructor(engineTypes: Partial<IEngineType> = {}, engineFunctions: Partial<IEngineFunction> = {}) {
-    this.parser = Parser.create();
+    this._parser = Parser.create();
     Object.assign(EngineType, engineTypes);
     Object.assign(EngineFunctions, engineFunctions);
   }
@@ -36,7 +36,7 @@ export class ShaderLab implements IShaderLab {
     const ppdContent = preprocessor.process();
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
-    const program = this.parser.parse(tokens);
+    const program = this._parser.parse(tokens);
     const codeGen = backend === EBackend.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
     return codeGen.visitShaderProgram(program);
   }
