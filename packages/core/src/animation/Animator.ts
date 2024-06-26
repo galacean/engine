@@ -1,3 +1,4 @@
+import { MathUtil } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
@@ -186,7 +187,7 @@ export class Animator extends Component {
 
     const { layers } = animatorController;
     for (let i = 0, n = layers.length; i < n; i++) {
-      this._updateLayer(i, deltaTime, animationUpdate);
+      this._updateLayer(i, layers[i], deltaTime, animationUpdate);
     }
   }
 
@@ -465,12 +466,17 @@ export class Animator extends Component {
     return animatorLayerData;
   }
 
-  private _updateLayer(layerIndex: number, deltaTime: number, aniUpdate: boolean): void {
-    let { stateMachine, blendingMode, weight } = this._animatorController.layers[layerIndex];
-
-    this._updateState(stateMachine, layerIndex, deltaTime);
-
+  private _updateLayer(
+    layerIndex: number,
+    layer: AnimatorControllerLayer,
+    deltaTime: number,
+    aniUpdate: boolean
+  ): void {
+    let { stateMachine, blendingMode, weight } = layer;
     const layerData = this._getAnimatorLayerData(layerIndex);
+
+    this._updateState(layerIndex, layerData, stateMachine, deltaTime);
+
     const { srcPlayData, destPlayData } = layerData;
     const additive = blendingMode === AnimatorLayerBlendingMode.Additive;
 
@@ -492,56 +498,67 @@ export class Animator extends Component {
     }
   }
 
-  private _updateState(stateMachine: AnimatorStateMachine, layerIndex: number, deltaTime: number): void {
-    const layerData = this._getAnimatorLayerData(layerIndex);
-
+  private _updateState(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
+    deltaTime: number
+  ): void {
     switch (layerData.layerState) {
       case LayerState.Standby:
-        this._checkAnyState(layerIndex, deltaTime) || this._checkEntryState(layerIndex, deltaTime);
+        this._checkAnyState(layerIndex, layerData, stateMachine, deltaTime) ||
+          this._checkEntryState(layerIndex, layerData, stateMachine, deltaTime);
         break;
       case LayerState.Playing:
-        this._updatePlayingState(stateMachine, layerData, layerIndex, deltaTime);
+        this._updatePlayingState(layerIndex, layerData, stateMachine, deltaTime);
         break;
       case LayerState.Finished:
-        this._updateFinishedState(stateMachine, layerData, layerIndex, deltaTime);
+        this._updateFinishedState(layerIndex, layerData, stateMachine, deltaTime);
         break;
       case LayerState.CrossFading:
-        this._updateCrossFadeState(stateMachine, layerData, layerIndex, deltaTime);
+        this._updateCrossFadeState(layerIndex, layerData, stateMachine, deltaTime);
         break;
       case LayerState.FixedCrossFading: {
-        this._updateCrossFadeFromPoseState(stateMachine, layerData, layerIndex, deltaTime);
+        this._updateCrossFadeFromPoseState(layerIndex, layerData, stateMachine, deltaTime);
         break;
       }
     }
   }
 
   private _updatePlayingState(
-    stateMachine: AnimatorStateMachine,
-    layerData: AnimatorLayerData,
     layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     deltaTime: number
   ): void {
     const { srcPlayData } = layerData;
     const { state } = srcPlayData;
+    const { eventHandlers } = srcPlayData.stateData;
 
     const actualSpeed = state.speed * this.speed;
-    const actualDeltaTime = actualSpeed * deltaTime;
+    const actualDeltaTime = Math.abs(actualSpeed) * deltaTime;
     const isBackwards = actualSpeed < 0;
 
-    // update clipTime
+    // get correct clipTime when backwards.
     isBackwards && srcPlayData.update(0, isBackwards);
 
     const { playState: lastPlayState, clipTime: lastClipTime } = srcPlayData;
+    // precalculate to get the transition.
+    srcPlayData.update(actualDeltaTime, isBackwards);
 
-    const { transitions } = state;
+    const { clipTime, playState } = srcPlayData;
+
     const transition =
-      this._applyTransitionsByCondition(state, stateMachine.anyStateTransitions, layerIndex) ||
+      this._applyTransitionsByCondition(layerIndex, layerData, stateMachine, state, stateMachine.anyStateTransitions) ||
       this._applyStateTransitions(
-        srcPlayData,
-        transitions,
         layerIndex,
+        layerData,
+        stateMachine,
+        isBackwards,
+        srcPlayData,
+        state.transitions,
         lastClipTime,
-        srcPlayData.clipTime,
+        clipTime,
         actualDeltaTime
       );
 
@@ -553,6 +570,7 @@ export class Animator extends Component {
 
       if (!isBackwards) {
         // CM: Need discussion
+        // loop.
         if (exitTime < lastClipTime) {
           costTime = exitTime + clipEndTime - lastClipTime;
         } else {
@@ -566,20 +584,17 @@ export class Animator extends Component {
           costTime = lastClipTime - exitTime;
         }
       }
-      srcPlayData.update(costTime, isBackwards);
+      // revert actualDeltaTime and update costTime.
+      srcPlayData.update(costTime - actualDeltaTime, isBackwards);
       const remainDeltaTime = deltaTime - costTime;
-      this._updateState(stateMachine, layerIndex, remainDeltaTime);
-    } else {
-      srcPlayData.update(Math.abs(actualDeltaTime), isBackwards);
+      // need update whenever has transition.
+      this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
     }
-
-    const { clipTime, playState } = srcPlayData;
 
     if (playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Finished;
     }
 
-    const { eventHandlers } = srcPlayData.stateData;
     eventHandlers.length && this._fireAnimationEvents(srcPlayData, eventHandlers, lastClipTime, clipTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
@@ -598,14 +613,12 @@ export class Animator extends Component {
     additive: boolean,
     aniUpdate: boolean
   ): void {
-    const { clipTime } = playData;
-    const { curveLayerOwner } = playData.stateData;
     const curveBindings = playData.state.clip._curveBindings;
     const finished = playData.playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
       for (let i = curveBindings.length - 1; i >= 0; i--) {
-        const layerOwner = curveLayerOwner[i];
+        const layerOwner = playData.stateData.curveLayerOwner[i];
         const owner = layerOwner?.curveOwner;
 
         if (!owner || !layerOwner.isActive) {
@@ -617,7 +630,7 @@ export class Animator extends Component {
           this._checkRevertOwner(owner, additive);
 
           // CM: if aniUpdate is false, why call `evaluateValue`?
-          const value = owner.evaluateValue(curve, clipTime, additive);
+          const value = owner.evaluateValue(curve, playData.clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
           finished && layerOwner.saveFinalValue();
         }
@@ -626,9 +639,9 @@ export class Animator extends Component {
   }
 
   private _updateCrossFadeState(
-    stateMachine: AnimatorStateMachine,
-    layerData: AnimatorLayerData,
     layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     deltaTime: number
   ) {
     const { srcPlayData, destPlayData } = layerData;
@@ -645,7 +658,7 @@ export class Animator extends Component {
     const actualDestSpeed = destState.speed * speed;
     const isSrcBackwards = actualSrcSpeed < 0;
     const isDestBackwards = actualDestSpeed < 0;
-    const actualDestDeltaTime = actualDestSpeed * deltaTime;
+    const actualDestDeltaTime = Math.abs(actualDestSpeed) * deltaTime;
 
     isSrcBackwards && srcPlayData.update(0, isSrcBackwards);
     isDestBackwards && destPlayData.update(0, isDestBackwards);
@@ -660,11 +673,10 @@ export class Animator extends Component {
           ? transitionDuration - lastDestClipTime
           : actualDestDeltaTime;
     } else {
-      // (destStateDuration - lastDestClipTime) + Math.abs(actualDestDeltaTime)
       destCostTime =
-        destStateDuration - lastDestClipTime - actualDestDeltaTime > transitionDuration
+        destStateDuration - lastDestClipTime + actualDestDeltaTime > transitionDuration
           ? transitionDuration - (destStateDuration - lastDestClipTime)
-          : -actualDestDeltaTime;
+          : actualDestDeltaTime;
     }
 
     const costTime = actualDestSpeed === 0 ? 0 : destCostTime / Math.abs(actualDestSpeed);
@@ -676,7 +688,8 @@ export class Animator extends Component {
     const { clipTime: destClipTime, playState: destPlayState, frameTime } = destPlayData;
 
     let crossWeight = Math.abs(frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
+    // for precision problem
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     srcEventHandlers.length && this._fireAnimationEvents(srcPlayData, srcEventHandlers, lastSrcClipTime, srcClipTime);
     destEventHandlers.length &&
@@ -685,7 +698,7 @@ export class Animator extends Component {
     if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(srcState, layerIndex);
     }
-    if (crossWeight === 1 || srcPlayState === AnimatorStatePlayState.Finished) {
+    if (crossWeight === 1.0 || srcPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(srcState, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(srcState, layerIndex);
@@ -703,7 +716,8 @@ export class Animator extends Component {
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
 
     const remainDeltaTime = deltaTime - costTime;
-    remainDeltaTime > 0 && this._updateState(stateMachine, layerIndex, remainDeltaTime);
+    // for precision problem
+    remainDeltaTime > MathUtil.zeroTolerance && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
   }
 
   private _evaluateCrossFadeState(
@@ -718,12 +732,10 @@ export class Animator extends Component {
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: destState } = destPlayData;
     const { _curveBindings: destCurves } = destState.clip;
-    const duration = destState._getDuration() * layerData.crossFadeTransition.duration;
-    let crossWeight = Math.abs(destPlayData.frameTime) / duration;
-    (crossWeight >= 1.0 || duration === 0) && (crossWeight = 1.0);
+    const transitionDuration = destState._getDuration() * layerData.crossFadeTransition.duration;
+    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
-    const { clipTime: srcClipTime } = srcPlayData;
-    const { clipTime: destClipTime } = destPlayData;
     const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
@@ -741,8 +753,8 @@ export class Animator extends Component {
         const value = owner.evaluateCrossFadeValue(
           srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
           destCurveIndex >= 0 ? destCurves[destCurveIndex].curve : null,
-          srcClipTime,
-          destClipTime,
+          srcPlayData.clipTime,
+          destPlayData.clipTime,
           crossWeight,
           additive
         );
@@ -753,9 +765,9 @@ export class Animator extends Component {
   }
 
   private _updateCrossFadeFromPoseState(
-    stateMachine: AnimatorStateMachine,
-    layerData: AnimatorLayerData,
     layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     deltaTime: number
   ) {
     const { destPlayData } = layerData;
@@ -767,7 +779,7 @@ export class Animator extends Component {
 
     const actualSpeed = state.speed * this.speed;
     const isDestBackwards = actualSpeed < 0;
-    const actualDeltaTime = actualSpeed * deltaTime;
+    const actualDeltaTime = Math.abs(actualSpeed) * deltaTime;
 
     isDestBackwards && destPlayData.update(0, isDestBackwards);
     const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
@@ -779,11 +791,10 @@ export class Animator extends Component {
           ? transitionDuration - lastDestClipTime
           : actualDeltaTime;
     } else {
-      // (stateDuration - lastDestClipTime) + Math.abs(actualDeltaTime) endTime = 0 - transitionDuration
       destCostTime =
-        stateDuration - lastDestClipTime - actualDeltaTime > transitionDuration
+        stateDuration - lastDestClipTime + actualDeltaTime > transitionDuration
           ? transitionDuration - (stateDuration - lastDestClipTime)
-          : -actualDeltaTime;
+          : actualDeltaTime;
     }
 
     const costTime = actualSpeed === 0 ? 0 : destCostTime / Math.abs(actualSpeed);
@@ -793,7 +804,7 @@ export class Animator extends Component {
     const { clipTime, playState, frameTime } = destPlayData;
 
     let crossWeight = Math.abs(frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, clipTime);
@@ -810,7 +821,7 @@ export class Animator extends Component {
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
 
     const remainDeltaTime = deltaTime - costTime;
-    remainDeltaTime > 0 && this._updateState(stateMachine, layerIndex, remainDeltaTime);
+    remainDeltaTime > MathUtil.zeroTolerance && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
   }
 
   private _evaluateCrossFadeFromPoseState(
@@ -856,22 +867,38 @@ export class Animator extends Component {
   }
 
   private _updateFinishedState(
-    stateMachine: AnimatorStateMachine,
-    layerData: AnimatorLayerData,
     layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     deltaTime: number
   ): void {
     const playData = layerData.srcPlayData;
-    const { state, clipTime } = playData;
+    const { state } = playData;
     const transitions = state.transitions;
-    const actualDeltaTime = state.speed * this.speed * deltaTime;
+    const actualSpeed = state.speed * this.speed;
+    const isBackwards = actualSpeed < 0;
+    const actualDeltaTime = actualSpeed * deltaTime;
+
+    isBackwards && playData.update(0, isBackwards);
+
+    const { clipTime } = playData;
 
     const transition =
-      this._applyTransitionsByCondition(state, stateMachine.anyStateTransitions, layerIndex) ||
-      this._applyStateTransitions(playData, transitions, layerIndex, clipTime, playData.clipTime, actualDeltaTime);
+      this._applyTransitionsByCondition(layerIndex, layerData, stateMachine, state, stateMachine.anyStateTransitions) ||
+      this._applyStateTransitions(
+        layerIndex,
+        layerData,
+        stateMachine,
+        actualSpeed < 0,
+        playData,
+        transitions,
+        clipTime,
+        clipTime,
+        actualDeltaTime
+      );
 
     if (transition) {
-      this._updateState(stateMachine, layerIndex, deltaTime);
+      this._updateState(layerIndex, layerData, stateMachine, deltaTime);
     }
   }
 
@@ -921,7 +948,6 @@ export class Animator extends Component {
         }
       }
     } else {
-      // layerState is CrossFading, FixedCrossFading, Standby, Finished
       const { crossLayerOwnerCollection } = layerData;
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
         crossLayerOwnerCollection[i].curveOwner.revertDefaultValue();
@@ -930,9 +956,12 @@ export class Animator extends Component {
   }
 
   private _applyStateTransitions(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
+    isBackwards: boolean,
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
-    layerIndex: number,
     lastClipTime: number,
     clipTime: number,
     deltaTime: number
@@ -942,42 +971,72 @@ export class Animator extends Component {
     let targetTransition: AnimatorStateTransition = null;
     const startTime = state.clipStartTime * clipDuration;
     const endTime = state.clipEndTime * clipDuration;
-    if (this.speed * state.speed >= 0) {
-      if (lastClipTime + deltaTime > endTime) {
-        targetTransition = this._checkSubTransition(playState, transitions, layerIndex, lastClipTime, endTime);
+    if (!isBackwards) {
+      if (lastClipTime + deltaTime >= endTime) {
+        targetTransition = this._checkSubTransition(
+          layerIndex,
+          layerData,
+          stateMachine,
+          playState,
+          transitions,
+          lastClipTime,
+          endTime
+        );
         if (!targetTransition) {
           playState.currentTransitionIndex = 0;
-          targetTransition = this._checkSubTransition(playState, transitions, layerIndex, startTime, clipTime);
+          targetTransition = this._checkSubTransition(
+            layerIndex,
+            layerData,
+            stateMachine,
+            playState,
+            transitions,
+            startTime,
+            clipTime
+          );
         }
       } else {
         targetTransition = this._checkSubTransition(
+          layerIndex,
+          layerData,
+          stateMachine,
           playState,
           transitions,
-          layerIndex,
           lastClipTime,
-          lastClipTime + deltaTime
+          clipTime
         );
       }
     } else {
-      if (lastClipTime + deltaTime < startTime) {
+      if (lastClipTime - deltaTime <= startTime) {
         targetTransition = this._checkBackwardsSubTransition(
+          layerIndex,
+          layerData,
+          stateMachine,
           playState,
           transitions,
-          layerIndex,
           lastClipTime,
           startTime
         );
         if (!targetTransition) {
           playState.currentTransitionIndex = transitions.length - 1;
-          targetTransition = this._checkBackwardsSubTransition(playState, transitions, layerIndex, clipTime, endTime);
+          targetTransition = this._checkBackwardsSubTransition(
+            layerIndex,
+            layerData,
+            stateMachine,
+            playState,
+            transitions,
+            clipTime,
+            endTime
+          );
         }
       } else {
         targetTransition = this._checkBackwardsSubTransition(
+          layerIndex,
+          layerData,
+          stateMachine,
           playState,
           transitions,
-          layerIndex,
           lastClipTime,
-          lastClipTime + deltaTime
+          clipTime
         );
       }
     }
@@ -986,9 +1045,11 @@ export class Animator extends Component {
   }
 
   private _checkSubTransition(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
-    layerIndex: number,
     lastClipTime: number,
     curClipTime: number
   ): AnimatorStateTransition {
@@ -1005,7 +1066,7 @@ export class Animator extends Component {
       if (exitTime >= lastClipTime) {
         playState.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
         if (this._checkConditions(state, transition)) {
-          this._applyTransition(transition, layerIndex);
+          this._applyTransition(layerIndex, layerData, stateMachine, transition);
           return transition;
         }
       }
@@ -1014,9 +1075,11 @@ export class Animator extends Component {
   }
 
   private _checkBackwardsSubTransition(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
-    layerIndex: number,
     lastClipTime: number,
     curClipTime: number
   ): AnimatorStateTransition {
@@ -1033,7 +1096,7 @@ export class Animator extends Component {
       if (exitTime <= lastClipTime) {
         playState.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
         if (this._checkConditions(state, transition)) {
-          this._applyTransition(transition, layerIndex);
+          this._applyTransition(layerIndex, layerData, stateMachine, transition);
           return transition;
         }
       }
@@ -1042,14 +1105,16 @@ export class Animator extends Component {
   }
 
   private _applyTransitionsByCondition(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
     state: AnimatorState,
-    transitions: Readonly<AnimatorStateTransition[]>,
-    layerIndex: number
+    transitions: Readonly<AnimatorStateTransition[]>
   ): AnimatorStateTransition {
     for (let i = 0, n = transitions.length; i < n; i++) {
       const transition = transitions[i];
       if (this._checkConditions(state, transition)) {
-        this._applyTransition(transition, layerIndex);
+        this._applyTransition(layerIndex, layerData, stateMachine, transition);
         return transition;
       }
     }
@@ -1073,20 +1138,29 @@ export class Animator extends Component {
     return true;
   }
 
-  private _applyTransition(transition: AnimatorStateTransition, layerIndex: number): void {
+  private _applyTransition(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
+    transition: AnimatorStateTransition
+  ): void {
+    // need prepare first, it should crossFade when to exit.
+    this._prepareCrossFadeByTransition(transition, layerIndex);
     if (transition.isExit) {
       // CM: This is single layer, not all layers
-      this._checkAnyState(layerIndex) || this._checkEntryState(layerIndex);
+      this._checkAnyState(layerIndex, layerData, stateMachine) ||
+        this._checkEntryState(layerIndex, layerData, stateMachine);
       // CM: This will play the default state?
       return;
     }
-    this._prepareCrossFadeByTransition(transition, layerIndex);
   }
 
   private _checkAllLayerState(): void {
     const { _layers } = this._animatorController;
     for (let i = 0, n = _layers.length; i < n; ++i) {
-      this._checkAnyState(i) || this._checkEntryState(i);
+      const layerData = this._getAnimatorLayerData(i);
+      const stateMachine = _layers[i].stateMachine;
+      this._checkAnyState(i, layerData, stateMachine) || this._checkEntryState(i, layerData, stateMachine);
     }
   }
 
@@ -1290,30 +1364,49 @@ export class Animator extends Component {
     }
   }
 
-  private _checkAnyState(layerIndex: number, remainDeltaTime = 0): AnimatorStateTransition {
-    const { stateMachine } = this._animatorController.layers[layerIndex];
+  private _checkAnyState(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
+    remainDeltaTime = 0
+  ): AnimatorStateTransition {
     const { anyStateTransitions } = stateMachine;
     if (!anyStateTransitions.length) return null;
-    const anyTransition = this._applyTransitionsByCondition(null, anyStateTransitions, layerIndex);
-    anyTransition && this._updateState(stateMachine, layerIndex, remainDeltaTime);
+    const anyTransition = this._applyTransitionsByCondition(
+      layerIndex,
+      layerData,
+      stateMachine,
+      null,
+      anyStateTransitions
+    );
+    anyTransition && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
     return anyTransition;
   }
 
-  private _checkEntryState(layerIndex: number, remainDeltaTime = 0): void {
-    const stateMachine = this._animatorController.layers[layerIndex].stateMachine;
-
+  private _checkEntryState(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    stateMachine: AnimatorStateMachine,
+    remainDeltaTime = 0
+  ): void {
     const { entryTransitions } = stateMachine;
     if (!entryTransitions.length) return;
 
-    const entryTransition = this._applyTransitionsByCondition(null, entryTransitions, layerIndex);
-    entryTransition && this._updateState(stateMachine, layerIndex, remainDeltaTime);
+    const entryTransition = this._applyTransitionsByCondition(
+      layerIndex,
+      layerData,
+      stateMachine,
+      null,
+      entryTransitions
+    );
+    entryTransition && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
 
     if (!entryTransition) {
       // CM: are you sure this will play the default state?
       const defaultState = stateMachine.defaultState;
       if (defaultState) {
         this._preparePlay(defaultState, layerIndex);
-        this._updateState(stateMachine, layerIndex, remainDeltaTime);
+        this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
       }
       // CM: not update this frame?
     }
