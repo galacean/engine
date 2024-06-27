@@ -544,7 +544,7 @@ export class Animator extends Component {
 
     const { clipTime: lastClipTime, playState: lastPlayState } = srcPlayData;
 
-    // precalculate to get the transition.
+    // precalculate to get the transition
     srcPlayData.update(actualDeltaTime);
 
     const { clipTime, playState, isForwards } = srcPlayData;
@@ -570,7 +570,6 @@ export class Animator extends Component {
       let costTime = 0;
 
       if (isForwards) {
-        // loop.
         if (exitTime < lastClipTime) {
           costTime = exitTime + clipEndTime - lastClipTime;
         } else {
