@@ -301,7 +301,7 @@ export default class PpScanner extends PpError {
     if (this.peek(2) === "//") {
       const start = this.getPosition();
       // single line comments
-      while (this.curChar() !== "\n") this._advance();
+      while (this.curChar() !== "\n" && !this.isEnd()) this._advance();
       return new LocRange(start, this.getPosition());
     } else if (this.peek(2) === "/*") {
       const start = this.getPosition();
