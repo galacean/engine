@@ -14,9 +14,9 @@ export class AnimatorStatePlayData {
   clipTime: number;
   currentEventIndex: number;
   currentTransitionIndex: number;
-  isForwards: boolean = true;
+  isForwards = true;
 
-  private _changedOrientation: boolean = false;
+  private _changedOrientation = false;
 
   reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.state = state;
