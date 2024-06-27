@@ -134,7 +134,6 @@ export class Animator extends Component {
     layerIndex: number = -1,
     normalizedTimeOffset: number = 0
   ): void {
-    // CM: Maybe should not in here now, and auto play logic is missing
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
     }
@@ -155,6 +154,7 @@ export class Animator extends Component {
    * @param deltaTime - The deltaTime when the animation update
    */
   update(deltaTime: number): void {
+    // Play or crossFade in script, animation playing from the first frame, deltaTime should be 0
     if (this._playFrameCount === this.engine.time.frameCount) {
       deltaTime = 0;
     }
@@ -180,7 +180,6 @@ export class Animator extends Component {
 
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
-      this._checkAllLayerState();
     }
 
     this._updateMark++;
@@ -228,7 +227,10 @@ export class Animator extends Component {
    * @internal
    */
   override _onEnable(): void {
-    this.animatorController && this._checkAllLayerState();
+    const layersData = this._animatorLayersData;
+    for (let i = 0, n = layersData.length; i < n; i++) {
+      layersData[i].layerState = LayerState.Standby;
+    }
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
 
@@ -472,13 +474,13 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ): void {
-    let { stateMachine, blendingMode, weight } = layer;
+    let { weight } = layer;
     const layerData = this._getAnimatorLayerData(layerIndex);
 
-    this._updateState(layerIndex, layerData, stateMachine, deltaTime);
+    this._updateState(layerIndex, layerData, layer.stateMachine, deltaTime);
 
     const { srcPlayData, destPlayData } = layerData;
-    const additive = blendingMode === AnimatorLayerBlendingMode.Additive;
+    const additive = layer.blendingMode === AnimatorLayerBlendingMode.Additive;
 
     layerIndex === 0 && (weight = 1.0);
 
@@ -536,17 +538,16 @@ export class Animator extends Component {
     const { eventHandlers } = srcPlayData.stateData;
 
     const actualSpeed = state.speed * this.speed;
-    const actualDeltaTime = Math.abs(actualSpeed) * deltaTime;
-    const isBackwards = actualSpeed < 0;
+    const actualDeltaTime = actualSpeed * deltaTime;
 
-    // get correct clipTime when backwards.
-    isBackwards && srcPlayData.update(0, isBackwards);
+    srcPlayData.updateForwards(actualDeltaTime);
 
-    const { playState: lastPlayState, clipTime: lastClipTime } = srcPlayData;
+    const { clipTime: lastClipTime, playState: lastPlayState } = srcPlayData;
+
     // precalculate to get the transition.
-    srcPlayData.update(actualDeltaTime, isBackwards);
+    srcPlayData.update(actualDeltaTime);
 
-    const { clipTime, playState } = srcPlayData;
+    const { clipTime, playState, isForwards } = srcPlayData;
 
     const transition =
       this._applyTransitionsByCondition(layerIndex, layerData, stateMachine, state, stateMachine.anyStateTransitions) ||
@@ -554,7 +555,7 @@ export class Animator extends Component {
         layerIndex,
         layerData,
         stateMachine,
-        isBackwards,
+        isForwards,
         srcPlayData,
         state.transitions,
         lastClipTime,
@@ -568,8 +569,7 @@ export class Animator extends Component {
       const exitTime = transition.exitTime * state._getDuration();
       let costTime = 0;
 
-      if (!isBackwards) {
-        // CM: Need discussion
+      if (isForwards) {
         // loop.
         if (exitTime < lastClipTime) {
           costTime = exitTime + clipEndTime - lastClipTime;
@@ -583,10 +583,11 @@ export class Animator extends Component {
         } else {
           costTime = lastClipTime - exitTime;
         }
+        costTime = -costTime;
       }
       // revert actualDeltaTime and update costTime.
-      srcPlayData.update(costTime - actualDeltaTime, isBackwards);
-      const remainDeltaTime = deltaTime - costTime;
+      srcPlayData.update(costTime - actualDeltaTime);
+      const remainDeltaTime = deltaTime - Math.abs(costTime);
       // need update whenever has transition.
       this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
     }
@@ -629,7 +630,6 @@ export class Animator extends Component {
         if (curve.keys.length) {
           this._checkRevertOwner(owner, additive);
 
-          // CM: if aniUpdate is false, why call `evaluateValue`?
           const value = owner.evaluateValue(curve, playData.clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
           finished && layerOwner.saveFinalValue();
@@ -656,33 +656,33 @@ export class Animator extends Component {
 
     const actualSrcSpeed = srcState.speed * speed;
     const actualDestSpeed = destState.speed * speed;
-    const isSrcBackwards = actualSrcSpeed < 0;
-    const isDestBackwards = actualDestSpeed < 0;
-    const actualDestDeltaTime = Math.abs(actualDestSpeed) * deltaTime;
+    const actualDestDeltaTime = actualDestSpeed * deltaTime;
 
-    isSrcBackwards && srcPlayData.update(0, isSrcBackwards);
-    isDestBackwards && destPlayData.update(0, isDestBackwards);
+    srcPlayData && srcPlayData.updateForwards(actualSrcSpeed * deltaTime);
+    destPlayData && destPlayData.updateForwards(actualDestDeltaTime);
 
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
 
     let destCostTime = 0;
-    if (!isDestBackwards) {
+    if (destPlayData.isForwards) {
       destCostTime =
         lastDestClipTime + actualDestDeltaTime > transitionDuration
           ? transitionDuration - lastDestClipTime
           : actualDestDeltaTime;
     } else {
       destCostTime =
-        destStateDuration - lastDestClipTime + actualDestDeltaTime > transitionDuration
-          ? transitionDuration - (destStateDuration - lastDestClipTime)
+        // destStateDuration - lastDestClipTime + Math.abs(actualDestDeltaTime)
+        destStateDuration - lastDestClipTime - actualDestDeltaTime > transitionDuration
+          ? // -(transitionDuration - (destStateDuration - lastDestClipTime))
+            destStateDuration - lastDestClipTime - transitionDuration
           : actualDestDeltaTime;
     }
 
-    const costTime = actualDestSpeed === 0 ? 0 : destCostTime / Math.abs(actualDestSpeed);
+    const costTime = actualDestSpeed === 0 ? 0 : destCostTime / actualDestSpeed;
 
-    srcPlayData.update(costTime * Math.abs(actualSrcSpeed), isSrcBackwards);
-    destPlayData.update(destCostTime, isDestBackwards);
+    srcPlayData.update(costTime * actualSrcSpeed);
+    destPlayData.update(destCostTime);
 
     const { clipTime: srcClipTime, playState: srcPlayState } = srcPlayData;
     const { clipTime: destClipTime, playState: destPlayState, frameTime } = destPlayData;
@@ -690,7 +690,6 @@ export class Animator extends Component {
     let crossWeight = Math.abs(frameTime) / transitionDuration;
     // for precision problem
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
-
     srcEventHandlers.length && this._fireAnimationEvents(srcPlayData, srcEventHandlers, lastSrcClipTime, srcClipTime);
     destEventHandlers.length &&
       this._fireAnimationEvents(destPlayData, destEventHandlers, lastDestClipTime, destClipTime);
@@ -778,34 +777,36 @@ export class Animator extends Component {
     const transitionDuration = stateDuration * layerData.crossFadeTransition.duration;
 
     const actualSpeed = state.speed * this.speed;
-    const isDestBackwards = actualSpeed < 0;
-    const actualDeltaTime = Math.abs(actualSpeed) * deltaTime;
+    const actualDeltaTime = actualSpeed * deltaTime;
 
-    isDestBackwards && destPlayData.update(0, isDestBackwards);
+    destPlayData.updateForwards(actualDeltaTime);
+
     const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
 
     let destCostTime = 0;
-    if (!isDestBackwards) {
+    if (destPlayData.isForwards) {
       destCostTime =
         lastDestClipTime + actualDeltaTime > transitionDuration
           ? transitionDuration - lastDestClipTime
           : actualDeltaTime;
     } else {
       destCostTime =
-        stateDuration - lastDestClipTime + actualDeltaTime > transitionDuration
-          ? transitionDuration - (stateDuration - lastDestClipTime)
+        // destStateDuration - lastDestClipTime + Math.abs(actualDestDeltaTime)
+        stateDuration - lastDestClipTime - actualDeltaTime > transitionDuration
+          ? // -(transitionDuration - (stateDuration - lastDestClipTime))
+            stateDuration - lastDestClipTime - transitionDuration
           : actualDeltaTime;
     }
 
-    const costTime = actualSpeed === 0 ? 0 : destCostTime / Math.abs(actualSpeed);
+    const costTime = actualSpeed === 0 ? 0 : destCostTime / actualSpeed;
 
-    destPlayData.update(destCostTime, isDestBackwards);
+    destPlayData.update(destCostTime);
 
     const { clipTime, playState, frameTime } = destPlayData;
 
     let crossWeight = Math.abs(frameTime) / transitionDuration;
+    // for precision problem
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
-
     //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, clipTime);
 
@@ -876,10 +877,9 @@ export class Animator extends Component {
     const { state } = playData;
     const transitions = state.transitions;
     const actualSpeed = state.speed * this.speed;
-    const isBackwards = actualSpeed < 0;
     const actualDeltaTime = actualSpeed * deltaTime;
 
-    isBackwards && playData.update(0, isBackwards);
+    playData.updateForwards(actualDeltaTime);
 
     const { clipTime } = playData;
 
@@ -959,7 +959,7 @@ export class Animator extends Component {
     layerIndex: number,
     layerData: AnimatorLayerData,
     stateMachine: AnimatorStateMachine,
-    isBackwards: boolean,
+    isForwards: boolean,
     playState: AnimatorStatePlayData,
     transitions: Readonly<AnimatorStateTransition[]>,
     lastClipTime: number,
@@ -971,7 +971,7 @@ export class Animator extends Component {
     let targetTransition: AnimatorStateTransition = null;
     const startTime = state.clipStartTime * clipDuration;
     const endTime = state.clipEndTime * clipDuration;
-    if (!isBackwards) {
+    if (isForwards) {
       if (lastClipTime + deltaTime >= endTime) {
         targetTransition = this._checkSubTransition(
           layerIndex,
@@ -1006,7 +1006,7 @@ export class Animator extends Component {
         );
       }
     } else {
-      if (lastClipTime - deltaTime <= startTime) {
+      if (lastClipTime + deltaTime <= startTime) {
         targetTransition = this._checkBackwardsSubTransition(
           layerIndex,
           layerData,
@@ -1147,20 +1147,9 @@ export class Animator extends Component {
     // need prepare first, it should crossFade when to exit.
     this._prepareCrossFadeByTransition(transition, layerIndex);
     if (transition.isExit) {
-      // CM: This is single layer, not all layers
       this._checkAnyState(layerIndex, layerData, stateMachine) ||
         this._checkEntryState(layerIndex, layerData, stateMachine);
-      // CM: This will play the default state?
       return;
-    }
-  }
-
-  private _checkAllLayerState(): void {
-    const { _layers } = this._animatorController;
-    for (let i = 0, n = _layers.length; i < n; ++i) {
-      const layerData = this._getAnimatorLayerData(i);
-      const stateMachine = _layers[i].stateMachine;
-      this._checkAnyState(i, layerData, stateMachine) || this._checkEntryState(i, layerData, stateMachine);
     }
   }
 
@@ -1233,7 +1222,6 @@ export class Animator extends Component {
     const offset = duration * transition.offset;
     animatorLayerData.destPlayData.reset(crossState, animatorStateData, offset);
 
-    // CM: maybe prepare can merge
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:
       case LayerState.Finished:
@@ -1369,7 +1357,7 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     stateMachine: AnimatorStateMachine,
     remainDeltaTime = 0
-  ): AnimatorStateTransition {
+  ): boolean {
     const { anyStateTransitions } = stateMachine;
     if (!anyStateTransitions.length) return null;
     const anyTransition = this._applyTransitionsByCondition(
@@ -1380,7 +1368,7 @@ export class Animator extends Component {
       anyStateTransitions
     );
     anyTransition && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
-    return anyTransition;
+    return !!anyTransition;
   }
 
   private _checkEntryState(
@@ -1402,13 +1390,11 @@ export class Animator extends Component {
     entryTransition && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
 
     if (!entryTransition) {
-      // CM: are you sure this will play the default state?
       const defaultState = stateMachine.defaultState;
       if (defaultState) {
         this._preparePlay(defaultState, layerIndex);
         this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
       }
-      // CM: not update this frame?
     }
   }
 
