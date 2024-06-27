@@ -2,18 +2,20 @@ import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IEXTMeshoptCompressionSchema } from "./GLTFExtensionSchema";
-import { MeshoptDecoder } from "./MeshoptDecoder";
+import { getMeshoptDecoder } from "./MeshoptDecoder";
 
 @registerGLTFExtension("EXT_meshopt_compression", GLTFExtensionMode.CreateAndParse)
 class EXT_meshopt_compression extends GLTFExtensionParser {
   override createAndParse(context: GLTFParserContext, schema: IEXTMeshoptCompressionSchema): Promise<Uint8Array> {
     return context.get<ArrayBuffer>(GLTFParserType.Buffer, schema.buffer).then((arrayBuffer) => {
-      return MeshoptDecoder.decodeGltfBuffer(
-        schema.count,
-        schema.byteStride,
-        new Uint8Array(arrayBuffer, schema.byteOffset, schema.byteLength),
-        schema.mode,
-        schema.filter
+      return getMeshoptDecoder().then((decoder) =>
+        decoder.decodeGltfBuffer(
+          schema.count,
+          schema.byteStride,
+          new Uint8Array(arrayBuffer, schema.byteOffset, schema.byteLength),
+          schema.mode,
+          schema.filter
+        )
       );
     });
   }
