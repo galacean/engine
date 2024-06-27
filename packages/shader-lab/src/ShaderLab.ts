@@ -1,63 +1,93 @@
+import Lexer from "./lexer";
+import { Parser } from "./parser";
+import Preprocessor from "./preprocessor";
+import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { IEngineType, IEngineFunction } from "./EngineType";
 import { IShaderLab } from "@galacean/engine-design";
-import { ShaderParser } from "./parser/ShaderParser";
-import { ShaderVisitor } from "./ShaderVisitor";
-import RuntimeContext from "./RuntimeContext";
-import ParsingContext from "./ParsingContext";
-import { Logger } from "@galacean/engine";
-import { Preprocessor } from "./preprocessor";
+import { Logger } from "./Logger";
+import { ShaderStruct } from "@galacean/engine-design/types/shader-lab/shaderStruct/ShaderStruct";
+import { ShaderStructParser } from "./structParser";
+
+export enum EBackend {
+  GLES100 = 0,
+  GLES300 = 1
+}
 
 export class ShaderLab implements IShaderLab {
-  /** @internal */
-  private _parser: ShaderParser;
-  /** @internal */
-  private _visitor: ShaderVisitor;
-  /** @internal */
-  private _context: RuntimeContext;
-  /** @internal for debug */
-  private _extendedSource: string;
+  private static _includeMap: Record<string, string> = {};
 
-  /** @internal */
-  get context() {
-    return this._context;
+  private _parser: Parser;
+
+  constructor(engineTypes: Partial<IEngineType> = {}, engineFunctions: Partial<IEngineFunction> = {}) {
+    this._parser = Parser.create();
+    Object.assign(this._parser.sematicAnalyzer._engineType, engineTypes);
+    Object.assign(this._parser.sematicAnalyzer._engineFunctions, engineFunctions);
   }
 
-  constructor() {
-    this._parser = new ShaderParser();
-    this._visitor = new ShaderVisitor();
-    this._context = new RuntimeContext();
+  /**
+   * @internal
+   */
+  init(engineTypes: Partial<IEngineType>, engineFunctions: Partial<IEngineFunction>) {
+    Object.assign(this._parser.sematicAnalyzer._engineType, engineTypes);
+    Object.assign(this._parser.sematicAnalyzer._engineFunctions, engineFunctions);
   }
 
-  parseShader(shaderSource: string) {
-    const parsingContext = new ParsingContext(shaderSource);
-    this._context.parsingContext = parsingContext;
-    parsingContext.filterString("EditorProperties");
-    parsingContext.filterString("EditorMacros");
-
-    const preprocessor = new Preprocessor(parsingContext.parseString);
-    this._context.preprocessor = preprocessor;
-
-    const source = preprocessor.process();
-    this._extendedSource = source;
-    this._parser.parse(source);
-    const cst = this._parser.ruleShader();
-    if (this._parser.errors.length > 0) {
-      for (const err of this._parser.errors) {
-        const offset = parsingContext.getTextLineOffsetAt(err.token.startOffset);
-        if (offset) {
-          // @ts-ignore
-          err.token.originStartLine = err.token.startLine;
-          // @ts-ignore
-          err.token.originEndLine = err.token.endLine;
-          err.token.startLine += offset;
-          err.token.endLine += offset;
-        }
-      }
-      Logger.error(`error shaderlab source:`, source);
-      throw this._parser.errors;
+  registerInclude(includeName: string, includeSource: string): void {
+    if (ShaderLab._includeMap[includeName]) {
+      throw `The "${includeName}" shader include already exist`;
     }
-
-    const ast = this._visitor.visit(cst);
-    const shaderInfo = this._context.parse(ast);
-    return shaderInfo;
+    ShaderLab._includeMap[includeName] = includeSource;
   }
+
+  /**
+   * @internal
+   */
+  setIncludeMap(includeMap: Record<string, string>) {
+    ShaderLab._includeMap = includeMap;
+  }
+
+  parseShaderPass(source: string, macros: string[] = [], backend = EBackend.GLES300) {
+    const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
+    for (const macro of macros) {
+      const info = macro.split(" ", 2);
+      preprocessor.addPredefinedMacro(info[0], info[1]);
+    }
+    // #if _DEVELOPMENT
+    Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
+    // #endif
+    const ppdContent = preprocessor.process();
+    const lexer = new Lexer(ppdContent);
+    const tokens = lexer.tokenize();
+    const program = this._parser.parse(tokens);
+    const codeGen = backend === EBackend.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
+    return codeGen.visitShaderProgram(program);
+  }
+
+  parseShaderStruct(shaderSource: string): ShaderStruct {
+    const parser = new ShaderStructParser(shaderSource);
+    return parser.parse();
+  }
+
+  // #if _DEVELOPMENT
+  /**
+   * @internal for debug
+   */
+  parse(
+    shaderSource: string,
+    macros: string[] = [],
+    backend = EBackend.GLES300
+  ): (ReturnType<ShaderLab["parseShaderPass"]> & { name: string })[] {
+    const structInfo = this.parseShaderStruct(shaderSource);
+    const passResult = [] as any;
+    for (const subShader of structInfo.subShaders) {
+      for (const pass of subShader.passes) {
+        if (!pass.content) continue;
+        const passInfo = this.parseShaderPass(pass.content, macros, backend) as any;
+        passInfo.name = pass.name;
+        passResult.push(passInfo);
+      }
+    }
+    return passResult;
+  }
+  // #endif
 }

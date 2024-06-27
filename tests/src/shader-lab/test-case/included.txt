@@ -1,0 +1,13 @@
+// include test
+
+void frag( v2f i ) {
+  if ( u_mode ) {
+      gl_FragColor = vec4( u_color, 1.0 );
+  } else {
+    #ifdef HAS_TEXTURE
+      gl_FragColor = texture2D( u_texture, i.v_uv );
+    #else
+      gl_FragColor = vec4(1.0, 0.5, 0.0, 1.0);
+    #endif
+  }
+}

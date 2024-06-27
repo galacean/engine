@@ -89,47 +89,25 @@ export class Shader implements IReferable {
         throw "ShaderLab has not been set up yet.";
       }
 
-      const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
+      const shaderInfo = Shader._shaderLab.parseShaderStruct(nameOrShaderSource);
       if (shaderMap[shaderInfo.name]) {
         console.error(`Shader named "${shaderInfo.name}" already exists.`);
         return;
       }
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
-          if (typeof passInfo === "string") {
+          if (passInfo.content == undefined) {
             // Use pass reference
-            const paths = passInfo.split("/");
+            const paths = passInfo.name.split("/");
             return Shader.find(paths[0])
               ?.subShaders.find((subShader) => subShader.name === paths[1])
               ?.passes.find((pass) => pass.name === paths[2]);
           }
 
-          const shaderPass = new ShaderPass(
-            passInfo.name,
-            passInfo.vertexSource,
-            passInfo.fragmentSource,
-            passInfo.tags
-          );
-          const renderStates = passInfo.renderStates;
-          const renderState = new RenderState();
-          shaderPass._renderState = renderState;
-
-          // Parse const render state
-          const constRenderStateInfo = renderStates[0];
-          for (let k in constRenderStateInfo) {
-            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
-          }
-
-          // Parse variable render state
-          const variableRenderStateInfo = renderStates[1];
-          const renderStateDataMap = {} as Record<number, ShaderProperty>;
-          for (let k in variableRenderStateInfo) {
-            renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
-          }
-          shaderPass._renderStateDataMap = renderStateDataMap;
+          const shaderPass = new ShaderPass(passInfo.content);
           return shaderPass;
         });
-        return new SubShader(shaderInfo.name, passList, subShaderInfo.tags);
+        return new SubShader(subShaderInfo.name, passList);
       });
 
       shader = new Shader(shaderInfo.name, subShaderList);
@@ -170,7 +148,10 @@ export class Shader implements IReferable {
     return Shader._shaderMap[name];
   }
 
-  private static _applyConstRenderStates(
+  /**
+   * @internal
+   */
+  static _applyConstRenderStates(
     renderState: RenderState,
     key: RenderStateElementKey,
     value: boolean | string | number | Color

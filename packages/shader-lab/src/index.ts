@@ -1,6 +1,11 @@
 export { ShaderLab } from "./ShaderLab";
-export { ShaderParser } from "./parser/ShaderParser";
-export { Preprocessor } from "./preprocessor";
+export { EBackend } from "./ShaderLab";
+
+// #if _DEVELOPMENT
+import Preprocessor from "./preprocessor";
+export { Logger, LoggerLevel } from "./Logger";
+export { Preprocessor };
+// #endif
 
 //@ts-ignore
 export const version = `__buildVersion`;

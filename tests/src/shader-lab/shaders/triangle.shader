@@ -6,14 +6,11 @@ Shader "Triangle" {
 
       struct a2v {
         vec4 POSITION;
-      }
+      };
 
       struct v2f {
         vec3 v_color;
-      }
-
-      VertexShader = vert;
-      FragmentShader = frag;
+      };
 
       v2f vert(a2v v) {
         v2f o;
@@ -35,6 +32,9 @@ Shader "Triangle" {
 
         gl_FragColor = vec4(i.v_color, 1.0);
       }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
   }
 }

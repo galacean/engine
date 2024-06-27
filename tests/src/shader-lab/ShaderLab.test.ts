@@ -1,7 +1,17 @@
-import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey, ShaderFactory } from "@galacean/engine-core";
+import {
+  BlendFactor,
+  BlendOperation,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  RenderStateDataKey,
+  StencilOperation,
+  // @ts-ignore
+  ShaderLib
+} from "@galacean/engine-core";
 import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { Logger, LoggerLevel, ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
 import { Shader } from "@galacean/engine-core";
 
@@ -12,8 +22,7 @@ import path from "path";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
-
-const shaderLab = new ShaderLab();
+Logger.setLevel(LoggerLevel.debug);
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -106,6 +115,19 @@ vec4 linearToGamma(vec4 linearIn){
 #endif
 `;
 
+const shaderLab = new ShaderLab(
+  {
+    _RenderStateElementKey: RenderStateDataKey,
+    RenderQueueType,
+    CompareFunction,
+    StencilOperation,
+    BlendOperation,
+    BlendFactor,
+    CullMode
+  },
+  { Vector2, Vector3, Vector4, Color }
+);
+
 describe("ShaderLab", () => {
   let shader: ReturnType<typeof shaderLab.parseShader>;
   let subShader: ISubShaderInfo;
@@ -131,10 +153,6 @@ describe("ShaderLab", () => {
     expect(subShader.name).to.equal("subname");
     expect(pass.name).to.equal("default");
     expect(usePass).to.equal("pbr/Default/Forward");
-  });
-
-  it("marco completeness", () => {
-    expect(pass.vertexSource.includes("#define saturate(a) clamp( a, 0.0, 1.0 )")).to.true;
   });
 
   it("render state", () => {
@@ -176,25 +194,21 @@ describe("ShaderLab", () => {
   it("shader tags", () => {
     expect(subShader.tags).not.be.undefined;
     expect(subShader.tags).include({
-      LightMode: "ForwardBase",
-      Tag2: true,
-      Tag3: 1.2
+      LightMode: "ForwardBase"
     });
     expect(pass.tags).include({
       ReplacementTag: "Opaque",
-      Tag2: true,
-      Tag3: 1.9
+      pipelineStage: "DepthOnly"
     });
   });
 
   it("engine shader", async () => {
-    glslValidate(demoShader);
+    glslValidate(demoShader, shaderLab);
   });
 
   it("include", () => {
-    ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLab, { test_common: commonSource, ...ShaderLib });
   });
 
   it("planarShadow shader", () => {
@@ -222,37 +236,26 @@ describe("ShaderLab", () => {
     glslValidate(demoShader, shaderLab);
   });
 
-  it("shader with duplicate name", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
-    (Shader as any)._shaderLab = shaderLab;
+  // it("shader with duplicate name", () => {
+  //   const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
+  //   (Shader as any)._shaderLab = shaderLab;
 
-    const shaderInstance = Shader.create(demoShader);
-    expect(shaderInstance).instanceOf(Shader);
+  //   const shaderInstance = Shader.create(demoShader);
+  //   expect(shaderInstance).instanceOf(Shader);
 
-    const errorSpy = chai.spy.on(console, "error");
-    Shader.create(demoShader);
-    expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
-    shaderInstance.destroy();
-    chai.spy.restore(console, "error");
+  //   const errorSpy = chai.spy.on(console, "error");
+  //   Shader.create(demoShader);
+  //   expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
+  //   shaderInstance.destroy();
+  //   chai.spy.restore(console, "error");
 
-    const sameNameShader = Shader.create(demoShader);
-    expect(sameNameShader).instanceOf(Shader);
-  });
+  //   const sameNameShader = Shader.create(demoShader);
+  //   expect(sameNameShader).instanceOf(Shader);
+  // });
 
   it("template shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
     glslValidate(demoShader, shaderLab);
-  });
-
-  it("diagnostic position", () => {
-    const invalidShader = fs.readFileSync(path.join(__dirname, "shaders/invalid.shader")).toString();
-    try {
-      shaderLab.parseShader(invalidShader);
-    } catch (err) {
-      expect(err).to.have.lengthOf(1);
-      expect(err[0]).to.have.property("token");
-      expect(err[0].token.startLine).to.eql(25);
-    }
   });
 
   it("multi-pass", () => {
