@@ -87,22 +87,14 @@ vec3 getDampenedMix(in vec3 a, in vec3 b, float t){
     return normalize(a) * length(interpolated);
 }
 
-vec3 getDraggedPosition(vec3 velocity, float age, vec3 dragData){
-    float lastTimeX = (abs(dragData.x) > EPSILON) ? velocity.x / dragData.x : age;
-    float lastTimeY = (abs(dragData.y) > EPSILON) ? velocity.y / dragData.y : age;
-    float lastTimeZ = (abs(dragData.z) > EPSILON) ? velocity.z / dragData.z : age;
-
-    float lastTime = min(min(lastTimeX, lastTimeY), lastTimeZ);
-    lastTime = min(lastTime, age); 
-
-    vec3 velocityAtLastTime = 0.5 * dragData * lastTime;
-    velocityAtLastTime = max(velocityAtLastTime, velocity);
-
-    return lastTime * (velocity - velocityAtLastTime);
+vec3 getDraggedPosition(vec3 velocity, float age, float drag){
+    float speed = length(velocity);
+    float lasttime = (abs(dragData.x) > EPSILON) ? min(speed / drag,age ):age;
+    return lasttime * (velocity - 0.5 * drag * lasttime);
 }
 
-vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in vec3 limitLifeVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, float dampen) {
-    vec3 startPosition = getDraggedPosition(startVelocity, age, dragData);
+vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in vec3 limitLifeVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, float drag, float dampen) {
+    vec3 startPosition = getDraggedPosition(startVelocity, age, drag);
     vec3 lifePosition;
     vec3 limitLifePosition;
     vec3 draggedLifePosition;
@@ -128,18 +120,16 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in vec
             lifePosition *= vec3(a_ShapePositionStartLifeTime.w);
             lifeVelocity = lifePosition / age;
         #endif
-
-        draggedLifePosition = getDraggedPosition(lifeVelocity, age, dragData);
+        draggedLifePosition = getDraggedPosition(lifeVelocity, age, drag);
       
         vec3 finalPosition;
         if (renderer_VOLSpace == 0) {       
             finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + getDampenedMix(startPosition + draggedLifePosition,limitLifePosition,dampen), worldRotation);
-        } else {
-      
-            vec3 roughVelocity = rotationByQuaternions(startPosition / age, worldRotation) + draggedLifePosition / age;
-            vec3 roughlimitLifeVelocity = limitLifePosition / age;
+        } else {  
+            vec3 averageVelocity = (rotationByQuaternions(startPosition, worldRotation) + draggedLifePosition) / age;
+            vec3 averageLimitLifeVelocity = limitLifePosition / age;
 
-            finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz, worldRotation) + getDampenedMix(roughVelocity,roughlimitLifeVelocity,dampen) * age;
+            finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz, worldRotation) + getDampenedMix(averageVelocity,averageLimitLifeVelocity,dampen) * age;
         }
     #else
         vec3 finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + getDampenedMix(startPosition, limitLifePosition, dampen), worldRotation);

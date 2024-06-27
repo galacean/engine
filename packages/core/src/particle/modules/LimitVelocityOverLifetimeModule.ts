@@ -1,4 +1,4 @@
-import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
@@ -27,20 +27,14 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientYProperty = ShaderProperty.getByName("renderer_Limit_VOLMaxGradientY");
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_Limit_VOLMaxGradientZ");
 
-  private static readonly _drag = ShaderProperty.getByName("u_DragConstant");
+  private static readonly _drag = ShaderProperty.getByName("renderer_Drag");
   private static readonly _dampen = ShaderProperty.getByName("renderer_Dampen");
-
-  private _separateAxes = false;
-
-  @deepClone
-  private _dampen = 0;
-
-  @deepClone
-  private _drag: ParticleCompositeCurve;
 
   /** @internal */
   @ignoreClone
-  _speedRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
+  _speedRand = new Rand(0, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
+  @ignoreClone
+  readonly _dragRand = new Rand(0, ParticleRandomSubSeeds.Drag);
 
   @ignoreClone
   private _speedMinConstant = new Vector3();
@@ -55,9 +49,15 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _speedY: ParticleCompositeCurve;
   @deepClone
   private _speedZ: ParticleCompositeCurve;
+  private _separateAxes = false;
+  private _dampen = 0;
+
+  @deepClone
+  private _drag: ParticleCompositeCurve;
 
   /**
    * Applies linear drag to the particle velocities.
+   * Must be positive value.
    */
   get drag(): ParticleCompositeCurve {
     return this._drag;
@@ -73,6 +73,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * The fraction by which a particle’s speed is reduced when it exceeds the speed limit.
+   * Between 0 and 1.
    */
   get dampen(): number {
     return this._dampen;
@@ -102,6 +103,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Speed limit of the particles.
+   * Positive value.
    */
   get speed(): ParticleCompositeCurve {
     return this.speedX;
@@ -128,6 +130,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Speed limit of the particles for y axis.
+   * Positive value.
    */
   get speedY(): ParticleCompositeCurve {
     return this._speedY;
@@ -143,6 +146,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Speed limit of the particles for z axis.
+   * Positive value.
    */
   get speedZ(): ParticleCompositeCurve {
     return this._speedZ;
@@ -183,8 +187,6 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   _updateShaderData(shaderData: ShaderData): void {
     let limitVelocityMacro = <ShaderMacro>null;
     if (this.enabled) {
-      const drag = this.drag;
-
       const speedX = this.speedX;
       const speedY = this.speedY;
       const speedZ = this.speedZ;
@@ -192,14 +194,10 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
       const dampen = this.dampen;
 
       // Drag
-      shaderData.setVector2(LimitVelocityOverLifetimeModule._drag, new Vector2(drag.constantMax, drag.constantMax));
+      const drag = this.drag.evaluate(undefined, this._dragRand.random());
+      shaderData.setFloat(LimitVelocityOverLifetimeModule._drag, Math.max(0, drag));
 
-      if (drag.mode === ParticleCurveMode.TwoConstants) {
-        shaderData.setVector2(LimitVelocityOverLifetimeModule._drag, new Vector2(drag.constantMin, drag.constantMax));
-      }
-
-      shaderData.setFloat(LimitVelocityOverLifetimeModule._dampen, dampen);
-
+      // Speed and Dampen
       const isRandomCurveMode = separateAxes
         ? speedX.mode === ParticleCurveMode.TwoCurves &&
           speedY.mode === ParticleCurveMode.TwoCurves &&
@@ -279,6 +277,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
           limitVelocityMacro = LimitVelocityOverLifetimeModule._constantMacro;
         }
       }
+
+      shaderData.setFloat(LimitVelocityOverLifetimeModule._dampen, MathUtil.clamp(dampen, 0, 1));
     }
     this._speedMacro = this._enableMacro(shaderData, this._speedMacro, limitVelocityMacro);
   }
@@ -288,6 +288,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._speedRand.reset(seed, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
+    this._dragRand.reset(seed, ParticleRandomSubSeeds.Drag);
   }
 
   private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {

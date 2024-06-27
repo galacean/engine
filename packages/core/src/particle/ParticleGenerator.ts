@@ -500,6 +500,7 @@ export class ParticleGenerator {
     this.emission._resetRandomSeed(seed);
     this.textureSheetAnimation._resetRandomSeed(seed);
     this.velocityOverLifetime._resetRandomSeed(seed);
+    this.limitVelocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
   }

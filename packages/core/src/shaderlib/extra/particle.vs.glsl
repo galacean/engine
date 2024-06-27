@@ -36,7 +36,7 @@ varying vec4 v_Color;
 
 uniform float renderer_CurrentTime;
 uniform vec3 renderer_Gravity;
-uniform vec2 u_DragConstant;
+uniform float renderer_Drag;
 uniform float renderer_Dampen;
 uniform vec3 renderer_WorldPosition;
 uniform vec4 renderer_WorldRotation;
@@ -92,9 +92,7 @@ void main() {
             worldRotation = a_SimulationWorldRotation;
         }
 
-        //drag
-        vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
-        vec3 center = computeParticlePosition(startVelocity, lifeVelocity, limitLifeVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData,renderer_Dampen); //计算粒子位置
+        vec3 center = computeParticlePosition(startVelocity, lifeVelocity, limitLifeVelocity, age, normalizedAge, gravityVelocity, worldRotation, renderer_Drag,renderer_Dampen); //计算粒子位置
 
         #include <sphere_billboard>
         #include <stretched_billboard>
