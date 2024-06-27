@@ -508,8 +508,7 @@ export class Animator extends Component {
   ): void {
     switch (layerData.layerState) {
       case LayerState.Standby:
-        this._checkAnyState(layerIndex, layerData, stateMachine, deltaTime) ||
-          this._checkEntryState(layerIndex, layerData, stateMachine, deltaTime);
+        this._checkAnyAndEntryState(layerIndex, layerData, stateMachine, deltaTime);
         break;
       case LayerState.Playing:
         this._updatePlayingState(layerIndex, layerData, stateMachine, deltaTime);
@@ -563,11 +562,11 @@ export class Animator extends Component {
         actualDeltaTime
       );
 
+    let costTime = 0;
     if (transition) {
       const clipDuration = state.clip.length;
       const clipEndTime = state.clipEndTime * clipDuration;
       const exitTime = transition.exitTime * state._getDuration();
-      let costTime = 0;
 
       if (isForwards) {
         if (exitTime < lastClipTime) {
@@ -586,9 +585,7 @@ export class Animator extends Component {
       }
       // Revert actualDeltaTime and update costTime
       srcPlayData.update(costTime - actualDeltaTime);
-      const remainDeltaTime = deltaTime - Math.abs(costTime);
       // Need update whenever has transition
-      this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
     }
 
     if (playState === AnimatorStatePlayState.Finished) {
@@ -605,6 +602,11 @@ export class Animator extends Component {
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
+
+    if (transition) {
+      const remainDeltaTime = deltaTime - Math.abs(costTime);
+      this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
+    }
   }
 
   private _evaluatePlayingState(
@@ -617,8 +619,9 @@ export class Animator extends Component {
     const finished = playData.playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
+      const curveLayerOwner = playData.stateData.curveLayerOwner;
       for (let i = curveBindings.length - 1; i >= 0; i--) {
-        const layerOwner = playData.stateData.curveLayerOwner[i];
+        const layerOwner = curveLayerOwner[i];
         const owner = layerOwner?.curveOwner;
 
         if (!owner || !layerOwner.isActive) {
@@ -1155,8 +1158,7 @@ export class Animator extends Component {
     // Need prepare first, it should crossFade when to exit
     this._prepareCrossFadeByTransition(transition, layerIndex);
     if (transition.isExit) {
-      this._checkAnyState(layerIndex, layerData, stateMachine) ||
-        this._checkEntryState(layerIndex, layerData, stateMachine);
+      this._checkAnyAndEntryState(layerIndex, layerData, stateMachine);
       return;
     }
   }
@@ -1360,44 +1362,28 @@ export class Animator extends Component {
     }
   }
 
-  private _checkAnyState(
-    layerIndex: number,
-    layerData: AnimatorLayerData,
-    stateMachine: AnimatorStateMachine,
-    remainDeltaTime = 0
-  ): boolean {
-    const { anyStateTransitions } = stateMachine;
-    if (!anyStateTransitions.length) return null;
-    const anyTransition = this._applyTransitionsByCondition(
-      layerIndex,
-      layerData,
-      stateMachine,
-      null,
-      anyStateTransitions
-    );
-    anyTransition && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
-    return !!anyTransition;
-  }
-
-  private _checkEntryState(
+  private _checkAnyAndEntryState(
     layerIndex: number,
     layerData: AnimatorLayerData,
     stateMachine: AnimatorStateMachine,
     remainDeltaTime = 0
   ): void {
-    const { entryTransitions } = stateMachine;
-    if (!entryTransitions.length) return;
+    const { anyStateTransitions, entryTransitions } = stateMachine;
+    let transition: AnimatorStateTransition;
 
-    const entryTransition = this._applyTransitionsByCondition(
-      layerIndex,
-      layerData,
-      stateMachine,
-      null,
-      entryTransitions
-    );
-    entryTransition && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
+    transition =
+      anyStateTransitions.length &&
+      this._applyTransitionsByCondition(layerIndex, layerData, stateMachine, null, anyStateTransitions);
 
-    if (!entryTransition) {
+    if (!transition) {
+      transition =
+        entryTransitions.length &&
+        this._applyTransitionsByCondition(layerIndex, layerData, stateMachine, null, entryTransitions);
+    }
+
+    if (transition) {
+      this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
+    } else {
       const defaultState = stateMachine.defaultState;
       if (defaultState) {
         this._preparePlay(defaultState, layerIndex);
