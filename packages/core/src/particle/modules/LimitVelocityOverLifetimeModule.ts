@@ -82,7 +82,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   set dampen(value: number) {
     const lastValue = this._dampen;
     if (value !== lastValue) {
-      this._dampen = value;
+      this._dampen = MathUtil.clamp(value, 0, 1);
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
@@ -278,7 +278,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
         }
       }
 
-      shaderData.setFloat(LimitVelocityOverLifetimeModule._dampen, MathUtil.clamp(dampen, 0, 1));
+      shaderData.setFloat(LimitVelocityOverLifetimeModule._dampen, dampen);
     }
     this._speedMacro = this._enableMacro(shaderData, this._speedMacro, limitVelocityMacro);
   }
