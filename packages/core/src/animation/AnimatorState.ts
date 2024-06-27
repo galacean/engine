@@ -1,6 +1,6 @@
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
-import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { WrapMode } from "./enums/WrapMode";
 import { StateMachineScript } from "./StateMachineScript";
 
@@ -21,6 +21,8 @@ export class AnimatorState {
   _onStateExitScripts: StateMachineScript[] = [];
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  /** @internal */
+  _hasSoloTransition: boolean = false;
 
   private _clipStartTime: number = 0;
   private _clipEndTime: number = 1;
@@ -60,7 +62,7 @@ export class AnimatorState {
   }
 
   /**
-   * The start time of the clip, the range is 0 to 1, default is 0.
+   * The normalized start time of the clip, the range is 0 to 1, default is 0.
    */
   get clipStartTime() {
     return this._clipStartTime;
@@ -71,7 +73,7 @@ export class AnimatorState {
   }
 
   /**
-   * The end time of the clip, the range is 0 to 1, default is 1.
+   * The normalized end time of the clip, the range is 0 to 1, default is 1.
    */
   get clipEndTime() {
     return this._clipEndTime;
@@ -89,10 +91,25 @@ export class AnimatorState {
   }
 
   /**
-   * Add an outgoing transition to the destination state.
+   * Add an outgoing transition.
    * @param transition - The transition
    */
-  addTransition(transition: AnimatorStateTransition): void {
+  addTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
+  /**
+   * Add an outgoing transition to the destination state.
+   * @param animatorState - The destination state
+   */
+  addTransition(animatorState: AnimatorState): AnimatorStateTransition;
+
+  addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
+    let transition: AnimatorStateTransition;
+    if (transitionOrAnimatorState instanceof AnimatorState) {
+      transition = new AnimatorStateTransition();
+      transition.destinationState = transitionOrAnimatorState;
+    } else {
+      transition = transitionOrAnimatorState;
+    }
+    transition._srcState = this;
     const transitions = this._transitions;
     const count = transitions.length;
     const time = transition.exitTime;
@@ -104,8 +121,24 @@ export class AnimatorState {
       while (--index >= 0 && time < transitions[index].exitTime);
       transitions.splice(index + 1, 0, transition);
     }
+
+    transition.solo && !this._hasSoloTransition && this._updateSoloTransition(true);
+
+    return transition;
   }
 
+  /**
+   * Add an outgoing transition to exit of the stateMachine.
+   * @param exitTime - The time at which the transition can take effect. This is represented in normalized time.
+   */
+  addExitTransition(exitTime: number = 1.0): AnimatorStateTransition {
+    const transition = new AnimatorStateTransition();
+    transition._srcState = this;
+    transition._isExit = true;
+    transition.exitTime = exitTime;
+
+    return this.addTransition(transition);
+  }
   /**
    * Remove a transition from the state.
    * @param transition - The transition
@@ -113,6 +146,9 @@ export class AnimatorState {
   removeTransition(transition: AnimatorStateTransition): void {
     const index = this._transitions.indexOf(transition);
     index !== -1 && this._transitions.splice(index, 1);
+    transition._srcState = null;
+
+    this._updateSoloTransition();
   }
 
   /**
@@ -178,5 +214,22 @@ export class AnimatorState {
    */
   _onClipChanged(): void {
     this._updateFlagManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _updateSoloTransition(hasSolo?: boolean): void {
+    if (hasSolo !== undefined) {
+      this._hasSoloTransition = hasSolo;
+    } else {
+      this._hasSoloTransition = false;
+      for (let i = 0, n = this.transitions.length; i < n; ++i) {
+        if (this.transitions[i].solo) {
+          this._hasSoloTransition = true;
+          return;
+        }
+      }
+    }
   }
 }
