@@ -75,8 +75,10 @@ export default class BaseScanner extends BaseError {
     this.advance(text.length);
   }
 
-  scanPairedText(left: string, right: string, balanced = false) {
-    this.scanText(left);
+  scanPairedText(left: string, right: string, balanced = false, skipLeading = false) {
+    if (!skipLeading) {
+      this.scanText(left);
+    }
     const start = this._current;
     let level = balanced ? 1 : 0;
     while (this.peek(right.length) !== right || level !== 0) {

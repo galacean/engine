@@ -1,7 +1,7 @@
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
-import { GLPassShaderData } from "../parser/ShaderInfo";
+import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, SymbolInfo } from "../parser/SymbolTable";
 import { EShaderStage } from "./constants";
 import { IPassCodeGenResult, IRenderState } from "./types";
@@ -13,24 +13,19 @@ const defaultPrecision = `precision mediump float;`;
 export abstract class GLESVisitor extends CodeGenVisitor {
   abstract versionText: string;
 
-  override visitPassProgram(node: ASTNode.GLPassProgram, renderStates: IRenderState): IPassCodeGenResult {
-    const mergedStates: IRenderState = [
-      { ...renderStates[0], ...node.shaderData.renderStates[0] },
-      { ...renderStates[1], ...node.shaderData.renderStates[1] }
-    ];
+  override visitShaderProgram(node: ASTNode.GLShaderProgram): IPassCodeGenResult {
     const { vertexMain, fragmentMain } = node.shaderData;
     this.context._passSymbolTable = node.shaderData.symbolTable;
 
     return {
-      name: node.name,
       vertexSource: this.vertexMain(vertexMain, node.shaderData),
       fragmentSource: this.fragmentMain(fragmentMain, node.shaderData),
-      renderStates: mergedStates,
+      renderStates: node.shaderData.renderStates,
       tags: node.shaderData.tags
     };
   }
 
-  vertexMain(fnNode: ASTNode.FunctionDefinition, data: GLPassShaderData): string {
+  vertexMain(fnNode: ASTNode.FunctionDefinition, data: ShaderData): string {
     if (!fnNode) return "";
     const { symbolTable } = data;
 
@@ -83,7 +78,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private fragmentMain(fnNode: ASTNode.FunctionDefinition, data: GLPassShaderData): string {
+  private fragmentMain(fnNode: ASTNode.FunctionDefinition, data: ShaderData): string {
     if (!fnNode) return "";
     this.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
@@ -100,7 +95,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private getGlobalText(
-    data: GLPassShaderData,
+    data: ShaderData,
     textList: [string, number][] = [],
     lastLength: number = 0,
     _serialized: Set<string> = new Set()

@@ -8,7 +8,6 @@ export type IRenderState = [
 export type ITag = Record<string, number | string | boolean>;
 
 export interface IPassCodeGenResult {
-  name: string;
   vertexSource: string;
   fragmentSource: string;
   renderStates: IRenderState;

@@ -1,11 +1,23 @@
+import { EBackend } from "./Backend";
 import { IShaderInfo } from "./IShaderInfo";
+import { ShaderStruct } from "./shaderStruct/ShaderStruct";
 
 /**
  * Shader lab interface.
  */
 export interface IShaderLab {
   /**
-   * parsing shader source code.
+   * Parse shader source to get the structure of shader.
    */
-  parseShader(shaderSource: string, macros?: string[]): IShaderInfo;
+  parseShaderStruct(shaderSource: string): ShaderStruct;
+
+  /**
+   * Parse shader pass source code.
+   */
+  parseShaderPass(shaderPassSource: string, macros: string[], backend: EBackend): IShaderInfo;
+
+  /**
+   * Add new include shader slice.
+   */
+  registerInclude(includeName: string, includeSource: string): void;
 }

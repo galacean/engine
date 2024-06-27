@@ -6,7 +6,7 @@ import {
   IShaderLab,
   IXRDevice
 } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
@@ -31,7 +31,7 @@ import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
-import { CompareFunction } from "./shader";
+import { CompareFunction, RenderStateDataKey, StencilOperation } from "./shader";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -48,6 +48,7 @@ import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat 
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
+import { ShaderLib } from "./shaderlib";
 
 ShaderPool.init();
 
@@ -657,6 +658,21 @@ export class Engine extends EventDispatcher {
 
     if (shaderLab) {
       Shader._shaderLab = shaderLab;
+      // @ts-ignore
+      shaderLab.init(
+        {
+          _RenderStateElementKey: RenderStateDataKey,
+          RenderQueueType,
+          CompareFunction,
+          StencilOperation,
+          BlendOperation,
+          BlendFactor,
+          CullMode
+        },
+        { Vector2, Vector3, Vector4, Color }
+      );
+      // @ts-ignore
+      shaderLab.setIncludeMap(ShaderLib);
     }
 
     const initializePromises = new Array<Promise<any>>();

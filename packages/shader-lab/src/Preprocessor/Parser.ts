@@ -3,7 +3,7 @@ import LocRange from "../common/LocRange";
 import { MacroDefine } from "./MacroDefine";
 import { PpError } from "./PpError";
 // #if _DEVELOPMENT
-import PpSourceMap, { BlockInfo } from "./PpSourceMap";
+import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
 import PpToken from "./PpToken";
 import PpScanner from "./Scanner";

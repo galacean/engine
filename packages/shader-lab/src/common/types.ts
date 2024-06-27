@@ -70,26 +70,17 @@ export enum EKeyword {
   NOPERSPECTIVE,
 
   // galacean
-  GL_Shader,
-  GL_SubShader,
-  GL_Pass,
-  GL_RenderQueueType,
-  GL_BlendState,
-  GL_DepthState,
-  GL_StencilState,
-  GL_RasterState,
-  GL_EditorProperties,
-  GL_EditorMacros,
-  GL_Tags,
-  GL_ReplacementTag,
-  GL_LightMode,
-  GL_PipelineStage,
-  GL_UsePass,
-  GL_VertexShader,
-  GL_FragmentShader,
-
-  Off,
-  On
+  GS_RenderQueueType,
+  GS_BlendState,
+  GS_DepthState,
+  GS_StencilState,
+  GS_RasterState,
+  GS_Tags,
+  GS_ReplacementTag,
+  GS_LightMode,
+  GS_PipelineStage,
+  GS_VertexShader,
+  GS_FragmentShader
 }
 
 export const KeywordTable = new Map<string, EKeyword>([
@@ -158,26 +149,17 @@ export const KeywordTable = new Map<string, EKeyword>([
   ["centroid", EKeyword.CENTROID],
 
   // galacean
-  ["Shader", EKeyword.GL_Shader],
-  ["SubShader", EKeyword.GL_SubShader],
-  ["Pass", EKeyword.GL_Pass],
-  ["RenderQueueType", EKeyword.GL_RenderQueueType],
-  ["BlendState", EKeyword.GL_BlendState],
-  ["DepthState", EKeyword.GL_DepthState],
-  ["StencilState", EKeyword.GL_StencilState],
-  ["RasterState", EKeyword.GL_RasterState],
-  ["EditorProperties", EKeyword.GL_EditorProperties],
-  ["EditorMacros", EKeyword.GL_EditorMacros],
-  ["Tags", EKeyword.GL_Tags],
-  ["ReplacementTag", EKeyword.GL_ReplacementTag],
-  ["LightMode", EKeyword.GL_LightMode],
-  ["pipelineStage", EKeyword.GL_PipelineStage],
-  ["UsePass", EKeyword.GL_UsePass],
-  ["VertexShader", EKeyword.GL_VertexShader],
-  ["FragmentShader", EKeyword.GL_FragmentShader],
-
-  ["Off", EKeyword.Off],
-  ["On", EKeyword.On]
+  ["RenderQueueType", EKeyword.GS_RenderQueueType],
+  ["BlendState", EKeyword.GS_BlendState],
+  ["DepthState", EKeyword.GS_DepthState],
+  ["StencilState", EKeyword.GS_StencilState],
+  ["RasterState", EKeyword.GS_RasterState],
+  ["Tags", EKeyword.GS_Tags],
+  ["ReplacementTag", EKeyword.GS_ReplacementTag],
+  ["LightMode", EKeyword.GS_LightMode],
+  ["pipelineStage", EKeyword.GS_PipelineStage],
+  ["VertexShader", EKeyword.GS_VertexShader],
+  ["FragmentShader", EKeyword.GS_FragmentShader]
 ]);
 
 export enum ETokenType {
@@ -321,11 +303,11 @@ export type GalaceanDataType =
   | EKeyword.U_SAMPLER3D
   | EKeyword.U_SAMPLER_CUBE
   | EKeyword.U_SAMPLER2D_ARRAY
-  | EKeyword.GL_RenderQueueType
-  | EKeyword.GL_BlendState
-  | EKeyword.GL_DepthState
-  | EKeyword.GL_StencilState
-  | EKeyword.GL_RasterState
+  | EKeyword.GS_RenderQueueType
+  | EKeyword.GS_BlendState
+  | EKeyword.GS_DepthState
+  | EKeyword.GS_StencilState
+  | EKeyword.GS_RasterState
   | typeof TypeAny
   | string;
 

@@ -4,9 +4,10 @@ import { TreeNode } from "./AST";
 // #if _DEVELOPMENT
 import { SemanticError } from "../Error";
 // #endif
-import { EShaderDataType, GLPassShaderData, GLShaderData, GLSubShaderData, ShaderData } from "./ShaderInfo";
+import { ShaderData } from "./ShaderInfo";
 import SymbolTable from "./SymbolTable";
 import { NodeChild } from "./types";
+import { IEngineType, IEngineFunction } from "../EngineType";
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -16,26 +17,30 @@ export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChil
  */
 export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
-  private _shaderDataStack: ShaderData[] = [new GLShaderData()];
-  private _scopeStack: SymbolTable[] = [new SymbolTable(this)];
-  private translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
   acceptRule?: TranslationRule = undefined;
+  logger = new Logger("semantic analyzer");
+  _engineType: IEngineType = {};
+  _engineFunctions: Record<string, IEngineFunction> = {};
+
   // #if _DEVELOPMENT
   readonly errors: SemanticError[] = [];
   // #endif
-  logger = new Logger("semantic analyzer");
 
   get scope() {
     return this._scopeStack[this._scopeStack.length - 1];
   }
 
+  private _shaderData = new ShaderData();
   get shaderData() {
-    return this._shaderDataStack[this._shaderDataStack.length - 1];
+    return this._shaderData;
   }
+
+  private _scopeStack: SymbolTable[] = [new SymbolTable(this)];
+  private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
   reset() {
     this.semanticStack.length = 0;
-    this._shaderDataStack = [new GLShaderData()];
+    this._shaderData = new ShaderData();
     this._scopeStack = [new SymbolTable(this)];
     // #if _DEVELOPMENT
     this.errors.length = 0;
@@ -52,27 +57,12 @@ export default class SematicAnalyzer {
     return this._scopeStack.pop();
   }
 
-  newShaderData(dataType: EShaderDataType) {
-    let shaderData: ShaderData;
-    if (dataType === EShaderDataType.Pass) {
-      shaderData = new GLPassShaderData();
-    } else {
-      shaderData = new GLSubShaderData();
-    }
-    this._shaderDataStack.push(shaderData);
-    shaderData.symbolTable = this.scope;
-  }
-
-  dropShaderData() {
-    return this._shaderDataStack.pop();
-  }
-
   addTranslationRule(pid: number, rule: TranslationRule) {
-    this.translationRuleTable.set(pid, rule);
+    this._translationRuleTable.set(pid, rule);
   }
 
   getTranslationRule(pid: number) {
-    return this.translationRuleTable.get(pid);
+    return this._translationRuleTable.get(pid);
   }
 
   // #if _DEVELOPMENT

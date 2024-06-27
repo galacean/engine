@@ -21,7 +21,8 @@ interface SubShaderStruct {
 
 interface PassStruct {
   name: string;
-  content: string;
+  // Undefined content when referenced by `UsePass`
+  content?: string;
 }
 
 export default class ShaderStructParser extends BaseError {
@@ -41,7 +42,6 @@ export default class ShaderStructParser extends BaseError {
     scanner.scanText("{");
 
     this._scanner.skipCommentsAndSpace();
-    const keyword = "SubShader";
     let start = this._scanner.current;
     const addGlobalStatement = (offset: number) => {
       if (this._scanner.current > start + offset) {
@@ -55,10 +55,14 @@ export default class ShaderStructParser extends BaseError {
     while (true) {
       const word = this._scanner.scanWord();
 
-      if (word === keyword) {
+      if (word === "SubShader") {
         addGlobalStatement(word.length);
         const subShader = this._parseSubShader();
         ret.subShaders.push(subShader);
+        start = this._scanner.current;
+      } else if (word === "EditorProperties" || word === "EditorMacros") {
+        addGlobalStatement(word.length);
+        this._scanner.scanPairedText("{", "}", true);
         start = this._scanner.current;
         // @remark: "}" must be surrounded by space!
       } else if (word === "}") {
@@ -74,6 +78,7 @@ export default class ShaderStructParser extends BaseError {
     for (const subShader of ret.subShaders) {
       const subShaderGlobal = subShader.globalContents;
       for (const pass of subShader.passes) {
+        if (pass.content == undefined) continue;
         pass.content =
           shaderGlobal.map((item) => item.content).join("\n") +
           subShaderGlobal.map((item) => item.content).join("\n") +
@@ -111,6 +116,12 @@ export default class ShaderStructParser extends BaseError {
         ret.passes.push(pass);
         start = this._scanner.current;
         // @remark: "}" must be surrounded by space!
+      } else if (word === "UsePass") {
+        const name = this._scanner.scanPairedText('"', '"');
+        ret.passes.push({ name });
+        start = this._scanner.current;
+      } else if (word === "{") {
+        this._scanner.scanPairedText("{", "}", true, true);
       } else if (word === "}") {
         addGlobalStatement(word.length);
         break;

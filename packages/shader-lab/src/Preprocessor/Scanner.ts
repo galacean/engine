@@ -3,7 +3,7 @@ import LocRange from "../common/LocRange";
 import Position from "../common/Position";
 import { PpError } from "./PpError";
 // #if _DEVELOPMENT
-import PpSourceMap from "./PpSourceMap";
+import PpSourceMap from "./sourceMap";
 // #endif
 import PpToken, { EOF } from "./PpToken";
 import { PpUtils } from "./Utils";

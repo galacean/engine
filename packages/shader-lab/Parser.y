@@ -1,8 +1,5 @@
 // For cft conflict test, used by bison
 
-%token shader
-%token subshader
-%token pass
 %token id
 %token render_queue_type
 %token pipeline_stage
@@ -10,8 +7,6 @@
 %token depth_state
 %token stencil_state
 %token raster_state
-%token EditorProperties
-%token EditorMacros
 %token tags
 %token ReplacementTag
 %token LightMode
@@ -20,7 +15,6 @@
 %token true
 %token false
 
-%token UsePass
 %token VertexShader
 %token FragmentShader
 
@@ -46,9 +40,6 @@
 %token PRECISION
 
 %token INVARIANT
-
-%token Off
-%token On
 
 %token or
 %token xor
@@ -82,111 +73,20 @@
 
 %%
 gs_shader_program:
-    shader string_const '{' gs_shader_global_declaration_list '}'
+    gs_global_declaration
+    | gs_shader_program gs_global_declaration
     ;
 
-gs_editor_prop_declaration:
-    EditorProperties '{' gs_editor_prop_item_list '}'
-    ;
-
-gs_editor_macro_declaration:
-    EditorMacros '{' gs_editor_macro_item_list '}'
-    ;
-
-gs_editor_prop_group:
-    id '(' string_const ')' '{' gs_editor_prop_item_list '}'
-    ;
-
-gs_editor_macro_group:
-    id '(' string_const ')' '{' gs_editor_macro_item_list '}'
-    ;
-
-gs_editor_prop_item_list:
-    gs_editor_prop_item ';'
-    | gs_editor_prop_group
-    | gs_editor_prop_item_list gs_editor_prop_item ';'
-    | gs_editor_prop_item_list gs_editor_prop_group
-    ;
-
-gs_editor_macro_item_list:
-    gs_editor_macro_item ';'
-    | gs_editor_macro_group
-    | gs_editor_macro_item_list gs_editor_macro_item ';'
-    | gs_editor_macro_item_list gs_editor_macro_group
-    ;
-
-gs_editor_prop_item:
-    id '(' string_const ',' gs_editor_prop_type ')'
-    | id '(' string_const ',' gs_editor_prop_type ')' '=' gs_editor_prop_type_param
-    | id '(' string_const ',' gs_editor_prop_type ')' '=' '(' gs_editor_prop_type_param_list ')'
-    ;
-
-gs_editor_macro_item:
-    gs_editor_macro_item_declarator
-    | '[' Off ']' gs_editor_macro_item_declarator
-    | '[' On ']' gs_editor_macro_item_declarator
-    ;
-
-gs_editor_macro_item_declarator:
-    gs_editor_prop_item
-    | id '(' string_const ')'
-    ;
-
-gs_editor_prop_type:
-    id
-    | id '(' gs_editor_prop_type_param_list ')'
-    ;
-
-gs_editor_prop_type_param:
-    INT_CONSTANT
-    | '-' INT_CONSTANT
-    | FLOAT_CONSTANT
-    | '-' FLOAT_CONSTANT
-    | true
-    | false
-    ;
-
-gs_editor_prop_type_param_list:
-    gs_editor_prop_type_param
-    | gs_editor_prop_type_param_list ',' gs_editor_prop_type_param
-    ;
-
-gs_common_global_declaration:
-    gs_variable_declaration
+gs_global_declaration:
+    gs_tag_specifier
+    | gs_main_shader_assignment
+    | precision_specifier
+    | gs_variable_declaration
     | gs_render_queue_assignment
     | gs_render_state_assignment
     | struct_specifier
     | function_definition
     | gs_render_state_declaration
-    ;
-
-gs_shader_global_declaration:
-    gs_common_global_declaration
-    | gs_editor_prop_declaration
-    | gs_editor_macro_declaration
-    | gs_subshader_program
-    ;
-
-gs_shader_global_declaration_list:
-    gs_shader_global_declaration
-    | gs_shader_global_declaration_list gs_shader_global_declaration
-    ;
-
-
-gs_subshader_program:
-    subshader string_const subshader_scope_brace gs_subshader_global_declaration_list scope_end_brace
-    ;
-
-gs_subshader_global_declaration_list:
-    gs_subshader_global_declaration
-    | gs_subshader_global_declaration_list gs_subshader_global_declaration
-    ;
-
-gs_subshader_global_declaration:
-    gs_common_global_declaration
-    | gs_tag_specifier
-    | gs_pass_program
-    | gs_use_pass_declaration
     ;
 
 gs_tag_specifier:
@@ -215,26 +115,6 @@ gs_tag_value:
     | INT_CONSTANT
     | true
     | false
-    ;
-
-gs_pass_program:
-    pass string_const pass_scope_brace gs_pass_global_declaration_list scope_end_brace
-    ;
-
-gs_pass_global_declaration_list:
-    gs_pass_global_declaration
-    | gs_pass_global_declaration_list gs_pass_global_declaration
-    ;
-
-gs_pass_global_declaration:
-    gs_common_global_declaration
-    | gs_main_shader_assignment
-    | gs_tag_specifier
-    | precision_specifier
-    ;
-
-gs_use_pass_declaration:
-    UsePass string_const
     ;
 
 gs_render_state_declarator:
@@ -288,13 +168,13 @@ gs_render_state_prop:
     | id
     ;
 
-gs_mian_shader_entry:
+gs_main_shader_entry:
     VertexShader
     | FragmentShader
     ;
 
 gs_main_shader_assignment:
-    gs_mian_shader_entry '=' id ';'
+    gs_main_shader_entry '=' id ';'
     ;
 
 gs_render_queue_assignment:
@@ -699,14 +579,6 @@ jump_statement:
     | RETURN ';'
     | RETURN expression ';'
     | DISCARD ';'
-    ;
-
-subshader_scope_brace:
-    scope_brace
-    ;
-
-pass_scope_brace:
-    scope_brace
     ;
 
 scope_brace:

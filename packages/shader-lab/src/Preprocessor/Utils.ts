@@ -1,7 +1,7 @@
 import LocRange from "../common/LocRange";
 import { ExpandSegment } from "./Parser";
 // #if _DEVELOPMENT
-import PpSourceMap, { MapRange } from "./PpSourceMap";
+import PpSourceMap, { MapRange } from "./sourceMap";
 // #endif
 
 export class PpUtils {

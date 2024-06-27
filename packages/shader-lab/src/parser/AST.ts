@@ -6,10 +6,9 @@ import { ENonTerminal } from "./GrammarSymbol";
 import Token from "../Token";
 import { EKeyword, ETokenType, TokenType, LocRange } from "../common";
 import SematicAnalyzer from "./SemanticAnalyzer";
-import { EShaderDataType, GLPassShaderData, GLShaderData, GLSubShaderData, ShaderData } from "./ShaderInfo";
+import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./SymbolTable";
 import { ParserUtils } from "../Utils";
-import { EngineFunctions, EngineType } from "../EngineType";
 import {
   ASTNodeConstructor,
   GalaceanDataType,
@@ -63,26 +62,6 @@ export namespace ASTNode {
     }
   }
   // #endif
-
-  export class SubShaderScopeBrace extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.subshader_scope_brace, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      sa.newShaderData(EShaderDataType.SubShader);
-    }
-  }
-
-  export class PassScopeBrace extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.pass_scope_brace, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      sa.newShaderData(EShaderDataType.Pass);
-    }
-  }
 
   export class ScopeBrace extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
@@ -266,7 +245,7 @@ export namespace ASTNode {
       if (typeof this.type === "string") {
         // Custom type, check declaration
         const decl = sa.scope.lookup(this.type, ESymbolType.STRUCT);
-        if (!decl && EngineType[this.type] == undefined) {
+        if (!decl && sa._engineType[this.type] == undefined) {
           sa.error(this.location, "undeclared type:", this.type);
         }
       }
@@ -629,11 +608,11 @@ export namespace ASTNode {
     get parameterInfoList(): IParamInfo[] {
       if (this.children.length === 1) {
         const decl = this.children[0] as ParameterDeclaration;
-        return [{ ident: decl.ident, typeInfo: decl.typeInfo }];
+        return [{ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl }];
       }
       const list = this.children[0] as FunctionParameterList;
       const decl = this.children[2] as ParameterDeclaration;
-      return [...list.parameterInfoList, { ident: decl.ident, typeInfo: decl.typeInfo }];
+      return [...list.parameterInfoList, { ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl }];
     }
 
     get paramSig(): GalaceanDataType[] {
@@ -863,7 +842,7 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      (<GLPassShaderData>sa.shaderData).globalPrecisions.push(this);
+      sa.shaderData.globalPrecisions.push(this);
     }
   }
 
@@ -1296,7 +1275,7 @@ export namespace ASTNode {
 
   export class GLVariableDeclaration extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_variable_declaration, loc, children);
+      super(ENonTerminal.gs_variable_declaration, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1304,7 +1283,7 @@ export namespace ASTNode {
       const ident = this.children[1] as Token;
       let sm: VarSymbol;
       if (type instanceof Token) {
-        sm = new VarSymbol(ident.lexeme, new SymbolType(<EKeyword.GL_RenderQueueType>type.type, ""), false, this);
+        sm = new VarSymbol(ident.lexeme, new SymbolType(<EKeyword.GS_RenderQueueType>type.type, ""), false, this);
       } else {
         sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
       }
@@ -1320,18 +1299,18 @@ export namespace ASTNode {
   // #if _DEVELOPMENT
   export class GLRenderQueueAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_queue_assignment, loc, children);
+      super(ENonTerminal.gs_render_queue_assignment, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const variable = this.children[2] as Token;
-      const builtinType = EngineType.RenderQueueType[<any>variable.lexeme];
-      const key = EngineType._RenderStateElementKey["RenderQueueType"];
+      const builtinType = sa._engineType.RenderQueueType[<any>variable.lexeme];
+      const key = sa._engineType._RenderStateElementKey["RenderQueueType"];
       if (builtinType != undefined) {
         sa.shaderData.renderStates[0][key] = builtinType;
       } else {
         const varSymbol = sa.scope.lookup(variable.lexeme, ESymbolType.VAR);
-        if (!varSymbol || varSymbol.symDataType?.type !== EKeyword.GL_RenderQueueType) {
+        if (!varSymbol || varSymbol.symDataType?.type !== EKeyword.GS_RenderQueueType) {
           sa.error(variable.location, "invalid render queue variable:", variable.lexeme);
           return;
         }
@@ -1387,27 +1366,21 @@ export namespace ASTNode {
   }
 
   export class GLMainShaderEntry extends TreeNode {
-    shaderType: EKeyword.GL_VertexShader | EKeyword.GL_FragmentShader;
+    shaderType: EKeyword.GS_VertexShader | EKeyword.GS_FragmentShader;
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_main_shader_entry, loc, children);
+      super(ENonTerminal.gs_main_shader_entry, loc, children);
       this.shaderType = (<Token>children[0]).type as any;
     }
   }
 
   export class GLMainShaderAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_main_shader_assignment, loc, children);
+      super(ENonTerminal.gs_main_shader_assignment, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      // #if _DEVELOPMENT
-      if (sa.shaderData.dataType !== EShaderDataType.Pass) {
-        sa.error(this.location, "main shader entry cannot be declared outside pass scope.");
-      }
-      // #endif
-
-      const shaderData = sa.shaderData as GLPassShaderData;
+      const shaderData = sa.shaderData;
       const variable = this.children[2] as Token;
       const fn = sa.scope.lookup(variable.lexeme, ESymbolType.FN);
       if (!fn) {
@@ -1415,7 +1388,7 @@ export namespace ASTNode {
         return;
       }
       const mainEntry = this.children[0] as GLMainShaderEntry;
-      if (mainEntry.shaderType === EKeyword.GL_VertexShader) {
+      if (mainEntry.shaderType === EKeyword.GS_VertexShader) {
         shaderData.vertexMain = fn.astNode;
       } else {
         shaderData.fragmentMain = fn.astNode;
@@ -1425,15 +1398,15 @@ export namespace ASTNode {
 
   export class GLRenderStatePropAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_state_prop_assignment, loc, children);
+      super(ENonTerminal.gs_render_state_prop_assignment, loc, children);
     }
 
-    getPropKey(declarator: GLRenderStateDeclarator) {
+    getPropKey(declarator: GLRenderStateDeclarator, sa: SematicAnalyzer) {
       const prop = this.children[0] as GLRenderStateProp;
-      return GLRenderStatePropAssignment.getPropKey(declarator, prop);
+      return GLRenderStatePropAssignment.getPropKey(declarator, prop, sa);
     }
 
-    getPropValue(reporter: Logger) {
+    getPropValue(reporter: Logger, sa: SematicAnalyzer) {
       const valueToken = this.children[2] as Token;
       if (valueToken instanceof GLEngineTypeInit) {
         return valueToken.value;
@@ -1443,7 +1416,7 @@ export namespace ASTNode {
           if (this.children.length === 4) {
             return valueToken.lexeme;
           } else {
-            const engineType = EngineType[valueToken.lexeme];
+            const engineType = sa._engineType[valueToken.lexeme];
             const prop = (this.children[4] as Token).lexeme;
 
             if (!engineType || engineType[prop] == undefined) {
@@ -1471,12 +1444,16 @@ export namespace ASTNode {
       }
     }
 
-    private static getPropKey(declarator: GLRenderStateDeclarator, prop: GLRenderStateProp): number | undefined {
+    private static getPropKey(
+      declarator: GLRenderStateDeclarator,
+      prop: GLRenderStateProp,
+      sa: SematicAnalyzer
+    ): number | undefined {
       let k = declarator.ident + prop.key;
-      const ret = EngineType._RenderStateElementKey[k];
+      const ret = sa._engineType._RenderStateElementKey[k];
       if (ret == undefined && declarator.ident === "BlendState") {
         k = declarator.ident + prop.key + (prop.index ?? "0");
-        return EngineType._RenderStateElementKey[k];
+        return sa._engineType._RenderStateElementKey[k];
       }
 
       return ret;
@@ -1487,12 +1464,12 @@ export namespace ASTNode {
     engineType?: new (...args: number[]) => any;
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_engine_type, loc, children);
+      super(ENonTerminal.gs_engine_type, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const typeToken = this.children[0] as Token;
-      this.engineType = EngineFunctions[typeToken.lexeme];
+      this.engineType = sa._engineFunctions[typeToken.lexeme];
       // #if _DEVELOPMENT
       if (this.engineType == undefined) {
         sa.error(this.location, "invalid engine type:", typeToken.lexeme);
@@ -1506,7 +1483,7 @@ export namespace ASTNode {
     value?: any;
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_engine_type_init, loc, children);
+      super(ENonTerminal.gs_engine_type_init, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1527,7 +1504,7 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_engine_type_init_param_list, loc, children);
+      super(ENonTerminal.gs_engine_type_init_param_list, loc, children);
     }
   }
 
@@ -1543,7 +1520,7 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_state_declarator, loc, children);
+      super(ENonTerminal.gs_render_state_declarator, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1564,7 +1541,7 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_state_declaration, loc, children);
+      super(ENonTerminal.gs_render_state_declaration, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1592,7 +1569,7 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_state_prop, loc, children);
+      super(ENonTerminal.gs_render_state_prop, loc, children);
     }
   }
 
@@ -1606,13 +1583,13 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_state_prop_list, loc, children);
+      super(ENonTerminal.gs_render_state_prop_list, loc, children);
     }
   }
 
   export class GLRenderStateAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_render_state_assignment, loc, children);
+      super(ENonTerminal.gs_render_state_assignment, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1630,72 +1607,16 @@ export namespace ASTNode {
         propListNode = this.children[2] as GLRenderStatePropList;
       }
       for (const prop of propListNode.propList) {
-        const key = prop.getPropKey(declarator);
+        const key = prop.getPropKey(declarator, sa);
         if (key == undefined) {
           sa.error(prop.location, "invalid render state key");
           continue;
         }
-        const value = prop.getPropValue(sa.logger);
+        const value = prop.getPropValue(sa.logger, sa);
         if (value == undefined) continue;
         const idx = typeof value === "string" ? 1 : 0;
         sa.shaderData.renderStates[idx][key] = value;
       }
-    }
-  }
-
-  export class GLUsePassDeclaration extends TreeNode {
-    get passRef(): string {
-      const token = this.children[1] as Token;
-      return token.lexeme;
-    }
-
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_use_pass_declaration, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      const shaderData = sa.shaderData as GLSubShaderData;
-      shaderData.passList.push(this);
-    }
-  }
-
-  // #if _DEVELOPMENT
-  export class GLPassGlobalDeclaration extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_pass_global_declaration, loc, children);
-    }
-  }
-
-  export class GLPassGlobalDeclarationList extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_pass_global_declaration_list, loc, children);
-    }
-  }
-  // #endif
-
-  abstract class GLProgram extends TreeNode {
-    abstract shaderData: ShaderData;
-    name: string;
-
-    constructor(nt: ENonTerminal, loc: LocRange, children: NodeChild[]) {
-      super(nt, loc, children);
-      const ident = this.children[1] as Token;
-      this.name = ident.lexeme;
-    }
-  }
-
-  export class GLPassProgram extends GLProgram {
-    shaderData: GLPassShaderData;
-
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_pass_program, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      this.shaderData = sa.dropShaderData() as GLPassShaderData;
-
-      const shaderData = sa.shaderData as GLSubShaderData;
-      shaderData.passList.push(this);
     }
   }
 
@@ -1711,7 +1632,7 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_tag_value, loc, children);
+      super(ENonTerminal.gs_tag_value, loc, children);
     }
   }
 
@@ -1722,13 +1643,13 @@ export namespace ASTNode {
     }
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_tag_id, loc, children);
+      super(ENonTerminal.gs_tag_id, loc, children);
     }
   }
 
   export class GLTagAssignment extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_tag_assignment, loc, children);
+      super(ENonTerminal.gs_tag_assignment, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1743,73 +1664,26 @@ export namespace ASTNode {
   // #if _DEVELOPMENT
   export class GLTagAssignmentList extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_tag_assignment_list, loc, children);
+      super(ENonTerminal.gs_tag_assignment_list, loc, children);
     }
   }
 
   export class GLTagSpecifier extends TreeNode {
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_tag_specifier, loc, children);
-    }
-  }
-
-  export class GLCommonGlobalDeclaration extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_common_global_declaration, loc, children);
-    }
-  }
-
-  export class GLSubShaderGlobalDeclaration extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_subshader_global_declaration, loc, children);
-    }
-  }
-
-  export class GLSubShaderGlobalDeclarationList extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_subshader_global_declaration_list, loc, children);
+      super(ENonTerminal.gs_tag_specifier, loc, children);
     }
   }
   // #endif
 
-  export class GLSubShaderProgram extends GLProgram {
-    shaderData: GLSubShaderData;
+  export class GLShaderProgram extends TreeNode {
+    shaderData: ShaderData;
 
     constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_subshader_program, loc, children);
+      super(ENonTerminal.gs_shader_program, loc, children);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      this.shaderData = sa.dropShaderData() as GLSubShaderData;
-
-      const shaderData = sa.shaderData as GLShaderData;
-      shaderData.subShaderList.push(this);
-    }
-  }
-
-  // #if _DEVELOPMENT
-  export class GLShaderGlobalDeclarationList extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_shader_global_declaration_list, loc, children);
-    }
-  }
-
-  export class GLShaderGlobalDeclaration extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_shader_global_declaration, loc, children);
-    }
-  }
-  // #endif
-
-  export class GLShaderProgram extends GLProgram {
-    shaderData: GLShaderData;
-
-    constructor(loc: LocRange, children: NodeChild[]) {
-      super(ENonTerminal.gl_shader_program, loc, children);
-    }
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      this.shaderData = sa.dropShaderData() as GLShaderData;
+      this.shaderData = sa.shaderData;
       this.shaderData.symbolTable = sa.scope;
     }
   }

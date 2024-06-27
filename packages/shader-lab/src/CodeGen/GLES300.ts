@@ -65,7 +65,8 @@ export class GLES300Visitor extends GLESVisitor {
         this.context._referencedVaryingList.set(V3_GL_FragColor, {
           ident: new Token(ETokenType.ID, V3_GL_FragColor, new Position(0, 0, 0)),
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
-          qualifier: "out"
+          qualifier: "out",
+          astNode: node
         });
       }
       return V3_GL_FragColor;

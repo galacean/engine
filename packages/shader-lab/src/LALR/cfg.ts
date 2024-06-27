@@ -9,223 +9,37 @@ import { ASTNode } from "../parser/AST";
 
 const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_shader_program,
-    [
-      [
-        EKeyword.GL_Shader,
-        ETokenType.STRING_CONST,
-        ETokenType.LEFT_BRACE,
-        ENonTerminal.gl_shader_global_declaration_list,
-        ETokenType.RIGHT_BRACE
-      ]
-    ],
+    ENonTerminal.gs_shader_program,
+    [[ENonTerminal.gs_global_declaration], [ENonTerminal.gs_shader_program, ENonTerminal.gs_global_declaration]],
     ASTNode.GLShaderProgram
   ),
 
-  // #if _DEVELOPMENT
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_declaration, [
-    [EKeyword.GL_EditorProperties, ETokenType.LEFT_BRACE, ENonTerminal.gl_editor_prop_item_list, ETokenType.RIGHT_BRACE]
+  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gs_global_declaration, [
+    [ENonTerminal.gs_tag_specifier],
+    [ENonTerminal.gs_main_shader_assignment],
+    [ENonTerminal.precision_specifier],
+    [ENonTerminal.gs_variable_declaration],
+    [ENonTerminal.gs_render_queue_assignment],
+    [ENonTerminal.gs_render_state_assignment],
+    [ENonTerminal.struct_specifier],
+    [ENonTerminal.function_definition],
+    [ENonTerminal.gs_render_state_declaration]
   ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_macro_declaration, [
-    [EKeyword.GL_EditorMacros, ETokenType.LEFT_BRACE, ENonTerminal.gl_editor_macro_item_list, ETokenType.RIGHT_BRACE]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_item_list, [
-    [ENonTerminal.gl_editor_prop_item, ETokenType.SEMICOLON],
-    [ENonTerminal.gl_editor_prop_group],
-    [ENonTerminal.gl_editor_prop_item_list, ENonTerminal.gl_editor_prop_item, ETokenType.SEMICOLON],
-    [ENonTerminal.gl_editor_prop_item_list, ENonTerminal.gl_editor_prop_group]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_macro_item_list, [
-    [ENonTerminal.gl_editor_macro_item, ETokenType.SEMICOLON],
-    [ENonTerminal.gl_editor_macro_group],
-    [ENonTerminal.gl_editor_macro_item_list, ENonTerminal.gl_editor_macro_item, ETokenType.SEMICOLON],
-    [ENonTerminal.gl_editor_macro_item_list, ENonTerminal.gl_editor_macro_group]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_group, [
-    [
-      ETokenType.ID,
-      ETokenType.LEFT_PAREN,
-      ETokenType.STRING_CONST,
-      ETokenType.RIGHT_PAREN,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.gl_editor_prop_item_list,
-      ETokenType.RIGHT_BRACE
-    ]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_macro_group, [
-    [
-      ETokenType.ID,
-      ETokenType.LEFT_PAREN,
-      ETokenType.STRING_CONST,
-      ETokenType.RIGHT_PAREN,
-      ETokenType.LEFT_BRACE,
-      ENonTerminal.gl_editor_macro_item_list,
-      ETokenType.RIGHT_BRACE
-    ]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_item, [
-    [
-      ETokenType.ID,
-      ETokenType.LEFT_PAREN,
-      ETokenType.STRING_CONST,
-      ETokenType.COMMA,
-      ENonTerminal.gl_editor_prop_type,
-      ETokenType.RIGHT_PAREN
-    ],
-    [
-      ETokenType.ID,
-      ETokenType.LEFT_PAREN,
-      ETokenType.STRING_CONST,
-      ETokenType.COMMA,
-      ENonTerminal.gl_editor_prop_type,
-      ETokenType.RIGHT_PAREN,
-      ETokenType.EQUAL,
-      ENonTerminal.gl_editor_prop_type_param
-    ],
-    [
-      ETokenType.ID,
-      ETokenType.LEFT_PAREN,
-      ETokenType.STRING_CONST,
-      ETokenType.COMMA,
-      ENonTerminal.gl_editor_prop_type,
-      ETokenType.RIGHT_PAREN,
-      ETokenType.EQUAL,
-      ETokenType.LEFT_PAREN,
-      ENonTerminal.gl_editor_prop_type_param_list,
-      ETokenType.RIGHT_PAREN
-    ]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_macro_item, [
-    [ENonTerminal.gl_editor_macro_item_declarator],
-    [ETokenType.LEFT_BRACKET, EKeyword.Off, ETokenType.RIGHT_BRACKET, ENonTerminal.gl_editor_macro_item_declarator],
-    [ETokenType.LEFT_BRACKET, EKeyword.On, ETokenType.RIGHT_BRACKET, ENonTerminal.gl_editor_macro_item_declarator]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_macro_item_declarator, [
-    [ENonTerminal.gl_editor_prop_item],
-    [ETokenType.ID, ETokenType.LEFT_PAREN, ETokenType.STRING_CONST, ETokenType.RIGHT_PAREN]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_type, [
-    [ETokenType.ID],
-    [ETokenType.ID, ETokenType.LEFT_PAREN, ENonTerminal.gl_editor_prop_type_param_list, ETokenType.RIGHT_PAREN]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_type_param, [
-    [ETokenType.INT_CONSTANT],
-    [ETokenType.DASH, ETokenType.INT_CONSTANT],
-    [ETokenType.FLOAT_CONSTANT],
-    [ETokenType.DASH, ETokenType.FLOAT_CONSTANT],
-    [EKeyword.TRUE],
-    [EKeyword.FALSE]
-  ]),
-
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gl_editor_prop_type_param_list, [
-    [ENonTerminal.gl_editor_prop_type_param],
-    [ENonTerminal.gl_editor_prop_type_param_list, ETokenType.COMMA, ENonTerminal.gl_editor_prop_type_param]
-  ]),
-  // #endif
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_common_global_declaration,
-    [
-      [ENonTerminal.gl_variable_declaration],
-      [ENonTerminal.gl_render_queue_assignment],
-      [ENonTerminal.gl_render_state_assignment],
-      [ENonTerminal.struct_specifier],
-      [ENonTerminal.function_definition],
-      [ENonTerminal.gl_render_state_declaration]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLCommonGlobalDeclaration
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_shader_global_declaration,
-    [
-      [ENonTerminal.gl_common_global_declaration],
-      // #if _DEVELOPMENT
-      [ENonTerminal.gl_editor_prop_declaration],
-      // #endif
-      [ENonTerminal.gl_editor_macro_declaration],
-      [ENonTerminal.gl_subshader_program]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLShaderGlobalDeclaration
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_shader_global_declaration_list,
-    [
-      [ENonTerminal.gl_shader_global_declaration],
-      [ENonTerminal.gl_shader_global_declaration_list, ENonTerminal.gl_shader_global_declaration]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLShaderGlobalDeclarationList
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_subshader_program,
-    [
-      [
-        EKeyword.GL_SubShader,
-        ETokenType.STRING_CONST,
-        ENonTerminal.subshader_scope_brace,
-        ENonTerminal.gl_subshader_global_declaration_list,
-        ENonTerminal.scope_end_brace
-      ]
-    ],
-    ASTNode.GLSubShaderProgram
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_subshader_global_declaration_list,
-    [
-      [ENonTerminal.gl_subshader_global_declaration],
-      [ENonTerminal.gl_subshader_global_declaration_list, ENonTerminal.gl_subshader_global_declaration]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLSubShaderGlobalDeclarationList
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_subshader_global_declaration,
-    [
-      [ENonTerminal.gl_common_global_declaration],
-      [ENonTerminal.gl_tag_specifier],
-      [ENonTerminal.gl_pass_program],
-      [ENonTerminal.gl_use_pass_declaration]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLSubShaderGlobalDeclaration
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_tag_specifier,
-    [[EKeyword.GL_Tags, ETokenType.LEFT_BRACE, ENonTerminal.gl_tag_assignment_list, ETokenType.RIGHT_BRACE]],
+    ENonTerminal.gs_tag_specifier,
+    [[EKeyword.GS_Tags, ETokenType.LEFT_BRACE, ENonTerminal.gs_tag_assignment_list, ETokenType.RIGHT_BRACE]],
     // #if _DEVELOPMENT
     ASTNode.GLTagSpecifier
     // #endif
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_tag_assignment_list,
+    ENonTerminal.gs_tag_assignment_list,
     [
       [ETokenType.EPSILON],
-      [ENonTerminal.gl_tag_assignment],
-      [ENonTerminal.gl_tag_assignment_list, ETokenType.COMMA, ENonTerminal.gl_tag_assignment]
+      [ENonTerminal.gs_tag_assignment],
+      [ENonTerminal.gs_tag_assignment_list, ETokenType.COMMA, ENonTerminal.gs_tag_assignment]
     ],
     // #if _DEVELOPMENT
     ASTNode.GLTagAssignmentList
@@ -233,75 +47,31 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_tag_assignment,
-    [[ENonTerminal.gl_tag_id, ETokenType.EQUAL, ENonTerminal.gl_tag_value]],
+    ENonTerminal.gs_tag_assignment,
+    [[ENonTerminal.gs_tag_id, ETokenType.EQUAL, ENonTerminal.gs_tag_value]],
     ASTNode.GLTagAssignment
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_tag_id,
-    [[EKeyword.GL_ReplacementTag], [EKeyword.GL_LightMode], [EKeyword.GL_PipelineStage]],
+    ENonTerminal.gs_tag_id,
+    [[EKeyword.GS_ReplacementTag], [EKeyword.GS_LightMode], [EKeyword.GS_PipelineStage]],
     ASTNode.GLTagId
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_tag_value,
+    ENonTerminal.gs_tag_value,
     [[ETokenType.STRING_CONST], [ETokenType.INT_CONSTANT], [EKeyword.TRUE], [EKeyword.FALSE]],
     ASTNode.GLTagValue
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_pass_program,
+    ENonTerminal.gs_render_state_declaration,
     [
       [
-        EKeyword.GL_Pass,
-        ETokenType.STRING_CONST,
-        ENonTerminal.pass_scope_brace,
-        ENonTerminal.gl_pass_global_declaration_list,
-        ENonTerminal.scope_end_brace
-      ]
-    ],
-    ASTNode.GLPassProgram
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_pass_global_declaration_list,
-    [
-      [ENonTerminal.gl_pass_global_declaration],
-      [ENonTerminal.gl_pass_global_declaration_list, ENonTerminal.gl_pass_global_declaration]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLPassGlobalDeclarationList
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_pass_global_declaration,
-    [
-      [ENonTerminal.gl_common_global_declaration],
-      [ENonTerminal.gl_main_shader_assignment],
-      [ENonTerminal.gl_tag_specifier],
-      [ENonTerminal.precision_specifier]
-    ],
-    // #if _DEVELOPMENT
-    ASTNode.GLPassGlobalDeclaration
-    // #endif
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_use_pass_declaration,
-    [[EKeyword.GL_UsePass, ETokenType.STRING_CONST]],
-    ASTNode.GLUsePassDeclaration
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_state_declaration,
-    [
-      [
-        ENonTerminal.gl_render_state_declarator,
+        ENonTerminal.gs_render_state_declarator,
         ETokenType.ID,
         ETokenType.LEFT_BRACE,
-        ENonTerminal.gl_render_state_prop_list,
+        ENonTerminal.gs_render_state_prop_list,
         ETokenType.RIGHT_BRACE
       ]
     ],
@@ -309,50 +79,44 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_state_prop_list,
+    ENonTerminal.gs_render_state_prop_list,
     [
-      [ENonTerminal.gl_render_state_prop_assignment],
-      [ENonTerminal.gl_render_state_prop_assignment, ENonTerminal.gl_render_state_prop_list]
+      [ENonTerminal.gs_render_state_prop_assignment],
+      [ENonTerminal.gs_render_state_prop_assignment, ENonTerminal.gs_render_state_prop_list]
     ],
     ASTNode.GLRenderStatePropList
   ),
 
-  // 语义分析检测key值
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_state_prop_assignment,
+    ENonTerminal.gs_render_state_prop_assignment,
     [
-      [ENonTerminal.gl_render_state_prop, ETokenType.EQUAL, EKeyword.TRUE, ETokenType.SEMICOLON],
-      [ENonTerminal.gl_render_state_prop, ETokenType.EQUAL, EKeyword.FALSE, ETokenType.SEMICOLON],
-      [ENonTerminal.gl_render_state_prop, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON],
+      [ENonTerminal.gs_render_state_prop, ETokenType.EQUAL, EKeyword.TRUE, ETokenType.SEMICOLON],
+      [ENonTerminal.gs_render_state_prop, ETokenType.EQUAL, EKeyword.FALSE, ETokenType.SEMICOLON],
+      [ENonTerminal.gs_render_state_prop, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON],
       [
-        ENonTerminal.gl_render_state_prop,
+        ENonTerminal.gs_render_state_prop,
         ETokenType.EQUAL,
         ETokenType.ID,
         ETokenType.DOT,
         ETokenType.ID,
         ETokenType.SEMICOLON
       ],
-      [ENonTerminal.gl_render_state_prop, ETokenType.EQUAL, ETokenType.INT_CONSTANT, ETokenType.SEMICOLON],
-      [ENonTerminal.gl_render_state_prop, ETokenType.EQUAL, ETokenType.FLOAT_CONSTANT, ETokenType.SEMICOLON],
-      [ENonTerminal.gl_render_state_prop, ETokenType.EQUAL, ENonTerminal.gl_engine_type_init, ETokenType.SEMICOLON]
+      [ENonTerminal.gs_render_state_prop, ETokenType.EQUAL, ETokenType.INT_CONSTANT, ETokenType.SEMICOLON],
+      [ENonTerminal.gs_render_state_prop, ETokenType.EQUAL, ETokenType.FLOAT_CONSTANT, ETokenType.SEMICOLON],
+      [ENonTerminal.gs_render_state_prop, ETokenType.EQUAL, ENonTerminal.gs_engine_type_init, ETokenType.SEMICOLON]
     ],
     ASTNode.GLRenderStatePropAssignment
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_engine_type,
-    // [[EKeyword.GL_Vector2], [EKeyword.GL_Vector3], [EKeyword.GL_Vector4], [EKeyword.GL_Color]],
-    [[ETokenType.ID]],
-    ASTNode.GLEngineType
-  ),
+  ...GrammarUtils.createProductionWithOptions(ENonTerminal.gs_engine_type, [[ETokenType.ID]], ASTNode.GLEngineType),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_engine_type_init,
+    ENonTerminal.gs_engine_type_init,
     [
       [
-        ENonTerminal.gl_engine_type,
+        ENonTerminal.gs_engine_type,
         ETokenType.LEFT_PAREN,
-        ENonTerminal.gl_engine_type_init_param_list,
+        ENonTerminal.gs_engine_type_init_param_list,
         ETokenType.RIGHT_PAREN
       ]
     ],
@@ -360,36 +124,36 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_engine_type_init_param_list,
+    ENonTerminal.gs_engine_type_init_param_list,
     [
       [ETokenType.INT_CONSTANT],
       [ETokenType.FLOAT_CONSTANT],
-      [ENonTerminal.gl_engine_type_init_param_list, ETokenType.COMMA, ETokenType.INT_CONSTANT],
-      [ENonTerminal.gl_engine_type_init_param_list, ETokenType.COMMA, ETokenType.FLOAT_CONSTANT]
+      [ENonTerminal.gs_engine_type_init_param_list, ETokenType.COMMA, ETokenType.INT_CONSTANT],
+      [ENonTerminal.gs_engine_type_init_param_list, ETokenType.COMMA, ETokenType.FLOAT_CONSTANT]
     ],
     ASTNode.GLEngineTypeInitParamList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_state_prop,
+    ENonTerminal.gs_render_state_prop,
     [[ETokenType.ID, ETokenType.LEFT_BRACKET, ETokenType.INT_CONSTANT, ETokenType.RIGHT_BRACKET], [ETokenType.ID]],
     ASTNode.GLRenderStateProp
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_state_declarator,
-    [[EKeyword.GL_BlendState], [EKeyword.GL_DepthState], [EKeyword.GL_StencilState], [EKeyword.GL_RasterState]],
+    ENonTerminal.gs_render_state_declarator,
+    [[EKeyword.GS_BlendState], [EKeyword.GS_DepthState], [EKeyword.GS_StencilState], [EKeyword.GS_RasterState]],
     ASTNode.GLRenderStateDeclarator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_state_assignment,
+    ENonTerminal.gs_render_state_assignment,
     [
-      [ENonTerminal.gl_render_state_declarator, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON],
+      [ENonTerminal.gs_render_state_declarator, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON],
       [
-        ENonTerminal.gl_render_state_declarator,
+        ENonTerminal.gs_render_state_declarator,
         ETokenType.LEFT_BRACE,
-        ENonTerminal.gl_render_state_prop_list,
+        ENonTerminal.gs_render_state_prop_list,
         ETokenType.RIGHT_BRACE
       ]
     ],
@@ -397,29 +161,29 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_main_shader_assignment,
-    [[ENonTerminal.gl_main_shader_entry, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON]],
+    ENonTerminal.gs_main_shader_assignment,
+    [[ENonTerminal.gs_main_shader_entry, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON]],
     ASTNode.GLMainShaderAssignment
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_main_shader_entry,
-    [[EKeyword.GL_VertexShader], [EKeyword.GL_FragmentShader]],
+    ENonTerminal.gs_main_shader_entry,
+    [[EKeyword.GS_VertexShader], [EKeyword.GS_FragmentShader]],
     ASTNode.GLMainShaderEntry
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_render_queue_assignment,
-    [[EKeyword.GL_RenderQueueType, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON]],
+    ENonTerminal.gs_render_queue_assignment,
+    [[EKeyword.GS_RenderQueueType, ETokenType.EQUAL, ETokenType.ID, ETokenType.SEMICOLON]],
     // #if _DEVELOPMENT
     ASTNode.GLRenderQueueAssignment
     // #endif
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.gl_variable_declaration,
+    ENonTerminal.gs_variable_declaration,
     [
-      [EKeyword.GL_RenderQueueType, ETokenType.ID, ETokenType.SEMICOLON],
+      [EKeyword.GS_RenderQueueType, ETokenType.ID, ETokenType.SEMICOLON],
       [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.SEMICOLON],
       [ENonTerminal.fully_specified_type, ETokenType.ID, ENonTerminal.array_specifier, ETokenType.SEMICOLON]
     ],
@@ -1199,18 +963,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.subshader_scope_brace,
-    [[ENonTerminal.scope_brace]],
-    ASTNode.SubShaderScopeBrace
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    ENonTerminal.pass_scope_brace,
-    [[ENonTerminal.scope_brace]],
-    ASTNode.PassScopeBrace
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.variable_identifier,
     [[ETokenType.ID]],
     ASTNode.VariableIdentifier
@@ -1219,7 +971,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
 const createGrammar = () =>
   Grammar.create(
-    ENonTerminal.gl_shader_program,
+    ENonTerminal.gs_shader_program,
     productionAndRules.map((item) => item[0])
   );
 

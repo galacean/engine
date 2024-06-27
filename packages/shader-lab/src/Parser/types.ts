@@ -26,6 +26,7 @@ export class SymbolType {
 export class StructProp implements IParamInfo {
   typeInfo: SymbolType;
   ident: Token;
+  astNode: ASTNode.StructDeclarator;
 
   constructor(type: SymbolType, ident: Token) {
     this.typeInfo = type;
@@ -81,14 +82,14 @@ export type GalaceanDataType =
   | EKeyword.U_SAMPLER3D
   | EKeyword.U_SAMPLER_CUBE
   | EKeyword.U_SAMPLER2D_ARRAY
-  | EKeyword.GL_RenderQueueType
-  | EKeyword.GL_BlendState
-  | EKeyword.GL_DepthState
-  | EKeyword.GL_StencilState
-  | EKeyword.GL_RasterState
+  | EKeyword.GS_RenderQueueType
+  | EKeyword.GS_BlendState
+  | EKeyword.GS_DepthState
+  | EKeyword.GS_StencilState
+  | EKeyword.GS_RasterState
   | typeof TypeAny
   | string;
 
 export type RenderStateLabel = "BlendState" | "DepthState" | "StencilState" | "RasterState";
 
-export type IParamInfo = { ident: Token; typeInfo: SymbolType };
+export type IParamInfo = { ident: Token; typeInfo: SymbolType; astNode: TreeNode };

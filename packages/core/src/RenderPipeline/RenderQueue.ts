@@ -39,6 +39,8 @@ export class RenderQueue {
     pipelineStageTagValue: string,
     maskType: RenderQueueMaskType = RenderQueueMaskType.No
   ): void {
+    // console.log("render queue render");
+    // debugger;
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {
@@ -79,6 +81,7 @@ export class RenderQueue {
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
+      // @remarks: duplicate?
       // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 

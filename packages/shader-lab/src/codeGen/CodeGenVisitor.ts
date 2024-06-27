@@ -7,13 +7,13 @@ import { ESymbolType, FnSymbol, VarSymbol } from "../parser/SymbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
-import { IRenderState, IPassCodeGenResult, IShaderCodeGenResult, ISubShaderCodeGenResult } from "./types";
+import { IRenderState, IPassCodeGenResult } from "./types";
 
 export abstract class CodeGenVisitor {
   logger = new Logger("CodeGen");
   context = new VisitorContext();
 
-  abstract visitPassProgram(node: ASTNode.GLPassProgram, renderStates: IRenderState): IPassCodeGenResult;
+  abstract visitShaderProgram(node: ASTNode.GLShaderProgram, renderStates: IRenderState): IPassCodeGenResult;
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -25,35 +25,6 @@ export abstract class CodeGenVisitor {
       }
     }
     return ret.join(" ");
-  }
-
-  visitShaderProgram(node: ASTNode.GLShaderProgram): IShaderCodeGenResult {
-    const ret: IShaderCodeGenResult = { name: node.name, subShaders: [], renderStates: node.shaderData.renderStates };
-    for (const subShader of node.shaderData.subShaderList) {
-      ret.subShaders.push(this.visitSubShaderProgram(subShader, node.shaderData.renderStates));
-    }
-    return ret;
-  }
-
-  visitSubShaderProgram(node: ASTNode.GLSubShaderProgram, renderStates: IRenderState): ISubShaderCodeGenResult {
-    const mergedStates: IRenderState = [
-      { ...renderStates[0], ...node.shaderData.renderStates[0] },
-      { ...renderStates[1], ...node.shaderData.renderStates[1] }
-    ];
-    const ret: ISubShaderCodeGenResult = {
-      name: node.name,
-      passes: [],
-      renderStates: mergedStates,
-      tags: node.shaderData.tags
-    };
-    for (const pass of node.shaderData.passList) {
-      if (pass instanceof ASTNode.GLPassProgram) {
-        ret.passes.push(this.visitPassProgram(pass, mergedStates));
-      } else {
-        ret.passes.push(pass.passRef);
-      }
-    }
-    return ret;
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression) {
@@ -168,7 +139,7 @@ export abstract class CodeGenVisitor {
           !this.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
           !this.context.isVaryingStruct(item.typeInfo.typeLexeme)
       )
-      .map((item) => `${item.typeInfo.typeLexeme} ${item.ident.lexeme}`)
+      .map((item) => item.astNode.codeGen(this))
       .join(", ");
   }
 
