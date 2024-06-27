@@ -165,7 +165,7 @@ export default class PpParser extends PpError {
       const constantExpr = this.parseConstantExpression(scanner);
       const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
       if (!!constantExpr) {
-        const end = scanner.scanRemainMacro();
+        const end = nextDirective.type === EPpKeyword.endif ? scanner.current : scanner.scanRemainMacro().index;
         const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
         // #if _DEVELOPMENT
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
@@ -174,7 +174,7 @@ export default class PpParser extends PpError {
           // #if _DEVELOPMENT
           block,
           // #endif
-          rangeInBlock: { start: start, end: end.index },
+          rangeInBlock: { start, end },
           replace: expanded.content
         });
       } else {

@@ -215,7 +215,7 @@ export default class PpScanner extends PpError {
   scanRemainMacro(): Position {
     const startLvl = this.macroLvl;
     let directive = this.scanDirective()!;
-    while (directive.type !== EPpKeyword.endif || startLvl - 1 !== this.macroLvl) {
+    while (!this.isEnd() && (directive.type !== EPpKeyword.endif || startLvl - 1 !== this.macroLvl)) {
       directive = this.scanDirective()!;
     }
     return this.getPosition();
