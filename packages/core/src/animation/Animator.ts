@@ -407,31 +407,31 @@ export class Animator extends Component {
   }
 
   private _prepareCrossFading(animatorLayerData: AnimatorLayerData): void {
-    // Add src cross curve data.
+    // Add src cross curve data
     this._prepareSrcCrossData(animatorLayerData, false);
-    // Add dest cross curve data.
+    // Add dest cross curve data
     this._prepareDestCrossData(animatorLayerData, false);
   }
 
   private _prepareStandbyCrossFading(animatorLayerData: AnimatorLayerData): void {
-    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null.
+    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null
     animatorLayerData.srcPlayData.state && this._prepareSrcCrossData(animatorLayerData, true);
-    // Add dest cross curve data.
+    // Add dest cross curve data
     this._prepareDestCrossData(animatorLayerData, true);
   }
 
   private _prepareFixedPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
     const { crossLayerOwnerCollection } = animatorLayerData;
 
-    // Save current cross curve data owner fixed pose.
+    // Save current cross curve data owner fixed pose
     for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
       const layerOwner = crossLayerOwnerCollection[i];
       if (!layerOwner) continue;
       layerOwner.curveOwner.saveFixedPoseValue();
-      // Reset destCurveIndex When fixed pose crossFading again.
+      // Reset destCurveIndex When fixed pose crossFading again
       layerOwner.crossDestCurveIndex = -1;
     }
-    // prepare dest AnimatorState cross data.
+    // Prepare dest AnimatorState cross data
     this._prepareDestCrossData(animatorLayerData, true);
   }
 
@@ -670,11 +670,15 @@ export class Animator extends Component {
           ? transitionDuration - lastDestClipTime
           : actualDestDeltaTime;
     } else {
+      // The time that has been played
+      const playedTime = destStateDuration - lastDestClipTime;
       destCostTime =
-        // destStateDuration - lastDestClipTime + Math.abs(actualDestDeltaTime)
-        destStateDuration - lastDestClipTime - actualDestDeltaTime > transitionDuration
-          ? // -(transitionDuration - (destStateDuration - lastDestClipTime))
-            destStateDuration - lastDestClipTime - transitionDuration
+        // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
+        // > transition: The time that will be played is enough to finish the transition
+        playedTime - actualDestDeltaTime > transitionDuration
+          ? // Negative number is used to convert a time period into a reverse deltaTime.
+            // -(transitionDuration - playedTime)
+            playedTime - transitionDuration
           : actualDestDeltaTime;
     }
 
@@ -789,11 +793,15 @@ export class Animator extends Component {
           ? transitionDuration - lastDestClipTime
           : actualDeltaTime;
     } else {
+      // The time that has been played
+      const playedTime = stateDuration - lastDestClipTime;
       destCostTime =
-        // destStateDuration - lastDestClipTime + Math.abs(actualDestDeltaTime)
-        stateDuration - lastDestClipTime - actualDeltaTime > transitionDuration
-          ? // -(transitionDuration - (stateDuration - lastDestClipTime))
-            stateDuration - lastDestClipTime - transitionDuration
+        // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
+        // > transition: The time that will be played is enough to finish the transition
+        playedTime - actualDeltaTime > transitionDuration
+          ? // Negative number is used to convert a time period into a reverse deltaTime.
+            // -(transitionDuration - playedTime)
+            playedTime - transitionDuration
           : actualDeltaTime;
     }
 
@@ -843,7 +851,7 @@ export class Animator extends Component {
     const { clipTime: destClipTime, playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
 
-    // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly.
+    // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly
     if (aniUpdate || finished) {
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
         const layerOwner = crossLayerOwnerCollection[i];
@@ -1144,7 +1152,7 @@ export class Animator extends Component {
     stateMachine: AnimatorStateMachine,
     transition: AnimatorStateTransition
   ): void {
-    // need prepare first, it should crossFade when to exit.
+    // Need prepare first, it should crossFade when to exit
     this._prepareCrossFadeByTransition(transition, layerIndex);
     if (transition.isExit) {
       this._checkAnyState(layerIndex, layerData, stateMachine) ||
