@@ -540,11 +540,11 @@ export class Animator extends Component {
     const actualSpeed = state.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
 
-    srcPlayData.updateForwards(actualDeltaTime);
+    srcPlayData.updateOrientation(actualDeltaTime);
 
     const { clipTime: lastClipTime, playState: lastPlayState } = srcPlayData;
 
-    // precalculate to get the transition
+    // Precalculate to get the transition
     srcPlayData.update(actualDeltaTime);
 
     const { clipTime, playState, isForwards } = srcPlayData;
@@ -584,10 +584,10 @@ export class Animator extends Component {
         }
         costTime = -costTime;
       }
-      // revert actualDeltaTime and update costTime.
+      // Revert actualDeltaTime and update costTime
       srcPlayData.update(costTime - actualDeltaTime);
       const remainDeltaTime = deltaTime - Math.abs(costTime);
-      // need update whenever has transition.
+      // Need update whenever has transition
       this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
     }
 
@@ -657,8 +657,8 @@ export class Animator extends Component {
     const actualDestSpeed = destState.speed * speed;
     const actualDestDeltaTime = actualDestSpeed * deltaTime;
 
-    srcPlayData && srcPlayData.updateForwards(actualSrcSpeed * deltaTime);
-    destPlayData && destPlayData.updateForwards(actualDestDeltaTime);
+    srcPlayData && srcPlayData.updateOrientation(actualSrcSpeed * deltaTime);
+    destPlayData && destPlayData.updateOrientation(actualDestDeltaTime);
 
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
@@ -687,7 +687,7 @@ export class Animator extends Component {
     const { clipTime: destClipTime, playState: destPlayState, frameTime } = destPlayData;
 
     let crossWeight = Math.abs(frameTime) / transitionDuration;
-    // for precision problem
+    // For precision problem, loose judgment, expect to crossFade
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
     srcEventHandlers.length && this._fireAnimationEvents(srcPlayData, srcEventHandlers, lastSrcClipTime, srcClipTime);
     destEventHandlers.length &&
@@ -714,7 +714,7 @@ export class Animator extends Component {
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
 
     const remainDeltaTime = deltaTime - costTime;
-    // for precision problem
+    // For precision problem, strict judgment, expect not to update
     remainDeltaTime > MathUtil.zeroTolerance && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
   }
 
@@ -778,7 +778,7 @@ export class Animator extends Component {
     const actualSpeed = state.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
 
-    destPlayData.updateForwards(actualDeltaTime);
+    destPlayData.updateOrientation(actualDeltaTime);
 
     const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
 
@@ -804,7 +804,7 @@ export class Animator extends Component {
     const { clipTime, playState, frameTime } = destPlayData;
 
     let crossWeight = Math.abs(frameTime) / transitionDuration;
-    // for precision problem
+    // For precision problem, loose judgment, expect to crossFade
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
     //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, clipTime);
@@ -821,6 +821,7 @@ export class Animator extends Component {
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
 
     const remainDeltaTime = deltaTime - costTime;
+    // For precision problem, strict judgment, expect not to update
     remainDeltaTime > MathUtil.zeroTolerance && this._updateState(layerIndex, layerData, stateMachine, remainDeltaTime);
   }
 
@@ -878,7 +879,7 @@ export class Animator extends Component {
     const actualSpeed = state.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
 
-    playData.updateForwards(actualDeltaTime);
+    playData.updateOrientation(actualDeltaTime);
 
     const { clipTime } = playData;
 

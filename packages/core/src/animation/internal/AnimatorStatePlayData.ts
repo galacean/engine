@@ -27,9 +27,12 @@ export class AnimatorStatePlayData {
     this.isForwards = true;
   }
 
-  updateForwards(deltaTime: number): void {
-    this.isForwards = deltaTime === 0 ? this.isForwards : deltaTime > 0;
-    !this.isForwards && this._correctTime();
+  updateOrientation(deltaTime: number): void {
+    if (deltaTime !== 0) {
+      const lastIsForwards = this.isForwards;
+      this.isForwards = deltaTime > 0;
+      this.isForwards !== lastIsForwards && this._correctTime();
+    }
   }
 
   update(deltaTime: number): void {
@@ -50,14 +53,19 @@ export class AnimatorStatePlayData {
     time < 0 && (time += duration);
     this.clipTime = time + state.clipStartTime * state.clip.length;
 
-    !this.isForwards && this._correctTime();
+    this._correctTime();
   }
 
   private _correctTime() {
-    const state = this.state;
-
-    if (this.clipTime === 0) {
-      this.clipTime = state.clipEndTime * state.clip.length;
+    const { state, isForwards } = this;
+    if (isForwards) {
+      if (this.clipTime === state.clipEndTime * state.clip.length) {
+        this.clipTime = 0;
+      }
+    } else {
+      if (this.clipTime === 0) {
+        this.clipTime = state.clipEndTime * state.clip.length;
+      }
     }
   }
 }
