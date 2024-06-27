@@ -89,7 +89,7 @@ vec3 getDampenedMix(in vec3 a, in vec3 b, float t){
 
 vec3 getDraggedPosition(vec3 velocity, float age, float drag){
     float speed = length(velocity);
-    float lasttime = (abs(dragData.x) > EPSILON) ? min(speed / drag,age ):age;
+    float lasttime = (abs(drag) > EPSILON) ? min(speed / drag,age ):age;
     return lasttime * (velocity - 0.5 * drag * lasttime);
 }
 
