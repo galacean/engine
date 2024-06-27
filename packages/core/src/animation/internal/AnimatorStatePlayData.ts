@@ -58,8 +58,10 @@ export class AnimatorStatePlayData {
     time < 0 && (time += duration);
     this.clipTime = time + state.clipStartTime * state.clip.length;
 
-    this._changedOrientation && !this.isForwards && this._correctTime();
-    this._changedOrientation = false;
+    if (this._changedOrientation) {
+      !this.isForwards && this._correctTime();
+      this._changedOrientation = false;
+    }
   }
 
   private _correctTime() {
