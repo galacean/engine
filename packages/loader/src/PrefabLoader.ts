@@ -14,10 +14,6 @@ import { PrefabParser } from "./prefab/PrefabParser";
 
 @resourceLoader(AssetType.Prefab, ["prefab"])
 export class PrefabLoader extends Loader<PrefabResource> {
-  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
-    return Promise.resolve();
-  }
-
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<PrefabResource> {
     const engine = resourceManager.engine;
 
