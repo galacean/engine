@@ -2,7 +2,7 @@ import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
 import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext } from "./ParserContext";
-import { PrefabResource } from "../../../prefab";
+import { PrefabResource } from "../../../prefab/PrefabResource";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {

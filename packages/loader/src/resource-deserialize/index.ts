@@ -6,7 +6,6 @@ import { FileHeader } from "./utils/FileHeader";
 export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export { ReflectionParser } from "./resources/parser/ReflectionParser";
-export { PrefabParser } from "../prefab/PrefabParser";
 export * from "./resources/animationClip/AnimationClipDecoder";
 export type { IModelMesh } from "./resources/mesh/IModelMesh";
 

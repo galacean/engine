@@ -9,7 +9,8 @@ import {
   ResourceManager
 } from "@galacean/engine-core";
 import { PrefabResource } from "./prefab/PrefabResource";
-import { IHierarchyFile, PrefabParser } from "./resource-deserialize";
+import { IHierarchyFile } from "./resource-deserialize";
+import { PrefabParser } from "./prefab/PrefabParser";
 
 @resourceLoader(AssetType.Prefab, ["prefab"])
 export class PrefabLoader extends Loader<PrefabResource> {
