@@ -49,7 +49,8 @@ export class ShaderLab implements IShaderLab {
   parseShaderPass(source: string, macros: string[] = [], backend = EBackend.GLES300) {
     const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
     for (const macro of macros) {
-      preprocessor.addPredefinedMacro(macro);
+      const info = macro.split(" ", 2);
+      preprocessor.addPredefinedMacro(info[0], info[1]);
     }
     // #if _DEVELOPMENT
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);

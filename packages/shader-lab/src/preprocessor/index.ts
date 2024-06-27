@@ -14,8 +14,8 @@ export default class Preprocessor {
     return this.parser.parse(this.scanner);
   }
 
-  addPredefinedMacro(macro: string) {
-    this.parser.addPredefinedMacro(macro);
+  addPredefinedMacro(macro: string, value?: string) {
+    this.parser.addPredefinedMacro(macro, value);
   }
 
   // #if _DEVELOPMENT

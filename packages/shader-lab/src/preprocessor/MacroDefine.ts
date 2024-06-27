@@ -6,7 +6,7 @@ export class MacroDefine extends PpError {
   readonly location?: LocRange;
   readonly macro: PpToken;
   readonly args?: PpToken[];
-  readonly body: PpToken;
+  readonly body?: PpToken;
 
   get isFunction() {
     return !!this.args?.length;
@@ -16,7 +16,7 @@ export class MacroDefine extends PpError {
     return this.macro.lexeme;
   }
 
-  constructor(macro: PpToken, body: PpToken, loc?: LocRange, args?: PpToken[]) {
+  constructor(macro: PpToken, body?: PpToken, loc?: LocRange, args?: PpToken[]) {
     super();
     this.location = loc;
     this.macro = macro;
