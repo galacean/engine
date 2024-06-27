@@ -35,7 +35,7 @@ export class AnimatorStatePlayData {
       this.isForwards = deltaTime > 0;
       if (this.isForwards !== lastIsForwards) {
         this._changedOrientation = true;
-        !this.isForwards && this._correctTime();
+        this.isForwards || this._correctTime();
       }
     }
   }
