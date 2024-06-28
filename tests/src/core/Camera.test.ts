@@ -92,13 +92,13 @@ describe("camera test", function () {
   });
 
   it("enable HDR", () => {
-    // origin method has not been implemented
-
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
+    expect(camera.independentCanvasEnabled).to.eq(false);
     // set enableHDR
     camera.enableHDR = true;
-    expect(camera.enableHDR).to.eq(false);
+    expect(camera.enableHDR).to.eq(true);
+    expect(camera.independentCanvasEnabled).to.eq(true);
   });
 
   it("view matrix", () => {
