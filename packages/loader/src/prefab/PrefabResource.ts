@@ -21,20 +21,20 @@ export class PrefabResource extends ReferResource {
   }
 
   /**
+   * Instantiate prefab.
+   * @returns prefab's root entity
+   */
+  instantiate(): Entity {
+    return this._root?.clone();
+  }
+
+  /**
    * @internal
    */
   _addDependenceAsset(resource: ReferResource) {
     this._dependenceAssets.add(resource);
     // @ts-ignore
     resource._associationSuperResource(this);
-  }
-
-  /**
-   * Instantiate prefab.
-   * @returns prefab's root entity
-   */
-  instantiate(): Entity {
-    return this._root?.clone();
   }
 
   protected override _onDestroy(): void {
