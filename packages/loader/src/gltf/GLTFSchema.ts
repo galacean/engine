@@ -731,7 +731,7 @@ export interface IScene extends IChildRootProperty {
   /**
    * The indices of each root node
    */
-  nodes: number[];
+  nodes?: number[];
 }
 
 /**

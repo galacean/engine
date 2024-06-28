@@ -1,4 +1,11 @@
-import { BackgroundMode, DiffuseMode, FogMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
+import {
+  BackgroundMode,
+  BackgroundTextureFillMode,
+  DiffuseMode,
+  FogMode,
+  ShadowCascadesMode,
+  ShadowResolution
+} from "@galacean/engine-core";
 import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
 import type { IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
 
@@ -13,6 +20,7 @@ export interface IScene extends IHierarchyFile {
       mode: BackgroundMode;
       color: IColor;
       texture?: IReferable;
+      textureFillMode?: BackgroundTextureFillMode;
       skyMesh?: IReferable;
       skyMaterial?: IReferable;
     };
