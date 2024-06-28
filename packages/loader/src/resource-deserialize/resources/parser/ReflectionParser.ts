@@ -81,7 +81,7 @@ export class ReflectionParser {
         return context.resourceManager.getResourceByRef(value).then((resource) => {
           if (context.type === ParserType.Prefab) {
             // @ts-ignore
-            context._addDependenceAsset(resource);
+            context.resource._addDependenceAsset(resource);
           }
           return resource;
         });
@@ -131,7 +131,7 @@ export class ReflectionParser {
             const resource = engine.resourceManager._objectPool[assetRefId];
             if (this._context.type === ParserType.Prefab) {
               // @ts-ignore
-              this._context._addDependenceAsset(resource);
+              this._context.resource._addDependenceAsset(resource);
             }
             entity.name = entityConfig.name;
             return entity;
