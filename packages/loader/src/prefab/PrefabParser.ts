@@ -20,7 +20,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<
     super(data, context);
   }
 
-  protected override handleRootEntity(id: string): void {
+  protected override _handleRootEntity(id: string): void {
     this.prefabResource._root = this.context.entityMap.get(id);
   }
 

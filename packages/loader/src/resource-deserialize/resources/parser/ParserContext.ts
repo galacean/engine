@@ -18,7 +18,9 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   components: Map<string, Component> = new Map();
   rootIds: string[] = [];
   strippedIds: string[] = [];
+
   readonly resourceManager: ResourceManager;
+
   constructor(
     public readonly engine: Engine,
     public readonly type = ParserType.Scene,

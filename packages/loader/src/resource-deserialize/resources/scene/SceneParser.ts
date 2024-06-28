@@ -27,7 +27,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
     super(data, context);
   }
 
-  protected override handleRootEntity(id: string): void {
+  protected override _handleRootEntity(id: string): void {
     const { entityMap } = this.context;
     this.scene.addRootEntity(entityMap.get(id));
   }

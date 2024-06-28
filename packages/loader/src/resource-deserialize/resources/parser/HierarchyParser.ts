@@ -16,9 +16,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected _engine: Engine;
   protected _reflectionParser: ReflectionParser;
 
-  private prefabContextMap = new WeakMap<Entity, ParserContext<IHierarchyFile, Entity>>();
+  private _prefabContextMap = new WeakMap<Entity, ParserContext<IHierarchyFile, Entity>>();
 
-  private prefabPromiseMap = new Map<
+  private _prefabPromiseMap = new Map<
     string,
     {
       resolve: (context: ParserContext<IHierarchyFile, Entity>) => void;
@@ -57,7 +57,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .catch(this._reject);
   }
 
-  protected abstract handleRootEntity(id: string): void;
+  protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
   private _parseEntities(): Promise<Entity[]> {
@@ -116,7 +116,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           ...modifications.map((modification) => {
             const { target, props, methods } = modification;
             const { entityId, componentId } = target;
-            const context = this.prefabContextMap.get(rootEntity);
+            const context = this._prefabContextMap.get(rootEntity);
             const targetEntity = context.entityMap.get(entityId);
             const targetComponent = context.components.get(componentId);
             if (targetComponent) {
@@ -149,7 +149,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         promises.push(
           ...removedEntities.map((target) => {
             const { entityId } = target;
-            const context = this.prefabContextMap.get(rootEntity);
+            const context = this._prefabContextMap.get(rootEntity);
             const targetEntity = context.entityMap.get(entityId);
             if (targetEntity) {
               targetEntity.destroy();
@@ -176,7 +176,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         promises.concat(
           ...removedComponents.map((target) => {
             const { componentId } = target;
-            const context = this.prefabContextMap.get(rootEntity);
+            const context = this._prefabContextMap.get(rootEntity);
             const targetComponent = context.components.get(componentId);
             if (targetComponent) {
               targetComponent.destroy();
@@ -196,7 +196,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       this._parseChildren(parentId);
     }
     for (let i = 0; i < rootIds.length; i++) {
-      this.handleRootEntity(rootIds[i]);
+      this._handleRootEntity(rootIds[i]);
     }
   }
 
@@ -237,8 +237,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
           this._generateInstanceContext(entity, instanceContext, "");
 
-          this.prefabContextMap.set(entity, instanceContext);
-          const cbArray = this.prefabPromiseMap.get(entityConfig.id);
+          this._prefabContextMap.set(entity, instanceContext);
+          const cbArray = this._prefabPromiseMap.get(entityConfig.id);
           for (let i = 0, n = cbArray.length; i < n; i++) {
             cbArray[i].resolve(instanceContext);
           }
@@ -251,9 +251,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     this.context.strippedIds.push(entityConfig.id);
 
     return new Promise<ParserContext<IHierarchyFile, Entity>>((resolve, reject) => {
-      const cbArray = this.prefabPromiseMap.get((<IStrippedEntity>entityConfig).prefabInstanceId) ?? [];
+      const cbArray = this._prefabPromiseMap.get((<IStrippedEntity>entityConfig).prefabInstanceId) ?? [];
       cbArray.push({ resolve, reject });
-      this.prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, cbArray);
+      this._prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, cbArray);
     }).then((context) => {
       const { entityId } = entityConfig.prefabSource;
 
