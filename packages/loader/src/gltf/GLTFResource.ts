@@ -13,7 +13,7 @@ import {
 } from "@galacean/engine-core";
 
 /**
- * The glTF asset in runtime, usually, `defaultSceneRoot` is only needed to use.
+ * The glTF resource.
  */
 export class GLTFResource extends ReferResource {
   /** glTF file url. */

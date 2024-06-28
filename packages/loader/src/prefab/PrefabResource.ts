@@ -1,7 +1,7 @@
 import { Engine, Entity, ReferResource } from "@galacean/engine-core";
 
 /**
- * The Prefab asset in runtime.
+ * The Prefab resource.
  */
 export class PrefabResource extends ReferResource {
   _root: Entity;
