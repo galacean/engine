@@ -3,6 +3,7 @@ import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../sc
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext, ParserType } from "./ParserContext";
 import { PrefabResource } from "../../../prefab/PrefabResource";
+import { GLTFResource } from "../../../gltf";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
@@ -230,8 +231,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         .getResourceByRef<Entity>({
           refId: assetRefId
         })
-        .then((prefabResource: PrefabResource) => {
-          const entity = prefabResource.instantiate();
+        .then((prefabResource: PrefabResource | GLTFResource) => {
+          const entity =
+            prefabResource instanceof PrefabResource
+              ? prefabResource.instantiate()
+              : prefabResource.instantiateSceneRoot();
           const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine, ParserType.Prefab, null);
           if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
@@ -239,8 +243,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
           this._prefabContextMap.set(entity, instanceContext);
           const cbArray = this._prefabPromiseMap.get(entityConfig.id);
-          for (let i = 0, n = cbArray.length; i < n; i++) {
-            cbArray[i].resolve(instanceContext);
+          if (cbArray) {
+            for (let i = 0, n = cbArray.length; i < n; i++) {
+              cbArray[i].resolve(instanceContext);
+            }
           }
           return entity;
         })
