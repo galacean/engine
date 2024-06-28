@@ -13,7 +13,7 @@ import {
 } from "@galacean/engine-core";
 
 /**
- * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * The glTF resource.
  */
 export class GLTFResource extends ReferResource {
   /** glTF file url. */
