@@ -1,7 +1,7 @@
 import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
 import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
-import { ParserContext } from "./ParserContext";
+import { ParserContext, ParserType } from "./ParserContext";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 
 /** @Internal */
@@ -232,17 +232,16 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         })
         .then((prefabResource: PrefabResource) => {
           const entity = prefabResource.instantiate();
-          const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine);
+          const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine, ParserType.Prefab, null);
           if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
           this._generateInstanceContext(entity, instanceContext, "");
 
           this.prefabContextMap.set(entity, instanceContext);
           const cbArray = this.prefabPromiseMap.get(entityConfig.id);
-          cbArray &&
-            cbArray.forEach((cb) => {
-              cb.resolve(instanceContext);
-            });
+          for (let i = 0, n = cbArray.length; i < n; i++) {
+            cbArray[i].resolve(instanceContext);
+          }
           return entity;
         })
     );

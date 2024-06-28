@@ -1,6 +1,10 @@
-import { Component, Engine, EngineObject, Entity, ResourceManager } from "@galacean/engine-core";
+import { Component, Engine, EngineObject, Entity, ReferResource, ResourceManager, Scene } from "@galacean/engine-core";
 import type { IEntity, IHierarchyFile } from "../schema";
 
+export enum ParserType {
+  Prefab,
+  Scene
+}
 /**
  * Parser context
  * @export
@@ -15,7 +19,11 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   rootIds: string[] = [];
   strippedIds: string[] = [];
   readonly resourceManager: ResourceManager;
-  constructor(public readonly engine) {
+  constructor(
+    public readonly engine: Engine,
+    public readonly type = ParserType.Scene,
+    public readonly resource: ReferResource | Scene
+  ) {
     this.resourceManager = engine.resourceManager;
   }
 
