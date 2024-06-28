@@ -314,6 +314,7 @@ export class ShaderProgram {
     const program = this._glProgram;
     const uniformInfos = this._getUniformInfos();
     const attributeInfos = this._getAttributeInfos();
+    const basicResources = this._engine._basicResources;
 
     uniformInfos.forEach(({ name, size, type }) => {
       const shaderUniform = new ShaderUniform(this._engine);
@@ -410,16 +411,16 @@ export class ShaderProgram {
           let defaultTexture: Texture;
           switch (type) {
             case gl.SAMPLER_2D:
-              defaultTexture = this._engine._magentaTexture2D;
+              defaultTexture = basicResources.whiteTexture2D;
               break;
             case gl.SAMPLER_CUBE:
-              defaultTexture = this._engine._magentaTextureCube;
+              defaultTexture = basicResources.whiteTextureCube;
               break;
             case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
-              defaultTexture = this._engine._uintMagentaTexture2D;
+              defaultTexture = basicResources.uintWhiteTexture2D;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
-              defaultTexture = this._engine._magentaTexture2DArray;
+              defaultTexture = basicResources.whiteTexture2DArray;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;
