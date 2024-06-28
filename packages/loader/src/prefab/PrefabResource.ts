@@ -5,8 +5,8 @@ import { Engine, Entity, ReferResource } from "@galacean/engine-core";
  */
 export class PrefabResource extends ReferResource {
   _root: Entity;
-  /** @internal */
 
+  /** @internal */
   private _dependenceAssets: Set<ReferResource> = new Set();
 
   /**
@@ -20,8 +20,8 @@ export class PrefabResource extends ReferResource {
   }
 
   /**
-   * Instantiate root entity.
-   * @returns Root entity
+   * Instantiate prefab.
+   * @returns prefab's root entity
    */
   instantiate(): Entity {
     return this._root?.clone();
