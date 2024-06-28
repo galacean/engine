@@ -20,6 +20,15 @@ export class PrefabResource extends ReferResource {
   }
 
   /**
+   * @internal
+   */
+  _addDependenceAsset(resource: ReferResource) {
+    this._dependenceAssets.add(resource);
+    // @ts-ignore
+    resource._associationSuperResource(this);
+  }
+
+  /**
    * Instantiate prefab.
    * @returns prefab's root entity
    */
@@ -34,12 +43,5 @@ export class PrefabResource extends ReferResource {
       // @ts-ignore
       asset._disassociationSuperResource(this);
     });
-  }
-
-  /** @internal */
-  _addDependenceAsset(resource: ReferResource) {
-    this._dependenceAssets.add(resource);
-    // @ts-ignore
-    resource._associationSuperResource(this);
   }
 }
