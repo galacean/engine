@@ -7,7 +7,7 @@ export class PrefabResource extends ReferResource {
   _root: Entity;
   /** @internal */
 
-  private dependenceAssets: Set<ReferResource> = new Set();
+  private _dependenceAssets: Set<ReferResource> = new Set();
 
   /**
    * @internal
@@ -30,7 +30,7 @@ export class PrefabResource extends ReferResource {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._root.destroy();
-    this.dependenceAssets.forEach((asset) => {
+    this._dependenceAssets.forEach((asset) => {
       // @ts-ignore
       asset._disassociationSuperResource(this);
     });
@@ -38,7 +38,7 @@ export class PrefabResource extends ReferResource {
 
   /** @internal */
   _addDependenceAsset(resource: ReferResource) {
-    this.dependenceAssets.add(resource);
+    this._dependenceAssets.add(resource);
     // @ts-ignore
     resource._associationSuperResource(this);
   }
