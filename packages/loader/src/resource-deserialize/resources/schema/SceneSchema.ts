@@ -1,13 +1,13 @@
 import { BackgroundMode, DiffuseMode, FogMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
 import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
-import type { IColor, IPrefabFile, IVector3 } from "./BasicSchema";
+import type { IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
 
 export enum SpecularMode {
   Sky = "Sky",
   Custom = "Custom"
 }
 
-export interface IScene extends IPrefabFile {
+export interface IScene extends IHierarchyFile {
   scene: {
     background: {
       mode: BackgroundMode;
