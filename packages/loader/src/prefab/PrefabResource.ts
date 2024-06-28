@@ -4,13 +4,14 @@ import { Engine, Entity, ReferResource } from "@galacean/engine-core";
  * The Prefab resource.
  */
 export class PrefabResource extends ReferResource {
+  /** @internal */
   _root: Entity;
 
-  /** @internal */
   private _dependenceAssets: Set<ReferResource> = new Set();
 
   /**
    * @internal
+   * @param url - The url of the prefab
    */
   constructor(
     engine: Engine,
