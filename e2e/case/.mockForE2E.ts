@@ -1,6 +1,6 @@
 import { Camera, Engine, RenderTarget, Texture2D } from "@galacean/engine-core";
 
-export const updateForE2E = (engine, deltaTime = 100) => {
+export const updateForE2E = (engine, deltaTime = 100, loopTime = 10) => {
   engine._vSyncCount = Infinity;
   engine._time._lastSystemTime = 0;
   let times = 0;
@@ -8,7 +8,7 @@ export const updateForE2E = (engine, deltaTime = 100) => {
     times++;
     return times * deltaTime;
   };
-  for (let i = 0; i < 10; ++i) {
+  for (let i = 0; i < loopTime; ++i) {
     engine.update();
   }
   engine._hardwareRenderer._gl.finish();
