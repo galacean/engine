@@ -1,87 +1,4 @@
-export enum EKeyword {
-  ATTRIBUTE = 0,
-  CONST,
-  BOOL,
-  FLOAT,
-  DOUBLE,
-  INT,
-  UINT,
-  BREAK,
-  CONTINUE,
-  DO,
-  ELSE,
-  FOR,
-  IF,
-  WHILE,
-  DISCARD,
-  RETURN,
-  BVEC2,
-  BVEC3,
-  BVEC4,
-  IVEC2,
-  IVEC3,
-  IVEC4,
-  UVEC2,
-  UVEC3,
-  UVEC4,
-  VEC2,
-  VEC3,
-  VEC4,
-  MAT2,
-  MAT3,
-  MAT4,
-  MAT2X3,
-  MAT2X4,
-  MAT3X2,
-  MAT3X4,
-  MAT4X2,
-  MAT4X3,
-  IN,
-  OUT,
-  INOUT,
-  CENTROID,
-  SAMPLER2D,
-  SAMPLER3D,
-  SAMPLER_CUBE,
-  SAMPLER2D_SHADOW,
-  SAMPLER_CUBE_SHADOW,
-  SAMPLER2D_ARRAY,
-  SAMPLER2D_ARRAY_SHADOW,
-  I_SAMPLER2D,
-  I_SAMPLER3D,
-  I_SAMPLER_CUBE,
-  I_SAMPLER2D_ARRAY,
-  U_SAMPLER2D,
-  U_SAMPLER3D,
-  U_SAMPLER_CUBE,
-  U_SAMPLER2D_ARRAY,
-  STRUCT,
-  VOID,
-  TRUE,
-  FALSE,
-  PRECISION,
-  PRECISE,
-  HIGHP,
-  MEDIUMP,
-  LOWP,
-  INVARIANT,
-  SMOOTH,
-  FLAT,
-  NOPERSPECTIVE,
-
-  // galacean
-  GS_RenderQueueType,
-  GS_BlendState,
-  GS_DepthState,
-  GS_StencilState,
-  GS_RasterState,
-  GS_Tags,
-  GS_ReplacementTag,
-  GS_LightMode,
-  GS_PipelineStage,
-  GS_VertexShader,
-  GS_FragmentShader
-}
+import { EKeyword } from "./Keywords";
 
 export const KeywordTable = new Map<string, EKeyword>([
   ["attribute", EKeyword.ATTRIBUTE],
@@ -146,20 +63,7 @@ export const KeywordTable = new Map<string, EKeyword>([
   ["flat", EKeyword.FLAT],
   ["smooth", EKeyword.SMOOTH],
   ["noperspective", EKeyword.NOPERSPECTIVE],
-  ["centroid", EKeyword.CENTROID],
-
-  // galacean
-  ["RenderQueueType", EKeyword.GS_RenderQueueType],
-  ["BlendState", EKeyword.GS_BlendState],
-  ["DepthState", EKeyword.GS_DepthState],
-  ["StencilState", EKeyword.GS_StencilState],
-  ["RasterState", EKeyword.GS_RasterState],
-  ["Tags", EKeyword.GS_Tags],
-  ["ReplacementTag", EKeyword.GS_ReplacementTag],
-  ["LightMode", EKeyword.GS_LightMode],
-  ["pipelineStage", EKeyword.GS_PipelineStage],
-  ["VertexShader", EKeyword.GS_VertexShader],
-  ["FragmentShader", EKeyword.GS_FragmentShader]
+  ["centroid", EKeyword.CENTROID]
 ]);
 
 export enum ETokenType {
@@ -254,6 +158,8 @@ export enum ETokenType {
   /** ? */
   QUESTION,
 
+  NOT_WORD,
+
   /** ε */
   EPSILON = 1998,
   EOF = 1999
@@ -303,11 +209,6 @@ export type GalaceanDataType =
   | EKeyword.U_SAMPLER3D
   | EKeyword.U_SAMPLER_CUBE
   | EKeyword.U_SAMPLER2D_ARRAY
-  | EKeyword.GS_RenderQueueType
-  | EKeyword.GS_BlendState
-  | EKeyword.GS_DepthState
-  | EKeyword.GS_StencilState
-  | EKeyword.GS_RasterState
   | typeof TypeAny
   | string;
 

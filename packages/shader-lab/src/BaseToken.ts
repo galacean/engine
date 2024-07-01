@@ -1,20 +1,23 @@
 import { ETokenType } from "./common/types";
-import { IIndexRange } from "./preprocessor/IndexRange";
+import { IIndexRange, Position } from "./preprocessor/IndexRange";
 
-export class BaseToken<T = any> {
+export class BaseToken<T extends number = number> {
   readonly type: T;
   readonly lexeme: string;
-  readonly location?: IIndexRange;
+  readonly location: IIndexRange;
 
-  constructor(type: T, lexeme: string, start?: number);
+  constructor(type: T, lexeme: string, start?: Position);
   constructor(type: T, lexeme: string, location?: IIndexRange);
-  constructor(type: T, lexeme: string, arg?: IIndexRange | number) {
+  constructor(type: T, lexeme: string, arg?: IIndexRange | Position) {
     this.type = type;
     this.lexeme = lexeme;
-    if (arg instanceof Object) {
-      this.location = arg;
-    } else {
-      this.location = { start: arg, end: arg + lexeme.length };
+    if (arg) {
+      if ((<IIndexRange>arg).start != undefined) {
+        this.location = arg as IIndexRange;
+      } else {
+        // @ts-ignore
+        this.location = { start: arg, end: { ...arg, index: arg.index + lexeme.length } };
+      }
     }
   }
 }

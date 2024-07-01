@@ -1,6 +1,7 @@
+import { EKeyword } from "./common";
 import LocRange from "./common/LocRange";
 import Position from "./common/Position";
-import { EKeyword, ETokenType, TokenType } from "./common/types";
+import { ETokenType, TokenType } from "./common/types";
 
 export class BaseToken<T> {
   readonly type: T;

@@ -1,6 +1,6 @@
 import { IRenderState } from "../codeGen/types";
 import { ASTNode } from "./AST";
-import SymbolTable from "./SymbolTable";
+import SymbolTable from "../common/SymbolTable";
 
 export class ShaderData {
   settingRenderState?: ASTNode.GLRenderStateDeclarator;

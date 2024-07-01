@@ -1,6 +1,6 @@
 import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
-import SymbolTable, { ESymbolType, SymbolInfo } from "../parser/SymbolTable";
+import SymbolTable, { ESymbolType, SymbolInfo } from "../common/SymbolTable";
 import { GalaceanDataType, IParamInfo } from "../parser/types";
 import { EShaderStage } from "./constants";
 

@@ -2,7 +2,7 @@ import { CodeGenVisitor } from "./CodeGenVisitor";
 import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, SymbolInfo } from "../parser/SymbolTable";
+import { ESymbolType, SymbolInfo } from "../common/SymbolTable";
 import { EShaderStage } from "./constants";
 import { IPassCodeGenResult, IRenderState } from "./types";
 

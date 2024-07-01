@@ -5,7 +5,7 @@ import { TreeNode } from "./AST";
 import { SemanticError } from "../Error";
 // #endif
 import { ShaderData } from "./ShaderInfo";
-import SymbolTable from "./SymbolTable";
+import SymbolTable from "../common/SymbolTable";
 import { NodeChild } from "./types";
 import { IEngineType, IEngineFunction } from "../EngineType";
 
@@ -35,20 +35,21 @@ export default class SematicAnalyzer {
     return this._shaderData;
   }
 
-  private _scopeStack: SymbolTable[] = [new SymbolTable(this)];
+  private _scopeStack: SymbolTable[] = [new SymbolTable()];
   private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
   reset() {
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
-    this._scopeStack = [new SymbolTable(this)];
+    this._scopeStack = [new SymbolTable()];
     // #if _DEVELOPMENT
     this.errors.length = 0;
     // #endif
   }
 
   newScope() {
-    const scope = new SymbolTable(this);
+    // TODO: symbol table has no parent, use stack to trace parent.
+    const scope = new SymbolTable();
     scope.parent = this.scope;
     this._scopeStack.push(scope);
   }

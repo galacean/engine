@@ -3,3 +3,4 @@ import Position from "./Position";
 
 export { LocRange, Position };
 export * from "./types";
+export * from "./Keywords";

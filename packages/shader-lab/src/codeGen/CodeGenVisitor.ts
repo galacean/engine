@@ -3,7 +3,7 @@ import Token from "../Token";
 import { EKeyword } from "../common";
 import { Logger } from "../Logger";
 import { ASTNode, TreeNode } from "../parser/AST";
-import { ESymbolType, FnSymbol, VarSymbol } from "../parser/SymbolTable";
+import { ESymbolType, FnSymbol, VarSymbol } from "../common/SymbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";

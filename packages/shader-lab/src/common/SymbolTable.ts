@@ -1,7 +1,6 @@
 import { Logger } from "../Logger";
-import { ASTNode } from "./AST";
-import SematicAnalyzer from "./SemanticAnalyzer";
-import { GalaceanDataType, SymbolType, TypeAny } from "./types";
+import { ASTNode } from "../parser/AST";
+import { GalaceanDataType, SymbolType, TypeAny } from "../parser/types";
 
 export enum ESymbolType {
   VAR,
@@ -92,10 +91,10 @@ export default class SymbolTable {
       sm.symType === ESymbolType.FN &&
       entry.findIndex((item) => item.symType === ESymbolType.FN && item.symDataType === sm.symDataType) !== -1
     ) {
-      this.logger.log(Logger.RED, "function symbol exist:", lexeme);
+      this.logger.error("function symbol exist:", lexeme);
       return;
     } else if (entry.findIndex((item) => item.symType === sm.symType) !== -1) {
-      this.logger.log(Logger.RED, "symbol exist:", lexeme);
+      this.logger.error("symbol exist:", lexeme);
       return;
     }
     entry.push(sm);

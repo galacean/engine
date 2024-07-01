@@ -1,22 +1,10 @@
 // For cft conflict test, used by bison
 
 %token id
-%token render_queue_type
-%token pipeline_stage
-%token blend_state
-%token depth_state
-%token stencil_state
-%token raster_state
-%token tags
-%token ReplacementTag
-%token LightMode
 %token INT_CONSTANT
 %token FLOAT_CONSTANT
 %token true
 %token false
-
-%token VertexShader
-%token FragmentShader
 
 %token void
 %token float
@@ -68,123 +56,22 @@
 
 %token CONTINUE BREAK RETURN DISCARD
 
-
-%token string_const 
-
 %%
 gs_shader_program:
-    gs_global_declaration
-    | gs_shader_program gs_global_declaration
+    global_declaration
+    | gs_shader_program global_declaration
     ;
 
-gs_global_declaration:
-    gs_tag_specifier
-    | gs_main_shader_assignment
-    | precision_specifier
-    | gs_variable_declaration
-    | gs_render_queue_assignment
-    | gs_render_state_assignment
+global_declaration:
+    precision_specifier
+    | variable_declaration
     | struct_specifier
     | function_definition
-    | gs_render_state_declaration
     ;
 
-gs_tag_specifier:
-    tags '{' gs_tag_assignment_list  '}';
-
-gs_tag_assignment_list:
-    /** empty */
-    | gs_tag_assignment
-    | gs_tag_assignment_list ',' gs_tag_assignment
-    ;
-
-gs_tag_assignment:
-    gs_tag_id '=' gs_tag_value
-    ;
-
-gs_tag_id:
-    /** TODO:  */
-    ReplacementTag
-    | LightMode
-    | pipeline_stage
-    ;
-
-// TODO: 
-gs_tag_value:
-    string_const
-    | INT_CONSTANT
-    | true
-    | false
-    ;
-
-gs_render_state_declarator:
-    blend_state
-    | depth_state
-    | stencil_state
-    | raster_state
-    ;
-
-gs_render_state_assignment:
-    gs_render_state_declarator '=' id ';'
-    | gs_render_state_declarator '{' gs_render_state_prop_list '}'
-    ;
-
-gs_render_state_declaration:
-    gs_render_state_declarator id '{' gs_render_state_prop_list '}'
-    ;
-
-gs_render_state_prop_list:
-    gs_render_state_prop_assignment
-    | gs_render_state_prop_assignment gs_render_state_prop_list
-    ;
-
-gs_render_state_prop_assignment:
-    gs_render_state_prop '=' id ';'
-    gs_render_state_prop '=' true ';'
-    gs_render_state_prop '=' false ';'
-    gs_render_state_prop '=' INT_CONSTANT ';'
-    gs_render_state_prop '=' FLOAT_CONSTANT ';'
-    gs_render_state_prop '=' id '.' id ';'
-    gs_render_state_prop '=' gs_engine_type_init ';'
-    ;
-
-gs_engine_type:
-    id
-    ;
-
-gs_engine_type_init:
-    gs_engine_type '(' gs_engine_type_init_param_list ')'
-    ;
-
-gs_engine_type_init_param_list:
-    INT_CONSTANT
-    | FLOAT_CONSTANT
-    | gs_engine_type_init_param_list ',' INT_CONSTANT
-    | gs_engine_type_init_param_list ',' FLOAT_CONSTANT
-    ;
-
-gs_render_state_prop:
-    id '[' INT_CONSTANT ']'
-    | id
-    ;
-
-gs_main_shader_entry:
-    VertexShader
-    | FragmentShader
-    ;
-
-gs_main_shader_assignment:
-    gs_main_shader_entry '=' id ';'
-    ;
-
-gs_render_queue_assignment:
-    render_queue_type '=' id ';'
-    ;
-
-gs_variable_declaration:
+variable_declaration:
     fully_specified_type id ';'
     | fully_specified_type id array_specifier ';'
-    | render_queue_type id ';'
     ;
 
 variable_identifier:

@@ -7,7 +7,7 @@ import Token from "../Token";
 import { EKeyword, ETokenType, TokenType, LocRange } from "../common";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./SymbolTable";
+import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "../common/SymbolTable";
 import { ParserUtils } from "../Utils";
 import {
   ASTNodeConstructor,

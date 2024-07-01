@@ -1,6 +1,7 @@
 import BaseError from "./BaseError";
 import { BaseToken } from "./BaseToken";
-import { IIndexRange } from "./preprocessor/IndexRange";
+import { ETokenType } from "./common";
+import { IIndexRange, Position } from "./preprocessor/IndexRange";
 
 export default class BaseScanner extends BaseError {
   protected _current = 0;
@@ -8,14 +9,33 @@ export default class BaseScanner extends BaseError {
     return this._current;
   }
 
+  // #if _DEVELOPMENT
+  private _column = 0;
+
+  private _line = 0;
+  // #endif
+
   protected _source: string;
   get source() {
     return this._source;
   }
 
-  constructor(source: string, name?: string) {
+  get curPosition(): Position {
+    return {
+      index: this._current,
+      // #if _DEVELOPMENT
+      column: this._column,
+      line: this._line
+      // #endif
+    };
+  }
+
+  protected readonly _keywordsMap: Map<string, number>;
+
+  constructor(source: string, name?: string, kws: Map<string, number> = new Map()) {
     super(name ?? "BaseScanner");
     this._source = source;
+    this._keywordsMap = kws;
   }
 
   isEnd() {
@@ -26,12 +46,23 @@ export default class BaseScanner extends BaseError {
     return this._source[this._current];
   }
 
-  protected advance(count = 1) {
-    this._current = Math.min(this._source.length, this._current + count);
+  advance(count = 1) {
+    for (let i = 0; i < count; i++) {
+      this._advance();
+    }
+    // this._current = Math.min(this._source.length, this._current + count);
   }
 
-  protected _advance() {
+  _advance() {
     if (this.isEnd()) return;
+    // #if _DEVELOPMENT
+    if (this.curChar() === "\n") {
+      this._line += 1;
+      this._column = 0;
+    } else {
+      this._column += 1;
+    }
+    // #endif
     this._current++;
   }
 
@@ -45,20 +76,20 @@ export default class BaseScanner extends BaseError {
   skipCommentsAndSpace(): IIndexRange | undefined {
     this.skipSpace();
     if (this.peek(2) === "//") {
-      const start = this._current;
+      const start = this.curPosition;
       this.advance(2);
       // single line comments
       while (this.curChar() !== "\n") this._advance();
       this.skipCommentsAndSpace();
-      return { start, end: this._current };
+      return { start, end: this.curPosition };
     } else if (this.peek(2) === "/*") {
-      const start = this._current;
+      const start = this.curPosition;
       this.advance(2);
       //  multi-line comments
       while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
       this.advance(2);
       this.skipCommentsAndSpace();
-      return { start, end: this._current };
+      return { start, end: this.curPosition };
     }
   }
 
@@ -70,7 +101,7 @@ export default class BaseScanner extends BaseError {
     this.skipCommentsAndSpace();
     const peek = this.peek(text.length);
     if (peek !== text) {
-      this.throw(this._current, `Expected ${text}, got ${peek}.`);
+      this.throw(this._current, `Expect ${text}, got ${peek}.`);
     }
     this.advance(text.length);
   }
@@ -99,5 +130,21 @@ export default class BaseScanner extends BaseError {
     }
     this.advance(right.length);
     return this._source.substring(start, this._current - right.length);
+  }
+
+  scanToken(splitCharRegex = /\w/) {
+    this.skipCommentsAndSpace();
+    const start = this.curPosition;
+    while (splitCharRegex.test(this.curChar()) && !this.isEnd()) this._advance();
+    const end = this.curPosition;
+
+    if (start.index === end.index) {
+      this._advance();
+      return new BaseToken(ETokenType.NOT_WORD, this._source[start.index], start);
+    }
+
+    const lexeme = this._source.substring(start.index, end.index);
+    const tokenType = this._keywordsMap.get(lexeme) ?? ETokenType.ID;
+    return new BaseToken(tokenType, lexeme, { start, end });
   }
 }

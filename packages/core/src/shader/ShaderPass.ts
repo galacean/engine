@@ -115,6 +115,7 @@ export class ShaderPass extends ShaderPart {
    * Shader Lab compilation
    */
   _compile(engine: Engine, macroCollection: ShaderMacroCollection) {
+    const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const macroNameList = [];
     ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
@@ -123,6 +124,12 @@ export class ShaderPass extends ShaderPart {
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
       macroNameList.push("HAS_DERIVATIVES");
     }
+    if (isWebGL2) {
+      macroNameList.push("GRAPHICS_API_WEBGL2");
+    } else {
+      macroNameList.push("GRAPHICS_API_WEBGL1");
+    }
+    console.log("compile:", macroNameList);
 
     const { vertexSource, fragmentSource, tags, renderStates } = Shader._shaderLab.parseShaderPass(
       this._shaderLabSource,

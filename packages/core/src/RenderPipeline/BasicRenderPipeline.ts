@@ -21,7 +21,7 @@ import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
-import { ShaderMacroCollection } from "..";
+import { ShaderMacro, ShaderMacroCollection } from "..";
 
 /**
  * Basic render pipeline.
@@ -203,7 +203,6 @@ export class BasicRenderPipeline {
    * @param renderElement - Render element
    */
   pushRenderElement(context: RenderContext, renderElement: RenderElement): void {
-    // console.log("push render element");
     renderElement.renderQueueFlags = RenderQueueFlags.None;
     const subRenderElements = renderElement.subRenderElements;
     for (let i = 0, n = subRenderElements.length; i < n; ++i) {
@@ -212,7 +211,7 @@ export class BasicRenderPipeline {
       const { renderStates } = material;
       const materialSubShader = material.shader.subShaders[0];
       const replacementShader = context.replacementShader;
-      // @remark: in shaderlab, tags are compiled to Pass, not subShader.
+      // @remark: tag of subShader need to be parsed here.
       if (replacementShader) {
         const replacementSubShaders = replacementShader.subShaders;
         const { replacementTag } = context;
@@ -246,6 +245,9 @@ export class BasicRenderPipeline {
       material.shaderData._macroCollection,
       Shader._compileMacros
     );
+    const list = [];
+    ShaderMacro._getNamesByMacros(Shader._compileMacros, list);
+    // console.log("111", list);
 
     for (const pass of shaderPasses) {
       if (pass._isCompiled()) continue;

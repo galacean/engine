@@ -14,6 +14,6 @@ export default class BaseError {
   }
 
   protected error(pos: number | IIndexRange, ...msgs: any[]) {
-    this.logger.log(Logger.RED, pos.toString(), ...msgs);
+    this.logger.error(pos.toString(), ...msgs);
   }
 }
