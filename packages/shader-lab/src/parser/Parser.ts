@@ -6,7 +6,7 @@ import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
 import { ASTNode, TreeNode } from "./AST";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { TraceStackItem } from "./types";
-import { addTranslationRule, createGrammar } from "../lalr/cfg";
+import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "../Logger";
