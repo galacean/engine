@@ -28,7 +28,7 @@ declare module "@galacean/engine-core" {
       /** Meshopt options. If set this option and workCount is great than 0, workers will be created. */
       meshOpt?: {
         /**
-         * Worker count for transcoder, default is 4.
+         * Worker count for transcoder.
          * @defaultValue 4
          */
         workerCount: number;
