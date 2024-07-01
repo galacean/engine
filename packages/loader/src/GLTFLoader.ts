@@ -19,8 +19,8 @@ export class GLTFLoader extends Loader<GLTFResource> {
    * @remarks If use loader after releasing, we should release again.
    */
   static release(): void {
-    getMeshoptDecoder().then((meshoptDecoder) => {
-      meshoptDecoder.release();
+    getMeshoptDecoder(false).then((meshoptDecoder) => {
+      meshoptDecoder?.release();
     });
   }
 
