@@ -27,12 +27,15 @@ export class MapRange {
     if (block.sourceMap) {
       if (block.sourceFile !== "__main__") return block.sourceMap.map(generatedIdx - this.generatedLoc.start);
       else if (rangeInBlock) {
-        return { sourceFile: block.sourceFile, index: (block.rangeInFile?.start ?? 0) + rangeInBlock.start };
+        return {
+          sourceFile: block.sourceFile,
+          index: (block.rangeInFile?.start.index ?? 0) + rangeInBlock.start.index
+        };
       }
     }
 
     return {
-      index: generatedIdx - this.generatedLoc.start + rangeInBlock.start + (block.rangeInFile?.start ?? 0),
+      index: generatedIdx - this.generatedLoc.start + rangeInBlock.start.index + (block.rangeInFile?.start.index ?? 0),
       sourceFile: this.sourceLoc.block.sourceFile
     };
   }
@@ -67,7 +70,7 @@ export default class PpSourceMap {
     }
     if (!curRange) return { sourceFile: "__main__", index };
     return {
-      index: index - curRange.generatedLoc.end + curRange.sourceLoc.rangeInBlock.end,
+      index: index - curRange.generatedLoc.end + curRange.sourceLoc.rangeInBlock.end.index,
       sourceFile: curRange.sourceLoc.block.sourceFile
     };
   }

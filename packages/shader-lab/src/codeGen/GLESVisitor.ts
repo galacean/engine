@@ -13,22 +13,25 @@ const defaultPrecision = `precision mediump float;`;
 export abstract class GLESVisitor extends CodeGenVisitor {
   abstract versionText: string;
 
-  override visitShaderProgram(node: ASTNode.GLShaderProgram): IPassCodeGenResult {
-    const { vertexMain, fragmentMain } = node.shaderData;
+  override visitShaderProgram(
+    node: ASTNode.GLShaderProgram,
+    vertexEntry: string,
+    fragmentEntry: string
+  ): IPassCodeGenResult {
     this.context._passSymbolTable = node.shaderData.symbolTable;
 
     return {
-      vertexSource: this.vertexMain(vertexMain, node.shaderData),
-      fragmentSource: this.fragmentMain(fragmentMain, node.shaderData),
-      renderStates: node.shaderData.renderStates,
-      tags: node.shaderData.tags
+      vertexSource: this.vertexMain(vertexEntry, node.shaderData),
+      fragmentSource: this.fragmentMain(fragmentEntry, node.shaderData)
     };
   }
 
-  vertexMain(fnNode: ASTNode.FunctionDefinition, data: ShaderData): string {
-    if (!fnNode) return "";
+  vertexMain(entry: string, data: ShaderData): string {
     const { symbolTable } = data;
+    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
+    const fnNode = fnSymbol.astNode;
     this.context.stage = EShaderStage.VERTEX;
 
     const returnType = fnNode.protoType.returnType;
@@ -78,8 +81,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private fragmentMain(fnNode: ASTNode.FunctionDefinition, data: ShaderData): string {
-    if (!fnNode) return "";
+  private fragmentMain(entry: string, data: ShaderData): string {
+    const { symbolTable } = data;
+    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
+    const fnNode = fnSymbol.astNode;
+
     this.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
     const globalText = this.getGlobalText(data);

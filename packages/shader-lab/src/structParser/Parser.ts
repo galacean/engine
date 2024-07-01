@@ -427,8 +427,10 @@ export default class ShaderStructParser extends BaseError {
             this.throw(scanner.current, "reassign main entry");
           }
           // #endif
-          ret[word.lexeme] = entry.lexeme;
+          const key = word.type === EKeyword.GS_VertexShader ? "vertexEntry" : "fragmentEntry";
+          ret[key] = entry.lexeme;
           scanner.scanText(";");
+          start = scanner.curPosition;
           break;
 
         case ETokenType.NOT_WORD:

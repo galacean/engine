@@ -14,7 +14,13 @@ export interface IShaderLab {
   /**
    * Parse shader pass source code.
    */
-  parseShaderPass(shaderPassSource: string, macros: string[], backend: EBackend): IShaderInfo;
+  parseShaderPass(
+    shaderPassSource: string,
+    vertexEntry: string,
+    fragmentEntry: string,
+    macros: string[],
+    backend: EBackend
+  ): IShaderInfo;
 
   /**
    * Add new include shader slice.

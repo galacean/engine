@@ -1,8 +1,8 @@
 export interface Position {
   index: number;
   // #if _DEVELOPMENT
-  line: number;
-  column: number;
+  line?: number;
+  column?: number;
   // #endif
 }
 

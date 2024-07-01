@@ -17,7 +17,7 @@ export class PpUtils {
     let generatedIdx = 0;
 
     for (const seg of segments) {
-      const originSlice = source.slice(startIdx, seg.rangeInBlock.start);
+      const originSlice = source.slice(startIdx, seg.rangeInBlock.start.index);
       ret.push(originSlice, seg.replace);
 
       const generatedIdxEnd = generatedIdx + originSlice.length + seg.replace.length;
@@ -30,7 +30,7 @@ export class PpUtils {
       sourceMap?.addMapRange(mapRange);
       // #endif
 
-      startIdx = seg.rangeInBlock.end;
+      startIdx = seg.rangeInBlock.end.index;
       generatedIdx = generatedIdxEnd;
     }
     ret.push(source.slice(startIdx));

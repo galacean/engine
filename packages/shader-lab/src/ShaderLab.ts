@@ -46,7 +46,13 @@ export class ShaderLab implements IShaderLab {
     ShaderLab._includeMap = includeMap;
   }
 
-  parseShaderPass(source: string, macros: string[] = [], backend = EBackend.GLES300) {
+  parseShaderPass(
+    source: string,
+    vertexEntry: string,
+    fragmentEntry: string,
+    macros: string[] = [],
+    backend = EBackend.GLES300
+  ) {
     const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
     for (const macro of macros) {
       const info = macro.split(" ", 2);
@@ -60,7 +66,7 @@ export class ShaderLab implements IShaderLab {
     const tokens = lexer.tokenize();
     const program = this._parser.parse(tokens);
     const codeGen = backend === EBackend.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
-    return codeGen.visitShaderProgram(program);
+    return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }
 
   parseShaderStruct(shaderSource: string): ShaderStruct {
@@ -81,8 +87,15 @@ export class ShaderLab implements IShaderLab {
     const passResult = [] as any;
     for (const subShader of structInfo.subShaders) {
       for (const pass of subShader.passes) {
-        if (!pass.content) continue;
-        const passInfo = this.parseShaderPass(pass.content, macros, backend) as any;
+        if (!pass.contents) continue;
+        console.log(pass.contents);
+        const passInfo = this.parseShaderPass(
+          pass.contents,
+          pass.vertexEntry,
+          pass.fragmentEntry,
+          macros,
+          backend
+        ) as any;
         passInfo.name = pass.name;
         passResult.push(passInfo);
       }

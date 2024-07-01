@@ -10,11 +10,11 @@ export enum ESymbolType {
 
 type SymbolAstNode =
   | ASTNode.Initializer
-  | ASTNode.GLRenderStateDeclaration
   | ASTNode.StructSpecifier
   | ASTNode.FunctionDefinition
-  | ASTNode.GLVariableDeclaration
-  | ASTNode.ParameterDeclarator;
+  | ASTNode.ParameterDeclarator
+  | ASTNode.InitDeclaratorList
+  | ASTNode.VariableDeclaration;
 
 export abstract class SymbolInfo {
   readonly symType: ESymbolType;
@@ -35,9 +35,9 @@ export class VarSymbol extends SymbolInfo {
   readonly isGlobalVariable: boolean;
   declare astNode:
     | ASTNode.Initializer
-    | ASTNode.GLRenderStateDeclaration
-    | ASTNode.GLVariableDeclaration
-    | ASTNode.ParameterDeclarator;
+    | ASTNode.ParameterDeclarator
+    | ASTNode.InitDeclaratorList
+    | ASTNode.VariableDeclaration;
 
   constructor(
     lexeme: string,
@@ -45,9 +45,9 @@ export class VarSymbol extends SymbolInfo {
     isGlobalVariable: boolean,
     initAst:
       | ASTNode.Initializer
-      | ASTNode.GLRenderStateDeclaration
-      | ASTNode.GLVariableDeclaration
       | ASTNode.ParameterDeclarator
+      | ASTNode.InitDeclaratorList
+      | ASTNode.VariableDeclaration
   ) {
     super(lexeme, ESymbolType.VAR, initAst, dataType);
     this.isGlobalVariable = isGlobalVariable;

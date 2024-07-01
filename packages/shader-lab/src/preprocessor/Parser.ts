@@ -99,7 +99,7 @@ export default class PpParser extends PpError {
       // #if _DEVELOPMENT
       block,
       // #endif
-      rangeInBlock: { start: start.index, end: end.index },
+      rangeInBlock: { start, end },
       replace: expanded.content
     });
   }
@@ -128,7 +128,7 @@ export default class PpParser extends PpError {
         // #if _DEVELOPMENT
         block,
         // #endif
-        rangeInBlock: { start: bodyChunk.location.start.index, end: end.index },
+        rangeInBlock: { start: bodyChunk.location.start, end },
         replace: expanded.content
       });
 
@@ -158,7 +158,7 @@ export default class PpParser extends PpError {
         // #if _DEVELOPMENT
         block,
         // #endif
-        rangeInBlock: { start: start, end: scanner.current },
+        rangeInBlock: { start: { index: start }, end: scanner.getPosition() },
         replace: expanded.content
       });
     } else if (directive === EPpKeyword.elif) {
@@ -174,7 +174,7 @@ export default class PpParser extends PpError {
           // #if _DEVELOPMENT
           block,
           // #endif
-          rangeInBlock: { start, end },
+          rangeInBlock: { start: { index: start }, end: { index: end } },
           replace: expanded.content
         });
       } else {
@@ -185,7 +185,7 @@ export default class PpParser extends PpError {
           // #if _DEVELOPMENT
           block,
           // #endif
-          rangeInBlock: { start: start, end: scanner.current },
+          rangeInBlock: { start: { index: start }, end: { index: scanner.current } },
           replace: ""
         });
         this.parseMacroBranch(<any>nextDirective.type, scanner);
@@ -440,7 +440,7 @@ export default class PpParser extends PpError {
     if (typeof scannerOrFile === "string") {
       scanner = new PpScanner(chunk, scannerOrFile);
     } else {
-      scanner = new PpScanner(chunk, scannerOrFile.file, { start: loc.start.index, end: loc.end.index });
+      scanner = new PpScanner(chunk, scannerOrFile.file, loc);
     }
     const ret = this.parse(scanner);
     this.expandSegmentsStack.pop();
@@ -472,7 +472,7 @@ export default class PpParser extends PpError {
         // #if _DEVELOPMENT
         block: blockInfo,
         // #endif
-        rangeInBlock: { start: bodyChunk.location.start.index, end: end.index },
+        rangeInBlock: { start: bodyChunk.location.start, end },
         replace: expanded.content
       });
       return;
@@ -491,7 +491,7 @@ export default class PpParser extends PpError {
       // #if _DEVELOPMENT
       block,
       // #endif
-      rangeInBlock: { start, end: scanner.current },
+      rangeInBlock: { start: { index: start }, end: { index: scanner.current } },
       replace: ""
     });
   }
@@ -513,7 +513,7 @@ export default class PpParser extends PpError {
         // #if _DEVELOPMENT
         block,
         // #endif
-        rangeInBlock: { start: bodyChunk.location.start.index, end: end.index },
+        rangeInBlock: { start: bodyChunk.location.start, end },
         replace: expanded.content
       });
       return;
@@ -549,7 +549,7 @@ export default class PpParser extends PpError {
       // #if _DEVELOPMENT
       block,
       // #endif
-      rangeInBlock: { start: start.index, end: scanner.current },
+      rangeInBlock: { start, end: { index: scanner.current } },
       replace: ""
     });
   }
@@ -565,7 +565,7 @@ export default class PpParser extends PpError {
       // #if _DEVELOPMENT
       block,
       // #endif
-      rangeInBlock: { start, end: scanner.current },
+      rangeInBlock: { start: { index: start }, end: { index: scanner.current } },
       replace: ""
     });
     this.definedMacros.delete(macro.lexeme);
@@ -583,7 +583,7 @@ export default class PpParser extends PpError {
       const start = scanner.current - token.length;
       scanner.scanPairedBlock();
       const end = scanner.current;
-      this.expandSegments.push({ rangeInBlock: { start, end }, replace: "" });
+      this.expandSegments.push({ rangeInBlock: { start: { index: start }, end: { index: end } }, replace: "" });
     }
   }
 
@@ -623,7 +623,7 @@ export default class PpParser extends PpError {
           // #if _DEVELOPMENT
           block,
           // #endif
-          rangeInBlock: { start: token.location!.start.index, end: scanner.current },
+          rangeInBlock: { start: token.location!.start, end: { index: scanner.current } },
           replace: expanded.content
         });
       } else {
@@ -635,7 +635,7 @@ export default class PpParser extends PpError {
           // #if _DEVELOPMENT
           block,
           // #endif
-          rangeInBlock: { start: token.location.start.index, end: token.location.end.index },
+          rangeInBlock: { start: token.location.start, end: { index: token.location.end.index } },
           replace: expanded.content
         });
       }

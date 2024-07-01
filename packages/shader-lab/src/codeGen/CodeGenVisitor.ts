@@ -7,13 +7,17 @@ import { ESymbolType, FnSymbol, VarSymbol } from "../common/SymbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
-import { IRenderState, IPassCodeGenResult } from "./types";
+import { IPassCodeGenResult } from "./types";
 
 export abstract class CodeGenVisitor {
   logger = new Logger("CodeGen");
   context = new VisitorContext();
 
-  abstract visitShaderProgram(node: ASTNode.GLShaderProgram, renderStates: IRenderState): IPassCodeGenResult;
+  abstract visitShaderProgram(
+    node: ASTNode.GLShaderProgram,
+    vertexEntry: string,
+    fragmentEntry: string
+  ): IPassCodeGenResult;
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -102,7 +106,7 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  visitGlobalVariableDeclaration(node: ASTNode.GLVariableDeclaration): string {
+  visitGlobalVariableDeclaration(node: ASTNode.VariableDeclaration): string {
     const fullType = node.children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       this.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
