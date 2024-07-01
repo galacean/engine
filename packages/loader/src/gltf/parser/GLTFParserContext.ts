@@ -182,7 +182,12 @@ export class GLTFParserContext {
           }
         } else {
           // @ts-ignore
-          this.resourceManager._onSubAssetSuccess<T>(url, `${glTFResourceKey}[${index}]`, item);
+          this.resourceManager._onSubAssetSuccess<T>(
+            url,
+            `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
+            item
+          );
+
           if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
             // @ts-ignore
             this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
