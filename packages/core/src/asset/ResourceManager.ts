@@ -383,23 +383,13 @@ export class ResourceManager {
 
     // Check sub asset
     if (queryPath) {
-      const subPromiseCallback = this._createSubAssetPromiseCallback<T>(assetBaseURL, queryPath);
-
-      loadingPromises[assetURL] = subPromiseCallback;
-      subPromiseCallback.then(
-        () => {
-          delete loadingPromises[assetURL];
-        },
-        () => delete loadingPromises[assetURL]
-      );
-
       // Check whether load main asset
       const mainPromise = loadingPromises[assetBaseURL] || this._loadMainAsset(loader, item, assetBaseURL);
       mainPromise.catch((e) => {
         this._onSubAssetFail(assetBaseURL, queryPath, e);
       });
 
-      return subPromiseCallback;
+      return this._createSubAssetPromiseCallback<T>(assetBaseURL, assetURL, queryPath);
     }
 
     return this._loadMainAsset(loader, item, assetBaseURL);
@@ -428,23 +418,44 @@ export class ResourceManager {
     return promise;
   }
 
-  private _createSubAssetPromiseCallback<T>(assetBaseURL: string, assetSubPath: string): AssetPromise<T> {
-    return new AssetPromise<T>((resolve, reject) => {
-      const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
-      if (subPromiseCallback?.resolve) {
+  private _createSubAssetPromiseCallback<T>(
+    assetBaseURL: string,
+    assetURL: string,
+    assetSubPath: string
+  ): AssetPromise<T> {
+    const loadingPromises = this._loadingPromises;
+    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    const resolvedValue = subPromiseCallback?.resolve;
+    const rejectedValue = subPromiseCallback?.reject;
+
+    const promise = new AssetPromise<T>((resolve, reject) => {
+      if (resolvedValue) {
         // Already resolved
-        resolve(subPromiseCallback.resolve);
-      } else if (subPromiseCallback?.reject) {
+        resolve(resolvedValue);
+      } else if (rejectedValue) {
         // Already rejected
-        reject(subPromiseCallback.reject);
+        reject(rejectedValue);
       } else {
         // Pending
+        loadingPromises[assetURL] = promise;
+
         (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
           resolve,
           reject
         };
       }
     });
+
+    if (!resolvedValue && !rejectedValue) {
+      promise.then(
+        () => {
+          delete loadingPromises[assetURL];
+        },
+        () => delete loadingPromises[assetURL]
+      );
+    }
+
+    return promise;
   }
 
   private _gc(forceDestroy: boolean): void {
