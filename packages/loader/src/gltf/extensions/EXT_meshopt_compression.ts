@@ -23,7 +23,17 @@ class EXT_meshopt_compression extends GLTFExtensionParser {
 
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
-    /** glTF loader options. */
+    glTFLoader?: {
+      /** Meshopt options. If set this option and workCount is great than 0, workers will be created. */
+      meshOpt?: {
+        /**
+         * Worker count for transcoder.
+         * @defaultValue 4
+         */
+        workerCount?: number;
+      };
+    };
+    /** @deprecated glTF loader options. */
     glTF?: {
       /** Meshopt options. If set this option and workCount is great than 0, workers will be created. */
       meshOpt?: {
@@ -31,7 +41,7 @@ declare module "@galacean/engine-core" {
          * Worker count for transcoder.
          * @defaultValue 4
          */
-        workerCount: number;
+        workerCount?: number;
       };
     };
   }

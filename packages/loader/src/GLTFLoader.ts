@@ -25,7 +25,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
   }
 
   override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
-    const meshOptOptions = configuration.glTF?.meshOpt;
+    const meshOptOptions = configuration.glTFLoader?.meshOpt ?? configuration.glTF?.meshOpt;
     if (meshOptOptions) {
       return getMeshoptDecoder().then((meshoptDecoder) => {
         meshoptDecoder.useWorkers(meshOptOptions.workerCount);

@@ -36,7 +36,7 @@ export function getMeshoptDecoder(ensure: boolean = true) {
 
   let instance;
 
-  ready = WebAssembly.instantiate(unpack(wasm), {})
+  ready = WebAssembly.instantiate(unpack(wasm))
     .then(function (result) {
       instance = result.instance;
       instance.exports.__wasm_call_ctors();
