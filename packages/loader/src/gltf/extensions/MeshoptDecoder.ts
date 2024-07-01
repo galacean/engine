@@ -12,7 +12,7 @@ interface WorkerItem {
 
 let ready: Promise<{
   workerCount: number;
-  useWorkers: () => void;
+  useWorkers: (count?: number) => void;
   decodeGltfBuffer: (count, stride, source, mode, filter) => Promise<Uint8Array>;
   release: () => void;
 }>;
@@ -44,7 +44,7 @@ export function getMeshoptDecoder(ensure: boolean = true) {
     .then(() => ({
       workerCount: 4,
       ready: ready,
-      useWorkers: function (workerCount?: boolean) {
+      useWorkers: function (workerCount?: number) {
         this.workerCount = workerCount ?? this.workerCount;
         initWorkers(this.workerCount);
       },

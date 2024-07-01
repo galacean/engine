@@ -28,8 +28,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const meshOptOptions = configuration.glTF?.meshOpt;
     if (meshOptOptions) {
       return getMeshoptDecoder().then((meshoptDecoder) => {
-        meshoptDecoder.workerCount = meshOptOptions.workerCount;
-        meshoptDecoder.useWorkers();
+        meshoptDecoder.useWorkers(meshOptOptions.workerCount);
       });
     }
     return Promise.resolve();
