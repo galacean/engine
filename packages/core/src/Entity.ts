@@ -203,6 +203,7 @@ export class Entity extends EngineObject {
   /**
    * Add component based on the component type.
    * @param type - The type of the component
+   * @param args - The arguments of the component
    * @returns	The component which has been added
    */
   addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
