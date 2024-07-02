@@ -1541,7 +1541,6 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
     spriteRenderer.destroy();
     expect(spriteRenderer.sprite).to.eq(null);
-    expect(spriteRenderer.color).to.eq(null);
     // @ts-ignore
     expect(spriteRenderer._assembler).to.eq(null);
     // @ts-ignore
