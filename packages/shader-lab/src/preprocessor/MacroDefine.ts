@@ -1,12 +1,12 @@
-import LocRange from "../common/LocRange";
+import { BaseToken } from "../BaseToken";
+import { IIndexRange } from "../common";
 import { PpError } from "./PpError";
-import PpToken from "./PpToken";
 
 export class MacroDefine extends PpError {
-  readonly location?: LocRange;
-  readonly macro: PpToken;
-  readonly args?: PpToken[];
-  readonly body?: PpToken;
+  readonly location?: IIndexRange;
+  readonly macro: BaseToken;
+  readonly args?: BaseToken[];
+  readonly body?: BaseToken;
 
   get isFunction() {
     return !!this.args?.length;
@@ -16,7 +16,7 @@ export class MacroDefine extends PpError {
     return this.macro.lexeme;
   }
 
-  constructor(macro: PpToken, body?: PpToken, loc?: LocRange, args?: PpToken[]) {
+  constructor(macro: BaseToken, body?: BaseToken, loc?: IIndexRange, args?: BaseToken[]) {
     super();
     this.location = loc;
     this.macro = macro;

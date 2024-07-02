@@ -1,4 +1,4 @@
-import { IIndexRange } from "../IndexRange";
+import { IIndexRange } from "../../common/IndexRange";
 
 // #if _DEVELOPMENT
 export class BlockInfo {

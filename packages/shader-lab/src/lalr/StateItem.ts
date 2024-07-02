@@ -63,6 +63,7 @@ export default class StateItem {
     return new StateItem(this.production, this.position + 1, this.lookaheadSet);
   }
 
+  // #if _DEVELOPMENT
   toString() {
     const coreItem = this.production.derivation.map((item) => GrammarUtils.toString(item));
     coreItem[this.position] = "." + (coreItem[this.position] ?? "");
@@ -71,4 +72,5 @@ export default class StateItem {
       .map((item) => GrammarUtils.toString(item))
       .join("/")}`;
   }
+  // #endif
 }

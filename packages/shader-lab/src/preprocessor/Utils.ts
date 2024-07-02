@@ -1,4 +1,4 @@
-import LocRange from "../common/LocRange";
+import { IIndexRange } from "../common";
 import { ExpandSegment } from "./Parser";
 // #if _DEVELOPMENT
 import PpSourceMap, { MapRange } from "./sourceMap";
@@ -39,7 +39,7 @@ export class PpUtils {
 
   static assembleSegments(
     segments: {
-      range: LocRange;
+      range: IIndexRange;
       replace: string;
     }[],
     source: string

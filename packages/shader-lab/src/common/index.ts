@@ -1,6 +1,6 @@
-import LocRange from "./LocRange";
-import Position from "./Position";
+import { IIndexRange } from "./IndexRange";
+import { Position } from "./Position";
 
-export { LocRange, Position };
+export { IIndexRange, Position };
 export * from "./types";
 export * from "./Keywords";

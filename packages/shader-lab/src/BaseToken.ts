@@ -1,5 +1,5 @@
 import { ETokenType } from "./common/types";
-import { IIndexRange, Position } from "./preprocessor/IndexRange";
+import { IIndexRange, Position } from "./common";
 
 export class BaseToken<T extends number = number> {
   readonly type: T;
@@ -12,10 +12,9 @@ export class BaseToken<T extends number = number> {
     this.type = type;
     this.lexeme = lexeme;
     if (arg) {
-      if ((<IIndexRange>arg).start != undefined) {
+      if (arg instanceof IIndexRange) {
         this.location = arg as IIndexRange;
       } else {
-        // @ts-ignore
         this.location = { start: arg, end: { ...arg, index: arg.index + lexeme.length } };
       }
     }

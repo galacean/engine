@@ -1,5 +1,5 @@
 import { Logger } from "../Logger";
-import { LocRange } from "../common";
+import { IIndexRange } from "../common";
 import { TreeNode } from "./AST";
 // #if _DEVELOPMENT
 import { SemanticError } from "../Error";
@@ -67,7 +67,7 @@ export default class SematicAnalyzer {
   }
 
   // #if _DEVELOPMENT
-  error(loc: LocRange, ...param: any[]) {
+  error(loc: IIndexRange, ...param: any[]) {
     this.logger.errorLoc(loc, ...param);
 
     const err = new SemanticError(param.join(""), loc);

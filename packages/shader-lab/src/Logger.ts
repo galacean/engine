@@ -1,4 +1,4 @@
-import { LocRange } from "./common";
+import { IIndexRange } from "./common";
 
 export enum LoggerLevel {
   log = 0,
@@ -52,7 +52,7 @@ export class Logger {
     this._log(Logger.RED, ...param);
   }
 
-  errorLoc(loc: LocRange, ...param: any[]) {
+  errorLoc(loc: IIndexRange, ...param: any[]) {
     if (Logger._level > LoggerLevel.error) return;
     // #if _DEVELOPMENT
     const locInfo = Logger.convertSourceIndex(loc.start.index);

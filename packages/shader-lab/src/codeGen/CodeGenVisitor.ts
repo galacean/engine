@@ -1,5 +1,5 @@
 import { ENonTerminal } from "../parser/GrammarSymbol";
-import Token from "../Token";
+import { BaseToken as Token } from "../BaseToken";
 import { EKeyword } from "../common";
 import { Logger } from "../Logger";
 import { ASTNode, TreeNode } from "../parser/AST";

@@ -1,9 +1,9 @@
 import BaseError from "../BaseError";
 import { SymbolTableStack } from "../BaseSymbolTable";
 import { BaseToken } from "../BaseToken";
-import { IEngineType, IEngineFunction } from "../EngineType";
+import { IEngineType } from "../EngineType";
 import { EKeyword, ETokenType } from "../common";
-import { IIndexRange, Position } from "../preprocessor/IndexRange";
+import { IIndexRange, Position } from "../common";
 import { KeywordMap } from "./KeywordMap";
 import Scanner from "./Scanner";
 import SymbolTable, { ISymbol } from "./SymbolTable";

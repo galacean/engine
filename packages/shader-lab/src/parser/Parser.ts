@@ -1,6 +1,6 @@
 import Grammar from "./Grammar";
 import { ENonTerminal, GrammarSymbol } from "./GrammarSymbol";
-import Token from "../Token";
+import { BaseToken } from "../BaseToken";
 import { ETokenType } from "../common";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
 import { ASTNode, TreeNode } from "./AST";
@@ -50,7 +50,7 @@ export default class Parser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
-  parse(tokens: Generator<Token, Token>) {
+  parse(tokens: Generator<BaseToken, BaseToken>) {
     this.sematicAnalyzer.reset();
     const start = performance.now();
     const { traceBackStack, sematicAnalyzer } = this;
@@ -81,13 +81,13 @@ export default class Parser {
         // #endif
         const translationRule = sematicAnalyzer.getTranslationRule(reduceProduction.id);
 
-        const values: (TreeNode | Token)[] = [];
+        const values: (TreeNode | BaseToken)[] = [];
 
         for (let i = reduceProduction.derivation.length - 1; i >= 0; i--) {
           if (reduceProduction.derivation[i] === ETokenType.EPSILON) continue;
           traceBackStack.pop();
           const token = traceBackStack.pop();
-          if (token instanceof Token) {
+          if (token instanceof BaseToken) {
             values.unshift(token);
           } else {
             const astNode = sematicAnalyzer.semanticStack.pop()!;
@@ -109,6 +109,7 @@ export default class Parser {
         // #endif
         continue;
       } else {
+        debugger;
         this.logger.errorLoc(token.location, `parse error token ${token}`);
         // #if _DEVELOPMENT
         throw `invalid action table by token ${token.lexeme}`;
@@ -118,14 +119,14 @@ export default class Parser {
   }
 
   // #if _DEVELOPMENT
-  private printStack(nextToken: Token) {
+  private printStack(nextToken: BaseToken) {
     if (!Logger.enabled) return;
 
     let str = "";
     for (let i = 0; i < this.traceBackStack.length - 1; i++) {
       const state = <ENonTerminal>this.traceBackStack[i++];
       const token = this.traceBackStack[i];
-      str += `State${state} - ${(<Token>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
+      str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
     }
     str += `State${this.traceBackStack[this.traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
     this.logger.log(str);

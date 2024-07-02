@@ -1,22 +1,16 @@
-import { LocRange, Position } from "../common";
+import { IIndexRange, Position } from "../common";
 import { ETokenType, KeywordTable } from "../common";
-import Token, { EOF } from "../Token";
+import { EOF, BaseToken } from "../BaseToken";
 import LexerUtils from "./Utils";
+import BaseScanner from "../BaseScanner";
 
-export default class Lexer {
-  private source: string;
-  private current = 0;
-
-  private line = 0;
-  private column = 0;
-
-  constructor(source: string) {
-    this.source = source;
-  }
-
+export default class Lexer extends BaseScanner {
   reset(source: string) {
-    this.source = source;
-    this.current = this.line = this.column = 0;
+    this._source = source;
+    this._current = 0;
+    // #if _DEVELOPMENT
+    this._line = this._column = 0;
+    // #endif
   }
 
   *tokenize() {
@@ -26,13 +20,8 @@ export default class Lexer {
     return EOF;
   }
 
-  private isEnd() {
-    return this.current >= this.source.length;
-  }
-
-  private scanToken(): Token {
-    this.skipSpace();
-    this.skipComments();
+  override scanToken(): BaseToken {
+    this.skipCommentsAndSpace();
     if (this.isEnd()) return EOF;
 
     if (LexerUtils.isAlpha(this.curChar())) {
@@ -50,14 +39,14 @@ export default class Lexer {
           this.advance();
           if (this.curChar() === "=") {
             this.advance();
-            return new Token(ETokenType.LEFT_ASSIGN, "<<=", start);
+            return new BaseToken(ETokenType.LEFT_ASSIGN, "<<=", start);
           }
-          return new Token(ETokenType.LEFT_OP, "<<", start);
+          return new BaseToken(ETokenType.LEFT_OP, "<<", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.LE_OP, "<=", start);
+          return new BaseToken(ETokenType.LE_OP, "<=", start);
         }
-        return new Token(ETokenType.LEFT_ANGLE, "<", start);
+        return new BaseToken(ETokenType.LEFT_ANGLE, "<", start);
 
       case ">":
         this.advance();
@@ -65,149 +54,149 @@ export default class Lexer {
           this.advance();
           if (this.curChar() === "=") {
             this.advance();
-            return new Token(ETokenType.RIGHT_ASSIGN, ">>=", start);
+            return new BaseToken(ETokenType.RIGHT_ASSIGN, ">>=", start);
           }
-          return new Token(ETokenType.RIGHT_OP, ">>", start);
+          return new BaseToken(ETokenType.RIGHT_OP, ">>", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.GE_OP, ">=", start);
+          return new BaseToken(ETokenType.GE_OP, ">=", start);
         }
-        return new Token(ETokenType.RIGHT_ANGLE, ">", start);
+        return new BaseToken(ETokenType.RIGHT_ANGLE, ">", start);
 
       case "+":
         this.advance();
         if (this.curChar() === "+") {
           this.advance();
-          return new Token(ETokenType.INC_OP, "++", start);
+          return new BaseToken(ETokenType.INC_OP, "++", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.ADD_ASSIGN, "+=", start);
+          return new BaseToken(ETokenType.ADD_ASSIGN, "+=", start);
         }
-        return new Token(ETokenType.PLUS, "+", start);
+        return new BaseToken(ETokenType.PLUS, "+", start);
 
       case "-":
         this.advance();
         if (this.curChar() === "-") {
           this.advance();
-          return new Token(ETokenType.DEC_OP, "--", start);
+          return new BaseToken(ETokenType.DEC_OP, "--", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.SUB_ASSIGN, "-=", start);
+          return new BaseToken(ETokenType.SUB_ASSIGN, "-=", start);
         }
-        return new Token(ETokenType.DASH, "-", start);
+        return new BaseToken(ETokenType.DASH, "-", start);
 
       case "=":
         this.advance();
         if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.EQ_OP, "==", start);
+          return new BaseToken(ETokenType.EQ_OP, "==", start);
         }
-        return new Token(ETokenType.EQUAL, "=", start);
+        return new BaseToken(ETokenType.EQUAL, "=", start);
 
       case "!":
         this.advance();
         if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.NE_OP, "!=", start);
+          return new BaseToken(ETokenType.NE_OP, "!=", start);
         }
-        return new Token(ETokenType.BANG, "!", start);
+        return new BaseToken(ETokenType.BANG, "!", start);
 
       case "&":
         this.advance();
         if (this.curChar() === "&") {
           this.advance();
-          return new Token(ETokenType.AND_OP, "&&", start);
+          return new BaseToken(ETokenType.AND_OP, "&&", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.ADD_ASSIGN, "&=", start);
+          return new BaseToken(ETokenType.ADD_ASSIGN, "&=", start);
         }
-        return new Token(ETokenType.AMPERSAND, "&", start);
+        return new BaseToken(ETokenType.AMPERSAND, "&", start);
 
       case "|":
         this.advance();
         if (this.curChar() === "|") {
           this.advance();
-          return new Token(ETokenType.OR_OP, "||", start);
+          return new BaseToken(ETokenType.OR_OP, "||", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.OR_ASSIGN, "|=", start);
+          return new BaseToken(ETokenType.OR_ASSIGN, "|=", start);
         }
-        return new Token(ETokenType.VERTICAL_BAR, "|", start);
+        return new BaseToken(ETokenType.VERTICAL_BAR, "|", start);
 
       case "^":
         this.advance();
         if (this.curChar() === "^") {
           this.advance();
-          return new Token(ETokenType.XOR_OP, "^^", start);
+          return new BaseToken(ETokenType.XOR_OP, "^^", start);
         } else if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.XOR_ASSIGN, "^=", start);
+          return new BaseToken(ETokenType.XOR_ASSIGN, "^=", start);
         }
-        return new Token(ETokenType.CARET, "^", start);
+        return new BaseToken(ETokenType.CARET, "^", start);
 
       case "*":
         this.advance();
         if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.MUL_ASSIGN, "*=", start);
+          return new BaseToken(ETokenType.MUL_ASSIGN, "*=", start);
         }
-        return new Token(ETokenType.STAR, "*", start);
+        return new BaseToken(ETokenType.STAR, "*", start);
 
       case "/":
         this.advance();
         if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.DIV_ASSIGN, "/=", start);
+          return new BaseToken(ETokenType.DIV_ASSIGN, "/=", start);
         }
-        return new Token(ETokenType.SLASH, "/", start);
+        return new BaseToken(ETokenType.SLASH, "/", start);
 
       case "%":
         this.advance();
         if (this.curChar() === "=") {
           this.advance();
-          return new Token(ETokenType.MOD_ASSIGN, "%=", start);
+          return new BaseToken(ETokenType.MOD_ASSIGN, "%=", start);
         }
-        return new Token(ETokenType.PERCENT, "%", start);
+        return new BaseToken(ETokenType.PERCENT, "%", start);
 
       case "(":
         this.advance();
-        return new Token(ETokenType.LEFT_PAREN, "(", start);
+        return new BaseToken(ETokenType.LEFT_PAREN, "(", start);
       case ")":
         this.advance();
-        return new Token(ETokenType.RIGHT_PAREN, ")", start);
+        return new BaseToken(ETokenType.RIGHT_PAREN, ")", start);
       case "{":
         this.advance();
-        return new Token(ETokenType.LEFT_BRACE, "{", start);
+        return new BaseToken(ETokenType.LEFT_BRACE, "{", start);
       case "}":
         this.advance();
-        return new Token(ETokenType.RIGHT_BRACE, "}", start);
+        return new BaseToken(ETokenType.RIGHT_BRACE, "}", start);
       case "[":
         this.advance();
-        return new Token(ETokenType.LEFT_BRACKET, "[", start);
+        return new BaseToken(ETokenType.LEFT_BRACKET, "[", start);
       case "]":
         this.advance();
-        return new Token(ETokenType.RIGHT_BRACKET, "]", start);
+        return new BaseToken(ETokenType.RIGHT_BRACKET, "]", start);
       case ".":
         this.advance();
         if (LexerUtils.isNum(this.curChar())) {
           return this.scanNumAfterDot();
         }
-        return new Token(ETokenType.DOT, ".", start);
+        return new BaseToken(ETokenType.DOT, ".", start);
       case ",":
         this.advance();
-        return new Token(ETokenType.COMMA, ",", start);
+        return new BaseToken(ETokenType.COMMA, ",", start);
       case ":":
         this.advance();
-        return new Token(ETokenType.COLON, ":", start);
+        return new BaseToken(ETokenType.COLON, ":", start);
       case ";":
         this.advance();
-        return new Token(ETokenType.SEMICOLON, ";", start);
+        return new BaseToken(ETokenType.SEMICOLON, ";", start);
       case "~":
         this.advance();
-        return new Token(ETokenType.TILDE, "~", start);
+        return new BaseToken(ETokenType.TILDE, "~", start);
       case "?":
         this.advance();
-        return new Token(ETokenType.QUESTION, "?", start);
+        return new BaseToken(ETokenType.QUESTION, "?", start);
       case '"':
         this.advance();
         return this.scanStringConst();
@@ -226,7 +215,7 @@ export default class Lexer {
       this.advance();
     }
     this.advance();
-    return new Token(ETokenType.STRING_CONST, buffer.join(""), new LocRange(start, this.getPosition()));
+    return new BaseToken(ETokenType.STRING_CONST, buffer.join(""), new IIndexRange(start, this.getPosition()));
   }
 
   private scanNumAfterDot() {
@@ -235,54 +224,23 @@ export default class Lexer {
       buffer.push(this.curChar());
       this.advance();
     }
-    return new Token(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(1));
-  }
-
-  private advance() {
-    if (this.isEnd()) return;
-    if (this.curChar() === "\n") {
-      this.line += 1;
-      this.column = 0;
-    } else {
-      this.column += 1;
-    }
-    this.current++;
-  }
-
-  private curChar() {
-    return this.source[this.current];
-  }
-
-  private peek() {
-    return this.source[this.current + 1];
+    return new BaseToken(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(1));
   }
 
   private getPosition(offset /** offset from starting point */ = 0) {
-    return new Position(this.current - offset, this.line, this.column - offset);
+    return new Position(
+      this.current - offset,
+      // #if _DEVELOPMENT
+      this._line,
+      this._column - offset
+      // #endif
+    );
   }
 
-  private skipSpace() {
+  override skipSpace() {
     while (/\s/.test(this.curChar())) {
       this.advance();
     }
-  }
-
-  private skipComments() {
-    if (this.curChar() === "/") {
-      if (this.peek() === "/") {
-        // single line comments
-        while (this.curChar() !== "\n") this.advance();
-        this.advance();
-      } else if (this.peek() === "*") {
-        //  multi-line comments
-        this.advance();
-        while (this.curChar() !== "*" || this.peek() !== "/") this.advance();
-        this.advance();
-        this.advance();
-      } else return;
-    } else return;
-    this.skipSpace();
-    this.skipComments();
   }
 
   private scanWord() {
@@ -296,9 +254,9 @@ export default class Lexer {
     const word = buffer.join("");
     const kt = KeywordTable.get(word);
     if (kt) {
-      return new Token(kt, word, start);
+      return new BaseToken(kt, word, start);
     }
-    return new Token(ETokenType.ID, word, start);
+    return new BaseToken(ETokenType.ID, word, start);
   }
 
   private scanNum() {
@@ -315,14 +273,14 @@ export default class Lexer {
         this.advance();
       }
       this.scanFloatSuffix(buffer);
-      return new Token(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+      return new BaseToken(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
     } else {
       if (this.curChar() === "e" || this.curChar() === "E") {
         this.scanFloatSuffix(buffer);
-        return new Token(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+        return new BaseToken(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
       } else {
         this.scanIntegerSuffix(buffer);
-        return new Token(ETokenType.INT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+        return new BaseToken(ETokenType.INT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
       }
     }
   }

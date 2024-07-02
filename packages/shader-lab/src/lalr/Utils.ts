@@ -1,4 +1,4 @@
-import { EKeyword, ETokenType, LocRange } from "../common";
+import { EKeyword, ETokenType, IIndexRange } from "../common";
 import { ASTNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { ASTNodeConstructor } from "../parser/types";
@@ -32,7 +32,7 @@ export default class GrammarUtils {
           if (!children[0]) return;
           const start = children[0].location.start;
           const end = children[children.length - 1].location.end;
-          const location = new LocRange(start, end);
+          const location = new IIndexRange(start, end);
           ASTNode.create(astType ?? ASTNode.TrivialNode, sa, location, children);
         }
       ]);

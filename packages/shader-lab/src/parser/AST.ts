@@ -3,8 +3,8 @@ import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./buil
 // #endif
 import { CodeGenVisitor } from "../codeGen";
 import { ENonTerminal } from "./GrammarSymbol";
-import Token from "../Token";
-import { EKeyword, ETokenType, TokenType, LocRange } from "../common";
+import { BaseToken as Token } from "../BaseToken";
+import { EKeyword, ETokenType, TokenType, IIndexRange } from "../common";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "../common/SymbolTable";
@@ -15,8 +15,8 @@ export class TreeNode {
   /** The non-terminal in grammar. */
   readonly nt: ENonTerminal;
   readonly children: NodeChild[];
-  readonly location: LocRange;
-  constructor(nt: ENonTerminal, loc: LocRange, children: NodeChild[]) {
+  readonly location: IIndexRange;
+  constructor(nt: ENonTerminal, loc: IIndexRange, children: NodeChild[]) {
     this.nt = nt;
     this.location = loc;
     this.children = children;
@@ -38,7 +38,7 @@ export namespace ASTNode {
     throw "not token";
   }
 
-  export function create(target: ASTNodeConstructor, sa: SematicAnalyzer, loc: LocRange, children: NodeChild[]) {
+  export function create(target: ASTNodeConstructor, sa: SematicAnalyzer, loc: IIndexRange, children: NodeChild[]) {
     const node = Reflect.construct(target, [loc, children]);
     node.semanticAnalyze(sa);
     sa.semanticStack.push(node);
@@ -47,14 +47,14 @@ export namespace ASTNode {
 
   // #if !_DEVELOPMENTMENT
   export class TrivialNode extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal._ignore, loc, children);
     }
   }
   // #endif
 
   export class ScopeBrace extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.scope_brace, loc, children);
     }
 
@@ -64,7 +64,7 @@ export namespace ASTNode {
   }
 
   export class ScopeEndBrace extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.scope_end_brace, loc, children);
     }
 
@@ -74,7 +74,7 @@ export namespace ASTNode {
   }
 
   export class JumpStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.jump_statement, loc, children);
     }
 
@@ -93,43 +93,43 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class ConditionOpt extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.conditionopt, loc, children);
     }
   }
 
   export class ForRestStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.for_rest_statement, loc, children);
     }
   }
 
   export class Condition extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.condition, loc, children);
     }
   }
 
   export class ForInitStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.for_init_statement, loc, children);
     }
   }
 
   export class IterationStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.iteration_statement, loc, children);
     }
   }
 
   export class SelectionStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.selection_statement, loc, children);
     }
   }
 
   export class ExpressionStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.expression_statement, loc, children);
     }
   }
@@ -144,14 +144,14 @@ export namespace ASTNode {
       return this._type ?? TypeAny;
     }
 
-    constructor(nt: ENonTerminal, loc: LocRange, children: NodeChild[]) {
+    constructor(nt: ENonTerminal, loc: IIndexRange, children: NodeChild[]) {
       super(nt, loc, children);
     }
   }
 
   // #if _DEVELOPMENT
   export class InitializerList extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.initializer_list, loc, children);
     }
 
@@ -162,7 +162,7 @@ export namespace ASTNode {
   }
 
   export class Initializer extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.initializer, loc, children);
     }
 
@@ -180,7 +180,7 @@ export namespace ASTNode {
     typeSpecifier: TypeSpecifier;
     arraySpecifier?: ArraySpecifier;
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.single_declaration, loc, children);
     }
 
@@ -226,7 +226,7 @@ export namespace ASTNode {
       return this.typeSpecifier.type;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.fully_specified_type, loc, children);
     }
 
@@ -246,7 +246,7 @@ export namespace ASTNode {
   export class TypeQualifier extends TreeNode {
     qualifierList: EKeyword[];
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.type_qualifier, loc, children);
     }
 
@@ -266,7 +266,7 @@ export namespace ASTNode {
     qualifier: EKeyword;
     lexeme: string;
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.single_type_qualifier, loc, children);
     }
 
@@ -288,7 +288,7 @@ export namespace ASTNode {
       return (<Token>this.children[0]).lexeme;
     }
 
-    constructor(loc: LocRange, nt: ENonTerminal, children: NodeChild[]) {
+    constructor(loc: IIndexRange, nt: ENonTerminal, children: NodeChild[]) {
       super(nt, loc, children);
     }
 
@@ -299,25 +299,25 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class StorageQualifier extends BasicTypeQualifier {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(loc, ENonTerminal.storage_qualifier, children);
     }
   }
 
   export class PrecisionQualifier extends BasicTypeQualifier {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(loc, ENonTerminal.precision_qualifier, children);
     }
   }
 
   export class InterpolationQualifier extends BasicTypeQualifier {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(loc, ENonTerminal.interpolation_qualifier, children);
     }
   }
 
   export class InvariantQualifier extends BasicTypeQualifier {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(loc, ENonTerminal.invariant_qualifier, children);
     }
   }
@@ -332,7 +332,7 @@ export namespace ASTNode {
       return typeof this.type === "string";
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.type_specifier, loc, children);
     }
 
@@ -346,7 +346,7 @@ export namespace ASTNode {
   export class ArraySpecifier extends TreeNode {
     size?: number;
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.array_specifier, loc, children);
     }
 
@@ -362,7 +362,7 @@ export namespace ASTNode {
       return (this.children[0] as Token).lexeme;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.integer_constant_expression_operator, loc, children);
     }
 
@@ -392,7 +392,7 @@ export namespace ASTNode {
 
   export class IntegerConstantExpression extends TreeNode {
     value?: number;
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.integer_constant_expression, loc, children);
     }
 
@@ -421,7 +421,7 @@ export namespace ASTNode {
   export class TypeSpecifierNonArray extends TreeNode {
     type: GalaceanDataType;
     lexeme: string;
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.type_specifier_nonarray, loc, children);
     }
 
@@ -441,7 +441,7 @@ export namespace ASTNode {
     type: TokenType;
     lexeme: string;
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.ext_builtin_type_specifier_nonarray, loc, children);
       const token = this.children[0] as Token;
       this.type = token.type;
@@ -464,7 +464,7 @@ export namespace ASTNode {
       return initDeclList.typeInfo;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.init_declarator_list, loc, children);
     }
 
@@ -498,13 +498,13 @@ export namespace ASTNode {
       return [...(<IdentifierList>this.children[0]).idList, this.children[2] as Token];
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.identifier_list, loc, children);
     }
   }
 
   export class Declaration extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.declaration, loc, children);
     }
 
@@ -534,7 +534,7 @@ export namespace ASTNode {
       return this.declarator.paramSig;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_prototype, loc, children);
     }
 
@@ -568,7 +568,7 @@ export namespace ASTNode {
       return this.parameterList?.paramSig;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_declarator, loc, children);
     }
   }
@@ -581,7 +581,7 @@ export namespace ASTNode {
       return this.children[0] as FullySpecifiedType;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_header, loc, children);
     }
 
@@ -616,7 +616,7 @@ export namespace ASTNode {
       }
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_parameter_list, loc, children);
     }
 
@@ -643,7 +643,7 @@ export namespace ASTNode {
       return this.parameterDeclarator.ident;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.parameter_declaration, loc, children);
     }
 
@@ -670,41 +670,41 @@ export namespace ASTNode {
       return new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.parameter_declarator, loc, children);
     }
   }
 
   // #if _DEVELOPMENT
   export class SimpleStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.simple_statement, loc, children);
     }
   }
 
   export class CompoundStatement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.compound_statement, loc, children);
     }
   }
   // #endif
 
   export class CompoundStatementNoScope extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.compound_statement_no_scope, loc, children);
     }
   }
 
   // #if _DEVELOPMENT
   export class Statement extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.statement, loc, children);
     }
   }
   // #endif
 
   export class StatementList extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.statement_list, loc, children);
     }
 
@@ -722,7 +722,7 @@ export namespace ASTNode {
       return this.children[1] as CompoundStatementNoScope;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_definition, loc, children);
     }
 
@@ -738,7 +738,7 @@ export namespace ASTNode {
   }
 
   export class FunctionCall extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_call, loc, children);
     }
 
@@ -754,7 +754,7 @@ export namespace ASTNode {
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_call_generic, loc, children);
     }
 
@@ -821,13 +821,13 @@ export namespace ASTNode {
       }
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_call_parameter_list, loc, children);
     }
   }
 
   export class PrecisionSpecifier extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.precision_specifier, loc, children);
     }
 
@@ -851,7 +851,7 @@ export namespace ASTNode {
       return typeof this.ident !== "string";
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.function_identifier, loc, children);
     }
 
@@ -863,7 +863,7 @@ export namespace ASTNode {
   }
 
   export class AssignmentExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.assignment_expression, loc, children);
     }
 
@@ -882,14 +882,14 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class AssignmentOperator extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.assignment_operator, loc, children);
     }
   }
   // #endif
 
   export class Expression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.expression, loc, children);
     }
 
@@ -907,7 +907,7 @@ export namespace ASTNode {
   }
 
   export class PrimaryExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.primary_expression, loc, children);
     }
 
@@ -938,7 +938,7 @@ export namespace ASTNode {
   }
 
   export class PostfixExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.postfix_expression, loc, children);
     }
 
@@ -956,7 +956,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class UnaryOperator extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.unary_operator, loc, children);
     }
   }
@@ -964,7 +964,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class UnaryExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.unary_expression, loc, children);
     }
 
@@ -976,7 +976,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class MultiplicativeExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.multiplicative_expression, loc, children);
     }
 
@@ -996,7 +996,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class AdditiveExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.additive_expression, loc, children);
     }
 
@@ -1016,7 +1016,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class ShiftExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.shift_expression, loc, children);
     }
 
@@ -1029,7 +1029,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class RelationalExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.relational_expression, loc, children);
     }
 
@@ -1045,7 +1045,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class EqualityExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.equality_expression, loc, children);
     }
 
@@ -1061,7 +1061,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class AndExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.and_expression, loc, children);
     }
 
@@ -1077,7 +1077,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class ExclusiveOrExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.exclusive_or_expression, loc, children);
     }
 
@@ -1093,7 +1093,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class InclusiveOrExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.inclusive_or_expression, loc, children);
     }
 
@@ -1109,7 +1109,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class LogicalAndExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.logical_and_expression, loc, children);
     }
 
@@ -1125,7 +1125,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class LogicalXorExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.logical_xor_expression, loc, children);
     }
 
@@ -1141,7 +1141,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class LogicalOrExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.logical_or_expression, loc, children);
     }
 
@@ -1157,7 +1157,7 @@ export namespace ASTNode {
 
   // #if _DEVELOPMENT
   export class ConditionalExpression extends ExpressionAstNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.conditional_expression, loc, children);
     }
 
@@ -1177,7 +1177,7 @@ export namespace ASTNode {
       return declList.propList;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.struct_specifier, loc, children);
     }
 
@@ -1199,7 +1199,7 @@ export namespace ASTNode {
       return [list.propList, decl.propList].flat();
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.struct_declaration_list, loc, children);
     }
   }
@@ -1229,7 +1229,7 @@ export namespace ASTNode {
       return ret;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.struct_declaration, loc, children);
     }
   }
@@ -1244,7 +1244,7 @@ export namespace ASTNode {
       }
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.struct_declarator_list, loc, children);
     }
   }
@@ -1258,13 +1258,13 @@ export namespace ASTNode {
       return this.children[1] as ArraySpecifier;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.struct_declarator, loc, children);
     }
   }
 
   export class VariableDeclaration extends TreeNode {
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.variable_declaration, loc, children);
     }
 
@@ -1298,7 +1298,7 @@ export namespace ASTNode {
       return this.symbolInfo?.type;
     }
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.variable_identifier, loc, children);
     }
 
@@ -1329,7 +1329,7 @@ export namespace ASTNode {
   export class GLShaderProgram extends TreeNode {
     shaderData: ShaderData;
 
-    constructor(loc: LocRange, children: NodeChild[]) {
+    constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.gs_shader_program, loc, children);
     }
 

@@ -1,31 +1,20 @@
 import LexerUtils from "../lexer/Utils";
-import LocRange from "../common/LocRange";
-import Position from "../common/Position";
-import { PpError } from "./PpError";
+import { Position, IIndexRange } from "../common";
 // #if _DEVELOPMENT
 import PpSourceMap from "./sourceMap";
 // #endif
-import PpToken, { EOF } from "./PpToken";
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
-import { IIndexRange } from "./IndexRange";
+import BaseScanner from "../BaseScanner";
+import { BaseToken, EOF } from "../BaseToken";
 
-export type OnToken = (token: PpToken, scanner: PpScanner) => void;
+export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 
-export default class PpScanner extends PpError {
-  private _current = 0;
-  get current() {
-    return this._current;
-  }
-
+export default class PpScanner extends BaseScanner {
   private line: number = 0;
   private column: number = 0;
 
   private macroLvl = 0;
-  private _source: string;
-  get source() {
-    return this._source;
-  }
 
   // #if _DEVELOPMENT
   readonly sourceMap = new PpSourceMap();
@@ -40,20 +29,11 @@ export default class PpScanner extends PpError {
     blockRange?: IIndexRange
     // #endif
   ) {
-    super();
-    this._source = source;
+    super(source);
     // #if _DEVELOPMENT
     this.file = file;
     this.blockRange = blockRange;
     // #endif
-  }
-
-  curChar() {
-    return this._source[this._current];
-  }
-
-  isEnd() {
-    return this._current >= this._source.length;
   }
 
   /**
@@ -73,8 +53,8 @@ export default class PpScanner extends PpError {
   /**
    * @param nonLetterChar should not be space
    */
-  scanWordsUntilChar(nonLetterChar: string): PpToken[] {
-    const ret: PpToken[] = [];
+  scanWordsUntilChar(nonLetterChar: string): BaseToken[] {
+    const ret: BaseToken[] = [];
     while (true) {
       this.skipSpace();
       if (LexerUtils.isLetter(this.curChar())) {
@@ -88,18 +68,7 @@ export default class PpScanner extends PpError {
     }
   }
 
-  advance(count = 1) {
-    for (let i = 0; i < count; i++) this._advance();
-  }
-
-  skipSpace(includeLineBreak = true) {
-    const spaces = includeLineBreak ? [" ", "\t", "\n"] : [" ", "\t"];
-    while (spaces.indexOf(this.curChar()) != -1) {
-      this._advance();
-    }
-  }
-
-  scanWord(skipNonLetter = false): PpToken {
+  scanWord(skipNonLetter = false): BaseToken {
     if (skipNonLetter) {
       while (!LexerUtils.isLetter(this.curChar()) && !this.isEnd()) {
         this.advance();
@@ -121,10 +90,10 @@ export default class PpScanner extends PpError {
     }
     const kw = PpKeyword.get(word);
     if (kw) {
-      return new PpToken(kw, word, this.getPosition());
+      return new BaseToken(kw, word, this.getPosition());
     }
 
-    return new PpToken(EPpToken.id, word, this.getPosition(word.length));
+    return new BaseToken(EPpToken.id, word, this.getPosition(word.length));
   }
 
   getPosition(offset /** offset from starting point */ = 0) {
@@ -135,7 +104,7 @@ export default class PpScanner extends PpError {
    * @param onToken callback when encounter a token
    * @returns token split by space
    */
-  scanToken(onToken?: OnToken): PpToken | undefined {
+  override scanToken(onToken?: OnToken): BaseToken | undefined {
     this.skipSpace();
     this.skipComments();
     if (this.isEnd()) return;
@@ -148,12 +117,12 @@ export default class PpScanner extends PpError {
       return this.scanToken(onToken);
     }
     const lexeme = this._source.slice(start, this._current);
-    const ret = new PpToken(PpKeyword.get(lexeme) ?? EPpToken.id, lexeme, this.getPosition(this._current - start));
+    const ret = new BaseToken(PpKeyword.get(lexeme) ?? EPpToken.id, lexeme, this.getPosition(this._current - start));
     onToken?.(ret, this);
     return ret;
   }
 
-  scanQuotedString(): PpToken<EPpToken.string_const> {
+  scanQuotedString(): BaseToken<EPpToken.string_const> {
     this.skipSpace();
     if (this.curChar() !== '"') {
       this.throw(this.getPosition(), "unexpected char, expected '\"'");
@@ -166,7 +135,7 @@ export default class PpScanner extends PpError {
       this.throw(this.getPosition(), "unexpected char, expected '\"'");
     }
     const word = this._source.slice(start, this._current);
-    return new PpToken(EPpToken.string_const, word, position);
+    return new BaseToken(EPpToken.string_const, word, position);
   }
 
   scanToChar(char: string) {
@@ -176,8 +145,8 @@ export default class PpScanner extends PpError {
   }
 
   scanMacroBranchChunk(): {
-    token: PpToken<EPpToken.chunk>;
-    nextDirective: PpToken;
+    token: BaseToken<EPpToken.chunk>;
+    nextDirective: BaseToken;
   } {
     const start = this._current;
     const position = this.getPosition();
@@ -192,8 +161,8 @@ export default class PpScanner extends PpError {
       directive = this.scanDirective()!;
     }
 
-    const chunk = this._source.slice(start, this._current - directive.length - 1);
-    const token = new PpToken(EPpToken.chunk, chunk, position);
+    const chunk = this._source.slice(start, this._current - directive.lexeme.length - 1);
+    const token = new BaseToken(EPpToken.chunk, chunk, position);
     return { token, nextDirective: directive };
   }
 
@@ -229,10 +198,6 @@ export default class PpScanner extends PpError {
     return this._source[current];
   }
 
-  peek(offset = 1) {
-    return this._source.slice(this._current, this._current + offset);
-  }
-
   scanInteger() {
     const start = this._current;
     while (LexerUtils.isNum(this.curChar())) {
@@ -242,7 +207,7 @@ export default class PpScanner extends PpError {
       this.throw(this.getPosition(), "no integer found");
     }
     const integer = this._source.slice(start, this._current);
-    return new PpToken(EPpToken.int_constant, integer, this.getPosition());
+    return new BaseToken(EPpToken.int_constant, integer, this.getPosition());
   }
 
   /**
@@ -252,12 +217,12 @@ export default class PpScanner extends PpError {
     this.skipSpace(false);
     const start = this._current;
 
-    const comments: LocRange[] = [];
+    const comments: IIndexRange[] = [];
 
     while (this.curChar() !== "\n") {
       if (this.isEnd()) {
         const line = this._source.slice(start, this._current);
-        return new PpToken(EPpToken.line_remain, line, this.getPosition(line.length));
+        return new BaseToken(EPpToken.line_remain, line, this.getPosition(line.length));
       }
       this.advance();
       const commentRange = this.skipComments();
@@ -275,21 +240,10 @@ export default class PpScanner extends PpError {
         line
       );
     }
-    return new PpToken(EPpToken.line_remain, line, this.getPosition(line.length));
+    return new BaseToken(EPpToken.line_remain, line, this.getPosition(line.length));
   }
 
-  private _advance() {
-    if (this.isEnd()) return;
-    if (this.curChar() === "\n") {
-      this.line += 1;
-      this.column = 0;
-    } else {
-      this.column += 1;
-    }
-    this._current++;
-  }
-
-  private advanceToDirective(onToken?: OnToken): PpToken | undefined {
+  private advanceToDirective(onToken?: OnToken): BaseToken | undefined {
     while (true) {
       const token = this.scanToken(onToken);
       if (token?.lexeme.startsWith("#")) return token;
@@ -297,12 +251,12 @@ export default class PpScanner extends PpError {
     }
   }
 
-  private skipComments(): LocRange | undefined {
+  private skipComments(): IIndexRange | undefined {
     if (this.peek(2) === "//") {
       const start = this.getPosition();
       // single line comments
       while (this.curChar() !== "\n" && !this.isEnd()) this._advance();
-      return new LocRange(start, this.getPosition());
+      return new IIndexRange(start, this.getPosition());
     } else if (this.peek(2) === "/*") {
       const start = this.getPosition();
       //  multi-line comments
@@ -311,7 +265,7 @@ export default class PpScanner extends PpError {
       while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
       this._advance();
       this._advance();
-      return new LocRange(start, this.getPosition());
+      return new IIndexRange(start, this.getPosition());
     }
   }
 }

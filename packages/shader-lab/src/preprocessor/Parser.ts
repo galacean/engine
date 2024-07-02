@@ -1,15 +1,14 @@
 import LexerUtils from "../lexer/Utils";
-import LocRange from "../common/LocRange";
+import { IIndexRange } from "../common";
 import { MacroDefine } from "./MacroDefine";
 import { PpError } from "./PpError";
 // #if _DEVELOPMENT
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
-import PpToken from "./PpToken";
 import PpScanner from "./Scanner";
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
-import { IIndexRange } from "./IndexRange";
+import { BaseToken } from "../BaseToken";
 
 export interface ExpandSegment {
   // #if _DEVELOPMENT
@@ -39,8 +38,8 @@ export default class PpParser extends PpError {
   }
 
   addPredefinedMacro(macro: string, value?: string) {
-    const tk = new PpToken(EPpToken.id, macro);
-    const macroBody = value ? new PpToken(EPpToken.id, value) : undefined;
+    const tk = new BaseToken(EPpToken.id, macro);
+    const macroBody = value ? new BaseToken(EPpToken.id, value) : undefined;
     this.definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 
@@ -407,7 +406,7 @@ export default class PpParser extends PpError {
    */
   private expandMacroChunk(
     chunk: string,
-    loc: LocRange,
+    loc: IIndexRange,
     parentScanner: PpScanner
   ): {
     content: string;
@@ -417,7 +416,7 @@ export default class PpParser extends PpError {
   };
   private expandMacroChunk(
     chunk: string,
-    loc: LocRange,
+    loc: IIndexRange,
     file: string
   ): {
     content: string;
@@ -427,7 +426,7 @@ export default class PpParser extends PpError {
   };
   private expandMacroChunk(
     chunk: string,
-    loc: LocRange,
+    loc: IIndexRange,
     scannerOrFile: PpScanner | string
   ): {
     content: string;
@@ -533,13 +532,13 @@ export default class PpParser extends PpError {
       this.throw(macro.location, "redefined macro:", macro.lexeme);
     }
 
-    let macroArgs: PpToken[] | undefined;
+    let macroArgs: BaseToken[] | undefined;
     if (scanner.curChar() === "(") {
       macroArgs = scanner.scanWordsUntilChar(")");
       end = scanner.getPosition();
     }
     const macroBody = scanner.scanLineRemain();
-    const macroDefine = new MacroDefine(macro, macroBody, new LocRange(start, end), macroArgs);
+    const macroDefine = new MacroDefine(macro, macroBody, new IIndexRange(start, end), macroArgs);
     this.definedMacros.set(macro.lexeme, macroDefine);
 
     // #if _DEVELOPMENT
@@ -571,23 +570,23 @@ export default class PpParser extends PpError {
     this.definedMacros.delete(macro.lexeme);
   }
 
-  private onToken(token: PpToken, scanner: PpScanner) {
+  private onToken(token: BaseToken, scanner: PpScanner) {
     // #if !_DEVELOPMENTMENT
     this.skipEditorBlock(token, scanner);
     // #endif
     this.expandToken(token, scanner);
   }
 
-  private skipEditorBlock(token: PpToken, scanner: PpScanner) {
+  private skipEditorBlock(token: BaseToken, scanner: PpScanner) {
     if (token.lexeme === "EditorProperties" || token.lexeme === "EditorMacros") {
-      const start = scanner.current - token.length;
+      const start = scanner.current - token.lexeme.length;
       scanner.scanPairedBlock();
       const end = scanner.current;
       this.expandSegments.push({ rangeInBlock: { start: { index: start }, end: { index: end } }, replace: "" });
     }
   }
 
-  private expandToken(token: PpToken, scanner: PpScanner) {
+  private expandToken(token: BaseToken, scanner: PpScanner) {
     const macro = this.definedMacros.get(token.lexeme);
     if (macro) {
       let replace = macro.body.lexeme;
@@ -613,7 +612,7 @@ export default class PpParser extends PpError {
         args.push(scanner.source.slice(curIdx, scanner.current));
 
         scanner.advance();
-        const range = new LocRange(token.location!.start, scanner.getPosition());
+        const range = new IIndexRange(token.location!.start, scanner.getPosition());
         replace = macro.expand(...args);
         const expanded = this.expandMacroChunk(replace, range, scanner);
         // #if _DEVELOPMENT

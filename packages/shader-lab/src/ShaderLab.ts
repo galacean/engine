@@ -62,6 +62,7 @@ export class ShaderLab implements IShaderLab {
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif
     const ppdContent = preprocessor.process();
+    console.log(ppdContent);
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = this._parser.parse(tokens);

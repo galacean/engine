@@ -1,9 +1,9 @@
 import { ENonTerminal } from "./GrammarSymbol";
-import Token from "../Token";
-import { EKeyword, LocRange } from "../common";
+import { BaseToken } from "../BaseToken";
+import { EKeyword, IIndexRange } from "../common";
 import { ASTNode, TreeNode } from "./AST";
 
-export type TraceStackItem = ENonTerminal | Token;
+export type TraceStackItem = ENonTerminal | BaseToken;
 
 export class SymbolType {
   type: GalaceanDataType;
@@ -25,18 +25,18 @@ export class SymbolType {
 
 export class StructProp implements IParamInfo {
   typeInfo: SymbolType;
-  ident: Token;
+  ident: BaseToken;
   astNode: ASTNode.StructDeclarator;
 
-  constructor(type: SymbolType, ident: Token) {
+  constructor(type: SymbolType, ident: BaseToken) {
     this.typeInfo = type;
     this.ident = ident;
   }
 }
 
-export type NodeChild = TreeNode | Token;
+export type NodeChild = TreeNode | BaseToken;
 
-export type ASTNodeConstructor = new (loc: LocRange, children: NodeChild[]) => TreeNode;
+export type ASTNodeConstructor = new (loc: IIndexRange, children: NodeChild[]) => TreeNode;
 
 export const TypeAny = 1000;
 
@@ -85,4 +85,4 @@ export type GalaceanDataType =
   | typeof TypeAny
   | string;
 
-export type IParamInfo = { ident: Token; typeInfo: SymbolType; astNode: TreeNode };
+export type IParamInfo = { ident: BaseToken; typeInfo: SymbolType; astNode: TreeNode };

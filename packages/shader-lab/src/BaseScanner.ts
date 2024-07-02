@@ -1,7 +1,8 @@
 import BaseError from "./BaseError";
 import { BaseToken } from "./BaseToken";
-import { ETokenType } from "./common";
-import { IIndexRange, Position } from "./preprocessor/IndexRange";
+import { IIndexRange, Position, ETokenType } from "./common";
+
+export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
 export default class BaseScanner extends BaseError {
   protected _current = 0;
@@ -10,9 +11,8 @@ export default class BaseScanner extends BaseError {
   }
 
   // #if _DEVELOPMENT
-  private _column = 0;
-
-  private _line = 0;
+  protected _column = 0;
+  protected _line = 0;
   // #endif
 
   protected _source: string;
@@ -50,7 +50,6 @@ export default class BaseScanner extends BaseError {
     for (let i = 0; i < count; i++) {
       this._advance();
     }
-    // this._current = Math.min(this._source.length, this._current + count);
   }
 
   _advance() {
@@ -93,8 +92,8 @@ export default class BaseScanner extends BaseError {
     }
   }
 
-  peek(to = 1) {
-    return this._source.substring(this._current, this._current + to);
+  peek(to = 1, from = 0) {
+    return this._source.substring(this._current + from, this._current + to + from);
   }
 
   scanText(text: string) {
@@ -132,19 +131,24 @@ export default class BaseScanner extends BaseError {
     return this._source.substring(start, this._current - right.length);
   }
 
-  scanToken(splitCharRegex = /\w/) {
+  scanToken(onToken?: OnToken, splitCharRegex = /\w/) {
     this.skipCommentsAndSpace();
     const start = this.curPosition;
+    if (this.isEnd()) return;
     while (splitCharRegex.test(this.curChar()) && !this.isEnd()) this._advance();
     const end = this.curPosition;
 
     if (start.index === end.index) {
       this._advance();
-      return new BaseToken(ETokenType.NOT_WORD, this._source[start.index], start);
+      const token = new BaseToken(ETokenType.NOT_WORD, this._source[start.index], start);
+      onToken?.(token, this);
+      return token;
     }
 
     const lexeme = this._source.substring(start.index, end.index);
     const tokenType = this._keywordsMap.get(lexeme) ?? ETokenType.ID;
-    return new BaseToken(tokenType, lexeme, { start, end });
+    const token = new BaseToken(tokenType, lexeme, { start, end });
+    onToken?.(token, this);
+    return token;
   }
 }
