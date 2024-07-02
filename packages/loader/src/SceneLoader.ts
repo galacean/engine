@@ -92,6 +92,7 @@ class SceneLoader extends Loader<Scene> {
                     scene.background.texture = texture;
                   });
                   promises.push(backgroundPromise);
+                  scene.background.textureFillMode = background.textureFillMode ?? scene.background.textureFillMode;
                 }
                 break;
             }
