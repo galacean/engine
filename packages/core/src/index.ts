@@ -62,3 +62,5 @@ export * from "./physics/index";
 export * from "./Utils";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+
+export * from "./postProcess";
