@@ -21,7 +21,6 @@ import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
-import { ShaderMacro, ShaderMacroCollection } from "..";
 
 /**
  * Basic render pipeline.
@@ -211,7 +210,6 @@ export class BasicRenderPipeline {
       const { renderStates } = material;
       const materialSubShader = material.shader.subShaders[0];
       const replacementShader = context.replacementShader;
-      // @remark: tag of subShader need to be parsed here.
       if (replacementShader) {
         const replacementSubShaders = replacementShader.subShaders;
         const { replacementTag } = context;
@@ -238,22 +236,6 @@ export class BasicRenderPipeline {
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ): void {
-    const { component, material } = subRenderElement;
-    // Union render global macro and material self macro
-    ShaderMacroCollection.unionCollection(
-      component._globalShaderMacro,
-      material.shaderData._macroCollection,
-      Shader._compileMacros
-    );
-    const list = [];
-    ShaderMacro._getNamesByMacros(Shader._compileMacros, list);
-    // console.log("111", list);
-
-    for (const pass of shaderPasses) {
-      if (pass._isCompiled()) continue;
-      pass._compile(material.engine, Shader._compileMacros);
-    }
-
     const cullingResults = this._cullingResults;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       // Get render queue type

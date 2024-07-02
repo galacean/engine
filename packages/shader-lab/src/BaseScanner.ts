@@ -100,7 +100,7 @@ export default class BaseScanner extends BaseError {
     this.skipCommentsAndSpace();
     const peek = this.peek(text.length);
     if (peek !== text) {
-      this.throw(this._current, `Expect ${text}, got ${peek}.`);
+      this.throw(this._current, `Expect ${text}, got ${peek}`);
     }
     this.advance(text.length);
   }

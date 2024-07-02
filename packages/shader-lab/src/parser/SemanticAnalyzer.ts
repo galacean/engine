@@ -19,8 +19,6 @@ export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   logger = new Logger("semantic analyzer");
-  _engineType: IEngineType = {};
-  _engineFunctions: Record<string, IEngineFunction> = {};
 
   // #if _DEVELOPMENT
   readonly errors: SemanticError[] = [];

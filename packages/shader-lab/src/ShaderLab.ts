@@ -18,18 +18,28 @@ export class ShaderLab implements IShaderLab {
 
   private _parser: Parser;
 
-  constructor(engineTypes: Partial<IEngineType> = {}, engineFunctions: Partial<IEngineFunction> = {}) {
+  constructor(
+    renderStateElementKey: Record<string, number>,
+    engineTypes: Partial<IEngineType> = {},
+    colorCst: new (...args: number[]) => any
+  ) {
     this._parser = Parser.create();
-    Object.assign(this._parser.sematicAnalyzer._engineType, engineTypes);
-    Object.assign(this._parser.sematicAnalyzer._engineFunctions, engineFunctions);
+    ShaderStructParser._RenderStateElementKey = renderStateElementKey;
+    ShaderStructParser._engineType = engineTypes;
+    ShaderStructParser._Color = colorCst;
   }
 
   /**
    * @internal
    */
-  init(engineTypes: Partial<IEngineType>, engineFunctions: Partial<IEngineFunction>) {
-    Object.assign(this._parser.sematicAnalyzer._engineType, engineTypes);
-    Object.assign(this._parser.sematicAnalyzer._engineFunctions, engineFunctions);
+  init(
+    renderStateElementKey: Record<string, number>,
+    engineTypes: Partial<IEngineType>,
+    colorCst: new (...args: number[]) => any
+  ) {
+    ShaderStructParser._engineType = engineTypes;
+    ShaderStructParser._Color = colorCst;
+    ShaderStructParser._RenderStateElementKey = renderStateElementKey;
   }
 
   registerInclude(includeName: string, includeSource: string): void {
@@ -62,7 +72,7 @@ export class ShaderLab implements IShaderLab {
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif
     const ppdContent = preprocessor.process();
-    console.log(ppdContent);
+    // console.log(ppdContent);
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = this._parser.parse(tokens);
@@ -89,7 +99,7 @@ export class ShaderLab implements IShaderLab {
     for (const subShader of structInfo.subShaders) {
       for (const pass of subShader.passes) {
         if (!pass.contents) continue;
-        console.log(pass.contents);
+        // console.log(pass.contents);
         const passInfo = this.parseShaderPass(
           pass.contents,
           pass.vertexEntry,

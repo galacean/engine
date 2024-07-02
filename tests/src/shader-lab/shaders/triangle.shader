@@ -20,17 +20,17 @@ Shader "Triangle" {
         return o;
       }
 
-      void frag(v2f i) {
+      void frag(v2f v) {
         // just for test
         for(int i = 0; i < 3; i++) {
-          if(i.v_color.x < 0.01 || i.v_color.x > 9.99) {
+          if(v.v_color.x < 0.01 || v.v_color.x > 9.99) {
             break;
           } else {
             continue;
           }
         }
 
-        gl_FragColor = vec4(i.v_color, 1.0);
+        gl_FragColor = vec4(v.v_color, 1.0);
       }
 
       VertexShader = vert;

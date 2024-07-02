@@ -1,6 +1,5 @@
 import { Logger } from "../Logger";
 import { ASTNode } from "./AST";
-import SematicAnalyzer from "./SemanticAnalyzer";
 import { GalaceanDataType, SymbolType, TypeAny } from "./types";
 
 export enum ESymbolType {
@@ -11,10 +10,8 @@ export enum ESymbolType {
 
 type SymbolAstNode =
   | ASTNode.Initializer
-  | ASTNode.GLRenderStateDeclaration
   | ASTNode.StructSpecifier
   | ASTNode.FunctionDefinition
-  | ASTNode.GLVariableDeclaration
   | ASTNode.ParameterDeclarator;
 
 export abstract class SymbolInfo {
@@ -34,21 +31,13 @@ export abstract class SymbolInfo {
 
 export class VarSymbol extends SymbolInfo {
   readonly isGlobalVariable: boolean;
-  declare astNode:
-    | ASTNode.Initializer
-    | ASTNode.GLRenderStateDeclaration
-    | ASTNode.GLVariableDeclaration
-    | ASTNode.ParameterDeclarator;
+  declare astNode: ASTNode.Initializer | ASTNode.ParameterDeclarator;
 
   constructor(
     lexeme: string,
     dataType: SymbolType,
     isGlobalVariable: boolean,
-    initAst:
-      | ASTNode.Initializer
-      | ASTNode.GLRenderStateDeclaration
-      | ASTNode.GLVariableDeclaration
-      | ASTNode.ParameterDeclarator
+    initAst: ASTNode.Initializer | ASTNode.ParameterDeclarator
   ) {
     super(lexeme, ESymbolType.VAR, initAst, dataType);
     this.isGlobalVariable = isGlobalVariable;

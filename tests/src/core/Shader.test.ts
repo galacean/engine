@@ -29,8 +29,9 @@ import spies from "chai-spies";
 chai.use(spies);
 
 const shaderLab = new ShaderLab(
+  // @ts-ignore
+  RenderStateDataKey,
   {
-    _RenderStateElementKey: RenderStateDataKey,
     RenderQueueType,
     CompareFunction,
     StencilOperation,
@@ -38,7 +39,7 @@ const shaderLab = new ShaderLab(
     BlendFactor,
     CullMode
   },
-  { Vector2, Vector3, Vector4, Color }
+  Color
 );
 
 describe("Shader", () => {
@@ -182,6 +183,7 @@ describe("Shader", () => {
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
+      debugger;
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderLab.
@@ -474,7 +476,7 @@ const testShaderLabCode = `
           DestinationColorBlendFactor = BlendFactor.BlendColor;
           DestinationAlphaBlendFactor = BlendFactor.OneMinusBlendColor;
           ColorWriteMask = 16777130;
-          BlendColor = Vector4(1, 1, 1, 0);
+          BlendColor = Color(1, 1, 1, 0);
           AlphaToCoverage = true;
         }
 

@@ -1,7 +1,20 @@
 import { expect } from "chai";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, ShaderFactory } from "@galacean/engine-core";
-import { ISubShaderInfo } from "@galacean/engine-design";
+import { EBackend, ShaderLab } from "@galacean/engine-shader-lab";
+import {
+  BlendFactor,
+  BlendOperation,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  RenderStateDataKey,
+  Shader,
+  ShaderFactory,
+  StencilOperation,
+  // @ts-ignore
+  ShaderLib
+} from "@galacean/engine-core";
+import { ShaderStruct } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math";
 
 function addLineNum(str: string) {
   const lines = str.split("\n");
@@ -19,10 +32,14 @@ function addLineNum(str: string) {
     .join("\n");
 }
 
-function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
-  if (typeof pass === "string") {
+function validateShaderPass(
+  pass: ShaderStruct["subShaders"][number]["passes"][number],
+  vertexSource: string,
+  fragmentSource: string
+) {
+  if (pass.isUsePass) {
     // builtin shader pass
-    const paths = pass.split("/");
+    const paths = pass.name.split("/");
     const shaderPass = Shader.find(paths[0])
       ?.subShaders.find((subShader) => subShader.name === paths[1])
       ?.passes.find((pass) => pass.name === paths[2]);
@@ -35,19 +52,19 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
     const vs = gl.createShader(gl.VERTEX_SHADER);
     const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-    gl.shaderSource(vs, pass.vertexSource);
+    gl.shaderSource(vs, vertexSource);
     gl.compileShader(vs);
 
-    gl.shaderSource(fs, ShaderFactory.convertTo300(pass.fragmentSource, true));
+    gl.shaderSource(fs, ShaderFactory.convertTo300(fragmentSource, true));
     gl.compileShader(fs);
 
     expect(
       gl.getShaderParameter(vs, gl.COMPILE_STATUS),
-      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(pass.vertexSource)}`
+      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(vertexSource)}`
     ).to.be.true;
     expect(
       gl.getShaderParameter(fs, gl.COMPILE_STATUS),
-      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(pass.fragmentSource)}`
+      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(fragmentSource)}`
     ).to.be.true;
 
     const program = gl.createProgram();
@@ -63,13 +80,40 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
 }
 
 export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
-  const shaderLab = _shaderLab ?? new ShaderLab();
+  const shaderLab =
+    _shaderLab ??
+    new ShaderLab(
+      // @ts-ignore
+      RenderStateDataKey,
+      {
+        RenderQueueType,
+        CompareFunction,
+        StencilOperation,
+        BlendOperation,
+        BlendFactor,
+        CullMode
+      },
+      Color
+    );
+
+  // @ts-ignore
+  shaderLab.setIncludeMap({ ...ShaderLib, ...includeMap });
 
   const start = performance.now();
-  const shader = shaderLab.parseShader(shaderSource, [], includeMap);
-  console.log("parse time: ", (performance.now() - start).toFixed(2));
+  const shader = shaderLab.parseShaderStruct(shaderSource);
+  console.log("struct compilation time: ", (performance.now() - start).toFixed(2), "ms");
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {
-    subShader.passes.map((pass) => validateShaderPass(pass));
+    subShader.passes.forEach((pass) => {
+      if (pass.isUsePass) return;
+      const compiledPass = shaderLab.parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        [],
+        EBackend.GLES300
+      );
+      validateShaderPass(pass, compiledPass.vertexSource, compiledPass.fragmentSource);
+    });
   });
 }

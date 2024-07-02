@@ -660,8 +660,8 @@ export class Engine extends EventDispatcher {
       Shader._shaderLab = shaderLab;
       // @ts-ignore
       shaderLab.init(
+        RenderStateDataKey,
         {
-          _RenderStateElementKey: RenderStateDataKey,
           RenderQueueType,
           CompareFunction,
           StencilOperation,
@@ -669,7 +669,7 @@ export class Engine extends EventDispatcher {
           BlendFactor,
           CullMode
         },
-        { Vector2, Vector3, Vector4, Color }
+        Color
       );
       // @ts-ignore
       shaderLab.setIncludeMap(ShaderLib);

@@ -71,6 +71,7 @@ export default class Parser {
         // #endif
       } else if (actionInfo?.action === EAction.Accept) {
         this.logger.debug(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
+        // console.log(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
       } else if (actionInfo?.action === EAction.Reduce) {
@@ -109,7 +110,6 @@ export default class Parser {
         // #endif
         continue;
       } else {
-        debugger;
         this.logger.errorLoc(token.location, `parse error token ${token}`);
         // #if _DEVELOPMENT
         throw `invalid action table by token ${token.lexeme}`;

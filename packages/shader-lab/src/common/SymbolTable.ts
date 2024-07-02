@@ -93,9 +93,13 @@ export default class SymbolTable {
     ) {
       this.logger.error("function symbol exist:", lexeme);
       return;
-    } else if (entry.findIndex((item) => item.symType === sm.symType) !== -1) {
-      this.logger.error("symbol exist:", lexeme);
-      return;
+    } else {
+      const exist = entry.findIndex((item) => item.symType === sm.symType);
+      if (exist !== -1) {
+        this.logger.warn("symbol replace:", lexeme);
+        entry[exist] = sm;
+        return;
+      }
     }
     entry.push(sm);
     this.table.set(lexeme, entry);

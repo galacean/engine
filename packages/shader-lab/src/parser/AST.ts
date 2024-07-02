@@ -229,18 +229,6 @@ export namespace ASTNode {
     constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal.fully_specified_type, loc, children);
     }
-
-    // #if _DEVELOPMENT
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      if (typeof this.type === "string") {
-        // Custom type, check declaration
-        const decl = sa.scope.lookup(this.type, ESymbolType.STRUCT);
-        if (!decl && sa._engineType[this.type] == undefined) {
-          sa.error(this.location, "undeclared type:", this.type);
-        }
-      }
-    }
-    // #endif
   }
 
   export class TypeQualifier extends TreeNode {

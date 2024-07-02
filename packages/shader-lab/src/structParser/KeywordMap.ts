@@ -13,7 +13,7 @@ export const KeywordMap = new Map([
   ["FragmentShader", EKeyword.GS_FragmentShader],
   ["SubShader", EKeyword.GS_SubShader],
   ["Pass", EKeyword.GS_Pass],
-  ["BlendFactor", EKeyword.GS_BlendState],
+  ["BlendFactor", EKeyword.GS_BlendFactor],
   ["BlendOperation", EKeyword.GS_BlendOperation],
   ["Bool", EKeyword.GS_Bool],
   ["Number", EKeyword.GS_Number],

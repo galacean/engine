@@ -340,6 +340,13 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
 
     this._render(context);
+
+    // union camera global macro and renderer macro.
+    ShaderMacroCollection.unionCollection(
+      context.camera._globalShaderMacro,
+      this.shaderData._macroCollection,
+      this._globalShaderMacro
+    );
   }
 
   /**

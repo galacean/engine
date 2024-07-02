@@ -186,7 +186,7 @@ export default class ShaderStructParser extends BaseError {
       this._scanner.scanText(";");
       const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
       if (!sm?.value) {
-        this.throw(this._scanner.current, `Invalid ${stateToken.lexeme}:`, variable.lexeme);
+        this.throw(this._scanner.current, `Invalid ${stateToken.lexeme} variable:`, variable.lexeme);
       }
       const renderState = sm.value as RenderStates;
       Object.assign(ret.renderStates[0], renderState[0]);
@@ -286,10 +286,11 @@ export default class ShaderStructParser extends BaseError {
 
   private _parseRenderQueueAssignment(ret: { renderStates: RenderStates }) {
     this._scanner.scanText("=");
-    const word = this._scanner.scanWord();
-    const value = ShaderStructParser._engineType.RenderQueueType[word];
+    const word = this._scanner.scanToken();
+    this._scanner.scanText(";");
+    const value = ShaderStructParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
-      this.throw(this._scanner.current, "Invalid render queue", word);
+      this.throw(this._scanner.current, "Invalid render queue", word.lexeme);
     }
     const key = ShaderStructParser._RenderStateElementKey.RenderQueueType;
     ret.renderStates[key] = value;

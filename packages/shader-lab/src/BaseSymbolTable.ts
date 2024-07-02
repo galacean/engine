@@ -60,6 +60,10 @@ export class SymbolTableStack<T extends IBaseSymbol> {
   }
 
   lookup(sm: T) {
-    return this._scope.lookup(sm);
+    for (let i = this._stack.length - 1; i >= 0; i--) {
+      const scope = this._stack[i];
+      const ret = scope.lookup(sm);
+      if (ret) return ret;
+    }
   }
 }

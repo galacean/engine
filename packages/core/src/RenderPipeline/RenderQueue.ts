@@ -39,8 +39,6 @@ export class RenderQueue {
     pipelineStageTagValue: string,
     maskType: RenderQueueMaskType = RenderQueueMaskType.No
   ): void {
-    // console.log("render queue render");
-    // debugger;
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
     if (length === 0) {

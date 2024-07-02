@@ -114,7 +114,6 @@ export class MeshRenderer extends Renderer {
    * @internal
    */
   protected override _render(context: RenderContext): void {
-    // console.log("mesh render render");
     const mesh = this._mesh;
     if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
       const shaderData = this.shaderData;

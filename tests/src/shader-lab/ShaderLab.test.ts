@@ -9,11 +9,10 @@ import {
   // @ts-ignore
   ShaderLib
 } from "@galacean/engine-core";
-import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
-import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 import { Logger, LoggerLevel, ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
-import { Shader } from "@galacean/engine-core";
+import { ShaderStruct } from "@galacean/engine-design";
 
 import chai, { expect } from "chai";
 import spies from "chai-spies";
@@ -22,7 +21,7 @@ import path from "path";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
-Logger.setLevel(LoggerLevel.debug);
+Logger.setLevel(LoggerLevel.off);
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -116,8 +115,9 @@ vec4 linearToGamma(vec4 linearIn){
 `;
 
 const shaderLab = new ShaderLab(
+  // @ts-ignore
+  RenderStateDataKey,
   {
-    _RenderStateElementKey: RenderStateDataKey,
     RenderQueueType,
     CompareFunction,
     StencilOperation,
@@ -125,23 +125,22 @@ const shaderLab = new ShaderLab(
     BlendFactor,
     CullMode
   },
-  { Vector2, Vector3, Vector4, Color }
+  Color
 );
 
 describe("ShaderLab", () => {
-  let shader: ReturnType<typeof shaderLab.parseShader>;
-  let subShader: ISubShaderInfo;
-  let passList: ISubShaderInfo["passes"];
-  let pass: IShaderPassInfo;
-  let usePass: string;
+  let shader: ShaderStruct;
+  let subShader: ShaderStruct["subShaders"][number];
+  let passList: ShaderStruct["subShaders"][number]["passes"];
+  let pass1: ShaderStruct["subShaders"][number]["passes"][number];
 
   before(() => {
-    shader = shaderLab.parseShader(demoShader);
+    shader = shaderLab.parseShaderStruct(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
-    usePass = <string>passList[0];
-    pass = <IShaderPassInfo>passList[1];
-    context = (shader as any)._context;
+    expect(passList[0].isUsePass).to.be.true;
+    expect(passList[0].name).eq("pbr/Default/Forward");
+    pass1 = passList[1];
   });
 
   it("create shaderLab", async () => {
@@ -151,14 +150,15 @@ describe("ShaderLab", () => {
   it("shader name", () => {
     expect(shader.name).to.equal("Water");
     expect(subShader.name).to.equal("subname");
-    expect(pass.name).to.equal("default");
-    expect(usePass).to.equal("pbr/Default/Forward");
+    expect(pass1.name).to.equal("default");
+    expect(passList.length).to.eq(3);
+    expect(passList[2].name).to.equal("blinn-phong/Default/Forward");
   });
 
   it("render state", () => {
-    expect(pass.renderStates).not.be.null;
+    expect(pass1.renderStates).not.be.null;
 
-    const [constantState, variableState] = pass.renderStates;
+    const [constantState, variableState] = pass1.renderStates;
     expect(constantState).not.be.null;
 
     expect(toString(constantState[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
@@ -196,13 +196,14 @@ describe("ShaderLab", () => {
     expect(subShader.tags).include({
       LightMode: "ForwardBase"
     });
-    expect(pass.tags).include({
+    expect(pass1.tags).include({
       ReplacementTag: "Opaque",
       pipelineStage: "DepthOnly"
     });
   });
 
   it("engine shader", async () => {
+    debugger;
     glslValidate(demoShader, shaderLab);
   });
 

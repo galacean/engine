@@ -96,18 +96,50 @@ export class Shader implements IReferable {
       }
       const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
-          if (passInfo.content == undefined) {
+          if (passInfo.isUsePass) {
             // Use pass reference
             const paths = passInfo.name.split("/");
-            return Shader.find(paths[0])
+            const pass = Shader.find(paths[0])
               ?.subShaders.find((subShader) => subShader.name === paths[1])
               ?.passes.find((pass) => pass.name === paths[2]);
+            return pass;
           }
 
-          const shaderPass = new ShaderPass(passInfo.content);
+          const shaderPass = new ShaderPass(
+            passInfo.contents,
+            { vertexEntry: passInfo.vertexEntry, fragmentEntry: passInfo.fragmentEntry },
+            passInfo.tags
+          );
+          shaderPass.setName(passInfo.name);
+
+          const renderStates = passInfo.renderStates;
+          const renderState = new RenderState();
+
+          shaderPass._renderState = renderState;
+          // Parse const render state
+          const constRenderStateInfo = renderStates[0];
+          for (let k in constRenderStateInfo) {
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
+          }
+
+          // Parse variable render state
+          const variableRenderStateInfo = renderStates[1];
+          const renderStateDataMap = {} as Record<number, ShaderProperty>;
+          for (let k in variableRenderStateInfo) {
+            renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
+          }
+          shaderPass._renderStateDataMap = renderStateDataMap;
+
           return shaderPass;
         });
-        return new SubShader(subShaderInfo.name, passList);
+
+        const subShader = new SubShader(subShaderInfo.name, passList);
+        if (subShaderInfo.tags) {
+          for (const tagKey in subShaderInfo.tags) {
+            subShader.setTag(tagKey, subShaderInfo.tags[tagKey]);
+          }
+        }
+        return subShader;
       });
 
       shader = new Shader(shaderInfo.name, subShaderList);
@@ -148,9 +180,6 @@ export class Shader implements IReferable {
     return Shader._shaderMap[name];
   }
 
-  /**
-   * @internal
-   */
   static _applyConstRenderStates(
     renderState: RenderState,
     key: RenderStateElementKey,
