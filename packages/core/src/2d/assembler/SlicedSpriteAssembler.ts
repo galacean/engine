@@ -2,7 +2,6 @@ import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
  * @internal
@@ -27,9 +26,8 @@ export class SlicedSpriteAssembler {
 
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite } = renderer;
-    const { positions, uvs } = renderer._verticesData;
+    const { positions } = renderer._verticesData;
     const { border } = sprite;
-    const spriteUVs = sprite._getUVs();
     // Update local positions.
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
@@ -95,27 +93,24 @@ export class SlicedSpriteAssembler {
     wE[14] = pWE[14] - localTransX * wE[2] - localTransY * wE[6];
 
     // ------------------------
-    //  3 - 7 - 11 - 15
+    //  12 -13 -14 - 15
     //  |   |   |    |
-    //  2 - 6 - 10 - 14
+    //  8 - 9 - 10 - 11
     //  |   |   |    |
-    //  1 - 5 - 9  - 13
+    //  4 - 5 - 6  - 7
     //  |   |   |    |
-    //  0 - 4 - 8  - 12
+    //  0 - 1 - 2  - 3
     // ------------------------
-    // Assemble position and uv.
+    // Assemble positions.
     for (let i = 0; i < 4; i++) {
-      const rowValue = row[i];
-      const rowU = spriteUVs[i].x;
+      const columnValue = column[i];
       for (let j = 0; j < 4; j++) {
-        const columnValue = column[j];
-        const idx = i * 4 + j;
-        positions[idx].set(
+        const rowValue = row[j];
+        positions[i * 4 + j].set(
           wE[0] * rowValue + wE[4] * columnValue + wE[12],
           wE[1] * rowValue + wE[5] * columnValue + wE[13],
           wE[2] * rowValue + wE[6] * columnValue + wE[14]
         );
-        uvs[idx].set(rowU, spriteUVs[j].y);
       }
     }
 
@@ -125,5 +120,11 @@ export class SlicedSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {}
+  static updateUVs(renderer: SpriteRenderer): void {
+    const spriteUVs = renderer.sprite._getUVs();
+    const renderUVs = renderer._verticesData.uvs;
+    for (let i = 0; i < 16; i++) {
+      renderUVs[i].copyFrom(spriteUVs[i]);
+    }
+  }
 }

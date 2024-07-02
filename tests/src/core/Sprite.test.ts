@@ -1,6 +1,6 @@
-import { Sprite, SpriteRenderer, Texture2D, SpriteMask } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Sprite, SpriteMask, SpriteRenderer, Texture2D } from "@galacean/engine-core";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Sprite", async () => {
@@ -146,24 +146,69 @@ describe("Sprite", async () => {
     let uvs = sprite._getUVs();
     expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
     expect(uvs[1]).to.deep.eq(new Vector2(0, 1));
-    expect(uvs[2]).to.deep.eq(new Vector2(1, 0));
-    expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
+    expect(uvs[2]).to.deep.eq(new Vector2(1, 1));
+    expect(uvs[3]).to.deep.eq(new Vector2(1, 1));
+
+    expect(uvs[4]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[5]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[6]).to.deep.eq(new Vector2(1, 1));
+    expect(uvs[7]).to.deep.eq(new Vector2(1, 1));
+
+    expect(uvs[8]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[9]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[10]).to.deep.eq(new Vector2(1, 0));
+    expect(uvs[11]).to.deep.eq(new Vector2(1, 0));
+
+    expect(uvs[12]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[13]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[14]).to.deep.eq(new Vector2(1, 0));
+    expect(uvs[15]).to.deep.eq(new Vector2(1, 0));
 
     sprite.region = new Rect(0, 0, 0.5, 0.5);
     // @ts-ignore
     uvs = sprite._getUVs();
     expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
     expect(uvs[1]).to.deep.eq(new Vector2(0, 1));
-    expect(uvs[2]).to.deep.eq(new Vector2(0.5, 0.5));
-    expect(uvs[3]).to.deep.eq(new Vector2(0.5, 0.5));
+    expect(uvs[2]).to.deep.eq(new Vector2(0.5, 1));
+    expect(uvs[3]).to.deep.eq(new Vector2(0.5, 1));
+
+    expect(uvs[4]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[5]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[6]).to.deep.eq(new Vector2(0.5, 1));
+    expect(uvs[7]).to.deep.eq(new Vector2(0.5, 1));
+
+    expect(uvs[8]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[9]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[10]).to.deep.eq(new Vector2(0.5, 0.5));
+    expect(uvs[11]).to.deep.eq(new Vector2(0.5, 0.5));
+
+    expect(uvs[12]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[13]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[14]).to.deep.eq(new Vector2(0.5, 0.5));
+    expect(uvs[15]).to.deep.eq(new Vector2(0.5, 0.5));
 
     sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
     // @ts-ignore
     uvs = sprite._getUVs();
     expect(uvs[0]).to.deep.eq(new Vector2(0, 0.5));
     expect(uvs[1]).to.deep.eq(new Vector2(0, 0.5));
-    expect(uvs[2]).to.deep.eq(new Vector2(0.25, 0.25));
-    expect(uvs[3]).to.deep.eq(new Vector2(0.25, 0.25));
+    expect(uvs[2]).to.deep.eq(new Vector2(0.25, 0.5));
+    expect(uvs[3]).to.deep.eq(new Vector2(0.25, 0.5));
+
+    expect(uvs[4]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[5]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[6]).to.deep.eq(new Vector2(0.25, 0.5));
+    expect(uvs[7]).to.deep.eq(new Vector2(0.25, 0.5));
+
+    expect(uvs[8]).to.deep.eq(new Vector2(0, 0.25));
+    expect(uvs[9]).to.deep.eq(new Vector2(0, 0.25));
+    expect(uvs[10]).to.deep.eq(new Vector2(0.25, 0.25));
+    expect(uvs[11]).to.deep.eq(new Vector2(0.25, 0.25));
+
+    expect(uvs[12]).to.deep.eq(new Vector2(0, 0.25));
+    expect(uvs[13]).to.deep.eq(new Vector2(0, 0.25));
+    expect(uvs[14]).to.deep.eq(new Vector2(0.25, 0.25));
+    expect(uvs[15]).to.deep.eq(new Vector2(0.25, 0.25));
   });
 
   it("_getBounds", () => {
