@@ -11,6 +11,9 @@ export class ClearableObjectPool<T extends IPoolElement> extends ObjectPool<T> {
     this._elements = [];
   }
 
+  /**
+   * Get an object.
+   */
   get(): T {
     const { _usedElementCount: usedElementCount, _elements: elements } = this;
     this._usedElementCount++;
@@ -23,6 +26,9 @@ export class ClearableObjectPool<T extends IPoolElement> extends ObjectPool<T> {
     }
   }
 
+  /**
+   * Clear used object count to 0, not destroy any object, just change index.
+   */
   clear(): void {
     this._usedElementCount = 0;
   }
