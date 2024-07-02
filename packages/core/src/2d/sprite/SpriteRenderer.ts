@@ -154,7 +154,6 @@ export class SpriteRenderer extends Renderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     }
   }
 
@@ -272,6 +271,8 @@ export class SpriteRenderer extends Renderer {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChanged.bind(this);
   }
 
   /**
@@ -375,8 +376,6 @@ export class SpriteRenderer extends Renderer {
 
     super._onDestroy();
 
-    this._entity = null;
-    this._color = null;
     this._sprite = null;
     this._assembler = null;
     if (this._subChunk) {
@@ -457,6 +456,11 @@ export class SpriteRenderer extends Renderer {
         this.sprite = null;
         break;
     }
+  }
+
+  @ignoreClone
+  private _onColorChanged(): void {
+    this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
   }
 }
 
