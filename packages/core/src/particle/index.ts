@@ -19,4 +19,5 @@ export { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 export { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 export { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 export { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+export { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 export * from "./modules/shape/index";
