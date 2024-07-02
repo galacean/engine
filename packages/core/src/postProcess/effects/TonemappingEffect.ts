@@ -5,7 +5,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Material } from "../../material";
 import { Shader } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
-import { Texture2D } from "../../texture";
+import { RenderTarget, Texture2D } from "../../texture";
 import { PostProcessEffect } from "../PostProcessEffect";
 
 /**
@@ -83,15 +83,8 @@ export class TonemappingEffect extends PostProcessEffect {
     this.mode = TonemappingMode.Neutral;
   }
 
-  override onRender(context: RenderContext): void {
-    PipelineUtils.blitTexture(
-      this.engine,
-      <Texture2D>context.srcRT.getColorTexture(0),
-      context.destRT,
-      undefined,
-      undefined,
-      this._material
-    );
+  override onRender(context: RenderContext, srcTexture: Texture2D, destRenderTarget: RenderTarget): void {
+    PipelineUtils.blitTexture(this.engine, srcTexture, destRenderTarget, undefined, undefined, this._material);
   }
 }
 

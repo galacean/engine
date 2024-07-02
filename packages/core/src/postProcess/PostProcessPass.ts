@@ -1,6 +1,7 @@
 import { Engine } from "../Engine";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Texture2D } from "../texture";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessEffect } from "./PostProcessEffect";
 import { PostProcessManager } from "./PostProcessManager";
@@ -45,11 +46,12 @@ export class PostProcessPass extends PipelinePass {
     for (let i = 0, length = effects.length; i < length; i++) {
       const effect = effects[i];
       if (effect.enabled) {
-        effect.onRender(context);
+        const srcRT = PostProcessManager._getSrcRenderTarget();
+        const destRT = PostProcessManager._getDestRenderTarget();
         // Should blit to resolve the MSAA
-        context.destRT._blitRenderTarget();
-        context.srcRT = context.destRT;
-        context.destRT = PostProcessManager._getSwapRT();
+        srcRT._blitRenderTarget();
+        effect.onRender(context, <Texture2D>srcRT.getColorTexture(), destRT);
+        PostProcessManager._swapRenderTarget();
       }
     }
   }

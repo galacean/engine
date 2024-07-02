@@ -1,4 +1,5 @@
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RenderTarget, Texture2D } from "../texture";
 
 export abstract class PostProcessEffect {
   private _enabled = true;
@@ -16,5 +17,5 @@ export abstract class PostProcessEffect {
 
   constructor(public readonly engine) {}
 
-  abstract onRender(context: RenderContext): void;
+  abstract onRender(context: RenderContext, srcTexture: Texture2D, destRenderTarget: RenderTarget): void;
 }

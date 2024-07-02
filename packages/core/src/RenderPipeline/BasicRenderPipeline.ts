@@ -155,6 +155,8 @@ export class BasicRenderPipeline {
     const colorViewport = colorTarget ? PipelineUtils.defaultViewport : camera.viewport;
     const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
 
+    context.colorTarget = colorTarget;
+
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
       context.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
@@ -197,7 +199,7 @@ export class BasicRenderPipeline {
 
     // Render post process pass
     const postProcessManager = scene._postProcessManager;
-    postProcessManager._render(context, colorTarget);
+    postProcessManager._render(context);
 
     // Final blit MSAA
     colorTarget?._blitRenderTarget();

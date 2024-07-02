@@ -9,6 +9,32 @@ import { PostProcessPass } from "./PostProcessPass";
 export class PostProcessManager {
   private static _transformRT: RenderTarget[] = [];
   private static _rtIdentifier = 0;
+  private static _srcRenderTarget: RenderTarget;
+  private static _destRenderTarget: RenderTarget;
+
+  /**
+   * @internal
+   */
+  static _getSrcRenderTarget(): RenderTarget {
+    return this._srcRenderTarget;
+  }
+
+  /**
+   * @internal
+   */
+  static _getDestRenderTarget(): RenderTarget {
+    return this._destRenderTarget;
+  }
+
+  /**
+   * @internal
+   */
+  static _swapRenderTarget(): void {
+    this._srcRenderTarget = this._destRenderTarget;
+    this._rtIdentifier = (this._rtIdentifier + 1) % 2;
+
+    this._destRenderTarget = this._transformRT[this._rtIdentifier];
+  }
 
   /**
    * @internal
@@ -35,15 +61,6 @@ export class PostProcessManager {
         TextureFilterMode.Bilinear
       );
     }
-  }
-
-  /**
-   * @internal
-   */
-  static _getSwapRT(): RenderTarget {
-    this._rtIdentifier = (this._rtIdentifier + 1) % 2;
-
-    return this._transformRT[this._rtIdentifier];
   }
 
   /**
@@ -136,9 +153,9 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _render(context: RenderContext, colorTarget: RenderTarget) {
-    const camera = context.camera;
+  _render(context: RenderContext) {
     const engine = this.engine;
+    const { camera, colorTarget } = context;
 
     if (camera.enablePostProcess) {
       const viewport = camera.pixelViewport;
@@ -150,10 +167,8 @@ export class PostProcessManager {
         camera._getInternalColorTextureFormat(),
         camera.msaaSamples
       );
-      // Should blit to resolve the MSAA
-      colorTarget._blitRenderTarget();
-      context.srcRT = colorTarget;
-      context.destRT = PostProcessManager._getSwapRT();
+      PostProcessManager._srcRenderTarget = colorTarget;
+      PostProcessManager._destRenderTarget = PostProcessManager._transformRT[0];
 
       const postProcesses = this._passes.getLoopArray();
 
@@ -163,8 +178,12 @@ export class PostProcessManager {
       }
 
       // @todo: should depends on all effects
-      const lastPostRT = context.srcRT;
-      PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
+      const lastPostRT = PostProcessManager._getSrcRenderTarget();
+      if (lastPostRT !== colorTarget) {
+        // Should blit to resolve the MSAA
+        lastPostRT._blitRenderTarget();
+        PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
+      }
     } else {
       PostProcessManager._releaseSwapRT();
     }

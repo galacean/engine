@@ -184,7 +184,7 @@ export class BloomEffect extends PostProcessEffect {
     this.dirtIntensity = 1;
   }
 
-  override onRender(context: RenderContext): void {
+  override onRender(context: RenderContext, srcTexture: Texture2D, destRenderTarget: RenderTarget): void {
     const engine = this.engine;
     const camera = context.camera;
     const material = this._material;
@@ -236,7 +236,7 @@ export class BloomEffect extends PostProcessEffect {
 
     PipelineUtils.blitTexture(
       engine,
-      <Texture2D>context.srcRT.getColorTexture(0),
+      srcTexture,
       this._mipDownRT[0],
       undefined,
       undefined,
@@ -316,15 +316,7 @@ export class BloomEffect extends PostProcessEffect {
 
     shaderData.setTexture(BloomEffect._bloomTextureProp, this._mipUpRT[0].getColorTexture(0));
 
-    PipelineUtils.blitTexture(
-      engine,
-      <Texture2D>context.srcRT.getColorTexture(0),
-      context.destRT,
-      undefined,
-      undefined,
-      material,
-      4
-    );
+    PipelineUtils.blitTexture(engine, srcTexture, destRenderTarget, undefined, undefined, material, 4);
   }
 }
 
