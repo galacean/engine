@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
-import { getMeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
+import { getMeshoptDecoder, ready } from "./gltf/extensions/MeshoptDecoder";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
@@ -19,9 +19,11 @@ export class GLTFLoader extends Loader<GLTFResource> {
    * @remarks If use loader after releasing, we should release again.
    */
   static release(): void {
-    getMeshoptDecoder(false).then((meshoptDecoder) => {
-      meshoptDecoder?.release();
-    });
+    if (ready) {
+      getMeshoptDecoder().then((meshoptDecoder) => {
+        meshoptDecoder.release();
+      });
+    }
   }
 
   override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
