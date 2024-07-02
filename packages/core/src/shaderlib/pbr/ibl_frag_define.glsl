@@ -19,6 +19,19 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 }
 
+vec3 DecodeDirectionalLightmap(vec3 color, vec4 dirTex, vec3 normalWorld) {
+    // In directional (non-specular) mode Enlighten bakes dominant light direction
+    // in a way, that using it for half Lambert and then dividing by a "rebalancing coefficient"
+    // gives a result close to plain diffuse response lightmaps, but normalmapped.
+
+    // Note that dir is not unit length on purpose. Its length is "directionality", like
+    // for the directional specular lightmaps.
+
+    float halfLambert = dot(normalWorld, dirTex.xyz - 0.5) + 0.5;
+
+    return color * halfLambert / max(1e-4, dirTex.w);
+}
+
 // ------------------------Specular------------------------
 
 // ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
