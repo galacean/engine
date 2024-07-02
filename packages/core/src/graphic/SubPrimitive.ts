@@ -1,5 +1,8 @@
 import { MeshTopology } from "./enums/MeshTopology";
 
+/**
+ * Sub-primitive, mainly contains drawing information.
+ */
 export class SubPrimitive {
   /** Start drawing offset. */
   start: number;
