@@ -31,6 +31,13 @@ export class WebGLEngine extends Engine {
     // @ts-ignore
     return this._canvas as WebCanvas;
   }
+
+  /**
+   * Whether webgl2.
+   */
+  get isWebGL2() {
+    return this._hardwareRenderer.isWebGL2;
+  }
 }
 
 /**
