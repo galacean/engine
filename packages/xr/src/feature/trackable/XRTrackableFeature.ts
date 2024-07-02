@@ -9,9 +9,10 @@ import { XRTracked } from "./XRTracked";
 /**
  * The base class of XR trackable manager.
  */
-export abstract class XRTrackableFeature<T extends XRTracked, K extends XRRequestTracking<T>> extends XRFeature<
-  IXRTrackablePlatformFeature<T, K>
-> {
+export abstract class XRTrackableFeature<
+  T extends XRTracked = XRTracked,
+  K extends XRRequestTracking<T> = XRRequestTracking<T>
+> extends XRFeature<IXRTrackablePlatformFeature<T, K>> {
   protected static _uuid = 0;
 
   protected _requestTrackings: K[] = [];

@@ -6,6 +6,8 @@ export { XRPose } from "./XRPose";
 export { XRFeature } from "./feature/XRFeature";
 // camera
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
+export { XRTracked } from "./feature/trackable/XRTracked";
+export { XRTrackableFeature } from "./feature/trackable/XRTrackableFeature";
 // hitTest
 export { TrackableType } from "./feature/hitTest/TrackableType";
 export { XRHitResult } from "./feature/hitTest/XRHitResult";

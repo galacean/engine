@@ -84,6 +84,7 @@ export class XRSessionManager {
       engine.pause();
       engine.resume();
     }
+    engine.dispatch("XRSessionStart");
   }
 
   /**
@@ -106,6 +107,7 @@ export class XRSessionManager {
       engine.pause();
       engine.resume();
     }
+    engine.dispatch("XRSessionStop");
   }
 
   /**
@@ -130,6 +132,7 @@ export class XRSessionManager {
           platformSession.addEventListener();
           xrManager._onSessionInit();
           resolve();
+          this._engine.dispatch("XRSessionInit");
         }, reject);
     });
   }
@@ -174,7 +177,9 @@ export class XRSessionManager {
     if (!platformSession) {
       return Promise.reject("Without session to stop.");
     }
-    return platformSession.end();
+    return platformSession.end().then(() => {
+      this._engine.dispatch("XRSessionExit");
+    });
   }
 
   private _onSessionExit() {
