@@ -1,5 +1,6 @@
 import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
+import { RenderBufferStoreAction } from "../../RenderPipeline";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Material } from "../../material";
@@ -241,7 +242,7 @@ export class BloomEffect extends PostProcessEffect {
       undefined,
       material,
       0,
-      true
+      RenderBufferStoreAction.BlitMSAA
     );
 
     // Down sample - gaussian pyramid
@@ -258,7 +259,7 @@ export class BloomEffect extends PostProcessEffect {
         undefined,
         material,
         1,
-        true
+        RenderBufferStoreAction.BlitMSAA
       );
       PipelineUtils.blitTexture(
         engine,
@@ -268,7 +269,7 @@ export class BloomEffect extends PostProcessEffect {
         undefined,
         material,
         2,
-        true
+        RenderBufferStoreAction.BlitMSAA
       );
 
       lastDown = this._mipDownRT[i];
@@ -294,7 +295,7 @@ export class BloomEffect extends PostProcessEffect {
         undefined,
         material,
         3,
-        true
+        RenderBufferStoreAction.BlitMSAA
       );
     }
 

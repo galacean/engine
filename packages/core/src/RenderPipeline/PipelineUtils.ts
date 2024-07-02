@@ -7,6 +7,7 @@ import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import { RenderBufferStoreAction } from "./enums/RenderBufferStoreAction";
 
 /**
  * @internal
@@ -152,8 +153,8 @@ export class PipelineUtils {
    * @param mipLevel - Mip level to blit
    * @param viewport - Viewport
    * @param material - The material to use when blitting
-   * @param passIndex - pass index to use of the provided material
-   * @param storeAction - This enum describes what should be done on the render target when the GPU is done rendering into it.
+   * @param passIndex - Pass index to use of the provided material
+   * @param renderBufferStoreAction - This enum describes what should be done on the render target when the GPU is done rendering into it.
    */
   static blitTexture(
     engine: Engine,
@@ -163,7 +164,7 @@ export class PipelineUtils {
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material = null,
     passIndex = 0,
-    storeAction = false
+    renderBufferStoreAction = RenderBufferStoreAction.DontCare
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -209,12 +210,11 @@ export class PipelineUtils {
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
 
-    // @todo: use enum RenderBufferStoreAction
-    if (storeAction) {
+    if (renderBufferStoreAction === RenderBufferStoreAction.BlitMSAA) {
       destination?._blitRenderTarget();
     }
 
-    // @todo: should revert RT
+    // Revert
     context.flipProjection = originalFlipProjection;
   }
 }
