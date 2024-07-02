@@ -310,10 +310,6 @@ export class TextRenderer extends Renderer {
 
     super._onDestroy();
 
-    //@ts-ignore
-    this._color._onValueChanged = null;
-    this._color = null;
-
     this._freeTextChunks();
     this._textChunks = null;
 

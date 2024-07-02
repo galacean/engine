@@ -376,9 +376,6 @@ export class SpriteRenderer extends Renderer {
 
     super._onDestroy();
 
-    //@ts-ignore
-    this._color._onValueChanged = null;
-    this._color = null;
     this._sprite = null;
     this._assembler = null;
     if (this._subChunk) {
