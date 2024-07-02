@@ -3,7 +3,7 @@ import { Camera } from "../Camera";
 import { VirtualCamera } from "../VirtualCamera";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
-import { RenderTarget, Texture2D } from "../texture";
+import { RenderTarget } from "../texture";
 
 /**
  * @internal

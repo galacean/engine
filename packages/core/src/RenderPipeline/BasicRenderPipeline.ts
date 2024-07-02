@@ -6,7 +6,6 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
-import { PostProcessManager } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
@@ -196,40 +195,15 @@ export class BasicRenderPipeline {
 
     transparentQueue.render(context, PipelineStage.Forward);
 
-    // render post process pass
+    // Render post process pass
     const postProcessManager = scene._postProcessManager;
-    if (camera.enablePostProcess) {
-      const viewport = camera.pixelViewport;
+    postProcessManager._render(context, colorTarget);
 
-      PostProcessManager._recreateSwapRT(
-        engine,
-        viewport.width,
-        viewport.height,
-        camera._getInternalColorTextureFormat(),
-        camera.msaaSamples
-      );
-      // Should blit to resolve the MSAA
-      colorTarget._blitRenderTarget();
-      context.srcRT = colorTarget;
-      context.destRT = PostProcessManager._getSwapRT();
-
-      const postProcesses = postProcessManager._passes.getLoopArray();
-
-      for (let i = 0, length = postProcesses.length; i < length; i++) {
-        const pass = postProcesses[i];
-        pass.isActive && pass.onRender(context);
-      }
-
-      // @todo: should depends on all effects
-      const lastPostRT = context.srcRT;
-      PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
-    } else {
-      PostProcessManager._releaseSwapRT();
-    }
-
+    // Final blit MSAA
     colorTarget?._blitRenderTarget();
     colorTarget?.generateMipmaps();
 
+    // Blit `internalColorTarget` to `camera.renderTarget`
     if (internalColorTarget && internalColorTarget != camera.renderTarget) {
       PipelineUtils.blitTexture(
         engine,

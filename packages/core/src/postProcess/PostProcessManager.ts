@@ -1,7 +1,8 @@
 import { Engine } from "../Engine";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
-import { RenderTarget, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { PostProcessPass } from "./PostProcessPass";
 
@@ -129,6 +130,43 @@ export class PostProcessManager {
     const index = passes.indexOf(pass);
     if (index !== -1) {
       passes.removeByIndex(index);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _render(context: RenderContext, colorTarget: RenderTarget) {
+    const camera = context.camera;
+    const engine = this.engine;
+
+    if (camera.enablePostProcess) {
+      const viewport = camera.pixelViewport;
+
+      PostProcessManager._recreateSwapRT(
+        engine,
+        viewport.width,
+        viewport.height,
+        camera._getInternalColorTextureFormat(),
+        camera.msaaSamples
+      );
+      // Should blit to resolve the MSAA
+      colorTarget._blitRenderTarget();
+      context.srcRT = colorTarget;
+      context.destRT = PostProcessManager._getSwapRT();
+
+      const postProcesses = this._passes.getLoopArray();
+
+      for (let i = 0, length = postProcesses.length; i < length; i++) {
+        const pass = postProcesses[i];
+        pass.isActive && pass.onRender(context);
+      }
+
+      // @todo: should depends on all effects
+      const lastPostRT = context.srcRT;
+      PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
+    } else {
+      PostProcessManager._releaseSwapRT();
     }
   }
 }
