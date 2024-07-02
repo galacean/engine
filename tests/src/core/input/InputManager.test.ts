@@ -81,13 +81,15 @@ describe("InputManager", async () => {
     }
 
     const cameraEntity = root.createChild("camera");
-    cameraEntity.transform.setPosition(0, 0, 1);
-    cameraEntity.addComponent(Camera);
+    cameraEntity.transform.setPosition(5, 5, 5);
+    const camera = cameraEntity.addComponent(Camera);
+    camera.orthographicSize = 5;
 
     const boxEntity = root.createChild("box");
+    boxEntity.transform.setPosition(5, 5, 0);
     const collider = boxEntity.addComponent(StaticCollider);
     const boxShape = new BoxColliderShape();
-    boxShape.size = new Vector3(10, 10, 10);
+    boxShape.size = new Vector3(2, 2, 2);
     collider.addShape(boxShape);
 
     class TestScript extends Script {
@@ -103,16 +105,28 @@ describe("InputManager", async () => {
         console.log("onPointerDown");
       }
 
+      onPointerUp(pointer: Pointer): void {
+        console.log("onPointerUp");
+      }
+
       onPointerClick(pointer: Pointer): void {
         console.log("onPointerClick");
+      }
+
+      onPointerStartDrag(pointer: Pointer): void {
+        console.log("onPointerStartDrag");
       }
 
       onPointerDrag(pointer: Pointer): void {
         console.log("onPointerDrag");
       }
 
-      onPointerUp(pointer: Pointer): void {
-        console.log("onPointerUp");
+      onPointerEndDrag(pointer: Pointer): void {
+        console.log("onPointerEndDrag");
+      }
+
+      onPointerDrop(pointer: Pointer): void {
+        console.log("onPointerDrop");
       }
     }
     TestScript.prototype.onPointerEnter = chai.spy(TestScript.prototype.onPointerEnter);
@@ -121,10 +135,11 @@ describe("InputManager", async () => {
     TestScript.prototype.onPointerClick = chai.spy(TestScript.prototype.onPointerClick);
     TestScript.prototype.onPointerDrag = chai.spy(TestScript.prototype.onPointerDrag);
     TestScript.prototype.onPointerUp = chai.spy(TestScript.prototype.onPointerUp);
+    TestScript.prototype.onPointerDrop = chai.spy(TestScript.prototype.onPointerDrop);
     const script = boxEntity.addComponent(TestScript);
 
     const { left, top } = target.getBoundingClientRect();
-    target.dispatchEvent(generatePointerEvent("pointerdown", 2, left + 2, top + 2));
+    target.dispatchEvent(generatePointerEvent("pointerdown", 2, left + 2.5, top + 2.5));
     engine.update();
 
     expect(script.onPointerEnter).to.have.been.called.exactly(1);
@@ -134,9 +149,9 @@ describe("InputManager", async () => {
     expect(script.onPointerDrag).to.have.been.called.exactly(0);
     expect(script.onPointerUp).to.have.been.called.exactly(0);
 
-    target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2, top + 2));
-    target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2, top + 2, 0, 0));
-    target.dispatchEvent(generatePointerEvent("pointerleave", 2, left + 2, top + 2, -1, 0));
+    target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2.5, top + 2.5));
+    target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2.5, top + 2.5, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 2, left + 2.5, top + 2.5, -1, 0));
     engine.update();
     expect(script.onPointerEnter).to.have.been.called.exactly(1);
     expect(script.onPointerExit).to.have.been.called.exactly(1);
@@ -144,6 +159,7 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).to.have.been.called.exactly(1);
     expect(script.onPointerDrag).to.have.been.called.exactly(1);
     expect(script.onPointerUp).to.have.been.called.exactly(1);
+    expect(script.onPointerDrop).to.have.been.called.exactly(1);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
     target.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
@@ -162,6 +178,87 @@ describe("InputManager", async () => {
     expect(deltaPosition).deep.equal(new Vector2(0, 0));
     target.dispatchEvent(generatePointerEvent("pointerleave", 4, 0, 0));
     engine.update();
+
+    // 新增测试 onPointerClick
+    // 1. 碰撞体上 down
+    // 2. move 出碰撞体
+    // 3. move 回碰撞体
+    // 4. up & leave
+    target.dispatchEvent(generatePointerEvent("pointerdown", 5, left + 2.5, top + 2.5));
+    engine.update();
+    expect(script.onPointerEnter).to.have.been.called.exactly(2);
+    expect(script.onPointerDown).to.have.been.called.exactly(2);
+    expect(script.onPointerExit).to.have.been.called.exactly(1);
+    expect(script.onPointerDrag).to.have.been.called.exactly(1);
+    target.dispatchEvent(generatePointerEvent("pointermove", 5, left + 200, top + 200));
+    engine.update();
+    expect(script.onPointerEnter).to.have.been.called.exactly(2);
+    expect(script.onPointerExit).to.have.been.called.exactly(2);
+    expect(script.onPointerDrag).to.have.been.called.exactly(2);
+    target.dispatchEvent(generatePointerEvent("pointermove", 5, left + 2.5, top + 2.5));
+    engine.update();
+    expect(script.onPointerEnter).to.have.been.called.exactly(3);
+    expect(script.onPointerExit).to.have.been.called.exactly(2);
+    expect(script.onPointerDown).to.have.been.called.exactly(2);
+    target.dispatchEvent(generatePointerEvent("pointerup", 5, left + 2.5, top + 2.5, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 5, left + 2.5, top + 2.5, -1, 0));
+    engine.update();
+    expect(script.onPointerEnter).to.have.been.called.exactly(3);
+    expect(script.onPointerExit).to.have.been.called.exactly(3);
+    expect(script.onPointerDown).to.have.been.called.exactly(2);
+    expect(script.onPointerUp).to.have.been.called.exactly(2);
+    expect(script.onPointerClick).to.have.been.called.exactly(2);
+    expect(script.onPointerDrop).to.have.been.called.exactly(2);
+
+    // 1. 在碰撞体外 down
+    // 2. 在碰撞体上 up & leave
+    target.dispatchEvent(generatePointerEvent("pointerdown", 6, left + 200, top + 200));
+    engine.update();
+    expect(script.onPointerDown).to.have.been.called.exactly(2);
+    target.dispatchEvent(generatePointerEvent("pointerup", 6, left + 2.5, top + 2.5, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 2.5, top + 2.5, -1, 0));
+    engine.update();
+    expect(script.onPointerUp).to.have.been.called.exactly(3);
+    expect(script.onPointerClick).to.have.been.called.exactly(2);
+
+    // 1. 在碰撞体上 down
+    // 2. 在碰撞体外 up & leave
+    target.dispatchEvent(generatePointerEvent("pointerdown", 6, left + 2.5, top + 2.5));
+    engine.update();
+    expect(script.onPointerDown).to.have.been.called.exactly(3);
+    target.dispatchEvent(generatePointerEvent("pointerup", 6, left + 200, top + 200, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 200, top + 200, -1, 0));
+    engine.update();
+    expect(script.onPointerUp).to.have.been.called.exactly(3);
+    expect(script.onPointerClick).to.have.been.called.exactly(2);
+
+    // hit result
+    target.dispatchEvent(generatePointerEvent("pointerdown", 7, left + 2.5, top + 2.5));
+    engine.update();
+    const pointer = inputManager.pointers[0];
+    const { hitResult } = pointer;
+    expect(hitResult.entity).to.have.been.eq(boxEntity);
+    const out = new Vector3();
+    Vector3.subtract(hitResult.point, new Vector3(2.5 * 2, 2.5 * 2, 1), out);
+    expect(Math.abs(out.x) < 0.00001).to.deep.eq(true);
+    expect(Math.abs(out.y) < 0.00001).to.deep.eq(true);
+    expect(Math.abs(out.z) < 0.00001).to.deep.eq(true);
+    expect(pointer.draggedEntity).to.have.been.eq(boxEntity);
+    expect(pointer.enteredEntity).to.have.been.eq(boxEntity);
+    expect(pointer.pressedEntity).to.have.been.eq(boxEntity);
+    target.dispatchEvent(generatePointerEvent("pointerup", 7, left + 2.5, top + 2.5, 0, 0));
+    engine.update();
+    expect(hitResult.entity).to.have.been.eq(boxEntity);
+    expect(pointer.draggedEntity).to.have.been.eq(null);
+    expect(pointer.enteredEntity).to.have.been.eq(boxEntity);
+    expect(pointer.pressedEntity).to.have.been.eq(null);
+    target.dispatchEvent(generatePointerEvent("pointerleave", 7, left + 2.5, top + 2.5, -1, 0));
+    engine.update();
+    expect(hitResult.entity).to.have.been.eq(boxEntity);
+    expect(pointer.draggedEntity).to.have.been.eq(null);
+    expect(pointer.enteredEntity).to.have.been.eq(null);
+    expect(pointer.pressedEntity).to.have.been.eq(null);
+    expect(script.onPointerDrop).to.have.been.called.exactly(3);
   });
 
   it("keyboard", () => {
