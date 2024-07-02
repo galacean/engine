@@ -59,32 +59,32 @@ export class ResourceManager {
   constructor(public readonly engine: Engine) {}
 
   /**
-   * Load asset asynchronously through the path.
-   * @param path - Path
-   * @returns Asset promise
-   */
-  load<T>(path: string): AssetPromise<T>;
-
-  /**
-   * Load asset collection asynchronously through urls.
-   * @param paths - Path collections
-   * @returns Asset Promise
-   */
-  load(paths: string[]): AssetPromise<Object[]>;
-
-  /**
    * Load the asset asynchronously by asset item information.
    * @param assetItem - AssetItem
    * @returns AssetPromise
    */
-  load<T>(assetItem: LoadItem): AssetPromise<T>;
+  load<T extends EngineObject>(assetItem: LoadItem): AssetPromise<T>;
 
   /**
    * Load the asset collection asynchronously by loading the information collection.
    * @param assetItems - Asset collection
    * @returns AssetPromise
    */
-  load(assetItems: LoadItem[]): AssetPromise<Object[]>;
+  load<T extends EngineObject[]>(assetItems: LoadItem[]): AssetPromise<T>;
+
+  /**
+   * Load asset collection asynchronously through urls.
+   * @param paths - Path collections
+   * @returns Asset Promise
+   */
+  load<T extends EngineObject[]>(paths: string[]): AssetPromise<T>;
+
+  /**
+   * Load asset asynchronously through the path.
+   * @param path - Path
+   * @returns Asset promise
+   */
+  load<T extends EngineObject>(path: string): AssetPromise<T>;
 
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
     // single item
