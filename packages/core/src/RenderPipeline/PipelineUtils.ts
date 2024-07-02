@@ -146,7 +146,7 @@ export class PipelineUtils {
   }
 
   /**
-   * Blit texture to destination render target.
+   * Blit texture to destination render target using a triangle.
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target

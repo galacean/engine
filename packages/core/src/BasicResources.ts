@@ -30,16 +30,14 @@ export class BasicResources {
     // prettier-ignore
     const vertices = new Float32Array([
       -1, -1, 0, 1, // left-bottom
-      1, -1, 1, 1,  // right-bottom
-      -1, 1, 0, 0,  // left-top
-      1, 1, 1, 0]); // right-top
+      3, -1, 2, 1,  // right-bottom
+      -1, 3, 0, -1 ]); // left-top
 
     // prettier-ignore
     const flipYVertices = new Float32Array([
-      1, -1, 1, 0,  // right-bottom
+      3, -1, 2, 0,  // right-bottom
       -1, -1, 0, 0, // left-bottom
-      1, 1, 1, 1,   // right-top
-      -1, 1, 0, 1]); // left-top
+      -1, 3, 0, 2]); // left-top
 
     const blitMaterial = new Material(engine, Shader.find("blit"));
     blitMaterial._addReferCount(1);
@@ -80,7 +78,7 @@ export class BasicResources {
     mesh._addReferCount(1);
     mesh.setVertexElements([new VertexElement("POSITION_UV", 0, VertexElementFormat.Vector4, 0)]);
     mesh.setVertexBufferBinding(new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static), 16);
-    mesh.addSubMesh(0, 4, MeshTopology.TriangleStrip);
+    mesh.addSubMesh(0, 3, MeshTopology.Triangles);
     return mesh;
   }
 
