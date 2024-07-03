@@ -60,16 +60,18 @@ export class XRManagerExtended extends XRManager {
   override addFeature<T extends new (xrManager: XRManagerExtended, ...args: any[]) => XRFeature>(
     type: T,
     ...args: TFeatureConstructorArguments<T>
-  ): XRFeature | null {
+  ): InstanceType<T> | null {
     if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
-    const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      if (feature instanceof type) throw new Error("The feature has been added");
+    const { _features: features, _platformDevice: platformDevice } = this;
+    if (!this._platformDevice.isSupportedFeature(XRManagerExtended._featureMap.get(type))) {
+      throw new Error("The feature is not supported");
     }
-    const feature = new type(this, ...args);
+    for (let i = 0, n = features.length; i < n; i++) {
+      if (features[i] instanceof type) throw new Error("The feature has been added");
+    }
+    const feature = new type(this, ...args) as InstanceType<T>;
     this._features.push(feature);
     return feature;
   }
