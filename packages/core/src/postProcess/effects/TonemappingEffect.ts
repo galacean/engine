@@ -669,6 +669,8 @@ const shader = Shader.create(
       color.rgb = ACESTonemap(color.rgb);
     #endif
 
+    color.rgb = clamp(color.rgb, vec3(0), vec3(1));
+
     gl_FragColor = color;
 
     #ifndef ENGINE_IS_COLORSPACE_GAMMA
