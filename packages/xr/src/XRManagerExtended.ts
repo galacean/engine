@@ -60,7 +60,7 @@ export class XRManagerExtended extends XRManager {
   override addFeature<T extends new (xrManager: XRManagerExtended, ...args: any[]) => XRFeature>(
     type: T,
     ...args: TFeatureConstructorArguments<T>
-  ): XRFeature | null {
+  ): InstanceType<T> | null {
     if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
@@ -69,7 +69,7 @@ export class XRManagerExtended extends XRManager {
       const feature = features[i];
       if (feature instanceof type) throw new Error("The feature has been added");
     }
-    const feature = new type(this, ...args);
+    const feature = new type(this, ...args) as InstanceType<T>;
     this._features.push(feature);
     return feature;
   }
