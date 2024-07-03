@@ -9,7 +9,6 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
-import { RenderStateElementKey } from "./enums/RenderStateElementKey";
 import { ShaderType } from "./enums/ShaderType";
 import { RenderState } from "./state/RenderState";
 
@@ -81,6 +80,7 @@ export class ShaderPass extends ShaderPart {
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
+    this._type = ShaderType.Canonical;
 
     if (typeof fragmentSourceOrTags === "string") {
       this._name = nameOrVertexSourceOrShaderLabSource;
@@ -103,6 +103,7 @@ export class ShaderPass extends ShaderPart {
       tags = fragmentSourceOrTags ?? {
         pipelineStage: PipelineStage.Forward
       };
+      this._type = ShaderType.ShaderLab;
     }
     for (const key in tags) {
       this.setTag(key, tags[key]);
@@ -130,7 +131,7 @@ export class ShaderPass extends ShaderPart {
       return this._getCanonicalShaderProgram(engine, macroCollection);
     }
 
-    if (!this._isCompiled()) this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
+    this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
     shaderProgram = new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
 
     shaderProgramPool.cache(shaderProgram);
@@ -146,10 +147,6 @@ export class ShaderPass extends ShaderPart {
       shaderProgramPools[i]._destroy();
     }
     shaderProgramPools.length = 0;
-  }
-
-  private _isCompiled() {
-    return this._fragmentSource != undefined;
   }
 
   /**
