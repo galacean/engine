@@ -180,5 +180,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
     }
+  },
+  PostProcess: {
+    bloomAndTonemap: {
+      category: "PostProcess",
+      caseFileName: "postProcess-bloom-tonemap",
+      threshold: 0.2
+    }
   }
 };
