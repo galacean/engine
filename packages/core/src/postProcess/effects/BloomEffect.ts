@@ -1,4 +1,5 @@
 import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
+import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
 import { RenderBufferStoreAction } from "../../RenderPipeline";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
@@ -66,6 +67,8 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   set threshold(value: number) {
+    value = Math.max(0, value);
+
     if (value !== this._threshold) {
       this._threshold = value;
       const threshold = Color.gammaToLinearSpace(value);
@@ -84,6 +87,8 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   set scatter(value: number) {
+    value = Math.min(Math.max(0, value), 1);
+
     if (value !== this._scatter) {
       this._scatter = value;
       const params = this._material.shaderData.getVector4(BloomEffect._bloomParams);
@@ -100,6 +105,8 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   set intensity(value: number) {
+    value = Math.max(0, value);
+
     this._material.shaderData.getVector4(BloomEffect._bloomParams).w = value;
   }
 
@@ -127,11 +134,13 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   set highQualityFiltering(value: boolean) {
-    this._highQualityFiltering = value;
-    if (value) {
-      this._material.shaderData.enableMacro(BloomEffect._hqMacro);
-    } else {
-      this._material.shaderData.disableMacro(BloomEffect._hqMacro);
+    if (value !== this._highQualityFiltering) {
+      this._highQualityFiltering = value;
+      if (value) {
+        this._material.shaderData.enableMacro(BloomEffect._hqMacro);
+      } else {
+        this._material.shaderData.disableMacro(BloomEffect._hqMacro);
+      }
     }
   }
 
@@ -188,31 +197,50 @@ export class BloomEffect extends PostProcessEffect {
     const engine = this.engine;
     const camera = context.camera;
     const material = this._material;
-    const shaderData = material.shaderData;
     const downRes = this.downScale === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
     const tw = pixelViewport.width >> downRes;
     const th = pixelViewport.height >> downRes;
 
     // Determine the iteration count
-    const maxSize = Math.max(tw, th);
-    const iterations = Math.floor(Math.log2(maxSize) - 1);
-    const mipCount = Math.min(Math.max(iterations, 1), this._maxIterations);
+    const mipCount = this._calculateMipCount(tw, th);
 
     // Prefilter
+    this._prefilter(camera, srcTexture, tw, th, mipCount);
+    // Down sample - gaussian pyramid
+    this._downsample(mipCount);
+    // Up sample (bilinear by default, HQ filtering does bicubic instead
+    this._upsample(mipCount);
+    // Setup bloom on uber
+    this._setupBloom(camera);
+
+    PipelineUtils.blitTexture(engine, srcTexture, destRenderTarget, undefined, undefined, material, 4);
+  }
+
+  private _calculateMipCount(tw: number, th: number): number {
+    const maxSize = Math.max(tw, th);
+    const iterations = Math.floor(Math.log2(maxSize) - 1);
+    return Math.min(Math.max(iterations, 1), this._maxIterations);
+  }
+
+  private _prefilter(camera: Camera, srcTexture: Texture2D, tw: number, th: number, mipCount: number): void {
+    const engine = this.engine;
+    const internalColorTextureFormat = camera._getInternalColorTextureFormat();
+    const msaaSamples = camera.msaaSamples;
     let mipWidth = tw,
       mipHeight = th;
+
     for (let i = 0; i < mipCount; i++) {
       this._mipUpRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
         engine,
         this._mipUpRT[i],
         mipWidth,
         mipHeight,
-        camera._getInternalColorTextureFormat(),
+        internalColorTextureFormat,
         null,
         false,
         false,
-        camera.msaaSamples,
+        msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
@@ -221,11 +249,11 @@ export class BloomEffect extends PostProcessEffect {
         this._mipDownRT[i],
         mipWidth,
         mipHeight,
-        camera._getInternalColorTextureFormat(),
+        internalColorTextureFormat,
         null,
         false,
         false,
-        camera.msaaSamples,
+        msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
@@ -240,13 +268,18 @@ export class BloomEffect extends PostProcessEffect {
       this._mipDownRT[0],
       undefined,
       undefined,
-      material,
+      this._material,
       0,
       RenderBufferStoreAction.BlitMSAA
     );
+  }
+
+  private _downsample(mipCount: number): void {
+    const engine = this.engine;
+    const material = this._material;
+    let lastDown = this._mipDownRT[0];
 
     // Down sample - gaussian pyramid
-    var lastDown = this._mipDownRT[0];
     for (let i = 1; i < mipCount; i++) {
       // Classic two pass gaussian blur - use mipUp as a temporary target
       // First pass does 2x downsampling + 9-tap gaussian
@@ -274,6 +307,12 @@ export class BloomEffect extends PostProcessEffect {
 
       lastDown = this._mipDownRT[i];
     }
+  }
+
+  private _upsample(mipCount: number): void {
+    const engine = this.engine;
+    const material = this._material;
+    const shaderData = material.shaderData;
 
     // Up sample (bilinear by default, HQ filtering does bicubic instead
     for (let i = mipCount - 2; i >= 0; i--) {
@@ -298,9 +337,12 @@ export class BloomEffect extends PostProcessEffect {
         RenderBufferStoreAction.BlitMSAA
       );
     }
+  }
 
-    // Setup bloom on uber
+  private _setupBloom(camera: Camera): void {
+    const shaderData = this._material.shaderData;
     const dirtTexture = this.dirtTexture;
+
     if (dirtTexture) {
       const dirtTilingOffset = shaderData.getVector4(BloomEffect._dirtTilingOffsetProp);
       const dirtRatio = dirtTexture.width / dirtTexture.height;
@@ -315,8 +357,6 @@ export class BloomEffect extends PostProcessEffect {
     }
 
     shaderData.setTexture(BloomEffect._bloomTextureProp, this._mipUpRT[0].getColorTexture(0));
-
-    PipelineUtils.blitTexture(engine, srcTexture, destRenderTarget, undefined, undefined, material, 4);
   }
 }
 
