@@ -1,6 +1,5 @@
-import { IRenderState } from "../codeGen/types";
 import { ASTNode } from "./AST";
-import SymbolTable from "../common/SymbolTable";
+import { SymbolTable } from "../parser/symbolTable";
 
 export class ShaderData {
   symbolTable: SymbolTable;

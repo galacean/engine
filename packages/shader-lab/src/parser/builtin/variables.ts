@@ -1,6 +1,5 @@
 import { EShaderStage } from "../../codeGen";
-import { EKeyword } from "../../common";
-import { GalaceanDataType } from "../types";
+import { EKeyword, GalaceanDataType } from "../../common";
 
 export const BuiltinVariableTable: Map<string, BuiltinVariable> = new Map();
 

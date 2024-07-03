@@ -1,7 +1,8 @@
 import { Logger } from "../Logger";
+import { GalaceanDataType } from "../common";
 import { ASTNode } from "../parser/AST";
-import SymbolTable, { ESymbolType, SymbolInfo } from "../common/SymbolTable";
-import { GalaceanDataType, IParamInfo } from "../parser/types";
+import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
+import { IParamInfo } from "../parser/types";
 import { EShaderStage } from "./constants";
 
 export class VisitorContext {
@@ -65,7 +66,7 @@ export class VisitorContext {
   referenceGlobal(ident: string, type: ESymbolType, signature?: GalaceanDataType[]) {
     if (this._referencedGlobals.has(ident)) return;
 
-    const sm = this.passSymbolTable.lookup(ident, type, signature);
+    const sm = this.passSymbolTable.lookup({ ident, symbolType: type, signature });
     if (sm) {
       this._referencedGlobals.set(ident, sm);
     }

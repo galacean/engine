@@ -3,13 +3,13 @@ import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./buil
 // #endif
 import { CodeGenVisitor } from "../codeGen";
 import { ENonTerminal } from "./GrammarSymbol";
-import { BaseToken as Token } from "../BaseToken";
-import { EKeyword, ETokenType, TokenType, IIndexRange } from "../common";
+import { BaseToken as Token } from "../common/BaseToken";
+import { EKeyword, ETokenType, TokenType, IIndexRange, GalaceanDataType, TypeAny } from "../common";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "../common/SymbolTable";
+import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { ParserUtils } from "../Utils";
-import { ASTNodeConstructor, GalaceanDataType, IParamInfo, NodeChild, StructProp, SymbolType, TypeAny } from "./types";
+import { ASTNodeConstructor, IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
 export class TreeNode {
   /** The non-terminal in grammar. */
@@ -203,7 +203,7 @@ export namespace ASTNode {
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
-      sa.scope.insert(sm);
+      sa.symbolTable.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -461,7 +461,7 @@ export namespace ASTNode {
       if (this.children.length === 3 || this.children.length === 5) {
         const id = this.children[2] as Token;
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
-        sa.scope.insert(sm);
+        sa.symbolTable.insert(sm);
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
@@ -473,7 +473,7 @@ export namespace ASTNode {
         typeInfo.arraySpecifier = arraySpecifier;
         const id = this.children[2] as Token;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
-        sa.scope.insert(sm);
+        sa.symbolTable.insert(sm);
       }
     }
   }
@@ -643,7 +643,7 @@ export namespace ASTNode {
         declarator = this.children[1] as ParameterDeclarator;
       }
       const varSymbol = new VarSymbol(declarator.ident.lexeme, declarator.typeInfo, false, this);
-      sa.scope.insert(varSymbol);
+      sa.symbolTable.insert(varSymbol);
     }
   }
 
@@ -717,7 +717,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.dropScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
-      sa.scope.insert(sm);
+      sa.symbolTable.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -768,15 +768,16 @@ export namespace ASTNode {
         }
         // #endif
 
-        const fnSymbol = sa.scope.lookup(fnIdent, ESymbolType.FN, paramSig);
-        if (!fnSymbol) {
+        const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
+        if (!fnSymbol && fnIdent === "F_Schlick") {
+          debugger;
           // #if _DEVELOPMENT
           sa.error(this.location, "no overload function type found:", functionIdentifier.ident);
           // #endif
           return;
         }
-        this.type = fnSymbol?.symDataType?.type;
-        this.fnSymbol = fnSymbol;
+        this.type = fnSymbol?.dataType?.type;
+        this.fnSymbol = fnSymbol as FnSymbol;
       }
     }
   }
@@ -1172,7 +1173,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 6) {
         this.ident = this.children[1] as Token;
-        sa.scope.insert(new StructSymbol(this.ident.lexeme, this));
+        sa.symbolTable.insert(new StructSymbol(this.ident.lexeme, this));
       }
     }
   }
@@ -1262,7 +1263,7 @@ export namespace ASTNode {
       let sm: VarSymbol;
       sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
-      sa.scope.insert(sm);
+      sa.symbolTable.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -1282,7 +1283,7 @@ export namespace ASTNode {
     }
 
     get typeInfo(): GalaceanDataType {
-      if (this.symbolInfo instanceof VarSymbol) return this.symbolInfo.symDataType.type;
+      if (this.symbolInfo instanceof VarSymbol) return this.symbolInfo.dataType.type;
       return this.symbolInfo?.type;
     }
 
@@ -1301,7 +1302,7 @@ export namespace ASTNode {
       }
       // #endif
 
-      this.symbolInfo = sa.scope.lookup(token.lexeme, ESymbolType.VAR);
+      this.symbolInfo = sa.symbolTable.lookup({ ident: token.lexeme, symbolType: ESymbolType.VAR }) as VarSymbol;
       // #if _DEVELOPMENT
       if (!this.symbolInfo) {
         sa.error(this.location, "undeclared identifier:", token.lexeme);
@@ -1323,7 +1324,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.shaderData = sa.shaderData;
-      this.shaderData.symbolTable = sa.scope;
+      this.shaderData.symbolTable = sa.symbolTable._scope;
     }
   }
 }

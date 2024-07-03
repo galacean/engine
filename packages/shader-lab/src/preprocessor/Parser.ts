@@ -8,7 +8,7 @@ import PpSourceMap, { BlockInfo } from "./sourceMap";
 import PpScanner from "./Scanner";
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
-import { BaseToken } from "../BaseToken";
+import { BaseToken } from "../common/BaseToken";
 
 export interface ExpandSegment {
   // #if _DEVELOPMENT

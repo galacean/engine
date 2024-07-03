@@ -167,7 +167,6 @@ export class ShaderPass extends ShaderPart {
     } else {
       macroNameList.push("GRAPHICS_API_WEBGL1");
     }
-    console.log("compile:", macroNameList);
 
     const { vertexSource, fragmentSource } = Shader._shaderLab.parseShaderPass(
       this._shaderLabSource,

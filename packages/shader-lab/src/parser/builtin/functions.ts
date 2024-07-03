@@ -1,6 +1,5 @@
 import { EShaderStage } from "../../codeGen";
-import { EKeyword } from "../../common";
-import { GalaceanDataType, TypeAny } from "../types";
+import { EKeyword, GalaceanDataType, TypeAny } from "../../common";
 
 export enum EGenType {
   GenType = 200,

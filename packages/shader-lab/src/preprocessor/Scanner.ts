@@ -5,8 +5,8 @@ import PpSourceMap from "./sourceMap";
 // #endif
 import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
-import BaseScanner from "../BaseScanner";
-import { BaseToken, EOF } from "../BaseToken";
+import BaseScanner from "../common/BaseScanner";
+import { BaseToken, EOF } from "../common/BaseToken";
 
 export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 

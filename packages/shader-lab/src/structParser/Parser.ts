@@ -1,6 +1,6 @@
-import BaseError from "../BaseError";
-import { SymbolTableStack } from "../BaseSymbolTable";
-import { BaseToken } from "../BaseToken";
+import BaseError from "../common/BaseError";
+import { SymbolTableStack } from "../common/BaseSymbolTable";
+import { BaseToken } from "../common/BaseToken";
 import { IEngineType } from "../EngineType";
 import { EKeyword, ETokenType } from "../common";
 import { IIndexRange, Position } from "../common";

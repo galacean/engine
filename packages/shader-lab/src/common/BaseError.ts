@@ -1,5 +1,5 @@
-import { Logger } from "./Logger";
-import { IIndexRange, Position } from "./common";
+import { Logger } from "../Logger";
+import { IIndexRange, Position } from ".";
 
 export default class BaseError {
   logger: Logger;

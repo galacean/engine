@@ -1,6 +1,6 @@
 import { ASTNode } from "../parser/AST";
 import { SymbolType } from "../parser/types";
-import { BaseToken as Token } from "../BaseToken";
+import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ETokenType, Position } from "../common";
 import { GLESVisitor } from "./GLESVisitor";
 import { EShaderStage } from "./constants";

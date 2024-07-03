@@ -1,7 +1,8 @@
-import { Logger } from "./Logger";
+import { Logger } from "../Logger";
+import { GalaceanDataType } from "./types";
 
 export interface IBaseSymbol {
-  ident: string;
+  readonly ident: string;
 }
 
 /**
@@ -18,7 +19,7 @@ export abstract class BaseSymbolTable<T extends IBaseSymbol> {
   /**
    * Check the equality of two symbol.
    */
-  abstract symbolEqualCheck(s1: T, s2: T): boolean;
+  abstract symbolEqualCheck(exist: T, newSymbol: T): boolean;
 
   insert(sm: T) {
     const entry = this._table.get(sm.ident) ?? [];
@@ -32,10 +33,10 @@ export abstract class BaseSymbolTable<T extends IBaseSymbol> {
     this._table.set(sm.ident, entry);
   }
 
-  lookup(sm: T) {
+  lookup<R = T>(sm: T & { signature?: GalaceanDataType[] }): R {
     const entry = this._table.get(sm.ident) ?? [];
     for (const item of entry) {
-      if (this.symbolEqualCheck(item, sm)) return item;
+      if (this.symbolEqualCheck(item, sm)) return item as unknown as R;
     }
   }
 }
@@ -43,12 +44,16 @@ export abstract class BaseSymbolTable<T extends IBaseSymbol> {
 export class SymbolTableStack<T extends IBaseSymbol> {
   private _stack: BaseSymbolTable<T>[] = [];
 
-  private get _scope() {
+  get _scope() {
     return this._stack[this._stack.length - 1];
   }
 
   newScope(scope: BaseSymbolTable<T>) {
     this._stack.push(scope);
+  }
+
+  clear() {
+    this._stack.length = 0;
   }
 
   dropScope() {
@@ -59,7 +64,7 @@ export class SymbolTableStack<T extends IBaseSymbol> {
     this._scope.insert(sm);
   }
 
-  lookup(sm: T) {
+  lookup(sm: T & { signature?: GalaceanDataType[] }) {
     for (let i = this._stack.length - 1; i >= 0; i--) {
       const scope = this._stack[i];
       const ret = scope.lookup(sm);

@@ -1,9 +1,9 @@
 import { ENonTerminal } from "../parser/GrammarSymbol";
-import { BaseToken as Token } from "../BaseToken";
+import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword } from "../common";
 import { Logger } from "../Logger";
 import { ASTNode, TreeNode } from "../parser/AST";
-import { ESymbolType, FnSymbol, VarSymbol } from "../common/SymbolTable";
+import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
@@ -66,7 +66,7 @@ export abstract class CodeGenVisitor {
   visitFunctionCall(node: ASTNode.FunctionCall): string {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
     if (call.fnSymbol instanceof FnSymbol) {
-      this.context._referencedGlobals.set(call.fnSymbol.lexeme, call.fnSymbol);
+      this.context._referencedGlobals.set(call.fnSymbol.ident, call.fnSymbol);
 
       const paramList = call.children[2];
       const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
@@ -83,7 +83,7 @@ export abstract class CodeGenVisitor {
             plainParams.push(params[i].codeGen(this));
           }
         }
-        return `${call.fnSymbol.lexeme}(${plainParams.join(", ")})`;
+        return `${call.fnSymbol.ident}(${plainParams.join(", ")})`;
       }
     }
     return this.defaultCodeGen(node.children);

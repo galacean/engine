@@ -1,5 +1,5 @@
-import { ETokenType } from "./common/types";
-import { IIndexRange, Position } from "./common";
+import { ETokenType } from "./types";
+import { IIndexRange, Position } from ".";
 
 export class BaseToken<T extends number = number> {
   readonly type: T;

@@ -1,4 +1,4 @@
-import BaseScanner from "../BaseScanner";
+import BaseScanner from "../common/BaseScanner";
 
 export default class Scanner extends BaseScanner {
   constructor(source: string, kws: Map<string, number> = new Map()) {

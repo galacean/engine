@@ -1,8 +1,8 @@
 import { IIndexRange, Position } from "../common";
 import { ETokenType, KeywordTable } from "../common";
-import { EOF, BaseToken } from "../BaseToken";
+import { EOF, BaseToken } from "../common/BaseToken";
 import LexerUtils from "./Utils";
-import BaseScanner from "../BaseScanner";
+import BaseScanner from "../common/BaseScanner";
 
 export default class Lexer extends BaseScanner {
   reset(source: string) {

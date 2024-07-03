@@ -1,6 +1,6 @@
 import Grammar from "./Grammar";
 import { ENonTerminal, GrammarSymbol } from "./GrammarSymbol";
-import { BaseToken } from "../BaseToken";
+import { BaseToken } from "../common/BaseToken";
 import { ETokenType } from "../common";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
 import { ASTNode, TreeNode } from "./AST";
@@ -110,9 +110,9 @@ export default class Parser {
         // #endif
         continue;
       } else {
-        this.logger.errorLoc(token.location, `parse error token ${token}`);
+        this.logger.errorLoc(token.location, `parse error token ${token.lexeme}`);
         // #if _DEVELOPMENT
-        throw `invalid action table by token ${token.lexeme}`;
+        throw `invalid action table by token ${token.lexeme}, ${token.location.start.line}, ${token.location.start.column}`;
         // #endif
       }
     }

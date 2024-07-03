@@ -1,4 +1,4 @@
-import { BaseToken } from "../BaseToken";
+import { BaseToken } from "../common/BaseToken";
 import { IIndexRange } from "../common";
 import { PpError } from "./PpError";
 

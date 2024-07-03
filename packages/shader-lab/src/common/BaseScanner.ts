@@ -1,6 +1,6 @@
 import BaseError from "./BaseError";
 import { BaseToken } from "./BaseToken";
-import { IIndexRange, Position, ETokenType } from "./common";
+import { IIndexRange, Position, ETokenType } from ".";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 

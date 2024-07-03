@@ -2,9 +2,9 @@ import { CodeGenVisitor } from "./CodeGenVisitor";
 import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, SymbolInfo } from "../common/SymbolTable";
+import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
 import { EShaderStage } from "./constants";
-import { IPassCodeGenResult, IRenderState } from "./types";
+import { IPassCodeGenResult } from "./types";
 
 type ICodeSegment = [string, number];
 
@@ -28,7 +28,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
   vertexMain(entry: string, data: ShaderData): string {
     const { symbolTable } = data;
-    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    const fnSymbol = symbolTable.lookup<FnSymbol>({ ident: entry, symbolType: ESymbolType.FN });
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
@@ -38,7 +38,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (typeof returnType.type !== "string") {
       this.logger.log(Logger.RED, "main entry can only return struct.");
     } else {
-      const varyStruct = symbolTable.lookup(returnType.type, ESymbolType.STRUCT);
+      const varyStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
       if (!varyStruct) {
         this.logger.log(Logger.RED, "invalid varying struct:", returnType.type);
       } else {
@@ -50,7 +50,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (paramList?.length) {
       for (const paramInfo of paramList) {
         if (typeof paramInfo.typeInfo.type === "string") {
-          const structSymbol = symbolTable.lookup(paramInfo.typeInfo.type, ESymbolType.STRUCT);
+          const structSymbol = symbolTable.lookup<StructSymbol>({
+            ident: paramInfo.typeInfo.type,
+            symbolType: ESymbolType.STRUCT
+          });
           if (!structSymbol) {
             this.logger.log(Logger.YELLOW, "no attribute struct found.");
             continue;
@@ -83,7 +86,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
   private fragmentMain(entry: string, data: ShaderData): string {
     const { symbolTable } = data;
-    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    const fnSymbol = symbolTable.lookup<FnSymbol>({ ident: entry, symbolType: ESymbolType.FN });
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
@@ -122,7 +125,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       _serialized.add(ident);
 
       if (sm instanceof SymbolInfo) {
-        if (sm.symType === ESymbolType.VAR) {
+        if (sm.symbolType === ESymbolType.VAR) {
           textList.push([`uniform ${sm.astNode.codeGen(this)}`, sm.astNode.location.start.index]);
         } else {
           textList.push([sm.astNode!.codeGen(this), sm.astNode!.location.start.index]);

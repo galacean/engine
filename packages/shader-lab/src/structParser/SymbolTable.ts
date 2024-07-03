@@ -1,4 +1,4 @@
-import { BaseSymbolTable, IBaseSymbol } from "../BaseSymbolTable";
+import { BaseSymbolTable, IBaseSymbol } from "../common/BaseSymbolTable";
 
 export interface ISymbol extends IBaseSymbol {
   type: number;

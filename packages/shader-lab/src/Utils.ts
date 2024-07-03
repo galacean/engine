@@ -1,8 +1,7 @@
 import { ENonTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
-import { BaseToken as Token } from "./BaseToken";
-import { EKeyword, ETokenType } from "./common";
+import { BaseToken as Token } from "./common/BaseToken";
+import { EKeyword, ETokenType, GalaceanDataType } from "./common";
 import { TreeNode } from "./parser/AST";
-import { GalaceanDataType } from "./parser/types";
 // #if _DEVELOPMENT
 // import { createWriteStream } from "fs";
 // import State from "./lalr/State";
