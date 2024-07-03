@@ -119,6 +119,12 @@ const neutralTonemapping = `
 const colorTransform = `
   // Precomputed matrices (pre-transposed)
   // See https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+  
+  const mat3 sRGB_2_AP0 = mat3(
+    0.4397010, 0.0897923, 0.0175440,
+    0.3829780, 0.8134230, 0.1115440,
+    0.1773350, 0.0967616, 0.8707040
+  );
 
   const mat3 AP1_2_AP0_MAT = mat3(
     vec3(0.6954522414, 0.0447945634, -0.0055258826),
@@ -623,8 +629,7 @@ const ACESTonemapping = `
   ${ODTFunction}
 
   vec3 ACESTonemap(vec3 color){
-    vec3 aces = AP1_2_AP0_MAT * color;
-
+    vec3 aces = sRGB_2_AP0 * color;
     vec3 oces = RRT(aces);
     vec3 odt = ODT_RGBmonitor_100nits_dim(oces);
 
