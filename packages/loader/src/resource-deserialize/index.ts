@@ -30,3 +30,4 @@ export * from "./resources/scene/SceneParser";
 export * from "./resources/scene/MeshLoader";
 export * from "./resources/scene/EditorTextureLoader";
 export * from "./resources/parser/ParserContext";
+export * from "./utils/BufferReader";
