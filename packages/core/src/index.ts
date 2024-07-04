@@ -46,6 +46,7 @@ export { FogMode } from "./enums/FogMode";
 export { MSAASamples } from "./enums/MSAASamples";
 export * from "./env-probe/index";
 export * from "./graphic/index";
+export * from "./utils/index";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./material/index";

@@ -21,7 +21,6 @@ import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -44,7 +43,7 @@ import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { Texture2D, TextureFormat } from "./texture";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
@@ -108,16 +107,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
-  _whiteTexture2D: Texture2D;
-  /* @internal */
-  _magentaTexture2D: Texture2D;
-  /* @internal */
-  _uintMagentaTexture2D: Texture2D;
-  /* @internal */
-  _magentaTextureCube: TextureCube;
-  /* @internal */
-  _magentaTexture2DArray: Texture2DArray;
   /* @internal */
   _meshMagentaMaterial: Material;
   /* @internal */
@@ -279,8 +268,6 @@ export class Engine extends EventDispatcher {
       this.xrManager = new XRManager();
       this.xrManager._initialize(this, xrDevice);
     }
-
-    this._initMagentaTextures(hardwareRenderer);
 
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
@@ -564,89 +551,6 @@ export class Engine extends EventDispatcher {
       //   const uiCanvas = uiCanvases[i];
       //   uiCanvas._prepareRender
       // }
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
-    const whitePixel = new Uint8Array([255, 255, 255, 255]);
-    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTexture2D.setPixelBuffer(whitePixel);
-    whiteTexture2D.isGCIgnored = true;
-
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
-    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    magentaTexture2D.setPixelBuffer(magentaPixel);
-    magentaTexture2D.isGCIgnored = true;
-
-    this.resourceManager.addContentRestorer(
-      new (class extends ContentRestorer<Texture2D> {
-        constructor() {
-          super(magentaTexture2D);
-        }
-        restoreContent() {
-          this.resource.setPixelBuffer(magentaPixel);
-        }
-      })()
-    );
-
-    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    for (let i = 0; i < 6; i++) {
-      magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
-    }
-    magentaTextureCube.isGCIgnored = true;
-
-    this.resourceManager.addContentRestorer(
-      new (class extends ContentRestorer<TextureCube> {
-        constructor() {
-          super(magentaTextureCube);
-        }
-        restoreContent() {
-          for (let i = 0; i < 6; i++) {
-            this.resource.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
-          }
-        }
-      })()
-    );
-
-    this._whiteTexture2D = whiteTexture2D;
-    this._magentaTexture2D = magentaTexture2D;
-    this._magentaTextureCube = magentaTextureCube;
-
-    if (hardwareRenderer.isWebGL2) {
-      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
-      const uintMagentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R32G32B32A32_UInt, false);
-      uintMagentaTexture2D.setPixelBuffer(magentaPixel32);
-      uintMagentaTexture2D.isGCIgnored = true;
-      this.resourceManager.addContentRestorer(
-        new (class extends ContentRestorer<Texture2D> {
-          constructor() {
-            super(uintMagentaTexture2D);
-          }
-          restoreContent() {
-            this.resource.setPixelBuffer(magentaPixel32);
-          }
-        })()
-      );
-
-      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
-      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
-      magentaTexture2DArray.isGCIgnored = true;
-      this.resourceManager.addContentRestorer(
-        new (class extends ContentRestorer<Texture2DArray> {
-          constructor() {
-            super(magentaTexture2DArray);
-          }
-          restoreContent() {
-            this.resource.setPixelBuffer(0, magentaPixel);
-          }
-        })()
-      );
-
-      this._uintMagentaTexture2D = uintMagentaTexture2D;
-      this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }
 
