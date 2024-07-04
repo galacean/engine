@@ -80,7 +80,7 @@ export default class ShaderStructParser extends BaseError {
   }
 
   private _scanner: Scanner;
-  private _symbolTable: SymbolTableStack<ISymbol> = new SymbolTableStack();
+  private _symbolTable: SymbolTableStack<ISymbol, SymbolTable> = new SymbolTableStack();
 
   constructor(source: string) {
     super("StructParser");

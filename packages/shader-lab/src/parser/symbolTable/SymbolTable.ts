@@ -1,6 +1,7 @@
 import { GalaceanDataType, TypeAny } from "../../common";
 import { BaseSymbolTable } from "../../common/BaseSymbolTable";
 import { ASTNode } from "../AST";
+import { FnSymbol } from "./FnSymbol";
 import { ESymbolType, SymbolInfo } from "./SymbolInfo";
 
 export class SymbolTable extends BaseSymbolTable<SymbolInfo> {
@@ -19,5 +20,10 @@ export class SymbolTable extends BaseSymbolTable<SymbolInfo> {
       }
     }
     return true;
+  }
+
+  getAllFnSymbols(fnIdent: string): FnSymbol[] {
+    const entries = this._table.get(fnIdent) ?? [];
+    return entries.filter((item) => item.symbolType === ESymbolType.FN) as FnSymbol[];
   }
 }

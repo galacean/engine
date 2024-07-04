@@ -18,10 +18,17 @@ export class ShaderLab implements IShaderLab {
 
   private _parser: Parser;
 
+  constructor();
   constructor(
     renderStateElementKey: Record<string, number>,
-    engineTypes: Partial<IEngineType> = {},
+    engineTypes: Partial<IEngineType>,
     colorCst: new (...args: number[]) => any
+  );
+
+  constructor(
+    renderStateElementKey: Record<string, number> = {},
+    engineTypes: Partial<IEngineType> = {},
+    colorCst?: new (...args: number[]) => any
   ) {
     this._parser = Parser.create();
     ShaderStructParser._RenderStateElementKey = renderStateElementKey;

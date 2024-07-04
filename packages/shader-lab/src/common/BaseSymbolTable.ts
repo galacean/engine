@@ -8,8 +8,8 @@ export interface IBaseSymbol {
 /**
  * The base class of `SymbolTable`
  */
-export abstract class BaseSymbolTable<T extends IBaseSymbol> {
-  private _table: Map<string, T[]> = new Map();
+export abstract class BaseSymbolTable<T extends IBaseSymbol = IBaseSymbol> {
+  protected _table: Map<string, T[]> = new Map();
   private _logger: Logger;
 
   constructor(name?: string) {
@@ -42,14 +42,14 @@ export abstract class BaseSymbolTable<T extends IBaseSymbol> {
   }
 }
 
-export class SymbolTableStack<T extends IBaseSymbol> {
-  private _stack: BaseSymbolTable<T>[] = [];
+export class SymbolTableStack<S extends IBaseSymbol, T extends BaseSymbolTable<S>> {
+  private _stack: T[] = [];
 
   get _scope() {
     return this._stack[this._stack.length - 1];
   }
 
-  newScope(scope: BaseSymbolTable<T>) {
+  newScope(scope: T) {
     this._stack.push(scope);
   }
 
@@ -61,11 +61,11 @@ export class SymbolTableStack<T extends IBaseSymbol> {
     this._stack.pop();
   }
 
-  insert(sm: T) {
+  insert(sm: S) {
     this._scope.insert(sm);
   }
 
-  lookup(sm: T & { signature?: GalaceanDataType[] }) {
+  lookup(sm: S & { signature?: GalaceanDataType[] }) {
     for (let i = this._stack.length - 1; i >= 0; i--) {
       const scope = this._stack[i];
       const ret = scope.lookup(sm);

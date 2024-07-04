@@ -1,9 +1,8 @@
 import { Logger } from "../Logger";
-import { GalaceanDataType } from "../common";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
-import { EShaderStage } from "./constants";
+import { EShaderStage } from "./enums";
 
 export class VisitorContext {
   attributeList: IParamInfo[] = [];
@@ -63,10 +62,18 @@ export class VisitorContext {
     this._referencedVaryingList.set(ident, prop);
   }
 
-  referenceGlobal(ident: string, type: ESymbolType, signature?: GalaceanDataType[]) {
+  referenceGlobal(ident: string, type: ESymbolType) {
     if (this._referencedGlobals.has(ident)) return;
 
-    const sm = this.passSymbolTable.lookup({ ident, symbolType: type, signature });
+    if (type === ESymbolType.FN) {
+      const fnEntries = this._passSymbolTable.getAllFnSymbols(ident);
+      for (let i = 0; i < fnEntries.length; i++) {
+        const key = i === 0 ? ident : ident + i;
+        this._referencedGlobals.set(key, fnEntries[i]);
+      }
+      return;
+    }
+    const sm = this.passSymbolTable.lookup({ ident, symbolType: type });
     if (sm) {
       this._referencedGlobals.set(ident, sm);
     }

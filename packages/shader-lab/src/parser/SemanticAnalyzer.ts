@@ -19,7 +19,7 @@ export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   logger = new Logger("semantic analyzer");
-  symbolTable: SymbolTableStack<SymbolInfo> = new SymbolTableStack();
+  symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
 
   // #if _DEVELOPMENT
   readonly errors: SemanticError[] = [];
