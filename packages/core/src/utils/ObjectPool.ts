@@ -17,6 +17,12 @@ export abstract class ObjectPool<T extends IPoolElement> {
   abstract get(): T;
 }
 
+/**
+ * The basic interface for Object Pool's element.
+ */
 export interface IPoolElement {
+  /**
+   * Called when the object need be release.
+   */
   dispose?(): void;
 }
