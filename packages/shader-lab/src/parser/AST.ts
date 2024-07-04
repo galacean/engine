@@ -769,8 +769,7 @@ export namespace ASTNode {
         // #endif
 
         const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
-        if (!fnSymbol && fnIdent === "F_Schlick") {
-          debugger;
+        if (!fnSymbol) {
           // #if _DEVELOPMENT
           sa.error(this.location, "no overload function type found:", functionIdentifier.ident);
           // #endif

@@ -23,9 +23,10 @@ export abstract class BaseSymbolTable<T extends IBaseSymbol> {
 
   insert(sm: T) {
     const entry = this._table.get(sm.ident) ?? [];
-    for (const item of entry) {
-      if (this.symbolEqualCheck(item, sm)) {
-        this._logger.error("Redefined symbol:", sm.ident);
+    for (let i = 0; i < entry.length; i++) {
+      if (this.symbolEqualCheck(entry[i], sm)) {
+        this._logger.warn("replace symbol:", sm.ident);
+        entry[i] = sm;
         return;
       }
     }

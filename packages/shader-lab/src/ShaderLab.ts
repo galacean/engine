@@ -42,6 +42,11 @@ export class ShaderLab implements IShaderLab {
     ShaderStructParser._RenderStateElementKey = renderStateElementKey;
   }
 
+  /**
+   * Register new snippets that can be referenced by `#include` macro in `ShaderLab`.
+   * @param includeName - the key used by `#include` macro directive.
+   * @param includeSource - the replaced snippets.
+   */
   registerInclude(includeName: string, includeSource: string): void {
     if (ShaderLab._includeMap[includeName]) {
       throw `The "${includeName}" shader include already exist`;
