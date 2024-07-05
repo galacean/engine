@@ -69,6 +69,12 @@ engine.resourceManager
 
 ### 获取场景对象
 
+一个引擎实例可能包含多个场景实例，如果为了在当前激活的场景中添加一个立方体，需要通过引擎的场景管理器 `engine.sceneManager.activeScene` 获得当前激活的场景。
+
+```typescript
+const scene = engine.sceneManager.activeScene;
+```
+
 通过调用 `engine.sceneManager.scenes` 可以获取当前引擎运行时激活的全部场景，也可以通过 `entity.scene` 获取对应 `entity` 从属的 `scene`。
 
 ```typescript

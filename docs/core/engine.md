@@ -25,7 +25,7 @@ label: Core
 const engine = await WebGLEngine.create({ canvas: "canvas" });
 ```
 
-> `WebGLEngine.create` 不仅承担着实例化引擎的职责，还负责渲染上下文的配置和某些子系统的初始化。
+`WebGLEngine` 支持 WebGL1.0 和 WebGL2.0，它能够控制画布的一切行为，包括资源管理、场景管理、执行/暂停/继续、垂直同步等功能。`WebGLEngine.create` 不仅承担着实例化引擎的职责，还负责渲染上下文的配置和某些子系统的初始化。
 
 ### 渲染上下文
 
