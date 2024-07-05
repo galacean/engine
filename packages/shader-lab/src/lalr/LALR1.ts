@@ -7,6 +7,9 @@ import { EKeyword, ETokenType } from "../common";
 import Utils from "./Utils";
 import { ActionInfo, ActionTable, EAction, GotoTable, StateActionTable, StateGotoTable } from "./types";
 
+/**
+ * The [LALR1](https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/140%20LALR%20Parsing.pdf) Parser generator
+ */
 export default class LALR1 {
   readonly firstSetMap: Map<ENonTerminal, Set<Terminal>> = new Map();
   readonly followSetMap: Map<ENonTerminal, Set<Terminal>> = new Map();

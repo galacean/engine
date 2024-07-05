@@ -12,6 +12,7 @@ import { SymbolTableStack } from "../common/BaseSymbolTable";
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
 /**
+ * The semantic analyzer of `ShaderLab` compiler.
  * - Build symbol table
  * - Static analysis
  */

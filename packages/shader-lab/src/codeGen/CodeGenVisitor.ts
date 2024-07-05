@@ -9,6 +9,9 @@ import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
 import { IPassCodeGenResult } from "./types";
 
+/**
+ * The code generator
+ */
 export abstract class CodeGenVisitor {
   logger = new Logger("CodeGen");
   context = new VisitorContext();

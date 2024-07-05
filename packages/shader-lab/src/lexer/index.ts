@@ -4,6 +4,9 @@ import { EOF, BaseToken } from "../common/BaseToken";
 import LexerUtils from "./Utils";
 import BaseScanner from "../common/BaseScanner";
 
+/**
+ * The Lexer of ShaderLab Compiler
+ */
 export default class Lexer extends BaseScanner {
   reset(source: string) {
     this._source = source;

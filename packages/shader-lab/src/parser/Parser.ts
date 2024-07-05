@@ -11,6 +11,9 @@ import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "../Logger";
 
+/**
+ * The syntax parser and sematic analyzer of `ShaderLab` compiler
+ */
 export default class Parser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;

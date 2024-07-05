@@ -59,7 +59,9 @@ export default class StateItem {
   }
 
   advance() {
+    // #if _DEVELOPMENT
     if (this.canReduce()) throw `Error: advance reduce-able parsing state item`;
+    // #endif
     return new StateItem(this.production, this.position + 1, this.lookaheadSet);
   }
 
