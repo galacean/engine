@@ -72,8 +72,7 @@ export class ShaderLab implements IShaderLab {
     const passResult = [] as any;
     for (const subShader of structInfo.subShaders) {
       for (const pass of subShader.passes) {
-        if (!pass.contents) continue;
-        // console.log(pass.contents);
+        if (!pass.isUsePass) continue;
         const passInfo = this.parseShaderPass(
           pass.contents,
           pass.vertexEntry,

@@ -16,8 +16,10 @@ export default class Production {
     Production.pool.set(this.id, this);
   }
 
+  // #if _EDITOR
   toString() {
     const deriv = this.derivation.map((gs) => GrammarUtils.toString(gs)).join("|");
     return `${ENonTerminal[this.goal]} :=> ${deriv}`;
   }
+  // #endif
 }

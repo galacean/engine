@@ -69,7 +69,7 @@ export enum EKeyword {
   FLAT,
   NOPERSPECTIVE,
 
-  // galacean
+  // galacean internals
   GS_RenderQueueType,
   GS_BlendState,
   GS_DepthState,

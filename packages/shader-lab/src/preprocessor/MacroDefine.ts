@@ -44,6 +44,7 @@ export class MacroDefine extends PpError {
 
   expand(...args: string[]): string {
     const ret = this._expand(...args);
+    // TODO: erase the comments, any more performant and lightweight solution?
     return ret.replaceAll(/(\/\/[^\n]*|\/\*.*\*\/)/gs, "");
   }
 }
