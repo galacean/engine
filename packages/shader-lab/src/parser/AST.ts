@@ -45,13 +45,11 @@ export namespace ASTNode {
     return node;
   }
 
-  // #if !_EDITOR
   export class TrivialNode extends TreeNode {
     constructor(loc: IIndexRange, children: NodeChild[]) {
       super(ENonTerminal._ignore, loc, children);
     }
   }
-  // #endif
 
   export class ScopeBrace extends TreeNode {
     constructor(loc: IIndexRange, children: NodeChild[]) {
