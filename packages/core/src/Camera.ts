@@ -169,7 +169,8 @@ export class Camera extends Component {
       this._renderTarget &&
       (!this.enableHDR ||
         (offscreenColorTexture &&
-          (offscreenColorTexture.format === TextureFormat.R16G16B16A16 ||
+          (offscreenColorTexture.format === TextureFormat.R11G11B10_UFloat ||
+            offscreenColorTexture.format === TextureFormat.R16G16B16A16 ||
             offscreenColorTexture.format === TextureFormat.R32G32B32A32)))
     ) {
       return false;
