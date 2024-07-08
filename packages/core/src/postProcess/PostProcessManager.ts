@@ -2,89 +2,22 @@ import { Engine } from "../Engine";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
-import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { PostProcessPass } from "./PostProcessPass";
+import { Material } from "../material";
+import { Shader } from "../shader";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
+import { BloomEffect, TonemappingEffect } from "./effects";
 
 export class PostProcessManager {
-  private static _transformRT: RenderTarget[] = [];
-  private static _rtIdentifier = 0;
-  private static _srcRenderTarget: RenderTarget;
-  private static _destRenderTarget: RenderTarget;
+  static readonly UBER_SHADER_NAME = "UberPost";
 
-  /**
-   * @internal
-   */
-  static _getSrcRenderTarget(): RenderTarget {
-    return this._srcRenderTarget;
-  }
-
-  /**
-   * @internal
-   */
-  static _getDestRenderTarget(): RenderTarget {
-    return this._destRenderTarget;
-  }
-
-  /**
-   * @internal
-   */
-  static _swapRenderTarget(): void {
-    this._srcRenderTarget = this._destRenderTarget;
-    this._rtIdentifier = (this._rtIdentifier + 1) % 2;
-
-    this._destRenderTarget = this._transformRT[this._rtIdentifier];
-  }
-
-  /**
-   * @internal
-   */
-  static _recreateSwapRT(
-    engine: Engine,
-    width: number,
-    height: number,
-    textureFormat: TextureFormat,
-    msaaSamples: number
-  ): void {
-    for (let i = 0; i < 2; i++) {
-      this._transformRT[i] = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._transformRT[i],
-        width,
-        height,
-        textureFormat,
-        null,
-        false,
-        false,
-        msaaSamples,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _releaseSwapRT(): void {
-    for (let i = 0; i < this._transformRT.length; i++) {
-      const rt = this._transformRT[i];
-      rt.getColorTexture(0)?.destroy(true);
-      rt.destroy(true);
-    }
-
-    this._transformRT.length = 0;
-  }
+  private _swapRenderTarget: RenderTarget;
 
   /** @internal */
-  _passes = new SafeLoopArray<PostProcessPass>();
-
-  /**
-   * Get the post process pass list.
-   */
-  get passes(): ReadonlyArray<PostProcessPass> {
-    return this._passes.getArray();
-  }
+  _uberMaterial: Material;
+  /** @internal */
+  _bloomEffect: BloomEffect;
+  /** @internal */
+  _tonemappingEffect: TonemappingEffect;
 
   /**
    * Engine to which the current PostProcessManager belongs
@@ -97,95 +30,70 @@ export class PostProcessManager {
    * Create a PostProcessManager.
    * @param scene - Scene to which the current PostProcessManager belongs
    */
-  constructor(public readonly scene: Scene) {}
+  constructor(public readonly scene: Scene) {
+    const engine = scene.engine;
+    const uberShader = Shader.find(PostProcessManager.UBER_SHADER_NAME);
+    const uberMaterial = new Material(scene.engine, uberShader);
+    const depthState = uberMaterial.renderState.depthState;
 
-  /**
-   * Add post process pass.
-   * @param pass - The post process pass want to be added
-   */
-  addPass(pass: PostProcessPass): void;
+    depthState.enabled = false;
+    depthState.writeEnabled = false;
 
-  /**
-   * Add post process pass at specified index.
-   * @param index - Specified index
-   * @param pass - The post process pass want to be added
-   */
-  addPass(index: number, pass: PostProcessPass): void;
+    const bloomEffect = new BloomEffect(engine, uberMaterial);
+    const tonemappingEffect = new TonemappingEffect(uberMaterial);
 
-  addPass(indexOrPass: number | PostProcessPass, pass?: PostProcessPass): void {
-    const passes = this._passes;
-    let index: number;
-
-    if (typeof indexOrPass === "number") {
-      if (indexOrPass < 0 || indexOrPass > passes.length) {
-        throw "The index is out of range.";
-      }
-      index = indexOrPass;
-    } else {
-      index = passes.length;
-      pass = indexOrPass;
-    }
-
-    const currentIndex = passes.indexOf(pass);
-    if (currentIndex !== index) {
-      if (pass.engine !== this.engine) {
-        throw "The post process pass is not belong to this engine.";
-      }
-      if (currentIndex !== -1) {
-        passes.removeByIndex(currentIndex);
-      }
-      passes.add(index, pass);
-    }
-  }
-
-  /**
-   * Remove post process pass.
-   * @param pass - The post process pass want to be removed
-   */
-  removePass(pass: PostProcessPass): void {
-    const passes = this._passes;
-    const index = passes.indexOf(pass);
-    if (index !== -1) {
-      passes.removeByIndex(index);
-    }
+    this._uberMaterial = uberMaterial;
+    this._bloomEffect = bloomEffect;
+    this._tonemappingEffect = tonemappingEffect;
   }
 
   /**
    * @internal
    */
   _render(context: RenderContext) {
-    const engine = this.engine;
     const { camera, colorTarget } = context;
+    const engine = this.engine;
+    const bloomEffect = this._bloomEffect;
+    const tonemappingEffect = this._tonemappingEffect;
 
     if (camera.enablePostProcess) {
       const viewport = camera.pixelViewport;
 
-      PostProcessManager._recreateSwapRT(
+      this._swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         engine,
+        this._swapRenderTarget,
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
-        camera.msaaSamples
+        null,
+        false,
+        false,
+        camera.msaaSamples,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
       );
-      PostProcessManager._srcRenderTarget = colorTarget;
-      PostProcessManager._destRenderTarget = PostProcessManager._transformRT[0];
 
-      const postProcesses = this._passes.getLoopArray();
+      // Should blit to resolve the MSAA
+      colorTarget._blitRenderTarget();
+      const srcTexture = <Texture2D>colorTarget.getColorTexture();
 
-      for (let i = 0, length = postProcesses.length; i < length; i++) {
-        const pass = postProcesses[i];
-        pass.isActive && pass.onRender(context);
+      if (bloomEffect.enabled && bloomEffect.intensity > 0) {
+        bloomEffect.onRender(context, srcTexture);
       }
 
-      // @todo: should depends on all effects
-      const lastPostRT = PostProcessManager._getSrcRenderTarget();
-      if (lastPostRT !== colorTarget) {
-        // Should blit to resolve the MSAA
-        lastPostRT._blitRenderTarget();
-        PipelineUtils.blitTexture(engine, <Texture2D>lastPostRT.getColorTexture(0), colorTarget);
-      }
+      // if (this._tonemappingEffect.enabled) {
+      //   this._tonemappingEffect.onRender(this._uberMaterial);
+      // }
+
+      PipelineUtils.blitTexture(engine, srcTexture, this._swapRenderTarget, 0, undefined, this._uberMaterial, 0);
+      this._swapRenderTarget._blitRenderTarget();
+      PipelineUtils.blitTexture(engine, <Texture2D>this._swapRenderTarget.getColorTexture(), colorTarget);
     } else {
-      PostProcessManager._releaseSwapRT();
+      if (this._swapRenderTarget) {
+        this._swapRenderTarget.getColorTexture(0)?.destroy(true);
+        this._swapRenderTarget.destroy(true);
+        this._swapRenderTarget = null;
+      }
     }
   }
 }
