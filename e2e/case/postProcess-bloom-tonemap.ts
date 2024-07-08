@@ -63,15 +63,16 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   ]).then(([_, __, dirtTexture]) => {
     camera.enablePostProcess = true;
     camera.enableHDR = true;
+    // @ts-ignore
+    const bloomEffect = scene.postProcessManager._bloomEffect;
+    // @ts-ignore
+    const tonemappingEffect = scene.postProcessManager._tonemappingEffect;
 
-    const postPass = new PostProcessPass(engine);
-    const bloomEffect = new BloomEffect(engine);
+    bloomEffect.enabled = true;
+    tonemappingEffect.enabled = true;
+
     bloomEffect.dirtTexture = dirtTexture;
     bloomEffect.threshold = 0.5;
-    const tonemappingEffect = new TonemappingEffect(engine);
-    scene.postProcessManager.addPass(postPass);
-    postPass.addEffect(bloomEffect);
-    postPass.addEffect(tonemappingEffect);
     tonemappingEffect.mode = TonemappingMode.ACES;
 
     updateForE2E(engine);
