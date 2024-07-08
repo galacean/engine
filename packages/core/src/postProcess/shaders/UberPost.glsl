@@ -20,7 +20,7 @@ void main(){
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
-    	  mediump vec4 bloom = SampleTexture2DBicubic(material_BloomTexture, v_uv, renderer_texelSize);
+    	  mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v_uv, renderer_texelSize);
     	#else
     	  mediump vec4 bloom = sampleTexture(material_BloomTexture, v_uv);
     	#endif

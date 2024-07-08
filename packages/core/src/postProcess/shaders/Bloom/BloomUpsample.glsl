@@ -11,7 +11,7 @@ void main(){
     mediump vec4 highMip = sampleTexture(renderer_BlitTexture, v_uv);
 
     #ifdef BLOOM_HQ
-      mediump vec4 lowMip = SampleTexture2DBicubic(material_lowMipTexture, v_uv, material_lowMipTexelSize);
+      mediump vec4 lowMip = sampleTexture2DBicubic(material_lowMipTexture, v_uv, material_lowMipTexelSize);
     #else
       mediump vec4 lowMip = sampleTexture(material_lowMipTexture, v_uv);
     #endif
