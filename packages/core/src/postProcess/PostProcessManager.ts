@@ -87,7 +87,7 @@ export class PostProcessManager {
 
       PipelineUtils.blitTexture(engine, srcTexture, this._swapRenderTarget, 0, undefined, this._uberMaterial, 0);
       this._swapRenderTarget._blitRenderTarget();
-      PipelineUtils.blitTexture(engine, <Texture2D>this._swapRenderTarget.getColorTexture(), colorTarget);
+      PipelineUtils.blitTexture(engine, <Texture2D>this._swapRenderTarget.getColorTexture(0), colorTarget);
     } else {
       if (this._swapRenderTarget) {
         this._swapRenderTarget.getColorTexture(0)?.destroy(true);

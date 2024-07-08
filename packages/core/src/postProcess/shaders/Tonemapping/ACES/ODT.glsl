@@ -6,29 +6,29 @@ const float CINEMA_WHITE = 48.0;
 const float CINEMA_BLACK = 0.02; // CINEMA_WHITE / 2400.0;
 const float ODT_SAT_FACTOR = 0.93;
 
-vec3 Y_2_linCV(vec3 Y, float Ymax, float Ymin){
+mediump vec3 Y_2_linCV(mediump vec3 Y, mediump float Ymax, mediump float Ymin){
     return (Y - Ymin) / (Ymax - Ymin);
 }
 
-vec3 XYZ_2_xyY(vec3 XYZ){
-    float divisor = max(dot(XYZ, vec3(1.0)), 1e-4);
+mediump vec3 XYZ_2_xyY(mediump vec3 XYZ){
+    mediump float divisor = max(dot(XYZ, vec3(1.0)), 1e-4);
     return vec3(XYZ.xy / divisor, XYZ.y);
 }
 
-vec3 xyY_2_XYZ(vec3 xyY){
-    float m = xyY.z / max(xyY.y, 1e-4);
-    vec3 XYZ = vec3(xyY.xz, (1.0 - xyY.x - xyY.y));
+mediump vec3 xyY_2_XYZ(mediump vec3 xyY){
+    mediump float m = xyY.z / max(xyY.y, 1e-4);
+    mediump vec3 XYZ = vec3(xyY.xz, (1.0 - xyY.x - xyY.y));
     XYZ.xz *= m;
     return XYZ;
 }
 
-const float DIM_SURROUND_GAMMA = 0.9811;
+const mediump float DIM_SURROUND_GAMMA = 0.9811;
 
-vec3 darkSurround_to_dimSurround(vec3 linearCV){
+mediump vec3 darkSurround_to_dimSurround(mediump vec3 linearCV){
     // Extra conversions to float3/vec3 are required to avoid floating-point precision issues on some platforms.
 
-    vec3 XYZ = AP1_2_XYZ_MAT * linearCV;
-    vec3 xyY = XYZ_2_xyY(XYZ);
+    mediump vec3 XYZ = AP1_2_XYZ_MAT * linearCV;
+    mediump vec3 xyY = XYZ_2_xyY(XYZ);
     xyY.z = clamp(xyY.z, 0.0, HALF_MAX);
     xyY.z = pow(xyY.z, DIM_SURROUND_GAMMA);
     XYZ = xyY_2_XYZ(xyY);
@@ -74,18 +74,18 @@ vec3 darkSurround_to_dimSurround(vec3 linearCV){
 //   This ODT has a compensation for viewing environment variables more typical
 //   of those associated with video mastering.
 //
-vec3 ODT_RGBmonitor_100nits_dim(vec3 oces){
+mediump vec3 ODT_RGBmonitor_100nits_dim(mediump vec3 oces){
     // OCES to RGB rendering space
-    vec3 rgbPre = AP0_2_AP1_MAT * oces;
+    mediump vec3 rgbPre = AP0_2_AP1_MAT * oces;
 
     // Apply the tonescale independently in rendering-space RGB
-    vec3 rgbPost;
+    mediump vec3 rgbPost;
     rgbPost.r = segmented_spline_c9_fwd(rgbPre.r);
     rgbPost.g = segmented_spline_c9_fwd(rgbPre.g);
     rgbPost.b = segmented_spline_c9_fwd(rgbPre.b);
 
     // Scale luminance to linear code value
-    vec3 linearCV = Y_2_linCV(rgbPost, CINEMA_WHITE, CINEMA_BLACK);
+    mediump vec3 linearCV = Y_2_linCV(rgbPost, CINEMA_WHITE, CINEMA_BLACK);
 
      // Apply gamma adjustment to compensate for dim surround
     linearCV = darkSurround_to_dimSurround(linearCV);
@@ -95,7 +95,7 @@ vec3 ODT_RGBmonitor_100nits_dim(vec3 oces){
 
     // Convert to display primary encoding
     // Rendering space RGB to XYZ
-    vec3 XYZ = AP1_2_XYZ_MAT * linearCV;
+    mediump vec3 XYZ = AP1_2_XYZ_MAT * linearCV;
 
     // Apply CAT from ACES white point to assumed observer adapted white point
     XYZ = D60_2_D65_CAT * XYZ;
