@@ -18,7 +18,7 @@ export default class Preprocessor {
     this.parser.addPredefinedMacro(macro, value);
   }
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   convertSourceIndex(index: number) {
     return this.scanner.sourceMap.map(index);
   }

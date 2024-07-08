@@ -28,7 +28,7 @@ export class MacroDefine extends PpError {
     if (this.isFunction) {
       const argsTextList = this.args!.map((item) => item.lexeme);
 
-      // #if _DEVELOPMENT
+      // #if _EDITOR
       if (args.length !== this.args?.length) {
         this.throw(this.location, "mismatched function macro");
       }

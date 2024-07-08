@@ -161,7 +161,7 @@ export default class LALR1 {
       if (terminal === EKeyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
         return;
       } else {
-        // #if _DEVELOPMENT
+        // #if _EDITOR
         console.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}>`,
           Utils.printAction(exist),

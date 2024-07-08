@@ -1,6 +1,6 @@
 import LexerUtils from "../lexer/Utils";
 import { Position, IIndexRange } from "../common";
-// #if _DEVELOPMENT
+// #if _EDITOR
 import PpSourceMap from "./sourceMap";
 // #endif
 import { PpUtils } from "./Utils";
@@ -16,7 +16,7 @@ export default class PpScanner extends BaseScanner {
 
   private macroLvl = 0;
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
   readonly blockRange?: IIndexRange;
@@ -24,13 +24,13 @@ export default class PpScanner extends BaseScanner {
 
   constructor(
     source: string,
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     file = "__main__",
     blockRange?: IIndexRange
     // #endif
   ) {
     super(source);
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     this.file = file;
     this.blockRange = blockRange;
     // #endif
@@ -166,7 +166,7 @@ export default class PpScanner extends BaseScanner {
     return { token, nextDirective: directive };
   }
 
-  // #if !_DEVELOPMENTMENT
+  // #if !_EDITOR
   scanPairedBlock(lc = "{", rc = "}") {
     this.scanToChar(lc);
     let lvl = 0;

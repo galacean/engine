@@ -11,7 +11,7 @@ export default class Lexer extends BaseScanner {
   reset(source: string) {
     this._source = source;
     this._current = 0;
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     this._line = this._column = 0;
     // #endif
   }
@@ -233,7 +233,7 @@ export default class Lexer extends BaseScanner {
   private getPosition(offset /** offset from starting point */ = 0) {
     return new Position(
       this.current - offset,
-      // #if _DEVELOPMENT
+      // #if _EDITOR
       this._line,
       this._column - offset
       // #endif

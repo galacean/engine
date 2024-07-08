@@ -10,7 +10,7 @@ export default class BaseScanner extends BaseError {
     return this._current;
   }
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   protected _column = 0;
   protected _line = 0;
   // #endif
@@ -23,7 +23,7 @@ export default class BaseScanner extends BaseError {
   get curPosition(): Position {
     return {
       index: this._current,
-      // #if _DEVELOPMENT
+      // #if _EDITOR
       column: this._column,
       line: this._line
       // #endif
@@ -54,7 +54,7 @@ export default class BaseScanner extends BaseError {
 
   _advance() {
     if (this.isEnd()) return;
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     if (this.curChar() === "\n") {
       this._line += 1;
       this._column = 0;

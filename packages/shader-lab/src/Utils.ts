@@ -2,7 +2,7 @@ import { ENonTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
 import { BaseToken as Token } from "./common/BaseToken";
 import { EKeyword, ETokenType, GalaceanDataType } from "./common";
 import { TreeNode } from "./parser/AST";
-// #if _DEVELOPMENT
+// #if _EDITOR
 // import { createWriteStream } from "fs";
 // import State from "./lalr/State";
 // #endif
@@ -15,7 +15,7 @@ export class ParserUtils {
     return ParserUtils.unwrapNodeByType(child, type);
   }
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   /**
    * Check if type `tb` is compatible with type `ta`.
    */
@@ -42,7 +42,7 @@ export class ParserUtils {
   /**
    * @internal
    */
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   // static printStatePool(logPath: string) {
   //   const logStream = createWriteStream(logPath);
 

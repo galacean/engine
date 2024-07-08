@@ -1,6 +1,6 @@
 import { IIndexRange } from "../../common/IndexRange";
 
-// #if _DEVELOPMENT
+// #if _EDITOR
 export class BlockInfo {
   readonly sourceFile: string;
   readonly rangeInFile?: IIndexRange;

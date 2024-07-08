@@ -423,7 +423,7 @@ export default class ShaderStructParser extends BaseError {
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanText("=");
           const entry = scanner.scanToken();
-          // #if _DEVELOPMENT
+          // #if _EDITOR
           if (ret[word.lexeme]) {
             this.throw(scanner.current, "reassign main entry");
           }

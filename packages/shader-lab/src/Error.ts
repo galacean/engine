@@ -1,4 +1,4 @@
-// #if _DEVELOPMENT
+// #if _EDITOR
 import { IIndexRange } from "./common";
 
 export abstract class GSError extends Error {

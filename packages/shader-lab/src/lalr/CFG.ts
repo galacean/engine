@@ -121,7 +121,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.storage_qualifier,
     [[EKeyword.CONST], [EKeyword.IN], [EKeyword.INOUT], [EKeyword.OUT], [EKeyword.CENTROID]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.StorageQualifier
     // #endif
   ),
@@ -129,7 +129,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.interpolation_qualifier,
     [[EKeyword.SMOOTH], [EKeyword.FLAT]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.InterpolationQualifier
     // #endif
   ),
@@ -137,7 +137,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.invariant_qualifier,
     [[EKeyword.INVARIANT]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.InvariantQualifier
     // #endif
   ),
@@ -145,7 +145,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.precision_qualifier,
     [[EKeyword.HIGHP], [EKeyword.MEDIUMP], [EKeyword.LOWP]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.PrecisionQualifier
     // #endif
   ),
@@ -253,7 +253,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.assignment_expression
       ]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ConditionalExpression
     // #endif
   ),
@@ -264,7 +264,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.logical_xor_expression],
       [ENonTerminal.logical_or_expression, ETokenType.OR_OP, ENonTerminal.logical_xor_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.LogicalOrExpression
     // #endif
   ),
@@ -275,7 +275,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.logical_and_expression],
       [ENonTerminal.logical_xor_expression, ETokenType.XOR_OP, ENonTerminal.logical_and_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.LogicalXorExpression
     // #endif
   ),
@@ -286,7 +286,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.inclusive_or_expression],
       [ENonTerminal.logical_and_expression, ETokenType.AND_OP, ENonTerminal.inclusive_or_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.LogicalAndExpression
     // #endif
   ),
@@ -297,7 +297,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.exclusive_or_expression],
       [ENonTerminal.inclusive_or_expression, ETokenType.VERTICAL_BAR, ENonTerminal.exclusive_or_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.InclusiveOrExpression
     // #endif
   ),
@@ -308,7 +308,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.and_expression],
       [ENonTerminal.exclusive_or_expression, ETokenType.CARET, ENonTerminal.and_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ExclusiveOrExpression
     // #endif
   ),
@@ -319,7 +319,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.equality_expression],
       [ENonTerminal.and_expression, ETokenType.AMPERSAND, ENonTerminal.equality_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.AndExpression
     // #endif
   ),
@@ -331,7 +331,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.equality_expression, ETokenType.EQ_OP, ENonTerminal.relational_expression],
       [ENonTerminal.equality_expression, ETokenType.NE_OP, ENonTerminal.relational_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.EqualityExpression
     // #endif
   ),
@@ -345,7 +345,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.relational_expression, ETokenType.LE_OP, ENonTerminal.shift_expression],
       [ENonTerminal.relational_expression, ETokenType.GE_OP, ENonTerminal.shift_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.RelationalExpression
     // #endif
   ),
@@ -357,7 +357,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.shift_expression, ETokenType.LEFT_OP, ENonTerminal.additive_expression],
       [ENonTerminal.shift_expression, ETokenType.RIGHT_OP, ENonTerminal.additive_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ShiftExpression
     // #endif
   ),
@@ -369,7 +369,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.additive_expression, ETokenType.PLUS, ENonTerminal.multiplicative_expression],
       [ENonTerminal.additive_expression, ETokenType.DASH, ENonTerminal.multiplicative_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.AdditiveExpression
     // #endif
   ),
@@ -382,7 +382,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.multiplicative_expression, ETokenType.SLASH, ENonTerminal.unary_expression],
       [ENonTerminal.multiplicative_expression, ETokenType.PERCENT, ENonTerminal.unary_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.MultiplicativeExpression
     // #endif
   ),
@@ -395,7 +395,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.DEC_OP, ENonTerminal.unary_expression],
       [ENonTerminal.unary_operator, ENonTerminal.unary_expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.UnaryExpression
     // #endif
   ),
@@ -403,7 +403,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.unary_operator,
     [[ETokenType.PLUS], [ETokenType.DASH], [ETokenType.BANG], [ETokenType.TILDE]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.UnaryOperator
     // #endif
   ),
@@ -468,7 +468,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.XOR_ASSIGN],
       [ETokenType.OR_ASSIGN]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.AssignmentOperator
     // #endif
   ),
@@ -566,7 +566,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.statement,
     [[ENonTerminal.compound_statement], [ENonTerminal.simple_statement]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.Statement
     // #endif
   ),
@@ -586,7 +586,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
       [ENonTerminal.scope_brace, ENonTerminal.statement_list, ENonTerminal.scope_end_brace]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.CompoundStatement
     // #endif
   ),
@@ -600,7 +600,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.iteration_statement],
       [ENonTerminal.jump_statement]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.SimpleStatement
     // #endif
   ),
@@ -673,7 +673,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.assignment_expression],
       [ETokenType.LEFT_BRACE, ENonTerminal.initializer_list, ETokenType.RIGHT_BRACE]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.Initializer
     // #endif
   ),
@@ -681,7 +681,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.initializer_list,
     [[ENonTerminal.initializer], [ENonTerminal.initializer_list, ETokenType.COMMA, ENonTerminal.initializer]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.InitializerList
     // #endif
   ),
@@ -689,7 +689,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.expression_statement,
     [[ETokenType.SEMICOLON], [ENonTerminal.expression, ETokenType.SEMICOLON]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ExpressionStatement
     // #endif
   ),
@@ -709,7 +709,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.statement
       ]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.SelectionStatement
     // #endif
   ),
@@ -727,7 +727,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.statement
       ]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.IterationStatement
     // #endif
   ),
@@ -748,7 +748,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.for_init_statement,
     [[ENonTerminal.expression_statement], [ENonTerminal.declaration]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ForInitStatement
     // #endif
   ),
@@ -759,7 +759,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.expression],
       [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, ENonTerminal.initializer]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.Condition
     // #endif
   ),
@@ -770,7 +770,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ENonTerminal.conditionopt, ETokenType.SEMICOLON],
       [ENonTerminal.conditionopt, ETokenType.SEMICOLON, ENonTerminal.expression]
     ],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ForRestStatement
     // #endif
   ),
@@ -778,7 +778,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.conditionopt,
     [[ETokenType.EPSILON], [ENonTerminal.condition]],
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     ASTNode.ConditionOpt
     // #endif
   ),

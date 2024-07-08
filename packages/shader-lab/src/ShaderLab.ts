@@ -80,7 +80,7 @@ export class ShaderLab implements IShaderLab {
       const info = macro.split(" ", 2);
       preprocessor.addPredefinedMacro(info[0], info[1]);
     }
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif
     const ppdContent = preprocessor.process();
@@ -97,7 +97,7 @@ export class ShaderLab implements IShaderLab {
     return parser.parse();
   }
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   /**
    * @internal for debug
    */

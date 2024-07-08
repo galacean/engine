@@ -1,6 +1,6 @@
 import { IIndexRange } from "../common";
 import { ExpandSegment } from "./Parser";
-// #if _DEVELOPMENT
+// #if _EDITOR
 import PpSourceMap, { MapRange } from "./sourceMap";
 // #endif
 
@@ -8,7 +8,7 @@ export class PpUtils {
   static expand(
     segments: ExpandSegment[],
     source: string,
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     sourceMap?: PpSourceMap
     //#endif
   ) {
@@ -22,7 +22,7 @@ export class PpUtils {
 
       const generatedIdxEnd = generatedIdx + originSlice.length + seg.replace.length;
 
-      // #if _DEVELOPMENT
+      // #if _EDITOR
       const mapRange = new MapRange(seg.block, seg.rangeInBlock, {
         start: generatedIdx + originSlice.length,
         end: generatedIdxEnd

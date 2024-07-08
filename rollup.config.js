@@ -50,7 +50,7 @@ const commonPlugins = [
   ),
   commonjs(),
   jscc({
-    values: { _DEVELOPMENT: NODE_ENV !== "release" }
+    values: { _EDITOR: NODE_ENV !== "release" }
   }),
   NODE_ENV === "development"
     ? serve({

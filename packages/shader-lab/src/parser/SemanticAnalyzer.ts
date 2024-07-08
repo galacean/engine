@@ -1,7 +1,7 @@
 import { Logger } from "../Logger";
 import { IIndexRange } from "../common";
 import { TreeNode } from "./AST";
-// #if _DEVELOPMENT
+// #if _EDITOR
 import { SemanticError } from "../Error";
 // #endif
 import { ShaderData } from "./ShaderInfo";
@@ -22,7 +22,7 @@ export default class SematicAnalyzer {
   logger = new Logger("semantic analyzer");
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   readonly errors: SemanticError[] = [];
   // #endif
 
@@ -42,7 +42,7 @@ export default class SematicAnalyzer {
     this._shaderData = new ShaderData();
     this.symbolTable.clear();
     this.newScope();
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     this.errors.length = 0;
     // #endif
   }
@@ -64,7 +64,7 @@ export default class SematicAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   error(loc: IIndexRange, ...param: any[]) {
     this.logger.errorLoc(loc, ...param);
 

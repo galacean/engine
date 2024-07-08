@@ -18,7 +18,7 @@ export class Logger {
     return Logger._level < LoggerLevel.off;
   }
 
-  // #if _DEVELOPMENT
+  // #if _EDITOR
   static convertSourceIndex: (index: number) => { sourceFile: string; index: number };
   // #endif
 
@@ -54,7 +54,7 @@ export class Logger {
 
   errorLoc(loc: IIndexRange, ...param: any[]) {
     if (Logger._level > LoggerLevel.error) return;
-    // #if _DEVELOPMENT
+    // #if _EDITOR
     const locInfo = Logger.convertSourceIndex(loc.start.index);
     this._log(Logger.RED, `<loc: ${locInfo.index} at ${locInfo.sourceFile}>`);
     // #endif
