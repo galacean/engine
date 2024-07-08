@@ -173,7 +173,7 @@ export class Shader implements IReferable {
     return Shader._shaderMap[name];
   }
 
-  static _applyConstRenderStates(
+  private static _applyConstRenderStates(
     renderState: RenderState,
     key: RenderStateElementKey,
     value: boolean | string | number | Color
