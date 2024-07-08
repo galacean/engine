@@ -1,8 +1,8 @@
 import { Logger } from "../Logger";
+import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
-import { EShaderStage } from "./enums";
 
 export class VisitorContext {
   attributeList: IParamInfo[] = [];

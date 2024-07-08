@@ -3,7 +3,7 @@ import { SymbolType } from "../parser/types";
 import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ETokenType, Position } from "../common";
 import { GLESVisitor } from "./GLESVisitor";
-import { EShaderStage } from "./enums";
+import { EShaderStage } from "../common/Enums";
 
 const V3_GL_FragColor = "GS_glFragColor";
 

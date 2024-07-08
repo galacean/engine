@@ -1,12 +1,21 @@
 import BaseError from "../common/BaseError";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
-import { IEngineType } from "../EngineType";
 import { EKeyword, ETokenType } from "../common";
 import { IIndexRange, Position } from "../common";
 import { KeywordMap } from "./KeywordMap";
 import Scanner from "./Scanner";
 import SymbolTable, { ISymbol } from "./SymbolTable";
+import {
+  RenderStateDataKey,
+  Color,
+  RenderQueueType,
+  CompareFunction,
+  StencilOperation,
+  BlendOperation,
+  BlendFactor,
+  CullMode
+} from "@galacean/engine";
 
 export interface statement {
   content: string;
@@ -67,10 +76,7 @@ const RenderStateType = [
 ];
 
 export default class ShaderStructParser extends BaseError {
-  static _engineType: IEngineType = {};
-  static _RenderStateElementKey: Record<string, number> = {};
-  static _Color: new (...args: number[]) => any;
-
+  static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
   private static _isRenderStateDeclarator(token: BaseToken) {
     return RenderStateType.includes(token.type);
   }
@@ -240,7 +246,7 @@ export default class ShaderStructParser extends BaseError {
     }
 
     renderStateProp = state + renderStateProp;
-    const renderStateElementKey = ShaderStructParser._RenderStateElementKey[renderStateProp];
+    const renderStateElementKey = RenderStateDataKey[renderStateProp];
     if (renderStateElementKey == undefined)
       this.throw(this._scanner.current, "Invalid render state element", renderStateProp);
 
@@ -265,7 +271,7 @@ export default class ShaderStructParser extends BaseError {
           }
           this._scanner.scanText(",");
         }
-        value = new ShaderStructParser._Color(...args);
+        value = new Color(...args);
       } else if (this._scanner.curChar() === ".") {
         this._scanner._advance();
         const engineTypeProp = this._scanner.scanToken();
@@ -292,8 +298,8 @@ export default class ShaderStructParser extends BaseError {
     if (value == undefined) {
       this.throw(this._scanner.current, "Invalid render queue", word.lexeme);
     }
-    const key = ShaderStructParser._RenderStateElementKey.RenderQueueType;
-    ret.renderStates[key] = value;
+    const key = RenderStateDataKey.RenderQueueType;
+    ret.renderStates[0][key] = value;
   }
 
   private _addGlobalStatement(ret: { globalContents: statement[] }, scanner: Scanner, start: Position, offset: number) {

@@ -2,11 +2,12 @@ import Lexer from "./lexer";
 import { Parser } from "./parser";
 import Preprocessor from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IEngineType, IEngineFunction } from "./EngineType";
 import { IShaderLab } from "@galacean/engine-design";
 import { Logger } from "./Logger";
 import { ShaderStruct } from "@galacean/engine-design/types/shader-lab/shaderStruct/ShaderStruct";
 import { ShaderStructParser } from "./structParser";
+// @ts-ignore
+import { ShaderLib } from "@galacean/engine";
 
 export enum EBackend {
   GLES100 = 0,
@@ -14,40 +15,9 @@ export enum EBackend {
 }
 
 export class ShaderLab implements IShaderLab {
-  private static _includeMap: Record<string, string> = {};
+  private static _includeMap: Record<string, string> = ShaderLib;
 
-  private _parser: Parser;
-
-  constructor();
-  constructor(
-    renderStateElementKey: Record<string, number>,
-    engineTypes: Partial<IEngineType>,
-    colorCst: new (...args: number[]) => any
-  );
-
-  constructor(
-    renderStateElementKey: Record<string, number> = {},
-    engineTypes: Partial<IEngineType> = {},
-    colorCst?: new (...args: number[]) => any
-  ) {
-    this._parser = Parser.create();
-    ShaderStructParser._RenderStateElementKey = renderStateElementKey;
-    ShaderStructParser._engineType = engineTypes;
-    ShaderStructParser._Color = colorCst;
-  }
-
-  /**
-   * @internal
-   */
-  init(
-    renderStateElementKey: Record<string, number>,
-    engineTypes: Partial<IEngineType>,
-    colorCst: new (...args: number[]) => any
-  ) {
-    ShaderStructParser._engineType = engineTypes;
-    ShaderStructParser._Color = colorCst;
-    ShaderStructParser._RenderStateElementKey = renderStateElementKey;
-  }
+  private _parser = Parser.create();
 
   /**
    * Register new snippets that can be referenced by `#include` macro in `ShaderLab`.
@@ -59,13 +29,6 @@ export class ShaderLab implements IShaderLab {
       throw `The "${includeName}" shader include already exist`;
     }
     ShaderLab._includeMap[includeName] = includeSource;
-  }
-
-  /**
-   * @internal
-   */
-  setIncludeMap(includeMap: Record<string, string>) {
-    ShaderLab._includeMap = includeMap;
   }
 
   parseShaderPass(
@@ -84,7 +47,6 @@ export class ShaderLab implements IShaderLab {
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif
     const ppdContent = preprocessor.process();
-    // console.log(ppdContent);
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = this._parser.parse(tokens);

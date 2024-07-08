@@ -5,9 +5,7 @@ import {
   CullMode,
   RenderQueueType,
   RenderStateDataKey,
-  StencilOperation,
-  // @ts-ignore
-  ShaderLib
+  StencilOperation
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { Logger, LoggerLevel, ShaderLab } from "@galacean/engine-shader-lab";
@@ -208,7 +206,7 @@ describe("ShaderLab", () => {
 
   it("include", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
-    glslValidate(demoShader, shaderLab, { test_common: commonSource, ...ShaderLib });
+    glslValidate(demoShader, shaderLab, { test_common: commonSource });
   });
 
   it("planarShadow shader", () => {

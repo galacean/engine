@@ -40,9 +40,7 @@ export class ShaderPass extends ShaderPart {
   private readonly _fragmentEntry: string;
 
   /**
-   * Create a shader pass.
-   * @param shaderLabSource - Shader lab source
-   * @param tags - Tags
+   * @internal
    */
   constructor(
     shaderLabSource: string,

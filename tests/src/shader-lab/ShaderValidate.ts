@@ -80,24 +80,10 @@ function validateShaderPass(
 }
 
 export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
-  const shaderLab =
-    _shaderLab ??
-    new ShaderLab(
-      // @ts-ignore
-      RenderStateDataKey,
-      {
-        RenderQueueType,
-        CompareFunction,
-        StencilOperation,
-        BlendOperation,
-        BlendFactor,
-        CullMode
-      },
-      Color
-    );
-
-  // @ts-ignore
-  shaderLab.setIncludeMap({ ...ShaderLib, ...includeMap });
+  const shaderLab = _shaderLab ?? new ShaderLab();
+  for (const key in includeMap) {
+    shaderLab.registerInclude(key, includeMap[key]);
+  }
 
   const start = performance.now();
   const shader = shaderLab.parseShaderStruct(shaderSource);

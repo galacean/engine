@@ -89,20 +89,19 @@ export class Shader implements IReferable {
         throw "ShaderLab has not been set up yet.";
       }
 
-      const shaderInfo = Shader._shaderLab.parseShaderStruct(nameOrShaderSource);
-      if (shaderMap[shaderInfo.name]) {
-        console.error(`Shader named "${shaderInfo.name}" already exists.`);
+      const shaderStructInfo = Shader._shaderLab.parseShaderStruct(nameOrShaderSource);
+      if (shaderMap[shaderStructInfo.name]) {
+        console.error(`Shader named "${shaderStructInfo.name}" already exists.`);
         return;
       }
-      const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
+      const subShaderList = shaderStructInfo.subShaders.map((subShaderInfo) => {
         const passList = subShaderInfo.passes.map((passInfo) => {
           if (passInfo.isUsePass) {
             // Use pass reference
             const paths = passInfo.name.split("/");
-            const pass = Shader.find(paths[0])
+            return Shader.find(paths[0])
               ?.subShaders.find((subShader) => subShader.name === paths[1])
               ?.passes.find((pass) => pass.name === paths[2]);
-            return pass;
           }
 
           const shaderPass = new ShaderPass(
@@ -133,17 +132,11 @@ export class Shader implements IReferable {
           return shaderPass;
         });
 
-        const subShader = new SubShader(subShaderInfo.name, passList);
-        if (subShaderInfo.tags) {
-          for (const tagKey in subShaderInfo.tags) {
-            subShader.setTag(tagKey, subShaderInfo.tags[tagKey]);
-          }
-        }
-        return subShader;
+        return new SubShader(subShaderInfo.name, passList, subShaderInfo.tags);
       });
 
-      shader = new Shader(shaderInfo.name, subShaderList);
-      shaderMap[shaderInfo.name] = shader;
+      shader = new Shader(shaderStructInfo.name, subShaderList);
+      shaderMap[shaderStructInfo.name] = shader;
       return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {

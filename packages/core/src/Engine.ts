@@ -560,23 +560,8 @@ export class Engine extends EventDispatcher {
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const { shaderLab, physics } = configuration;
 
-    if (shaderLab) {
+    if (shaderLab && !Shader._shaderLab) {
       Shader._shaderLab = shaderLab;
-      // @ts-ignore
-      shaderLab.init(
-        RenderStateDataKey,
-        {
-          RenderQueueType,
-          CompareFunction,
-          StencilOperation,
-          BlendOperation,
-          BlendFactor,
-          CullMode
-        },
-        Color
-      );
-      // @ts-ignore
-      shaderLab.setIncludeMap(ShaderLib);
     }
 
     const initializePromises = new Array<Promise<any>>();

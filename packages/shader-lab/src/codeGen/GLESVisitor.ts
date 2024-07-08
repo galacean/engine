@@ -3,8 +3,8 @@ import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
-import { EShaderStage } from "./enums";
 import { IPassCodeGenResult } from "./types";
+import { EShaderStage } from "../common/Enums";
 
 type ICodeSegment = [string, number];
 
