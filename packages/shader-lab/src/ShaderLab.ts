@@ -1,5 +1,5 @@
 import Lexer from "./lexer";
-import { Parser } from "./parser";
+import { ShaderTargetParser } from "./parser";
 import Preprocessor from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { Logger } from "./Logger";
@@ -9,7 +9,7 @@ import { ShaderContentParser } from "./contentParser";
 import { ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
-  private _parser = Parser.create();
+  private _parser = ShaderTargetParser.create();
 
   /**
    * @internal

@@ -1,4 +1,4 @@
-import Parser from "./TargetParser";
+import ShaderTargetParser from "./ShaderTargetParser";
 import Grammar from "./Grammar";
 
-export { Parser, Grammar };
+export { ShaderTargetParser, Grammar };

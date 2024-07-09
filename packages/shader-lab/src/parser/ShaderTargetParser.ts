@@ -14,7 +14,7 @@ import { Logger } from "../Logger";
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
  */
-export default class Parser {
+export default class ShaderTargetParser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
   readonly grammar: Grammar;
@@ -32,14 +32,14 @@ export default class Parser {
     return this.gotoTable.get(this.curState);
   }
 
-  static _singleton: Parser;
+  static _singleton: ShaderTargetParser;
 
   static create() {
     if (!this._singleton) {
       const grammar = createGrammar();
       const generator = new LALR1(grammar);
       generator.generate();
-      this._singleton = new Parser(generator.actionTable, generator.gotoTable, grammar);
+      this._singleton = new ShaderTargetParser(generator.actionTable, generator.gotoTable, grammar);
       addTranslationRule(this._singleton.sematicAnalyzer);
     }
 
