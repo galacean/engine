@@ -1,6 +1,4 @@
-export type IRenderStates = [
-  /** Constant RenderState. */
-  Record<number, any>,
-  /** Variable RenderState. */
-  Record<number, string>
-];
+export interface IRenderStates {
+  constantMap: Record<number, any>;
+  variableMap: Record<number, string>;
+}

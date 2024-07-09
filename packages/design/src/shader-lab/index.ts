@@ -5,3 +5,4 @@ export { IStatement as Statement } from "./shaderContent/IStatement";
 export { ISubShaderContent as SubShaderContent } from "./shaderContent/ISubShaderContent";
 export { IShaderPassContent as ShaderPassContent } from "./shaderContent/IShaderPassContent";
 export { IShaderPosition } from "./shaderContent/IShaderPosition";
+export { IRenderStates } from "./shaderContent/IRenderStates";

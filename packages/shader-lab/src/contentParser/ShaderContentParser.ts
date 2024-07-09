@@ -16,14 +16,7 @@ import {
   BlendFactor,
   CullMode
 } from "@galacean/engine";
-import { Statement, ShaderContent, SubShaderContent, ShaderPassContent } from "@galacean/engine-design";
-
-type RenderStates = [
-  /** Constant RenderState. */
-  Record<number, any>,
-  /** Variable RenderState. */
-  Record<number, string>
-];
+import { Statement, ShaderContent, SubShaderContent, ShaderPassContent, IRenderStates } from "@galacean/engine-design";
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -64,7 +57,11 @@ export class ShaderContentParser extends BaseError {
   }
 
   parse(): ShaderContent {
-    const ret = { subShaders: [], globalContents: [], renderStates: [{}, {}] } as ShaderContent;
+    const ret = {
+      subShaders: [],
+      globalContents: [],
+      renderStates: { constantMap: {}, variableMap: {} }
+    } as ShaderContent;
     const scanner = this._scanner;
 
     scanner.scanText("Shader");
@@ -76,15 +73,17 @@ export class ShaderContentParser extends BaseError {
 
     const shaderGlobalStatements = ret.globalContents;
     const shaderRenderStates = ret.renderStates;
-    for (const subShader of ret.subShaders) {
+    for (let i = 0; i < ret.subShaders.length; i++) {
+      const subShader = ret.subShaders[i];
       const curSubShaderGlobalStatements = shaderGlobalStatements.concat(subShader.globalContents);
-      const curSubShaderRenderStates = [
-        { ...shaderRenderStates[0], ...subShader.renderStates[0] },
-        { ...shaderRenderStates[1], ...subShader.renderStates[1] }
-      ];
-      for (const pass of subShader.passes) {
-        Object.assign(pass.renderStates[0], curSubShaderRenderStates[0]);
-        Object.assign(pass.renderStates[1], curSubShaderRenderStates[1]);
+      const constMap = { ...shaderRenderStates.constantMap, ...subShader.renderStates.constantMap };
+      const variableMap = { ...shaderRenderStates.variableMap, ...subShader.renderStates.variableMap };
+
+      for (let i = 0; i < subShader.passes.length; i++) {
+        const pass = subShader.passes[i];
+        // for (const pass of subShader.passes) {
+        Object.assign(pass.renderStates.constantMap, constMap);
+        Object.assign(pass.renderStates.variableMap, variableMap);
         if (pass.isUsePass) continue;
         // @ts-ignore
         const passGlobalStatements = curSubShaderGlobalStatements.concat(pass.globalContents);
@@ -149,7 +148,7 @@ export class ShaderContentParser extends BaseError {
     }
   }
 
-  private _parseRenderStateDeclarationOrAssignment(ret: { renderStates: RenderStates }, stateToken: BaseToken) {
+  private _parseRenderStateDeclarationOrAssignment(ret: { renderStates: IRenderStates }, stateToken: BaseToken) {
     const ident = this._scanner.scanToken();
     let isDeclaration: boolean;
     if (ident.type === ETokenType.ID) {
@@ -164,9 +163,9 @@ export class ShaderContentParser extends BaseError {
       if (!sm?.value) {
         this.throw(this._scanner.current, `Invalid ${stateToken.lexeme} variable:`, variable.lexeme);
       }
-      const renderState = sm.value as RenderStates;
-      Object.assign(ret.renderStates[0], renderState[0]);
-      Object.assign(ret.renderStates[1], renderState[1]);
+      const renderState = sm.value as IRenderStates;
+      Object.assign(ret.renderStates.constantMap, renderState.constantMap);
+      Object.assign(ret.renderStates.variableMap, renderState.variableMap);
       return;
     }
 
@@ -174,8 +173,8 @@ export class ShaderContentParser extends BaseError {
     if (isDeclaration) {
       this._symbolTable.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
     } else {
-      Object.assign(ret.renderStates[0], renderState[0]);
-      Object.assign(ret.renderStates[1], renderState[1]);
+      Object.assign(ret.renderStates.constantMap, renderState.constantMap);
+      Object.assign(ret.renderStates.variableMap, renderState.variableMap);
     }
   }
 
@@ -190,8 +189,8 @@ export class ShaderContentParser extends BaseError {
     this._symbolTable.newScope(symbolTable);
   }
 
-  private _parseRenderStatePropList(state: string): RenderStates {
-    const ret = [{}, {}] as RenderStates;
+  private _parseRenderStatePropList(state: string): IRenderStates {
+    const ret: IRenderStates = { constantMap: {}, variableMap: {} };
     while (this._scanner.curChar() !== "}") {
       this._parseRenderStatePropItem(ret, state);
       this._scanner.skipCommentsAndSpace();
@@ -200,7 +199,7 @@ export class ShaderContentParser extends BaseError {
     return ret;
   }
 
-  private _parseRenderStatePropItem(ret: RenderStates, state: string) {
+  private _parseRenderStatePropItem(ret: IRenderStates, state: string) {
     let renderStateProp = this._scanner.scanToken().lexeme;
     const op = this._scanner.scanToken();
     if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
@@ -254,13 +253,13 @@ export class ShaderContentParser extends BaseError {
     }
     this._scanner.scanText(";");
     if (typeof value === "string") {
-      ret[1][renderStateElementKey] = value;
+      ret.variableMap[renderStateElementKey] = value;
     } else {
-      ret[0][renderStateElementKey] = value;
+      ret.constantMap[renderStateElementKey] = value;
     }
   }
 
-  private _parseRenderQueueAssignment(ret: { renderStates: RenderStates }) {
+  private _parseRenderQueueAssignment(ret: { renderStates: IRenderStates }) {
     this._scanner.scanText("=");
     const word = this._scanner.scanToken();
     this._scanner.scanText(";");
@@ -269,7 +268,7 @@ export class ShaderContentParser extends BaseError {
       this.throw(this._scanner.current, "Invalid render queue", word.lexeme);
     }
     const key = RenderStateDataKey.RenderQueueType;
-    ret.renderStates[0][key] = value;
+    ret.renderStates.constantMap[key] = value;
   }
 
   private _addGlobalStatement(ret: { globalContents: Statement[] }, scanner: Scanner, start: Position, offset: number) {
@@ -283,7 +282,12 @@ export class ShaderContentParser extends BaseError {
 
   private _parseSubShader(): SubShaderContent {
     this._newScope();
-    const ret = { passes: [], globalContents: [], renderStates: [{}, {}], tags: {} } as SubShaderContent;
+    const ret = {
+      passes: [],
+      globalContents: [],
+      renderStates: { constantMap: {}, variableMap: {} },
+      tags: {}
+    } as SubShaderContent;
     const scanner = this._scanner;
     let braceLevel = 1;
     ret.name = scanner.scanPairedText('"', '"');
@@ -312,7 +316,7 @@ export class ShaderContentParser extends BaseError {
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           const name = scanner.scanPairedText('"', '"');
           // @ts-ignore
-          ret.passes.push({ name, isUsePass: true, renderStates: [{}, {}], tags: {} });
+          ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
           start = scanner.curPosition;
           break;
 
@@ -368,7 +372,11 @@ export class ShaderContentParser extends BaseError {
   }
 
   private _parsePass(): ShaderPassContent {
-    const ret = { globalContents: [], renderStates: [{}, {}], tags: {} } as ShaderPassContent & {
+    const ret = {
+      globalContents: [],
+      renderStates: { constantMap: {}, variableMap: {} },
+      tags: {}
+    } as ShaderPassContent & {
       globalContents: Statement[];
     };
     const scanner = this._scanner;
