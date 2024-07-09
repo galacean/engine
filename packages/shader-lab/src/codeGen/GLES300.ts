@@ -1,28 +1,37 @@
 import { ASTNode } from "../parser/AST";
 import { SymbolType } from "../parser/types";
 import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword, ETokenType, Position } from "../common";
+import { EKeyword, ETokenType, ShaderPosition } from "../common";
 import { GLESVisitor } from "./GLESVisitor";
 import { EShaderStage } from "../common/Enums";
+import { ICodeSegment } from "./types";
 
 const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
   versionText: string = "#version 300 es";
 
-  override getAttributeDeclare(): [string, number][] {
-    return Array.from(this.context._referencedAttributeList.values()).map((item) => [
-      `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-      item.ident.location.start.index
-    ]);
+  override getAttributeDeclare(): ICodeSegment[] {
+    const ret: ICodeSegment[] = [];
+    for (const [_, item] of this.context._referencedAttributeList) {
+      ret.push({
+        text: `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+        index: item.ident.location.start.index
+      });
+    }
+    return ret;
   }
 
-  override getVaryingDeclare(): [string, number][] {
+  override getVaryingDeclare(): ICodeSegment[] {
+    const ret: ICodeSegment[] = [];
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    return Array.from(this.context._referencedVaryingList.values()).map((item) => [
-      `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-      item.ident.location.start.index
-    ]);
+    for (const [_, item] of this.context._referencedVaryingList) {
+      ret.push({
+        text: `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+        index: item.ident.location.start.index
+      });
+    }
+    return ret;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
@@ -63,7 +72,7 @@ export class GLES300Visitor extends GLESVisitor {
     if (this.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
       if (!this.context._referencedVaryingList.has(V3_GL_FragColor)) {
         this.context._referencedVaryingList.set(V3_GL_FragColor, {
-          ident: new Token(ETokenType.ID, V3_GL_FragColor, new Position(0, 0, 0)),
+          ident: new Token(ETokenType.ID, V3_GL_FragColor, new ShaderPosition(0, 0, 0)),
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
           qualifier: "out",
           astNode: node

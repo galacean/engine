@@ -1,9 +1,10 @@
 import { ENonTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
 import { BaseToken as Token } from "./common/BaseToken";
-import { EKeyword, ETokenType, GalaceanDataType } from "./common";
+import { EKeyword, ETokenType, GalaceanDataType, IIndexRange, ShaderPosition } from "./common";
 import { TreeNode } from "./parser/AST";
 // #if _EDITOR
 import State from "./lalr/State";
+import { Logger } from "@galacean/engine";
 // #endif
 
 export class ParserUtils {
@@ -36,6 +37,11 @@ export class ParserUtils {
 
   static isTerminal(sm: GrammarSymbol) {
     return sm < ENonTerminal.START;
+  }
+
+  static throw(pos: ShaderPosition | IIndexRange | number, ...msgs: any[]) {
+    Logger.error(pos.toString(), ...msgs);
+    throw msgs.join(" ");
   }
 
   /**

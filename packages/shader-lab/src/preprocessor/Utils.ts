@@ -1,5 +1,5 @@
 import { IIndexRange } from "../common";
-import { ExpandSegment } from "./Parser";
+import { ExpandSegment } from "./PpParser";
 // #if _EDITOR
 import PpSourceMap, { MapRange } from "./sourceMap";
 // #endif

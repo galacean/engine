@@ -1,19 +1,28 @@
 import { GLESVisitor } from "./GLESVisitor";
+import { ICodeSegment } from "./types";
 
 export class GLES100Visitor extends GLESVisitor {
   versionText: string = "#version 100 es";
 
-  override getAttributeDeclare(): [string, number][] {
-    return Array.from(this.context._referencedAttributeList.values()).map((item) => [
-      `attribute ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-      item.ident.location.start.index
-    ]);
+  override getAttributeDeclare(): ICodeSegment[] {
+    const ret: ICodeSegment[] = [];
+    for (const [_, item] of this.context._referencedAttributeList) {
+      ret.push({
+        text: `attribute ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+        index: item.ident.location.start.index
+      });
+    }
+    return ret;
   }
 
-  override getVaryingDeclare(): [string, number][] {
-    return Array.from(this.context._referencedVaryingList.values()).map((item) => [
-      `varying ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-      item.ident.location.start.index
-    ]);
+  override getVaryingDeclare(): ICodeSegment[] {
+    const ret: ICodeSegment[] = [];
+    for (const [_, item] of this.context._referencedVaryingList) {
+      ret.push({
+        text: `varying ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
+        index: item.ident.location.start.index
+      });
+    }
+    return ret;
   }
 }

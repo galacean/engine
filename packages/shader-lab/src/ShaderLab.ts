@@ -1,6 +1,6 @@
 import Lexer from "./lexer";
 import { ShaderTargetParser } from "./parser";
-import Preprocessor from "./preprocessor";
+import { Preprocessor } from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { Logger } from "./Logger";
 import { ShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
@@ -9,7 +9,7 @@ import { ShaderContentParser } from "./contentParser";
 import { ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
-  private _parser = ShaderTargetParser.create();
+  private static _parser = ShaderTargetParser.create();
 
   /**
    * @internal
@@ -22,22 +22,22 @@ export class ShaderLab implements IShaderLab {
     backend: ShaderPlatformTarget,
     platformMacros: string[]
   ) {
-    const preprocessor = new Preprocessor(source, ShaderLib);
+    Preprocessor.reset(ShaderLib);
     for (const macro of macros) {
-      preprocessor.addPredefinedMacro(macro.name, macro.value);
+      Preprocessor.addPredefinedMacro(macro.name, macro.value);
     }
 
     for (let i = 0; i < platformMacros.length; i++) {
-      preprocessor.addPredefinedMacro(platformMacros[0]);
+      Preprocessor.addPredefinedMacro(platformMacros[0]);
     }
 
     // #if _EDITOR
-    Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
+    Logger.convertSourceIndex = Preprocessor.convertSourceIndex.bind(Preprocessor);
     // #endif
-    const ppdContent = preprocessor.process();
+    const ppdContent = Preprocessor.process(source);
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
-    const program = this._parser.parse(tokens);
+    const program = ShaderLab._parser.parse(tokens);
     const codeGen = backend === ShaderPlatformTarget.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
     return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }

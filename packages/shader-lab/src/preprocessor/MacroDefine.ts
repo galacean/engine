@@ -1,8 +1,8 @@
 import { BaseToken } from "../common/BaseToken";
 import { IIndexRange } from "../common";
-import { PpError } from "./PpError";
+import { ParserUtils } from "../Utils";
 
-export class MacroDefine extends PpError {
+export class MacroDefine {
   readonly location?: IIndexRange;
   readonly macro: BaseToken;
   readonly args?: BaseToken[];
@@ -17,7 +17,6 @@ export class MacroDefine extends PpError {
   }
 
   constructor(macro: BaseToken, body?: BaseToken, loc?: IIndexRange, args?: BaseToken[]) {
-    super();
     this.location = loc;
     this.macro = macro;
     this.body = body;
@@ -30,7 +29,7 @@ export class MacroDefine extends PpError {
 
       // #if _EDITOR
       if (args.length !== this.args?.length) {
-        this.throw(this.location, "mismatched function macro");
+        ParserUtils.throw(this.location, "mismatched function macro");
       }
       // #endif
       const replaceRegex = new RegExp(`\\b(${argsTextList.join("|")})\\b`, "g");

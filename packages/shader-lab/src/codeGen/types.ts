@@ -8,3 +8,5 @@ export type IRenderState = [
 ];
 
 export type ITag = ShaderContent["subShaders"][number]["tags"];
+
+export type ICodeSegment = { text: string; index: number };

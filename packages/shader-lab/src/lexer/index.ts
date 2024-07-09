@@ -1,4 +1,4 @@
-import { IIndexRange, Position } from "../common";
+import { IIndexRange, ShaderPosition } from "../common";
 import { ETokenType, KeywordTable } from "../common";
 import { EOF, BaseToken } from "../common/BaseToken";
 import LexerUtils from "./Utils";
@@ -231,7 +231,7 @@ export default class Lexer extends BaseScanner {
   }
 
   private getPosition(offset /** offset from starting point */ = 0) {
-    return new Position(
+    return new ShaderPosition(
       this.current - offset,
       // #if _EDITOR
       this._line,

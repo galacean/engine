@@ -69,8 +69,7 @@ function validateShaderPass(
 export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
   const shaderLab = _shaderLab ?? new ShaderLab();
   for (const key in includeMap) {
-    // @ts-ignore
-    shaderLab._registerInclude(key, includeMap[key]);
+    ShaderFactory.registerInclude(key, includeMap[key]);
   }
 
   const start = performance.now();
@@ -87,7 +86,8 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
         pass.vertexEntry,
         pass.fragmentEntry,
         [],
-        ShaderPlatformTarget.GLES300
+        ShaderPlatformTarget.GLES300,
+        []
       );
       validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
     });

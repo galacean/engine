@@ -1,10 +1,10 @@
-import BaseError from "./BaseError";
 import { BaseToken } from "./BaseToken";
-import { IIndexRange, Position, ETokenType } from ".";
+import { IIndexRange, ShaderPosition, ETokenType } from ".";
+import { ParserUtils } from "../Utils";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
-export default class BaseScanner extends BaseError {
+export default class BaseScanner {
   protected _current = 0;
   get current() {
     return this._current;
@@ -20,7 +20,7 @@ export default class BaseScanner extends BaseError {
     return this._source;
   }
 
-  get curPosition(): Position {
+  get curPosition(): ShaderPosition {
     return {
       index: this._current,
       // #if _EDITOR
@@ -32,8 +32,7 @@ export default class BaseScanner extends BaseError {
 
   protected readonly _keywordsMap: Map<string, number>;
 
-  constructor(source: string, name?: string, kws: Map<string, number> = new Map()) {
-    super(name ?? "BaseScanner");
+  constructor(source: string, kws: Map<string, number> = new Map()) {
     this._source = source;
     this._keywordsMap = kws;
   }
@@ -100,7 +99,7 @@ export default class BaseScanner extends BaseError {
     this.skipCommentsAndSpace();
     const peek = this.peek(text.length);
     if (peek !== text) {
-      this.throw(this._current, `Expect ${text}, got ${peek}`);
+      ParserUtils.throw(this._current, `Expect ${text}, got ${peek}`);
     }
     this.advance(text.length);
   }

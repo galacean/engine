@@ -5,8 +5,7 @@ import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
 import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
-
-type ICodeSegment = [string, number];
+import { ICodeSegment } from "./types";
 
 const defaultPrecision = `precision mediump float;`;
 
@@ -71,8 +70,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const varyingDeclare = this.getVaryingDeclare();
 
     const globalCode = [...globalText, ...attributeDeclare, ...varyingDeclare]
-      .sort((a, b) => a[1] - b[1])
-      .map((item) => item[0])
+      .sort((a, b) => a.index - b.index)
+      .map((item) => item.text)
       .join("\n");
 
     this.context.reset();
@@ -92,8 +91,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const varyingDeclare = this.getVaryingDeclare();
 
     const globalCode = [...globalText, ...varyingDeclare]
-      .sort((a, b) => a[1] - b[1])
-      .map((item) => item[0])
+      .sort((a, b) => a.index - b.index)
+      .map((item) => item.text)
       .join("\n");
 
     this.context.reset();
@@ -102,7 +101,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
   private getGlobalText(
     data: ShaderData,
-    textList: [string, number][] = [],
+    textList: ICodeSegment[] = [],
     lastLength: number = 0,
     _serialized: Set<string> = new Set()
   ): ICodeSegment[] {
@@ -110,7 +109,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     if (lastLength === _referencedGlobals.size) {
       for (const precision of data.globalPrecisions) {
-        textList.push([precision.codeGen(this), precision.location.start.index]);
+        textList.push({ text: precision.codeGen(this), index: precision.location.start.index });
       }
       return textList;
     }
@@ -122,12 +121,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
       if (sm instanceof SymbolInfo) {
         if (sm.symbolType === ESymbolType.VAR) {
-          textList.push([`uniform ${sm.astNode.codeGen(this)}`, sm.astNode.location.start.index]);
+          textList.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
         } else {
-          textList.push([sm.astNode!.codeGen(this), sm.astNode!.location.start.index]);
+          textList.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });
         }
       } else {
-        textList.push([sm.codeGen(this), sm.location.start.index]);
+        textList.push({ text: sm.codeGen(this), index: sm.location.start.index });
       }
     }
     return this.getGlobalText(data, textList, lastLength, _serialized);

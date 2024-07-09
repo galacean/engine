@@ -1,5 +1,5 @@
 import LexerUtils from "../lexer/Utils";
-import { Position, IIndexRange } from "../common";
+import { ShaderPosition, IIndexRange } from "../common";
 // #if _EDITOR
 import PpSourceMap from "./sourceMap";
 // #endif
@@ -7,6 +7,7 @@ import { PpUtils } from "./Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 import BaseScanner from "../common/BaseScanner";
 import { BaseToken, EOF } from "../common/BaseToken";
+import { ParserUtils } from "../Utils";
 
 export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 
@@ -86,18 +87,18 @@ export default class PpScanner extends BaseScanner {
     const end = this._current;
     const word = this._source.slice(start, end);
     if (end === start) {
-      this.throw(this.getPosition(), "no word found.");
+      ParserUtils.throw(this.getShaderPosition(), "no word found.");
     }
     const kw = PpKeyword.get(word);
     if (kw) {
-      return new BaseToken(kw, word, this.getPosition());
+      return new BaseToken(kw, word, this.getShaderPosition());
     }
 
-    return new BaseToken(EPpToken.id, word, this.getPosition(word.length));
+    return new BaseToken(EPpToken.id, word, this.getShaderPosition(word.length));
   }
 
-  getPosition(offset /** offset from starting point */ = 0) {
-    return new Position(this._current - offset, this.line, this.column - offset);
+  getShaderPosition(offset /** offset from starting point */ = 0) {
+    return new ShaderPosition(this._current - offset, this.line, this.column - offset);
   }
 
   /**
@@ -117,7 +118,11 @@ export default class PpScanner extends BaseScanner {
       return this.scanToken(onToken);
     }
     const lexeme = this._source.slice(start, this._current);
-    const ret = new BaseToken(PpKeyword.get(lexeme) ?? EPpToken.id, lexeme, this.getPosition(this._current - start));
+    const ret = new BaseToken(
+      PpKeyword.get(lexeme) ?? EPpToken.id,
+      lexeme,
+      this.getShaderPosition(this._current - start)
+    );
     onToken?.(ret, this);
     return ret;
   }
@@ -125,17 +130,17 @@ export default class PpScanner extends BaseScanner {
   scanQuotedString(): BaseToken<EPpToken.string_const> {
     this.skipSpace();
     if (this.curChar() !== '"') {
-      this.throw(this.getPosition(), "unexpected char, expected '\"'");
+      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
-    const position = this.getPosition();
+    const ShaderPosition = this.getShaderPosition();
     this._advance();
     const start = this._current;
     while (this.curChar() !== '"' && !this.isEnd()) this._advance();
     if (this.isEnd()) {
-      this.throw(this.getPosition(), "unexpected char, expected '\"'");
+      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
     const word = this._source.slice(start, this._current);
-    return new BaseToken(EPpToken.string_const, word, position);
+    return new BaseToken(EPpToken.string_const, word, ShaderPosition);
   }
 
   scanToChar(char: string) {
@@ -149,7 +154,7 @@ export default class PpScanner extends BaseScanner {
     nextDirective: BaseToken;
   } {
     const start = this._current;
-    const position = this.getPosition();
+    const ShaderPosition = this.getShaderPosition();
 
     const startLvl = this.macroLvl;
     let directive = this.scanDirective()!;
@@ -162,7 +167,7 @@ export default class PpScanner extends BaseScanner {
     }
 
     const chunk = this._source.slice(start, this._current - directive.lexeme.length - 1);
-    const token = new BaseToken(EPpToken.chunk, chunk, position);
+    const token = new BaseToken(EPpToken.chunk, chunk, ShaderPosition);
     return { token, nextDirective: directive };
   }
 
@@ -179,15 +184,15 @@ export default class PpScanner extends BaseScanner {
   // #endif
 
   /**
-   * @returns end position
+   * @returns end ShaderPosition
    */
-  scanRemainMacro(): Position {
+  scanRemainMacro(): ShaderPosition {
     const startLvl = this.macroLvl;
     let directive = this.scanDirective()!;
     while (!this.isEnd() && (directive.type !== EPpKeyword.endif || startLvl - 1 !== this.macroLvl)) {
       directive = this.scanDirective()!;
     }
-    return this.getPosition();
+    return this.getShaderPosition();
   }
 
   peekNonSpace() {
@@ -204,10 +209,10 @@ export default class PpScanner extends BaseScanner {
       this.advance();
     }
     if (this._current === start) {
-      this.throw(this.getPosition(), "no integer found");
+      ParserUtils.throw(this.getShaderPosition(), "no integer found");
     }
     const integer = this._source.slice(start, this._current);
-    return new BaseToken(EPpToken.int_constant, integer, this.getPosition());
+    return new BaseToken(EPpToken.int_constant, integer, this.getShaderPosition());
   }
 
   /**
@@ -222,7 +227,7 @@ export default class PpScanner extends BaseScanner {
     while (this.curChar() !== "\n") {
       if (this.isEnd()) {
         const line = this._source.slice(start, this._current);
-        return new BaseToken(EPpToken.line_remain, line, this.getPosition(line.length));
+        return new BaseToken(EPpToken.line_remain, line, this.getShaderPosition(line.length));
       }
       this.advance();
       const commentRange = this.skipComments();
@@ -240,7 +245,7 @@ export default class PpScanner extends BaseScanner {
         line
       );
     }
-    return new BaseToken(EPpToken.line_remain, line, this.getPosition(line.length));
+    return new BaseToken(EPpToken.line_remain, line, this.getShaderPosition(line.length));
   }
 
   private advanceToDirective(onToken?: OnToken): BaseToken | undefined {
@@ -253,19 +258,19 @@ export default class PpScanner extends BaseScanner {
 
   private skipComments(): IIndexRange | undefined {
     if (this.peek(2) === "//") {
-      const start = this.getPosition();
+      const start = this.getShaderPosition();
       // single line comments
       while (this.curChar() !== "\n" && !this.isEnd()) this._advance();
-      return new IIndexRange(start, this.getPosition());
+      return new IIndexRange(start, this.getShaderPosition());
     } else if (this.peek(2) === "/*") {
-      const start = this.getPosition();
+      const start = this.getShaderPosition();
       //  multi-line comments
       this._advance();
       this._advance();
       while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
       this._advance();
       this._advance();
-      return new IIndexRange(start, this.getPosition());
+      return new IIndexRange(start, this.getShaderPosition());
     }
   }
 }
