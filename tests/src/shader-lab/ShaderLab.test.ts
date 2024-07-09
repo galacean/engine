@@ -8,7 +8,7 @@ import {
   StencilOperation
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { Logger, LoggerLevel, ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
 
 import chai, { expect } from "chai";
@@ -19,7 +19,6 @@ import { ShaderContent } from "@galacean/engine-design";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
-Logger.setLevel(LoggerLevel.off);
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
