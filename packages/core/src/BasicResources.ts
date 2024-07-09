@@ -17,6 +17,9 @@ import { TextureFormat } from "./texture/enums/TextureFormat";
  * @internal
  */
 export class BasicResources {
+  /**
+   * Use triangle to blit texture, ref: https://michaldrobot.com/2014/04/01/gcn-execution-patterns-in-full-screen-passes/ .
+   */
   readonly blitMesh: ModelMesh;
   readonly flipYBlitMesh: ModelMesh;
   readonly blitMaterial: Material;

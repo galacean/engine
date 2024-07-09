@@ -267,13 +267,6 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Post Process manager.
-   */
-  get postProcessManager(): PostProcessManager {
-    return this._postProcessManager;
-  }
-
-  /**
    * Create scene.
    * @param engine - Engine
    * @param name - Name

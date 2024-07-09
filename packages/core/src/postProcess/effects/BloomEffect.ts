@@ -29,7 +29,7 @@ export enum BloomDownScaleMode {
 }
 
 export class BloomEffect {
-  static readonly SHADER_NAME = "postProcessEffect-bloom";
+  static readonly SHADER_NAME = "PostProcessEffect Bloom";
 
   // Bloom shader properties
   private static _hqMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_HQ");

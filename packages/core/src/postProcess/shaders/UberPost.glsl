@@ -37,9 +37,9 @@ void main(){
 	#endif
 
 	#ifdef ENABLE_EFFECT_TONEMAPPING
-		#if TONEMAPPING_MODE == 1
+		#if TONEMAPPING_MODE == 0
       		color.rgb = neutralTonemap(color.rgb);
-    	#elif TONEMAPPING_MODE == 2
+    	#elif TONEMAPPING_MODE == 1
       		color.rgb = ACESTonemap(color.rgb);
     	#endif
 

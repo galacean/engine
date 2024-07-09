@@ -45,7 +45,7 @@ export class OpaqueTexturePass extends PipelinePass {
     this._renderTarget = opaqueRenderTarget;
   }
 
-  onRender(context: RenderContext): void {
+  override onRender(context: RenderContext): void {
     PipelineUtils.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }

@@ -64,9 +64,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     camera.enablePostProcess = true;
     camera.enableHDR = true;
     // @ts-ignore
-    const bloomEffect = scene.postProcessManager._bloomEffect;
+    const bloomEffect = scene._postProcessManager._bloomEffect;
     // @ts-ignore
-    const tonemappingEffect = scene.postProcessManager._tonemappingEffect;
+    const tonemappingEffect = scene._postProcessManager._tonemappingEffect;
 
     bloomEffect.enabled = true;
     tonemappingEffect.enabled = true;

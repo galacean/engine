@@ -129,15 +129,13 @@ export class PipelineUtils {
         currentRenderTarget.isGCIgnored = true;
       }
     } else {
-      const needDepthFormat = depthFormat;
-
       if (
         currentColorTexture !== colorTexture ||
-        currentRenderTarget?._depthFormat !== needDepthFormat ||
+        currentRenderTarget?._depthFormat !== depthFormat ||
         currentRenderTarget.antiAliasing !== antiAliasing
       ) {
         currentRenderTarget?.destroy(true);
-        currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, needDepthFormat, antiAliasing);
+        currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthFormat, antiAliasing);
         currentRenderTarget.isGCIgnored = true;
       }
     }
@@ -171,7 +169,6 @@ export class PipelineUtils {
     const blitMaterial = material || basicResources.blitMaterial;
     const rhi = engine._hardwareRenderer;
     const context = engine._renderContext;
-    const originalFlipProjection = context.flipProjection;
 
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
@@ -213,8 +210,5 @@ export class PipelineUtils {
     if (renderBufferStoreAction === RenderBufferStoreAction.BlitMSAA) {
       destination?._blitRenderTarget();
     }
-
-    // Revert
-    context.flipProjection = originalFlipProjection;
   }
 }

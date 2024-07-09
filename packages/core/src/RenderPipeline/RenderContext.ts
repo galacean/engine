@@ -3,7 +3,6 @@ import { Camera } from "../Camera";
 import { VirtualCamera } from "../VirtualCamera";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
-import { RenderTarget } from "../texture";
 
 /**
  * @internal
@@ -34,7 +33,6 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
   rendererUpdateFlag = ContextRendererUpdateFlag.None;
-  colorTarget: RenderTarget;
 
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean): void {
     this.virtualCamera = virtualCamera;

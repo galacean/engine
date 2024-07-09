@@ -50,50 +50,66 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _render(context: RenderContext) {
-    const { camera, colorTarget } = context;
+  _render(context: RenderContext, srcTarget: RenderTarget): boolean {
+    const camera = context.camera;
     const engine = this.engine;
+    const destination = camera.renderTarget;
+
     const bloomEffect = this._bloomEffect;
     const tonemappingEffect = this._tonemappingEffect;
 
-    if (camera.enablePostProcess) {
-      const viewport = camera.pixelViewport;
+    const useBloom = bloomEffect.enabled && bloomEffect.intensity > 0;
+    const useTonemapping = tonemappingEffect.enabled;
+    const usePostProcess = useBloom || useTonemapping;
 
-      this._swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._swapRenderTarget,
-        viewport.width,
-        viewport.height,
-        camera._getInternalColorTextureFormat(),
-        null,
-        false,
-        false,
-        camera.msaaSamples,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-
+    if (camera.enablePostProcess && usePostProcess) {
       // Should blit to resolve the MSAA
-      colorTarget._blitRenderTarget();
-      const srcTexture = <Texture2D>colorTarget.getColorTexture();
+      srcTarget._blitRenderTarget();
+      const srcTexture = <Texture2D>srcTarget.getColorTexture();
 
-      if (bloomEffect.enabled && bloomEffect.intensity > 0) {
+      if (useBloom) {
         bloomEffect.onRender(context, srcTexture);
       }
 
-      // if (this._tonemappingEffect.enabled) {
-      //   this._tonemappingEffect.onRender(this._uberMaterial);
-      // }
+      // Done with Uber, blit it
+      if (destination === srcTarget) {
+        const viewport = camera.pixelViewport;
+        this._swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._swapRenderTarget,
+          viewport.width,
+          viewport.height,
+          camera._getInternalColorTextureFormat(),
+          null,
+          false,
+          false,
+          camera.msaaSamples,
+          TextureWrapMode.Clamp,
+          TextureFilterMode.Bilinear
+        );
+        PipelineUtils.blitTexture(engine, srcTexture, this._swapRenderTarget, 0, undefined, this._uberMaterial);
+        this._swapRenderTarget._blitRenderTarget();
+        PipelineUtils.blitTexture(
+          engine,
+          <Texture2D>this._swapRenderTarget.getColorTexture(0),
+          destination,
+          0,
+          camera.viewport
+        );
+      } else if (!destination) {
+        PipelineUtils.blitTexture(engine, srcTexture, null, 0, camera.viewport, this._uberMaterial);
+      } else {
+        PipelineUtils.blitTexture(engine, srcTexture, destination, 0, camera.viewport, this._uberMaterial);
+      }
 
-      PipelineUtils.blitTexture(engine, srcTexture, this._swapRenderTarget, 0, undefined, this._uberMaterial, 0);
-      this._swapRenderTarget._blitRenderTarget();
-      PipelineUtils.blitTexture(engine, <Texture2D>this._swapRenderTarget.getColorTexture(0), colorTarget);
+      return true;
     } else {
       if (this._swapRenderTarget) {
         this._swapRenderTarget.getColorTexture(0)?.destroy(true);
         this._swapRenderTarget.destroy(true);
         this._swapRenderTarget = null;
       }
+      return false;
     }
   }
 }

@@ -6,11 +6,6 @@ import { ShaderMacro } from "../../shader";
  */
 export enum TonemappingMode {
   /**
-   * Use this option if you do not want to apply tonemapping
-   */
-  None,
-
-  /**
    * Neutral tonemapper
    * @remarks Use this option if you only want range-remapping with minimal impact on color hue and saturation.
    */

@@ -377,7 +377,7 @@ export class Camera extends Component {
   set enableHDR(value: boolean) {
     if (this.enableHDR !== value) {
       if (value && !this.engine._hardwareRenderer.canIUse(GLCapabilityType.textureHalfFloat)) {
-        Logger.warn("can't enable HDR in this device.");
+        Logger.warn("Can't enable HDR in this device.");
         return;
       }
       this._enableHDR = value;
@@ -697,6 +697,17 @@ export class Camera extends Component {
 
   /**
    * @internal
+   */
+  _getInternalColorTextureFormat(): TextureFormat {
+    return this._enableHDR
+      ? this.engine._hardwareRenderer.isWebGL2
+        ? TextureFormat.R11G11B10_UFloat
+        : TextureFormat.R16G16B16A16
+      : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {
@@ -723,17 +734,6 @@ export class Camera extends Component {
     this._viewport = null;
     this._inverseProjectionMatrix = null;
     this._invViewProjMat = null;
-  }
-
-  /**
-   * @internal
-   */
-  _getInternalColorTextureFormat(): TextureFormat {
-    return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2
-        ? TextureFormat.R11G11B10_UFloat
-        : TextureFormat.R16G16B16A16
-      : TextureFormat.R8G8B8A8;
   }
 
   private _updatePixelViewport(): void {

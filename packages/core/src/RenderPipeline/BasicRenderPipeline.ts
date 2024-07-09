@@ -151,11 +151,9 @@ export class BasicRenderPipeline {
 
     const rhi = engine._hardwareRenderer;
     const internalColorTarget = this._internalColorTarget;
-    const colorTarget = internalColorTarget ?? camera.renderTarget;
-    const colorViewport = colorTarget ? PipelineUtils.defaultViewport : camera.viewport;
+    const colorTarget = internalColorTarget || camera.renderTarget;
+    const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
     const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
-
-    context.colorTarget = colorTarget;
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
@@ -199,21 +197,29 @@ export class BasicRenderPipeline {
 
     // Render post process pass
     const postProcessManager = scene._postProcessManager;
-    postProcessManager._render(context);
+    const usePostProcess = postProcessManager._render(context, colorTarget);
 
-    // Final blit MSAA
-    colorTarget?._blitRenderTarget();
-    colorTarget?.generateMipmaps();
+    if (usePostProcess) {
+      if (camera.renderTarget) {
+        camera.renderTarget?._blitRenderTarget();
+        camera.renderTarget?.generateMipmaps();
+      }
+    } else {
+      colorTarget?._blitRenderTarget();
+      colorTarget?.generateMipmaps();
 
-    // Blit `internalColorTarget` to `camera.renderTarget`
-    if (internalColorTarget && internalColorTarget != camera.renderTarget) {
-      PipelineUtils.blitTexture(
-        engine,
-        <Texture2D>internalColorTarget.getColorTexture(0),
-        camera.renderTarget,
-        0,
-        camera.renderTarget ? colorViewport : camera.viewport
-      );
+      // Blit `internalColorTarget` to `camera.renderTarget`
+      if (internalColorTarget && internalColorTarget != camera.renderTarget) {
+        PipelineUtils.blitTexture(
+          engine,
+          <Texture2D>colorTarget.getColorTexture(0),
+          camera.renderTarget,
+          0,
+          camera.viewport
+        );
+        camera.renderTarget?._blitRenderTarget();
+        camera.renderTarget?.generateMipmaps();
+      }
     }
   }
 
