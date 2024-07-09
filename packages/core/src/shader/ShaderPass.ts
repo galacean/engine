@@ -1,3 +1,4 @@
+import { CodeGenBackEnd } from "@galacean/engine-design";
 import { Shader } from ".";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
@@ -152,7 +153,7 @@ export class ShaderPass extends ShaderPart {
     vertexEntry: string,
     fragmentEntry: string
   ) {
-    const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
+    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     const macroNameList = [];
     ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
@@ -172,12 +173,10 @@ export class ShaderPass extends ShaderPart {
       vertexEntry,
       fragmentEntry,
       macroNameList,
-      engine._hardwareRenderer.isWebGL2 ? 1 /** GLES 300 */ : 0 /** GLES 100 */
+      isWebGL2 ? CodeGenBackEnd.GLES300 : CodeGenBackEnd.GLES100
     );
 
-    this._vertexSource = vertexSource;
-    this._fragmentSource = fragmentSource;
-    return new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
+    return new ShaderProgram(engine, vertexSource, fragmentSource);
   }
 
   // TODO: remove it after migrate all shader to `ShaderLab`.
