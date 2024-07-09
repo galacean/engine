@@ -1,10 +1,10 @@
-import { RenderStates } from "./RenderStates";
+import { IRenderStates } from "./IRenderStates";
 
-export interface ShaderPassContent {
+export interface IShaderPassContent {
   name: string;
   isUsePass: boolean;
   tags?: Record<string, number | string | boolean>;
-  renderStates: RenderStates;
+  renderStates: IRenderStates;
   /** ShaderLab code source. */
   contents: string;
   vertexEntry: string;

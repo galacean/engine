@@ -1,4 +1,4 @@
-export interface ShaderProgramSource {
+export interface IShaderProgramSource {
   vertex: string;
   fragment: string;
 }

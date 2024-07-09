@@ -1,4 +1,4 @@
-export type RenderStates = [
+export type IRenderStates = [
   /** Constant RenderState. */
   Record<number, any>,
   /** Variable RenderState. */
