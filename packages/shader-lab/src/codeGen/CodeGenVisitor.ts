@@ -12,11 +12,10 @@ import { IShaderInfo } from "@galacean/engine-design";
 /**
  * The code generator
  */
-export abstract class CodeGenVisitor {
-  logger = new Logger("CodeGen");
-  context = new VisitorContext();
+export class CodeGenVisitor {
+  // static abstract visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo;
 
-  abstract visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo;
+  protected constructor() {}
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -32,7 +31,7 @@ export abstract class CodeGenVisitor {
 
   visitPostfixExpression(node: ASTNode.PostfixExpression) {
     if (node.children.length === 3) {
-      const { context } = this;
+      const context = VisitorContext.context;
 
       const postExpr = node.children[0] as ASTNode.PostfixExpression;
 
@@ -57,7 +56,7 @@ export abstract class CodeGenVisitor {
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     if (node.symbolInfo instanceof VarSymbol && node.symbolInfo.isGlobalVariable) {
-      this.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
+      VisitorContext.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
     }
     return node.lexeme;
   }
@@ -65,7 +64,7 @@ export abstract class CodeGenVisitor {
   visitFunctionCall(node: ASTNode.FunctionCall): string {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
     if (call.fnSymbol instanceof FnSymbol) {
-      this.context.referenceGlobal(call.fnSymbol.ident, ESymbolType.FN);
+      VisitorContext.context.referenceGlobal(call.fnSymbol.ident, ESymbolType.FN);
 
       const paramList = call.children[2];
       const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
@@ -76,8 +75,8 @@ export abstract class CodeGenVisitor {
 
         for (let i = 0; i < params.length; i++) {
           if (
-            !this.context.isAttributeStruct(paramInfoList[i].typeInfo.typeLexeme) &&
-            !this.context.isVaryingStruct(paramInfoList[i].typeInfo.typeLexeme)
+            !VisitorContext.context.isAttributeStruct(paramInfoList[i].typeInfo.typeLexeme) &&
+            !VisitorContext.context.isVaryingStruct(paramInfoList[i].typeInfo.typeLexeme)
           ) {
             plainParams.push(params[i].codeGen(this));
           }
@@ -100,7 +99,7 @@ export abstract class CodeGenVisitor {
   visitSingleDeclaration(node: ASTNode.SingleDeclaration): string {
     const type = node.typeSpecifier.type;
     if (typeof type === "string") {
-      this.context.referenceGlobal(type, ESymbolType.STRUCT);
+      VisitorContext.context.referenceGlobal(type, ESymbolType.STRUCT);
     }
     return this.defaultCodeGen(node.children);
   }
@@ -108,7 +107,7 @@ export abstract class CodeGenVisitor {
   visitGlobalVariableDeclaration(node: ASTNode.VariableDeclaration): string {
     const fullType = node.children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
-      this.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
+      VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
     return this.defaultCodeGen(node.children);
   }
@@ -117,7 +116,7 @@ export abstract class CodeGenVisitor {
     const child = node.children[0];
     if (
       child instanceof ASTNode.InitDeclaratorList &&
-      child.typeInfo.typeLexeme === this.context.varyingStruct?.ident?.lexeme
+      child.typeInfo.typeLexeme === VisitorContext.context.varyingStruct?.ident?.lexeme
     ) {
       return "";
     }
@@ -125,12 +124,12 @@ export abstract class CodeGenVisitor {
   }
 
   visitFunctionProtoType(node: ASTNode.FunctionProtoType): string {
-    this.context._curFn = node;
+    VisitorContext.context._curFn = node;
     return this.defaultCodeGen(node.children);
   }
 
   visitFunctionDefinition(node: ASTNode.FunctionDefinition): string {
-    this.context._curFn = undefined;
+    VisitorContext.context._curFn = undefined;
     return this.defaultCodeGen(node.children);
   }
 
@@ -139,8 +138,8 @@ export abstract class CodeGenVisitor {
     return params
       .filter(
         (item) =>
-          !this.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
-          !this.context.isVaryingStruct(item.typeInfo.typeLexeme)
+          !VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
+          !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme)
       )
       .map((item) => item.astNode.codeGen(this))
       .join(", ");
@@ -148,7 +147,7 @@ export abstract class CodeGenVisitor {
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
     const returnType = node.returnType.typeSpecifier.lexeme;
-    if (this.context.isAttributeStruct(returnType) || this.context.isVaryingStruct(returnType))
+    if (VisitorContext.context.isAttributeStruct(returnType) || VisitorContext.context.isVaryingStruct(returnType))
       return `void ${node.ident.lexeme}(`;
     return this.defaultCodeGen(node.children);
   }
@@ -162,11 +161,11 @@ export abstract class CodeGenVisitor {
           expr,
           ENonTerminal.variable_identifier
         );
-        if (returnVar?.typeInfo === this.context.varyingStruct?.ident?.lexeme) {
+        if (returnVar?.typeInfo === VisitorContext.context.varyingStruct?.ident?.lexeme) {
           return "";
         }
         const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, ENonTerminal.function_call);
-        if (returnFnCall?.type === this.context.varyingStruct?.ident?.lexeme) {
+        if (returnFnCall?.type === VisitorContext.context.varyingStruct?.ident?.lexeme) {
           return `${expr.codeGen(this)};`;
         }
       }

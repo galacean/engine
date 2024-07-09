@@ -1,4 +1,4 @@
-import Lexer from "./lexer";
+import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
@@ -38,7 +38,8 @@ export class ShaderLab implements IShaderLab {
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = ShaderLab._parser.parse(tokens);
-    const codeGen = backend === ShaderPlatformTarget.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
+    const codeGen =
+      backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
     return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }
 

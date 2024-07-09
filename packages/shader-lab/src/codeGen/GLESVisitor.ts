@@ -1,19 +1,21 @@
 import { CodeGenVisitor } from "./CodeGenVisitor";
-import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
 import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
 import { ICodeSegment } from "./types";
+import { Logger } from "@galacean/engine";
+import { VisitorContext } from "./VisitorContext";
 
 const defaultPrecision = `precision mediump float;`;
 
 export abstract class GLESVisitor extends CodeGenVisitor {
   abstract versionText: string;
 
-  override visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
-    this.context._passSymbolTable = node.shaderData.symbolTable;
+  visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
+    VisitorContext.reset();
+    VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
 
     return {
       vertex: this.vertexMain(vertexEntry, node.shaderData),
@@ -27,17 +29,17 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
-    this.context.stage = EShaderStage.VERTEX;
+    VisitorContext.context.stage = EShaderStage.VERTEX;
 
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type !== "string") {
-      this.logger.log(Logger.RED, "main entry can only return struct.");
+      Logger.warn("main entry can only return struct.");
     } else {
       const varyStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
       if (!varyStruct) {
-        this.logger.log(Logger.RED, "invalid varying struct:", returnType.type);
+        Logger.warn("invalid varying struct:", returnType.type);
       } else {
-        this.context.varyingStruct = varyStruct.astNode;
+        VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
     }
 
@@ -50,15 +52,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
             symbolType: ESymbolType.STRUCT
           });
           if (!structSymbol) {
-            this.logger.log(Logger.YELLOW, "no attribute struct found.");
+            Logger.warn("no attribute struct found.");
             continue;
           }
-          this.context.attributeStructs.push(structSymbol.astNode);
+          VisitorContext.context.attributeStructs.push(structSymbol.astNode);
           for (const prop of structSymbol.astNode.propList) {
-            this.context.attributeList.push(prop);
+            VisitorContext.context.attributeList.push(prop);
           }
         } else {
-          this.context.attributeList.push(paramInfo);
+          VisitorContext.context.attributeList.push(paramInfo);
         }
       }
     }
@@ -74,7 +76,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .map((item) => item.text)
       .join("\n");
 
-    this.context.reset();
+    VisitorContext.context.reset();
 
     return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
@@ -85,7 +87,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
-    this.context.stage = EShaderStage.FRAGMENT;
+    VisitorContext.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
     const globalText = this.getGlobalText(data);
     const varyingDeclare = this.getVaryingDeclare();
@@ -95,7 +97,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .map((item) => item.text)
       .join("\n");
 
-    this.context.reset();
+    VisitorContext.context.reset();
     return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
@@ -105,7 +107,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     lastLength: number = 0,
     _serialized: Set<string> = new Set()
   ): ICodeSegment[] {
-    const { _referencedGlobals } = this.context;
+    const { _referencedGlobals } = VisitorContext.context;
 
     if (lastLength === _referencedGlobals.size) {
       for (const precision of data.globalPrecisions) {

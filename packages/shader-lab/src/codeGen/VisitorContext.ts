@@ -5,6 +5,18 @@ import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
 
 export class VisitorContext {
+  private static _singleton: VisitorContext;
+  static get context() {
+    return this._singleton;
+  }
+
+  static reset() {
+    if (!this._singleton) {
+      this._singleton = new VisitorContext();
+    }
+    this._singleton.reset();
+  }
+
   attributeList: IParamInfo[] = [];
   attributeStructs: ASTNode.StructSpecifier[] = [];
   varyingStruct?: ASTNode.StructSpecifier;
@@ -21,6 +33,8 @@ export class VisitorContext {
   get passSymbolTable() {
     return this._passSymbolTable;
   }
+
+  private constructor() {}
 
   logger = new Logger("visitor context");
 

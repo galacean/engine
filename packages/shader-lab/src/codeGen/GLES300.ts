@@ -5,15 +5,24 @@ import { EKeyword, ETokenType, ShaderPosition } from "../common";
 import { GLESVisitor } from "./GLESVisitor";
 import { EShaderStage } from "../common/Enums";
 import { ICodeSegment } from "./types";
+import { VisitorContext } from "./VisitorContext";
 
 const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
   versionText: string = "#version 300 es";
 
+  private static _singleton: GLES300Visitor;
+  static getVisitor(): GLES300Visitor {
+    if (!this._singleton) {
+      this._singleton = new GLES300Visitor();
+    }
+    return this._singleton;
+  }
+
   override getAttributeDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
-    for (const [_, item] of this.context._referencedAttributeList) {
+    for (const [_, item] of VisitorContext.context._referencedAttributeList) {
       ret.push({
         text: `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
@@ -24,8 +33,8 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getVaryingDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
-    const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    for (const [_, item] of this.context._referencedVaryingList) {
+    const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
+    for (const [_, item] of VisitorContext.context._referencedVaryingList) {
       ret.push({
         text: `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
@@ -44,7 +53,7 @@ export class GLES300Visitor extends GLESVisitor {
       ident = "texture";
     } else if (node.ident === "texture2DProj") {
       ident = "textureProj";
-    } else if (this.context.stage === EShaderStage.FRAGMENT) {
+    } else if (VisitorContext.context.stage === EShaderStage.FRAGMENT) {
       switch (node.ident) {
         case "texture2DLodEXT":
         case "textureCubeLodEXT":
@@ -69,9 +78,9 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (this.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
-      if (!this.context._referencedVaryingList.has(V3_GL_FragColor)) {
-        this.context._referencedVaryingList.set(V3_GL_FragColor, {
+    if (VisitorContext.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
+      if (!VisitorContext.context._referencedVaryingList.has(V3_GL_FragColor)) {
+        VisitorContext.context._referencedVaryingList.set(V3_GL_FragColor, {
           ident: new Token(ETokenType.ID, V3_GL_FragColor, new ShaderPosition(0, 0, 0)),
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
           qualifier: "out",
