@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { Shader, ShaderFactory } from "@galacean/engine-core";
-import { ShaderStruct, CodeGenBackEnd } from "@galacean/engine-design/src/shader-lab";
+import { ShaderContent, CodeGenBackEnd } from "@galacean/engine-design/src/shader-lab";
 
 function addLineNum(str: string) {
   const lines = str.split("\n");
@@ -20,7 +20,7 @@ function addLineNum(str: string) {
 }
 
 function validateShaderPass(
-  pass: ShaderStruct["subShaders"][number]["passes"][number],
+  pass: ShaderContent["subShaders"][number]["passes"][number],
   vertexSource: string,
   fragmentSource: string
 ) {
@@ -73,7 +73,7 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
   }
 
   const start = performance.now();
-  const shader = shaderLab.parseShaderStruct(shaderSource);
+  const shader = shaderLab.parseShaderContent(shaderSource);
   console.log("struct compilation time: ", (performance.now() - start).toFixed(2), "ms");
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {

@@ -1,6 +1,6 @@
 import { Position } from "./Position";
 
-export interface statement {
+export interface Statement {
   content: string;
   range: { start: Position; end: Position };
 }

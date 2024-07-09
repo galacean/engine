@@ -15,7 +15,7 @@ import chai, { expect } from "chai";
 import spies from "chai-spies";
 import fs from "fs";
 import path from "path";
-import { ShaderStruct } from "@galacean/engine-design";
+import { ShaderContent } from "@galacean/engine-design";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
@@ -127,13 +127,13 @@ const shaderLab = new ShaderLab(
 );
 
 describe("ShaderLab", () => {
-  let shader: ShaderStruct;
-  let subShader: ShaderStruct["subShaders"][number];
-  let passList: ShaderStruct["subShaders"][number]["passes"];
-  let pass1: ShaderStruct["subShaders"][number]["passes"][number];
+  let shader: ShaderContent;
+  let subShader: ShaderContent["subShaders"][number];
+  let passList: ShaderContent["subShaders"][number]["passes"];
+  let pass1: ShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
-    shader = shaderLab.parseShaderStruct(demoShader);
+    shader = shaderLab.parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     expect(passList[0].isUsePass).to.be.true;

@@ -1,6 +1,6 @@
 import { CodeGenBackEnd } from "./Backend";
 import { IShaderInfo } from "./IShaderInfo";
-import { ShaderStruct } from "./shaderStruct/ShaderStruct";
+import { ShaderContent } from "./shaderContent/ShaderContent";
 
 /**
  * Shader lab interface.
@@ -9,7 +9,7 @@ export interface IShaderLab {
   /**
    * Parse shader source to get the structure of shader.
    */
-  parseShaderStruct(shaderSource: string): ShaderStruct;
+  parseShaderContent(shaderSource: string): ShaderContent;
 
   /**
    * Parse shader pass source code.

@@ -2,7 +2,7 @@ import BaseError from "../common/BaseError";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { EKeyword, ETokenType } from "../common";
-import { IIndexRange, Position } from "../common";
+import { Position } from "../common";
 import { KeywordMap } from "./KeywordMap";
 import Scanner from "./Scanner";
 import SymbolTable, { ISymbol } from "./SymbolTable";
@@ -16,11 +16,7 @@ import {
   BlendFactor,
   CullMode
 } from "@galacean/engine";
-
-export interface statement {
-  content: string;
-  range: IIndexRange;
-}
+import { Statement, ShaderContent, SubShaderContent, PassContent } from "@galacean/engine-design";
 
 type RenderStates = [
   /** Constant RenderState. */
@@ -28,33 +24,6 @@ type RenderStates = [
   /** Variable RenderState. */
   Record<number, string>
 ];
-
-interface ShaderStruct {
-  name: string;
-  subShaders: SubShaderStruct[];
-  globalContents: statement[];
-  renderStates: RenderStates;
-}
-
-interface SubShaderStruct {
-  name: string;
-  passes: PassStruct[];
-  globalContents: statement[];
-  tags?: Record<string, number | string | boolean>;
-  renderStates: RenderStates;
-}
-
-interface PassStruct {
-  name: string;
-  isUsePass: boolean;
-  // Undefined content when referenced by `UsePass`
-  globalContents?: statement[];
-  tags: Record<string, number | string | boolean>;
-  renderStates: RenderStates;
-  contents: string;
-  vertexEntry: string;
-  fragmentEntry: string;
-}
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -75,7 +44,7 @@ const RenderStateType = [
   EKeyword.GS_StencilState
 ];
 
-export default class ShaderStructParser extends BaseError {
+export class ShaderContentParser extends BaseError {
   static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
   private static _isRenderStateDeclarator(token: BaseToken) {
     return RenderStateType.includes(token.type);
@@ -94,8 +63,8 @@ export default class ShaderStructParser extends BaseError {
     this._newScope();
   }
 
-  parse(): ShaderStruct {
-    const ret = { subShaders: [], globalContents: [], renderStates: [{}, {}] } as ShaderStruct;
+  parse(): ShaderContent {
+    const ret = { subShaders: [], globalContents: [], renderStates: [{}, {}] } as ShaderContent;
     const scanner = this._scanner;
 
     scanner.scanText("Shader");
@@ -117,6 +86,7 @@ export default class ShaderStructParser extends BaseError {
         Object.assign(pass.renderStates[0], curSubShaderRenderStates[0]);
         Object.assign(pass.renderStates[1], curSubShaderRenderStates[1]);
         if (pass.isUsePass) continue;
+        // @ts-ignore
         const passGlobalStatements = curSubShaderGlobalStatements.concat(pass.globalContents);
         pass.contents = passGlobalStatements.map((item) => item.content).join("\n");
       }
@@ -124,7 +94,7 @@ export default class ShaderStructParser extends BaseError {
     return ret;
   }
 
-  private _parseShaderStatements(ret: ShaderStruct) {
+  private _parseShaderStatements(ret: ShaderContent) {
     const scanner = this._scanner;
     let braceLevel = 1;
     let start = scanner.curPosition;
@@ -164,12 +134,12 @@ export default class ShaderStructParser extends BaseError {
           }
 
         default:
-          if (ShaderStructParser._isRenderStateDeclarator(word)) {
+          if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word);
             start = scanner.curPosition;
             break;
-          } else if (ShaderStructParser._isEngineType(word)) {
+          } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type);
             start = scanner.curPosition;
@@ -275,7 +245,7 @@ export default class ShaderStructParser extends BaseError {
       } else if (this._scanner.curChar() === ".") {
         this._scanner._advance();
         const engineTypeProp = this._scanner.scanToken();
-        value = ShaderStructParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
+        value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
         if (value == undefined)
           this.throw(this._scanner.current, "Invalid engine constant:", `${token.lexeme}.${engineTypeProp.lexeme}`);
       } else {
@@ -294,7 +264,7 @@ export default class ShaderStructParser extends BaseError {
     this._scanner.scanText("=");
     const word = this._scanner.scanToken();
     this._scanner.scanText(";");
-    const value = ShaderStructParser._engineType.RenderQueueType[word.lexeme];
+    const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
       this.throw(this._scanner.current, "Invalid render queue", word.lexeme);
     }
@@ -302,7 +272,7 @@ export default class ShaderStructParser extends BaseError {
     ret.renderStates[0][key] = value;
   }
 
-  private _addGlobalStatement(ret: { globalContents: statement[] }, scanner: Scanner, start: Position, offset: number) {
+  private _addGlobalStatement(ret: { globalContents: Statement[] }, scanner: Scanner, start: Position, offset: number) {
     if (scanner.current > start.index + offset) {
       ret.globalContents.push({
         range: { start, end: { ...scanner.curPosition, index: scanner.current - offset - 1 } },
@@ -311,9 +281,9 @@ export default class ShaderStructParser extends BaseError {
     }
   }
 
-  private _parseSubShader(): SubShaderStruct {
+  private _parseSubShader(): SubShaderContent {
     this._newScope();
-    const ret = { passes: [], globalContents: [], renderStates: [{}, {}], tags: {} } as SubShaderStruct;
+    const ret = { passes: [], globalContents: [], renderStates: [{}, {}], tags: {} } as SubShaderContent;
     const scanner = this._scanner;
     let braceLevel = 1;
     ret.name = scanner.scanPairedText('"', '"');
@@ -364,12 +334,12 @@ export default class ShaderStructParser extends BaseError {
           }
 
         default:
-          if (ShaderStructParser._isRenderStateDeclarator(word)) {
+          if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word);
             start = scanner.curPosition;
             break;
-          } else if (ShaderStructParser._isEngineType(word)) {
+          } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type);
             start = scanner.curPosition;
@@ -397,9 +367,9 @@ export default class ShaderStructParser extends BaseError {
     }
   }
 
-  private _parsePass(): PassStruct {
-    const ret = { globalContents: [], renderStates: [{}, {}], tags: {} } as PassStruct & {
-      globalContents: statement[];
+  private _parsePass(): PassContent {
+    const ret = { globalContents: [], renderStates: [{}, {}], tags: {} } as PassContent & {
+      globalContents: Statement[];
     };
     const scanner = this._scanner;
     ret.name = scanner.scanPairedText('"', '"');
@@ -452,12 +422,12 @@ export default class ShaderStructParser extends BaseError {
           }
 
         default:
-          if (ShaderStructParser._isRenderStateDeclarator(word)) {
+          if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word);
             start = scanner.curPosition;
             break;
-          } else if (ShaderStructParser._isEngineType(word)) {
+          } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type);
             start = scanner.curPosition;

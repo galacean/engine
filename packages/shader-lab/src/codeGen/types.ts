@@ -1,4 +1,4 @@
-import { ShaderStruct } from "@galacean/engine-design";
+import { ShaderContent } from "@galacean/engine-design";
 
 export type IRenderState = [
   /** Constant RenderState. */
@@ -7,7 +7,7 @@ export type IRenderState = [
   Record<number, string>
 ];
 
-export type ITag = ShaderStruct["subShaders"][number]["tags"];
+export type ITag = ShaderContent["subShaders"][number]["tags"];
 
 export interface IPassCodeGenResult {
   vertexSource: string;

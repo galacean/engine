@@ -1,6 +1,6 @@
 import { RenderStates } from "./RenderStates";
 
-export interface PassStruct {
+export interface PassContent {
   name: string;
   isUsePass: boolean;
   // Undefined content when referenced by `UsePass`
