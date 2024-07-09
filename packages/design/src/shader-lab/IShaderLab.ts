@@ -22,10 +22,4 @@ export interface IShaderLab {
     macros: string[],
     backend: number
   ): ShaderProgramSource;
-
-  /**
-   * @internal
-   * Add new include shader slice.
-   */
-  _registerInclude(includeName: string, includeSource: string): void;
 }

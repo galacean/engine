@@ -9,22 +9,7 @@ import { ShaderContentParser } from "./contentParser";
 import { ShaderLib, ShaderPlatformTarget } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
-  private static _includeMap: Record<string, string> = ShaderLib;
-
   private _parser = Parser.create();
-
-  /**
-   * @internal
-   * Register new snippets that can be referenced by `#include` macro in `ShaderLab`.
-   * @param includeName - the key used by `#include` macro directive.
-   * @param includeSource - the replaced snippets.
-   */
-  _registerInclude(includeName: string, includeSource: string): void {
-    if (ShaderLab._includeMap[includeName]) {
-      throw `The "${includeName}" shader include already exist`;
-    }
-    ShaderLab._includeMap[includeName] = includeSource;
-  }
 
   /**
    * @internal
@@ -36,7 +21,7 @@ export class ShaderLab implements IShaderLab {
     macros: string[],
     backend: ShaderPlatformTarget
   ) {
-    const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
+    const preprocessor = new Preprocessor(source, ShaderLib);
     for (const macro of macros) {
       const info = macro.split(" ", 2);
       preprocessor.addPredefinedMacro(info[0], info[1]);
