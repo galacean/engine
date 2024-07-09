@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, ShaderFactory } from "@galacean/engine-core";
-import { ShaderContent, CodeGenBackEnd } from "@galacean/engine-design/src/shader-lab";
+import { Shader, ShaderFactory, ShaderPlatformTarget } from "@galacean/engine-core";
+import { ShaderContent } from "@galacean/engine-design/src/shader-lab";
 
 function addLineNum(str: string) {
   const lines = str.split("\n");
@@ -84,7 +84,7 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
         pass.vertexEntry,
         pass.fragmentEntry,
         [],
-        CodeGenBackEnd.GLES300
+        ShaderPlatformTarget.GLES300
       );
       validateShaderPass(pass, compiledPass.vertexSource, compiledPass.fragmentSource);
     });

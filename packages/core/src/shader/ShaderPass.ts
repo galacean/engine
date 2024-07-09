@@ -1,5 +1,4 @@
-import { CodeGenBackEnd } from "@galacean/engine-design";
-import { Shader } from ".";
+import { Shader, ShaderPlatformTarget } from ".";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
@@ -173,7 +172,7 @@ export class ShaderPass extends ShaderPart {
       vertexEntry,
       fragmentEntry,
       macroNameList,
-      isWebGL2 ? CodeGenBackEnd.GLES300 : CodeGenBackEnd.GLES100
+      isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100
     );
 
     return new ShaderProgram(engine, vertexSource, fragmentSource);

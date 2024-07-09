@@ -1,4 +1,3 @@
-import { CodeGenBackEnd } from "./Backend";
 import { IShaderInfo } from "./IShaderInfo";
 import { ShaderContent } from "./shaderContent/ShaderContent";
 
@@ -21,7 +20,7 @@ export interface IShaderLab {
     vertexEntry: string,
     fragmentEntry: string,
     macros: string[],
-    backend: CodeGenBackEnd
+    backend: number
   ): IShaderInfo;
 
   /**
