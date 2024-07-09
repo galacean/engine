@@ -1,24 +1,16 @@
-import { Vector2, Vector3, Vector4, Color } from "@galacean/engine-math";
 import {
-  BlendFactor,
-  BlendOperation,
   BlinnPhongMaterial,
   Camera,
-  CompareFunction,
-  CullMode,
   DirectLight,
   Material,
   MeshRenderer,
   PrimitiveMesh,
-  RenderQueueType,
-  RenderStateDataKey,
   Shader,
   ShaderFactory,
   ShaderMacro,
   ShaderPass,
   ShaderProperty,
   ShaderTagKey,
-  StencilOperation,
   SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
@@ -28,19 +20,7 @@ import spies from "chai-spies";
 
 chai.use(spies);
 
-const shaderLab = new ShaderLab(
-  // @ts-ignore
-  RenderStateDataKey,
-  {
-    RenderQueueType,
-    CompareFunction,
-    StencilOperation,
-    BlendOperation,
-    BlendFactor,
-    CullMode
-  },
-  Color
-);
+const shaderLab = new ShaderLab();
 
 describe("Shader", () => {
   describe("Custom Shader", () => {

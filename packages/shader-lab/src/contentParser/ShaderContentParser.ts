@@ -47,28 +47,27 @@ export class ShaderContentParser {
     return EngineType.includes(token.type);
   }
 
-  private _scanner: Scanner;
-  private _symbolTable: SymbolTableStack<ISymbol, SymbolTable> = new SymbolTableStack();
+  private static _symbolTable: SymbolTableStack<ISymbol, SymbolTable> = new SymbolTableStack();
 
-  constructor(source: string) {
-    this._scanner = new Scanner(source, KeywordMap);
+  static reset() {
+    this._symbolTable.clear();
     this._newScope();
   }
 
-  parse(): ShaderContent {
+  static parse(source: string): ShaderContent {
+    const scanner = new Scanner(source, KeywordMap);
     const ret = {
       subShaders: [],
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} }
     } as ShaderContent;
-    const scanner = this._scanner;
 
     scanner.scanText("Shader");
     ret.name = scanner.scanPairedText('"', '"');
     scanner.scanText("{");
 
-    this._scanner.skipCommentsAndSpace();
-    this._parseShaderStatements(ret);
+    scanner.skipCommentsAndSpace();
+    this._parseShaderStatements(ret, scanner);
 
     const shaderGlobalStatements = ret.globalContents;
     const shaderRenderStates = ret.renderStates;
@@ -92,8 +91,7 @@ export class ShaderContentParser {
     return ret;
   }
 
-  private _parseShaderStatements(ret: ShaderContent) {
-    const scanner = this._scanner;
+  private static _parseShaderStatements(ret: ShaderContent, scanner: Scanner) {
     let braceLevel = 1;
     let start = scanner.curPosition;
 
@@ -102,7 +100,7 @@ export class ShaderContentParser {
       switch (word.type) {
         case EKeyword.GS_SubShader:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          const subShader = this._parseSubShader();
+          const subShader = this._parseSubShader(scanner);
           ret.subShaders.push(subShader);
           start = scanner.curPosition;
           break;
@@ -116,7 +114,7 @@ export class ShaderContentParser {
 
         case EKeyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          this._parseRenderQueueAssignment(ret);
+          this._parseRenderQueueAssignment(ret, scanner);
           start = scanner.curPosition;
           break;
 
@@ -134,12 +132,12 @@ export class ShaderContentParser {
         default:
           if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-            this._parseRenderStateDeclarationOrAssignment(ret, word);
+            this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
             start = scanner.curPosition;
             break;
           } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-            this._parseVariableDeclaration(word.type);
+            this._parseVariableDeclaration(word.type, scanner);
             start = scanner.curPosition;
             break;
           }
@@ -147,20 +145,24 @@ export class ShaderContentParser {
     }
   }
 
-  private _parseRenderStateDeclarationOrAssignment(ret: { renderStates: IRenderStates }, stateToken: BaseToken) {
-    const ident = this._scanner.scanToken();
+  private static _parseRenderStateDeclarationOrAssignment(
+    ret: { renderStates: IRenderStates },
+    stateToken: BaseToken,
+    scanner: Scanner
+  ) {
+    const ident = scanner.scanToken();
     let isDeclaration: boolean;
     if (ident.type === ETokenType.ID) {
       isDeclaration = true;
-      this._scanner.scanText("{");
+      scanner.scanText("{");
     } else if (ident.lexeme === "{") {
       isDeclaration = false;
     } else if (ident.lexeme === "=") {
-      const variable = this._scanner.scanToken();
-      this._scanner.scanText(";");
+      const variable = scanner.scanToken();
+      scanner.scanText(";");
       const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
       if (!sm?.value) {
-        ParserUtils.throw(this._scanner.current, `Invalid ${stateToken.lexeme} variable:`, variable.lexeme);
+        ParserUtils.throw(scanner.current, `Invalid ${stateToken.lexeme} variable:`, variable.lexeme);
       }
       const renderState = sm.value as IRenderStates;
       Object.assign(ret.renderStates.constantMap, renderState.constantMap);
@@ -168,7 +170,7 @@ export class ShaderContentParser {
       return;
     }
 
-    const renderState = this._parseRenderStatePropList(stateToken.lexeme);
+    const renderState = this._parseRenderStatePropList(stateToken.lexeme, scanner);
     if (isDeclaration) {
       this._symbolTable.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
     } else {
@@ -177,38 +179,38 @@ export class ShaderContentParser {
     }
   }
 
-  private _parseVariableDeclaration(type: number) {
-    const token = this._scanner.scanToken();
-    this._scanner.scanText(";");
+  private static _parseVariableDeclaration(type: number, scanner: Scanner) {
+    const token = scanner.scanToken();
+    scanner.scanText(";");
     this._symbolTable.insert({ type: token.type, ident: token.lexeme });
   }
 
-  private _newScope() {
+  private static _newScope() {
     const symbolTable = new SymbolTable();
     this._symbolTable.newScope(symbolTable);
   }
 
-  private _parseRenderStatePropList(state: string): IRenderStates {
+  private static _parseRenderStatePropList(state: string, scanner: Scanner): IRenderStates {
     const ret: IRenderStates = { constantMap: {}, variableMap: {} };
-    while (this._scanner.curChar() !== "}") {
-      this._parseRenderStatePropItem(ret, state);
-      this._scanner.skipCommentsAndSpace();
+    while (scanner.curChar() !== "}") {
+      this._parseRenderStatePropItem(ret, state, scanner);
+      scanner.skipCommentsAndSpace();
     }
-    this._scanner._advance();
+    scanner._advance();
     return ret;
   }
 
-  private _parseRenderStatePropItem(ret: IRenderStates, state: string) {
-    let renderStateProp = this._scanner.scanToken().lexeme;
-    const op = this._scanner.scanToken();
+  private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: Scanner) {
+    let renderStateProp = scanner.scanToken().lexeme;
+    const op = scanner.scanToken();
     if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
       let idx = 0;
       if (op.lexeme === "[") {
-        idx = this._scanner.scanNumber();
-        this._scanner.scanText("]");
-        this._scanner.scanText("=");
+        idx = scanner.scanNumber();
+        scanner.scanText("]");
+        scanner.scanText("=");
       } else if (op.lexeme !== "=") {
-        ParserUtils.throw(this._scanner.current, "Invalid syntax, expect character '=', but got", op.lexeme);
+        ParserUtils.throw(scanner.current, "Invalid syntax, expect character '=', but got", op.lexeme);
       }
       renderStateProp += idx;
     }
@@ -216,45 +218,41 @@ export class ShaderContentParser {
     renderStateProp = state + renderStateProp;
     const renderStateElementKey = RenderStateDataKey[renderStateProp];
     if (renderStateElementKey == undefined)
-      ParserUtils.throw(this._scanner.current, "Invalid render state element", renderStateProp);
+      ParserUtils.throw(scanner.current, "Invalid render state element", renderStateProp);
 
-    this._scanner.skipCommentsAndSpace();
+    scanner.skipCommentsAndSpace();
     let value: any;
-    if (/[0-9.]/.test(this._scanner.curChar())) {
-      value = this._scanner.scanNumber();
+    if (/[0-9.]/.test(scanner.curChar())) {
+      value = scanner.scanNumber();
     } else {
-      const token = this._scanner.scanToken();
+      const token = scanner.scanToken();
       if (token.type === EKeyword.TRUE) value = true;
       else if (token.type === EKeyword.FALSE) value = false;
       else if (token.type === EKeyword.GS_Color) {
-        this._scanner.scanText("(");
+        scanner.scanText("(");
         const args: number[] = [];
         while (true) {
-          args.push(this._scanner.scanNumber());
-          this._scanner.skipCommentsAndSpace();
-          const peek = this._scanner.peek();
+          args.push(scanner.scanNumber());
+          scanner.skipCommentsAndSpace();
+          const peek = scanner.peek();
           if (peek === ")") {
-            this._scanner._advance();
+            scanner._advance();
             break;
           }
-          this._scanner.scanText(",");
+          scanner.scanText(",");
         }
         value = new Color(...args);
-      } else if (this._scanner.curChar() === ".") {
-        this._scanner._advance();
-        const engineTypeProp = this._scanner.scanToken();
+      } else if (scanner.curChar() === ".") {
+        scanner._advance();
+        const engineTypeProp = scanner.scanToken();
         value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
         if (value == undefined)
-          ParserUtils.throw(
-            this._scanner.current,
-            "Invalid engine constant:",
-            `${token.lexeme}.${engineTypeProp.lexeme}`
-          );
+          ParserUtils.throw(scanner.current, "Invalid engine constant:", `${token.lexeme}.${engineTypeProp.lexeme}`);
       } else {
         value = token.lexeme;
       }
     }
-    this._scanner.scanText(";");
+    scanner.scanText(";");
     if (typeof value === "string") {
       ret.variableMap[renderStateElementKey] = value;
     } else {
@@ -262,19 +260,19 @@ export class ShaderContentParser {
     }
   }
 
-  private _parseRenderQueueAssignment(ret: { renderStates: IRenderStates }) {
-    this._scanner.scanText("=");
-    const word = this._scanner.scanToken();
-    this._scanner.scanText(";");
+  private static _parseRenderQueueAssignment(ret: { renderStates: IRenderStates }, scanner: Scanner) {
+    scanner.scanText("=");
+    const word = scanner.scanToken();
+    scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
-      ParserUtils.throw(this._scanner.current, "Invalid render queue", word.lexeme);
+      ParserUtils.throw(scanner.current, "Invalid render queue", word.lexeme);
     }
     const key = RenderStateDataKey.RenderQueueType;
     ret.renderStates.constantMap[key] = value;
   }
 
-  private _addGlobalStatement(
+  private static _addGlobalStatement(
     ret: { globalContents: Statement[] },
     scanner: Scanner,
     start: ShaderPosition,
@@ -288,7 +286,7 @@ export class ShaderContentParser {
     }
   }
 
-  private _parseSubShader(): SubShaderContent {
+  private static _parseSubShader(scanner: Scanner): SubShaderContent {
     this._newScope();
     const ret = {
       passes: [],
@@ -296,7 +294,6 @@ export class ShaderContentParser {
       renderStates: { constantMap: {}, variableMap: {} },
       tags: {}
     } as SubShaderContent;
-    const scanner = this._scanner;
     let braceLevel = 1;
     ret.name = scanner.scanPairedText('"', '"');
     scanner.scanText("{");
@@ -309,14 +306,14 @@ export class ShaderContentParser {
       switch (word.type) {
         case EKeyword.GS_Pass:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          const pass = this._parsePass();
+          const pass = this._parsePass(scanner);
           ret.passes.push(pass);
           start = scanner.curPosition;
           break;
 
         case EKeyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          this._parseRenderQueueAssignment(ret);
+          this._parseRenderQueueAssignment(ret, scanner);
           start = scanner.curPosition;
           break;
 
@@ -330,7 +327,7 @@ export class ShaderContentParser {
 
         case EKeyword.GS_Tags:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          this._parseTags(ret);
+          this._parseTags(ret, scanner);
           start = scanner.curPosition;
           break;
 
@@ -348,12 +345,12 @@ export class ShaderContentParser {
         default:
           if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-            this._parseRenderStateDeclarationOrAssignment(ret, word);
+            this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
             start = scanner.curPosition;
             break;
           } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-            this._parseVariableDeclaration(word.type);
+            this._parseVariableDeclaration(word.type, scanner);
             start = scanner.curPosition;
             break;
           }
@@ -361,25 +358,25 @@ export class ShaderContentParser {
     }
   }
 
-  private _parseTags(ret: { tags?: Record<string, number | string | boolean> }) {
-    this._scanner.scanText("{");
+  private static _parseTags(ret: { tags?: Record<string, number | string | boolean> }, scanner: Scanner) {
+    scanner.scanText("{");
     while (true) {
-      const ident = this._scanner.scanToken();
-      this._scanner.scanText("=");
-      const value = this._scanner.scanPairedText('"', '"');
-      this._scanner.skipCommentsAndSpace();
+      const ident = scanner.scanToken();
+      scanner.scanText("=");
+      const value = scanner.scanPairedText('"', '"');
+      scanner.skipCommentsAndSpace();
 
       ret.tags[ident.lexeme] = value;
 
-      if (this._scanner.peek() === "}") {
-        this._scanner._advance();
+      if (scanner.peek() === "}") {
+        scanner._advance();
         return;
       }
-      this._scanner.scanText(",");
+      scanner.scanText(",");
     }
   }
 
-  private _parsePass(): ShaderPassContent {
+  private static _parsePass(scanner: Scanner): ShaderPassContent {
     const ret = {
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
@@ -387,26 +384,25 @@ export class ShaderContentParser {
     } as ShaderPassContent & {
       globalContents: Statement[];
     };
-    const scanner = this._scanner;
     ret.name = scanner.scanPairedText('"', '"');
     scanner.scanText("{");
     let braceLevel = 1;
 
     scanner.skipCommentsAndSpace();
-    let start = this._scanner.curPosition;
+    let start = scanner.curPosition;
 
     while (true) {
       const word = scanner.scanToken();
       switch (word.type) {
         case EKeyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          this._parseRenderQueueAssignment(ret);
+          this._parseRenderQueueAssignment(ret, scanner);
           start = scanner.curPosition;
           break;
 
         case EKeyword.GS_Tags:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-          this._parseTags(ret);
+          this._parseTags(ret, scanner);
           start = scanner.curPosition;
           break;
 
@@ -440,12 +436,12 @@ export class ShaderContentParser {
         default:
           if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-            this._parseRenderStateDeclarationOrAssignment(ret, word);
+            this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
             start = scanner.curPosition;
             break;
           } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-            this._parseVariableDeclaration(word.type);
+            this._parseVariableDeclaration(word.type, scanner);
             start = scanner.curPosition;
             break;
           }

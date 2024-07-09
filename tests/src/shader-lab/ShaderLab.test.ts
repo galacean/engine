@@ -111,19 +111,7 @@ vec4 linearToGamma(vec4 linearIn){
 #endif
 `;
 
-const shaderLab = new ShaderLab(
-  // @ts-ignore
-  RenderStateDataKey,
-  {
-    RenderQueueType,
-    CompareFunction,
-    StencilOperation,
-    BlendOperation,
-    BlendFactor,
-    CullMode
-  },
-  Color
-);
+const shaderLab = new ShaderLab();
 
 describe("ShaderLab", () => {
   let shader: ShaderContent;
@@ -132,7 +120,6 @@ describe("ShaderLab", () => {
   let pass1: ShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
-    // @ts-ignore
     shader = shaderLab._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;

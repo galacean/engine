@@ -8,11 +8,11 @@ import { ShaderContentParser } from "./contentParser";
 import { ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
-  private static _parser = ShaderTargetParser.create();
-
   /**
    * @internal
    */
+  private static _parser = ShaderTargetParser.create();
+
   _parseShaderPass(
     source: string,
     vertexEntry: string,
@@ -43,12 +43,9 @@ export class ShaderLab implements IShaderLab {
     return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }
 
-  /**
-   * @internal
-   */
   _parseShaderContent(shaderSource: string): ShaderContent {
-    const parser = new ShaderContentParser(shaderSource);
-    return parser.parse();
+    ShaderContentParser.reset();
+    return ShaderContentParser.parse(shaderSource);
   }
 
   // #if _EDITOR
