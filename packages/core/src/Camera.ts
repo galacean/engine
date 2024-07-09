@@ -813,8 +813,11 @@ export class Camera extends Component {
   }
 
   private _forceUseInternalCanvas(): boolean {
-    // @todo: enablePostProcess && (whether there is an activated post process effect).
-    return this.enableHDR || this.enablePostProcess || this.opaqueTextureEnabled;
+    return (
+      this.enableHDR ||
+      this.opaqueTextureEnabled ||
+      (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect)
+    );
   }
 
   @ignoreClone

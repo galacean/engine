@@ -20,10 +20,24 @@ export class PostProcessManager {
   _tonemappingEffect: TonemappingEffect;
 
   /**
-   * Engine to which the current PostProcessManager belongs
+   * Engine to which the current PostProcessManager belongs.
    */
   get engine(): Engine {
     return this.scene.engine;
+  }
+
+  /**
+   * Whether has active post process effect.
+   */
+  get hasActiveEffect(): boolean {
+    const bloomEffect = this._bloomEffect;
+    const tonemappingEffect = this._tonemappingEffect;
+
+    const useBloom = bloomEffect.enabled;
+    const useTonemapping = tonemappingEffect.enabled;
+    const hasActiveEffect = useBloom || useTonemapping;
+
+    return hasActiveEffect;
   }
 
   /**
@@ -55,19 +69,13 @@ export class PostProcessManager {
     const engine = this.engine;
     const destination = camera.renderTarget;
 
-    const bloomEffect = this._bloomEffect;
-    const tonemappingEffect = this._tonemappingEffect;
-
-    const useBloom = bloomEffect.enabled && bloomEffect.intensity > 0;
-    const useTonemapping = tonemappingEffect.enabled;
-    const usePostProcess = useBloom || useTonemapping;
-
-    if (camera.enablePostProcess && usePostProcess) {
+    if (camera.enablePostProcess && this.hasActiveEffect) {
       // Should blit to resolve the MSAA
       srcTarget._blitRenderTarget();
       const srcTexture = <Texture2D>srcTarget.getColorTexture();
+      const bloomEffect = this._bloomEffect;
 
-      if (useBloom) {
+      if (bloomEffect.enabled) {
         bloomEffect.onRender(context, srcTexture);
       }
 
