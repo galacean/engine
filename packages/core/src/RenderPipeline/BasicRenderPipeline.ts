@@ -211,13 +211,16 @@ export class BasicRenderPipeline {
       const replacementSubShaders = replacementShader.subShaders;
       const { replacementTag } = context;
       if (replacementTag) {
+        const materialSubShaderTagValue = materialSubShader.getTagValue(replacementTag);
+        let passes = materialSubShader.passes;
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
           const subShader = replacementSubShaders[i];
-          if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-            this.pushRenderDataWithShader(context, data, subShader.passes, renderStates);
+          if (subShader.getTagValue(replacementTag) === materialSubShaderTagValue) {
+            passes = subShader.passes;
             break;
           }
         }
+        this.pushRenderDataWithShader(context, data, passes, renderStates);
       } else {
         this.pushRenderDataWithShader(context, data, replacementSubShaders[0].passes, renderStates);
       }
