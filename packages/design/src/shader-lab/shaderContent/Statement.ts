@@ -1,6 +1,6 @@
-import { Position } from "./Position";
+import { IShaderPosition } from "./IShaderPosition";
 
 export interface Statement {
   content: string;
-  range: { start: Position; end: Position };
+  range: { start: IShaderPosition; end: IShaderPosition };
 }

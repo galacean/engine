@@ -1,6 +1,6 @@
 import { IIndexRange } from "./IndexRange";
-import { Position } from "./Position";
+import { ShaderPosition } from "./ShaderPosition";
 
-export { IIndexRange, Position };
+export { IIndexRange, ShaderPosition as Position };
 export * from "./types";
 export * from "./Keywords";

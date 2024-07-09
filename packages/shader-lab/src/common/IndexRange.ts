@@ -1,8 +1,8 @@
-import { Position } from "./Position";
+import { ShaderPosition } from "./ShaderPosition";
 
 export class IIndexRange {
   constructor(
-    public start: Position,
-    public end: Position
+    public start: ShaderPosition,
+    public end: ShaderPosition
   ) {}
 }

@@ -1,4 +1,6 @@
-export class Position {
+import { IShaderPosition } from "@galacean/engine-design";
+
+export class ShaderPosition implements IShaderPosition {
   index: number;
   // #if _EDITOR
   line?: number;
