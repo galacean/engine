@@ -1,20 +1,16 @@
 import { ENonTerminal } from "../parser/GrammarSymbol";
 import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword } from "../common";
-import { Logger } from "../Logger";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
-import { IShaderInfo } from "@galacean/engine-design";
 
 /**
  * The code generator
  */
 export class CodeGenVisitor {
-  // static abstract visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo;
-
   protected constructor() {}
 
   defaultCodeGen(children: NodeChild[]) {

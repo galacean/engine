@@ -2,7 +2,6 @@ import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { Logger } from "./Logger";
 import { ShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
@@ -32,7 +31,8 @@ export class ShaderLab implements IShaderLab {
     }
 
     // #if _EDITOR
-    Logger.convertSourceIndex = Preprocessor.convertSourceIndex.bind(Preprocessor);
+    // TODO: index to position
+    // Logger.convertSourceIndex = Preprocessor.convertSourceIndex.bind(Preprocessor);
     // #endif
     const ppdContent = Preprocessor.process(source);
     const lexer = new Lexer(ppdContent);

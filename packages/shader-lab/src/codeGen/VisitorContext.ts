@@ -1,4 +1,4 @@
-import { Logger } from "../Logger";
+import { Logger } from "@galacean/engine";
 import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
@@ -36,8 +36,6 @@ export class VisitorContext {
 
   private constructor() {}
 
-  logger = new Logger("visitor context");
-
   reset() {
     this.attributeList.length = 0;
     this.attributeStructs.length = 0;
@@ -59,7 +57,7 @@ export class VisitorContext {
 
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident);
     if (!prop) {
-      this.logger.error("referenced attribute not found:", ident);
+      Logger.error("referenced attribute not found:", ident);
       return;
     }
     this._referencedAttributeList.set(ident, prop);
@@ -70,7 +68,7 @@ export class VisitorContext {
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident);
     if (!prop) {
-      this.logger.error("referenced varying not found:", ident);
+      Logger.error("referenced varying not found:", ident);
       return;
     }
     this._referencedVaryingList.set(ident, prop);

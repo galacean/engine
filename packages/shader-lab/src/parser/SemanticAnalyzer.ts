@@ -1,4 +1,3 @@
-import { Logger } from "../Logger";
 import { IIndexRange } from "../common";
 import { TreeNode } from "./AST";
 // #if _EDITOR
@@ -8,6 +7,7 @@ import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
+import { Logger } from "@galacean/engine";
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -19,7 +19,6 @@ export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChil
 export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  logger = new Logger("semantic analyzer");
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
 
   // #if _EDITOR
@@ -66,7 +65,7 @@ export default class SematicAnalyzer {
 
   // #if _EDITOR
   error(loc: IIndexRange, ...param: any[]) {
-    this.logger.errorLoc(loc, ...param);
+    Logger.error(loc, ...param);
 
     const err = new SemanticError(param.join(""), loc);
     this.errors.push(err);

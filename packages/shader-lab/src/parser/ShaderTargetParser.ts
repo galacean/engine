@@ -9,7 +9,7 @@ import { TraceStackItem } from "./types";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
-import { Logger } from "../Logger";
+import { Logger } from "@galacean/engine";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -20,7 +20,6 @@ export default class ShaderTargetParser {
   readonly grammar: Grammar;
   readonly sematicAnalyzer: SematicAnalyzer;
   private traceBackStack: (TraceStackItem | number)[] = [];
-  logger = new Logger("Parser");
 
   private get curState() {
     return this.traceBackStack[this.traceBackStack.length - 1] as number;
@@ -69,20 +68,13 @@ export default class ShaderTargetParser {
       if (actionInfo?.action === EAction.Shift) {
         traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
-        // #if _EDITOR
-        this.printStack(nextToken.value);
-        // #endif
       } else if (actionInfo?.action === EAction.Accept) {
-        // this.logger.debug(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
-        console.log(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
+        Logger.info(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
-        // #if _EDITOR
-        this.logger.log(`Reduce: ${reduceProduction.toString()}`);
-        // #endif
         const translationRule = sematicAnalyzer.getTranslationRule(reduceProduction.id);
 
         const values: (TreeNode | BaseToken)[] = [];
@@ -98,9 +90,6 @@ export default class ShaderTargetParser {
             values.unshift(astNode);
           }
         }
-        // #if _EDITOR
-        this.printStack(token);
-        // #endif
         translationRule?.(sematicAnalyzer, ...values);
 
         const gotoTable = this.stateGotoTable;
@@ -108,12 +97,9 @@ export default class ShaderTargetParser {
 
         const nextState = gotoTable?.get(reduceProduction.goal)!;
         traceBackStack.push(nextState);
-        // #if _EDITOR
-        this.printStack(token);
-        // #endif
         continue;
       } else {
-        this.logger.errorLoc(token.location, `parse error token ${token.lexeme}`);
+        Logger.error(token.location, `parse error token ${token.lexeme}`);
         // #if _EDITOR
         throw `invalid action table by token ${token.lexeme}, ${token.location.start.line}, ${token.location.start.column}`;
         // #endif
@@ -123,8 +109,6 @@ export default class ShaderTargetParser {
 
   // #if _EDITOR
   private printStack(nextToken: BaseToken) {
-    if (!Logger.enabled) return;
-
     let str = "";
     for (let i = 0; i < this.traceBackStack.length - 1; i++) {
       const state = <ENonTerminal>this.traceBackStack[i++];
@@ -132,7 +116,7 @@ export default class ShaderTargetParser {
       str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
     }
     str += `State${this.traceBackStack[this.traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
-    this.logger.log(str);
+    Logger.info(str);
   }
   // #endif
 }
