@@ -153,26 +153,29 @@ export class ShaderPass extends ShaderPart {
     fragmentEntry: string
   ) {
     const isWebGL2 = engine._hardwareRenderer.isWebGL2;
-    const macroNameList = [];
-    ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
+    const macros = new Array<ShaderMacro>();
+    ShaderMacro._getMacrosElements(macroCollection, macros);
+
+    const platformMacros: string[] = [];
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      macroNameList.push("HAS_TEX_LOD");
+      platformMacros.push("HAS_TEX_LOD");
     }
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      macroNameList.push("HAS_DERIVATIVES");
+      platformMacros.push("HAS_DERIVATIVES");
     }
     if (isWebGL2) {
-      macroNameList.push("GRAPHICS_API_WEBGL2");
+      platformMacros.push("GRAPHICS_API_WEBGL2");
     } else {
-      macroNameList.push("GRAPHICS_API_WEBGL1");
+      platformMacros.push("GRAPHICS_API_WEBGL1");
     }
 
     const { vertex, fragment } = Shader._shaderLab._parseShaderPass(
       this._shaderLabSource,
       vertexEntry,
       fragmentEntry,
-      macroNameList,
-      isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100
+      macros,
+      isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
+      platformMacros
     );
 
     return new ShaderProgram(engine, vertex, fragment);

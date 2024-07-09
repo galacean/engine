@@ -19,7 +19,8 @@ export interface IShaderLab {
     shaderPassSource: string,
     vertexEntry: string,
     fragmentEntry: string,
-    macros: string[],
-    backend: number
+    macros: any[],
+    backend: number,
+    platformMacros: string[]
   ): IShaderProgramSource;
 }

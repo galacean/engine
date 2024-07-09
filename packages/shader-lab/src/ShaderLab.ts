@@ -6,7 +6,7 @@ import { Logger } from "./Logger";
 import { ShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { ShaderLib, ShaderPlatformTarget } from "@galacean/engine";
+import { ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
   private _parser = Parser.create();
@@ -18,14 +18,19 @@ export class ShaderLab implements IShaderLab {
     source: string,
     vertexEntry: string,
     fragmentEntry: string,
-    macros: string[],
-    backend: ShaderPlatformTarget
+    macros: ShaderMacro[],
+    backend: ShaderPlatformTarget,
+    platformMacros: string[]
   ) {
     const preprocessor = new Preprocessor(source, ShaderLib);
     for (const macro of macros) {
-      const info = macro.split(" ", 2);
-      preprocessor.addPredefinedMacro(info[0], info[1]);
+      preprocessor.addPredefinedMacro(macro.name, macro.value);
     }
+
+    for (let i = 0; i < platformMacros.length; i++) {
+      preprocessor.addPredefinedMacro(platformMacros[0]);
+    }
+
     // #if _EDITOR
     Logger.convertSourceIndex = preprocessor.convertSourceIndex.bind(preprocessor);
     // #endif
@@ -52,7 +57,7 @@ export class ShaderLab implements IShaderLab {
    */
   _parse(
     shaderSource: string,
-    macros: string[],
+    macros: ShaderMacro[],
     backend: ShaderPlatformTarget
   ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
     const structInfo = this._parseShaderContent(shaderSource);
@@ -65,7 +70,8 @@ export class ShaderLab implements IShaderLab {
           pass.vertexEntry,
           pass.fragmentEntry,
           macros,
-          backend
+          backend,
+          []
         ) as any;
         passInfo.name = pass.name;
         passResult.push(passInfo);
