@@ -1,4 +1,4 @@
-import { IShaderInfo } from "./IShaderInfo";
+import { ShaderProgramSource } from "./ShaderProgramSource";
 import { ShaderContent } from "./shaderContent/ShaderContent";
 
 /**
@@ -21,7 +21,7 @@ export interface IShaderLab {
     fragmentEntry: string,
     macros: string[],
     backend: number
-  ): IShaderInfo;
+  ): ShaderProgramSource;
 
   /**
    * @internal

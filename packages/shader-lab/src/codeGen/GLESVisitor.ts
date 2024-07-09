@@ -17,8 +17,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     this.context._passSymbolTable = node.shaderData.symbolTable;
 
     return {
-      vertexSource: this.vertexMain(vertexEntry, node.shaderData),
-      fragmentSource: this.fragmentMain(fragmentEntry, node.shaderData)
+      vertex: this.vertexMain(vertexEntry, node.shaderData),
+      fragment: this.fragmentMain(fragmentEntry, node.shaderData)
     };
   }
 

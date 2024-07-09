@@ -69,16 +69,19 @@ function validateShaderPass(
 export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
   const shaderLab = _shaderLab ?? new ShaderLab();
   for (const key in includeMap) {
+    // @ts-ignore
     shaderLab._registerInclude(key, includeMap[key]);
   }
 
   const start = performance.now();
+  // @ts-ignore
   const shader = shaderLab._parseShaderContent(shaderSource);
   console.log("struct compilation time: ", (performance.now() - start).toFixed(2), "ms");
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {
     subShader.passes.forEach((pass) => {
       if (pass.isUsePass) return;
+      // @ts-ignore
       const compiledPass = shaderLab._parseShaderPass(
         pass.contents,
         pass.vertexEntry,
@@ -86,7 +89,7 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
         [],
         ShaderPlatformTarget.GLES300
       );
-      validateShaderPass(pass, compiledPass.vertexSource, compiledPass.fragmentSource);
+      validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
     });
   });
 }

@@ -167,7 +167,7 @@ export class ShaderPass extends ShaderPart {
       macroNameList.push("GRAPHICS_API_WEBGL1");
     }
 
-    const { vertexSource, fragmentSource } = Shader._shaderLab._parseShaderPass(
+    const { vertex, fragment } = Shader._shaderLab._parseShaderPass(
       this._shaderLabSource,
       vertexEntry,
       fragmentEntry,
@@ -175,7 +175,7 @@ export class ShaderPass extends ShaderPart {
       isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100
     );
 
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
+    return new ShaderProgram(engine, vertex, fragment);
   }
 
   // TODO: remove it after migrate all shader to `ShaderLab`.

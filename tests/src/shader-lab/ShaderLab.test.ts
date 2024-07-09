@@ -133,6 +133,7 @@ describe("ShaderLab", () => {
   let pass1: ShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
+    // @ts-ignore
     shader = shaderLab._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
