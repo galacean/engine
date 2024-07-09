@@ -89,13 +89,13 @@ export class Shader implements IReferable {
         throw "ShaderLab has not been set up yet.";
       }
 
-      const shaderStructInfo = Shader._shaderLab._parseShaderContent(nameOrShaderSource);
-      if (shaderMap[shaderStructInfo.name]) {
-        console.error(`Shader named "${shaderStructInfo.name}" already exists.`);
+      const shaderContent = Shader._shaderLab._parseShaderContent(nameOrShaderSource);
+      if (shaderMap[shaderContent.name]) {
+        console.error(`Shader named "${shaderContent.name}" already exists.`);
         return;
       }
-      const subShaderList = shaderStructInfo.subShaders.map((subShaderInfo) => {
-        const passList = subShaderInfo.passes.map((passInfo) => {
+      const subShaderList = shaderContent.subShaders.map((subShaderContent) => {
+        const passList = subShaderContent.passes.map((passInfo) => {
           if (passInfo.isUsePass) {
             // Use pass reference
             const paths = passInfo.name.split("/");
@@ -104,7 +104,7 @@ export class Shader implements IReferable {
               ?.passes.find((pass) => pass.name === paths[2]);
           }
 
-          const shaderPass = new ShaderPass(
+          const shaderPassContent = new ShaderPass(
             passInfo.name,
             passInfo.contents,
             passInfo.vertexEntry,
@@ -115,7 +115,7 @@ export class Shader implements IReferable {
           const renderStates = passInfo.renderStates;
           const renderState = new RenderState();
 
-          shaderPass._renderState = renderState;
+          shaderPassContent._renderState = renderState;
           // Parse const render state
           const constRenderStateInfo = renderStates[0];
           for (let k in constRenderStateInfo) {
@@ -128,16 +128,16 @@ export class Shader implements IReferable {
           for (let k in variableRenderStateInfo) {
             renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
           }
-          shaderPass._renderStateDataMap = renderStateDataMap;
+          shaderPassContent._renderStateDataMap = renderStateDataMap;
 
-          return shaderPass;
+          return shaderPassContent;
         });
 
-        return new SubShader(subShaderInfo.name, passList, subShaderInfo.tags);
+        return new SubShader(subShaderContent.name, passList, subShaderContent.tags);
       });
 
-      shader = new Shader(shaderStructInfo.name, subShaderList);
-      shaderMap[shaderStructInfo.name] = shader;
+      shader = new Shader(shaderContent.name, subShaderList);
+      shaderMap[shaderContent.name] = shader;
       return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {
