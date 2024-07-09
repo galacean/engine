@@ -78,6 +78,7 @@ export class BloomEffect {
         this._uberMaterial.shaderData.enableMacro(BloomEffect._enableMacro);
       } else {
         this._uberMaterial.shaderData.disableMacro(BloomEffect._enableMacro);
+        this._releaseRenderTargets();
       }
     }
   }
@@ -386,6 +387,28 @@ export class BloomEffect {
     }
 
     shaderData.setTexture(BloomEffect._bloomTextureProp, this._mipUpRT[0].getColorTexture(0));
+  }
+
+  private _releaseRenderTargets(): void {
+    const length = this._mipDownRT.length;
+
+    for (let i = 0; i < length; i++) {
+      const downRT = this._mipDownRT[i];
+      const upRT = this._mipUpRT[i];
+
+      if (downRT) {
+        downRT.getColorTexture(0).destroy(true);
+        downRT.destroy(true);
+      }
+
+      if (upRT) {
+        upRT.getColorTexture(0).destroy(true);
+        upRT.destroy(true);
+      }
+    }
+
+    this._mipDownRT.length = 0;
+    this._mipUpRT.length = 0;
   }
 }
 
