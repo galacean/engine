@@ -181,8 +181,8 @@ export class ShaderPass extends ShaderPart {
   // TODO: remove it after migrate all shader to `ShaderLab`.
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-    const macroNameList = [];
-    ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
+    const macroNameList = new Array<ShaderMacro>();
+    ShaderMacro._getMacrosElements(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
     const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
