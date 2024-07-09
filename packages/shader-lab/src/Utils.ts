@@ -3,8 +3,7 @@ import { BaseToken as Token } from "./common/BaseToken";
 import { EKeyword, ETokenType, GalaceanDataType } from "./common";
 import { TreeNode } from "./parser/AST";
 // #if _EDITOR
-// import { createWriteStream } from "fs";
-// import State from "./lalr/State";
+import State from "./lalr/State";
 // #endif
 
 export class ParserUtils {
@@ -43,29 +42,24 @@ export class ParserUtils {
    * @internal
    */
   // #if _EDITOR
-  // static printStatePool(logPath: string) {
-  //   const logStream = createWriteStream(logPath);
+  static printStatePool(logPath: string) {
+    let output = "";
 
-  //   console.log("========== Parser Pool ==========");
+    console.log("========== Parser Pool ==========");
 
-  //   let count = 0;
-  //   for (const state of State.pool.values()) {
-  //     count++;
-  //     let tmp = "";
-  //     tmp += `${state.id}: \n`.padEnd(4);
-  //     for (const psItem of state.items) {
-  //       tmp += "     " + psItem.toString() + "\n";
-  //     }
-  //     logStream.write(tmp);
-  //   }
-  //   logStream.end();
-  //   logStream.close();
-  //   console.log("state count:", count);
-  //   return new Promise((res) => {
-  //     logStream.on("finish", () => {
-  //       res("");
-  //     });
-  //   });
-  // }
+    let count = 0;
+    for (const state of State.pool.values()) {
+      count++;
+      let tmp = "";
+      tmp += `${state.id}: \n`.padEnd(4);
+      for (const psItem of state.items) {
+        tmp += "     " + psItem.toString() + "\n";
+      }
+      output += tmp;
+    }
+
+    console.log("state count:", count);
+    console.log(output);
+  }
   // #endif
 }
