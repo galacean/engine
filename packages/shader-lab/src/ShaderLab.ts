@@ -53,8 +53,8 @@ export class ShaderLab implements IShaderLab {
    */
   parse(
     shaderSource: string,
-    macros: string[] = [],
-    backend = ShaderPlatformTarget.GLES300
+    macros: string[],
+    backend
   ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
     const structInfo = this._parseShaderContent(shaderSource);
     const passResult = [] as any;
