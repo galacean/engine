@@ -32,7 +32,7 @@ const mediump float RRT_GLOW_MID = 0.08;
 // Red modifier constants
 const mediump float RRT_RED_SCALE = 0.82;
 const mediump float RRT_RED_PIVOT = 0.03;
-const mediump float RRT_RED_HUE = 0.;
+const mediump float RRT_RED_HUE = 0.0;
 const mediump float RRT_RED_WIDTH = 135.;
 
 // Desaturation contants
