@@ -242,7 +242,7 @@ export class BasicRenderPipeline {
         } else {
           this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
-        this.pushRenderDataWithShader(context, data, passes, renderStates);
+        this.pushRenderDataWithShader(context, data, materialSubShader.passes, renderStates);
       } else {
         this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
       }
