@@ -123,14 +123,14 @@ export class ShaderPass extends ShaderPart {
     }
 
     if (this._type === ShaderType.Canonical) {
-      return this._getCanonicalShaderProgram(engine, macroCollection);
+      shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
     } else {
       this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
       shaderProgram = new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
-
-      shaderProgramPool.cache(shaderProgram);
-      return shaderProgram;
     }
+
+    shaderProgramPool.cache(shaderProgram);
+    return shaderProgram;
   }
 
   /**
@@ -220,8 +220,6 @@ export class ShaderPass extends ShaderPart {
 
     const shaderProgram = new ShaderProgram(engine, vertexSource, fragmentSource);
 
-    const shaderProgramPool = engine._getShaderProgramPool(this);
-    shaderProgramPool.cache(shaderProgram);
     return shaderProgram;
   }
 }
