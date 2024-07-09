@@ -34,7 +34,7 @@ export class ShaderPass extends ShaderPart {
   private _vertexSource: string;
   private _fragmentSource: string;
 
-  readonly _type: ShaderType;
+  private readonly _type: ShaderType;
   private readonly _shaderLabSource: string;
   private readonly _vertexEntry: string;
   private readonly _fragmentEntry: string;
@@ -43,8 +43,10 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   constructor(
+    name: string,
     shaderLabSource: string,
-    entries: { vertexEntry: string; fragmentEntry: string },
+    vertexEntry: string,
+    fragmentEntry: string,
     tags?: Record<string, number | string | boolean>
   );
 
@@ -71,48 +73,43 @@ export class ShaderPass extends ShaderPart {
   constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
 
   constructor(
-    nameOrVertexSourceOrShaderLabSource: string,
-    vertexSourceOrFragmentSourceOrEntry?: string | Record<string, number | string | boolean>,
-    fragmentSourceOrTags?: string | Record<string, number | string | boolean>,
+    nameOrVertexSource: string,
+    vertexSourceOrFragmentSourceOrCode?: string | Record<string, number | string | boolean>,
+    fragmentSourceOrTagsOrVertexEntry?: string | Record<string, number | string | boolean>,
+    fragmentEntryOrTags?: string | Record<string, number | string | boolean>,
     tags?: Record<string, number | string | boolean>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
     this._type = ShaderType.Canonical;
 
-    if (typeof fragmentSourceOrTags === "string") {
-      this._name = nameOrVertexSourceOrShaderLabSource;
-      this._vertexSource = vertexSourceOrFragmentSourceOrEntry as string;
-      this._fragmentSource = fragmentSourceOrTags;
+    if (typeof fragmentEntryOrTags === "string") {
+      this._name = nameOrVertexSource;
+      this._shaderLabSource = vertexSourceOrFragmentSourceOrCode as string;
+      this._vertexEntry = fragmentSourceOrTagsOrVertexEntry as string;
+      this._fragmentEntry = fragmentEntryOrTags;
       tags = tags ?? {
         pipelineStage: PipelineStage.Forward
       };
-    } else if (typeof vertexSourceOrFragmentSourceOrEntry === "string") {
-      this._name = "Default";
-      this._vertexSource = nameOrVertexSourceOrShaderLabSource;
-      this._fragmentSource = vertexSourceOrFragmentSourceOrEntry;
-      tags = fragmentSourceOrTags ?? {
+      this._type = ShaderType.ShaderLab;
+    } else if (typeof fragmentSourceOrTagsOrVertexEntry === "string") {
+      this._name = nameOrVertexSource;
+      this._vertexSource = vertexSourceOrFragmentSourceOrCode as string;
+      this._fragmentSource = fragmentSourceOrTagsOrVertexEntry;
+      tags = fragmentEntryOrTags ?? {
         pipelineStage: PipelineStage.Forward
       };
     } else {
-      this._shaderLabSource = nameOrVertexSourceOrShaderLabSource;
-      this._vertexEntry = vertexSourceOrFragmentSourceOrEntry.vertexEntry as string;
-      this._fragmentEntry = vertexSourceOrFragmentSourceOrEntry.fragmentEntry as string;
-      tags = fragmentSourceOrTags ?? {
+      this._name = "Default";
+      this._vertexSource = nameOrVertexSource;
+      this._fragmentSource = vertexSourceOrFragmentSourceOrCode as string;
+      tags = fragmentSourceOrTagsOrVertexEntry ?? {
         pipelineStage: PipelineStage.Forward
       };
-      this._type = ShaderType.ShaderLab;
     }
     for (const key in tags) {
       this.setTag(key, tags[key]);
     }
-  }
-
-  /**
-   * @internal
-   */
-  setName(v: string) {
-    this._name = v;
   }
 
   /**
@@ -127,13 +124,13 @@ export class ShaderPass extends ShaderPart {
 
     if (this._type === ShaderType.Canonical) {
       return this._getCanonicalShaderProgram(engine, macroCollection);
+    } else {
+      this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
+      shaderProgram = new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
+
+      shaderProgramPool.cache(shaderProgram);
+      return shaderProgram;
     }
-
-    this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
-    shaderProgram = new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
-
-    shaderProgramPool.cache(shaderProgram);
-    return shaderProgram;
   }
 
   /**

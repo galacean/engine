@@ -105,11 +105,12 @@ export class Shader implements IReferable {
           }
 
           const shaderPass = new ShaderPass(
+            passInfo.name,
             passInfo.contents,
-            { vertexEntry: passInfo.vertexEntry, fragmentEntry: passInfo.fragmentEntry },
+            passInfo.vertexEntry,
+            passInfo.fragmentEntry,
             passInfo.tags
           );
-          shaderPass.setName(passInfo.name);
 
           const renderStates = passInfo.renderStates;
           const renderState = new RenderState();

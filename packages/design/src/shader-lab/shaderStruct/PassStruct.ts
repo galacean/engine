@@ -1,5 +1,4 @@
 import { RenderStates } from "./RenderStates";
-import { statement } from "./Statement";
 
 export interface PassStruct {
   name: string;

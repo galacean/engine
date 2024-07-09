@@ -1,4 +1,4 @@
-export enum EBackend {
+export enum CodeGenBackEnd {
   GLES100,
   GLES300
 }

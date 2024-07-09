@@ -73,4 +73,9 @@ export default class GrammarUtils {
       actionInfo.action === EAction.Reduce ? Production.pool.get(actionInfo.target!) : `State ${actionInfo.target!}`
     }>`;
   }
+
+  static printProduction(production: Production) {
+    const deriv = production.derivation.map((gs) => GrammarUtils.toString(gs)).join("|");
+    return `${ENonTerminal[production.goal]} :=> ${deriv}`;
+  }
 }

@@ -1,20 +1,7 @@
 import { expect } from "chai";
-import { EBackend, ShaderLab } from "@galacean/engine-shader-lab";
-import {
-  BlendFactor,
-  BlendOperation,
-  CompareFunction,
-  CullMode,
-  RenderQueueType,
-  RenderStateDataKey,
-  Shader,
-  ShaderFactory,
-  StencilOperation,
-  // @ts-ignore
-  ShaderLib
-} from "@galacean/engine-core";
-import { ShaderStruct } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
+import { ShaderLab } from "@galacean/engine-shader-lab";
+import { Shader, ShaderFactory } from "@galacean/engine-core";
+import { ShaderStruct, CodeGenBackEnd } from "@galacean/engine-design/src/shader-lab";
 
 function addLineNum(str: string) {
   const lines = str.split("\n");
@@ -97,7 +84,7 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
         pass.vertexEntry,
         pass.fragmentEntry,
         [],
-        EBackend.GLES300
+        CodeGenBackEnd.GLES300
       );
       validateShaderPass(pass, compiledPass.vertexSource, compiledPass.fragmentSource);
     });

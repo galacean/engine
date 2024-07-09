@@ -10,12 +10,12 @@ import {
 import { Color } from "@galacean/engine-math";
 import { Logger, LoggerLevel, ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
-import { ShaderStruct } from "@galacean/engine-design";
 
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 import fs from "fs";
 import path from "path";
+import { ShaderStruct } from "@galacean/engine-design";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();

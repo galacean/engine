@@ -1,4 +1,4 @@
-import { EBackend } from "./Backend";
+import { CodeGenBackEnd } from "./Backend";
 import { IShaderInfo } from "./IShaderInfo";
 import { ShaderStruct } from "./shaderStruct/ShaderStruct";
 
@@ -19,7 +19,7 @@ export interface IShaderLab {
     vertexEntry: string,
     fragmentEntry: string,
     macros: string[],
-    backend: EBackend
+    backend: CodeGenBackEnd
   ): IShaderInfo;
 
   /**

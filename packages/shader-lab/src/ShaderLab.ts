@@ -2,17 +2,11 @@ import Lexer from "./lexer";
 import { Parser } from "./parser";
 import Preprocessor from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IShaderLab } from "@galacean/engine-design";
 import { Logger } from "./Logger";
-import { ShaderStruct } from "@galacean/engine-design/types/shader-lab/shaderStruct/ShaderStruct";
+import { ShaderStruct, CodeGenBackEnd, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderStructParser } from "./structParser";
 // @ts-ignore
 import { ShaderLib } from "@galacean/engine";
-
-export enum EBackend {
-  GLES100 = 0,
-  GLES300 = 1
-}
 
 export class ShaderLab implements IShaderLab {
   private static _includeMap: Record<string, string> = ShaderLib;
@@ -36,7 +30,7 @@ export class ShaderLab implements IShaderLab {
     vertexEntry: string,
     fragmentEntry: string,
     macros: string[] = [],
-    backend = EBackend.GLES300
+    backend = CodeGenBackEnd.GLES300
   ) {
     const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
     for (const macro of macros) {
@@ -50,7 +44,7 @@ export class ShaderLab implements IShaderLab {
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = this._parser.parse(tokens);
-    const codeGen = backend === EBackend.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
+    const codeGen = backend === CodeGenBackEnd.GLES100 ? new GLES100Visitor() : new GLES300Visitor();
     return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }
 
@@ -66,7 +60,7 @@ export class ShaderLab implements IShaderLab {
   parse(
     shaderSource: string,
     macros: string[] = [],
-    backend = EBackend.GLES300
+    backend = CodeGenBackEnd.GLES300
   ): (ReturnType<ShaderLab["parseShaderPass"]> & { name: string })[] {
     const structInfo = this.parseShaderStruct(shaderSource);
     const passResult = [] as any;

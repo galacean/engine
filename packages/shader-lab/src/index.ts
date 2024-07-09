@@ -1,5 +1,4 @@
 export { ShaderLab } from "./ShaderLab";
-export { EBackend } from "./ShaderLab";
 
 // #if _EDITOR
 import Preprocessor from "./preprocessor";
