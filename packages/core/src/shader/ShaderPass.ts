@@ -163,7 +163,7 @@ export class ShaderPass extends ShaderPart {
       macroNameList.push("GRAPHICS_API_WEBGL1");
     }
 
-    const { vertexSource, fragmentSource } = Shader._shaderLab.parseShaderPass(
+    const { vertexSource, fragmentSource } = Shader._shaderLab._parseShaderPass(
       this._shaderLabSource,
       vertexEntry,
       fragmentEntry,

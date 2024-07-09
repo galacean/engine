@@ -18,20 +18,14 @@ export class ShaderLab implements IShaderLab {
    * @param includeName - the key used by `#include` macro directive.
    * @param includeSource - the replaced snippets.
    */
-  registerInclude(includeName: string, includeSource: string): void {
+  _registerInclude(includeName: string, includeSource: string): void {
     if (ShaderLab._includeMap[includeName]) {
       throw `The "${includeName}" shader include already exist`;
     }
     ShaderLab._includeMap[includeName] = includeSource;
   }
 
-  parseShaderPass(
-    source: string,
-    vertexEntry: string,
-    fragmentEntry: string,
-    macros: string[] = [],
-    backend = CodeGenBackEnd.GLES300
-  ) {
+  _parseShaderPass(source: string, vertexEntry: string, fragmentEntry: string, macros: string[], backend) {
     const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
     for (const macro of macros) {
       const info = macro.split(" ", 2);
@@ -48,7 +42,7 @@ export class ShaderLab implements IShaderLab {
     return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }
 
-  parseShaderContent(shaderSource: string): ShaderContent {
+  _parseShaderContent(shaderSource: string): ShaderContent {
     const parser = new ShaderContentParser(shaderSource);
     return parser.parse();
   }
@@ -61,13 +55,13 @@ export class ShaderLab implements IShaderLab {
     shaderSource: string,
     macros: string[] = [],
     backend = CodeGenBackEnd.GLES300
-  ): (ReturnType<ShaderLab["parseShaderPass"]> & { name: string })[] {
-    const structInfo = this.parseShaderContent(shaderSource);
+  ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
+    const structInfo = this._parseShaderContent(shaderSource);
     const passResult = [] as any;
     for (const subShader of structInfo.subShaders) {
       for (const pass of subShader.passes) {
         if (!pass.isUsePass) continue;
-        const passInfo = this.parseShaderPass(
+        const passInfo = this._parseShaderPass(
           pass.contents,
           pass.vertexEntry,
           pass.fragmentEntry,

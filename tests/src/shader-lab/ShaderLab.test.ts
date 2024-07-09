@@ -133,7 +133,7 @@ describe("ShaderLab", () => {
   let pass1: ShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
-    shader = shaderLab.parseShaderContent(demoShader);
+    shader = shaderLab._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     expect(passList[0].isUsePass).to.be.true;

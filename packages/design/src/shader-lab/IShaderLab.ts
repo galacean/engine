@@ -7,14 +7,16 @@ import { ShaderContent } from "./shaderContent/ShaderContent";
  */
 export interface IShaderLab {
   /**
+   * @internal
    * Parse shader source to get the structure of shader.
    */
-  parseShaderContent(shaderSource: string): ShaderContent;
+  _parseShaderContent(shaderSource: string): ShaderContent;
 
   /**
+   * @internal
    * Parse shader pass source code.
    */
-  parseShaderPass(
+  _parseShaderPass(
     shaderPassSource: string,
     vertexEntry: string,
     fragmentEntry: string,
@@ -23,7 +25,8 @@ export interface IShaderLab {
   ): IShaderInfo;
 
   /**
+   * @internal
    * Add new include shader slice.
    */
-  registerInclude(includeName: string, includeSource: string): void;
+  _registerInclude(includeName: string, includeSource: string): void;
 }
