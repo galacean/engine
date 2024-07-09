@@ -117,16 +117,15 @@ export class Shader implements IReferable {
 
           shaderPassContent._renderState = renderState;
           // Parse const render state
-          const constRenderStateInfo = renderStates[0];
-          for (let k in constRenderStateInfo) {
-            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
+          const { constantMap, variableMap } = renderStates;
+          for (let k in constantMap) {
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constantMap[k]);
           }
 
           // Parse variable render state
-          const variableRenderStateInfo = renderStates[1];
           const renderStateDataMap = {} as Record<number, ShaderProperty>;
-          for (let k in variableRenderStateInfo) {
-            renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
+          for (let k in variableMap) {
+            renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
           }
           shaderPassContent._renderStateDataMap = renderStateDataMap;
 

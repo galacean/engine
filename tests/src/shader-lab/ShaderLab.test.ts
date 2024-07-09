@@ -157,12 +157,12 @@ describe("ShaderLab", () => {
   it("render state", () => {
     expect(pass1.renderStates).not.be.null;
 
-    const [constantState, variableState] = pass1.renderStates;
-    expect(constantState).not.be.null;
+    const { constantMap, variableMap } = pass1.renderStates;
+    expect(constantMap).not.be.null;
 
-    expect(toString(constantState[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
+    expect(toString(constantMap[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
 
-    expect(constantState).include({
+    expect(constantMap).include({
       // Stencil State
       [RenderStateDataKey.StencilStateEnabled]: true,
       [RenderStateDataKey.StencilStateReferenceValue]: 2,
@@ -185,7 +185,7 @@ describe("ShaderLab", () => {
       [RenderStateDataKey.RasterStateSlopeScaledDepthBias]: 0.8
     });
 
-    expect(variableState).include({
+    expect(variableMap).include({
       [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
   });
