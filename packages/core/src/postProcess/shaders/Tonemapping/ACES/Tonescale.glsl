@@ -96,6 +96,17 @@
     return pow(10.0, logy);
   }
 
+  // The metal compiler does not optimize structure access
+  // struct SegmentedSplineParams_c9{
+  //   float coefsLow[10];    // coefs for B-spline between minPoint and midPoint (units of log luminance)
+  //   float coefsHigh[10];   // coefs for B-spline between midPoint and maxPoint (units of log luminance)
+  //   mediump vec2 minPoint; // {luminance, luminance} linear extension below this
+  //   mediump vec2 midPoint; // {luminance, luminance}
+  //   mediump vec2 maxPoint; // {luminance, luminance} linear extension above this
+  //   float slopeLow;       // log-log slope of low linear extension
+  //   float slopeHigh;      // log-log slope of high linear extension
+  // };
+
 
   mediump float segmented_spline_c9_fwd(mediump float x){
       // ODT_48nits

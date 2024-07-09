@@ -75,11 +75,29 @@ mediump vec3 darkSurround_to_dimSurround(mediump vec3 linearCV){
 //   of those associated with video mastering.
 //
 mediump vec3 ODT_RGBmonitor_100nits_dim(mediump vec3 oces){
+    // The metal compiler does not optimize structure access
+    // const SegmentedSplineParams_c9 ODT_48nits = SegmentedSplineParams_c9(
+    //     // coefsLow[10]
+    //     float[10]( -1.6989700043, -1.6989700043, -1.4779000000, -1.2291000000, -0.8648000000, -0.4480000000, 0.0051800000, 0.4511080334, 0.9113744414, 0.9113744414),
+    //     // coefsHigh[10]
+    //     float[10]( 0.5154386965, 0.8470437783, 1.1358000000, 1.3802000000, 1.5197000000, 1.5985000000, 1.6467000000, 1.6746091357, 1.6878733390, 1.6878733390 ),
+    //     vec2(segmented_spline_c5_fwd(0.18*pow(2.,-6.5)),  0.02),    // minPoint
+    //     vec2(segmented_spline_c5_fwd(0.18),                4.8),    // midPoint
+    //     vec2(segmented_spline_c5_fwd(0.18*pow(2.,6.5)),   48.0),    // maxPoint
+    //     0.0,  // slopeLow
+    //     0.04  // slopeHigh
+    // );
+
     // OCES to RGB rendering space
     mediump vec3 rgbPre = AP0_2_AP1_MAT * oces;
 
     // Apply the tonescale independently in rendering-space RGB
     mediump vec3 rgbPost;
+
+    // rgbPost.r = segmented_spline_c9_fwd(rgbPre.r, ODT_48nits);
+    // rgbPost.g = segmented_spline_c9_fwd(rgbPre.g, ODT_48nits);
+    // rgbPost.b = segmented_spline_c9_fwd(rgbPre.b, ODT_48nits);
+
     rgbPost.r = segmented_spline_c9_fwd(rgbPre.r);
     rgbPost.g = segmented_spline_c9_fwd(rgbPre.g);
     rgbPost.b = segmented_spline_c9_fwd(rgbPre.b);
