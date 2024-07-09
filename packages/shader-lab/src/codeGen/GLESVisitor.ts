@@ -3,8 +3,8 @@ import { Logger } from "../Logger";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
-import { IPassCodeGenResult } from "./types";
 import { EShaderStage } from "../common/Enums";
+import { IShaderInfo } from "@galacean/engine-design";
 
 type ICodeSegment = [string, number];
 
@@ -13,11 +13,7 @@ const defaultPrecision = `precision mediump float;`;
 export abstract class GLESVisitor extends CodeGenVisitor {
   abstract versionText: string;
 
-  override visitShaderProgram(
-    node: ASTNode.GLShaderProgram,
-    vertexEntry: string,
-    fragmentEntry: string
-  ): IPassCodeGenResult {
+  override visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     this.context._passSymbolTable = node.shaderData.symbolTable;
 
     return {

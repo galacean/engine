@@ -3,10 +3,9 @@ import { RenderStates } from "./RenderStates";
 export interface ShaderPassContent {
   name: string;
   isUsePass: boolean;
-  // Undefined content when referenced by `UsePass`
-  tags: Record<string, number | string | boolean>;
+  tags?: Record<string, number | string | boolean>;
   renderStates: RenderStates;
-  /** ShaderLab code source */
+  /** ShaderLab code source. */
   contents: string;
   vertexEntry: string;
   fragmentEntry: string;

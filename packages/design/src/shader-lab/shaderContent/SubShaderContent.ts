@@ -1,4 +1,4 @@
-import { ShaderPassContent } from "./PassContent";
+import { ShaderPassContent } from "./ShaderPassContent";
 import { RenderStates } from "./RenderStates";
 import { Statement } from "./Statement";
 

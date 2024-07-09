@@ -7,7 +7,7 @@ import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
-import { IPassCodeGenResult } from "./types";
+import { IShaderInfo } from "@galacean/engine-design";
 
 /**
  * The code generator
@@ -16,11 +16,7 @@ export abstract class CodeGenVisitor {
   logger = new Logger("CodeGen");
   context = new VisitorContext();
 
-  abstract visitShaderProgram(
-    node: ASTNode.GLShaderProgram,
-    vertexEntry: string,
-    fragmentEntry: string
-  ): IPassCodeGenResult;
+  abstract visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo;
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];

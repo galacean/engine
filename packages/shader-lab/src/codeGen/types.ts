@@ -8,8 +8,3 @@ export type IRenderState = [
 ];
 
 export type ITag = ShaderContent["subShaders"][number]["tags"];
-
-export interface IPassCodeGenResult {
-  vertexSource: string;
-  fragmentSource: string;
-}
