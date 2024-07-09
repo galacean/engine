@@ -125,8 +125,7 @@ export class ShaderPass extends ShaderPart {
     if (this._type === ShaderType.Canonical) {
       shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
     } else {
-      this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
-      shaderProgram = new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
+      shaderProgram = this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
     }
 
     shaderProgramPool.cache(shaderProgram);
@@ -173,6 +172,7 @@ export class ShaderPass extends ShaderPart {
 
     this._vertexSource = vertexSource;
     this._fragmentSource = fragmentSource;
+    return new ShaderProgram(engine, this._vertexSource, this._fragmentSource);
   }
 
   // TODO: remove it after migrate all shader to `ShaderLab`.
