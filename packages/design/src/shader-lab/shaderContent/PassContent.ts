@@ -1,6 +1,6 @@
 import { RenderStates } from "./RenderStates";
 
-export interface PassContent {
+export interface ShaderPassContent {
   name: string;
   isUsePass: boolean;
   // Undefined content when referenced by `UsePass`

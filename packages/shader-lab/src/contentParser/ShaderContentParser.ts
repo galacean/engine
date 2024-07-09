@@ -16,7 +16,7 @@ import {
   BlendFactor,
   CullMode
 } from "@galacean/engine";
-import { Statement, ShaderContent, SubShaderContent, PassContent } from "@galacean/engine-design";
+import { Statement, ShaderContent, SubShaderContent, ShaderPassContent } from "@galacean/engine-design";
 
 type RenderStates = [
   /** Constant RenderState. */
@@ -367,8 +367,8 @@ export class ShaderContentParser extends BaseError {
     }
   }
 
-  private _parsePass(): PassContent {
-    const ret = { globalContents: [], renderStates: [{}, {}], tags: {} } as PassContent & {
+  private _parsePass(): ShaderPassContent {
+    const ret = { globalContents: [], renderStates: [{}, {}], tags: {} } as ShaderPassContent & {
       globalContents: Statement[];
     };
     const scanner = this._scanner;

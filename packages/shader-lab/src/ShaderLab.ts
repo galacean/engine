@@ -14,6 +14,7 @@ export class ShaderLab implements IShaderLab {
   private _parser = Parser.create();
 
   /**
+   * @internal
    * Register new snippets that can be referenced by `#include` macro in `ShaderLab`.
    * @param includeName - the key used by `#include` macro directive.
    * @param includeSource - the replaced snippets.
@@ -25,7 +26,16 @@ export class ShaderLab implements IShaderLab {
     ShaderLab._includeMap[includeName] = includeSource;
   }
 
-  _parseShaderPass(source: string, vertexEntry: string, fragmentEntry: string, macros: string[], backend) {
+  /**
+   * @internal
+   */
+  _parseShaderPass(
+    source: string,
+    vertexEntry: string,
+    fragmentEntry: string,
+    macros: string[],
+    backend: ShaderPlatformTarget
+  ) {
     const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
     for (const macro of macros) {
       const info = macro.split(" ", 2);
@@ -42,6 +52,9 @@ export class ShaderLab implements IShaderLab {
     return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
   }
 
+  /**
+   * @internal
+   */
   _parseShaderContent(shaderSource: string): ShaderContent {
     const parser = new ShaderContentParser(shaderSource);
     return parser.parse();
@@ -49,12 +62,13 @@ export class ShaderLab implements IShaderLab {
 
   // #if _EDITOR
   /**
-   * @internal for debug
+   * @internal
+   * For debug
    */
-  parse(
+  _parse(
     shaderSource: string,
     macros: string[],
-    backend
+    backend: ShaderPlatformTarget
   ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
     const structInfo = this._parseShaderContent(shaderSource);
     const passResult = [] as any;
