@@ -125,7 +125,7 @@ export class ShaderPass extends ShaderPart {
     if (this._type === ShaderType.Canonical) {
       shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
     } else {
-      shaderProgram = this._compile(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
+      shaderProgram = this._compileShaderProgram(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
     }
 
     shaderProgramPool.cache(shaderProgram);
@@ -146,7 +146,12 @@ export class ShaderPass extends ShaderPart {
   /**
    * Shader Lab compilation
    */
-  private _compile(engine: Engine, macroCollection: ShaderMacroCollection, vertexEntry: string, fragmentEntry: string) {
+  private _compileShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    vertexEntry: string,
+    fragmentEntry: string
+  ) {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const macroNameList = [];
     ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
