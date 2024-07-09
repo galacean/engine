@@ -137,13 +137,13 @@
         const mediump float coefsHigh_9 = 1.6878733390;
       #endif
 
-      mediump vec2 minPoint = vec2(segmented_spline_c5_fwd(0.18 * pow(2.0, -6.5)), 0.02);
-      mediump vec2 midPoint = vec2(segmented_spline_c5_fwd(0.18), 4.8);
-      mediump vec2 maxPoint = vec2(segmented_spline_c5_fwd(0.18 * pow(2., 6.5)), 48.0);
+      // mediump vec2 minPoint = vec2(segmented_spline_c5_fwd(0.18 * pow(2.0, -6.5)), 0.02);
+      // mediump vec2 midPoint = vec2(segmented_spline_c5_fwd(0.18), 4.8);
+      // mediump vec2 maxPoint = vec2(segmented_spline_c5_fwd(0.18 * pow(2., 6.5)), 48.0);
 
-      // const mediump vec2 minPoint = vec2(0.0028799, 0.02);
-      // const mediump vec2 midPoint = vec2(4.799999, 4.8);
-      // const mediump vec2 maxPoint = vec2(1005.719, 48.0);
+      const mediump vec2 minPoint = vec2(0.0028799, 0.02);
+      const mediump vec2 midPoint = vec2(4.799999, 4.8);
+      const mediump vec2 maxPoint = vec2(1005.719, 48.0);
 
       const mediump float slopeLow = 0.0;
       const mediump float slopeHigh = 0.04;
