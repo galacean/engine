@@ -7,6 +7,7 @@ import { ShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-la
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { ShaderLib, ShaderPlatformTarget } from "@galacean/engine";
+import { IPassCodeGenResult } from "./codeGen/types";
 
 export class ShaderLab implements IShaderLab {
   private static _includeMap: Record<string, string> = ShaderLib;
@@ -35,7 +36,7 @@ export class ShaderLab implements IShaderLab {
     fragmentEntry: string,
     macros: string[],
     backend: ShaderPlatformTarget
-  ) {
+  ): IPassCodeGenResult {
     const preprocessor = new Preprocessor(source, ShaderLab._includeMap);
     for (const macro of macros) {
       const info = macro.split(" ", 2);
