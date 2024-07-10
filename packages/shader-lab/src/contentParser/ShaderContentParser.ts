@@ -13,7 +13,8 @@ import {
   StencilOperation,
   BlendOperation,
   BlendFactor,
-  CullMode
+  CullMode,
+  Logger
 } from "@galacean/engine";
 import { Statement, ShaderContent, SubShaderContent, ShaderPassContent, IRenderStates } from "@galacean/engine-design";
 import { ParserUtils } from "../Utils";
@@ -55,6 +56,8 @@ export class ShaderContentParser {
   }
 
   static parse(source: string): ShaderContent {
+    const start = performance.now();
+
     const scanner = new Scanner(source, KeywordMap);
     const ret = {
       subShaders: [],
@@ -88,6 +91,9 @@ export class ShaderContentParser {
         pass.contents = passGlobalStatements.map((item) => item.content).join("\n");
       }
     }
+
+    Logger.info(`[content compilation] cost time ${performance.now() - start}ms`);
+
     return ret;
   }
 

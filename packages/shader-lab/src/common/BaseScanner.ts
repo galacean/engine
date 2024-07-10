@@ -6,16 +6,17 @@ export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
 export default class BaseScanner {
   protected _current = 0;
-  get current() {
-    return this._current;
-  }
+  protected _source: string;
 
   // #if _EDITOR
   protected _column = 0;
   protected _line = 0;
   // #endif
 
-  protected _source: string;
+  get current() {
+    return this._current;
+  }
+
   get source() {
     return this._source;
   }

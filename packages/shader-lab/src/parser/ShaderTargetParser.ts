@@ -69,7 +69,11 @@ export default class ShaderTargetParser {
         traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
-        Logger.info(`Accept! State automata run ${loopCount} times! cost time ${performance.now() - start}ms`);
+        Logger.info(
+          `[pass compilation - parser] Accept! State automata run ${loopCount} times! cost time ${
+            performance.now() - start
+          }ms`
+        );
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
       } else if (actionInfo?.action === EAction.Reduce) {

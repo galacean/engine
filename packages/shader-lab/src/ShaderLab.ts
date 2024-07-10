@@ -5,7 +5,7 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 
 export class ShaderLab implements IShaderLab {
   /**
@@ -34,7 +34,13 @@ export class ShaderLab implements IShaderLab {
     // TODO: index to position
     // Logger.convertSourceIndex = Preprocessor.convertSourceIndex.bind(Preprocessor);
     // #endif
+
+    const preprocessorStart = performance.now();
+
     const ppdContent = Preprocessor.process(source);
+
+    Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
+
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = ShaderLab._parser.parse(tokens);

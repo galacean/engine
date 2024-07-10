@@ -20,12 +20,12 @@ export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
+  private _shaderData = new ShaderData();
 
   // #if _EDITOR
   readonly errors: SemanticError[] = [];
   // #endif
 
-  private _shaderData = new ShaderData();
   get shaderData() {
     return this._shaderData;
   }

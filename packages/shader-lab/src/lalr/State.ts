@@ -16,7 +16,10 @@ export default class State {
 
   closured = false;
   get needReInfer() {
-    return Array.from(this.cores).findIndex((item) => item.needReInfer) !== -1;
+    for (const core of this.cores) {
+      if (core.needReInfer) return true;
+    }
+    return false;
   }
 
   private stateItemPool: Map<string /** Map ID */, StateItem> = new Map();

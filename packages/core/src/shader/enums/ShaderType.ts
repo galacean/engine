@@ -1,4 +1,5 @@
 /**
+ * @internal
  * Shader pass type
  */
 export enum ShaderType {
