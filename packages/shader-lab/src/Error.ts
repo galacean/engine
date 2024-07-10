@@ -16,11 +16,4 @@ export class SemanticError extends GSError {
     this.name = "SemanticError";
   }
 }
-
-export class ParseError extends GSError {
-  constructor(message: string, loc: IIndexRange, cause?: Error) {
-    super(message, loc, cause);
-    this.name = "ParseError";
-  }
-}
 // #endif
