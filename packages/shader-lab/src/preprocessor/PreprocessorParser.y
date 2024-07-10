@@ -1,4 +1,4 @@
-// For cft conflict test, used by bison
+// For cfg conflict test, used by bison
 
 %token hash_define
 %token hash_undef
