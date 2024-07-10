@@ -1,15 +1,14 @@
-import LexerUtils from "../lexer/Utils";
 import { IIndexRange } from "../common";
+import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
-import { Logger } from "@galacean/engine";
 // #if _EDITOR
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
-import PpScanner from "./PpScanner";
-import { PpUtils } from "./Utils";
-import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import { BaseToken } from "../common/BaseToken";
 import { ParserUtils } from "../Utils";
+import { EPpKeyword, EPpToken, PpConstant } from "./constants";
+import PpScanner from "./PpScanner";
+import { PpUtils } from "./Utils";
 
 export interface ExpandSegment {
   // #if _EDITOR
@@ -36,6 +35,7 @@ export default class PpParser {
     this.branchMacros.clear();
     this.addPredefinedMacro("GL_ES");
     this.includeMap = includeMap;
+    this.onToken = this.onToken.bind(this);
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
@@ -46,7 +46,7 @@ export default class PpParser {
 
   static parse(scanner: PpScanner): string {
     while (!scanner.isEnd()) {
-      const directive = scanner.scanDirective(this.onToken.bind(this))!;
+      const directive = scanner.scanDirective(this.onToken)!;
       if (scanner.isEnd()) break;
       switch (directive.type) {
         case EPpKeyword.define:
@@ -85,7 +85,7 @@ export default class PpParser {
   private static parseInclude(scanner: PpScanner) {
     const start = scanner.getShaderPosition(8);
 
-    scanner.skipSpace();
+    scanner.skipSpace(true);
     const id = scanner.scanQuotedString();
     scanner.scanToChar("\n");
     const end = scanner.getShaderPosition();
@@ -116,7 +116,7 @@ export default class PpParser {
     this.branchMacros.add(id.lexeme);
 
     const macro = this.definedMacros.get(id.lexeme);
-    scanner.skipSpace();
+    scanner.skipSpace(true);
 
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!!macro) {
@@ -198,7 +198,7 @@ export default class PpParser {
   }
 
   private static parseConstantExpression(scanner: PpScanner) {
-    scanner.skipSpace();
+    scanner.skipSpace(true);
     return this.parseLogicalOrExpression(scanner);
   }
 
@@ -293,11 +293,11 @@ export default class PpParser {
 
   private static parseAdditiveExpression(scanner: PpScanner): PpConstant {
     const operand1 = this.parseMulticativeExpression(scanner) as number;
-    if ([">", "<"].includes(scanner.curChar())) {
+    if ([">", "<"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition();
       scanner.advance();
 
-      const operator = scanner.curChar();
+      const operator = scanner.getCurChar();
       scanner.skipSpace(false);
       const operand2 = this.parseAdditiveExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
@@ -316,9 +316,9 @@ export default class PpParser {
   private static parseMulticativeExpression(scanner: PpScanner): PpConstant {
     const operand1 = this.parseUnaryExpression(scanner) as number;
     scanner.skipSpace(false);
-    if (["*", "/", "%"].includes(scanner.curChar())) {
+    if (["*", "/", "%"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition();
-      const operator = scanner.curChar();
+      const operator = scanner.getCurChar();
       scanner.skipSpace(false);
       const operand2 = this.parseMulticativeExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
@@ -337,7 +337,7 @@ export default class PpParser {
   }
 
   private static parseUnaryExpression(scanner: PpScanner) {
-    const operator = scanner.curChar();
+    const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
       scanner.advance();
       const opPos = scanner.getShaderPosition();
@@ -359,7 +359,7 @@ export default class PpParser {
   }
 
   private static parseParenthesisExpression(scanner: PpScanner): PpConstant {
-    if (scanner.curChar() === "(") {
+    if (scanner.getCurChar() === "(") {
       scanner.advance();
       scanner.skipSpace(false);
       const ret = this.parseConstant(scanner);
@@ -371,7 +371,7 @@ export default class PpParser {
   }
 
   private static parseConstant(scanner: PpScanner): PpConstant {
-    if (LexerUtils.isAlpha(scanner.curChar())) {
+    if (LexerUtils.isAlpha(scanner.getCurChar())) {
       const id = scanner.scanWord();
       if (id.type === EPpKeyword.defined) {
         const withParen = scanner.peekNonSpace() === "(";
@@ -398,11 +398,11 @@ export default class PpParser {
         this.branchMacros.add(id.lexeme);
         return value;
       }
-    } else if (LexerUtils.isNum(scanner.curChar())) {
+    } else if (LexerUtils.isNum(scanner.getCurChar())) {
       const integer = scanner.scanInteger();
       return Number(integer.lexeme);
     } else {
-      ParserUtils.throw(scanner.getShaderPosition(), "invalid token", scanner.curChar());
+      ParserUtils.throw(scanner.getShaderPosition(), "invalid token", scanner.getCurChar());
     }
   }
 
@@ -532,13 +532,14 @@ export default class PpParser {
     const start = scanner.getShaderPosition(7);
     const macro = scanner.scanWord();
 
+   
     let end = macro.location.end;
     if (this.definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
       ParserUtils.throw(macro.location, "redefined macro:", macro.lexeme);
     }
 
     let macroArgs: BaseToken[] | undefined;
-    if (scanner.curChar() === "(") {
+    if (scanner.getCurChar() === "(") {
       macroArgs = scanner.scanWordsUntilChar(")");
       end = scanner.getShaderPosition();
     }
@@ -604,11 +605,11 @@ export default class PpParser {
         let curLvl = 1;
         let curIdx = scanner.current;
         while (true) {
-          if (scanner.curChar() === "(") curLvl += 1;
-          else if (scanner.curChar() === ")") {
+          if (scanner.getCurChar() === "(") curLvl += 1;
+          else if (scanner.getCurChar() === ")") {
             curLvl -= 1;
             if (curLvl === 0) break;
-          } else if (scanner.curChar() === "," && curLvl === 1) {
+          } else if (scanner.getCurChar() === "," && curLvl === 1) {
             args.push(scanner.source.slice(curIdx, scanner.current));
             curIdx = scanner.current + 1;
           }

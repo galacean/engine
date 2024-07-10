@@ -198,7 +198,7 @@ export class ShaderContentParser {
 
   private static _parseRenderStatePropList(state: string, scanner: Scanner): IRenderStates {
     const ret: IRenderStates = { constantMap: {}, variableMap: {} };
-    while (scanner.curChar() !== "}") {
+    while (scanner.getCurChar() !== "}") {
       this._parseRenderStatePropItem(ret, state, scanner);
       scanner.skipCommentsAndSpace();
     }
@@ -228,7 +228,7 @@ export class ShaderContentParser {
 
     scanner.skipCommentsAndSpace();
     let value: any;
-    if (/[0-9.]/.test(scanner.curChar())) {
+    if (/[0-9.]/.test(scanner.getCurChar())) {
       value = scanner.scanNumber();
     } else {
       const token = scanner.scanToken();
@@ -240,7 +240,7 @@ export class ShaderContentParser {
         while (true) {
           args.push(scanner.scanNumber());
           scanner.skipCommentsAndSpace();
-          const peek = scanner.peek();
+          const peek = scanner.peek(1);
           if (peek === ")") {
             scanner._advance();
             break;
@@ -248,7 +248,7 @@ export class ShaderContentParser {
           scanner.scanText(",");
         }
         value = new Color(...args);
-      } else if (scanner.curChar() === ".") {
+      } else if (scanner.getCurChar() === ".") {
         scanner._advance();
         const engineTypeProp = scanner.scanToken();
         value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
@@ -374,7 +374,7 @@ export class ShaderContentParser {
 
       ret.tags[ident.lexeme] = value;
 
-      if (scanner.peek() === "}") {
+      if (scanner.peek(1) === "}") {
         scanner._advance();
         return;
       }

@@ -10,19 +10,19 @@ export default class Scanner extends BaseScanner {
    */
   scanWord(): string {
     this.skipCommentsAndSpace();
-    const start = this._current;
-    while (/\S/.test(this.curChar()) && !this.isEnd()) this._advance();
-    return this._source.substring(start, this._current);
+    const start = this._currentIndex;
+    while (/\S/.test(this.getCurChar()) && !this.isEnd()) this._advance();
+    return this._source.substring(start, this._currentIndex);
   }
 
   scanNumber(): number {
     this.skipCommentsAndSpace();
-    const start = this._current;
-    while (/[0-9]/.test(this.curChar())) this._advance();
-    if (this.curChar() === ".") {
+    const start = this._currentIndex;
+    while (/[0-9]/.test(this.getCurChar())) this._advance();
+    if (this.getCurChar() === ".") {
       this._advance();
-      while (/[0-9]/.test(this.curChar())) this._advance();
+      while (/[0-9]/.test(this.getCurChar())) this._advance();
     }
-    return Number(this._source.substring(start, this._current));
+    return Number(this._source.substring(start, this._currentIndex));
   }
 }
