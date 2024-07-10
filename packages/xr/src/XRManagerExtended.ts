@@ -60,16 +60,18 @@ export class XRManagerExtended extends XRManager {
   override addFeature<T extends new (xrManager: XRManagerExtended, ...args: any[]) => XRFeature>(
     type: T,
     ...args: TFeatureConstructorArguments<T>
-  ): XRFeature | null {
+  ): InstanceType<T> | null {
     if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
     const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i++) {
-      const feature = features[i];
-      if (feature instanceof type) throw new Error("The feature has been added");
+    if (!this._platformDevice.isSupportedFeature(XRManagerExtended._featureMap.get(type))) {
+      throw new Error("The feature is not supported");
     }
-    const feature = new type(this, ...args);
+    for (let i = 0, n = features.length; i < n; i++) {
+      if (features[i] instanceof type) throw new Error("The feature has been added");
+    }
+    const feature = new type(this, ...args) as InstanceType<T>;
     this._features.push(feature);
     return feature;
   }
@@ -89,16 +91,16 @@ export class XRManagerExtended extends XRManager {
     }
   }
 
-  override getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>, out?: T[]): T[] {
-    if (out) {
-      out.length = 0;
-    } else {
-      out = [];
-    }
+  override getFeatures(out?: XRFeature[]): XRFeature[] {
     const { _features: features } = this;
-    for (let i = 0, n = features.length; i < n; i--) {
-      const feature = features[i];
-      feature instanceof type && out.push(feature);
+    const length = features.length;
+    if (out) {
+      out.length = length;
+    } else {
+      out = new Array<XRFeature>(length);
+    }
+    for (let i = 0; i < length; i--) {
+      out[i] = features[i];
     }
     return out;
   }
@@ -287,16 +289,14 @@ declare module "@galacean/engine" {
 
     /**
      * Get all initialized features at this moment.
-     * @param type - The type of the feature
      */
-    getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>): T[];
+    getFeatures(): XRFeature[];
 
     /**
      * Get all initialized features at this moment.
-     * @param type - The type of the feature
      * @param out - Save all features in `out`
      */
-    getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>, out: T[]): T[];
+    getFeatures(out: XRFeature[]): XRFeature[];
 
     /**
      * Check if the specified feature is supported.
@@ -314,7 +314,7 @@ declare module "@galacean/engine" {
     addFeature<T extends new (xrManager: XRManagerExtended, ...args: any[]) => XRFeature>(
       type: T,
       ...args: TFeatureConstructorArguments<T>
-    ): XRFeature | null;
+    ): InstanceType<T> | null;
 
     /**
      * Get feature which match the type.
@@ -322,7 +322,7 @@ declare module "@galacean/engine" {
      * @returns	The feature which match type
      */
     getFeature<T extends XRFeature>(type: TFeatureConstructor<T>): T | null;
-    getFeatures<T extends XRFeature>(type: TFeatureConstructor<T>, out?: T[]): T[];
+    getFeatures(out?: XRFeature[]): XRFeature[];
     /**
      * Enter XR immersive mode, when you call this method, it will initialize and display the XR virtual world.
      * @param sessionMode - The mode of the session

@@ -1,7 +1,7 @@
-import { Engine, ReferResource, Scene } from "@galacean/engine-core";
-import type { IScene } from "../schema";
+import { Engine, Scene } from "@galacean/engine-core";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext, ParserType } from "../parser/ParserContext";
+import type { IScene } from "../schema";
 
 /** @Internal */
 export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Scene>> {
@@ -11,12 +11,12 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
    * @param sceneData - scene data which is exported by editor
    * @returns a promise of scene
    */
-  static parse(engine: Engine, sceneData: IScene): Promise<Scene> {
+  static parse(engine: Engine, sceneData: IScene): Promise<ParserContext<IScene, Scene>> {
     const scene = new Scene(engine);
     const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(sceneData, context, scene);
     parser.start();
-    return parser.promise.then(() => scene);
+    return parser.promise.then(() => context);
   }
 
   constructor(

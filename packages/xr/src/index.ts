@@ -2,6 +2,8 @@
 import "./XRManagerExtended";
 // xr pose
 export { XRPose } from "./XRPose";
+// component
+export { XRTrackedComponent } from "./component/XRTrackedComponent";
 // xr feature
 export { XRFeature } from "./feature/XRFeature";
 // camera
@@ -38,3 +40,7 @@ export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 export { XRInputEventType } from "./input/XRInputEventType";
 export { XRTargetRayMode } from "./input/XRTargetRayMode";
+
+export * from "./loader/XRCustomParser";
+export * from "./loader/XRReferenceImageDecoder";
+export * from "./loader/XRReferenceImageLoader";
