@@ -46,7 +46,12 @@ export class ShaderLab implements IShaderLab {
     const program = ShaderLab._parser.parse(tokens);
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
-    return codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+
+    const start = performance.now();
+    const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+    Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
+
+    return ret;
   }
 
   _parseShaderContent(shaderSource: string): ShaderContent {

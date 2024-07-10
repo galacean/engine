@@ -1,6 +1,7 @@
 import { Shader, ShaderPlatformTarget } from ".";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import { Logger } from "../base";
 import { GLCapabilityType } from "../base/Constant";
 import { ShaderFactory } from "../shaderlib";
 import { ShaderMacro } from "./ShaderMacro";
@@ -170,6 +171,7 @@ export class ShaderPass extends ShaderPart {
       platformMacros.push("GRAPHICS_API_WEBGL1");
     }
 
+    const start = performance.now();
     const { vertex, fragment } = Shader._shaderLab._parseShaderPass(
       this._shaderLabSource,
       vertexEntry,
@@ -178,6 +180,7 @@ export class ShaderPass extends ShaderPart {
       isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
       platformMacros
     );
+    Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
 
     return new ShaderProgram(engine, vertex, fragment);
   }
