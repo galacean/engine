@@ -88,8 +88,9 @@ export class ShaderPass extends ShaderPart {
       this._shaderLabSource = vertexSourceOrFragmentSourceOrCode as string;
       this._vertexEntry = fragmentSourceOrTagsOrVertexEntry as string;
       this._fragmentEntry = fragmentEntryOrTags;
-      tags = tags ?? {
-        pipelineStage: PipelineStage.Forward
+      tags = {
+        pipelineStage: PipelineStage.Forward,
+        ...tags
       };
       this._type = ShaderType.ShaderLab;
     } else if (typeof fragmentSourceOrTagsOrVertexEntry === "string") {

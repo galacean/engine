@@ -27,7 +27,7 @@ export class ShaderLab implements IShaderLab {
     }
 
     for (let i = 0; i < platformMacros.length; i++) {
-      Preprocessor.addPredefinedMacro(platformMacros[0]);
+      Preprocessor.addPredefinedMacro(platformMacros[i]);
     }
 
     // #if _EDITOR
