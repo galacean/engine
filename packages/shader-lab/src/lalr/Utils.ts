@@ -1,10 +1,11 @@
-import { EKeyword, ETokenType, IIndexRange } from "../common";
+import { EKeyword, ETokenType, ShaderRange } from "../common";
 import { ASTNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { ASTNodeConstructor } from "../parser/types";
 import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
+import { ShaderLab } from "../ShaderLab";
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -32,7 +33,7 @@ export default class GrammarUtils {
           if (!children[0]) return;
           const start = children[0].location.start;
           const end = children[children.length - 1].location.end;
-          const location = new IIndexRange(start, end);
+          const location = ShaderLab.createRange(start, end);
           ASTNode.create(astType ?? ASTNode.TrivialNode, sa, location, children);
         }
       ]);

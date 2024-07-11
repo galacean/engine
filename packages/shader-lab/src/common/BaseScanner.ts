@@ -1,4 +1,5 @@
-import { ETokenType, IIndexRange, ShaderPosition } from ".";
+import { ETokenType, ShaderRange, ShaderPosition } from ".";
+import { ShaderLab } from "../ShaderLab";
 import { ParserUtils } from "../Utils";
 import { BaseToken } from "./BaseToken";
 
@@ -25,22 +26,22 @@ export default class BaseScanner {
   protected _line = 0;
   // #endif
 
-  get current() {
+  get current(): number {
     return this._currentIndex;
   }
 
-  get source() {
+  get source(): string {
     return this._source;
   }
 
   get curPosition(): ShaderPosition {
-    return {
-      index: this._currentIndex,
+    return ShaderLab.createPosition(
+      this._currentIndex,
       // #if _EDITOR
-      column: this._column,
-      line: this._line
+      this._column,
+      this._line
       // #endif
-    };
+    );
   }
 
   protected readonly _keywordsMap: Map<string, number>;
@@ -94,7 +95,7 @@ export default class BaseScanner {
     }
   }
 
-  skipCommentsAndSpace(): IIndexRange | undefined {
+  skipCommentsAndSpace(): ShaderRange | undefined {
     this.skipSpace(true);
     if (this.peek(2) === "//") {
       const start = this.curPosition;
@@ -102,7 +103,7 @@ export default class BaseScanner {
       // single line comments
       while (this.getCurChar() !== "\n") this._advance();
       this.skipCommentsAndSpace();
-      return { start, end: this.curPosition };
+      return ShaderLab.createRange(start, this.curPosition);
     } else if (this.peek(2) === "/*") {
       const start = this.curPosition;
       this.advance(2);
@@ -110,7 +111,7 @@ export default class BaseScanner {
       while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
       this.advance(2);
       this.skipCommentsAndSpace();
-      return { start, end: this.curPosition };
+      return ShaderLab.createRange(start, this.curPosition);
     }
   }
 
@@ -170,7 +171,8 @@ export default class BaseScanner {
 
     const lexeme = this._source.substring(start.index, end.index);
     const tokenType = this._keywordsMap.get(lexeme) ?? ETokenType.ID;
-    const token = new BaseToken(tokenType, lexeme, { start, end });
+    const range = ShaderLab.createRange(start, end);
+    const token = new BaseToken(tokenType, lexeme, range);
     onToken?.(token, this);
     return token;
   }

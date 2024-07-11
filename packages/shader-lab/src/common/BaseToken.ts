@@ -1,21 +1,29 @@
 import { ETokenType } from "./types";
-import { IIndexRange, ShaderPosition } from ".";
+import { ShaderRange, ShaderPosition } from ".";
+import { ShaderLab } from "../ShaderLab";
 
 export class BaseToken<T extends number = number> {
   readonly type: T;
   readonly lexeme: string;
-  readonly location: IIndexRange;
+  readonly location: ShaderRange;
 
   constructor(type: T, lexeme: string, start?: ShaderPosition);
-  constructor(type: T, lexeme: string, location?: IIndexRange);
-  constructor(type: T, lexeme: string, arg?: IIndexRange | ShaderPosition) {
+  constructor(type: T, lexeme: string, location?: ShaderRange);
+  constructor(type: T, lexeme: string, arg?: ShaderRange | ShaderPosition) {
     this.type = type;
     this.lexeme = lexeme;
     if (arg) {
-      if (arg instanceof IIndexRange) {
-        this.location = arg as IIndexRange;
+      if (arg instanceof ShaderRange) {
+        this.location = arg as ShaderRange;
       } else {
-        this.location = { start: arg, end: { ...arg, index: arg.index + lexeme.length } };
+        const end = ShaderLab.createPosition(
+          arg.index + lexeme.length,
+          // #if _EDITOR
+          arg.line,
+          arg.column
+          // #endif
+        );
+        this.location = ShaderLab.createRange(arg, end);
       }
     }
   }

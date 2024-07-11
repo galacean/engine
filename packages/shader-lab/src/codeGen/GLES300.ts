@@ -6,6 +6,7 @@ import { GLESVisitor } from "./GLESVisitor";
 import { EShaderStage } from "../common/Enums";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
+import { ShaderLab } from "../ShaderLab";
 
 const V3_GL_FragColor = "GS_glFragColor";
 
@@ -81,7 +82,7 @@ export class GLES300Visitor extends GLESVisitor {
     if (VisitorContext.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
       if (!VisitorContext.context._referencedVaryingList.has(V3_GL_FragColor)) {
         VisitorContext.context._referencedVaryingList.set(V3_GL_FragColor, {
-          ident: new Token(ETokenType.ID, V3_GL_FragColor, new ShaderPosition(0, 0, 0)),
+          ident: new Token(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0)),
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
           qualifier: "out",
           astNode: node

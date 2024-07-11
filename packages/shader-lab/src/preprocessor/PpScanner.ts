@@ -1,4 +1,4 @@
-import { IIndexRange, ShaderPosition } from "../common";
+import { ShaderRange, ShaderPosition } from "../common";
 import LexerUtils from "../lexer/Utils";
 // #if _EDITOR
 import PpSourceMap from "./sourceMap";
@@ -8,6 +8,7 @@ import { BaseToken, EOF } from "../common/BaseToken";
 import { ParserUtils } from "../Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 import { PpUtils } from "./Utils";
+import { ShaderLab } from "../ShaderLab";
 
 export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 
@@ -22,14 +23,14 @@ export default class PpScanner extends BaseScanner {
   // #if _EDITOR
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
-  readonly blockRange?: IIndexRange;
+  readonly blockRange?: ShaderRange;
   // #endif
 
   constructor(
     source: string,
     // #if _EDITOR
     file = "__main__",
-    blockRange?: IIndexRange
+    blockRange?: ShaderRange
     // #endif
   ) {
     super(source);
@@ -100,7 +101,7 @@ export default class PpScanner extends BaseScanner {
   }
 
   getShaderPosition(offset /** offset from starting point */ = 0) {
-    return new ShaderPosition(this._currentIndex - offset, this.line, this.column - offset);
+    return ShaderLab.createPosition(this._currentIndex - offset, this.line, this.column - offset);
   }
 
   /**
@@ -230,7 +231,7 @@ export default class PpScanner extends BaseScanner {
     this.skipSpace(false);
     const start = this._currentIndex;
 
-    const comments: IIndexRange[] = [];
+    const comments: ShaderRange[] = [];
 
     while (this.getCurChar() !== "\n") {
       if (this.isEnd()) {
@@ -264,14 +265,14 @@ export default class PpScanner extends BaseScanner {
     }
   }
 
-  private skipComments(): IIndexRange | undefined {
+  private skipComments(): ShaderRange | undefined {
     if (this.peek(2) === "//") {
       const start = this.getShaderPosition();
       // single line comments
       while (this.getCurChar() !== "\n" && !this.isEnd()) {
         this._advance();
       }
-      return new IIndexRange(start, this.getShaderPosition());
+      return ShaderLab.createRange(start, this.curPosition);
     } else if (this.peek(2) === "/*") {
       const start = this.getShaderPosition();
       //  multi-line comments
@@ -280,7 +281,7 @@ export default class PpScanner extends BaseScanner {
         this._advance();
       }
       this.advance(2);
-      return new IIndexRange(start, this.getShaderPosition());
+      return ShaderLab.createRange(start, this.getShaderPosition());
     }
   }
 }

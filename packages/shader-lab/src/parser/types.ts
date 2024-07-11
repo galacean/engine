@@ -1,6 +1,6 @@
 import { ENonTerminal } from "./GrammarSymbol";
 import { BaseToken } from "../common/BaseToken";
-import { GalaceanDataType, IIndexRange } from "../common";
+import { GalaceanDataType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "./AST";
 
 export type TraceStackItem = ENonTerminal | BaseToken;
@@ -30,6 +30,6 @@ export class StructProp implements IParamInfo {
 
 export type NodeChild = TreeNode | BaseToken;
 
-export type ASTNodeConstructor = new (loc: IIndexRange, children: NodeChild[]) => TreeNode;
+export type ASTNodeConstructor = new (loc: ShaderRange, children: NodeChild[]) => TreeNode;
 
 export type IParamInfo = { ident: BaseToken; typeInfo: SymbolType; astNode: TreeNode };

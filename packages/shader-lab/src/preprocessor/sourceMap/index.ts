@@ -1,12 +1,12 @@
-import { IIndexRange } from "../../common/IndexRange";
+import { ShaderRange } from "../../common/ShaderRange";
 
 // #if _EDITOR
 export class BlockInfo {
   readonly sourceFile: string;
-  readonly rangeInFile?: IIndexRange;
+  readonly rangeInFile?: ShaderRange;
   readonly sourceMap?: PpSourceMap;
 
-  constructor(sourceFile?: string, rangeInFile?: IIndexRange, sourceMap?: PpSourceMap) {
+  constructor(sourceFile?: string, rangeInFile?: ShaderRange, sourceMap?: PpSourceMap) {
     this.sourceFile = sourceFile ?? "__main__";
     this.rangeInFile = rangeInFile;
     this.sourceMap = sourceMap;
@@ -14,10 +14,10 @@ export class BlockInfo {
 }
 
 export class MapRange {
-  sourceLoc: { block: BlockInfo; rangeInBlock: IIndexRange };
+  sourceLoc: { block: BlockInfo; rangeInBlock: ShaderRange };
   generatedLoc: { start: number; end: number };
 
-  constructor(sourceBlock: BlockInfo, rangeInBlock: IIndexRange, generatedLoc: { start: number; end: number }) {
+  constructor(sourceBlock: BlockInfo, rangeInBlock: ShaderRange, generatedLoc: { start: number; end: number }) {
     this.sourceLoc = { block: sourceBlock, rangeInBlock };
     this.generatedLoc = generatedLoc;
   }

@@ -1,20 +1,25 @@
 import { ETokenType, TokenType } from "../common/types";
 
 export default class LexerUtils {
+  static numRegex = /\d/;
+  static letterRegex = /\w/;
+  static alphaRegex = /[a-zA-Z_]/;
+  static numOrLetterRegex = /(\d|\w)/;
+
   static isNum(char: string) {
-    return /\d/.test(char);
+    return this.numRegex.test(char);
   }
 
   static isLetter(char: string) {
-    return /\w/.test(char);
+    return this.letterRegex.test(char);
   }
 
   static isAlpha(char: string) {
-    return /[a-zA-Z_]/.test(char);
+    return this.alphaRegex.test(char);
   }
 
   static isNumOrLetter(char: string) {
-    return /(\d|\w)/.test(char);
+    return this.numOrLetterRegex.test(char);
   }
 
   static isKeyword(tt: TokenType) {

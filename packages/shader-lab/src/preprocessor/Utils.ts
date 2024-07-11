@@ -1,4 +1,4 @@
-import { IIndexRange } from "../common";
+import { ShaderRange } from "../common";
 import { ExpandSegment } from "./PpParser";
 // #if _EDITOR
 import PpSourceMap, { MapRange } from "./sourceMap";
@@ -39,7 +39,7 @@ export class PpUtils {
 
   static assembleSegments(
     segments: {
-      range: IIndexRange;
+      range: ShaderRange;
       replace: string;
     }[],
     source: string

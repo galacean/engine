@@ -5,13 +5,46 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { ClearableObjectPool, Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { ShaderPosition, ShaderRange } from "./common";
 
 export class ShaderLab implements IShaderLab {
   /**
    * @internal
    */
   private static _parser = ShaderTargetParser.create();
+  /**
+   * @internal
+   */
+  private static _shaderPositionPool = new ClearableObjectPool(ShaderPosition);
+  /**
+   * @internal
+   */
+  private static _shaderRangePool = new ClearableObjectPool(ShaderRange);
+
+  static createPosition(
+    index: number,
+    // #if _EDITOR
+    line?: number,
+    column?: number
+    // #endif
+  ): ShaderPosition {
+    const position = this._shaderPositionPool.get();
+    position.setX(
+      index,
+      // #if _EDITOR
+      line,
+      column
+      // #endif
+    );
+    return position;
+  }
+
+  static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
+    const range = this._shaderRangePool.get();
+    range.setX(start, end);
+    return range;
+  }
 
   _parseShaderPass(
     source: string,
@@ -51,6 +84,8 @@ export class ShaderLab implements IShaderLab {
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
     Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
 
+    ShaderLab._shaderPositionPool.clear();
+    ShaderLab._shaderRangePool.clear();
     return ret;
   }
 

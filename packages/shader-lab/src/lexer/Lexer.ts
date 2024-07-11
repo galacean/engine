@@ -1,8 +1,9 @@
-import { IIndexRange, ShaderPosition } from "../common";
+import { ShaderRange, ShaderPosition } from "../common";
 import { ETokenType, KeywordTable } from "../common";
 import { EOF, BaseToken } from "../common/BaseToken";
 import LexerUtils from "./Utils";
 import BaseScanner from "../common/BaseScanner";
+import { ShaderLab } from "../ShaderLab";
 
 /**
  * The Lexer of ShaderLab Compiler
@@ -218,7 +219,8 @@ export class Lexer extends BaseScanner {
       this.advance();
     }
     this.advance();
-    return new BaseToken(ETokenType.STRING_CONST, buffer.join(""), new IIndexRange(start, this.getPosition()));
+    const range = ShaderLab.createRange(start, this.getPosition());
+    return new BaseToken(ETokenType.STRING_CONST, buffer.join(""), range);
   }
 
   private scanNumAfterDot() {
@@ -231,7 +233,7 @@ export class Lexer extends BaseScanner {
   }
 
   private getPosition(offset /** offset from starting point */ = 0) {
-    return new ShaderPosition(
+    return ShaderLab.createPosition(
       this.current - offset,
       // #if _EDITOR
       this._line,

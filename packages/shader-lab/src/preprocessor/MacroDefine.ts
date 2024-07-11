@@ -1,9 +1,9 @@
 import { BaseToken } from "../common/BaseToken";
-import { IIndexRange } from "../common";
+import { ShaderRange } from "../common";
 import { ParserUtils } from "../Utils";
 
 export class MacroDefine {
-  readonly location?: IIndexRange;
+  readonly location?: ShaderRange;
   readonly macro: BaseToken;
   readonly args?: BaseToken[];
   readonly body?: BaseToken;
@@ -16,7 +16,7 @@ export class MacroDefine {
     return this.macro.lexeme;
   }
 
-  constructor(macro: BaseToken, body?: BaseToken, loc?: IIndexRange, args?: BaseToken[]) {
+  constructor(macro: BaseToken, body?: BaseToken, loc?: ShaderRange, args?: BaseToken[]) {
     this.location = loc;
     this.macro = macro;
     this.body = body;

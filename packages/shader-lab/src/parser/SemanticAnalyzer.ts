@@ -1,4 +1,4 @@
-import { IIndexRange } from "../common";
+import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
 // #if _EDITOR
 import { SemanticError } from "../Error";
@@ -64,7 +64,7 @@ export default class SematicAnalyzer {
   }
 
   // #if _EDITOR
-  error(loc: IIndexRange, ...param: any[]) {
+  error(loc: ShaderRange, ...param: any[]) {
     Logger.error(loc, ...param);
 
     const err = new SemanticError(param.join(""), loc);
