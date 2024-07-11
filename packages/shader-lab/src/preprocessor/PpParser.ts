@@ -532,7 +532,6 @@ export default class PpParser {
     const start = scanner.getShaderPosition(7);
     const macro = scanner.scanWord();
 
-   
     let end = macro.location.end;
     if (this.definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
       ParserUtils.throw(macro.location, "redefined macro:", macro.lexeme);
