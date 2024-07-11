@@ -32,7 +32,6 @@ export class RenderContext {
   viewMatrix: Matrix;
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
-
   rendererUpdateFlag = ContextRendererUpdateFlag.None;
 
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean): void {
