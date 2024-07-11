@@ -105,10 +105,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const dom: HTMLVideoElement = document.createElement("video");
   // 视频分辨率
-  const width = 1500;
+  const width = 2000;
   const height = 1624;
   dom.src =
-    "https://gw.alipayobjects.com/v/wufu_ainianhua/afts/video/zKhSTJqO8dUAAAAAAAAAAAAALW6BAQBr";
+    "https://gw.alipayobjects.com/v/huamei_w6ifet/afts/video/A*fds8S6LY2VYAAAAAAAAAAAAADjCHAQ";
   dom.crossOrigin = "anonymous";
   dom.loop = true;
   dom.muted = true;
@@ -131,7 +131,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // 初始化的时候调用一次即可
   sr.width *= 0.5;
   // 视频左半边存储透明度
-  TransparentVideoMaterial.direction = "left";
+  TransparentVideoMaterial.direction = "right";
   const material = new TransparentVideoMaterial(engine);
   sr.setMaterial(material);
 
