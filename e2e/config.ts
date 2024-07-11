@@ -182,9 +182,19 @@ export const E2E_CONFIG = {
     }
   },
   PostProcess: {
-    bloomAndTonemap: {
+    HDRBloomACES: {
       category: "PostProcess",
-      caseFileName: "postProcess-bloom-tonemap",
+      caseFileName: "postProcess-HDR-bloom-ACES",
+      threshold: 0.2
+    },
+    HDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-neutral",
+      threshold: 0.2
+    },
+    LDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0.2
     }
   }

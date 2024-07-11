@@ -367,7 +367,9 @@ export class Camera extends Component {
 
   set enableHDR(value: boolean) {
     if (this.enableHDR !== value) {
-      if (value && !this.engine._hardwareRenderer.canIUse(GLCapabilityType.textureHalfFloat)) {
+      const rhi = this.engine._hardwareRenderer;
+      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
+      if (value && !supportHDR) {
         Logger.warn("Can't enable HDR in this device.");
         return;
       }
