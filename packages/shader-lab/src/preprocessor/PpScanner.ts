@@ -12,6 +12,8 @@ import { PpUtils } from "./Utils";
 export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 
 export default class PpScanner extends BaseScanner {
+  private static _splitCharacters = /[\w#.]/;
+
   private line: number = 0;
   private column: number = 0;
 
@@ -112,10 +114,9 @@ export default class PpScanner extends BaseScanner {
       return;
     }
     const start = this._currentIndex;
-    while (/[\w#.]/.test(this.getCurChar()) && !this.isEnd()) {
+    while (PpScanner._splitCharacters.test(this.getCurChar()) && !this.isEnd()) {
       this._advance();
     }
-   
 
     // Not advance
     if (start === this._currentIndex) {
