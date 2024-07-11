@@ -1,21 +1,19 @@
-import { IReferable, IScene, ISceneConfig, IVector3, IVector4 } from "@galacean/engine";
+import { IReferable, IVector3, IVector4 } from "@galacean/engine";
 
 import { XRFeatureType } from "../feature/XRFeatureType";
 import { XRPlaneMode } from "../feature/trackable/plane/XRPlaneMode";
 
-interface IXRSceneConfig extends ISceneConfig {
-  xr?: {
-    sessionMode: number;
-    origin: string;
-    camera: string;
-    leftCamera: string;
-    rightCamera: string;
-    features: IXRFeatureSchema[];
-  };
-}
-
-export interface IXRScene extends Omit<IScene, "scene"> {
-  scene: IXRSceneConfig;
+declare module "@galacean/engine-loader" {
+  interface ISceneConfig {
+    xr?: {
+      sessionMode: number;
+      origin: string;
+      camera: string;
+      leftCamera: string;
+      rightCamera: string;
+      features: IXRFeatureSchema[];
+    };
+  }
 }
 
 export interface IXRFeatureSchema {
@@ -33,9 +31,7 @@ export interface IImageTrackingSchema extends IXRFeatureSchema {
   prefab: null | IReferable;
 }
 
-export interface IHitTestSchema extends IXRFeatureSchema {
-  prefab: null | IReferable;
-}
+export interface IHitTestSchema extends IXRFeatureSchema {}
 
 export interface IPlaneTrackingSchema extends IXRFeatureSchema {
   detectionMode: XRPlaneMode;

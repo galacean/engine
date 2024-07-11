@@ -99,7 +99,7 @@ export class XRManagerExtended extends XRManager {
     } else {
       out = new Array<XRFeature>(length);
     }
-    for (let i = 0; i < length; i--) {
+    for (let i = 0; i < length; i++) {
       out[i] = features[i];
     }
     return out;

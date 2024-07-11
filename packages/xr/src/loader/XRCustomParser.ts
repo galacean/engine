@@ -20,17 +20,11 @@ import { XRImageTracking } from "../feature/trackable/image/XRImageTracking";
 import { XRReferenceImage } from "../feature/trackable/image/XRReferenceImage";
 import { XRPlaneTracking } from "../feature/trackable/plane/XRPlaneTracking";
 import { XRTrackedInputDevice } from "../input/XRTrackedInputDevice";
-import {
-  IAnchorTrackingSchema,
-  IHitTestSchema,
-  IImageTrackingSchema,
-  IPlaneTrackingSchema,
-  IXRScene
-} from "./IXRScene";
+import { IAnchorTrackingSchema, IHitTestSchema, IImageTrackingSchema, IPlaneTrackingSchema } from "./XRSceneSchema";
 
 @registerCustomParser("XR")
 export class XRCustomParser extends CustomParser {
-  override async onSceneParse(engine: Engine, context: ParserContext<IScene, Scene>, data: IXRScene): Promise<void> {
+  override async onSceneParse(engine: Engine, context: ParserContext<IScene, Scene>, data: IScene): Promise<void> {
     const { xrManager } = engine;
     if (!xrManager) {
       Logger.error("XRManager is not found in the engine.");
@@ -41,25 +35,25 @@ export class XRCustomParser extends CustomParser {
     const { entityMap } = context;
     origin && (xrManager.origin = entityMap.get(origin));
     const { cameraManager } = xrManager;
-    this.setCamera(cameraManager, XRTrackedInputDevice.Camera, entityMap.get(camera));
-    this.setCamera(cameraManager, XRTrackedInputDevice.LeftCamera, entityMap.get(leftCamera));
-    this.setCamera(cameraManager, XRTrackedInputDevice.RightCamera, entityMap.get(rightCamera));
+    this._setCamera(cameraManager, XRTrackedInputDevice.Camera, entityMap.get(camera));
+    this._setCamera(cameraManager, XRTrackedInputDevice.LeftCamera, entityMap.get(leftCamera));
+    this._setCamera(cameraManager, XRTrackedInputDevice.RightCamera, entityMap.get(rightCamera));
 
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       if (!feature.enable) continue;
       switch (feature.type) {
         case XRFeatureType.ImageTracking:
-          await this.addImageTracking(engine, xrManager, <IImageTrackingSchema>feature);
+          await this._addImageTracking(engine, xrManager, <IImageTrackingSchema>feature);
           break;
         case XRFeatureType.PlaneTracking:
-          this.addPlaneTracking(xrManager, <IPlaneTrackingSchema>feature);
+          this._addPlaneTracking(xrManager, <IPlaneTrackingSchema>feature);
           break;
         case XRFeatureType.AnchorTracking:
-          this.addAnchorTracking(xrManager, <IAnchorTrackingSchema>feature);
+          this._addAnchorTracking(xrManager, <IAnchorTrackingSchema>feature);
           break;
         case XRFeatureType.HitTest:
-          this.addHitTest(xrManager, <IHitTestSchema>feature);
+          this._addHitTest(xrManager, <IHitTestSchema>feature);
           break;
         default:
           break;
@@ -67,7 +61,7 @@ export class XRCustomParser extends CustomParser {
     }
   }
 
-  async addImageTracking(engine: Engine, xrManager: XRManager, schema: IImageTrackingSchema): Promise<void> {
+  private async _addImageTracking(engine: Engine, xrManager: XRManager, schema: IImageTrackingSchema): Promise<void> {
     if (!xrManager.isSupportedFeature(XRImageTracking)) {
       Logger.error("Image Tracking is not supported.");
       return;
@@ -83,7 +77,7 @@ export class XRCustomParser extends CustomParser {
     });
   }
 
-  addPlaneTracking(xrManager: XRManager, schema: IPlaneTrackingSchema): void {
+  private _addPlaneTracking(xrManager: XRManager, schema: IPlaneTrackingSchema): void {
     if (!xrManager.isSupportedFeature(XRPlaneTracking)) {
       Logger.error("Plane Tracking is not supported.");
       return;
@@ -91,7 +85,7 @@ export class XRCustomParser extends CustomParser {
     xrManager.addFeature(XRPlaneTracking, schema.detectionMode);
   }
 
-  addAnchorTracking(xrManager: XRManager, schema: IAnchorTrackingSchema): void {
+  private _addAnchorTracking(xrManager: XRManager, schema: IAnchorTrackingSchema): void {
     if (!xrManager.isSupportedFeature(XRAnchorTracking)) {
       Logger.error("Anchor Tracking is not supported.");
       return;
@@ -106,14 +100,14 @@ export class XRCustomParser extends CustomParser {
     }
   }
 
-  addHitTest(xrManager: XRManager, schema: IHitTestSchema): void {
+  private _addHitTest(xrManager: XRManager, schema: IHitTestSchema): void {
     if (!xrManager.isSupportedFeature(XRHitTest)) {
-      Logger.error("Plane Tracking is not supported.");
+      Logger.error("Hit Test is not supported.");
       return;
     }
   }
 
-  setCamera(cameraManager: XRCameraManager, device: CameraDevice, entity: Entity): void {
+  private _setCamera(cameraManager: XRCameraManager, device: CameraDevice, entity: Entity): void {
     const camera = entity?.getComponent(Camera);
     camera && cameraManager.attachCamera(device, camera);
   }

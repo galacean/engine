@@ -1,4 +1,4 @@
-import { Entity } from "@galacean/engine";
+import { Entity, PrefabResource } from "@galacean/engine";
 import { IXRTrackablePlatformFeature } from "@galacean/engine-design";
 import { XRTrackedComponent } from "../../component/XRTrackedComponent";
 import { XRTrackingState } from "../../input/XRTrackingState";
@@ -16,7 +16,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
 > {
   protected static _uuid = 0;
 
-  protected _prefab: Entity;
+  protected _prefab: PrefabResource;
   protected _trackIdToIndex: number[] = [];
   protected _trackedComponents: Array<XRTrackedComponent<T>> = [];
   protected _requestTrackings: K[] = [];
@@ -27,12 +27,19 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
   private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
 
-  get prefab(): Entity {
+  get prefab(): PrefabResource {
     return this._prefab;
   }
 
-  set prefab(value: Entity) {
-    this._prefab = value;
+  set prefab(value: PrefabResource) {
+    const lastPrefab = this._prefab;
+    if (lastPrefab !== value) {
+      // @ts-ignore
+      lastPrefab?._addReferCount(-1);
+      // @ts-ignore
+      value?._addReferCount(1);
+      this._prefab = value;
+    }
   }
 
   /**
@@ -233,7 +240,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     const { _prefab: prefab } = this;
     let entity: Entity;
     if (prefab) {
-      entity = prefab.clone();
+      entity = prefab.instantiate();
       entity.name = `TrackedObject${trackedData.id}`;
       origin.addChild(entity);
     } else {
