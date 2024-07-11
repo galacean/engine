@@ -16,11 +16,11 @@ export class ShaderLab implements IShaderLab {
   /**
    * @internal
    */
-  private static _shaderPositionPool = new ClearableObjectPool(ShaderPosition);
+  private static _shaderPositionPool = new ClearableObjectPool(ShaderPosition, 1000);
   /**
    * @internal
    */
-  private static _shaderRangePool = new ClearableObjectPool(ShaderRange);
+  private static _shaderRangePool = new ClearableObjectPool(ShaderRange, 500);
 
   static createPosition(
     index: number,

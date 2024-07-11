@@ -2,8 +2,12 @@ export abstract class ObjectPool<T extends IPoolElement> {
   protected _type: new () => T;
   protected _elements: T[];
 
-  constructor(type: new () => T) {
+  constructor(type: new () => T, initializeCount: number = 0) {
     this._type = type;
+    const elements = (this._elements = new Array<T>(initializeCount));
+    for (let i = 0; i < initializeCount; i++) {
+      elements[i] = new type();
+    }
   }
 
   garbageCollection(): void {

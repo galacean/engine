@@ -7,12 +7,8 @@ export class ReturnableObjectPool<T extends IPoolElement> extends ObjectPool<T> 
   private _lastElementIndex: number;
 
   constructor(type: new () => T, initializeCount: number = 1) {
-    super(type);
+    super(type, initializeCount);
     this._lastElementIndex = initializeCount - 1;
-    const elements = (this._elements = new Array<T>(initializeCount));
-    for (let i = 0; i < initializeCount; ++i) {
-      elements[i] = new type();
-    }
   }
 
   /**
@@ -22,7 +18,9 @@ export class ReturnableObjectPool<T extends IPoolElement> extends ObjectPool<T> 
     if (this._lastElementIndex < 0) {
       return new this._type();
     }
-    return this._elements[this._lastElementIndex--];
+    const ret = this._elements[this._lastElementIndex--];
+    this._elements.length -= 1;
+    return ret;
   }
 
   /**
