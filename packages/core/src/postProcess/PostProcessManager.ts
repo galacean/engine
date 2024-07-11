@@ -3,13 +3,11 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
 import { Material } from "../material";
 import { Shader } from "../shader";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D } from "../texture";
 import { BloomEffect, TonemappingEffect } from "./effects";
 
 export class PostProcessManager {
   static readonly UBER_SHADER_NAME = "UberPost";
-
-  private _swapRenderTarget: RenderTarget;
 
   /** @internal */
   _uberMaterial: Material;
@@ -56,10 +54,9 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _render(context: RenderContext, srcTarget: RenderTarget): void {
+  _render(context: RenderContext, srcTarget: RenderTarget, destTarget: RenderTarget): void {
     const camera = context.camera;
     const engine = camera.engine;
-    const destination = camera.renderTarget;
 
     // Should blit to resolve the MSAA
     srcTarget._blitRenderTarget();
@@ -71,48 +68,6 @@ export class PostProcessManager {
     }
 
     // Done with Uber, blit it
-    if (destination === srcTarget) {
-      // Swap and blit to camera.renderTarget
-      const viewport = camera.pixelViewport;
-      this._swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._swapRenderTarget,
-        viewport.width,
-        viewport.height,
-        camera._getInternalColorTextureFormat(),
-        null,
-        false,
-        false,
-        camera.msaaSamples,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-      PipelineUtils.blitTexture(engine, srcTexture, this._swapRenderTarget, 0, undefined, this._uberMaterial);
-      this._swapRenderTarget._blitRenderTarget();
-      PipelineUtils.blitTexture(
-        engine,
-        <Texture2D>this._swapRenderTarget.getColorTexture(0),
-        destination,
-        0,
-        camera.viewport
-      );
-    } else if (!destination) {
-      // Blit to screen
-      PipelineUtils.blitTexture(engine, srcTexture, null, 0, camera.viewport, this._uberMaterial);
-    } else {
-      // Blit to camera.renderTarget
-      PipelineUtils.blitTexture(engine, srcTexture, destination, 0, camera.viewport, this._uberMaterial);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _releaseSwapRenderTarget(): void {
-    if (this._swapRenderTarget) {
-      this._swapRenderTarget.getColorTexture(0)?.destroy(true);
-      this._swapRenderTarget.destroy(true);
-      this._swapRenderTarget = null;
-    }
+    PipelineUtils.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial);
   }
 }

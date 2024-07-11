@@ -198,29 +198,26 @@ export class BasicRenderPipeline {
     // Render post process pass
     const postProcessManager = scene._postProcessManager;
     if (camera.enablePostProcess && postProcessManager.hasActiveEffect) {
-      postProcessManager._render(context, colorTarget);
-
+      postProcessManager._render(context, colorTarget, camera.renderTarget);
       camera.renderTarget?._blitRenderTarget();
       camera.renderTarget?.generateMipmaps();
-    } else {
-      postProcessManager._releaseSwapRenderTarget();
-      colorTarget?._blitRenderTarget();
-
-      // Blit `internalColorTarget` to `camera.renderTarget`
-      if (internalColorTarget && internalColorTarget != camera.renderTarget) {
-        PipelineUtils.blitTexture(
-          engine,
-          <Texture2D>colorTarget.getColorTexture(0),
-          camera.renderTarget,
-          0,
-          camera.viewport
-        );
-        camera.renderTarget?._blitRenderTarget();
-        camera.renderTarget?.generateMipmaps();
-      } else {
-        colorTarget?.generateMipmaps();
-      }
+      return;
     }
+
+    colorTarget?._blitRenderTarget();
+    if (internalColorTarget && internalColorTarget != camera.renderTarget) {
+      PipelineUtils.blitTexture(
+        engine,
+        <Texture2D>colorTarget.getColorTexture(0),
+        camera.renderTarget,
+        0,
+        camera.viewport
+      );
+      camera.renderTarget?._blitRenderTarget();
+      camera.renderTarget?.generateMipmaps();
+      return;
+    }
+    colorTarget?.generateMipmaps();
   }
 
   /**

@@ -163,20 +163,11 @@ export class Camera extends Component {
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    const offscreenColorTexture = this.renderTarget?.getColorTexture(0);
-
-    if (
-      this._renderTarget &&
-      (!this.enableHDR ||
-        (offscreenColorTexture &&
-          (offscreenColorTexture.format === TextureFormat.R11G11B10_UFloat ||
-            offscreenColorTexture.format === TextureFormat.R16G16B16A16 ||
-            offscreenColorTexture.format === TextureFormat.R32G32B32A32)))
-    ) {
-      return false;
+    if (this.enableHDR || (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect)) {
+      return true;
     }
 
-    return this._forceUseInternalCanvas();
+    return this.opaqueTextureEnabled && !this._renderTarget;
   }
 
   /**
@@ -810,14 +801,6 @@ export class Camera extends Component {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
-  }
-
-  private _forceUseInternalCanvas(): boolean {
-    return (
-      this.enableHDR ||
-      this.opaqueTextureEnabled ||
-      (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect)
-    );
   }
 
   @ignoreClone
