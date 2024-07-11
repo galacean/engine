@@ -11,9 +11,9 @@ float getAARoughnessFactor(vec3 normal) {
     // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
     #ifdef HAS_DERIVATIVES
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
-        return min(MIN_PERCEPTUAL_ROUGHNESS + max( max(dxy.x, dxy.y), dxy.z ), 1.0);
+        return max( max(dxy.x, dxy.y), dxy.z );
     #else
-        return MIN_PERCEPTUAL_ROUGHNESS;
+        return 0.0;
     #endif
 }
 
@@ -132,7 +132,7 @@ void initMaterial(out Material material, inout Geometry geometry){
             material.roughness = 1.0 - glossiness;
         #endif
 
-        material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
+        material.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.roughness + getAARoughnessFactor(geometry.normal), 1.0));
 
         #ifdef MATERIAL_ENABLE_CLEAR_COAT
             material.clearCoat = material_ClearCoat;
@@ -144,7 +144,7 @@ void initMaterial(out Material material, inout Geometry geometry){
                 material.clearCoatRoughness *= texture2D( material_ClearCoatRoughnessTexture, v_uv ).g;
             #endif
             material.clearCoat = saturate( material.clearCoat );
-            material.clearCoatRoughness = max(material.clearCoatRoughness, getAARoughnessFactor(geometry.clearCoatNormal));
+            material.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.clearCoatRoughness + getAARoughnessFactor(geometry.clearCoatNormal), 1.0));
         #endif
 
         #ifdef MATERIAL_IS_TRANSPARENT
