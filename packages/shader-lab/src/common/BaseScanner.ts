@@ -7,6 +7,15 @@ export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 export default class BaseScanner {
   private static _spaceCharsWithBreak = [" ", "\t", "\n"];
   private static _spaceChars = [" ", "\t"];
+  private static _checkIsIn(checked: string, chars: string[]): boolean {
+    for (let i = 0; i < chars.length; i++) {
+      if (checked === chars[i]) {
+        return true;
+      }
+      continue;
+    }
+    return false;
+  }
 
   protected _currentIndex = 0;
   protected _source: string;
@@ -78,13 +87,10 @@ export default class BaseScanner {
   skipSpace(includeLineBreak: boolean): void {
     const spaceChars = includeLineBreak ? BaseScanner._spaceCharsWithBreak : BaseScanner._spaceChars;
     let curChar = this.getCurChar();
-    for (let i = 0, n = spaceChars.length; i < n; i++) {
-      if (curChar === spaceChars[i]) {
-        this._advance();
-        break;
-      } else {
-        curChar = this.getCurChar();
-      }
+
+    while (BaseScanner._checkIsIn(curChar, spaceChars)) {
+      this._advance();
+      curChar = this.getCurChar();
     }
   }
 
