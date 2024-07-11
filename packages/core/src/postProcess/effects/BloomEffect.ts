@@ -201,11 +201,9 @@ export class BloomEffect {
     this._uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).y = value;
   }
 
-  constructor(
-    private _engine: Engine,
-    private _uberMaterial: Material
-  ) {
-    const material = new Material(_engine, Shader.find(BloomEffect.SHADER_NAME));
+  constructor(private _uberMaterial: Material) {
+    const engine = _uberMaterial.engine;
+    const material = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
     const depthState = material.renderState.depthState;
 
     depthState.enabled = false;
@@ -254,7 +252,7 @@ export class BloomEffect {
   }
 
   private _prefilter(camera: Camera, srcTexture: Texture2D, tw: number, th: number, mipCount: number): void {
-    const engine = this._engine;
+    const engine = this._uberMaterial.engine;
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
     const msaaSamples = camera.msaaSamples;
     let mipWidth = tw,
@@ -305,8 +303,8 @@ export class BloomEffect {
   }
 
   private _downsample(mipCount: number): void {
-    const engine = this._engine;
     const material = this._bloomMaterial;
+    const engine = material.engine;
     let lastDown = this._mipDownRT[0];
 
     // Down sample - gaussian pyramid
@@ -340,8 +338,8 @@ export class BloomEffect {
   }
 
   private _upsample(mipCount: number): void {
-    const engine = this._engine;
     const material = this._bloomMaterial;
+    const engine = material.engine;
     const shaderData = material.shaderData;
 
     // Up sample (bilinear by default, HQ filtering does bicubic instead

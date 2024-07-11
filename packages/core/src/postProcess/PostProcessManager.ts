@@ -43,7 +43,7 @@ export class PostProcessManager {
     depthState.enabled = false;
     depthState.writeEnabled = false;
 
-    const bloomEffect = new BloomEffect(engine, uberMaterial);
+    const bloomEffect = new BloomEffect(uberMaterial);
     const tonemappingEffect = new TonemappingEffect(uberMaterial);
 
     this._uberMaterial = uberMaterial;
