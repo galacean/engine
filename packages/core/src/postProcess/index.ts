@@ -1,6 +1,6 @@
 import { Shader } from "../shader";
 import { ShaderLib } from "../shaderlib";
-import { PostProcessManager } from "./PostProcessManager";
+import { _PostProcessManager } from "./PostProcessManager";
 
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import Filtering from "./shaders/Filtering.glsl";
@@ -13,8 +13,8 @@ import Tonescale from "./shaders/Tonemapping/ACES/Tonescale.glsl";
 import NeutralTonemapping from "./shaders/Tonemapping/NeutralTonemapping.glsl";
 import UberPost from "./shaders/UberPost.glsl";
 
-export { PostProcessManager } from "./PostProcessManager";
 export * from "./effects";
+export { _PostProcessManager };
 
 Object.assign(ShaderLib, {
   PostCommon,
@@ -27,4 +27,4 @@ Object.assign(ShaderLib, {
   ACESTonemapping
 });
 
-Shader.create(PostProcessManager.UBER_SHADER_NAME, blitVs, UberPost);
+Shader.create(_PostProcessManager.UBER_SHADER_NAME, blitVs, UberPost);

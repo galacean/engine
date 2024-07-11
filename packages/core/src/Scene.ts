@@ -11,7 +11,7 @@ import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
-import { PostProcessManager } from "./postProcess";
+import { _PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -65,7 +65,7 @@ export class Scene extends EngineObject {
   /** @internal */
   _rootEntities: Entity[] = [];
   /** @internal */
-  _postProcessManager = new PostProcessManager(this);
+  _postProcessManager = new _PostProcessManager(this);
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);

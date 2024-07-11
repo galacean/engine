@@ -34,19 +34,16 @@ export class BloomEffect {
   // Bloom shader properties
   private static _hqMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_HQ");
   private static _dirtMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_DIRT");
-  // x: threshold (linear), y: threshold knee, z: scatter
-  private static _bloomParams = ShaderProperty.getByName("material_BloomParams");
+  private static _bloomParams = ShaderProperty.getByName("material_BloomParams"); // x: threshold (linear), y: threshold knee, z: scatter
   private static _lowMipTextureProp = ShaderProperty.getByName("material_lowMipTexture");
-  // x: 1/width, y: 1/height, z: width, w: height
-  private static _lowMipTexelSizeProp = ShaderProperty.getByName("material_lowMipTexelSize");
+  private static _lowMipTexelSizeProp = ShaderProperty.getByName("material_lowMipTexelSize"); // x: 1/width, y: 1/height, z: width, w: height
 
   // Uber shader properties
   private static _enableMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_EFFECT_BLOOM");
   private static _bloomTextureProp = ShaderProperty.getByName("material_BloomTexture");
   private static _dirtTextureProp = ShaderProperty.getByName("material_BloomDirtTexture");
   private static _tintProp = ShaderProperty.getByName("material_BloomTint");
-  // x: bloom intensity, y: dirt intensity
-  private static _bloomIntensityParams = ShaderProperty.getByName("material_BloomIntensityParams");
+  private static _bloomIntensityParams = ShaderProperty.getByName("material_BloomIntensityParams"); // x: bloom intensity, y: dirt intensity
   private static _dirtTilingOffsetProp = ShaderProperty.getByName("material_BloomDirtTilingOffset");
 
   private _bloomMaterial: Material;

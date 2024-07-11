@@ -15,8 +15,7 @@ import { RenderBufferStoreAction } from "./enums/RenderBufferStoreAction";
 export class PipelineUtils {
   private static _blitTextureProperty = ShaderProperty.getByName("renderer_BlitTexture");
   private static _blitMipLevelProperty = ShaderProperty.getByName("renderer_BlitMipLevel");
-  // x: 1/width, y: 1/height, z: width, w: height
-  private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize");
+  private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize"); // x: 1/width, y: 1/height, z: width, w: height
 
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();

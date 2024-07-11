@@ -6,7 +6,10 @@ import { Shader } from "../shader";
 import { RenderTarget, Texture2D } from "../texture";
 import { BloomEffect, TonemappingEffect } from "./effects";
 
-export class PostProcessManager {
+/**
+ * @internal
+ */
+export class _PostProcessManager {
   static readonly UBER_SHADER_NAME = "UberPost";
 
   /** @internal */
@@ -20,14 +23,7 @@ export class PostProcessManager {
    * Whether has active post process effect.
    */
   get hasActiveEffect(): boolean {
-    const bloomEffect = this._bloomEffect;
-    const tonemappingEffect = this._tonemappingEffect;
-
-    const useBloom = bloomEffect.enabled;
-    const useTonemapping = tonemappingEffect.enabled;
-    const hasActiveEffect = useBloom || useTonemapping;
-
-    return hasActiveEffect;
+    return this._bloomEffect.enabled || this._tonemappingEffect.enabled;
   }
 
   /**
@@ -35,8 +31,7 @@ export class PostProcessManager {
    * @param scene - Scene to which the current PostProcessManager belongs
    */
   constructor(public readonly scene: Scene) {
-    const engine = scene.engine;
-    const uberShader = Shader.find(PostProcessManager.UBER_SHADER_NAME);
+    const uberShader = Shader.find(_PostProcessManager.UBER_SHADER_NAME);
     const uberMaterial = new Material(scene.engine, uberShader);
     const depthState = uberMaterial.renderState.depthState;
 
