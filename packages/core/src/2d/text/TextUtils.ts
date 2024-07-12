@@ -351,7 +351,8 @@ export class TextUtils {
     // Safari gets data confusion through getImageData when the canvas width is not an integer.
     // The measure text width of some special invisible characters may be 0, so make sure the width is at least 1.
     // @todo: Text layout may vary from standard and not support emoji.
-    const width = Math.max(1, Math.round(context.measureText(measureString).width));
+    const textMetrics = context.measureText(measureString);
+    const width = Math.max(1, Math.round(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft));
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
