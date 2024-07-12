@@ -1,4 +1,4 @@
-import { Camera, CameraClearFlags, Entity, Layer } from "@galacean/engine-core";
+import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
@@ -78,11 +78,34 @@ describe("camera test", function () {
     camera.orthographicSize = expectedOrthographicSize;
     expect(camera.orthographicSize).to.eq(expectedOrthographicSize);
     camera.orthographicSize = orthographicSize;
+    const testVS = `    
+    void main() {
+      gl_Position = vec4(1.0, 1.0, 1.0, 1.0);
+    }`;
+
+    const testFS = `    
+    void main() {
+      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+    `;
+
+    const shader = Shader.create("TestReplaceShader", testVS, testFS);
 
     // Test ReplacementShader
+    camera.setReplacementShader(shader, "CanReplace");
+    expect(camera["_replacementShader"]).to.eq(shader);
+    expect(camera["_replacementSubShaderTag"].name).to.eq("CanReplace");
+    expect(camera["_replacementFailureStrategy"]).to.eq(ReplacementFailureStrategy.KeepOriginalShader);
+
+    camera.setReplacementShader(shader, "CanReplace", ReplacementFailureStrategy.DoNotRender);
+    expect(camera["_replacementShader"]).to.eq(shader);
+    expect(camera["_replacementSubShaderTag"].name).to.eq("CanReplace");
+    expect(camera["_replacementFailureStrategy"]).to.eq(ReplacementFailureStrategy.DoNotRender);
+
     camera.resetReplacementShader();
     expect(camera["_replacementShader"]).to.eq(null);
     expect(camera["_replacementSubShaderTag"]).to.eq(null);
+    expect(camera["_replacementFailureStrategy"]).to.eq(null);
   });
 
   it("static void function", () => {
