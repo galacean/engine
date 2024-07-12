@@ -15,6 +15,7 @@ import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
+import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -103,6 +104,8 @@ export class Camera extends Component {
   _replacementShader: Shader = null;
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
+  /** @internal */
+  _replacementFailureStrategy: ReplacementFailureStrategy = null;
   /** @internal */
   @ignoreClone
   _cameraIndex: number = -1;
@@ -610,6 +613,7 @@ export class Camera extends Component {
     context.virtualCamera = virtualCamera;
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
+    context.replacementFailureStrategy = this._replacementFailureStrategy;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
@@ -642,28 +646,35 @@ export class Camera extends Component {
    * Set the replacement shader.
    * @param shader - Replacement shader
    * @param replacementTagName - Sub shader tag name
+   * @param failureStrategy - Replacement failure strategy, @defaultValue `ReplacementFailureStrategy.KeepOriginalShader`
    *
    * @remarks
    * If replacementTagName is not specified, the first sub shader will be replaced.
-   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey. If failed to find the sub shader, the strategy will be determined by failureStrategy.
    */
-  setReplacementShader(shader: Shader, replacementTagName?: string);
+  setReplacementShader(shader: Shader, replacementTagName?: string, failureStrategy?: ReplacementFailureStrategy);
 
   /**
    * Set the replacement shader.
    * @param shader - Replacement shader
    * @param replacementTag - Sub shader tag
+   * @param failureStrategy - Replacement failure strategy, @defaultValue `ReplacementFailureStrategy.KeepOriginalShader`
    *
    * @remarks
    * If replacementTag is not specified, the first sub shader will be replaced.
-   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey. If failed to find the sub shader, the strategy will be determined by failureStrategy.
    */
-  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey);
+  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey, failureStrategy?: ReplacementFailureStrategy);
 
-  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTagKey): void {
+  setReplacementShader(
+    shader: Shader,
+    replacementTag?: string | ShaderTagKey,
+    failureStrategy: ReplacementFailureStrategy = ReplacementFailureStrategy.KeepOriginalShader
+  ): void {
     this._replacementShader = shader;
     this._replacementSubShaderTag =
       typeof replacementTag === "string" ? ShaderTagKey.getByName(replacementTag) : replacementTag;
+    this._replacementFailureStrategy = failureStrategy;
   }
 
   /**
@@ -672,6 +683,7 @@ export class Camera extends Component {
   resetReplacementShader(): void {
     this._replacementShader = null;
     this._replacementSubShaderTag = null;
+    this._replacementFailureStrategy = null;
   }
 
   /**
