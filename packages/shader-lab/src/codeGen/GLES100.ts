@@ -16,7 +16,7 @@ export class GLES100Visitor extends GLESVisitor {
 
   override getAttributeDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
-    for (const [_, item] of VisitorContext.context._referencedAttributeList) {
+    for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
       ret.push({
         text: `attribute ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
@@ -27,7 +27,7 @@ export class GLES100Visitor extends GLESVisitor {
 
   override getVaryingDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
-    for (const [_, item] of VisitorContext.context._referencedVaryingList) {
+    for (const item of Object.values(VisitorContext.context._referencedVaryingList)) {
       ret.push({
         text: `varying ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index

@@ -7,6 +7,7 @@ import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { ClearableObjectPool, Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
+import { clearAllAstNodePool } from "./AstNodePool";
 
 export class ShaderLab implements IShaderLab {
   /**
@@ -76,6 +77,7 @@ export class ShaderLab implements IShaderLab {
 
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
+    clearAllAstNodePool();
     const program = ShaderLab._parser.parse(tokens);
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
@@ -108,7 +110,7 @@ export class ShaderLab implements IShaderLab {
     const passResult = [] as any;
     for (const subShader of structInfo.subShaders) {
       for (const pass of subShader.passes) {
-        if (!pass.isUsePass) continue;
+        if (pass.isUsePass) continue;
         const passInfo = this._parseShaderPass(
           pass.contents,
           pass.vertexEntry,

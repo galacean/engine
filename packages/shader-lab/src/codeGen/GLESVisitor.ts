@@ -109,15 +109,17 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   ): ICodeSegment[] {
     const { _referencedGlobals } = VisitorContext.context;
 
-    if (lastLength === _referencedGlobals.size) {
+    if (lastLength === Object.keys(_referencedGlobals).length) {
       for (const precision of data.globalPrecisions) {
         textList.push({ text: precision.codeGen(this), index: precision.location.start.index });
       }
       return textList;
     }
 
-    lastLength = _referencedGlobals.size;
-    for (const [ident, sm] of _referencedGlobals) {
+    lastLength = Object.keys(_referencedGlobals).length;
+    for (const ident in _referencedGlobals) {
+      const sm = _referencedGlobals[ident];
+
       if (_serialized.has(ident)) continue;
       _serialized.add(ident);
 

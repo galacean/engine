@@ -1,11 +1,12 @@
 import { EKeyword, ETokenType, ShaderRange } from "../common";
-import { ASTNode } from "../parser/AST";
+import { ASTNode, TreeNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { ASTNodeConstructor } from "../parser/types";
 import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderLab } from "../ShaderLab";
+import { AstNodePool } from "../AstNodePool";
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -23,18 +24,19 @@ export default class GrammarUtils {
     goal: ENonTerminal,
     options: GrammarSymbol[][],
     /** the ast node */
-    astType?: ASTNodeConstructor
+    // astType?: ASTNodeConstructor
+    astTypePool?: AstNodePool<ASTNodeConstructor, any>
   ) {
     const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
     for (const opt of options) {
       ret.push([
         [goal, ...opt],
-        (sa, ...children) => {
+        function (sa, ...children) {
           if (!children[0]) return;
           const start = children[0].location.start;
           const end = children[children.length - 1].location.end;
           const location = ShaderLab.createRange(start, end);
-          ASTNode.create(astType ?? ASTNode.TrivialNode, sa, location, children);
+          ASTNode.get(astTypePool ?? ASTNode.TrivialNode.pool, sa, location, children);
         }
       ]);
     }

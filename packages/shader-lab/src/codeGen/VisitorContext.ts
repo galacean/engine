@@ -23,9 +23,9 @@ export class VisitorContext {
 
   stage: EShaderStage;
 
-  _referencedAttributeList: Map<string, IParamInfo & { qualifier?: string }> = new Map();
-  _referencedGlobals: Map<string, SymbolInfo | ASTNode.PrecisionSpecifier> = new Map();
-  _referencedVaryingList: Map<string, IParamInfo & { qualifier?: string }> = new Map();
+  _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
+  _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier> = Object.create(null);
+  _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
 
   _curFn?: ASTNode.FunctionProtoType;
 
@@ -39,9 +39,9 @@ export class VisitorContext {
   reset() {
     this.attributeList.length = 0;
     this.attributeStructs.length = 0;
-    this._referencedAttributeList.clear();
-    this._referencedGlobals.clear();
-    this._referencedVaryingList.clear();
+    this._referencedAttributeList = Object.create(null);
+    this._referencedGlobals = Object.create(null);
+    this._referencedVaryingList = Object.create(null);
   }
 
   isAttributeStruct(type: string) {
@@ -53,41 +53,41 @@ export class VisitorContext {
   }
 
   referenceAttribute(ident: string) {
-    if (this._referencedAttributeList.has(ident)) return;
+    if (this._referencedAttributeList[ident]) return;
 
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident);
     if (!prop) {
       Logger.error("referenced attribute not found:", ident);
       return;
     }
-    this._referencedAttributeList.set(ident, prop);
+    this._referencedAttributeList[ident] = prop;
   }
 
   referenceVarying(ident: string) {
-    if (this._referencedVaryingList.has(ident)) return;
+    if (this._referencedVaryingList[ident]) return;
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident);
     if (!prop) {
       Logger.error("referenced varying not found:", ident);
       return;
     }
-    this._referencedVaryingList.set(ident, prop);
+    this._referencedVaryingList[ident] = prop;
   }
 
   referenceGlobal(ident: string, type: ESymbolType) {
-    if (this._referencedGlobals.has(ident)) return;
+    if (this._referencedGlobals[ident]) return;
 
     if (type === ESymbolType.FN) {
       const fnEntries = this._passSymbolTable.getAllFnSymbols(ident);
       for (let i = 0; i < fnEntries.length; i++) {
         const key = i === 0 ? ident : ident + i;
-        this._referencedGlobals.set(key, fnEntries[i]);
+        this._referencedGlobals[key] = fnEntries[i];
       }
       return;
     }
     const sm = this.passSymbolTable.lookup({ ident, symbolType: type });
     if (sm) {
-      this._referencedGlobals.set(ident, sm);
+      this._referencedGlobals[ident] = sm;
     }
   }
 }

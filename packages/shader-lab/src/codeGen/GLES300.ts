@@ -23,7 +23,7 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getAttributeDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
-    for (const [_, item] of VisitorContext.context._referencedAttributeList) {
+    for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
       ret.push({
         text: `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
@@ -35,7 +35,9 @@ export class GLES300Visitor extends GLESVisitor {
   override getVaryingDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
     const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    for (const [_, item] of VisitorContext.context._referencedVaryingList) {
+    const values = Object.values(VisitorContext.context._referencedVaryingList);
+    for (let i = 0; i < values.length; i++) {
+      const item = values[i];
       ret.push({
         text: `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
@@ -80,13 +82,13 @@ export class GLES300Visitor extends GLESVisitor {
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     if (VisitorContext.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
-      if (!VisitorContext.context._referencedVaryingList.has(V3_GL_FragColor)) {
-        VisitorContext.context._referencedVaryingList.set(V3_GL_FragColor, {
+      if (!VisitorContext.context._referencedVaryingList[V3_GL_FragColor]) {
+        VisitorContext.context._referencedVaryingList[V3_GL_FragColor] = {
           ident: new Token(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0)),
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
           qualifier: "out",
           astNode: node
-        });
+        };
       }
       return V3_GL_FragColor;
     }
