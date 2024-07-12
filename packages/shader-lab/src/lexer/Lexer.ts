@@ -43,14 +43,14 @@ export class Lexer extends BaseScanner {
           this.advance();
           if (this.getCurChar() === "=") {
             this.advance();
-            return new BaseToken(ETokenType.LEFT_ASSIGN, "<<=", start);
+            return BaseToken.pool.get(ETokenType.LEFT_ASSIGN, "<<=", start);
           }
-          return new BaseToken(ETokenType.LEFT_OP, "<<", start);
+          return BaseToken.pool.get(ETokenType.LEFT_OP, "<<", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.LE_OP, "<=", start);
+          return BaseToken.pool.get(ETokenType.LE_OP, "<=", start);
         }
-        return new BaseToken(ETokenType.LEFT_ANGLE, "<", start);
+        return BaseToken.pool.get(ETokenType.LEFT_ANGLE, "<", start);
 
       case ">":
         this.advance();
@@ -58,149 +58,167 @@ export class Lexer extends BaseScanner {
           this.advance();
           if (this.getCurChar() === "=") {
             this.advance();
-            return new BaseToken(ETokenType.RIGHT_ASSIGN, ">>=", start);
+            return BaseToken.pool.get(ETokenType.RIGHT_ASSIGN, ">>=", start);
           }
-          return new BaseToken(ETokenType.RIGHT_OP, ">>", start);
+          return BaseToken.pool.get(ETokenType.RIGHT_OP, ">>", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.GE_OP, ">=", start);
+          return BaseToken.pool.get(ETokenType.GE_OP, ">=", start);
         }
-        return new BaseToken(ETokenType.RIGHT_ANGLE, ">", start);
+        return BaseToken.pool.get(ETokenType.RIGHT_ANGLE, ">", start);
 
       case "+":
         this.advance();
         if (this.getCurChar() === "+") {
           this.advance();
-          return new BaseToken(ETokenType.INC_OP, "++", start);
+          return BaseToken.pool.get(ETokenType.INC_OP, "++", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.ADD_ASSIGN, "+=", start);
+          return BaseToken.pool.get(ETokenType.ADD_ASSIGN, "+=", start);
         }
-        return new BaseToken(ETokenType.PLUS, "+", start);
+        return BaseToken.pool.get(ETokenType.PLUS, "+", start);
 
       case "-":
         this.advance();
         if (this.getCurChar() === "-") {
           this.advance();
-          return new BaseToken(ETokenType.DEC_OP, "--", start);
+          return BaseToken.pool.get(ETokenType.DEC_OP, "--", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.SUB_ASSIGN, "-=", start);
+          return BaseToken.pool.get(ETokenType.SUB_ASSIGN, "-=", start);
         }
-        return new BaseToken(ETokenType.DASH, "-", start);
+        return BaseToken.pool.get(ETokenType.DASH, "-", start);
 
       case "=":
         this.advance();
         if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.EQ_OP, "==", start);
+          return BaseToken.pool.get(ETokenType.EQ_OP, "==", start);
         }
-        return new BaseToken(ETokenType.EQUAL, "=", start);
+        return BaseToken.pool.get(ETokenType.EQUAL, "=", start);
 
       case "!":
         this.advance();
         if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.NE_OP, "!=", start);
+          return BaseToken.pool.get(ETokenType.NE_OP, "!=", start);
         }
-        return new BaseToken(ETokenType.BANG, "!", start);
+        return BaseToken.pool.get(ETokenType.BANG, "!", start);
 
       case "&":
         this.advance();
         if (this.getCurChar() === "&") {
           this.advance();
-          return new BaseToken(ETokenType.AND_OP, "&&", start);
+          return BaseToken.pool.get(ETokenType.AND_OP, "&&", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.ADD_ASSIGN, "&=", start);
+          return BaseToken.pool.get(ETokenType.ADD_ASSIGN, "&=", start);
         }
-        return new BaseToken(ETokenType.AMPERSAND, "&", start);
+        return BaseToken.pool.get(ETokenType.AMPERSAND, "&", start);
 
       case "|":
         this.advance();
         if (this.getCurChar() === "|") {
           this.advance();
-          return new BaseToken(ETokenType.OR_OP, "||", start);
+          return BaseToken.pool.get(ETokenType.OR_OP, "||", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.OR_ASSIGN, "|=", start);
+          return BaseToken.pool.get(ETokenType.OR_ASSIGN, "|=", start);
         }
-        return new BaseToken(ETokenType.VERTICAL_BAR, "|", start);
+        return BaseToken.pool.get(ETokenType.VERTICAL_BAR, "|", start);
 
       case "^":
         this.advance();
         if (this.getCurChar() === "^") {
           this.advance();
-          return new BaseToken(ETokenType.XOR_OP, "^^", start);
+          return BaseToken.pool.get(ETokenType.XOR_OP, "^^", start);
         } else if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.XOR_ASSIGN, "^=", start);
+          return BaseToken.pool.get(ETokenType.XOR_ASSIGN, "^=", start);
         }
-        return new BaseToken(ETokenType.CARET, "^", start);
+        return BaseToken.pool.get(ETokenType.CARET, "^", start);
 
       case "*":
         this.advance();
         if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.MUL_ASSIGN, "*=", start);
+
+          return BaseToken.pool.get(ETokenType.MUL_ASSIGN, "*=", start);
         }
-        return new BaseToken(ETokenType.STAR, "*", start);
+
+        return BaseToken.pool.get(ETokenType.STAR, "*", start);
 
       case "/":
         this.advance();
         if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.DIV_ASSIGN, "/=", start);
+
+          return BaseToken.pool.get(ETokenType.DIV_ASSIGN, "/=", start);
         }
-        return new BaseToken(ETokenType.SLASH, "/", start);
+
+        return BaseToken.pool.get(ETokenType.SLASH, "/", start);
 
       case "%":
         this.advance();
         if (this.getCurChar() === "=") {
           this.advance();
-          return new BaseToken(ETokenType.MOD_ASSIGN, "%=", start);
+
+          return BaseToken.pool.get(ETokenType.MOD_ASSIGN, "%=", start);
         }
-        return new BaseToken(ETokenType.PERCENT, "%", start);
+
+        return BaseToken.pool.get(ETokenType.PERCENT, "%", start);
 
       case "(":
         this.advance();
-        return new BaseToken(ETokenType.LEFT_PAREN, "(", start);
+
+        return BaseToken.pool.get(ETokenType.LEFT_PAREN, "(", start);
       case ")":
         this.advance();
-        return new BaseToken(ETokenType.RIGHT_PAREN, ")", start);
+
+        return BaseToken.pool.get(ETokenType.RIGHT_PAREN, ")", start);
       case "{":
         this.advance();
-        return new BaseToken(ETokenType.LEFT_BRACE, "{", start);
+
+        return BaseToken.pool.get(ETokenType.LEFT_BRACE, "{", start);
       case "}":
         this.advance();
-        return new BaseToken(ETokenType.RIGHT_BRACE, "}", start);
+
+        return BaseToken.pool.get(ETokenType.RIGHT_BRACE, "}", start);
       case "[":
         this.advance();
-        return new BaseToken(ETokenType.LEFT_BRACKET, "[", start);
+
+        return BaseToken.pool.get(ETokenType.LEFT_BRACKET, "[", start);
       case "]":
         this.advance();
-        return new BaseToken(ETokenType.RIGHT_BRACKET, "]", start);
+
+        return BaseToken.pool.get(ETokenType.RIGHT_BRACKET, "]", start);
       case ".":
         this.advance();
         if (LexerUtils.isNum(this.getCurChar())) {
           return this.scanNumAfterDot();
         }
-        return new BaseToken(ETokenType.DOT, ".", start);
+
+        return BaseToken.pool.get(ETokenType.DOT, ".", start);
       case ",":
         this.advance();
-        return new BaseToken(ETokenType.COMMA, ",", start);
+
+        return BaseToken.pool.get(ETokenType.COMMA, ",", start);
       case ":":
         this.advance();
-        return new BaseToken(ETokenType.COLON, ":", start);
+
+        return BaseToken.pool.get(ETokenType.COLON, ":", start);
       case ";":
         this.advance();
-        return new BaseToken(ETokenType.SEMICOLON, ";", start);
+
+        return BaseToken.pool.get(ETokenType.SEMICOLON, ";", start);
       case "~":
         this.advance();
-        return new BaseToken(ETokenType.TILDE, "~", start);
+
+        return BaseToken.pool.get(ETokenType.TILDE, "~", start);
       case "?":
         this.advance();
-        return new BaseToken(ETokenType.QUESTION, "?", start);
+
+        return BaseToken.pool.get(ETokenType.QUESTION, "?", start);
       case '"':
         this.advance();
         return this.scanStringConst();
@@ -220,7 +238,8 @@ export class Lexer extends BaseScanner {
     }
     this.advance();
     const range = ShaderLab.createRange(start, this.getPosition());
-    return new BaseToken(ETokenType.STRING_CONST, buffer.join(""), range);
+
+    return BaseToken.pool.get(ETokenType.STRING_CONST, buffer.join(""), range);
   }
 
   private scanNumAfterDot() {
@@ -229,7 +248,8 @@ export class Lexer extends BaseScanner {
       buffer.push(this.getCurChar());
       this.advance();
     }
-    return new BaseToken(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(1));
+
+    return BaseToken.pool.get(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(1));
   }
 
   private getPosition(offset /** offset from starting point */ = 0) {
@@ -259,9 +279,10 @@ export class Lexer extends BaseScanner {
     const word = buffer.join("");
     const kt = KeywordTable.get(word);
     if (kt) {
-      return new BaseToken(kt, word, start);
+      return BaseToken.pool.get(kt, word, start);
     }
-    return new BaseToken(ETokenType.ID, word, start);
+
+    return BaseToken.pool.get(ETokenType.ID, word, start);
   }
 
   private scanNum() {
@@ -278,14 +299,17 @@ export class Lexer extends BaseScanner {
         this.advance();
       }
       this.scanFloatSuffix(buffer);
-      return new BaseToken(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+
+      return BaseToken.pool.get(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
     } else {
       if (this.getCurChar() === "e" || this.getCurChar() === "E") {
         this.scanFloatSuffix(buffer);
-        return new BaseToken(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+
+        return BaseToken.pool.get(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
       } else {
         this.scanIntegerSuffix(buffer);
-        return new BaseToken(ETokenType.INT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+
+        return BaseToken.pool.get(ETokenType.INT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
       }
     }
   }

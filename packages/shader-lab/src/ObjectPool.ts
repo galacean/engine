@@ -1,19 +1,19 @@
 import { IPoolElement } from "@galacean/engine";
 
-type Constructor<T> = new (...args: any[]) => T;
+export type Constructor<T> = new (...args: any[]) => T;
 
 export interface IInitializedPoolElement<T, C extends Constructor<T>> {
   init(...args: ConstructorParameters<C>): void;
 }
 
-export const AstNodePoolSet: AstNodePool<any, any>[] = [];
+export const AstNodePoolSet: ObjectPool<any, any>[] = [];
 export function clearAllAstNodePool() {
   for (let i = 0; i < AstNodePoolSet.length; i++) {
     AstNodePoolSet[i].clear();
   }
 }
 
-export class AstNodePool<C extends Constructor<T>, T extends IPoolElement & IInitializedPoolElement<T, C>> {
+export class ObjectPool<C extends Constructor<T>, T extends IPoolElement & IInitializedPoolElement<T, C>> {
   private _type: C;
   private _elements: T[];
   private _usedElementCount: number = -1;

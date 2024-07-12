@@ -10,7 +10,7 @@ import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { ParserUtils } from "../Utils";
 import { ASTNodeConstructor, IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
-import { AstNodePool, IInitializedPoolElement } from "../AstNodePool";
+import { ObjectPool, IInitializedPoolElement } from "../ObjectPool";
 import { IPoolElement } from "@galacean/engine";
 
 export abstract class TreeNode
@@ -59,7 +59,7 @@ export namespace ASTNode {
   }
 
   export function get(
-    pool: AstNodePool<ASTNodeConstructor, TreeNode>,
+    pool: ObjectPool<ASTNodeConstructor, TreeNode>,
     sa: SematicAnalyzer,
     loc: ShaderRange,
     children: NodeChild[]
@@ -70,7 +70,7 @@ export namespace ASTNode {
   }
 
   export class TrivialNode extends TreeNode {
-    static pool = new AstNodePool(TrivialNode, 5);
+    static pool = new ObjectPool(TrivialNode, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal._ignore, loc, children);
@@ -78,7 +78,7 @@ export namespace ASTNode {
   }
 
   export class ScopeBrace extends TreeNode {
-    static pool = new AstNodePool(ScopeBrace, 5);
+    static pool = new ObjectPool(ScopeBrace, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.scope_brace, loc, children);
@@ -90,7 +90,7 @@ export namespace ASTNode {
   }
 
   export class ScopeEndBrace extends TreeNode {
-    static pool = new AstNodePool(ScopeEndBrace, 5);
+    static pool = new ObjectPool(ScopeEndBrace, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.scope_end_brace, loc, children);
@@ -102,7 +102,7 @@ export namespace ASTNode {
   }
 
   export class JumpStatement extends TreeNode {
-    static pool = new AstNodePool(JumpStatement, 5);
+    static pool = new ObjectPool(JumpStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.jump_statement, loc, children);
@@ -123,7 +123,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class ConditionOpt extends TreeNode {
-    static pool = new AstNodePool(ConditionOpt, 5);
+    static pool = new ObjectPool(ConditionOpt, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.conditionopt, loc, children);
@@ -131,7 +131,7 @@ export namespace ASTNode {
   }
 
   export class ForRestStatement extends TreeNode {
-    static pool = new AstNodePool(ForRestStatement, 5);
+    static pool = new ObjectPool(ForRestStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.for_rest_statement, loc, children);
@@ -139,7 +139,7 @@ export namespace ASTNode {
   }
 
   export class Condition extends TreeNode {
-    static pool = new AstNodePool(Condition, 5);
+    static pool = new ObjectPool(Condition, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.condition, loc, children);
@@ -147,7 +147,7 @@ export namespace ASTNode {
   }
 
   export class ForInitStatement extends TreeNode {
-    static pool = new AstNodePool(ForInitStatement, 5);
+    static pool = new ObjectPool(ForInitStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.for_init_statement, loc, children);
@@ -155,7 +155,7 @@ export namespace ASTNode {
   }
 
   export class IterationStatement extends TreeNode {
-    static pool = new AstNodePool(IterationStatement, 5);
+    static pool = new ObjectPool(IterationStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.iteration_statement, loc, children);
@@ -163,7 +163,7 @@ export namespace ASTNode {
   }
 
   export class SelectionStatement extends TreeNode {
-    static pool = new AstNodePool(SelectionStatement, 5);
+    static pool = new ObjectPool(SelectionStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.selection_statement, loc, children);
@@ -171,7 +171,7 @@ export namespace ASTNode {
   }
 
   export class ExpressionStatement extends TreeNode {
-    static pool = new AstNodePool(ExpressionStatement, 10);
+    static pool = new ObjectPool(ExpressionStatement, 10);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.expression_statement, loc, children);
@@ -200,7 +200,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class InitializerList extends ExpressionAstNode {
-    static pool = new AstNodePool(InitializerList, 5);
+    static pool = new ObjectPool(InitializerList, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.initializer_list, loc, children);
@@ -213,7 +213,7 @@ export namespace ASTNode {
   }
 
   export class Initializer extends ExpressionAstNode {
-    static pool = new AstNodePool(Initializer, 5);
+    static pool = new ObjectPool(Initializer, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.initializer, loc, children);
@@ -230,7 +230,7 @@ export namespace ASTNode {
   // #endif
 
   export class SingleDeclaration extends TreeNode {
-    static pool = new AstNodePool(SingleDeclaration, 5);
+    static pool = new ObjectPool(SingleDeclaration, 5);
 
     typeSpecifier: TypeSpecifier;
     arraySpecifier?: ArraySpecifier;
@@ -273,7 +273,7 @@ export namespace ASTNode {
   }
 
   export class FullySpecifiedType extends TreeNode {
-    static pool = new AstNodePool(FullySpecifiedType, 5);
+    static pool = new ObjectPool(FullySpecifiedType, 5);
 
     get qualifierList() {
       if (this.children.length > 1) {
@@ -295,7 +295,7 @@ export namespace ASTNode {
   }
 
   export class TypeQualifier extends TreeNode {
-    static pool = new AstNodePool(TypeQualifier, 5);
+    static pool = new ObjectPool(TypeQualifier, 5);
 
     qualifierList: EKeyword[];
 
@@ -316,7 +316,7 @@ export namespace ASTNode {
   }
 
   export class SingleTypeQualifier extends TreeNode {
-    static pool = new AstNodePool(SingleTypeQualifier, 5);
+    static pool = new ObjectPool(SingleTypeQualifier, 5);
 
     qualifier: EKeyword;
     lexeme: string;
@@ -352,7 +352,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class StorageQualifier extends BasicTypeQualifier {
-    static pool = new AstNodePool(StorageQualifier, 5);
+    static pool = new ObjectPool(StorageQualifier, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(loc, ENonTerminal.storage_qualifier, children);
@@ -360,7 +360,7 @@ export namespace ASTNode {
   }
 
   export class PrecisionQualifier extends BasicTypeQualifier {
-    static pool = new AstNodePool(PrecisionQualifier, 5);
+    static pool = new ObjectPool(PrecisionQualifier, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(loc, ENonTerminal.precision_qualifier, children);
@@ -368,7 +368,7 @@ export namespace ASTNode {
   }
 
   export class InterpolationQualifier extends BasicTypeQualifier {
-    static pool = new AstNodePool(InterpolationQualifier, 5);
+    static pool = new ObjectPool(InterpolationQualifier, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(loc, ENonTerminal.interpolation_qualifier, children);
@@ -376,7 +376,7 @@ export namespace ASTNode {
   }
 
   export class InvariantQualifier extends BasicTypeQualifier {
-    static pool = new AstNodePool(InvariantQualifier, 5);
+    static pool = new ObjectPool(InvariantQualifier, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(loc, ENonTerminal.invariant_qualifier, children);
@@ -385,7 +385,7 @@ export namespace ASTNode {
   // #endif
 
   export class TypeSpecifier extends TreeNode {
-    static pool = new AstNodePool(TypeSpecifier, 10);
+    static pool = new ObjectPool(TypeSpecifier, 10);
 
     get type(): GalaceanDataType {
       return (this.children![0] as TypeSpecifierNonArray).type;
@@ -407,7 +407,7 @@ export namespace ASTNode {
   }
 
   export class ArraySpecifier extends TreeNode {
-    static pool = new AstNodePool(ArraySpecifier, 5);
+    static pool = new ObjectPool(ArraySpecifier, 5);
 
     get size(): number | undefined {
       const integerConstantExpr = this.children[1] as IntegerConstantExpression;
@@ -420,7 +420,7 @@ export namespace ASTNode {
   }
 
   export class IntegerConstantExpressionOperator extends TreeNode {
-    static pool = new AstNodePool(IntegerConstantExpressionOperator, 10);
+    static pool = new ObjectPool(IntegerConstantExpressionOperator, 10);
 
     compute: (a: number, b: number) => number;
     get lexeme(): string {
@@ -456,7 +456,7 @@ export namespace ASTNode {
   }
 
   export class IntegerConstantExpression extends TreeNode {
-    static pool = new AstNodePool(IntegerConstantExpression, 5);
+    static pool = new ObjectPool(IntegerConstantExpression, 5);
 
     value?: number;
     constructor(loc: ShaderRange, children: NodeChild[]) {
@@ -491,7 +491,7 @@ export namespace ASTNode {
   }
 
   export class TypeSpecifierNonArray extends TreeNode {
-    static pool = new AstNodePool(TypeSpecifierNonArray, 5);
+    static pool = new ObjectPool(TypeSpecifierNonArray, 5);
 
     type: GalaceanDataType;
     lexeme: string;
@@ -513,7 +513,7 @@ export namespace ASTNode {
   }
 
   export class ExtBuiltinTypeSpecifierNonArray extends TreeNode {
-    static pool = new AstNodePool(ExtBuiltinTypeSpecifierNonArray, 5);
+    static pool = new ObjectPool(ExtBuiltinTypeSpecifierNonArray, 5);
 
     type: TokenType;
     lexeme: string;
@@ -531,7 +531,7 @@ export namespace ASTNode {
   }
 
   export class InitDeclaratorList extends TreeNode {
-    static pool = new AstNodePool(InitDeclaratorList, 5);
+    static pool = new ObjectPool(InitDeclaratorList, 5);
 
     get typeInfo(): SymbolType {
       if (this.children.length === 1) {
@@ -574,7 +574,7 @@ export namespace ASTNode {
   }
 
   export class IdentifierList extends TreeNode {
-    static pool = new AstNodePool(IdentifierList, 5);
+    static pool = new ObjectPool(IdentifierList, 5);
 
     get idList(): Token[] {
       if (this.children.length === 2) {
@@ -589,7 +589,7 @@ export namespace ASTNode {
   }
 
   export class Declaration extends TreeNode {
-    static pool = new AstNodePool(Declaration, 5);
+    static pool = new ObjectPool(Declaration, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.declaration, loc, children);
@@ -601,7 +601,7 @@ export namespace ASTNode {
   }
 
   export class FunctionProtoType extends TreeNode {
-    static pool = new AstNodePool(FunctionProtoType, 5);
+    static pool = new ObjectPool(FunctionProtoType, 5);
 
     private get declarator() {
       return this.children[0] as FunctionDeclarator;
@@ -633,7 +633,7 @@ export namespace ASTNode {
   }
 
   export class FunctionDeclarator extends TreeNode {
-    static pool = new AstNodePool(FunctionDeclarator, 5);
+    static pool = new ObjectPool(FunctionDeclarator, 5);
 
     private get header() {
       return this.children[0] as FunctionHeader;
@@ -665,7 +665,7 @@ export namespace ASTNode {
   }
 
   export class FunctionHeader extends TreeNode {
-    static pool = new AstNodePool(FunctionHeader, 5);
+    static pool = new ObjectPool(FunctionHeader, 5);
 
     get ident() {
       return this.children[1] as Token;
@@ -688,7 +688,7 @@ export namespace ASTNode {
   }
 
   export class FunctionParameterList extends TreeNode {
-    static pool = new AstNodePool(FunctionParameterList, 5);
+    static pool = new ObjectPool(FunctionParameterList, 5);
 
     get parameterInfoList(): IParamInfo[] {
       if (this.children.length === 1) {
@@ -721,7 +721,7 @@ export namespace ASTNode {
   }
 
   export class ParameterDeclaration extends TreeNode {
-    static pool = new AstNodePool(ParameterDeclaration, 5);
+    static pool = new ObjectPool(ParameterDeclaration, 5);
 
     get typeQualifier() {
       if (this.children.length === 2) return this.children[0] as TypeQualifier;
@@ -757,7 +757,7 @@ export namespace ASTNode {
   }
 
   export class ParameterDeclarator extends TreeNode {
-    static pool = new AstNodePool(ParameterDeclarator, 5);
+    static pool = new ObjectPool(ParameterDeclarator, 5);
 
     get ident() {
       return this.children[1] as Token;
@@ -776,7 +776,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class SimpleStatement extends TreeNode {
-    static pool = new AstNodePool(SimpleStatement, 5);
+    static pool = new ObjectPool(SimpleStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.simple_statement, loc, children);
@@ -784,7 +784,7 @@ export namespace ASTNode {
   }
 
   export class CompoundStatement extends TreeNode {
-    static pool = new AstNodePool(CompoundStatement, 5);
+    static pool = new ObjectPool(CompoundStatement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.compound_statement, loc, children);
@@ -793,7 +793,7 @@ export namespace ASTNode {
   // #endif
 
   export class CompoundStatementNoScope extends TreeNode {
-    static pool = new AstNodePool(CompoundStatementNoScope, 5);
+    static pool = new ObjectPool(CompoundStatementNoScope, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.compound_statement_no_scope, loc, children);
@@ -802,7 +802,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class Statement extends TreeNode {
-    static pool = new AstNodePool(Statement, 5);
+    static pool = new ObjectPool(Statement, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.statement, loc, children);
@@ -811,7 +811,7 @@ export namespace ASTNode {
   // #endif
 
   export class StatementList extends TreeNode {
-    static pool = new AstNodePool(StatementList, 5);
+    static pool = new ObjectPool(StatementList, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.statement_list, loc, children);
@@ -823,7 +823,7 @@ export namespace ASTNode {
   }
 
   export class FunctionDefinition extends TreeNode {
-    static pool = new AstNodePool(FunctionDefinition, 5);
+    static pool = new ObjectPool(FunctionDefinition, 5);
 
     get protoType() {
       return this.children[0] as FunctionProtoType;
@@ -849,7 +849,7 @@ export namespace ASTNode {
   }
 
   export class FunctionCall extends ExpressionAstNode {
-    static pool = new AstNodePool(FunctionCall, 5);
+    static pool = new ObjectPool(FunctionCall, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.function_call, loc, children);
@@ -865,7 +865,7 @@ export namespace ASTNode {
   }
 
   export class FunctionCallGeneric extends ExpressionAstNode {
-    static pool = new AstNodePool(FunctionCallGeneric, 5);
+    static pool = new ObjectPool(FunctionCallGeneric, 5);
 
     fnSymbol: FnSymbol | StructSymbol | undefined;
 
@@ -914,7 +914,7 @@ export namespace ASTNode {
   }
 
   export class FunctionCallParameterList extends TreeNode {
-    static pool = new AstNodePool(FunctionCallParameterList, 5);
+    static pool = new ObjectPool(FunctionCallParameterList, 5);
 
     get paramSig(): GalaceanDataType[] | undefined {
       if (this.children.length === 1) {
@@ -949,7 +949,7 @@ export namespace ASTNode {
   }
 
   export class PrecisionSpecifier extends TreeNode {
-    static pool = new AstNodePool(PrecisionSpecifier, 5);
+    static pool = new ObjectPool(PrecisionSpecifier, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.precision_specifier, loc, children);
@@ -961,7 +961,7 @@ export namespace ASTNode {
   }
 
   export class FunctionIdentifier extends TreeNode {
-    static pool = new AstNodePool(FunctionIdentifier, 5);
+    static pool = new ObjectPool(FunctionIdentifier, 5);
 
     get ident() {
       const ty = this.children[0] as TypeSpecifier;
@@ -989,7 +989,7 @@ export namespace ASTNode {
   }
 
   export class AssignmentExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(AssignmentExpression, 5);
+    static pool = new ObjectPool(AssignmentExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.assignment_expression, loc, children);
@@ -1010,7 +1010,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class AssignmentOperator extends TreeNode {
-    static pool = new AstNodePool(AssignmentOperator, 5);
+    static pool = new ObjectPool(AssignmentOperator, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.assignment_operator, loc, children);
@@ -1019,7 +1019,7 @@ export namespace ASTNode {
   // #endif
 
   export class Expression extends ExpressionAstNode {
-    static pool = new AstNodePool(Expression, 5);
+    static pool = new ObjectPool(Expression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.expression, loc, children);
@@ -1039,7 +1039,7 @@ export namespace ASTNode {
   }
 
   export class PrimaryExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(PrimaryExpression, 5);
+    static pool = new ObjectPool(PrimaryExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.primary_expression, loc, children);
@@ -1072,7 +1072,7 @@ export namespace ASTNode {
   }
 
   export class PostfixExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(PostfixExpression, 5);
+    static pool = new ObjectPool(PostfixExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.postfix_expression, loc, children);
@@ -1092,7 +1092,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class UnaryOperator extends TreeNode {
-    static pool = new AstNodePool(UnaryOperator, 5);
+    static pool = new ObjectPool(UnaryOperator, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.unary_operator, loc, children);
@@ -1102,7 +1102,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class UnaryExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(UnaryExpression, 5);
+    static pool = new ObjectPool(UnaryExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.unary_expression, loc, children);
@@ -1116,7 +1116,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class MultiplicativeExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(MultiplicativeExpression, 5);
+    static pool = new ObjectPool(MultiplicativeExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.multiplicative_expression, loc, children);
@@ -1138,7 +1138,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class AdditiveExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(AdditiveExpression, 5);
+    static pool = new ObjectPool(AdditiveExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.additive_expression, loc, children);
@@ -1160,7 +1160,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class ShiftExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(ShiftExpression, 5);
+    static pool = new ObjectPool(ShiftExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.shift_expression, loc, children);
@@ -1175,7 +1175,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class RelationalExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(RelationalExpression, 5);
+    static pool = new ObjectPool(RelationalExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.relational_expression, loc, children);
@@ -1193,7 +1193,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class EqualityExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(EqualityExpression, 5);
+    static pool = new ObjectPool(EqualityExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.equality_expression, loc, children);
@@ -1211,7 +1211,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class AndExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(AndExpression, 5);
+    static pool = new ObjectPool(AndExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.and_expression, loc, children);
@@ -1229,7 +1229,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class ExclusiveOrExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(ExclusiveOrExpression, 5);
+    static pool = new ObjectPool(ExclusiveOrExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.exclusive_or_expression, loc, children);
@@ -1247,7 +1247,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class InclusiveOrExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(InclusiveOrExpression, 5);
+    static pool = new ObjectPool(InclusiveOrExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.inclusive_or_expression, loc, children);
@@ -1265,7 +1265,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class LogicalAndExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(LogicalAndExpression, 5);
+    static pool = new ObjectPool(LogicalAndExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.logical_and_expression, loc, children);
@@ -1283,7 +1283,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class LogicalXorExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(LogicalXorExpression, 5);
+    static pool = new ObjectPool(LogicalXorExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.logical_xor_expression, loc, children);
@@ -1301,7 +1301,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class LogicalOrExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(LogicalOrExpression, 5);
+    static pool = new ObjectPool(LogicalOrExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.logical_or_expression, loc, children);
@@ -1319,7 +1319,7 @@ export namespace ASTNode {
 
   // #if _EDITOR
   export class ConditionalExpression extends ExpressionAstNode {
-    static pool = new AstNodePool(ConditionalExpression, 5);
+    static pool = new ObjectPool(ConditionalExpression, 5);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.conditional_expression, loc, children);
@@ -1334,7 +1334,7 @@ export namespace ASTNode {
   // #endif
 
   export class StructSpecifier extends TreeNode {
-    static pool = new AstNodePool(StructSpecifier, 5);
+    static pool = new ObjectPool(StructSpecifier, 5);
 
     ident?: Token;
 
@@ -1356,7 +1356,7 @@ export namespace ASTNode {
   }
 
   export class StructDeclarationList extends TreeNode {
-    static pool = new AstNodePool(StructDeclarationList, 5);
+    static pool = new ObjectPool(StructDeclarationList, 5);
 
     get propList(): StructProp[] {
       if (this.children.length === 1) {
@@ -1373,7 +1373,7 @@ export namespace ASTNode {
   }
 
   export class StructDeclaration extends TreeNode {
-    static pool = new AstNodePool(StructDeclaration, 5);
+    static pool = new ObjectPool(StructDeclaration, 5);
 
     get typeSpecifier() {
       if (this.children.length === 3) {
@@ -1406,7 +1406,7 @@ export namespace ASTNode {
   }
 
   export class StructDeclaratorList extends TreeNode {
-    static pool = new AstNodePool(StructDeclaratorList, 5);
+    static pool = new ObjectPool(StructDeclaratorList, 5);
 
     get declaratorList(): StructDeclarator[] {
       if (this.children.length === 1) {
@@ -1423,7 +1423,7 @@ export namespace ASTNode {
   }
 
   export class StructDeclarator extends TreeNode {
-    static pool = new AstNodePool(StructDeclarator, 5);
+    static pool = new ObjectPool(StructDeclarator, 5);
 
     get ident() {
       return this.children[0] as Token;
@@ -1439,7 +1439,7 @@ export namespace ASTNode {
   }
 
   export class VariableDeclaration extends TreeNode {
-    static pool = new AstNodePool(VariableDeclaration, 20);
+    static pool = new ObjectPool(VariableDeclaration, 20);
 
     constructor(loc: ShaderRange, children: NodeChild[]) {
       super(ENonTerminal.variable_declaration, loc, children);
@@ -1460,7 +1460,7 @@ export namespace ASTNode {
   }
 
   export class VariableIdentifier extends TreeNode {
-    static pool = new AstNodePool(VariableIdentifier, 20);
+    static pool = new ObjectPool(VariableIdentifier, 20);
 
     symbolInfo:
       | VarSymbol
@@ -1507,7 +1507,7 @@ export namespace ASTNode {
   }
 
   export class GLShaderProgram extends TreeNode {
-    static pool = new AstNodePool(GLShaderProgram, 1);
+    static pool = new ObjectPool(GLShaderProgram, 1);
 
     shaderData: ShaderData;
 

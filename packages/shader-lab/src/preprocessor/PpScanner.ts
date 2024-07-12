@@ -94,10 +94,10 @@ export default class PpScanner extends BaseScanner {
     }
     const kw = PpKeyword.get(word);
     if (kw) {
-      return new BaseToken(kw, word, this.getShaderPosition());
+      return BaseToken.pool.get(kw, word, this.getShaderPosition());
     }
 
-    return new BaseToken(EPpToken.id, word, this.getShaderPosition(word.length));
+    return BaseToken.pool.get(EPpToken.id, word, this.getShaderPosition(word.length));
   }
 
   getShaderPosition(offset /** offset from starting point */ = 0) {
@@ -127,7 +127,7 @@ export default class PpScanner extends BaseScanner {
 
     const lexeme = this._source.slice(start, this._currentIndex);
 
-    const ret = new BaseToken(
+    const ret = BaseToken.pool.get(
       PpKeyword.has(lexeme) ? PpKeyword.get(lexeme) : EPpToken.id,
       lexeme,
       this.getShaderPosition(this._currentIndex - start)
@@ -149,7 +149,8 @@ export default class PpScanner extends BaseScanner {
       ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
     const word = this._source.slice(start, this._currentIndex);
-    return new BaseToken(EPpToken.string_const, word, ShaderPosition);
+
+    return BaseToken.pool.get(EPpToken.string_const, word, ShaderPosition);
   }
 
   scanToChar(char: string) {
@@ -176,7 +177,7 @@ export default class PpScanner extends BaseScanner {
     }
 
     const chunk = this._source.slice(start, this._currentIndex - directive.lexeme.length - 1);
-    const token = new BaseToken(EPpToken.chunk, chunk, ShaderPosition);
+    const token = BaseToken.pool.get(EPpToken.chunk, chunk, ShaderPosition);
     return { token, nextDirective: directive };
   }
 
@@ -221,7 +222,8 @@ export default class PpScanner extends BaseScanner {
       ParserUtils.throw(this.getShaderPosition(), "no integer found");
     }
     const integer = this._source.slice(start, this._currentIndex);
-    return new BaseToken(EPpToken.int_constant, integer, this.getShaderPosition());
+
+    return BaseToken.pool.get(EPpToken.int_constant, integer, this.getShaderPosition());
   }
 
   /**
@@ -236,7 +238,8 @@ export default class PpScanner extends BaseScanner {
     while (this.getCurChar() !== "\n") {
       if (this.isEnd()) {
         const line = this._source.slice(start, this._currentIndex);
-        return new BaseToken(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+
+        return BaseToken.pool.get(EPpToken.line_remain, line, this.getShaderPosition(line.length));
       }
       this.advance();
       const commentRange = this.skipComments();
@@ -254,7 +257,8 @@ export default class PpScanner extends BaseScanner {
         line
       );
     }
-    return new BaseToken(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+
+    return BaseToken.pool.get(EPpToken.line_remain, line, this.getShaderPosition(line.length));
   }
 
   private advanceToDirective(onToken?: OnToken): BaseToken | undefined {

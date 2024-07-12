@@ -6,7 +6,7 @@ import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderLab } from "../ShaderLab";
-import { AstNodePool } from "../AstNodePool";
+import { ObjectPool } from "../ObjectPool";
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -25,7 +25,7 @@ export default class GrammarUtils {
     options: GrammarSymbol[][],
     /** the ast node */
     // astType?: ASTNodeConstructor
-    astTypePool?: AstNodePool<ASTNodeConstructor, any>
+    astTypePool?: ObjectPool<ASTNodeConstructor, any>
   ) {
     const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
     for (const opt of options) {

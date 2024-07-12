@@ -7,7 +7,7 @@ import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { ClearableObjectPool, Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
-import { clearAllAstNodePool } from "./AstNodePool";
+import { clearAllAstNodePool } from "./ObjectPool";
 
 export class ShaderLab implements IShaderLab {
   /**
@@ -55,6 +55,7 @@ export class ShaderLab implements IShaderLab {
     backend: ShaderPlatformTarget,
     platformMacros: string[]
   ) {
+    clearAllAstNodePool();
     Preprocessor.reset(ShaderLib);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
@@ -77,7 +78,6 @@ export class ShaderLab implements IShaderLab {
 
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
-    clearAllAstNodePool();
     const program = ShaderLab._parser.parse(tokens);
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
