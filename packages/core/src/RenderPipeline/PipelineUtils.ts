@@ -7,7 +7,6 @@ import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
-import { RenderBufferStoreAction } from "./enums/RenderBufferStoreAction";
 
 /**
  * @internal
@@ -151,7 +150,6 @@ export class PipelineUtils {
    * @param viewport - Viewport
    * @param material - The material to use when blitting
    * @param passIndex - Pass index to use of the provided material
-   * @param renderBufferStoreAction - This enum describes what should be done on the render target when the GPU is done rendering into it.
    */
   static blitTexture(
     engine: Engine,
@@ -160,8 +158,7 @@ export class PipelineUtils {
     mipLevel: number = 0,
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material = null,
-    passIndex = 0,
-    renderBufferStoreAction = RenderBufferStoreAction.DontCare
+    passIndex = 0
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -205,9 +202,5 @@ export class PipelineUtils {
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
-
-    if (renderBufferStoreAction === RenderBufferStoreAction.BlitMSAA) {
-      destination?._blitRenderTarget();
-    }
   }
 }
