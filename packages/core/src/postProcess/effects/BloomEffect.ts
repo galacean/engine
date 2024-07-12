@@ -1,7 +1,5 @@
 import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
-import { Engine } from "../../Engine";
-import { RenderBufferStoreAction } from "../../RenderPipeline";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Material } from "../../material";
@@ -251,7 +249,6 @@ export class BloomEffect {
   private _prefilter(camera: Camera, srcTexture: Texture2D, tw: number, th: number, mipCount: number): void {
     const engine = this._uberMaterial.engine;
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
-    const msaaSamples = camera.msaaSamples;
     let mipWidth = tw,
       mipHeight = th;
 
@@ -265,7 +262,7 @@ export class BloomEffect {
         null,
         false,
         false,
-        msaaSamples,
+        1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
@@ -278,7 +275,7 @@ export class BloomEffect {
         null,
         false,
         false,
-        msaaSamples,
+        1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
@@ -287,16 +284,7 @@ export class BloomEffect {
       mipHeight = Math.max(1, Math.floor(mipHeight / 2));
     }
 
-    PipelineUtils.blitTexture(
-      engine,
-      srcTexture,
-      this._mipDownRT[0],
-      undefined,
-      undefined,
-      this._bloomMaterial,
-      0,
-      RenderBufferStoreAction.BlitMSAA
-    );
+    PipelineUtils.blitTexture(engine, srcTexture, this._mipDownRT[0], undefined, undefined, this._bloomMaterial, 0);
   }
 
   private _downsample(mipCount: number): void {
@@ -316,8 +304,7 @@ export class BloomEffect {
         undefined,
         undefined,
         material,
-        1,
-        RenderBufferStoreAction.BlitMSAA
+        1
       );
       PipelineUtils.blitTexture(
         engine,
@@ -326,8 +313,7 @@ export class BloomEffect {
         undefined,
         undefined,
         material,
-        2,
-        RenderBufferStoreAction.BlitMSAA
+        2
       );
 
       lastDown = this._mipDownRT[i];
@@ -351,16 +337,7 @@ export class BloomEffect {
         texelSizeLow.set(1 / lowMip.width, 1 / lowMip.height, lowMip.width, lowMip.height);
       }
 
-      PipelineUtils.blitTexture(
-        engine,
-        <Texture2D>highMip.getColorTexture(0),
-        dst,
-        undefined,
-        undefined,
-        material,
-        3,
-        RenderBufferStoreAction.BlitMSAA
-      );
+      PipelineUtils.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, material, 3);
     }
   }
 
