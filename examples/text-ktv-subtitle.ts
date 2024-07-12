@@ -18,7 +18,7 @@ import {
   Shader,
   TextRenderer,
   Texture2D,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
 
 // Create engine object
@@ -38,7 +38,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     // Set background
     const bgTex = await engine.resourceManager.load<Texture2D>({
       url: "https://gw.alipayobjects.com/zos/OasisHub/440000983/3784/vcg_VCG211258128318_RF.jpg?x-oss-process=image/format,webp",
-      type: AssetType.Texture2D,
+      type: AssetType.Texture2D
     });
     const background = engine.sceneManager.activeScene.background;
     background.mode = BackgroundMode.Texture;
@@ -78,10 +78,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     return textEntity;
   }
 
-  function addCustomMaterialAndAnimateScript(
-    entity: Entity,
-    time: number
-  ): AnimateScript {
+  function addCustomMaterialAndAnimateScript(entity: Entity, time: number): AnimateScript {
     // Create material
     const material = new BaseMaterial(engine, Shader.find("TextKTVSubtitle"));
     entity.getComponent(TextRenderer).setMaterial(material);
@@ -132,7 +129,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   precision mediump float;
   precision mediump int;
 
-  uniform sampler2D renderer_SpriteTexture;
+  uniform sampler2D renderElement_TextTexture;
   uniform float u_percent;
   uniform vec4 u_subtitleColor;
 
@@ -143,7 +140,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   varying float v_posX;
 
   void main() {
-    vec4 baseColor = texture2D(renderer_SpriteTexture, v_uv);
+    vec4 baseColor = texture2D(renderElement_TextTexture, v_uv);
     float percent = (v_posX - v_startX) / v_width;
     if (percent <= u_percent) {
       gl_FragColor = baseColor * u_subtitleColor;
