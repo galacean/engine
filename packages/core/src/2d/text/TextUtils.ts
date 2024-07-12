@@ -352,7 +352,10 @@ export class TextUtils {
     // The measure text width of some special invisible characters may be 0, so make sure the width is at least 1.
     // @todo: Text layout may vary from standard and not support emoji.
     const textMetrics = context.measureText(measureString);
-    const width = Math.max(1, Math.round(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft));
+    const width = Math.max(
+      1,
+      Math.round(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft || textMetrics.width)
+    );
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
