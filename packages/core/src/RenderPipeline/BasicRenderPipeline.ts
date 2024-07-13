@@ -240,11 +240,11 @@ export class BasicRenderPipeline {
               break;
             }
           }
+          context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader &&
+            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
         } else {
           this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
-        context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader &&
-          this.pushRenderDataWithShader(context, data, materialSubShader.passes, renderStates);
       } else {
         this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
       }
