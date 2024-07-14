@@ -2,8 +2,10 @@ export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
+
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";
+
 export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
@@ -14,6 +16,7 @@ export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
+
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
@@ -22,8 +25,10 @@ export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";
+
 export * from "./RenderPipeline/index";
 export * from "./base";
+
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
