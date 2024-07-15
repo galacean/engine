@@ -98,7 +98,7 @@ const xRad = Math.PI * 0.2;
 const yRad = Math.PI * 0.5;
 const zRad = Math.PI * 0.3;
 
-// 根据 yaw、pitch、roll 生成四元数
+// 根据 yaw（Y）、pitch（X）、roll（Z） 生成四元数
 const out1 = new Quaternion();
 Quaternion.rotationYawPitchRoll(yRad, xRad, zRad, out1);
 
@@ -174,7 +174,7 @@ Matrix.multiply(m3, m4, out1);
 // 矩阵相乘，实例方式
 const out2 = m3.multiply(m4);
 
-// 判断两个矩阵的值是否相等 true
+// 判断两个矩阵的值是否相等 trued
 const isEqual2: boolean = Matrix.equals(out1, out2);
 
 // 求矩阵行列式
@@ -198,6 +198,37 @@ m7.transpose();
 const axis = new Vector3(0, 1, 0); 
 const out4 = new Matrix();
 Matrix.rotationAxisAngle(axis, Math.PI * 0.25, out4);
+
+// 从一个矩阵内获取旋转、缩放和位移
+const m8 = new Matrix(4.440892098500626e-16, 2, 0, 0, -2, 4.440892098500626e-16, 0, 0, 0, 0, 2, 0, 0, 10, 10, 1);
+// 用于存放位移
+const translate = new Vector3();
+// 用于存放缩放
+const scale = new Vector3();
+// 用于存放旋转
+const qua = new Quaternion();
+m8.decompose(translate, qua, scale);
+const rotation = new Vector3();
+// 根据拿到的旋转四元数获取每个轴的旋转弧度
+qua.toEuler(rotation);
+
+// 根据四元数生成旋转矩阵
+const m9 = new Matrix();
+Matrix.rotationQuaternion(qua, m9);
+// 根据旋转角度生成旋转矩阵
+const m10 = new Matrix();
+Matrix.rotationAxisAngle(new Vector3(0, 0, 1), Math.PI * 0.5, m10);
+// 根据缩放生成缩放矩阵
+const m11 = new Matrix();
+Matrix.scaling(scale, m11);
+// 根据位移生成位移矩阵
+const m12 = new Matrix();
+Matrix.translation(translate, m12);
+
+// 根据旋转、缩放、位移生成矩阵
+const m13 = new Matrix();
+Matrix.affineTransformation(scale, qua, translate, m13);
+
 ```
 
 ## Color
@@ -237,6 +268,7 @@ const plane2 = new Plane(new Vector3(0, 1, 0), -1);
 ```
 
 ## 包围盒
+Galacean 里面 BoundingBox 表示的是 AABB 包围盒（AABB（Axis-Aligned Bounding Box，轴对齐包围盒）是一种在计算机图形学和碰撞检测中常用的简单且高效的包围盒类型。它由一个最小点和一个最大点定义，这两个点构成一个与坐标轴对齐的矩形或长方体（在三维空间中））
 
 ```typescript
 import { BoundingBox, BoundingSphere, Matrix, Vector3 } from "@galacean/engine-math";
@@ -350,6 +382,15 @@ BoundingSphere.fromBox(box2, sphere2);
 const isIntersect4 = frustum.intersectsSphere(sphere2);
 ```
 ## 射线
+射线表示从一个点（origin）出发，往指定方向（direct）发射的一个可以无限延伸的线，如下：
+![alt text](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*w2XVQL-K4UEAAAAAAAAAAAAADjCHAQ/original)
+
+射线支持的检测类型如下：
+| 类型 | 解释 |
+| :--- | :--- |
+| [Plane](/apis/math/#Plane) | 检测射线到平面的距离，如果 -1 表示射线和平面不相交 |
+| [BoundingSphere](/apis/math/#BoundingSphere) | 检测射线到球体的距离，如果 -1 表示射线和球体不相交 |
+| [BoundingBox](/apis/math/#BoundingBox) | 检测射线到盒子的距离，如果 -1 表示射线和盒子不相交 |
 
 ```typescript
 import { BoundingBox, BoundingSphere, Plane, Ray, Vector3 } from "@galacean/engine-math";
@@ -398,6 +439,25 @@ rand.reset(0, 0x96aa4de3);
 ```
 
 ## CollisionUtil
+CollisionUtil 中提供了大量用于碰撞、相交检测的函数，如下：
+| 函数 | 解释 |
+| :--- | :--- |
+| intersectionPointThreePlanes | 计算 3 个平面相交的点 |
+| distancePlaneAndPoint | 计算点到面的距离 |
+| intersectsPlaneAndPoint | 检测点和面的空间位置关系：在平面的前面（法线方向为前）、在平面的后面、在平面上 |
+| intersectsPlaneAndBox | 检测AABB包围盒和面的空间位置关系：在平面的前面（法线方向为前）、在平面的后面、和平面相交 |
+| intersectsPlaneAndSphere | 检测球体和面的空间位置关系：在平面的前面（法线方向为前）、在平面的后面、和平面相交 |
+| intersectsRayAndPlane | 检测平面和射线的距离，如果不相交，返回 -1 |
+| intersectsRayAndBox | 检测AABB包围盒和射线的距离，如果不相交，返回 -1 |
+| intersectsRayAndSphere | 检测球体和射线的距离，如果不相交，返回 -1 |
+| intersectsBoxAndBox | 检测两个AABB包围盒是否相交 |
+| intersectsSphereAndSphere | 检测两个球体是否相交 |
+| intersectsSphereAndBox | 检测球体和AABB包围盒是否相交 |
+| intersectsFrustumAndBox | 检测视锥体和AABB包围盒是否相交 |
+| frustumContainsPoint | 检测点和视锥体的空间位置关系：在视锥体内部，和视锥体相交，在视锥体外部 |
+| frustumContainsBox | 检测AABB包围盒和视锥体的空间位置关系：在视锥体内部，和视锥体相交，在视锥体外部 |
+| frustumContainsSphere | 检测球体和视锥体的空间位置关系：在视锥体内部，和视锥体相交，在视锥体外部 |
+
 
 ```typescript
 import { 
