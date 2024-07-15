@@ -19,10 +19,10 @@ export class ShaderTargetParser {
   readonly gotoTable: StateGotoTable;
   readonly grammar: Grammar;
   readonly sematicAnalyzer: SematicAnalyzer;
-  private traceBackStack: (TraceStackItem | number)[] = [];
+  private _traceBackStack: (TraceStackItem | number)[] = [];
 
   private get curState() {
-    return this.traceBackStack[this.traceBackStack.length - 1] as number;
+    return this._traceBackStack[this._traceBackStack.length - 1] as number;
   }
   private get stateActionTable() {
     return this.actionTable.get(this.curState)!;
@@ -55,7 +55,7 @@ export class ShaderTargetParser {
   parse(tokens: Generator<BaseToken, BaseToken>) {
     this.sematicAnalyzer.reset();
     const start = performance.now();
-    const { traceBackStack, sematicAnalyzer } = this;
+    const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
 
     let nextToken = tokens.next();
@@ -112,14 +112,14 @@ export class ShaderTargetParser {
   }
 
   // #if _EDITOR
-  private printStack(nextToken: BaseToken) {
+  private _printStack(nextToken: BaseToken) {
     let str = "";
-    for (let i = 0; i < this.traceBackStack.length - 1; i++) {
-      const state = <ENonTerminal>this.traceBackStack[i++];
-      const token = this.traceBackStack[i];
+    for (let i = 0; i < this._traceBackStack.length - 1; i++) {
+      const state = <ENonTerminal>this._traceBackStack[i++];
+      const token = this._traceBackStack[i];
       str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
     }
-    str += `State${this.traceBackStack[this.traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
+    str += `State${this._traceBackStack[this._traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
     Logger.info(str);
   }
   // #endif

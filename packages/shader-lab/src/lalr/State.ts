@@ -22,7 +22,7 @@ export default class State {
     return false;
   }
 
-  private stateItemPool: Map<string /** Map ID */, StateItem> = new Map();
+  private _stateItemPool: Map<string /** Map ID */, StateItem> = new Map();
 
   static create(cores: StateItem[]) {
     const cacheKey = this.getMapKey(cores);
@@ -51,7 +51,7 @@ export default class State {
     this.cores = new Set([...cores]);
     for (const it of cores) {
       const itemMapKey = this.getStateItemMapKey(it.production, it.position);
-      this.stateItemPool.set(itemMapKey, it);
+      this._stateItemPool.set(itemMapKey, it);
     }
     State.pool.set(this.id, this);
   }
@@ -63,7 +63,7 @@ export default class State {
 
   createStateItem(production: Production, position: number, lookaheadSet: Iterable<Terminal> = new Set()) {
     const mapId = this.getStateItemMapKey(production, position);
-    const item = this.stateItemPool.get(mapId);
+    const item = this._stateItemPool.get(mapId);
     if (item) {
       for (const la of lookaheadSet) {
         if (item.lookaheadSet.has(la)) continue;
@@ -73,7 +73,7 @@ export default class State {
       return item;
     }
     const newItem = new StateItem(production, position, lookaheadSet);
-    this.stateItemPool.set(mapId, newItem);
+    this._stateItemPool.set(mapId, newItem);
     return newItem;
   }
 }

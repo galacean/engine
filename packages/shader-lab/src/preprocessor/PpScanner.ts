@@ -45,7 +45,7 @@ export default class PpScanner extends BaseScanner {
    * @param expandOnToken callback on encountering token.
    */
   scanDirective(expandOnToken?: OnToken): BaseToken<number> {
-    const directive = this.advanceToDirective(expandOnToken);
+    const directive = this._advanceToDirective(expandOnToken);
     if ([EPpKeyword.if, EPpKeyword.ifdef, EPpKeyword.ifndef].includes(<any>directive?.type)) {
       this.macroLvl += 1;
     } else if (<any>directive?.type === EPpKeyword.endif) {
@@ -114,7 +114,7 @@ export default class PpScanner extends BaseScanner {
    */
   override scanToken(onToken?: OnToken): BaseToken | undefined {
     this.skipSpace(true);
-    this.skipComments();
+    this._skipComments();
     if (this.isEnd()) {
       return;
     }
@@ -254,7 +254,7 @@ export default class PpScanner extends BaseScanner {
         return token;
       }
       this.advance();
-      const commentRange = this.skipComments();
+      const commentRange = this._skipComments();
       if (commentRange) {
         commentRange.start.index -= start;
         commentRange.end.index -= start;
@@ -275,7 +275,7 @@ export default class PpScanner extends BaseScanner {
     return token;
   }
 
-  private advanceToDirective(onToken?: OnToken): BaseToken | undefined {
+  private _advanceToDirective(onToken?: OnToken): BaseToken | undefined {
     while (true) {
       const token = this.scanToken(onToken);
       if (token?.lexeme.startsWith("#")) return token;
@@ -283,7 +283,7 @@ export default class PpScanner extends BaseScanner {
     }
   }
 
-  private skipComments(): ShaderRange | undefined {
+  private _skipComments(): ShaderRange | undefined {
     if (this.peek(2) === "//") {
       const start = this.getShaderPosition();
       // single line comments

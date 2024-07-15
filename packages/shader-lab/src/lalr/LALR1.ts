@@ -38,14 +38,14 @@ export class LALR1 {
 
   private _extendState(state: State) {
     if (!state.needReInfer) return;
-    this.closure(state);
-    const newStates = this.inferNextState(state);
+    this._closure(state);
+    const newStates = this._inferNextState(state);
     for (const ns of newStates) {
       this._extendState(ns);
     }
   }
 
-  private closure(state: State) {
+  private _closure(state: State) {
     for (const core of state.cores) {
       if (!core.canReduce()) {
         this._extendStateItem(state, core);
@@ -104,7 +104,7 @@ export class LALR1 {
     }
   }
 
-  private inferNextState(state: State): Set<State> {
+  private _inferNextState(state: State): Set<State> {
     const coreMap: Map<GrammarSymbol, Set<StateItem>> = new Map();
     const stateActionTable: ActionTable = this.actionTable.get(state.id) ?? new Map();
     const stateGotoTable: GotoTable = this.gotoTable.get(state.id) ?? new Map();
@@ -125,7 +125,7 @@ export class LALR1 {
         }
 
         for (const t of stateItem.lookaheadSet) {
-          this.addAction(stateActionTable, t, action);
+          this._addAction(stateActionTable, t, action);
         }
       } else {
         const nextItem = stateItem.advance();
@@ -139,7 +139,7 @@ export class LALR1 {
     for (const [gs, cores] of coreMap.entries()) {
       const newState = State.create(Array.from(cores));
       if (GrammarUtils.isTerminal(gs)) {
-        this.addAction(stateActionTable, <Terminal>gs, {
+        this._addAction(stateActionTable, <Terminal>gs, {
           action: EAction.Shift,
           target: newState.id
         });
@@ -154,7 +154,7 @@ export class LALR1 {
   }
 
   /** Resolve shift-reduce/reduce-reduce conflict detect */
-  private addAction(table: ActionTable, terminal: Terminal, action: ActionInfo) {
+  private _addAction(table: ActionTable, terminal: Terminal, action: ActionInfo) {
     const exist = table.get(terminal);
     if (exist && !Utils.isActionEqual(exist, action)) {
       // Resolve dangling else ambiguity
@@ -177,11 +177,11 @@ export class LALR1 {
   // https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf
   private computeFirstSet() {
     for (const production of this.grammar.productions.slice(1)) {
-      this.computeFirstSetForNT(production.goal);
+      this._computeFirstSetForNT(production.goal);
     }
   }
 
-  private computeFirstSetForNT(NT: ENonTerminal) {
+  private _computeFirstSetForNT(NT: ENonTerminal) {
     // circle detect
     const idx = this._firstSetNTStack.findIndex((item) => item === NT);
     if (idx !== -1) {
@@ -209,7 +209,7 @@ export class LALR1 {
           break;
         }
 
-        const succeedFirstSet = this.computeFirstSetForNT(<ENonTerminal>gs);
+        const succeedFirstSet = this._computeFirstSetForNT(<ENonTerminal>gs);
 
         for (const item of succeedFirstSet) {
           if (item !== ETokenType.EPSILON) firstSet.add(item);

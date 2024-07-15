@@ -13,13 +13,16 @@ const defaultPrecision = `precision mediump float;`;
 export abstract class GLESVisitor extends CodeGenVisitor {
   abstract versionText: string;
 
+  abstract getAttributeDeclare(): ICodeSegment[];
+  abstract getVaryingDeclare(): ICodeSegment[];
+
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     VisitorContext.reset();
     VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
 
     return {
       vertex: this.vertexMain(vertexEntry, node.shaderData),
-      fragment: this.fragmentMain(fragmentEntry, node.shaderData)
+      fragment: this._fragmentMain(fragmentEntry, node.shaderData)
     };
   }
 
@@ -66,7 +69,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const globalText = this.getGlobalText(data);
+    const globalText = this._getGlobalText(data);
 
     const attributeDeclare = this.getAttributeDeclare();
     const varyingDeclare = this.getVaryingDeclare();
@@ -81,7 +84,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private fragmentMain(entry: string, data: ShaderData): string {
+  private _fragmentMain(entry: string, data: ShaderData): string {
     const { symbolTable } = data;
     const fnSymbol = symbolTable.lookup<FnSymbol>({ ident: entry, symbolType: ESymbolType.FN });
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
@@ -89,7 +92,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     VisitorContext.context.stage = EShaderStage.FRAGMENT;
     const statements = fnNode.statements.codeGen(this);
-    const globalText = this.getGlobalText(data);
+    const globalText = this._getGlobalText(data);
     const varyingDeclare = this.getVaryingDeclare();
 
     const globalCode = [...globalText, ...varyingDeclare]
@@ -101,7 +104,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private getGlobalText(
+  private _getGlobalText(
     data: ShaderData,
     textList: ICodeSegment[] = [],
     lastLength: number = 0,
@@ -133,9 +136,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         textList.push({ text: sm.codeGen(this), index: sm.location.start.index });
       }
     }
-    return this.getGlobalText(data, textList, lastLength, _serialized);
+    return this._getGlobalText(data, textList, lastLength, _serialized);
   }
-
-  abstract getAttributeDeclare(): ICodeSegment[];
-  abstract getVaryingDeclare(): ICodeSegment[];
 }

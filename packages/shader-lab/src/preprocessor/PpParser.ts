@@ -21,21 +21,21 @@ export interface ExpandSegment {
 
 /** @internal */
 export default class PpParser {
-  private static definedMacros: Map<string, MacroDefine> = new Map();
-  private static expandSegmentsStack: ExpandSegment[][] = [[]];
+  private static _definedMacros: Map<string, MacroDefine> = new Map();
+  private static _expandSegmentsStack: ExpandSegment[][] = [[]];
 
   /** Referenced by branch macro or defined operator */
-  private static branchMacros: Set<string> = new Set();
+  private static _branchMacros: Set<string> = new Set();
 
-  private static includeMap: Record<string, string>;
+  private static _includeMap: Record<string, string>;
 
   static reset(includeMap: Record<string, string>) {
-    this.definedMacros.clear();
-    this.expandSegmentsStack.length = 0;
-    this.expandSegmentsStack.push([]);
-    this.branchMacros.clear();
+    this._definedMacros.clear();
+    this._expandSegmentsStack.length = 0;
+    this._expandSegmentsStack.push([]);
+    this._branchMacros.clear();
     this.addPredefinedMacro("GL_ES");
-    this.includeMap = includeMap;
+    this._includeMap = includeMap;
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
@@ -48,36 +48,36 @@ export default class PpParser {
       macroBody.set(EPpToken.id, value);
     }
 
-    this.definedMacros.set(macro, new MacroDefine(tk, macroBody));
+    this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 
   static parse(scanner: PpScanner): string {
     while (!scanner.isEnd()) {
-      const directive = scanner.scanDirective(this.onToken.bind(this))!;
+      const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
       switch (directive.type) {
         case EPpKeyword.define:
-          this.parseDefine(scanner);
+          this._parseDefine(scanner);
           break;
 
         case EPpKeyword.undef:
-          this.parseUndef(scanner);
+          this._parseUndef(scanner);
           break;
 
         case EPpKeyword.if:
-          this.parseIf(scanner);
+          this._parseIf(scanner);
           break;
 
         case EPpKeyword.ifndef:
-          this.parseIfNdef(scanner);
+          this._parseIfNdef(scanner);
           break;
 
         case EPpKeyword.ifdef:
-          this.parseIfDef(scanner);
+          this._parseIfDef(scanner);
           break;
 
         case EPpKeyword.include:
-          this.parseInclude(scanner);
+          this._parseInclude(scanner);
           break;
       }
     }
@@ -86,10 +86,10 @@ export default class PpParser {
   }
 
   private static get expandSegments() {
-    return this.expandSegmentsStack[this.expandSegmentsStack.length - 1];
+    return this._expandSegmentsStack[this._expandSegmentsStack.length - 1];
   }
 
-  private static parseInclude(scanner: PpScanner) {
+  private static _parseInclude(scanner: PpScanner) {
     const start = scanner.getShaderPosition(8);
 
     scanner.skipSpace(true);
@@ -97,13 +97,13 @@ export default class PpParser {
     scanner.scanToChar("\n");
     const end = scanner.getShaderPosition();
 
-    const chunk = this.includeMap[id.lexeme];
+    const chunk = this._includeMap[id.lexeme];
     if (!chunk) {
       ParserUtils.throw(id.location, `Shader slice "${id.lexeme}" not founded.`);
     }
 
     const range = ShaderLab.createRange(start, end);
-    const expanded = this.expandMacroChunk(chunk, range, id.lexeme);
+    const expanded = this._expandMacroChunk(chunk, range, id.lexeme);
     // #if _EDITOR
     const block = new BlockInfo(id.lexeme, undefined, expanded.sourceMap);
     // #endif
@@ -116,21 +116,21 @@ export default class PpParser {
     });
   }
 
-  private static parseIfDef(scanner: PpScanner) {
+  private static _parseIfDef(scanner: PpScanner) {
     const start = scanner.current - 6;
 
     const id = scanner.scanWord();
-    this.addEmptyReplace(scanner, start);
-    this.branchMacros.add(id.lexeme);
+    this._addEmptyReplace(scanner, start);
+    this._branchMacros.add(id.lexeme);
 
-    const macro = this.definedMacros.get(id.lexeme);
+    const macro = this._definedMacros.get(id.lexeme);
     scanner.skipSpace(true);
 
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!!macro) {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition() : scanner.scanRemainMacro();
 
-      const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+      const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
 
       // #if _EDITOR
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
@@ -149,12 +149,15 @@ export default class PpParser {
     }
 
     this.expandSegments.pop();
-    this.addEmptyReplace(scanner, start);
+    this._addEmptyReplace(scanner, start);
 
-    this.parseMacroBranch(<any>nextDirective.type, scanner);
+    this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static parseMacroBranch(directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif, scanner: PpScanner) {
+  private static _parseMacroBranch(
+    directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif,
+    scanner: PpScanner
+  ) {
     if (directive === EPpKeyword.endif) {
       return;
     }
@@ -163,7 +166,7 @@ export default class PpParser {
 
     if (directive === EPpKeyword.else) {
       const { token: elseChunk } = scanner.scanMacroBranchChunk();
-      const expanded = this.expandMacroChunk(elseChunk.lexeme, elseChunk.location, scanner);
+      const expanded = this._expandMacroChunk(elseChunk.lexeme, elseChunk.location, scanner);
       // #if _EDITOR
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
@@ -177,11 +180,11 @@ export default class PpParser {
         replace: expanded.content
       });
     } else if (directive === EPpKeyword.elif) {
-      const constantExpr = this.parseConstantExpression(scanner);
+      const constantExpr = this._parseConstantExpression(scanner);
       const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
       if (!!constantExpr) {
         const end = nextDirective.type === EPpKeyword.endif ? scanner.current : scanner.scanRemainMacro().index;
-        const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+        const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
         // #if _EDITOR
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif
@@ -209,47 +212,47 @@ export default class PpParser {
           rangeInBlock: range,
           replace: ""
         });
-        this.parseMacroBranch(<any>nextDirective.type, scanner);
+        this._parseMacroBranch(<any>nextDirective.type, scanner);
       }
     }
   }
 
-  private static parseConstantExpression(scanner: PpScanner) {
+  private static _parseConstantExpression(scanner: PpScanner) {
     scanner.skipSpace(true);
-    return this.parseLogicalOrExpression(scanner);
+    return this._parseLogicalOrExpression(scanner);
   }
 
-  private static parseLogicalOrExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseLogicalAndExpression(scanner);
+  private static _parseLogicalOrExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseLogicalAndExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && operator === "||") {
       scanner.advance(2);
       scanner.skipSpace(false);
-      const operand2 = this.parseLogicalOrExpression(scanner);
+      const operand2 = this._parseLogicalOrExpression(scanner);
       return operand1 || operand2;
     }
     return operand1;
   }
 
-  private static parseLogicalAndExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseEqualityExpression(scanner);
+  private static _parseLogicalAndExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseEqualityExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && operator === "&&") {
       scanner.advance(2);
       scanner.skipSpace(false);
-      const operand2 = this.parseLogicalAndExpression(scanner);
+      const operand2 = this._parseLogicalAndExpression(scanner);
       return operand1 && operand2;
     }
     return operand1;
   }
 
-  private static parseEqualityExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseRelationalExpression(scanner);
+  private static _parseEqualityExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseRelationalExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && ["==", "!="].includes(operator)) {
       scanner.advance(2);
       scanner.skipSpace(false);
-      const operand2 = this.parseEqualityExpression(scanner);
+      const operand2 = this._parseEqualityExpression(scanner);
       switch (operator) {
         case "==":
           return operand1 === operand2;
@@ -260,15 +263,15 @@ export default class PpParser {
     return operand1;
   }
 
-  private static parseRelationalExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseShiftExpression(scanner) as number;
+  private static _parseRelationalExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseShiftExpression(scanner) as number;
     let operator = scanner.peek(2);
     if (operator[1] !== "=") operator = operator[0];
     if (operator && [">", "<", ">=", "<="].includes(operator)) {
       const opPos = scanner.getShaderPosition();
       scanner.advance(operator.length);
       scanner.skipSpace(false);
-      const operand2 = this.parseRelationalExpression(scanner) as number;
+      const operand2 = this._parseRelationalExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
         ParserUtils.throw(opPos, "invalid operator in relation expression.");
       }
@@ -286,14 +289,14 @@ export default class PpParser {
     return operand1;
   }
 
-  private static parseShiftExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseAdditiveExpression(scanner) as number;
+  private static _parseShiftExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseAdditiveExpression(scanner) as number;
     const operator = scanner.peek(2);
     if (operator && [">>", "<<"].includes(operator)) {
       const opPos = scanner.getShaderPosition();
       scanner.advance(2);
       scanner.skipSpace(false);
-      const operand2 = this.parseShiftExpression(scanner) as number;
+      const operand2 = this._parseShiftExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
         ParserUtils.throw(opPos, "invalid operator in shift expression.");
       }
@@ -308,15 +311,15 @@ export default class PpParser {
     return operand1;
   }
 
-  private static parseAdditiveExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseMulticativeExpression(scanner) as number;
+  private static _parseAdditiveExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseMulticativeExpression(scanner) as number;
     if ([">", "<"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition();
       scanner.advance();
 
       const operator = scanner.getCurChar();
       scanner.skipSpace(false);
-      const operand2 = this.parseAdditiveExpression(scanner) as number;
+      const operand2 = this._parseAdditiveExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
         ParserUtils.throw(opPos, "invalid operator.");
       }
@@ -330,14 +333,14 @@ export default class PpParser {
     return operand1;
   }
 
-  private static parseMulticativeExpression(scanner: PpScanner): PpConstant {
-    const operand1 = this.parseUnaryExpression(scanner) as number;
+  private static _parseMulticativeExpression(scanner: PpScanner): PpConstant {
+    const operand1 = this._parseUnaryExpression(scanner) as number;
     scanner.skipSpace(false);
     if (["*", "/", "%"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition();
       const operator = scanner.getCurChar();
       scanner.skipSpace(false);
-      const operand2 = this.parseMulticativeExpression(scanner) as number;
+      const operand2 = this._parseMulticativeExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
         ParserUtils.throw(opPos, "invalid operator.");
       }
@@ -353,12 +356,12 @@ export default class PpParser {
     return operand1;
   }
 
-  private static parseUnaryExpression(scanner: PpScanner) {
+  private static _parseUnaryExpression(scanner: PpScanner) {
     const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
       scanner.advance();
       const opPos = scanner.getShaderPosition();
-      const parenExpr = this.parseParenthesisExpression(scanner);
+      const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
         ParserUtils.throw(opPos, "invalid operator.");
       }
@@ -372,22 +375,22 @@ export default class PpParser {
           return !parenExpr;
       }
     }
-    return this.parseParenthesisExpression(scanner);
+    return this._parseParenthesisExpression(scanner);
   }
 
-  private static parseParenthesisExpression(scanner: PpScanner): PpConstant {
+  private static _parseParenthesisExpression(scanner: PpScanner): PpConstant {
     if (scanner.getCurChar() === "(") {
       scanner.advance();
       scanner.skipSpace(false);
-      const ret = this.parseConstant(scanner);
+      const ret = this._parseConstant(scanner);
       scanner.scanToChar(")");
       scanner.advance();
       return ret;
     }
-    return this.parseConstant(scanner);
+    return this._parseConstant(scanner);
   }
 
-  private static parseConstant(scanner: PpScanner): PpConstant {
+  private static _parseConstant(scanner: PpScanner): PpConstant {
     if (LexerUtils.isAlpha(scanner.getCurChar())) {
       const id = scanner.scanWord();
       if (id.type === EPpKeyword.defined) {
@@ -397,10 +400,10 @@ export default class PpParser {
           scanner.scanToChar(")");
           scanner.advance();
         }
-        this.branchMacros.add(macro.lexeme);
-        return !!this.definedMacros.get(macro.lexeme);
+        this._branchMacros.add(macro.lexeme);
+        return !!this._definedMacros.get(macro.lexeme);
       } else {
-        const macro = this.definedMacros.get(id.lexeme);
+        const macro = this._definedMacros.get(id.lexeme);
         if (!macro) {
           // ParserUtils.throw(id.location, 'undefined macro:', id.lexeme);
           return false;
@@ -412,7 +415,7 @@ export default class PpParser {
         if (!Number.isInteger(value)) {
           ParserUtils.throw(id.location, "invalid const macro:", id.lexeme);
         }
-        this.branchMacros.add(id.lexeme);
+        this._branchMacros.add(id.lexeme);
         return value;
       }
     } else if (LexerUtils.isNum(scanner.getCurChar())) {
@@ -426,7 +429,7 @@ export default class PpParser {
   /**
    * Recursively expand macro body and expansion.
    */
-  private static expandMacroChunk(
+  private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
     parentScanner: PpScanner
@@ -436,7 +439,7 @@ export default class PpParser {
     sourceMap: PpSourceMap;
     // #endif
   };
-  private static expandMacroChunk(
+  private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
     file: string
@@ -446,7 +449,7 @@ export default class PpParser {
     sourceMap: PpSourceMap;
     // #endif
   };
-  private static expandMacroChunk(
+  private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
     scannerOrFile: PpScanner | string
@@ -456,7 +459,7 @@ export default class PpParser {
     sourceMap: PpSourceMap;
     // #endif
   } {
-    this.expandSegmentsStack.push([]);
+    this._expandSegmentsStack.push([]);
     let scanner: PpScanner;
     if (typeof scannerOrFile === "string") {
       scanner = new PpScanner(chunk, scannerOrFile);
@@ -464,7 +467,7 @@ export default class PpParser {
       scanner = new PpScanner(chunk, scannerOrFile.file, loc);
     }
     const ret = this.parse(scanner);
-    this.expandSegmentsStack.pop();
+    this._expandSegmentsStack.pop();
     return {
       content: ret,
       // #if _EDITOR
@@ -473,19 +476,19 @@ export default class PpParser {
     };
   }
 
-  private static parseIfNdef(scanner: PpScanner) {
+  private static _parseIfNdef(scanner: PpScanner) {
     const start = scanner.current - 7;
 
     const id = scanner.scanWord();
-    this.addEmptyReplace(scanner, start);
-    this.branchMacros.add(id.lexeme);
+    this._addEmptyReplace(scanner, start);
+    this._branchMacros.add(id.lexeme);
 
-    const macro = this.definedMacros.get(id.lexeme);
+    const macro = this._definedMacros.get(id.lexeme);
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!macro) {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition() : scanner.scanRemainMacro();
 
-      const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+      const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
       // #if _EDITOR
       const blockInfo = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
@@ -501,11 +504,11 @@ export default class PpParser {
     }
 
     this.expandSegments.pop();
-    this.addEmptyReplace(scanner, start);
-    this.parseMacroBranch(<any>nextDirective.type, scanner);
+    this._addEmptyReplace(scanner, start);
+    this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static addEmptyReplace(scanner: PpScanner, start: number) {
+  private static _addEmptyReplace(scanner: PpScanner, start: number) {
     // #if _EDITOR
     const block = new BlockInfo(scanner.file, scanner.blockRange);
     // #endif
@@ -521,16 +524,16 @@ export default class PpParser {
     });
   }
 
-  private static parseIf(scanner: PpScanner) {
+  private static _parseIf(scanner: PpScanner) {
     const start = scanner.current - 3;
 
-    const constantExpr = this.parseConstantExpression(scanner);
-    this.addEmptyReplace(scanner, start);
+    const constantExpr = this._parseConstantExpression(scanner);
+    this._addEmptyReplace(scanner, start);
 
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!!constantExpr) {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition() : scanner.scanRemainMacro();
-      const expanded = this.expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+      const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
       // #if _EDITOR
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
@@ -546,16 +549,16 @@ export default class PpParser {
     }
 
     this.expandSegments.pop();
-    this.addEmptyReplace(scanner, start);
-    this.parseMacroBranch(<any>nextDirective.type, scanner);
+    this._addEmptyReplace(scanner, start);
+    this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static parseDefine(scanner: PpScanner) {
+  private static _parseDefine(scanner: PpScanner) {
     const start = scanner.getShaderPosition(7);
     const macro = scanner.scanWord();
 
     let end = macro.location.end;
-    if (this.definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
+    if (this._definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
       ParserUtils.throw(macro.location, "redefined macro:", macro.lexeme);
     }
 
@@ -567,7 +570,7 @@ export default class PpParser {
     const macroBody = scanner.scanLineRemain();
     const range = ShaderLab.createRange(start, end);
     const macroDefine = new MacroDefine(macro, macroBody, range, macroArgs);
-    this.definedMacros.set(macro.lexeme, macroDefine);
+    this._definedMacros.set(macro.lexeme, macroDefine);
 
     // #if _EDITOR
     const block = new BlockInfo(scanner.file, scanner.blockRange);
@@ -582,7 +585,7 @@ export default class PpParser {
     });
   }
 
-  private static parseUndef(scanner: PpScanner) {
+  private static _parseUndef(scanner: PpScanner) {
     const start = scanner.current - 6;
     const macro = scanner.scanWord();
 
@@ -598,17 +601,17 @@ export default class PpParser {
       rangeInBlock: range,
       replace: ""
     });
-    this.definedMacros.delete(macro.lexeme);
+    this._definedMacros.delete(macro.lexeme);
   }
 
-  private static onToken(token: BaseToken, scanner: PpScanner) {
+  private static _onToken(token: BaseToken, scanner: PpScanner) {
     // #if !_EDITOR
-    this.skipEditorBlock(token, scanner);
+    this._skipEditorBlock(token, scanner);
     // #endif
-    this.expandToken(token, scanner);
+    this._expandToken(token, scanner);
   }
 
-  private static skipEditorBlock(token: BaseToken, scanner: PpScanner) {
+  private static _skipEditorBlock(token: BaseToken, scanner: PpScanner) {
     if (token.lexeme === "EditorProperties" || token.lexeme === "EditorMacros") {
       const start = scanner.current - token.lexeme.length;
       scanner.scanPairedBlock();
@@ -620,8 +623,8 @@ export default class PpParser {
     }
   }
 
-  private static expandToken(token: BaseToken, scanner: PpScanner) {
-    const macro = this.definedMacros.get(token.lexeme);
+  private static _expandToken(token: BaseToken, scanner: PpScanner) {
+    const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       let replace = macro.body.lexeme;
       if (macro.isFunction) {
@@ -648,7 +651,7 @@ export default class PpParser {
         scanner.advance();
         const range = ShaderLab.createRange(token.location!.start, scanner.curPosition);
         replace = macro.expand(...args);
-        const expanded = this.expandMacroChunk(replace, range, scanner);
+        const expanded = this._expandMacroChunk(replace, range, scanner);
         // #if _EDITOR
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif
@@ -661,7 +664,7 @@ export default class PpParser {
           replace: expanded.content
         });
       } else {
-        const expanded = this.expandMacroChunk(replace, token.location, scanner);
+        const expanded = this._expandMacroChunk(replace, token.location, scanner);
         // #if _EDITOR
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif

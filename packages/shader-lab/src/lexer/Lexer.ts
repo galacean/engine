@@ -24,6 +24,12 @@ export class Lexer extends BaseScanner {
     return EOF;
   }
 
+  override skipSpace() {
+    while (/\s/.test(this.getCurChar())) {
+      this.advance();
+    }
+  }
+
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
@@ -31,13 +37,13 @@ export class Lexer extends BaseScanner {
     }
 
     if (LexerUtils.isAlpha(this.getCurChar())) {
-      return this.scanWord();
+      return this._scanWord();
     }
     if (LexerUtils.isNum(this.getCurChar())) {
-      return this.scanNum();
+      return this._scanNum();
     }
 
-    const start = this.getPosition();
+    const start = this._getPosition();
     const token = BaseToken.pool.get();
 
     switch (this.getCurChar()) {
@@ -237,7 +243,7 @@ export class Lexer extends BaseScanner {
       case ".":
         this.advance();
         if (LexerUtils.isNum(this.getCurChar())) {
-          return this.scanNumAfterDot();
+          return this._scanNumAfterDot();
         }
 
         token.set(ETokenType.DOT, ".", start);
@@ -269,7 +275,7 @@ export class Lexer extends BaseScanner {
         break;
       case '"':
         this.advance();
-        return this.scanStringConst();
+        return this._scanStringConst();
 
       default:
         console.log("at position", start);
@@ -278,22 +284,22 @@ export class Lexer extends BaseScanner {
     return token;
   }
 
-  private scanStringConst() {
-    const start = this.getPosition();
+  private _scanStringConst() {
+    const start = this._getPosition();
     const buffer: string[] = [];
     while (this.getCurChar() !== '"') {
       buffer.push(this.getCurChar());
       this.advance();
     }
     this.advance();
-    const range = ShaderLab.createRange(start, this.getPosition());
+    const range = ShaderLab.createRange(start, this._getPosition());
 
     const token = BaseToken.pool.get();
     token.set(ETokenType.STRING_CONST, buffer.join(""), range);
     return token;
   }
 
-  private scanNumAfterDot() {
+  private _scanNumAfterDot() {
     const buffer = ["."];
     while (LexerUtils.isNum(this.getCurChar())) {
       buffer.push(this.getCurChar());
@@ -301,11 +307,11 @@ export class Lexer extends BaseScanner {
     }
 
     const token = BaseToken.pool.get();
-    token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(1));
+    token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(1));
     return token;
   }
 
-  private getPosition(offset /** offset from starting point */ = 0) {
+  private _getPosition(offset /** offset from starting point */ = 0) {
     return ShaderLab.createPosition(
       this.current - offset,
       // #if _EDITOR
@@ -315,15 +321,9 @@ export class Lexer extends BaseScanner {
     );
   }
 
-  override skipSpace() {
-    while (/\s/.test(this.getCurChar())) {
-      this.advance();
-    }
-  }
-
-  private scanWord() {
+  private _scanWord() {
     const buffer: string[] = [this.getCurChar()];
-    const start = this.getPosition();
+    const start = this._getPosition();
     this.advance();
     while (LexerUtils.isLetter(this.getCurChar())) {
       buffer.push(this.getCurChar());
@@ -342,7 +342,7 @@ export class Lexer extends BaseScanner {
     return token;
   }
 
-  private scanNum() {
+  private _scanNum() {
     const buffer: string[] = [];
     while (LexerUtils.isNum(this.getCurChar())) {
       buffer.push(this.getCurChar());
@@ -355,29 +355,29 @@ export class Lexer extends BaseScanner {
         buffer.push(this.getCurChar());
         this.advance();
       }
-      this.scanFloatSuffix(buffer);
+      this._scanFloatSuffix(buffer);
 
       const token = BaseToken.pool.get();
-      token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+      token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
       return token;
     } else {
       if (this.getCurChar() === "e" || this.getCurChar() === "E") {
-        this.scanFloatSuffix(buffer);
+        this._scanFloatSuffix(buffer);
 
         const token = BaseToken.pool.get();
-        token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+        token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
         return token;
       } else {
-        this.scanIntegerSuffix(buffer);
+        this._scanIntegerSuffix(buffer);
 
         const token = BaseToken.pool.get();
-        token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getPosition(buffer.length));
+        token.set(ETokenType.INT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
         return token;
       }
     }
   }
 
-  private scanFloatSuffix(buffer: string[]) {
+  private _scanFloatSuffix(buffer: string[]) {
     if (this.getCurChar() === "e" || this.getCurChar() === "E") {
       buffer.push(this.getCurChar());
       this.advance();
@@ -397,7 +397,7 @@ export class Lexer extends BaseScanner {
     }
   }
 
-  private scanIntegerSuffix(buffer: string[]) {
+  private _scanIntegerSuffix(buffer: string[]) {
     if (this.getCurChar() === "u" || this.getCurChar() === "U") {
       buffer.push(this.getCurChar());
       this.advance();
