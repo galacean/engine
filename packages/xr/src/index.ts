@@ -41,6 +41,6 @@ export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingSta
 export { XRInputEventType } from "./input/XRInputEventType";
 export { XRTargetRayMode } from "./input/XRTargetRayMode";
 
-export * from "./loader/XRCustomParser";
 export * from "./loader/XRReferenceImageDecoder";
 export * from "./loader/XRReferenceImageLoader";
+export * from "./loader/XRSceneExtendParser";

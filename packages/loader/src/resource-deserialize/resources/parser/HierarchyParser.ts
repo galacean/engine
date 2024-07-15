@@ -1,9 +1,9 @@
-import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
-import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
-import { ReflectionParser } from "./ReflectionParser";
-import { ParserContext, ParserType } from "./ParserContext";
-import { PrefabResource } from "../../../prefab/PrefabResource";
+import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
+import { PrefabResource } from "../../../prefab/PrefabResource";
+import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
+import { ParserContext, ParserType } from "./ParserContext";
+import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
@@ -37,6 +37,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     this._parsePrefabModification = this._parsePrefabModification.bind(this);
     this._parsePrefabRemovedEntities = this._parsePrefabRemovedEntities.bind(this);
     this._parsePrefabRemovedComponents = this._parsePrefabRemovedComponents.bind(this);
+    this._extendParse = this._extendParse.bind(this);
     this._clearAndResolve = this._clearAndResolve.bind(this);
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
@@ -53,6 +54,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .then(this._parsePrefabModification)
       .then(this._parsePrefabRemovedEntities)
       .then(this._parsePrefabRemovedComponents)
+      .then(this._extendParse)
       .then(this._clearAndResolve)
       .then(this._resolve)
       .catch(this._reject);
@@ -60,6 +62,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
+
+  protected _extendParse(): Promise<any> {
+    return Promise.resolve();
+  }
 
   private _parseEntities(): Promise<Entity[]> {
     const entitiesConfig = this.data.entities;

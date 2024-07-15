@@ -5,7 +5,7 @@ import { XRReferenceImage } from "../feature/trackable/image/XRReferenceImage";
 export class XRReferenceImageDecoder {
   static decode(engine: Engine, bufferReader: BufferReader): Promise<XRReferenceImage> {
     return new Promise((resolve, reject) => {
-      const physicalWidth = bufferReader.nextUint16();
+      const physicalWidth = bufferReader.nextFloat32();
       bufferReader.nextUint8();
       const img = new Image();
       img.onload = () => {

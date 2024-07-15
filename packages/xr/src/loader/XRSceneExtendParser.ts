@@ -1,6 +1,5 @@
 import {
   Camera,
-  CustomParser,
   Engine,
   Entity,
   IScene,
@@ -10,7 +9,7 @@ import {
   Scene,
   Vector3,
   XRManager,
-  registerCustomParser
+  registerSceneExtendParser
 } from "@galacean/engine";
 import { XRFeatureType } from "../feature/XRFeatureType";
 import { XRCameraManager } from "../feature/camera/XRCameraManager";
@@ -22,9 +21,9 @@ import { XRPlaneTracking } from "../feature/trackable/plane/XRPlaneTracking";
 import { XRTrackedInputDevice } from "../input/XRTrackedInputDevice";
 import { IAnchorTrackingSchema, IHitTestSchema, IImageTrackingSchema, IPlaneTrackingSchema } from "./XRSceneSchema";
 
-@registerCustomParser("XR")
-export class XRCustomParser extends CustomParser {
-  override async onSceneParse(engine: Engine, context: ParserContext<IScene, Scene>, data: IScene): Promise<void> {
+@registerSceneExtendParser("XR")
+export class XRSceneExtendParser {
+  async parse(engine: Engine, context: ParserContext<IScene, Scene>, data: IScene): Promise<void> {
     const { xrManager } = engine;
     if (!xrManager) {
       Logger.error("XRManager is not found in the engine.");
@@ -105,6 +104,7 @@ export class XRCustomParser extends CustomParser {
       Logger.error("Hit Test is not supported.");
       return;
     }
+    xrManager.addFeature(XRHitTest);
   }
 
   private _setCamera(cameraManager: XRCameraManager, device: CameraDevice, entity: Entity): void {

@@ -24,7 +24,6 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine): Promise<T> 
   });
 }
 
-export * from "./resources/parser/CustomParser";
 export * from "./resources/parser/ParserContext";
 export * from "./resources/scene/EditorTextureLoader";
 export * from "./resources/scene/MeshLoader";

@@ -1,11 +1,10 @@
 import { IReferable, IVector3, IVector4 } from "@galacean/engine";
-
 import { XRFeatureType } from "../feature/XRFeatureType";
 import { XRPlaneMode } from "../feature/trackable/plane/XRPlaneMode";
 
-declare module "@galacean/engine-loader" {
+declare module "@galacean/engine" {
   interface ISceneConfig {
-    xr?: {
+    xr: {
       sessionMode: number;
       origin: string;
       camera: string;

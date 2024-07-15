@@ -138,6 +138,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
       requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
+      this._onChanged(added, updated, removed);
       for (let i = 0, n = listeners.length; i < n; i++) {
         listeners[i](added, updated, removed);
       }
@@ -190,20 +191,17 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     if (added.length > 0) {
       for (let i = 0, n = added.length; i < n; i++) {
         this._createOrUpdateTrackedComponents(added[i]);
-        console.log("add", added[i].id);
       }
     }
     if (updated.length > 0) {
       for (let i = 0, n = updated.length; i < n; i++) {
         this._createOrUpdateTrackedComponents(updated[i]);
-        console.log("updated", updated[i].id);
       }
     }
     if (removed.length > 0) {
       const { _trackIdToIndex: trackIdToIndex, _trackedComponents: trackedComponents } = this;
       for (let i = 0, n = removed.length; i < n; i++) {
         const { id } = removed[i];
-        console.log("remove", id);
         const index = trackIdToIndex[id];
         if (index !== undefined) {
           const trackedComponent = trackedComponents[index];
