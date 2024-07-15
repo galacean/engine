@@ -23,7 +23,7 @@ import { IAnchorTrackingSchema, IHitTestSchema, IImageTrackingSchema, IPlaneTrac
 
 @registerSceneExtendParser("XR")
 export class XRSceneExtendParser {
-  async parse(engine: Engine, context: ParserContext<IScene, Scene>, data: IScene): Promise<void> {
+  static async parse(engine: Engine, context: ParserContext<IScene, Scene>, data: IScene): Promise<void> {
     const { xrManager } = engine;
     if (!xrManager) {
       Logger.error("XRManager is not found in the engine.");
@@ -60,7 +60,11 @@ export class XRSceneExtendParser {
     }
   }
 
-  private async _addImageTracking(engine: Engine, xrManager: XRManager, schema: IImageTrackingSchema): Promise<void> {
+  private static async _addImageTracking(
+    engine: Engine,
+    xrManager: XRManager,
+    schema: IImageTrackingSchema
+  ): Promise<void> {
     if (!xrManager.isSupportedFeature(XRImageTracking)) {
       Logger.error("Image Tracking is not supported.");
       return;
@@ -76,7 +80,7 @@ export class XRSceneExtendParser {
     });
   }
 
-  private _addPlaneTracking(xrManager: XRManager, schema: IPlaneTrackingSchema): void {
+  private static _addPlaneTracking(xrManager: XRManager, schema: IPlaneTrackingSchema): void {
     if (!xrManager.isSupportedFeature(XRPlaneTracking)) {
       Logger.error("Plane Tracking is not supported.");
       return;
@@ -84,7 +88,7 @@ export class XRSceneExtendParser {
     xrManager.addFeature(XRPlaneTracking, schema.detectionMode);
   }
 
-  private _addAnchorTracking(xrManager: XRManager, schema: IAnchorTrackingSchema): void {
+  private static _addAnchorTracking(xrManager: XRManager, schema: IAnchorTrackingSchema): void {
     if (!xrManager.isSupportedFeature(XRAnchorTracking)) {
       Logger.error("Anchor Tracking is not supported.");
       return;
@@ -99,7 +103,7 @@ export class XRSceneExtendParser {
     }
   }
 
-  private _addHitTest(xrManager: XRManager, schema: IHitTestSchema): void {
+  private static _addHitTest(xrManager: XRManager, schema: IHitTestSchema): void {
     if (!xrManager.isSupportedFeature(XRHitTest)) {
       Logger.error("Hit Test is not supported.");
       return;
@@ -107,7 +111,7 @@ export class XRSceneExtendParser {
     xrManager.addFeature(XRHitTest);
   }
 
-  private _setCamera(cameraManager: XRCameraManager, device: CameraDevice, entity: Entity): void {
+  private static _setCamera(cameraManager: XRCameraManager, device: CameraDevice, entity: Entity): void {
     const camera = entity?.getComponent(Camera);
     camera && cameraManager.attachCamera(device, camera);
   }
