@@ -69,7 +69,7 @@ export class TextUtils {
       return info;
     }
 
-    info = <FontSizeInfo>TextUtils._measureFontOrChar(fontString, TextUtils._measureString);
+    info = <FontSizeInfo>TextUtils._measureFontOrChar(fontString, TextUtils._measureString, false);
     fontSizeInfoCache[fontString] = info;
     return info;
   }
@@ -93,7 +93,7 @@ export class TextUtils {
   }
 
   static measureChar(char: string, fontString: string): CharInfo {
-    return <CharInfo>TextUtils._measureFontOrChar(fontString, char);
+    return <CharInfo>TextUtils._measureFontOrChar(fontString, char, true);
   }
 
   static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
@@ -344,7 +344,7 @@ export class TextUtils {
    * @internal
    * Use internal for CanvasRenderer plugin.
    */
-  static _measureFontOrChar(fontString: string, measureString: string): FontSizeInfo | CharInfo {
+  static _measureFontOrChar(fontString: string, measureString: string, isChar: boolean): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     // Safari gets data confusion through getImageData when the canvas width is not an integer.
@@ -408,9 +408,8 @@ export class TextUtils {
       descent = bottom - baseline + 1;
       size = ascent + descent;
     }
-    const sizeInfo = { ascent, descent, size };
 
-    if (char) {
+    if (isChar) {
       let data = null;
       if (size > 0) {
         const lineIntegerW = integerW * 4;
@@ -418,7 +417,7 @@ export class TextUtils {
         data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
       }
       return {
-        char,
+        char: measureString,
         x: 0,
         y: 0,
         w: width,
@@ -433,7 +432,7 @@ export class TextUtils {
         data
       };
     } else {
-      return sizeInfo;
+      return { ascent, descent, size };
     }
   }
 
