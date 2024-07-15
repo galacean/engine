@@ -40,6 +40,8 @@ export class ShaderPass extends ShaderPart {
   private readonly _vertexEntry: string;
   private readonly _fragmentEntry: string;
 
+  private _platformMacros: string[] = [];
+
   /**
    * @internal
    */
@@ -158,17 +160,17 @@ export class ShaderPass extends ShaderPart {
     const macros = new Array<ShaderMacro>();
     ShaderMacro._getMacrosElements(macroCollection, macros);
 
-    const platformMacros: string[] = [];
+    this._platformMacros.length = 0;
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      platformMacros.push("HAS_TEX_LOD");
+      this._platformMacros.push("HAS_TEX_LOD");
     }
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      platformMacros.push("HAS_DERIVATIVES");
+      this._platformMacros.push("HAS_DERIVATIVES");
     }
     if (isWebGL2) {
-      platformMacros.push("GRAPHICS_API_WEBGL2");
+      this._platformMacros.push("GRAPHICS_API_WEBGL2");
     } else {
-      platformMacros.push("GRAPHICS_API_WEBGL1");
+      this._platformMacros.push("GRAPHICS_API_WEBGL1");
     }
 
     const start = performance.now();
@@ -178,7 +180,7 @@ export class ShaderPass extends ShaderPart {
       fragmentEntry,
       macros,
       isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
-      platformMacros
+      this._platformMacros
     );
     Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
 
