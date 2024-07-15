@@ -1,6 +1,7 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { VirtualCamera } from "../VirtualCamera";
+import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 
@@ -27,6 +28,7 @@ export class RenderContext {
 
   replacementShader: Shader;
   replacementTag: ShaderTagKey;
+  replacementFailureStrategy: ReplacementFailureStrategy;
 
   flipProjection = false;
   viewMatrix: Matrix;

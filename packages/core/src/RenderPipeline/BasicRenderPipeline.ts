@@ -6,6 +6,7 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
+import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
@@ -239,6 +240,8 @@ export class BasicRenderPipeline {
               break;
             }
           }
+          context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader &&
+            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
         } else {
           this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
