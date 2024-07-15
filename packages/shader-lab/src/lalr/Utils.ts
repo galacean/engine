@@ -1,12 +1,13 @@
 import { EKeyword, ETokenType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
-import { ASTNodeConstructor } from "../parser/types";
 import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderLab } from "../ShaderLab";
-import { ObjectPool } from "../ObjectPool";
+import { ShaderLabObjectPool } from "../ShaderLabObjectPool";
+import { IPoolElement } from "@galacean/engine";
+import { NodeChild } from "../parser/types";
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -25,7 +26,9 @@ export default class GrammarUtils {
     options: GrammarSymbol[][],
     /** the ast node */
     // astType?: ASTNodeConstructor
-    astTypePool?: ObjectPool<ASTNodeConstructor, any>
+    astTypePool?: ShaderLabObjectPool<
+      { set: (loc: ShaderRange, children: NodeChild[]) => void } & IPoolElement & TreeNode
+    >
   ) {
     const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
     for (const opt of options) {

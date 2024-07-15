@@ -39,8 +39,15 @@ export default class PpParser {
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
-    const tk = new BaseToken(EPpToken.id, macro);
-    const macroBody = value ? new BaseToken(EPpToken.id, value) : undefined;
+    const tk = BaseToken.pool.get();
+    tk.set(EPpToken.id, macro);
+
+    let macroBody: BaseToken | undefined;
+    if (value) {
+      macroBody = BaseToken.pool.get();
+      macroBody.set(EPpToken.id, value);
+    }
+
     this.definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 

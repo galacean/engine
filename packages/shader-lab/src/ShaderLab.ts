@@ -7,7 +7,7 @@ import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { ClearableObjectPool, Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
-import { clearAllAstNodePool } from "./ObjectPool";
+import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
 
 export class ShaderLab implements IShaderLab {
   /**
@@ -17,11 +17,11 @@ export class ShaderLab implements IShaderLab {
   /**
    * @internal
    */
-  private static _shaderPositionPool = new ClearableObjectPool(ShaderPosition, 1000);
+  private static _shaderPositionPool = new ClearableObjectPool(ShaderPosition);
   /**
    * @internal
    */
-  private static _shaderRangePool = new ClearableObjectPool(ShaderRange, 500);
+  private static _shaderRangePool = new ClearableObjectPool(ShaderRange);
 
   static createPosition(
     index: number,
@@ -55,7 +55,7 @@ export class ShaderLab implements IShaderLab {
     backend: ShaderPlatformTarget,
     platformMacros: string[]
   ) {
-    clearAllAstNodePool();
+    ShaderLabObjectPool.clearAllShaderLabObjectPool();
     Preprocessor.reset(ShaderLib);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);

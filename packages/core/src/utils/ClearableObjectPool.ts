@@ -6,8 +6,9 @@ import { IPoolElement, ObjectPool } from "./ObjectPool";
 export class ClearableObjectPool<T extends IPoolElement> extends ObjectPool<T> {
   private _usedElementCount: number = 0;
 
-  constructor(type: new () => T, initializeCount: number = 0) {
-    super(type, initializeCount);
+  constructor(type: new () => T) {
+    super(type);
+    this._elements = [];
   }
 
   /**

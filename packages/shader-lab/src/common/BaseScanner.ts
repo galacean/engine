@@ -164,7 +164,8 @@ export default class BaseScanner {
 
     if (start.index === end.index) {
       this._advance();
-      const token = new BaseToken(ETokenType.NOT_WORD, this._source[start.index], start);
+      const token = BaseToken.pool.get();
+      token.set(ETokenType.NOT_WORD, this._source[start.index], start);
       onToken?.(token, this);
       return token;
     }
@@ -172,7 +173,8 @@ export default class BaseScanner {
     const lexeme = this._source.substring(start.index, end.index);
     const tokenType = this._keywordsMap.get(lexeme) ?? ETokenType.ID;
     const range = ShaderLab.createRange(start, end);
-    const token = new BaseToken(tokenType, lexeme, range);
+    const token = BaseToken.pool.get();
+    token.set(tokenType, lexeme, range);
     onToken?.(token, this);
     return token;
   }

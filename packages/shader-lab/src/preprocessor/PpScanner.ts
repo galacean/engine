@@ -94,10 +94,14 @@ export default class PpScanner extends BaseScanner {
     }
     const kw = PpKeyword.get(word);
     if (kw) {
-      return BaseToken.pool.get(kw, word, this.getShaderPosition());
+      const token = BaseToken.pool.get();
+      token.set(kw, word, this.getShaderPosition());
+      return token;
     }
 
-    return BaseToken.pool.get(EPpToken.id, word, this.getShaderPosition(word.length));
+    const token = BaseToken.pool.get();
+    token.set(EPpToken.id, word, this.getShaderPosition(word.length));
+    return token;
   }
 
   getShaderPosition(offset /** offset from starting point */ = 0) {
@@ -127,7 +131,8 @@ export default class PpScanner extends BaseScanner {
 
     const lexeme = this._source.slice(start, this._currentIndex);
 
-    const ret = BaseToken.pool.get(
+    const ret = BaseToken.pool.get();
+    ret.set(
       PpKeyword.has(lexeme) ? PpKeyword.get(lexeme) : EPpToken.id,
       lexeme,
       this.getShaderPosition(this._currentIndex - start)
@@ -150,7 +155,9 @@ export default class PpScanner extends BaseScanner {
     }
     const word = this._source.slice(start, this._currentIndex);
 
-    return BaseToken.pool.get(EPpToken.string_const, word, ShaderPosition);
+    const token = BaseToken.pool.get();
+    token.set(EPpToken.string_const, word, ShaderPosition);
+    return token;
   }
 
   scanToChar(char: string) {
@@ -177,7 +184,8 @@ export default class PpScanner extends BaseScanner {
     }
 
     const chunk = this._source.slice(start, this._currentIndex - directive.lexeme.length - 1);
-    const token = BaseToken.pool.get(EPpToken.chunk, chunk, ShaderPosition);
+    const token = BaseToken.pool.get();
+    token.set(EPpToken.chunk, chunk, ShaderPosition);
     return { token, nextDirective: directive };
   }
 
@@ -223,7 +231,9 @@ export default class PpScanner extends BaseScanner {
     }
     const integer = this._source.slice(start, this._currentIndex);
 
-    return BaseToken.pool.get(EPpToken.int_constant, integer, this.getShaderPosition());
+    const token = BaseToken.pool.get();
+    token.set(EPpToken.int_constant, integer, this.getShaderPosition());
+    return token;
   }
 
   /**
@@ -239,7 +249,9 @@ export default class PpScanner extends BaseScanner {
       if (this.isEnd()) {
         const line = this._source.slice(start, this._currentIndex);
 
-        return BaseToken.pool.get(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+        const token = BaseToken.pool.get();
+        token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+        return token;
       }
       this.advance();
       const commentRange = this.skipComments();
@@ -258,7 +270,9 @@ export default class PpScanner extends BaseScanner {
       );
     }
 
-    return BaseToken.pool.get(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+    const token = BaseToken.pool.get();
+    token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+    return token;
   }
 
   private advanceToDirective(onToken?: OnToken): BaseToken | undefined {

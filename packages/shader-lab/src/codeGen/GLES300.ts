@@ -83,8 +83,10 @@ export class GLES300Visitor extends GLESVisitor {
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     if (VisitorContext.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
       if (!VisitorContext.context._referencedVaryingList[V3_GL_FragColor]) {
+        const token = Token.pool.get();
+        token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
         VisitorContext.context._referencedVaryingList[V3_GL_FragColor] = {
-          ident: new Token(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0)),
+          ident: token,
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
           qualifier: "out",
           astNode: node

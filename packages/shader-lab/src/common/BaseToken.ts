@@ -1,25 +1,19 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
 import { ShaderLab } from "../ShaderLab";
-import { ObjectPool, Constructor } from "../ObjectPool";
+import { ShaderLabObjectPool } from "../ShaderLabObjectPool";
+import { IPoolElement } from "@galacean/engine";
 
-export class BaseToken<T extends number = number> {
-  static pool = new ObjectPool<Constructor<BaseToken>, BaseToken>(BaseToken, 100);
+export class BaseToken<T extends number = number> implements IPoolElement {
+  static pool = new ShaderLabObjectPool<BaseToken>(BaseToken);
 
   type: T;
   lexeme: string;
   location: ShaderRange;
 
-  constructor(type: T, lexeme: string, start?: ShaderPosition);
-  constructor(type: T, lexeme: string, location?: ShaderRange);
-  constructor(type: T, lexeme: string, arg?: ShaderRange | ShaderPosition) {
-    // @ts-ignore
-    this.init(type, lexeme, arg);
-  }
-
-  init(type: T, lexeme: string, start?: ShaderPosition);
-  init(type: T, lexeme: string, location?: ShaderRange);
-  init(type: T, lexeme: string, arg?: ShaderRange | ShaderPosition) {
+  set(type: T, lexeme: string, start?: ShaderPosition);
+  set(type: T, lexeme: string, location?: ShaderRange);
+  set(type: T, lexeme: string, arg?: ShaderRange | ShaderPosition) {
     this.type = type;
     this.lexeme = lexeme;
     if (arg) {
@@ -37,6 +31,9 @@ export class BaseToken<T extends number = number> {
       }
     }
   }
+
+  dispose(): void {}
 }
 
-export const EOF = new BaseToken<any>(ETokenType.EOF, "/EOF");
+export const EOF = new BaseToken();
+EOF.set(ETokenType.EOF, "/EOF");

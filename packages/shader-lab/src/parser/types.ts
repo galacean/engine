@@ -30,6 +30,4 @@ export class StructProp implements IParamInfo {
 
 export type NodeChild = TreeNode | BaseToken;
 
-export type ASTNodeConstructor = new (loc: ShaderRange, children: NodeChild[]) => TreeNode;
-
 export type IParamInfo = { ident: BaseToken; typeInfo: SymbolType; astNode: TreeNode };
