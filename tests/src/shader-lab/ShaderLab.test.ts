@@ -15,7 +15,7 @@ import chai, { expect } from "chai";
 import spies from "chai-spies";
 import fs from "fs";
 import path from "path";
-import { ShaderContent } from "@galacean/engine-design";
+import { IShaderContent } from "@galacean/engine-design";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
@@ -114,10 +114,10 @@ vec4 linearToGamma(vec4 linearIn){
 const shaderLab = new ShaderLab();
 
 describe("ShaderLab", () => {
-  let shader: ShaderContent;
-  let subShader: ShaderContent["subShaders"][number];
-  let passList: ShaderContent["subShaders"][number]["passes"];
-  let pass1: ShaderContent["subShaders"][number]["passes"][number];
+  let shader: IShaderContent;
+  let subShader: IShaderContent["subShaders"][number];
+  let passList: IShaderContent["subShaders"][number]["passes"];
+  let pass1: IShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
     shader = shaderLab._parseShaderContent(demoShader);

@@ -1,4 +1,4 @@
-import Grammar from "../parser/Grammar";
+import { Grammar } from "../parser/Grammar";
 import { ENonTerminal, GrammarSymbol, Terminal } from "../parser/GrammarSymbol";
 import State from "./State";
 import StateItem from "./StateItem";
@@ -10,7 +10,7 @@ import { ActionInfo, ActionTable, EAction, GotoTable, StateActionTable, StateGot
 /**
  * The [LALR1](https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/140%20LALR%20Parsing.pdf) Parser generator
  */
-export default class LALR1 {
+export class LALR1 {
   readonly firstSetMap: Map<ENonTerminal, Set<Terminal>> = new Map();
   readonly followSetMap: Map<ENonTerminal, Set<Terminal>> = new Map();
 

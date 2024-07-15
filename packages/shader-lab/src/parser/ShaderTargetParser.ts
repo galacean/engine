@@ -1,4 +1,4 @@
-import Grammar from "./Grammar";
+import { Grammar } from "./Grammar";
 import { ENonTerminal, GrammarSymbol } from "./GrammarSymbol";
 import { BaseToken } from "../common/BaseToken";
 import { ETokenType } from "../common";
@@ -14,7 +14,7 @@ import { Logger } from "@galacean/engine";
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
  */
-export default class ShaderTargetParser {
+export class ShaderTargetParser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
   readonly grammar: Grammar;

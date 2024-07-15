@@ -2,7 +2,7 @@ import { ETokenType } from "../common";
 import { ENonTerminal, GrammarSymbol } from "./GrammarSymbol";
 import Production from "../lalr/Production";
 
-export default class Grammar {
+export class Grammar {
   readonly productions: Production[];
 
   readonly startSymbol: ENonTerminal;

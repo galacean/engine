@@ -16,7 +16,13 @@ import {
   CullMode,
   Logger
 } from "@galacean/engine";
-import { Statement, ShaderContent, SubShaderContent, ShaderPassContent, IRenderStates } from "@galacean/engine-design";
+import {
+  IStatement,
+  IShaderContent,
+  ISubShaderContent,
+  IShaderPassContent,
+  IRenderStates
+} from "@galacean/engine-design";
 import { ParserUtils } from "../Utils";
 
 const EngineType = [
@@ -55,7 +61,7 @@ export class ShaderContentParser {
     this._newScope();
   }
 
-  static parse(source: string): ShaderContent {
+  static parse(source: string): IShaderContent {
     const start = performance.now();
 
     const scanner = new Scanner(source, KeywordMap);
@@ -63,7 +69,7 @@ export class ShaderContentParser {
       subShaders: [],
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} }
-    } as ShaderContent;
+    } as IShaderContent;
 
     scanner.scanText("Shader");
     ret.name = scanner.scanPairedText('"', '"');
@@ -97,7 +103,7 @@ export class ShaderContentParser {
     return ret;
   }
 
-  private static _parseShaderStatements(ret: ShaderContent, scanner: Scanner) {
+  private static _parseShaderStatements(ret: IShaderContent, scanner: Scanner) {
     let braceLevel = 1;
     let start = scanner.curPosition;
 
@@ -279,7 +285,7 @@ export class ShaderContentParser {
   }
 
   private static _addGlobalStatement(
-    ret: { globalContents: Statement[] },
+    ret: { globalContents: IStatement[] },
     scanner: Scanner,
     start: ShaderPosition,
     offset: number
@@ -292,14 +298,14 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseSubShader(scanner: Scanner): SubShaderContent {
+  private static _parseSubShader(scanner: Scanner): ISubShaderContent {
     this._newScope();
     const ret = {
       passes: [],
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
       tags: {}
-    } as SubShaderContent;
+    } as ISubShaderContent;
     let braceLevel = 1;
     ret.name = scanner.scanPairedText('"', '"');
     scanner.scanText("{");
@@ -382,13 +388,13 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parsePass(scanner: Scanner): ShaderPassContent {
+  private static _parsePass(scanner: Scanner): IShaderPassContent {
     const ret = {
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
       tags: {}
-    } as ShaderPassContent & {
-      globalContents: Statement[];
+    } as IShaderPassContent & {
+      globalContents: IStatement[];
     };
     ret.name = scanner.scanPairedText('"', '"');
     scanner.scanText("{");

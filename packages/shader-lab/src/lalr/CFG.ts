@@ -1,6 +1,6 @@
 // Context Free Grammar of Galacean ShaderLab
 
-import Grammar from "../parser/Grammar";
+import { Grammar } from "../parser/Grammar";
 import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import GrammarUtils from "./Utils";
 import { EKeyword, ETokenType } from "../common";
