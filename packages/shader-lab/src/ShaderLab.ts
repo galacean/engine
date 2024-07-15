@@ -5,7 +5,7 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { IShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { ClearableObjectPool, Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
 
@@ -17,11 +17,11 @@ export class ShaderLab implements IShaderLab {
   /**
    * @internal
    */
-  private static _shaderPositionPool = new ClearableObjectPool(ShaderPosition);
+  private static _shaderPositionPool = new ShaderLabObjectPool(ShaderPosition);
   /**
    * @internal
    */
-  private static _shaderRangePool = new ClearableObjectPool(ShaderRange);
+  private static _shaderRangePool = new ShaderLabObjectPool(ShaderRange);
 
   static createPosition(
     index: number,
@@ -56,6 +56,7 @@ export class ShaderLab implements IShaderLab {
     platformMacros: string[]
   ) {
     ShaderLabObjectPool.clearAllShaderLabObjectPool();
+
     Preprocessor.reset(ShaderLib);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
@@ -86,8 +87,6 @@ export class ShaderLab implements IShaderLab {
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
     Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
 
-    ShaderLab._shaderPositionPool.clear();
-    ShaderLab._shaderRangePool.clear();
     return ret;
   }
 
