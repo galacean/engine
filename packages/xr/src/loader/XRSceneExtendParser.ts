@@ -5,6 +5,7 @@ import {
   IScene,
   Logger,
   ParserContext,
+  PrefabResource,
   Quaternion,
   Scene,
   Vector3,
@@ -46,10 +47,10 @@ export class XRSceneExtendParser {
           await this._addImageTracking(engine, xrManager, <IImageTrackingSchema>feature);
           break;
         case XRFeatureType.PlaneTracking:
-          this._addPlaneTracking(xrManager, <IPlaneTrackingSchema>feature);
+          await this._addPlaneTracking(engine, xrManager, <IPlaneTrackingSchema>feature);
           break;
         case XRFeatureType.AnchorTracking:
-          this._addAnchorTracking(xrManager, <IAnchorTrackingSchema>feature);
+          await this._addAnchorTracking(engine, xrManager, <IAnchorTrackingSchema>feature);
           break;
         case XRFeatureType.HitTest:
           this._addHitTest(xrManager, <IHitTestSchema>feature);
@@ -71,24 +72,39 @@ export class XRSceneExtendParser {
     }
     const promises = [];
     const { images } = schema;
+    const { resourceManager } = engine;
     for (let i = 0, n = images.length; i < n; i++) {
       // @ts-ignore
-      promises.push(engine.resourceManager.getResourceByRef(images[i]));
+      promises.push(resourceManager.getResourceByRef(images[i]));
     }
+    let prefab: PrefabResource;
+    // @ts-ignore
+    schema.prefab && promises.push(resourceManager.getResourceByRef(schema.prefab).then((res) => (prefab = res)));
     return Promise.all(promises).then((xrReferenceImages: XRReferenceImage[]) => {
-      xrManager.addFeature(XRImageTracking, xrReferenceImages);
+      xrManager.addFeature(XRImageTracking, xrReferenceImages).prefab = prefab;
     });
   }
 
-  private static _addPlaneTracking(xrManager: XRManager, schema: IPlaneTrackingSchema): void {
+  private static async _addPlaneTracking(
+    engine: Engine,
+    xrManager: XRManager,
+    schema: IPlaneTrackingSchema
+  ): Promise<void> {
     if (!xrManager.isSupportedFeature(XRPlaneTracking)) {
       Logger.error("Plane Tracking is not supported.");
       return;
     }
-    xrManager.addFeature(XRPlaneTracking, schema.detectionMode);
+    xrManager.addFeature(XRPlaneTracking, schema.detectionMode).prefab = schema.prefab
+      ? // @ts-ignore
+        await engine.resourceManager.getResourceByRef(schema.prefab)
+      : null;
   }
 
-  private static _addAnchorTracking(xrManager: XRManager, schema: IAnchorTrackingSchema): void {
+  private static async _addAnchorTracking(
+    engine: Engine,
+    xrManager: XRManager,
+    schema: IAnchorTrackingSchema
+  ): Promise<void> {
     if (!xrManager.isSupportedFeature(XRAnchorTracking)) {
       Logger.error("Anchor Tracking is not supported.");
       return;
@@ -101,6 +117,8 @@ export class XRSceneExtendParser {
       const rotation = new Quaternion().copyFrom(anchor.rotation);
       anchorTracking.addAnchor(position, rotation);
     }
+    // @ts-ignore
+    anchorTracking.prefab = schema.prefab ? await engine.resourceManager.getResourceByRef(schema.prefab) : null;
   }
 
   private static _addHitTest(xrManager: XRManager, schema: IHitTestSchema): void {
