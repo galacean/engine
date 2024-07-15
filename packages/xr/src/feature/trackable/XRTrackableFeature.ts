@@ -27,6 +27,13 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
   private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
 
+  /**
+   * Returns the prefab that is automatically mounted when the object is tracked.
+   *
+   * @remarks
+   * If you set a Prefab, a Prefab instance will be created when the object is tracked,
+   * otherwise, an Entity will be used instead
+   */
   get prefab(): PrefabResource {
     return this._prefab;
   }
@@ -63,12 +70,12 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   }
 
   /**
-   *
-   * @param trackId -
-   * @returns -
+   * Get the tracked component through the tracked object id
+   * @param id - The tracked object id
+   * @returns The tracked component
    */
-  getTrackedComponentByTrackId(trackId: number): XRTrackedComponent<T> {
-    const index = this._trackIdToIndex[trackId];
+  getTrackedComponentById(id: number): XRTrackedComponent<T> {
+    const index = this._trackIdToIndex[id];
     return index !== undefined ? this._trackedComponents[index] : undefined;
   }
 
@@ -218,7 +225,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   }
 
   protected _createOrUpdateTrackedComponents(trackedData: T): XRTrackedComponent<T> {
-    let trackedComponent = this.getTrackedComponentByTrackId(trackedData.id);
+    let trackedComponent = this.getTrackedComponentById(trackedData.id);
     if (!trackedComponent) {
       const { _trackIdToIndex: trackIdToIndex, _trackedComponents: trackedComponents } = this;
       trackedComponent = this._createTrackedComponents(trackedData);
