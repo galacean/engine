@@ -14,7 +14,7 @@ class ProjectLoader extends Loader<void> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
-      this.request<IProject>(item.url, { type: "json" })
+      this.request<IProject>(item.url, { ...item, type: "json" })
         .then((data) => {
           // @ts-ignore
           engine.resourceManager.initVirtualResources(data.files);
