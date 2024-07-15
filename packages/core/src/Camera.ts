@@ -825,7 +825,11 @@ export class Camera extends Component {
   }
 
   private _checkMainCanvasAntialiasWaste(): void {
-    if (this.independentCanvasEnabled && Vector4.equals(this._viewport, PipelineUtils.defaultViewport)) {
+    if (
+      this._phasedActiveInScene &&
+      this.independentCanvasEnabled &&
+      Vector4.equals(this._viewport, PipelineUtils.defaultViewport)
+    ) {
       Logger.warn(
         "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
       );
