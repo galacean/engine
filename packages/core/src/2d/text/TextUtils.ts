@@ -69,7 +69,7 @@ export class TextUtils {
       return info;
     }
 
-    info = <FontSizeInfo>TextUtils._measureFontOrChar(fontString);
+    info = <FontSizeInfo>TextUtils._measureFontOrChar(fontString, TextUtils._measureString);
     fontSizeInfoCache[fontString] = info;
     return info;
   }
@@ -344,14 +344,14 @@ export class TextUtils {
    * @internal
    * Use internal for CanvasRenderer plugin.
    */
-  static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
+  static _measureFontOrChar(fontString: string, measureString: string): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
-    const measureString = char || TextUtils._measureString;
     // Safari gets data confusion through getImageData when the canvas width is not an integer.
     // The measure text width of some special invisible characters may be 0, so make sure the width is at least 1.
     // @todo: Text layout may vary from standard and not support emoji.
     const textMetrics = context.measureText(measureString);
+    // In some case (ex: " "), actualBoundingBoxRight and actualBoundingBoxLeft will be 0, so use width.
     const width = Math.max(
       1,
       Math.round(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft || textMetrics.width)
