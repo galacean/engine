@@ -127,7 +127,28 @@ eulerV.scale(MathUtil.radToDegreeFactor);
 
 在 3D 图形引擎中，计算可以在多个不同的笛卡尔坐标空间中执行，从一个坐标空间到另一个坐标空间需要使用变换矩阵，而我们数学库中的Matrix模块正是为提供这种能力而存在的。
 
+在 Galacean 中，矩阵采用的是和 webgl 标准一样的列矩阵，以 4*4 矩阵为例，16 个元素我们存储在一个如下数组中：
+
+```typescript
+const elements: Float32Array = new Float32Array(16);
+```
+最终的矩阵如下：
+$$
+\begin{bmatrix}
+elements[0] & elements[4] & elements[8] & elements[12] \\
+elements[1] & elements[5] & elements[9] & elements[13] \\
+elements[2] & elements[6] & elements[10] & elements[14] \\
+elements[3] & elements[7] & elements[11] & elements[15]
+\end{bmatrix}
+$$
+
 在 Galacean 引擎中，有局部坐标、全局坐标、观察坐标、裁剪坐标等，而物体在这些坐标之间的转换，正是通过转换矩阵来完成的。
+
+矩阵相乘的顺序为从右到左，比如我们想通过 model 矩阵和 view 矩阵计算 MV 矩阵，写法如下：
+```typescript
+Matrix.multiply(viewMatrix, modelMatrix, mvMatrix);
+```
+下面是一些矩阵中比较常用的功能说明：
 
 ```typescript
 import { Vector3, Matrix3x3, Matrix } from '@galacean/engine-math';
