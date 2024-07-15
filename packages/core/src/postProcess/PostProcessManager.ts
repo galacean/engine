@@ -12,6 +12,11 @@ import { BloomEffect, TonemappingEffect } from "./effects";
 export class _PostProcessManager {
   static readonly UBER_SHADER_NAME = "UberPost";
 
+  /**
+   * Whether the post process manager is active.
+   */
+  isActive = true;
+
   /** @internal */
   _uberMaterial: Material;
   /** @internal */
@@ -23,7 +28,7 @@ export class _PostProcessManager {
    * Whether has active post process effect.
    */
   get hasActiveEffect(): boolean {
-    return this._bloomEffect.enabled || this._tonemappingEffect.enabled;
+    return this.isActive && (this._bloomEffect.enabled || this._tonemappingEffect.enabled);
   }
 
   /**
