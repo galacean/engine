@@ -18,12 +18,12 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
    * @param sceneData - scene data which is exported by editor
    * @returns a promise of scene
    */
-  static parse(engine: Engine, sceneData: IScene): Promise<ParserContext<IScene, Scene>> {
+  static parse(engine: Engine, sceneData: IScene): Promise<Scene> {
     const scene = new Scene(engine);
     const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(sceneData, context, scene);
     parser.start();
-    return parser.promise.then(() => context);
+    return parser.promise.then(() => scene);
   }
 
   constructor(

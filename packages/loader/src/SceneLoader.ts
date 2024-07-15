@@ -12,14 +12,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import {
-  IClassObject,
-  IScene,
-  ParserContext,
-  ReflectionParser,
-  SceneParser,
-  SpecularMode
-} from "./resource-deserialize";
+import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -28,8 +21,7 @@ class SceneLoader extends Loader<Scene> {
     return new AssetPromise((resolve, reject) => {
       this.request<IScene>(item.url, { type: "json" })
         .then((data) => {
-          return SceneParser.parse(engine, data).then((sceneContext: ParserContext<IScene, Scene>) => {
-            const scene = <Scene>sceneContext.resource;
+          return SceneParser.parse(engine, data).then((scene) => {
             const promises = [];
             // parse ambient light
             const ambient = data.scene.ambient;
