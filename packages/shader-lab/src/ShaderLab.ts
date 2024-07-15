@@ -1,63 +1,128 @@
-import { IShaderLab } from "@galacean/engine-design";
-import { ShaderParser } from "./parser/ShaderParser";
-import { ShaderVisitor } from "./ShaderVisitor";
-import RuntimeContext from "./RuntimeContext";
-import ParsingContext from "./ParsingContext";
-import { Logger } from "@galacean/engine";
+import { Lexer } from "./lexer";
+import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
+import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { IShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
+import { ShaderContentParser } from "./contentParser";
+// @ts-ignore
+import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { ShaderPosition, ShaderRange } from "./common";
+import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
 
 export class ShaderLab implements IShaderLab {
-  /** @internal */
-  private _parser: ShaderParser;
-  /** @internal */
-  private _visitor: ShaderVisitor;
-  /** @internal */
-  private _context: RuntimeContext;
-  /** @internal for debug */
-  private _extendedSource: string;
+  /**
+   * @internal
+   */
+  private static _parser = ShaderTargetParser.create();
+  /**
+   * @internal
+   */
+  private static _shaderPositionPool = new ShaderLabObjectPool(ShaderPosition);
+  /**
+   * @internal
+   */
+  private static _shaderRangePool = new ShaderLabObjectPool(ShaderRange);
 
-  /** @internal */
-  get context() {
-    return this._context;
+  static createPosition(
+    index: number,
+    // #if _EDITOR
+    line?: number,
+    column?: number
+    // #endif
+  ): ShaderPosition {
+    const position = this._shaderPositionPool.get();
+    position.setX(
+      index,
+      // #if _EDITOR
+      line,
+      column
+      // #endif
+    );
+    return position;
   }
 
-  constructor() {
-    this._parser = new ShaderParser();
-    this._visitor = new ShaderVisitor();
-    this._context = new RuntimeContext();
+  static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
+    const range = this._shaderRangePool.get();
+    range.setX(start, end);
+    return range;
   }
 
-  parseShader(shaderSource: string) {
-    const parsingContext = new ParsingContext(shaderSource);
-    this._context.parsingContext = parsingContext;
-    parsingContext.filterString("EditorProperties");
-    parsingContext.filterString("EditorMacros");
+  _parseShaderPass(
+    source: string,
+    vertexEntry: string,
+    fragmentEntry: string,
+    macros: ShaderMacro[],
+    backend: ShaderPlatformTarget,
+    platformMacros: string[]
+  ) {
+    ShaderLabObjectPool.clearAllShaderLabObjectPool();
 
-    const preprocessor = new Preprocessor(parsingContext.parseString);
-    this._context.preprocessor = preprocessor;
-
-    const source = preprocessor.process();
-    this._extendedSource = source;
-    this._parser.parse(source);
-    const cst = this._parser.ruleShader();
-    if (this._parser.errors.length > 0) {
-      for (const err of this._parser.errors) {
-        const offset = parsingContext.getTextLineOffsetAt(err.token.startOffset);
-        if (offset) {
-          // @ts-ignore
-          err.token.originStartLine = err.token.startLine;
-          // @ts-ignore
-          err.token.originEndLine = err.token.endLine;
-          err.token.startLine += offset;
-          err.token.endLine += offset;
-        }
-      }
-      Logger.error(`error shaderlab source:`, source);
-      throw this._parser.errors;
+    Preprocessor.reset(ShaderLib);
+    for (const macro of macros) {
+      Preprocessor.addPredefinedMacro(macro.name, macro.value);
     }
 
-    const ast = this._visitor.visit(cst);
-    const shaderInfo = this._context.parse(ast);
-    return shaderInfo;
+    for (let i = 0; i < platformMacros.length; i++) {
+      Preprocessor.addPredefinedMacro(platformMacros[i]);
+    }
+
+    // #if _EDITOR
+    // TODO: index to position
+    // Logger.convertSourceIndex = Preprocessor.convertSourceIndex.bind(Preprocessor);
+    // #endif
+
+    const preprocessorStart = performance.now();
+
+    const ppdContent = Preprocessor.process(source);
+
+    Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
+
+    const lexer = new Lexer(ppdContent);
+    const tokens = lexer.tokenize();
+    const program = ShaderLab._parser.parse(tokens);
+    const codeGen =
+      backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
+
+    const start = performance.now();
+    const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+    Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
+
+    return ret;
   }
+
+  _parseShaderContent(shaderSource: string): IShaderContent {
+    ShaderContentParser.reset();
+    return ShaderContentParser.parse(shaderSource);
+  }
+
+  // #if _EDITOR
+  /**
+   * @internal
+   * For debug
+   */
+  _parse(
+    shaderSource: string,
+    macros: ShaderMacro[],
+    backend: ShaderPlatformTarget
+  ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
+    const structInfo = this._parseShaderContent(shaderSource);
+    const passResult = [] as any;
+    for (const subShader of structInfo.subShaders) {
+      for (const pass of subShader.passes) {
+        if (pass.isUsePass) continue;
+        const passInfo = this._parseShaderPass(
+          pass.contents,
+          pass.vertexEntry,
+          pass.fragmentEntry,
+          macros,
+          backend,
+          []
+        ) as any;
+        passInfo.name = pass.name;
+        passResult.push(passInfo);
+      }
+    }
+    return passResult;
+  }
+  // #endif
 }

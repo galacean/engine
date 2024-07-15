@@ -13,7 +13,7 @@ Shader "Water" {
   }
 
   SubShader "subname" {
-    Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
+    Tags { LightMode = "ForwardBase" }
 
     BlendFactor material_SrcBlend;
 
@@ -21,24 +21,24 @@ Shader "Water" {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
       ColorWriteMask[0] = 0.8;
-      BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
+      BlendColor = Color(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
     }
 
     sampler2D u_textures[3];
 
     Pass "default" {
-      Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
+      Tags { ReplacementTag = "Opaque" }
 
       struct a2v {
         vec4 POSITION;
         vec2 TEXCOORD_0; 
-      }
+      };
 
       struct v2f {
         vec2 v_uv;
         vec3 v_position;
-      }
+      };
 
       #define SCENE_SHADOW_TYPE 3
       #define RENDERER_BLENDSHAPE_COUNT 10
@@ -53,9 +53,6 @@ Shader "Water" {
       float material_AlphaCutoff;
       ivec3 renderer_BlendShapeTextureInfo;
       vec2 renderer_BlendShapeWeights[RENDERER_BLENDSHAPE_COUNT];
-      
-      VertexShader = vert;
-      FragmentShader = frag;
 
       #include "test_common"
       #include "brdf"
@@ -87,7 +84,7 @@ Shader "Water" {
         v2f o;
 
         o.v_uv = v.TEXCOORD_0;
-        vec4 tmp = renderer_MVMat * POSITION;
+        vec4 tmp = renderer_MVMat * v.POSITION;
         o.v_position = tmp.xyz;
         gl_Position = renderer_MVPMat * v.POSITION;
 
@@ -142,6 +139,9 @@ Shader "Water" {
             gl_FragColor = linearToGamma(gl_FragColor);
         #endif
       }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
   }
 }
