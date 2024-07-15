@@ -34,6 +34,7 @@ vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
 
     vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
 
+    // AB may less than 0 at high roughness, ref: https://github.com/galacean/engine/pull/2173
     return max(specularColor * AB.x + AB.y, 0.0);
 
 }
