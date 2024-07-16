@@ -6,19 +6,17 @@ Shader "Gem" {
         vec2 TEXCOORD_0;
         vec3 NORMAL;
         vec4 TANGENT;
-      }
+      };
 
       struct v2f {
         vec2 v_uv;
         vec3 v_posWS;
         vec3 v_normalWS;
-      }
+      };
 
       mat4 camera_VPMat;
       mat4 renderer_ModelMat;
       mat4 renderer_NormalMat;
-
-      VertexShader = vert;
 
       v2f vert( a2v attr ) {
         v2f vary;
@@ -33,7 +31,7 @@ Shader "Gem" {
         vary.v_normalWS = NormalWS;
 
         gl_Position = posCS;
-        return v2f;
+        return vary;
       }
 
       vec3 camera_Position;
@@ -60,8 +58,6 @@ Shader "Gem" {
       vec2 getMatcapUV( mat4 viewMatrix, vec3 worldNormal ) {
         return( ( ( mat3( viewMatrix ) * worldNormal ).xy ) * 0.5 ) + 0.5;
       }
-
-      FragmentShader = frag;
 
       void frag( v2f vary ) {
         vec3 posWS = vary.v_posWS;
@@ -109,6 +105,9 @@ Shader "Gem" {
 
         gl_FragColor = vec4( color, alpha );
       }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
   }
 }

@@ -4,7 +4,8 @@ import {
   DiffuseMode,
   FogMode,
   ShadowCascadesMode,
-  ShadowResolution
+  ShadowResolution,
+  TonemappingMode
 } from "@galacean/engine-core";
 import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
 import type { IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
@@ -50,6 +51,22 @@ export interface IScene extends IHierarchyFile {
       fogEnd: number;
       fogDensity: number;
       fogColor: IColor;
+    };
+    postProcess?: {
+      isActive: boolean;
+      bloom: {
+        enabled: boolean;
+        threshold: number;
+        scatter: number;
+        intensity: number;
+        tint: IColor;
+        dirtTexture: IReferable;
+        dirtIntensity: number;
+      };
+      tonemapping: {
+        enabled: boolean;
+        mode: TonemappingMode;
+      };
     };
   };
   files: Array<{ id: string; type: string; virtualPath: string; path: string }>;

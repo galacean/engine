@@ -28,15 +28,12 @@ Shader "Effect" {
       struct a2v {
         vec4 POSITION;
         vec2 TEXCOORD_0;
-      }
+      };
 
       struct v2f {
         vec3 v_pos;
         vec2 v_uv;
-      }
-
-      VertexShader = vert;
-      FragmentShader = frag;
+      };
 
       v2f vert( a2v v ) {
         v2f o;
@@ -58,6 +55,9 @@ Shader "Effect" {
           #endif
         }
       }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
   }
 }

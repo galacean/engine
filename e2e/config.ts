@@ -180,5 +180,22 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
     }
+  },
+  PostProcess: {
+    HDRBloomACES: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-ACES",
+      threshold: 0.2
+    },
+    HDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-neutral",
+      threshold: 0.2
+    },
+    LDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-LDR-bloom-neutral",
+      threshold: 0.2
+    }
   }
 };
