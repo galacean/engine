@@ -1,6 +1,4 @@
-import { Entity, PrefabResource } from "@galacean/engine";
 import { IXRTrackablePlatformFeature } from "@galacean/engine-design";
-import { XRTrackedComponent } from "../../component/XRTrackedComponent";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
@@ -16,9 +14,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
 > {
   protected static _uuid = 0;
 
-  protected _prefab: PrefabResource;
-  protected _trackIdToIndex: number[] = [];
-  protected _trackedComponents: Array<XRTrackedComponent<T>> = [];
   protected _requestTrackings: K[] = [];
   protected _tracked: T[] = [];
   protected _added: T[] = [];
@@ -26,28 +21,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   protected _removed: T[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
   private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
-
-  /**
-   * Returns the prefab that is automatically mounted when the object is tracked.
-   *
-   * @remarks
-   * If you set a Prefab, a Prefab instance will be created when the object is tracked,
-   * otherwise, an Entity will be used instead
-   */
-  get prefab(): PrefabResource {
-    return this._prefab;
-  }
-
-  set prefab(value: PrefabResource) {
-    const lastPrefab = this._prefab;
-    if (lastPrefab !== value) {
-      // @ts-ignore
-      lastPrefab?._addReferCount(-1);
-      // @ts-ignore
-      value?._addReferCount(1);
-      this._prefab = value;
-    }
-  }
 
   /**
    * Add a listening function for tracked object changes.
@@ -67,16 +40,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     if (index >= 0) {
       listeners.splice(index, 1);
     }
-  }
-
-  /**
-   * Get the tracked component through the tracked object id
-   * @param id - The tracked object id
-   * @returns The tracked component
-   */
-  getTrackedComponentById(id: number): XRTrackedComponent<T> {
-    const index = this._trackIdToIndex[id];
-    return index !== undefined ? this._trackedComponents[index] : undefined;
   }
 
   override _onUpdate(): void {
@@ -145,7 +108,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
       requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
-      this._onChanged(added, updated, removed);
       for (let i = 0, n = listeners.length; i < n; i++) {
         listeners[i](added, updated, removed);
       }
@@ -192,67 +154,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       platformFeature.onDelRequestTracking(requestTrackings[i]);
     }
-  }
-
-  protected _onChanged(added: readonly T[], updated: readonly T[], removed: readonly T[]) {
-    if (added.length > 0) {
-      for (let i = 0, n = added.length; i < n; i++) {
-        this._createOrUpdateTrackedComponents(added[i]);
-      }
-    }
-    if (updated.length > 0) {
-      for (let i = 0, n = updated.length; i < n; i++) {
-        this._createOrUpdateTrackedComponents(updated[i]);
-      }
-    }
-    if (removed.length > 0) {
-      const { _trackIdToIndex: trackIdToIndex, _trackedComponents: trackedComponents } = this;
-      for (let i = 0, n = removed.length; i < n; i++) {
-        const { id } = removed[i];
-        const index = trackIdToIndex[id];
-        if (index !== undefined) {
-          const trackedComponent = trackedComponents[index];
-          trackedComponents.splice(index, 1);
-          delete trackIdToIndex[id];
-          if (trackedComponent.destroyedOnRemoval) {
-            trackedComponent.entity.destroy();
-          } else {
-            trackedComponent.entity.parent = null;
-          }
-        }
-      }
-    }
-  }
-
-  protected _createOrUpdateTrackedComponents(trackedData: T): XRTrackedComponent<T> {
-    let trackedComponent = this.getTrackedComponentById(trackedData.id);
-    if (!trackedComponent) {
-      const { _trackIdToIndex: trackIdToIndex, _trackedComponents: trackedComponents } = this;
-      trackedComponent = this._createTrackedComponents(trackedData);
-      trackIdToIndex[trackedData.id] = trackedComponents.length;
-      trackedComponents.push(trackedComponent);
-    }
-    trackedComponent.data = trackedData;
-    const { transform } = trackedComponent.entity;
-    const { pose } = trackedData;
-    transform.position = pose.position;
-    transform.rotationQuaternion = pose.rotation;
-    return trackedComponent;
-  }
-
-  protected _createTrackedComponents(trackedData: T): XRTrackedComponent<T> {
-    const { origin } = this._xrManager;
-    const { _prefab: prefab } = this;
-    let entity: Entity;
-    if (prefab) {
-      entity = prefab.instantiate();
-      entity.name = `TrackedObject${trackedData.id}`;
-      origin.addChild(entity);
-    } else {
-      entity = origin.createChild(`TrackedObject${trackedData.id}`);
-    }
-    const trackedComponent = entity.addComponent(XRTrackedComponent<T>);
-    return trackedComponent;
   }
 
   protected abstract _generateTracked(): T;

@@ -25,7 +25,7 @@ export class XRManagerExtended extends XRManager {
   _platformDevice: IXRDevice;
 
   private _origin: Entity;
-  private _features: XRFeature[];
+  readonly features: XRFeature[];
 
   /**
    * The current origin of XR space.
@@ -64,15 +64,15 @@ export class XRManagerExtended extends XRManager {
     if (this.sessionManager._platformSession) {
       throw new Error("Cannot add feature when the session is initialized.");
     }
-    const { _features: features } = this;
     if (!this._platformDevice.isSupportedFeature(XRManagerExtended._featureMap.get(type))) {
       throw new Error("The feature is not supported");
     }
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       if (features[i] instanceof type) throw new Error("The feature has been added");
     }
     const feature = new type(this, ...args) as InstanceType<T>;
-    this._features.push(feature);
+    features.push(feature);
     return feature;
   }
 
@@ -82,27 +82,13 @@ export class XRManagerExtended extends XRManager {
    * @returns	The feature which match type
    */
   override getFeature<T extends XRFeature>(type: TFeatureConstructor<T>): T | null {
-    const { _features: features } = this;
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       if (feature instanceof type) {
         return feature;
       }
     }
-  }
-
-  override getFeatures(out?: XRFeature[]): XRFeature[] {
-    const { _features: features } = this;
-    const length = features.length;
-    if (out) {
-      out.length = length;
-    } else {
-      out = new Array<XRFeature>(length);
-    }
-    for (let i = 0; i < length; i++) {
-      out[i] = features[i];
-    }
-    return out;
   }
 
   /**
@@ -123,7 +109,7 @@ export class XRManagerExtended extends XRManager {
       // 1. Check if this xr mode is supported
       sessionManager.isSupportedMode(sessionMode).then(() => {
         // 2. Initialize session
-        sessionManager._initialize(sessionMode, this._features).then(() => {
+        sessionManager._initialize(sessionMode, this.features).then(() => {
           autoRun && sessionManager.run();
           resolve();
         }, reject);
@@ -147,7 +133,7 @@ export class XRManagerExtended extends XRManager {
    * @internal
    */
   override _initialize(engine: Engine, xrDevice: IXRDevice): void {
-    this._features = [];
+    this.features.length = 0;
     this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(this, engine);
     this.inputManager = new XRInputManager(this, engine);
@@ -163,7 +149,7 @@ export class XRManagerExtended extends XRManager {
     sessionManager._onUpdate();
     this.inputManager._onUpdate();
     this.cameraManager._onUpdate();
-    const { _features: features } = this;
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature.enabled && feature._onUpdate();
@@ -212,7 +198,7 @@ export class XRManagerExtended extends XRManager {
    * @internal
    */
   _onSessionStop(): void {
-    const { _features: features } = this;
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature.enabled && feature._onSessionStop();
@@ -223,7 +209,7 @@ export class XRManagerExtended extends XRManager {
    * @internal
    */
   _onSessionInit(): void {
-    const { _features: features } = this;
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature.enabled && feature._onSessionInit();
@@ -235,7 +221,7 @@ export class XRManagerExtended extends XRManager {
    */
   _onSessionStart(): void {
     this.cameraManager._onSessionStart();
-    const { _features: features } = this;
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature.enabled && feature._onSessionStart();
@@ -247,7 +233,7 @@ export class XRManagerExtended extends XRManager {
    */
   _onSessionExit(): void {
     this.cameraManager._onSessionExit();
-    const { _features: features } = this;
+    const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
       const feature = features[i];
       feature.enabled && feature._onSessionExit();
@@ -288,17 +274,6 @@ declare module "@galacean/engine" {
     set origin(value: Entity);
 
     /**
-     * Get all initialized features at this moment.
-     */
-    getFeatures(): XRFeature[];
-
-    /**
-     * Get all initialized features at this moment.
-     * @param out - Save all features in `out`
-     */
-    getFeatures(out: XRFeature[]): XRFeature[];
-
-    /**
      * Check if the specified feature is supported.
      * @param type - The type of the feature
      * @returns If the feature is supported
@@ -322,7 +297,6 @@ declare module "@galacean/engine" {
      * @returns	The feature which match type
      */
     getFeature<T extends XRFeature>(type: TFeatureConstructor<T>): T | null;
-    getFeatures(out?: XRFeature[]): XRFeature[];
     /**
      * Enter XR immersive mode, when you call this method, it will initialize and display the XR virtual world.
      * @param sessionMode - The mode of the session

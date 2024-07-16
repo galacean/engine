@@ -1,16 +1,7 @@
-import {
-  AssetPromise,
-  AssetType,
-  Engine,
-  EngineConfiguration,
-  Loader,
-  LoadItem,
-  resourceLoader,
-  ResourceManager
-} from "@galacean/engine-core";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
+import { PrefabParser } from "./prefab/PrefabParser";
 import { PrefabResource } from "./prefab/PrefabResource";
 import { IHierarchyFile } from "./resource-deserialize";
-import { PrefabParser } from "./prefab/PrefabParser";
 
 @resourceLoader(AssetType.Prefab, ["prefab"])
 export class PrefabLoader extends Loader<PrefabResource> {

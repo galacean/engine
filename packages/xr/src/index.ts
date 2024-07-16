@@ -2,8 +2,6 @@
 import "./XRManagerExtended";
 // xr pose
 export { XRPose } from "./XRPose";
-// component
-export { XRTrackedComponent } from "./component/XRTrackedComponent";
 // xr feature
 export { XRFeature } from "./feature/XRFeature";
 // camera
