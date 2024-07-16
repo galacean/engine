@@ -189,7 +189,6 @@ export default class PpScanner extends BaseScanner {
     return { token, nextDirective: directive };
   }
 
-  // #if !_EDITOR
   scanPairedBlock(lc = "{", rc = "}") {
     this.scanToChar(lc);
     let lvl = 0;
@@ -199,7 +198,6 @@ export default class PpScanner extends BaseScanner {
       this._advance();
     } while (lvl > 0);
   }
-  // #endif
 
   /**
    * @returns end ShaderPosition
