@@ -161,7 +161,8 @@ export default class PpScanner extends BaseScanner {
   }
 
   scanToChar(char: string) {
-    while (this.getCurChar() !== char && !this.isEnd()) {
+    const source = this._source;
+    while (source[this._currentIndex] !== char && !this.isEnd()) {
       this.advance();
     }
   }
@@ -189,14 +190,21 @@ export default class PpScanner extends BaseScanner {
     return { token, nextDirective: directive };
   }
 
-  scanPairedBlock(lc = "{", rc = "}") {
+  scanPairedBlock(lc: string, rc: string): void {
     this.scanToChar(lc);
-    let lvl = 0;
+    let level = 0;
+    const source = this._source;
+
     do {
-      if (this.getCurChar() === lc) lvl += 1;
-      else if (this.getCurChar() === rc) lvl -= 1;
+      const curChar = source[this._currentIndex];
+
+      if (curChar === lc) {
+        level++;
+      } else if (curChar === rc) {
+        level--;
+      }
       this._advance();
-    } while (lvl > 0);
+    } while (level > 0);
   }
 
   /**
