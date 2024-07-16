@@ -4,6 +4,8 @@ import "./XRManagerExtended";
 export { XRPose } from "./XRPose";
 // xr feature
 export { XRFeature } from "./feature/XRFeature";
+export { XRTrackableFeature } from "./feature/trackable/XRTrackableFeature";
+export { XRTracked } from "./feature/trackable/XRTracked";
 // camera
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest

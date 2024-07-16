@@ -123,11 +123,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
   }
 
-  override _onDestroy(): void {
-    // prettier-ignore
-    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
-  }
-
   protected _addRequestTracking(requestTracking: K): void {
     const { _platformFeature: platformFeature } = this;
     if (this._xrManager.sessionManager._platformSession && !platformFeature.canModifyRequestTrackingAfterInit) {
