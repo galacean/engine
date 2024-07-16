@@ -38,12 +38,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           const atlasItemsLen = atlasItems ? atlasItems.length : 0;
           const { engine } = resourceManager;
           const spriteAtlas = new SpriteAtlas(engine);
-          if (atlasItemsLen < 0) {
+          if (atlasItemsLen <= 0) {
             resolve(spriteAtlas);
             return;
           }
           chainPromises.length = 0;
-          for (let i = 0; i < atlasItems.length; i++) {
+          for (let i = 0; i < atlasItemsLen; i++) {
             const atlasItem = atlasItems[i];
             if (atlasItem.img) {
               chainPromises.push(
