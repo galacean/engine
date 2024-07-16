@@ -4,8 +4,8 @@ import { EKeyword, ETokenType, GalaceanDataType, ShaderRange, ShaderPosition } f
 import { TreeNode } from "./parser/AST";
 // #if _EDITOR
 import State from "./lalr/State";
-import { Logger } from "@galacean/engine";
 // #endif
+import { Logger } from "@galacean/engine";
 
 export class ParserUtils {
   static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: ENonTerminal): T | undefined {
