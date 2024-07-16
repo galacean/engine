@@ -4,16 +4,37 @@ import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { Renderer } from "../Renderer";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { RendererType } from "../enums/RendererType";
+import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { UICanvas } from "./UICanvas";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
+  /** @internal */
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
+  /** @internal */
+  @ignoreClone
+  _uiCanvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @assignmentClone
+  _groupAlpha = 1;
+
   protected _uiTransform: UITransform;
   protected _localBounds: BoundingBox = new BoundingBox();
   protected _rayCastTarget: boolean = true;
   protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
+
+  get uiCanvas(): UICanvas {
+    return this._uiCanvas;
+  }
 
   get rayCastTarget(): boolean {
     return this._rayCastTarget;
@@ -33,11 +54,20 @@ export class UIRenderer extends Renderer {
     }
   }
 
+  /** @internal */
+  set groupAlpha(val: number) {
+    if (this._groupAlpha !== val) {
+      this._groupAlpha = val;
+      this._dirtyUpdateFlag |= UIRendererUpdateFlags.GroupColor;
+    }
+  }
+
   /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
+    this._rendererType = RendererType.UI;
     this._uiTransform = entity.getComponent(UITransform);
   }
 
@@ -103,8 +133,24 @@ export class UIRenderer extends Renderer {
    * @internal
    */
   _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager.primitiveChunkManager2D;
+    return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
   protected _onUITransformChanged(flag: UITransformModifyFlags): void {}
+
+  protected override _onDestroy(): void {
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
+    }
+
+    super._onDestroy();
+  }
+}
+
+/**
+ * @remarks Extends `RendererUpdateFlag`.
+ */
+export enum UIRendererUpdateFlags {
+  GroupColor = 0x8
 }

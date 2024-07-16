@@ -619,7 +619,7 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let clearMask: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal) {
+    if (this._cameraType === CameraType.XRCamera) {
       clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);

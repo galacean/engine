@@ -15,5 +15,5 @@ export interface ISpriteAssembler {
     flipY?: boolean
   ): void;
   updateUVs?(renderer: Renderer): void;
-  updateColor?(renderer: Renderer): void;
+  updateColor?(renderer: Renderer, groupAlpha?: number): void;
 }

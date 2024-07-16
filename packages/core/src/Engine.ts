@@ -545,12 +545,6 @@ export class Engine extends EventDispatcher {
           camera._cameraIndex = index;
         }
       );
-
-      // const uiCanvases = componentsManager._uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]._elements;
-      // for (let i = uiCanvases.length - 1; i >= 0; i--) {
-      //   const uiCanvas = uiCanvases[i];
-      //   uiCanvas._prepareRender
-      // }
     }
   }
 

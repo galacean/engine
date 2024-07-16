@@ -2,7 +2,7 @@ import { MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { Image } from "../../ui";
+import { UIImage } from "../../ui";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
@@ -19,7 +19,7 @@ export class TiledSpriteAssembler {
   static _uvRow = new DisorderedArray<number>();
   static _uvColumn = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer | Image, vertexCount: number): void {
+  static resetData(renderer: SpriteRenderer | UIImage, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
       const lastSubChunk = renderer._subChunk;
@@ -35,7 +35,7 @@ export class TiledSpriteAssembler {
   }
 
   static updatePositions(
-    renderer: SpriteRenderer | Image,
+    renderer: SpriteRenderer | UIImage,
     width: number,
     height: number,
     pivot: Vector2,
@@ -147,7 +147,7 @@ export class TiledSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {
+  static updateUVs(renderer: SpriteRenderer | UIImage): void {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
@@ -181,16 +181,17 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: SpriteRenderer): void {
+  static updateColor(renderer: SpriteRenderer | UIImage, groupAlpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
+    const finalAlpha = a * groupAlpha;
     const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;
-      vertices[o + 3] = a;
+      vertices[o + 3] = finalAlpha;
     }
   }
 

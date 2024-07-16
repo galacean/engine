@@ -1,5 +1,5 @@
 import { Color, MathUtil } from "@galacean/engine-math";
-import { Sprite, SpriteDrawMode, SpriteRenderer, SpriteTileMode } from "../2d";
+import { Sprite, SpriteDrawMode, SpriteTileMode } from "../2d";
 import { ISpriteAssembler } from "../2d/assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../2d/assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../2d/assembler/SlicedSpriteAssembler";
@@ -8,16 +8,12 @@ import { SpriteModifyFlags } from "../2d/enums/SpriteModifyFlags";
 import { Entity } from "../Entity";
 import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
-import { ShaderProperty } from "../shader";
-import { UIRenderer } from "./UIRenderer";
+import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
 
-export class Image extends UIRenderer {
-  /** @internal */
-  static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
+export class UIImage extends UIRenderer {
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @ignoreClone
@@ -30,9 +26,6 @@ export class Image extends UIRenderer {
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
-  /** @internal */
-  @ignoreClone
-  _subChunk: SubPrimitiveChunk;
 
   /**
    * The draw mode of the sprite renderer.
@@ -113,9 +106,9 @@ export class Image extends UIRenderer {
       if (value) {
         this._addResourceReferCount(value, 1);
         value._updateFlagManager.addListener(this._onSpriteChange);
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
+        this.shaderData.setTexture(UIRenderer._textureProperty, value.texture);
       } else {
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
+        this.shaderData.setTexture(UIRenderer._textureProperty, null);
       }
       this._sprite = value;
     }
@@ -131,7 +124,7 @@ export class Image extends UIRenderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.VertexColor;
     }
   }
 
@@ -142,8 +135,8 @@ export class Image extends UIRenderer {
     super(entity);
 
     this.drawMode = SpriteDrawMode.Simple;
-    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
-    this.setMaterial(this._engine._spriteDefaultMaterial);
+    this._dirtyUpdateFlag |= ImageUpdateFlags.VertexColor;
+    this.setMaterial(this._engine._uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
@@ -181,22 +174,17 @@ export class Image extends UIRenderer {
 
     // Update color
     if (this._dirtyUpdateFlag & ImageUpdateFlags.Color) {
-      this._assembler.updateColor(this);
+      this._assembler.updateColor(this, this._groupAlpha);
       this._dirtyUpdateFlag &= ~ImageUpdateFlags.Color;
     }
 
-    // Push primitive
-    const camera = context.camera;
-    const { engine } = camera;
-
-    // Push primitive
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
+    // Init sub render element.
+    const { engine } = context.camera;
+    const renderElement = this.uiCanvas._renderElement;
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     renderElement.addSubRenderElement(subRenderElement);
-    camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   /**
@@ -226,17 +214,13 @@ export class Image extends UIRenderer {
     this._color = null;
     this._sprite = null;
     this._assembler = null;
-    if (this._subChunk) {
-      this._getChunkManager().freeSubChunk(this._subChunk);
-      this._subChunk = null;
-    }
   }
 
   @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        this.shaderData.setTexture(UIRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
         const { _drawMode: drawMode } = this;
@@ -281,10 +265,13 @@ enum ImageUpdateFlags {
   UV = 0x2,
   /** Position and UV. */
   PositionAndUV = 0x3,
-  /** Color. */
-  Color = 0x4,
+  /** Vertex Color. */
+  VertexColor = 0x4,
   /** Vertex data. */
   VertexData = 0x7,
+
+  /** Vertex Color and Group Color. */
+  Color = ImageUpdateFlags.VertexColor | UIRendererUpdateFlags.GroupColor,
   /** All. */
-  All = 0x7
+  All = 0x7 | UIRendererUpdateFlags.GroupColor
 }
