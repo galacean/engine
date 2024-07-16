@@ -605,9 +605,7 @@ export default class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    // #if !_EDITOR
     this._skipEditorBlock(token, scanner);
-    // #endif
     this._expandToken(token, scanner);
   }
 

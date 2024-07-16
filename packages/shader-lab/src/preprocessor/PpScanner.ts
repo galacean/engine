@@ -84,7 +84,7 @@ export default class PpScanner extends BaseScanner {
     if (this.isEnd()) return EOF;
 
     const start = this._currentIndex;
-    while (LexerUtils.isLetter(this.getCurChar())) {
+    while (LexerUtils.isLetter(this.getCurChar()) && !this.isEnd()) {
       this.advance();
     }
     const end = this._currentIndex;
