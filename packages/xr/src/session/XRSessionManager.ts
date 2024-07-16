@@ -17,6 +17,7 @@ export class XRSessionManager {
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
+  private _listeners: ((state: XRSessionState) => void)[] = [];
 
   /**
    * The current session mode( AR or VR ).
@@ -30,6 +31,17 @@ export class XRSessionManager {
    */
   get state(): XRSessionState {
     return this._state;
+  }
+
+  /**
+   * @internal
+   */
+  set state(value: XRSessionState) {
+    this._state = value;
+    const listeners = this._listeners;
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      listeners[i](value);
+    }
   }
 
   /**
@@ -78,7 +90,7 @@ export class XRSessionManager {
       throw new Error("Without session to run.");
     }
     platformSession.start();
-    this._state = XRSessionState.Running;
+    this.state = XRSessionState.Running;
     this._xrManager._onSessionStart();
     if (!engine.isPaused) {
       engine.pause();
@@ -100,11 +112,31 @@ export class XRSessionManager {
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.stop();
-    this._state = XRSessionState.Paused;
+    this.state = XRSessionState.Paused;
     this._xrManager._onSessionStop();
     if (!engine.isPaused) {
       engine.pause();
       engine.resume();
+    }
+  }
+
+  /**
+   * Add a listening function for session state changes.
+   * @param listener - The listening function
+   */
+  addChangedListener(listener: (state: XRSessionState) => void): void {
+    this._listeners.push(listener);
+  }
+
+  /**
+   * Remove a listening function of session state changes.
+   * @param listener - The listening function
+   */
+  removeChangedListener(listener: (state: XRSessionState) => void): void {
+    const { _listeners: listeners } = this;
+    const index = listeners.indexOf(listener);
+    if (index >= 0) {
+      listeners.splice(index, 1);
     }
   }
 
@@ -125,7 +157,7 @@ export class XRSessionManager {
         .then((platformSession: IXRSession) => {
           this._mode = mode;
           this._platformSession = platformSession;
-          this._state = XRSessionState.Initialized;
+          this.state = XRSessionState.Initialized;
           platformSession.setSessionExitCallBack(this._onSessionExit);
           platformSession.addEventListener();
           xrManager._onSessionInit();
@@ -183,7 +215,7 @@ export class XRSessionManager {
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.removeEventListener();
     this._platformSession = null;
-    this._state = XRSessionState.None;
+    this.state = XRSessionState.None;
     this._xrManager._onSessionExit();
     if (!engine.isPaused) {
       engine.pause();
