@@ -3,7 +3,6 @@
  * @category 2D
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*KllLQLmE3kAAAAAAAAAAAAAADiR2AQ/original
  */
-import * as dat from "dat.gui";
 import {
   AssetType,
   Camera,
@@ -22,9 +21,11 @@ import {
   SubMesh,
   Texture2D,
   UnlitMaterial,
+  Vector3,
   Vector4,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
+import * as dat from "dat.gui";
 
 Logger.enable();
 
@@ -49,12 +50,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .load<Texture2D[]>([
       {
         url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*0vm_SJVssKAAAAAAAAAAAAAAARQnAQ",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*5whjSZVzm_kAAAAAAAAAAAAADleLAQ/original",
-        type: AssetType.Texture2D,
-      },
+        type: AssetType.Texture2D
+      }
     ])
     .then((textureArr) => {
       spriteSlice = new Sprite(engine, textureArr[0]);
@@ -97,41 +98,44 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
     onUpdate(): void {
       const { modelMesh, targetSpriteRenderer } = this;
-      const { positions, vertexCount, triangles } =
-        // @ts-ignore
-        targetSpriteRenderer._verticesData;
-      if (vertexCount > 0) {
-        const trianglesCount =
-          targetSpriteRenderer.drawMode === SpriteDrawMode.Sliced
-            ? (vertexCount * 27) / 4
-            : vertexCount * 3;
-        const myTriangles =
-          modelMesh.getIndices() || new Uint16Array(Math.floor(4096 * 3));
+      const subChunk = targetSpriteRenderer._subChunk;
+      if (subChunk) {
+        const vertexArea = subChunk.vertexArea;
+        const vertexCount = vertexArea.size / 9;
+        const vertices = subChunk.chunk.vertices;
         const myPositions = modelMesh.getPositions() || [];
-        for (let i = 0; i < vertexCount; i++) {
+        for (let i = 0, o = vertexArea.start; i < vertexCount; ++i, o += 9) {
           if (myPositions[i]) {
-            myPositions[i].copyFrom(positions[i]);
+            myPositions[i].copyFromArray(vertices, o);
           } else {
-            myPositions[i] = positions[i].clone();
+            myPositions[i] = new Vector3(vertices[o], vertices[o + 1], vertices[o + 2]);
           }
         }
+
+        const trianglesCount =
+          targetSpriteRenderer.drawMode === SpriteDrawMode.Sliced ? (vertexCount * 27) / 4 : vertexCount * 3;
+        const myTriangles = modelMesh.getIndices() || new Uint16Array(Math.floor(4096 * 3));
+        const indices = subChunk.indices;
         for (let i = 0, l = trianglesCount / 6; i < l; i++) {
-          myTriangles[6 * i] = triangles[i * 3];
-          myTriangles[6 * i + 1] = triangles[i * 3 + 1];
-          myTriangles[6 * i + 2] = triangles[i * 3 + 1];
-          myTriangles[6 * i + 3] = triangles[i * 3 + 2];
-          myTriangles[6 * i + 4] = triangles[i * 3 + 2];
-          myTriangles[6 * i + 5] = triangles[i * 3];
+          const i3 = i * 3;
+          const i31 = i3 + 1;
+          const i32 = i3 + 2;
+          const i6 = i * 6;
+          myTriangles[i6] = indices[i3];
+          myTriangles[i6 + 1] = indices[i31];
+          myTriangles[i6 + 2] = indices[i31];
+          myTriangles[i6 + 3] = indices[i32];
+          myTriangles[i6 + 4] = indices[i32];
+          myTriangles[i6 + 5] = indices[i3];
         }
+
         modelMesh.setPositions(myPositions);
         modelMesh.setIndices(myTriangles);
         const subMesh = modelMesh.subMesh;
         if (subMesh) {
           subMesh.count = trianglesCount;
         } else {
-          modelMesh.addSubMesh(
-            new SubMesh(0, trianglesCount, MeshTopology.Lines)
-          );
+          modelMesh.addSubMesh(new SubMesh(0, trianglesCount, MeshTopology.Lines));
         }
         modelMesh.uploadData(false);
       }
@@ -178,7 +182,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
           hide(tileModeGui);
           hide(tiledAdaptiveThresholdGui);
         }
-      },
+      }
     };
 
     function hide(gui) {
@@ -247,25 +251,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       });
 
     rendererFolder
-      .add(
-        guiData,
-        "width",
-        defaultWidth / 5,
-        defaultWidth * 20,
-        defaultWidth / 10
-      )
+      .add(guiData, "width", defaultWidth / 5, defaultWidth * 20, defaultWidth / 10)
       .onChange((value: number) => {
         spriteRenderer.width = value;
       })
       .listen();
     rendererFolder
-      .add(
-        guiData,
-        "height",
-        defaultHeight / 5,
-        defaultHeight * 20,
-        defaultHeight / 10
-      )
+      .add(guiData, "height", defaultHeight / 5, defaultHeight * 20, defaultHeight / 10)
       .onChange((value: number) => {
         spriteRenderer.height = value;
       })

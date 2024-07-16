@@ -40,11 +40,12 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { CameraType } from "./enums/CameraType";
+export { MSAASamples } from "./enums/MSAASamples";
+export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
+export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
-export { Downsampling } from "./enums/Downsampling";
 export { FogMode } from "./enums/FogMode";
-export { MSAASamples } from "./enums/MSAASamples";
 export * from "./env-probe/index";
 export * from "./graphic/index";
 export * from "./input/index";
@@ -64,3 +65,5 @@ export * from "./utils/index";
 export { XRManager } from "./xr/XRManager";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+
+export * from "./postProcess";
