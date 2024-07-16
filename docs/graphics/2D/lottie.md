@@ -44,6 +44,16 @@ const lottie = lottieEntity.getComponent(LottieAnimation);
 // 设置 lottie 属性
 lottie.speed = 2;
 ```
+有时候开发者在编辑器中仅上传 Lottie 资源，在运行时需要的时候才去动态的创建 Lottie 组件，使用方式如下：
+```typescript
+// 动态加载编辑器中的 Lottie 资源
+const lottieResource = await engine.resourceManager.load({url: '/光球.json', type: 'EditorLottie'});
+// 给一个实体添加 Lottie 组件
+const lottie = entity.addComponent(LottieAnimation);
+// 给 Lottie 组件设置 Lottie 资源
+lottie.resource = lottieResource;
+```
+
 另外，Lottie 组件还提供了 2 个 API 来控制动画的播放和暂停，如下：
 
 | 方法 |  描述 |
@@ -56,9 +66,9 @@ lottie.speed = 2;
 很多时候我们有监听 Lottie 动画播放结束的需求，比如在动画结束的时候运行一些业务逻辑。`LottieAnimation` 的 `play` 方法会返回一个 `Promise`，所以可以很方便地监听动画结束的时机：
 
 ```typescript
-  const lottie = lottieEntity.getComponent(LottieAnimation);
-  await lottie.play();
-  // do something next..
+const lottie = lottieEntity.getComponent(LottieAnimation);
+await lottie.play();
+// do something next..
 ```
 
 ### 切片功能
