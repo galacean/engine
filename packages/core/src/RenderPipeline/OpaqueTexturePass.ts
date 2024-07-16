@@ -3,9 +3,7 @@ import { Engine } from "../Engine";
 import { Downsampling } from "../enums/Downsampling";
 import { Texture, Texture2D, TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
-import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
-import { CullingResults } from "./CullingResults";
 import { PipelinePass } from "./PipelinePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { RenderContext } from "./RenderContext";
@@ -31,25 +29,24 @@ export class OpaqueTexturePass extends PipelinePass {
     const viewport = camera.pixelViewport;
     const sizeScale = isNoDownsampling ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
     const opaqueRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      this._engine,
+      this.engine,
       this._renderTarget,
       viewport.width * sizeScale,
       viewport.height * sizeScale,
-      TextureFormat.R8G8B8A8,
+      camera._getInternalColorTextureFormat(),
       null,
       false,
       false,
-      1
+      1,
+      TextureWrapMode.Clamp,
+      isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear
     );
 
-    const colorTexture = opaqueRenderTarget.getColorTexture(0);
-    colorTexture.wrapModeU = colorTexture.wrapModeV = TextureWrapMode.Clamp;
-    colorTexture.filterMode = isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this._renderTarget = opaqueRenderTarget;
   }
 
-  onRender(context: RenderContext, _: CullingResults): void {
-    PipelineUtils.blitTexture(this._engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
+  override onRender(context: RenderContext): void {
+    PipelineUtils.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }
 }

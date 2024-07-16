@@ -9,6 +9,7 @@ import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DirectLight } from "../lighting";
 import { ShaderProperty } from "../shader";
+import { TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
@@ -81,7 +82,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
   private _renderDirectShadowMap(context: RenderContext, light: DirectLight): void {
     const {
-      _engine: engine,
+      engine,
       _camera: camera,
       _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
@@ -118,7 +119,9 @@ export class CascadedShadowCasterPass extends PipelinePass {
         format,
         true,
         false,
-        1
+        1,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
       );
       shadowTexture = <Texture2D>renderTarget.depthTexture;
     } else {
@@ -131,12 +134,13 @@ export class CascadedShadowCasterPass extends PipelinePass {
         null,
         false,
         false,
-        1
+        1,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
       );
       shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
     }
 
-    shadowTexture.wrapModeU = shadowTexture.wrapModeV = TextureWrapMode.Clamp;
     if (engine._hardwareRenderer._isWebGL2) {
       shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
     }
