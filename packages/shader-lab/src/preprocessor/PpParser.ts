@@ -605,16 +605,14 @@ export default class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    // #if !_EDITOR
     this._skipEditorBlock(token, scanner);
-    // #endif
     this._expandToken(token, scanner);
   }
 
   private static _skipEditorBlock(token: BaseToken, scanner: PpScanner) {
     if (token.lexeme === "EditorProperties" || token.lexeme === "EditorMacros") {
       const start = scanner.current - token.lexeme.length;
-      scanner.scanPairedBlock();
+      scanner.scanPairedBlock("{", "}");
       const end = scanner.current;
       const startPosition = ShaderLab.createPosition(start);
       const endPosition = ShaderLab.createPosition(end);
