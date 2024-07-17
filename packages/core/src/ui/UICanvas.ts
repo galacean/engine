@@ -244,6 +244,7 @@ export class UICanvas extends Component {
     this._entity._updateFlagManager.removeListener(this._onEntityListener);
     this._removeParentListener();
     this._setIsRootCanvas(false);
+
     // TODO
     this.scene._componentsManager.removeCamera(this._overlayCamera);
   }

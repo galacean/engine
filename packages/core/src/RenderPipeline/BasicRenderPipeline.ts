@@ -14,7 +14,14 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
-import { RenderTarget, Texture2D, TextureCubeFace, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import {
+  RenderTarget,
+  Texture2D,
+  TextureCubeFace,
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
+} from "../texture";
 import { CanvasRenderMode, UICanvas } from "../ui";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
@@ -326,21 +333,18 @@ export class BasicRenderPipeline {
     if (camera._cameraType === CameraType.UIOverlay) {
       const canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay];
       if (canvases) {
-        canvases.forEach(
-          (canvas: UICanvas) => {
-            const renderMode = canvas.renderMode;
-            if (
-              canvas._overlayCamera === camera &&
-              (renderMode === CanvasRenderMode.ScreenSpaceOverlay ||
-                (canvas.renderMode === CanvasRenderMode.ScreenSpaceCamera && !canvas.renderCamera))
-            ) {
-              canvas._prepareRender(context);
-            }
-          },
-          (canvas: UICanvas, index: number) => {
-            canvas._uiCanvasIndex = index;
+        for (let i = 0, l = canvases.length; i < l; ++i) {
+          const canvas = canvases[i];
+          const renderMode = canvas.renderMode;
+          if (
+            camera === canvas._overlayCamera &&
+            (renderMode === CanvasRenderMode.ScreenSpaceOverlay ||
+              (renderMode === CanvasRenderMode.ScreenSpaceCamera && !canvas.renderCamera))
+          ) {
+            canvas._prepareRender(context);
+            break;
           }
-        );
+        }
       }
       return;
     }
@@ -373,6 +377,7 @@ export class BasicRenderPipeline {
           if (!(cullingMask & canvas._entity.layer)) {
             return;
           }
+          debugger;
           canvas._prepareRender(context);
         },
         (canvas: UICanvas, index: number) => {
