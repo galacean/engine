@@ -52,7 +52,7 @@ export class ShaderTargetParser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
-  parse(tokens: Generator<BaseToken, BaseToken>) {
+  parse(tokens: Generator<BaseToken, BaseToken>): ASTNode.GLShaderProgram | null {
     this.sematicAnalyzer.reset();
     const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
@@ -104,9 +104,7 @@ export class ShaderTargetParser {
         continue;
       } else {
         Logger.error(token.location, `parse error token ${token.lexeme}`);
-        // #if _EDITOR
-        throw `invalid action table by token ${token.lexeme}, ${token.location.start.line}, ${token.location.start.column}`;
-        // #endif
+        return null;
       }
     }
   }
