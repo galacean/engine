@@ -4,7 +4,15 @@ import { VisitorContext } from "./VisitorContext";
 import { ICodeSegment } from "./types";
 
 export class GLES100Visitor extends GLESVisitor {
-  versionText: string = "#version 100 es";
+  override _versionText: string = `#version 100`;
+  override _extensions: string = [
+    "GL_EXT_shader_texture_lod",
+    "GL_OES_standard_derivatives",
+    "GL_EXT_draw_buffers",
+    "GL_EXT_frag_depth"
+  ]
+    .map((e) => `#extension ${e} : enable\n`)
+    .join("");
 
   private static _singleton: GLES100Visitor;
   static getVisitor(): GLES100Visitor {

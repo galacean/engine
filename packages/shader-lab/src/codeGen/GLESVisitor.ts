@@ -11,7 +11,8 @@ import { VisitorContext } from "./VisitorContext";
 const defaultPrecision = `precision mediump float;`;
 
 export abstract class GLESVisitor extends CodeGenVisitor {
-  abstract versionText: string;
+  protected _versionText: string = "";
+  protected _extensions: string = "";
 
   abstract getAttributeDeclare(): ICodeSegment[];
   abstract getVaryingDeclare(): ICodeSegment[];
@@ -81,7 +82,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     VisitorContext.context.reset();
 
-    return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${this._versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _fragmentMain(entry: string, data: ShaderData): string {
@@ -101,7 +102,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .join("\n");
 
     VisitorContext.context.reset();
-    return `${this.versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _getGlobalText(

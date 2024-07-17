@@ -11,7 +11,7 @@ import { ShaderLab } from "../ShaderLab";
 const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
-  versionText: string = "#version 300 es";
+  override _versionText: string = "#version 300 es";
 
   private static _singleton: GLES300Visitor;
   static getVisitor(): GLES300Visitor {
