@@ -1,0 +1,54 @@
+{
+  "index": {
+    "title": "Homepage",
+    "display": "hidden"
+  },
+  "quick-start": {
+    "title": "Quick Start",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "interface": {
+    "title": "Interface",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "core": {
+    "title": "Core",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "camera": {
+    "title": "Camera",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "background": {
+    "title": "Background",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "lighting": {
+    "title": "Lighting",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "ecosystem": {
+    "title": "Ecosystem",
+    "theme": {
+      "collapse": true
+    }
+  }
+}
