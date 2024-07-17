@@ -38,6 +38,7 @@
         for(int i = 0; i < 4; i++){
             vec4 key = colorKeys[i];
             float time = key.x;
+            // equal will bring precision problem to age, possibly making it over 1.0
             if(colorAge < time){
                 if(i == 0){
                     value.rgb = colorKeys[0].yzw;
