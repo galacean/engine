@@ -31,14 +31,16 @@ KTX2 的生成可以使用：
 
 - toktx
 - basisu
-- 编辑器打包，可以参考『[项目发布](/docs/assets-build)』文档。
+
+### 编辑器
+
+编辑器在项目打包时，可以配置选项生成 KTX2，可以参考『[项目发布](${docs}assets-build)』文档。项目导出是全局的配置，也可以独立给不同的纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 overwrite 可以覆盖全局配置：
+
+<img src="https://mdn.alipayobjects.com/rms/afts/img/A*fmURSZ4HwKUAAAAAAAAAAAAAARQnAQ/original/image-20240705112419249.png" alt="image-20240705112419249" style="zoom:50%;" />
+
+- ETC1S 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图
+- UASTC 尺寸大，质量高，适合 normal 这类贴图
 
 ## 兼容性
 
 KTX2 转码使用到了 WebAssembly 技术，需要使用 Chrome 57+，和 iOS 11.3+（11.0 ~ 11.2.以下的 WebAssembly 存在 [bug](https://bugs.webkit.org/show_bug.cgi?id=181781)）
-
-iOS 16 以下系统，在通过 worker 加载必要的 KTX2 解析 wasm 文件时会概率发生无返回的情况，尤其是在 wasm 首次加载时概率较大。可以通过 iOS 不走 worker 来绕过去: 
-
-```typescript
-WebGLEngine.create({ canvas: "canvas", ktx2Loader: { workerCount: 0 } });
-```
