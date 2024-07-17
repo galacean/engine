@@ -1,8 +1,7 @@
 export { ShaderLab } from "./ShaderLab";
 
 // #if _EDITOR
-import { Preprocessor } from "./preprocessor";
-export { Preprocessor };
+export { Preprocessor } from "./preprocessor";
 // #endif
 
 //@ts-ignore
