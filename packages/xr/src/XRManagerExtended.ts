@@ -109,6 +109,7 @@ export class XRManagerExtended extends XRManager {
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
       sessionManager.isSupportedMode(sessionMode).then(() => {
+        sessionManager.state = XRSessionState.Requesting;
         // 2. Initialize session
         sessionManager._initialize(sessionMode, this.features).then(() => {
           autoRun && sessionManager.run();
