@@ -382,7 +382,7 @@ export default class PpParser {
     if (scanner.getCurChar() === "(") {
       scanner.advance();
       scanner.skipSpace(false);
-      const ret = this._parseConstant(scanner);
+      const ret = this._parseConstantExpression(scanner);
       scanner.scanToChar(")");
       scanner.advance();
       return ret;

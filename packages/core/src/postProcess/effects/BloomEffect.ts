@@ -108,7 +108,7 @@ export class BloomEffect {
   }
 
   set scatter(value: number) {
-    value = Math.min(Math.max(0, value), 1);
+    value = MathUtil.clamp(value, 0, 1);
 
     if (value !== this._scatter) {
       this._scatter = value;

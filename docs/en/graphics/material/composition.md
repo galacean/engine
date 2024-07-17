@@ -1,0 +1,52 @@
+---
+order: 1
+title: Material Composition
+type: Material
+group: Mesh
+label: Graphics/Material
+---
+
+The Galacean material consists of **[shaders](/en/docs/graphics-shader), render states, and [shader data](/en/docs/graphics-shader-shaderData)**. Shaders can write vertex and fragment code to determine the color of pixels output to the screen by the rendering pipeline; render states can provide additional configurations to the context of the rendering pipeline; shader data encapsulates some data sets passed from the CPU to the GPU, such as colors, matrices, textures, etc.
+
+## Render States
+
+Galacean encapsulates the configuration of the rendering pipeline in the [RenderState object](/apis/core/#RenderState), which can configure [blend states](/apis/core/#RenderState-BlendState), [depth states](/apis/core/#RenderState-DepthState), [stencil states](/apis/core/#RenderState-StencilState), and [raster states](/apis/core/#RenderState-RasterState) separately. Taking the standard rendering process of a transparent object as an example, we want to enable blending mode, set the blend factor, and because transparent objects are rendered in layers, we also need to disable depth writing;
+
+```typescript
+const renderState = material.renderState;
+
+// 1. 设置颜色混合因子。
+const blendState = renderState.blendState;
+const target = blendState.targetBlendState;
+
+// src 混合因子为（As，As，As，As）
+target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+// dst 混合因子为（1 - As，1 - As，1 - As，1 - As）。
+target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+// 操作方式为 src + dst  */
+target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+
+// 2. 开启颜色混合
+target.enabled = true;
+
+// 3. 关闭深度写入。
+const depthState = renderState.depthState;
+depthState.writeEnabled = false;
+
+// 4. 设置透明渲染队列
+renderState.renderQueueType = RenderQueueType.Transparent;
+```
+
+> For more options regarding render states, you can refer to the corresponding [API documentation](/apis/core/#RenderState).
+
+The render queue can determine the rendering order of this material in the current scene. The engine will handle different ranges of render queues differently, such as [RenderQueueType.Transparent](/apis/core/#RenderQueueType-transparent) rendering from far to near, while [RenderQueueType.Opaque](/apis/core/#RenderQueueType-Opaque) rendering from near to far.
+
+```typescript
+material.renderQueueType = RenderQueueType.Opaque;
+```
+
+For the same render queue, we can also set the `priority` property of the [Renderer](/apis/core/#Renderer) to forcibly determine the rendering order, defaulting to 0, where a higher number means rendering later, for example:
+
+```typescript
+renderer.priority = -1; // Render with priority
+```
