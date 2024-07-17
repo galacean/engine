@@ -80,6 +80,9 @@ export class ShaderLab implements IShaderLab {
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
     const program = ShaderLab._parser.parse(tokens);
+    if (!program) {
+      return { vertex: "", fragment: "" };
+    }
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
