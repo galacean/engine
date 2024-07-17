@@ -37,7 +37,7 @@ export abstract class Light extends Component {
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
 
-  /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1] */
+  /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1]. */
   get shadowStrength(): number {
     return this._shadowStrength;
   }
