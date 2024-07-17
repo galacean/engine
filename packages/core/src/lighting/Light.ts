@@ -1,4 +1,4 @@
-import { Color, Matrix } from "@galacean/engine-math";
+import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { ignoreClone } from "../clone/CloneManager";
@@ -25,8 +25,8 @@ export abstract class Light extends Component {
   shadowNormalBias: number = 1;
   /** Near plane value to use for shadow frustums. */
   shadowNearPlane: number = 0.1;
-  /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
-  shadowStrength: number = 1.0;
+
+  private _shadowStrength: number = 1.0;
 
   /** @internal */
   @ignoreClone
@@ -37,6 +37,15 @@ export abstract class Light extends Component {
   private _color: Color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
+
+  /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1] */
+  get shadowStrength(): number {
+    return this._shadowStrength;
+  }
+
+  set shadowStrength(value: number) {
+    this._shadowStrength = MathUtil.clamp(value, 0, 1);
+  }
 
   /**
    * Light Color.
