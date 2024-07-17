@@ -26,14 +26,13 @@ export abstract class Light extends Component {
   /** Near plane value to use for shadow frustums. */
   shadowNearPlane: number = 0.1;
 
-  private _shadowStrength: number = 1.0;
-
   /** @internal */
   @ignoreClone
   _lightIndex: number = -1;
   /** @internal */
   _lightColor: Color = new Color();
 
+  private _shadowStrength: number = 1.0;
   private _color: Color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
