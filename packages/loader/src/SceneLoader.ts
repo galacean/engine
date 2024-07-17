@@ -141,9 +141,9 @@ class SceneLoader extends Loader<Scene> {
               if (postProcessData.bloom.dirtTexture) {
                 // @ts-ignore
                 // prettier-ignore
-                const dirtTexturePromise = resourceManager.getResourceByRef<any>( postProcessData.bloom.dirtTexture).then((texture) => {
-                bloomEffect.dirtTexture = texture;
-              });
+                const dirtTexturePromise = resourceManager.getResourceByRef<any>(postProcessData.bloom.dirtTexture).then((texture) => {
+                    bloomEffect.dirtTexture = texture;
+                });
                 promises.push(dirtTexturePromise);
               }
             }
