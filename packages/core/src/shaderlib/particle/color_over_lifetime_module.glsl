@@ -20,7 +20,7 @@
         for(int i = 0; i < 4; i++){
             vec2 key = alphaKeys[i];
             float time = key.x;
-            if(alphaAge <= time){
+            if(alphaAge < time){
                 if(i == 0){
                     value.a = colorKeys[0].y;
                 }
@@ -38,7 +38,7 @@
         for(int i = 0; i < 4; i++){
             vec4 key = colorKeys[i];
             float time = key.x;
-            if(colorAge <= time){
+            if(colorAge < time){
                 if(i == 0){
                     value.rgb = colorKeys[0].yzw;
                 }
