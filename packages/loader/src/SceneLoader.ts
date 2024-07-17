@@ -138,12 +138,14 @@ class SceneLoader extends Loader<Scene> {
               bloomEffect.dirtIntensity = postProcessData.bloom.dirtIntensity;
               tonemappingEffect.enabled = postProcessData.tonemapping.enabled;
               tonemappingEffect.mode = postProcessData.tonemapping.mode;
-              // @ts-ignore
-              // prettier-ignore
-              const dirtTexturePromise = resourceManager.getResourceByRef<any>( postProcessData.bloom.dirtTexture).then((texture) => {
+              if (postProcessData.bloom.dirtTexture) {
+                // @ts-ignore
+                // prettier-ignore
+                const dirtTexturePromise = resourceManager.getResourceByRef<any>( postProcessData.bloom.dirtTexture).then((texture) => {
                 bloomEffect.dirtTexture = texture;
               });
-              promises.push(dirtTexturePromise);
+                promises.push(dirtTexturePromise);
+              }
             }
 
             return Promise.all(promises).then(() => {
