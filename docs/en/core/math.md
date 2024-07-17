@@ -33,37 +33,37 @@ In the Galacean engine, vectors are used to represent object coordinates (positi
 ```typescript
 import { Vector3 } from '@galacean/engine-math';
 
-// 创建默认三维向量，即 x,y,z 分量均为0
+// Create Vector3, the x,y,z is 0.
 const v1 = new Vector3(); 
 
-// 创建三维向量，并用给定值初始化 x,y,z 分量
+// Create a Vector3 and initialize the x, y, and z components with the given values.
 const v2 = new Vector3(1, 2, 3); 
 
-// 设置指定值
+// Set the specified value.
 v1.set(1, 2, 2); 
 
-// 获取各个分量
+// Get x, y, and z components.
 const x = v1.x;
 const y = v1.y;
 const z = v1.z;
 
-// 向量相加，静态方式
+// Vector addition, static method.
 const out1 = new Vector3();
 Vector3.add(v1, v2, out1);
 
-// 向量相加，实例方式
+// Vector addition, instance method.
 const out2 = v1.add(v2);
 
-// 向量的标量长度
+// The length of Vector3.
 const len: number = v1.length();
 
-// 向量归一化
+// Normalized Vector3.
 v1.normalize();
 
-// 克隆一个向量
+// Clone Vector3.
 const c1 = v1.clone();
 
-// 将向量的值克隆到另外一个向量
+// Clone the values of the Vector3 to another Vector3.
 const c2 = new Vector3();
 v1.cloneTo(c2);
 
@@ -82,101 +82,152 @@ In the Galacean engine, quaternions are also used for rotation-related operation
 ```typescript
 import { Vector3, Quaternion, MathUtil } from '@galacean/engine-math';
 
-// 创建默认四元数，即 x,y,z 分量均为0，w 分量为1
+// Create Quaternion, the x,y,z is 0, and w is 1.
 const q1 = new Quaternion(); 
 
-// 创建四元数，并用给定值初始化 x,y,z,w 分量
+// Create a Quaternion and initialize the x, y, z and w components with the given values.
 const q2 = new Quaternion(1, 2, 3, 4); 
 
-// 设置指定值
+// Set the specified value.
 q1.set(1, 2, 3, 4); 
 
-// 判断两个四元数的值是否相等
+// Check if the values of two quaternions are equal.
 const isEqual: boolean = Quaternion.equals(q1, q2);
 
 const xRad = Math.PI * 0.2;
 const yRad = Math.PI * 0.5;
 const zRad = Math.PI * 0.3;
 
-// 根据 yaw、pitch、roll 生成四元数
+// Generate a quaternion based on yaw (Y), pitch (X), and roll (Z).
 const out1 = new Quaternion();
 Quaternion.rotationYawPitchRoll(yRad, xRad, zRad, out1);
 
-// 根据 x,y,z 轴的旋转欧拉角(弧度)生成四元数
+// Generate a quaternion from rotation Euler angles (in radians) around the x, y, and z axes.
 const out2 = new Quaternion();
-// 等价于 Quaternion.rotationYawPitchRoll(yRad, xRad, zRad, out2)
+// Equivalent to Quaternion.rotationYawPitchRoll(yRad, xRad, zRad, out2)
 Quaternion.rotationEuler(xRad, yRad, zRad, out2); 
 
-// 绕 X、Y、Z 轴旋转生成四元数，我们以绕 X 轴为例
+// Generating quaternions for rotations around the X, Y, and Z axes. Let's take rotating around the X axis as an example.
 const out3 = new Quaternion();
 Quaternion.rotationX(xRad, out3);
 
-// 当前四元数依次绕 X、Y、Z 轴旋转
+// The current quaternion rotates successively around the X, Y, and Z axes.
 const q3 = new Quaternion();
 q3.rotateX(xRad).rotateY(yRad).rotateZ(zRad);
 
-// 获取当前四元数的欧拉角(弧度)
+// Retrieve the Euler angles (in radians) from the current quaternion.
 const eulerV = new Vector3();
 q3.toEuler(eulerV);
 
-// 弧度转角度
-eulerV.scale(MathUtil.radToDegreeFactor); 
+// Convert radians to degrees.
+eulerV.scale(MathUtil.radToDegreeFactor);
 ```
 
 ## Matrices
 
 In 3D graphics engines, calculations can be performed in multiple different Cartesian coordinate spaces, and transforming from one coordinate space to another requires the use of transformation matrices, which is the purpose of the Matrix module in our mathematics library.
 
+In Galacean, matrices use the same column-major format as the WebGL standard. For example, a 4x4 matrix with 16 elements is stored in an array as follows:
+
+```typescript
+const elements: Float32Array = new Float32Array(16);
+```
+The final matrix is as follows:
+$$
+\begin{bmatrix}
+elements[0] & elements[4] & elements[8] & elements[12] \\
+elements[1] & elements[5] & elements[9] & elements[13] \\
+elements[2] & elements[6] & elements[10] & elements[14] \\
+elements[3] & elements[7] & elements[11] & elements[15]
+\end{bmatrix}
+$$
+
 In the Galacean engine, there are local coordinates, global coordinates, view coordinates, clip coordinates, etc., and the transformation of objects between these coordinates is achieved through transformation matrices.
+
+Matrix multiplication order is from right to left. For example, to calculate the MV matrix using the model matrix and the view matrix, the notation is as follows:
+```typescript
+Matrix.multiply(viewMatrix, modelMatrix, mvMatrix);
+```
+Below are some commonly used functionalities in matrices:
 
 ```typescript
 import { Vector3, Matrix3x3, Matrix } from '@galacean/engine-math';
 
-// 创建默认4x4矩阵，默认为单位矩阵
+// Create a default 4x4 matrix, initialized as the identity matrix.
 const m1 = new Matrix(); 
 
-// 创建4x4矩阵，并按给定值初始化
+// Create a 4x4 matrix and initialize it with the given values.
 const m2 = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
 
-// 将 m2 设置为单位矩阵
+// Set m2 to the identity matrix.
 m2.identity(); 
 
-// 判断两个矩阵的值是否相等 true
+// Check if two matrices have equal values, returning true.
 const isEqual1: boolean = Matrix.equals(m1, m2);
 
-// 矩阵相乘 静态方式
+// Matrix multiplication, static method.
 const m3 = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 const m4 = new Matrix(16, 15, 14, 13, 12, 11, 10, 9, 8.88, 7, 6, 5, 4, 3, 2, 1);
 const out1 = new Matrix();
 Matrix.multiply(m3, m4, out1);
 
-// 矩阵相乘，实例方式
+// Matrix multiplication, instance method.
 const out2 = m3.multiply(m4);
 
-// 判断两个矩阵的值是否相等 true
+// Check if two matrices have equal values, returning true.
 const isEqual2: boolean = Matrix.equals(out1, out2);
 
-// 求矩阵行列式
+// Calculate the determinant of a matrix.
 const m5 = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 const det: number = m5.determinant();
 
-// 4x4矩阵转3x3矩阵
+// Convert a 4x4 matrix to a 3x3 matrix.
 const m6 = new Matrix3x3();
 m6.setValueByMatrix(m5);
 
-// 创建4x4矩阵，并按给定值初始化
+// Create a 4x4 matrix and initialize it with the given values.
 const m7 = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
-// 求矩阵的转置矩阵，静态方式
+// Compute the transpose of a matrix, using a static method.
 Matrix.transpose(m7, m7); 
 
-// 求矩阵的转置矩阵。实例方式
+// Compute the transpose of a matrix, using a instance method.
 m7.transpose(); 
 
-// 绕 Y 轴旋转生成4x4矩阵
+// Generate a 4x4 matrix for rotation around the Y-axis.
 const axis = new Vector3(0, 1, 0); 
 const out4 = new Matrix();
 Matrix.rotationAxisAngle(axis, Math.PI * 0.25, out4);
+
+// Extract rotation, scaling, and translation from a matrix.
+const m8 = new Matrix(4.440892098500626e-16, 2, 0, 0, -2, 4.440892098500626e-16, 0, 0, 0, 0, 2, 0, 0, 10, 10, 1);
+// Storage for translation.
+const translate = new Vector3();
+// Storage for scale.
+const scale = new Vector3();
+// Storage for rotation.
+const qua = new Quaternion();
+m8.decompose(translate, qua, scale);
+const rotation = new Vector3();
+// Retrieve the rotation angle in radians for each axis from the acquired quaternion.
+qua.toEuler(rotation);
+
+// Generate a rotation matrix from a quaternion.
+const m9 = new Matrix();
+Matrix.rotationQuaternion(qua, m9);
+// Generate a rotation matrix from rotation angles.
+const m10 = new Matrix();
+Matrix.rotationAxisAngle(new Vector3(0, 0, 1), Math.PI * 0.5, m10);
+// Generate a scaling matrix from scaling factors.
+const m11 = new Matrix();
+Matrix.scaling(scale, m11);
+// Generate a translation matrix from translation values.
+const m12 = new Matrix();
+Matrix.translation(translate, m12);
+
+// Generate a matrix from rotation, scaling, and translation.
+const m13 = new Matrix();
+Matrix.affineTransformation(scale, qua, translate, m13);d
 ```
 
 ## Color
@@ -184,7 +235,7 @@ Matrix.rotationAxisAngle(axis, Math.PI * 0.25, out4);
 ```typescript
 import { Color } from "@galacean/engine-math";
 
-// 创建 Color 对象
+// Create Color.
 const color1 = new Color(1, 0.5, 0.5, 1);
 const color2 = new Color();
 color2.r = 1;
@@ -192,11 +243,11 @@ color2.g = 0.5;
 color2.b = 0.5;
 color2.a = 1;
 
-// linear 空间转 gamma 空间
+// Convert linear space to gamma space.
 const gammaColor = new Color();
 color1.toGamma(gammaColor);
 
-// gamma 空间转 linear 空间
+// Convert gamma space to linear space.
 const linearColor = new Color();
 color2.toLinear(linearColor);
 ```
@@ -206,30 +257,31 @@ color2.toLinear(linearColor);
 ```typescript
 import { Plane, Vector3 } from "@galacean/engine-math";
 
-// 通过三角形的三个顶点创建平面
+// Create a plane using the three vertices of a triangle.
 const point1 = new Vector3(0, 1, 0);
 const point2 = new Vector3(0, 1, 1);
 const point3 = new Vector3(1, 1, 0);
 const plane1 = new Plane();
 Plane.fromPoints(point1, point2, point3, plane1);
-// 通过平面的法线以及法线距离原点距离创建平面
+// Create a plane using the plane's normal and the distance from the origin.
 const plane2 = new Plane(new Vector3(0, 1, 0), -1);
 ```
 
 ## Bounding Box
+In Galacean, BoundingBox represents an AABB (Axis-Aligned Bounding Box), which is a simple and efficient type of bounding box commonly used in computer graphics and collision detection. It is defined by a minimum point and a maximum point, forming a rectangle or cuboid (in 3D space) aligned with the coordinate axes.
 
 ```typescript
 import { BoundingBox, BoundingSphere, Matrix, Vector3 } from "@galacean/engine-math";
 
-// 通过不同的方式创建同样的包围盒
+// Create the same bounding box using different methods.
 const box1 = new BoundingBox();
 const box2 = new BoundingBox();
 const box3 = new BoundingBox();
 
-// 通过中心点和盒子范围来创建
+// Create using the center point and box extent.
 BoundingBox.fromCenterAndExtent(new Vector3(0, 0, 0), new Vector3(1, 1, 1), box1);
 
-// 通过很多点来创建
+// Create using multiple points.
 const points = [
   new Vector3(0, 0, 0),
   new Vector3(-1, 0, 0),
@@ -244,11 +296,11 @@ const points = [
 ];
 BoundingBox.fromPoints(points, box2);
 
-// 通过包围球来创建
+// Create using a bounding sphere.
 const sphere = new BoundingSphere(new Vector3(0, 0, 0), 1);
 BoundingBox.fromSphere(sphere, box3);
 
-// 通过矩阵来对包围盒进行变换
+// Transform the bounding box using a matrix.
 const box = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
 const matrix = new Matrix(
   2, 0, 0, 0,
@@ -259,16 +311,16 @@ const matrix = new Matrix(
 const newBox = new BoundingBox();
 BoundingBox.transform(box, matrix, newBox);
 
-// 合并两个包围盒 box1, box2 成为一个新的包围盒 box
+// Merge two bounding boxes, box1 and box2, into a new bounding box box.
 BoundingBox.merge(box1, box2, box);
 
-// 获取包围盒的中心点和范围
+// Get the center point and dimensions of the bounding box.
 const center = new Vector3();
 box.getCenter(center);
 const extent = new Vector3();
 box.getExtent(extent);
 
-// 获取包围盒的8个顶点
+// Get the all vertices of the bounding box.
 const corners = [
   new Vector3(), new Vector3(), new Vector3(), new Vector3(),
   new Vector3(), new Vector3(), new Vector3(), new Vector3()
@@ -281,11 +333,11 @@ box.getCorners(corners);
 ```typescript
 import { BoundingBox, BoundingSphere, Vector3 } from "@galacean/engine-math";
 
-// 通过不同方式来创建包围球
+// Create a bounding sphere using different methods.
 const sphere1 = new BoundingSphere();
 const sphere2 = new BoundingSphere();
 
-// 通过很多点来创建
+// Create a bounding sphere using multiple points.
 const points = [
   new Vector3(0, 0, 0),
   new Vector3(-1, 0, 0),
@@ -300,7 +352,7 @@ const points = [
 ];
 BoundingSphere.fromPoints(points, sphere1);
 
-// 通过包围盒来创建
+// Create a bounding sphere from a bounding box.
 const box = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
 BoundingSphere.fromBox(box, sphere2);
 ```
@@ -310,20 +362,20 @@ BoundingSphere.fromBox(box, sphere2);
 ```typescript
 import { BoundingBox, BoundingSphere, BoundingFrustum,Matrix, Vector3 } from "@galacean/engine-math";
 
-// 根据 VP 矩阵创建视锥体，实际项目中，一般从相机中获取 view matrix 和 projection matrix
+// Create a frustum based on the View-Projection (VP) matrix. In practical projects, the view matrix and projection matrix are typically obtained from the camera.
 const viewMatrix = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -20, 1);
 const projectionMatrix = new Matrix(0.03954802080988884, 0, 0, 0, 0, 0.10000000149011612, 0, 0, 0, 0, -0.0200200192630291, 0, -0, -0, -1.0020020008087158, 1);
 const vpMatrix = new Matrix();
 Matrix.multiply(projectionMatrix, viewMatrix, vpMatrix);
 const frustum = new BoundingFrustum(vpMatrix);
 
-// 判断是否和 AABB 包围盒相交
+// Check for intersection with an AABB (Axis-Aligned Bounding Box).
 const box1 = new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2));
 const isIntersect1 = frustum.intersectsBox(box1);
 const box2 = new BoundingBox(new Vector3(-32, -2, -2), new Vector3(-28, 2, 2));
 const isIntersect2 = frustum.intersectsBox(box2);
 
-// 判断是否和包围球相交
+// Check for intersection with a bounding sphere.
 const sphere1 = new BoundingSphere();
 BoundingSphere.fromBox(box1, sphere1);
 const isIntersect3 = frustum.intersectsSphere(sphere1);
@@ -333,26 +385,38 @@ const isIntersect4 = frustum.intersectsSphere(sphere2);
 ```
 
 ## Ray
+A ray is represented as a line extending infinitely in a specified direction (direction) from a point (origin), as follows:
+![alt text](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*w2XVQL-K4UEAAAAAAAAAAAAADjCHAQ/original)
+
+The supported detection types for rays are as follows:
+| type | note |
+| :--- | :--- |
+| [Plane](/apis/math/#Plane) | Detecting the distance from a ray to a plane; if -1, the ray does not intersect with the plane |
+| [BoundingSphere](/apis/math/#BoundingSphere) | Detecting the distance from a ray to a sphere; if -1, the ray does not intersect with the sphere |
+| [BoundingBox](/apis/math/#BoundingBox) | Detecting the distance from a ray to a box; if -1, the ray does not intersect with the box |
 
 ```typescript
 import { BoundingBox, BoundingSphere, Plane, Ray, Vector3 } from "@galacean/engine-math";
 
-// 创建 ray
+// Create Ray.
 const ray = new Ray(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
 const plane = new Plane(new Vector3(0, 1, 0), -3);
-// 判断射线是否和平面相交，相交的话 distance 为射线到平面距离，不相交的话 distance 为 -1
+// To determine if a ray intersects with a plane:
+// if they intersect, distance represents the distance from the ray's origin to the plane, otherwise, distance is -1.
 let distance = ray.intersectPlane(plane);
 
 const sphere = new BoundingSphere(new Vector3(0, 5, 0), 1);
-// 判断射线是否和包围球相交，相交的话 distance 为射线到平面距离，不相交的话 distance 为 -1
+// To determine if a ray intersects with a sphere:
+// if they intersect, distance represents the distance from the ray's origin to the sphere, otherwise, distance is -1.
 distance = ray.intersectSphere(sphere);
 
 const box = new BoundingBox();
 BoundingBox.fromCenterAndExtent(new Vector3(0, 20, 0), new Vector3(5, 5, 5), box);
-// 判断射线是否和包围盒 (AABB) 相交，相交的话 distance 为射线到平面距离，不相交的话 distance 为 -1
+// To determine if a ray intersects with a box:
+// if they intersect, distance represents the distance from the ray's origin to the box, otherwise, distance is -1.
 distance = ray.intersectBox(box);
 
-// 到射线起点指定距离的点
+// Point at a specified distance from the ray's origin.
 const out = new Vector3();
 ray.getPoint(10, out);
 
@@ -363,24 +427,42 @@ ray.getPoint(10, out);
 The math library has added a random number generator `Rand`, which is based on the `xorshift128+` algorithm (also used in V8, Safari, and Firefox), providing a fast, high-quality, and fully-periodic pseudo-random number generation algorithm.
 
 ```typescript
-// 初始化随机数生成器实例
+// Initialize a random number generator instance.
 const rand = new Rand(0, 0xf3857f6f);
 
-// 生成区间在[0, 0xffffffff)的随机整数
+// Generate a random integer within the range [0, 0xffffffff].
 const num1 = rand.randomInt32();
 const num2 = rand.randomInt32();
 const num3 = rand.randomInt32();
 
-// 生成区间在[0, 1)的随机数
+// Generate a random number in the range [0, 1).
 const num4 = rand.random();
 const num5 = rand.random();
 const num6 = rand.random();
 
-// 重置种子
+// Reset the seed.
 rand.reset(0, 0x96aa4de3);
 ```
 
 ## CollisionUtil
+CollisionUtil provides a wide range of functions for collision and intersection detection, including:
+| function | note |
+| :--- | :--- |
+| intersectionPointThreePlanes | Calculate the point where three planes intersect |
+| distancePlaneAndPoint | Calculate the distance from a point to a plane |
+| intersectsPlaneAndPoint | Detect the spatial relationship between a point and a plane: in front of the plane (in the direction of the normal), behind the plane, or on the plane |
+| intersectsPlaneAndBox | Detect the spatial relationship between an AABB bounding box and a plane: in front of the plane (in the direction of the normal), behind the plane, or intersecting the plane |
+| intersectsPlaneAndSphere | Detect the spatial relationship between an bounding sphere and a plane: in front of the plane (in the direction of the normal), behind the plane, or intersecting the plane |
+| intersectsRayAndPlane | Check the distance between the plane and the ray. If they do not intersect, return -1.|
+| intersectsRayAndBox | Check the distance between the AABB bounding box and the ray. If they do not intersect, return -1 |
+| intersectsRayAndSphere | Check the distance between the sphere and the ray. If they do not intersect, return -1. |
+| intersectsBoxAndBox | Check if two AABB bounding boxes intersect |
+| intersectsSphereAndSphere | Check if two spheres intersect |
+| intersectsSphereAndBox | Check if the sphere and AABB bounding box intersect |
+| intersectsFrustumAndBox | Check if the view frustum and AABB bounding box intersect |
+| frustumContainsPoint | The spatial relationship between the detection point and the viewing cone: inside the viewing cone, intersecting the viewing cone, outside the viewing cone |
+| frustumContainsBox | Detect the spatial position relationship between the AABB bounding box and the view frustum: inside the view frustum, intersecting with the view frustum, outside the view frustum |
+| frustumContainsSphere | Detect the spatial position relationship between the sphere and the cone: inside the cone, intersecting the cone, outside the cone |
 
 ```typescript
 import { 
@@ -401,11 +483,11 @@ const vpMatrix = new Matrix();
 Matrix.multiply(projectionMatrix, viewMatrix, vpMatrix);
 const frustum = new BoundingFrustum(vpMatrix);
 
-// 点和面之间的距离
+// Distance between points and faces.
 const point = new Vector3(0, 10, 0);
 let distance = CollisionUtil.distancePlaneAndPoint(plane, point);
 
-// 判断点和面的空间关系
+// Determine the spatial relationship between points and surfaces.
 const point1 = new Vector3(0, 10, 0);
 const point2 = new Vector3(2, 5, -9);
 const point3 = new Vector3(0, 3, 0);
@@ -413,7 +495,7 @@ const intersection1 = CollisionUtil.intersectsPlaneAndPoint(plane, point1);
 const intersection2 = CollisionUtil.intersectsPlaneAndPoint(plane, point2);
 const intersection3 = CollisionUtil.intersectsPlaneAndPoint(plane, point3);
 
-// 判断面和包围盒的空间关系
+// Determine the spatial relationship between the face and the bounding box.
 const box1 = new BoundingBox(new Vector3(-1, 6, -2), new Vector3(1, 10, 3));
 const box2 = new BoundingBox(new Vector3(-1, 5, -2), new Vector3(1, 10, 3));
 const box3 = new BoundingBox(new Vector3(-1, 4, -2), new Vector3(1, 5, 3));
@@ -423,13 +505,13 @@ const intersection22 = CollisionUtil.intersectsPlaneAndBox(plane, box2);
 const intersection33 = CollisionUtil.intersectsPlaneAndBox(plane, box3);
 const intersection44 = CollisionUtil.intersectsPlaneAndBox(plane, box4);
 
-// 判断射线和平面的空间关系
+// Determine the spatial relationship between rays and planes.
 const ray1 = new Ray(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
 const ray2 = new Ray(new Vector3(0, 0, 0), new Vector3(0, -1, 0));
 const distance1 = CollisionUtil.intersectsRayAndPlane(ray1, plane);
 const distance2 = CollisionUtil.intersectsRayAndPlane(ray2, plane);
 
-// 判断视锥体和包围盒的空间关系
+// Determine the spatial relationship between the view frustum and the bounding box.
 const contain1 = CollisionUtil.frustumContainsBox(frustum, box1);
 const contain2 = CollisionUtil.frustumContainsBox(frustum, box2);
 const contain3 = CollisionUtil.frustumContainsBox(frustum, box3);

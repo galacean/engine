@@ -39,10 +39,19 @@ Developers can adjust various parameters in the property panel to configure Lott
 
 Sometimes developers may need to dynamically configure Lottie during runtime. Add the following code in the script component:
 ```typescript
-// 先找到 Lottie 所在的实体 lottieEntity，然后获取 Lottie 组件
+// First find the entity where Lottie is located (lottieEntity), then get the LottieAnimation.
 const lottie = lottieEntity.getComponent(LottieAnimation);
-// 设置 lottie 属性
+// Set lottie's property
 lottie.speed = 2;
+```
+Sometimes developers only upload Lottie assets in the editor and dynamically create the LottieAnimation at runtime when needed. The usage is as follows:
+```typescript
+// Dynamically load Lottie assets from the editor.
+const lottieResource = await engine.resourceManager.load({url: '/光球.json', type: 'EditorLottie'});
+// Add LottieAnimation.
+const lottie = entity.addComponent(LottieAnimation);
+// Set lottie's resource.
+lottie.resource = lottieResource;
 ```
 Additionally, the Lottie component provides 2 APIs to control animation playback and pause:
 
@@ -56,9 +65,9 @@ Additionally, the Lottie component provides 2 APIs to control animation playback
 Often, there is a need to listen for the end of Lottie animation playback, such as running some business logic when the animation ends. The `play` method of `LottieAnimation` returns a `Promise`, making it easy to listen for the end of the animation:
 
 ```typescript
-  const lottie = lottieEntity.getComponent(LottieAnimation);
-  await lottie.play();
-  // do something next..
+const lottie = lottieEntity.getComponent(LottieAnimation);
+await lottie.play();
+// do something next..
 ```
 
 ### Slicing Functionality

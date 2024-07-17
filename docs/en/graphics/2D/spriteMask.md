@@ -6,7 +6,7 @@ group: 2D
 label: Graphics/2D
 ---
 
-The Sprite Mask component is used to achieve masking effects on [sprites](/en/docs/graphics-2d-sprite) in 3D/2D scenes.
+The Sprite Mask component is used to achieve masking effects on [sprites](/en/docs/graphics-2d-spriteRenderer) and [text](/en/docs/graphics-2d-text) in 3D/2D scenes.
 
 <playground src="sprite-mask.ts"></playground>
 
@@ -54,25 +54,25 @@ This parameter represents the lower limit of the current mask's valid `alpha` va
 Similarly, in the script, we can use the following code to apply sprite masking:
 
 ```typescript
-// 创建一个遮罩实体
+// Create a mask entity.
 const spriteEntity = rootEntity.createChild(`spriteMask`);
-// 给实体添加 SpriteMask 组件
+// Add a SpriteMask component to the entity.
 const spriteMask = spriteEntity.addComponent(SpriteMask);
-// 通过 texture 创建 sprite 对象
+// Creating a sprite object from a texture.
 const sprite = new Sprite(engine, texture);
-// 设置 sprite
+// Set sprite.
 spriteMask.sprite = sprite;
-// mask 的 sprite 中纹理 alpha 小于 0.5 的将被丢弃
+// Textures in the mask's sprite with an alpha value less than 0.5 will be discarded.
 spriteMask.alphaCutoff = 0.5;
-// mask 对所有遮罩层的精灵都生效
+// Mask is effective for all sprites in the mask layer.
 spriteMask.influenceLayers = SpriteMaskLayer.Everything;
-// mask 只对处于遮罩层 Layer0 的精灵有效
+// Mask is only valid for sprites in the mask layer Layer0.
 spriteMask.influenceLayers = SpriteMaskLayer.Layer0;
-// mask 对处于遮罩层 Layer0 和 Layer1 的精灵有效
+// Mask is valid for sprites in mask layers Layer0 and Layer1.
 spriteMask.influenceLayers = SpriteMaskLayer.Layer0 | SpriteMaskLayer.Layer1;
 
-// 设置遮罩类型
+// Set the mask interaction
 spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
-// 设置精灵处于哪个遮罩层
+// Set which mask layer the sprite is in.
 spriteRenderer.maskLayer = SpriteMaskLayer.Layer0;
 ```

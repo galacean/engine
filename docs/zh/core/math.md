@@ -174,7 +174,7 @@ Matrix.multiply(m3, m4, out1);
 // 矩阵相乘，实例方式
 const out2 = m3.multiply(m4);
 
-// 判断两个矩阵的值是否相等 trued
+// 判断两个矩阵的值是否相等 true
 const isEqual2: boolean = Matrix.equals(out1, out2);
 
 // 求矩阵行列式

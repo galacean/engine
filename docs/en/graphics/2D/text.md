@@ -74,15 +74,15 @@ import {
 } from "@galacean/engine";
 
 const textEntity = rootEntity.createChild("text");
-// 给实体添加 TextRenderer 组件
+// Add a TextRenderer component to the entity.
 const textRenderer = textEntity.addComponent(TextRenderer);
-// 通过 font 设置 Font 对象
+// Set the Font object via font.
 textRenderer.font = Font.createFromOS(engine, "Arial");
-// 通过 text 设置需要显示的文本
+// Set the text to be displayed through text.
 textRenderer.text = "Galacean 会写字了！";
-// 通过 fontSize 设置字体大小
+// Set the font size via fontSize.
 textRenderer.fontSize = 36;
-// 通过 color 设置文本颜色
+// Set the text color via color.
 textRenderer.color.set(1, 0, 0, 1);
 ```
 
@@ -93,9 +93,9 @@ You can set the size of the text in 3D space using width/height, mainly for the 
 2. Used to determine line break rules when displaying multiline text
 
 ```typescript
-// 设置宽
+// Set width.
 textRenderer.width = 10;
-// 设置高
+// Set height.
 textRenderer.height = 10;
 ```
 
@@ -122,9 +122,9 @@ textRenderer.enableWrapping = true;
 When displaying multi-line text, there may be too many lines of text. In this case, you can use the `overflowMode` field to determine whether to truncate and only display content within the set height. The specific content displayed also depends on the vertical alignment of the text (see: Text Alignment), as shown below:
 
 ```typescript
-// 文本溢出
+// Set text support overflow.
 textRenderer.overflowMode = OverflowMode.Overflow;
-// 文本截取
+// Set text support truncate.
 textRenderer.overflowMode = OverflowMode.Truncate;
 ```
 
@@ -148,13 +148,13 @@ Text font styles are used to set whether the text should be displayed in bold or
 Usage:
 
 ```typescript
-// 正常显示
+// Normal display.
 textRenderer.fontStyle = FontStyle.None;
-// 加粗显示
+// Bold display.
 textRenderer.fontStyle = FontStyle.Bold;
-// 斜体显示
+// Italic display.
 textRenderer.fontStyle = FontStyle.Italic;
-// 既加粗又斜体显示
+// Display in both bold and italic.
 textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
 ```
 
