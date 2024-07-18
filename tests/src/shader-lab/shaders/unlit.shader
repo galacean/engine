@@ -54,7 +54,7 @@ Shader "Water" {
       ivec3 renderer_BlendShapeTextureInfo;
       vec2 renderer_BlendShapeWeights[RENDERER_BLENDSHAPE_COUNT];
 
-      #include "test_common"
+      #include "./test_common"
       #include "brdf"
 
       BlendState = blendState;
