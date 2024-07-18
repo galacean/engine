@@ -43,4 +43,3 @@ export { XRTargetRayMode } from "./input/XRTargetRayMode";
 
 export * from "./loader/XRReferenceImageDecoder";
 export * from "./loader/XRReferenceImageLoader";
-export * from "./loader/XRSceneExtendParser";

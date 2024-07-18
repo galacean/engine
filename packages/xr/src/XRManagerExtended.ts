@@ -21,7 +21,7 @@ export class XRManagerExtended extends XRManager {
   /** Camera manager for XR. */
   override cameraManager: XRCameraManager;
   /** All initialized features at this moment. */
-  readonly features: XRFeature[];
+  readonly features: XRFeature[] = [];
 
   /** @internal */
   _platformDevice: IXRDevice;

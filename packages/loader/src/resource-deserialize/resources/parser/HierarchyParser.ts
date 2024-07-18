@@ -45,7 +45,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     this._reflectionParser = new ReflectionParser(context);
   }
 
-  /** start parse the prefab or others */
+  /** start parse the scene or prefab or others */
   public start() {
     this._parseEntities()
       .then(this._organizeEntities)
@@ -61,7 +61,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
-  protected _parseEntities(): Promise<Entity[]> {
+  private _parseEntities(): Promise<Entity[]> {
     const entitiesConfig = this.data.entities;
     const entityConfigMap = this.context.entityConfigMap;
     const entityMap = this.context.entityMap;
@@ -81,7 +81,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     });
   }
 
-  protected _parseComponents(): Promise<any[]> {
+  private _parseComponents(): Promise<any[]> {
     const entitiesConfig = this.data.entities;
     const entityMap = this.context.entityMap;
     const components = this.context.components;
@@ -102,7 +102,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  protected _parsePrefabModification() {
+  private _parsePrefabModification() {
     const entitiesConfig = this.data.entities;
     const entityMap = this.context.entityMap;
 
@@ -136,7 +136,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  protected _parsePrefabRemovedEntities() {
+  private _parsePrefabRemovedEntities() {
     const entitiesConfig = this.data.entities;
     const entityMap = this.context.entityMap;
 
@@ -163,7 +163,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  protected _parsePrefabRemovedComponents() {
+  private _parsePrefabRemovedComponents() {
     const entitiesConfig = this.data.entities;
     const entityMap = this.context.entityMap;
 
@@ -190,7 +190,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  protected _organizeEntities(): void {
+  private _organizeEntities(): void {
     const { rootIds, strippedIds } = this.context;
     const parentIds = rootIds.concat(strippedIds);
     for (const parentId of parentIds) {

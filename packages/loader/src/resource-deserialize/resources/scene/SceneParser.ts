@@ -5,13 +5,6 @@ import type { IScene } from "../schema";
 
 /** @Internal */
 export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Scene>> {
-  static _extendParsers = new Map<
-    string,
-    {
-      parse: (engine: Engine, context: ParserContext<IScene, Scene>, data: IScene) => Promise<any>;
-    }
-  >();
-
   /**
    * Parse scene data.
    * @param engine - the engine of the parser context
@@ -32,30 +25,6 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
     public readonly scene: Scene
   ) {
     super(data, context);
-    this._extendParse = this._extendParse.bind(this);
-  }
-
-  /** start parse the prefab or others */
-  override start() {
-    this._parseEntities()
-      .then(this._organizeEntities)
-      .then(this._parseComponents)
-      .then(this._parsePrefabModification)
-      .then(this._parsePrefabRemovedEntities)
-      .then(this._parsePrefabRemovedComponents)
-      .then(this._extendParse)
-      .then(this._clearAndResolve)
-      .then(this._resolve)
-      .catch(this._reject);
-  }
-
-  private _extendParse(): Promise<any> {
-    const promises = [];
-    const { _engine: engine, context, data } = this;
-    SceneParser._extendParsers.forEach((parser) => {
-      promises.push(parser.parse(engine, context, data as IScene));
-    });
-    return Promise.all(promises);
   }
 
   protected override _handleRootEntity(id: string): void {
@@ -67,15 +36,4 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
     this.context.clear();
     return this.scene;
   }
-}
-
-/**
- * Register extend parser for scene parser.
- * @param key - parser key
- * @returns Parser decorator
- */
-export function registerSceneExtendParser(key: string): ClassDecorator {
-  return (target: any) => {
-    SceneParser._extendParsers.set(key, target);
-  };
 }
