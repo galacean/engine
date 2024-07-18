@@ -1,9 +1,9 @@
-import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
-import { GLTFResource } from "../../../gltf";
-import { PrefabResource } from "../../../prefab/PrefabResource";
+import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
 import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
-import { ParserContext, ParserType } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
+import { ParserContext, ParserType } from "./ParserContext";
+import { PrefabResource } from "../../../prefab/PrefabResource";
+import { GLTFResource } from "../../../gltf";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
