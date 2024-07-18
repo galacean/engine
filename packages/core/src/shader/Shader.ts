@@ -281,6 +281,18 @@ export class Shader implements IReferable {
     return this._destroyed;
   }
 
+  /**
+   * @internal
+   * path should follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
+   */
+  _registerPath(path: string) {
+    for (const subShader of this._subShaders) {
+      for (const shaderPass of subShader.passes) {
+        shaderPass._path = path;
+      }
+    }
+  }
+
   private constructor(
     public readonly name: string,
     subShaders: SubShader[]
