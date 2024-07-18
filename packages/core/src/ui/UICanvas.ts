@@ -43,7 +43,6 @@ export class UICanvas extends Component {
   private _isRootCanvas = false;
   private _enableBlocked = true;
   private _parents = Array<Entity>();
-  // private _hierarchyDirty = true;
 
   /**
    * The rendering priority of all renderers under the canvas, lower values are rendered first and higher values are rendered last.
@@ -58,13 +57,10 @@ export class UICanvas extends Component {
 
   /** @internal */
   get renderers(): UIRenderer[] {
-    // if (this._hierarchyDirty) {
     this._renderers.length = 0;
     const canvasGroup = this.entity.getComponent(CanvasGroup);
     const groupAlpha = canvasGroup ? canvasGroup.groupAlpha : 1;
     this._walk(this.entity, this._renderers, groupAlpha);
-    // this._canvasHierarchyDirty = false;
-    // }
     return this._renderers;
   }
 
@@ -329,13 +325,16 @@ export class UICanvas extends Component {
     const { _children: children } = entity;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
+      if (!child.isActive) {
+        continue;
+      }
       const canvasGroup = child.getComponent(CanvasGroup);
       const newGroupAlpha = groupAlpha * (canvasGroup ? canvasGroup.groupAlpha : 1);
       const { _components: components } = child;
       for (let j = 0, m = components.length; j < m; j++) {
         const component = components[j];
         // @ts-ignore
-        if (component._rendererType === RendererType.UI) {
+        if (component.enabled && component._rendererType === RendererType.UI) {
           const uiRenderer = <UIRenderer>component;
           out.push(uiRenderer);
           uiRenderer._uiCanvas = this;
