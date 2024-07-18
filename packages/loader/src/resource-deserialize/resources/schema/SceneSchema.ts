@@ -1,6 +1,7 @@
 import {
   BackgroundMode,
   BackgroundTextureFillMode,
+  BloomDownScaleMode,
   DiffuseMode,
   FogMode,
   ShadowCascadesMode,
@@ -56,6 +57,7 @@ export interface IScene extends IHierarchyFile {
       isActive: boolean;
       bloom: {
         enabled: boolean;
+        downScale: BloomDownScaleMode;
         threshold: number;
         scatter: number;
         intensity: number;
