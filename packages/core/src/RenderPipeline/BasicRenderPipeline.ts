@@ -333,7 +333,7 @@ export class BasicRenderPipeline {
     if (camera._cameraType === CameraType.UIOverlay) {
       const canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay];
       if (canvases) {
-        for (let i = 0, l = canvases.length; i < l; ++i) {
+        for (let i = 0, n = canvases.length; i < n; ++i) {
           const canvas = canvases.get(i);
           const renderMode = canvas.renderMode;
           if (
