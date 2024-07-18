@@ -352,9 +352,10 @@ export class TextUtils {
     // @todo: Text layout may vary from standard and not support emoji.
     const textMetrics = context.measureText(measureString);
     // In some case (ex: " "), actualBoundingBoxRight and actualBoundingBoxLeft will be 0, so use width.
+    // In certain situations, actualBoundingBoxRight and actualBoundingBoxLeft may be smaller than width. Therefore, the maximum value should be taken.
     const width = Math.max(
       1,
-      Math.round(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft || textMetrics.width)
+      Math.round(Math.max(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft, textMetrics.width))
     );
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     let height = baseline * TextUtils._heightMultiplier;
@@ -416,6 +417,7 @@ export class TextUtils {
         // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
         data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
       }
+      // To maintain consistent character spacing, set xAdvance to the character width to calculate the starting point for the next character.
       return {
         char: measureString,
         x: 0,
@@ -424,7 +426,7 @@ export class TextUtils {
         h: size,
         offsetX: 0,
         offsetY: (ascent - descent) * 0.5,
-        xAdvance: width,
+        xAdvance: Math.round(textMetrics.width),
         uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
         ascent,
         descent,
