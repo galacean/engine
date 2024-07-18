@@ -80,14 +80,15 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
   shader.subShaders.forEach((subShader) => {
     subShader.passes.forEach((pass) => {
       if (pass.isUsePass) return;
-      // @ts-ignore
       const compiledPass = shaderLab._parseShaderPass(
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
         [],
         ShaderPlatformTarget.GLES300,
-        []
+        [],
+        "shaders://root/",
+        "shaders://root/"
       );
       validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
     });

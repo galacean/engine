@@ -53,11 +53,12 @@ export class ShaderLab implements IShaderLab {
     fragmentEntry: string,
     macros: ShaderMacro[],
     backend: ShaderPlatformTarget,
-    platformMacros: string[]
+    platformMacros: string[],
+    pathOrigin: string,
+    basePathForIncludeKey: string
   ) {
     ShaderLabObjectPool.clearAllShaderLabObjectPool();
-
-    Preprocessor.reset(ShaderLib);
+    Preprocessor.reset(ShaderLib, pathOrigin, basePathForIncludeKey);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
     }
@@ -119,7 +120,9 @@ export class ShaderLab implements IShaderLab {
           pass.fragmentEntry,
           macros,
           backend,
-          []
+          [],
+          "shaders://root/",
+          new URL(pass.name, "shaders://root/").href
         ) as any;
         passInfo.name = pass.name;
         passResult.push(passInfo);

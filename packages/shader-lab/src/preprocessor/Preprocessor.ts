@@ -5,8 +5,13 @@ import PpScanner from "./PpScanner";
 export class Preprocessor {
   static baseScanner: PpScanner;
 
-  static reset(includeMap: Record<string, string>): void {
-    PpParser.reset(includeMap);
+  /**
+   * Reset the parser of `Preprocessor`
+   * @param pathOrigin follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
+   * @param basePathForIncludeKey the base path to resolve the relative path of `#include` directive. Must be prefixed by `pathOrigin`
+   */
+  static reset(includeMap: Record<string, string>, pathOrigin: string, basePathForIncludeKey: string): void {
+    PpParser.reset(includeMap, pathOrigin, basePathForIncludeKey);
   }
 
   /**

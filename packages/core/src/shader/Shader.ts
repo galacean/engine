@@ -44,12 +44,13 @@ export class Shader implements IReferable {
    * ```
    *
    * @param shaderSource - shader code
+   * @param path - used by the preprocessor in `ShaderLab` to resolve the relative path of `#include` directive
    * @returns Shader
    *
    * @throws
    * Throw string exception if shaderLab has not been enabled properly.
    */
-  static create(shaderSource: string): Shader;
+  static create(shaderSource: string, path?: string): Shader;
 
   /**
    * Create a shader.
@@ -78,13 +79,17 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
+    vertexSourceOrShaderPassesOrSubShadersOrPath?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
   ): Shader {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
 
-    if (!vertexSourceOrShaderPassesOrSubShaders) {
+    if (
+      !fragmentSource &&
+      (vertexSourceOrShaderPassesOrSubShadersOrPath === undefined ||
+        typeof vertexSourceOrShaderPassesOrSubShadersOrPath === "string")
+    ) {
       if (!Shader._shaderLab) {
         throw "ShaderLab has not been set up yet.";
       }
@@ -109,6 +114,7 @@ export class Shader implements IReferable {
             passInfo.contents,
             passInfo.vertexEntry,
             passInfo.fragmentEntry,
+            <string>vertexSourceOrShaderPassesOrSubShadersOrPath ?? "",
             passInfo.tags
           );
 
@@ -143,17 +149,17 @@ export class Shader implements IReferable {
         console.error(`Shader named "${nameOrShaderSource}" already exists.`);
         return;
       }
-      if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
-        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
+      if (typeof vertexSourceOrShaderPassesOrSubShadersOrPath === "string") {
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrPath, fragmentSource);
         shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
-        if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
-          if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
+        if (vertexSourceOrShaderPassesOrSubShadersOrPath.length > 0) {
+          if (vertexSourceOrShaderPassesOrSubShadersOrPath[0].constructor === ShaderPass) {
             shader = new Shader(nameOrShaderSource, [
-              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShadersOrPath)
             ]);
           } else {
-            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShadersOrPath.slice());
           }
         } else {
           throw "SubShader or ShaderPass count must large than 0.";

@@ -14,6 +14,8 @@ export interface IShaderLab {
   /**
    * @internal
    * Parse shader pass source code.
+   * @param pathOrigin follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
+   * @param basePathForIncludeKey the base path to resolve the relative path of `#include` directive. Must be prefixed by `pathOrigin`
    */
   _parseShaderPass(
     shaderPassSource: string,
@@ -21,6 +23,8 @@ export interface IShaderLab {
     fragmentEntry: string,
     macros: any[],
     backend: number,
-    platformMacros: string[]
+    platformMacros: string[],
+    pathOrigin: string,
+    basePathForIncludeKey: string
   ): IShaderProgramSource;
 }

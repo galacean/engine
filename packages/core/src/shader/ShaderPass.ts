@@ -18,6 +18,7 @@ import { RenderState } from "./state/RenderState";
  */
 export class ShaderPass extends ShaderPart {
   private static _shaderPassCounter: number = 0;
+  private static _shaderRootPath = "shaders://root/";
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -39,6 +40,7 @@ export class ShaderPass extends ShaderPart {
   private readonly _shaderLabSource: string;
   private readonly _vertexEntry: string;
   private readonly _fragmentEntry: string;
+  private readonly _path: string;
 
   private _platformMacros: string[] = [];
 
@@ -50,6 +52,7 @@ export class ShaderPass extends ShaderPart {
     shaderLabSource: string,
     vertexEntry: string,
     fragmentEntry: string,
+    path: string,
     tags?: Record<string, number | string | boolean>
   );
 
@@ -80,6 +83,7 @@ export class ShaderPass extends ShaderPart {
     vertexSourceOrFragmentSourceOrCode?: string | Record<string, number | string | boolean>,
     fragmentSourceOrTagsOrVertexEntry?: string | Record<string, number | string | boolean>,
     fragmentEntryOrTags?: string | Record<string, number | string | boolean>,
+    tagsOrPath?: Record<string, number | string | boolean> | string,
     tags?: Record<string, number | string | boolean>
   ) {
     super();
@@ -88,6 +92,7 @@ export class ShaderPass extends ShaderPart {
 
     if (typeof fragmentEntryOrTags === "string") {
       this._name = nameOrVertexSource;
+      this._path = tagsOrPath as string;
       this._shaderLabSource = vertexSourceOrFragmentSourceOrCode as string;
       this._vertexEntry = fragmentSourceOrTagsOrVertexEntry as string;
       this._fragmentEntry = fragmentEntryOrTags;
@@ -156,21 +161,23 @@ export class ShaderPass extends ShaderPart {
     vertexEntry: string,
     fragmentEntry: string
   ) {
+    const { _path, _platformMacros } = this;
+
     const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     const macros = new Array<ShaderMacro>();
     ShaderMacro._getMacrosElements(macroCollection, macros);
 
-    this._platformMacros.length = 0;
+    _platformMacros.length = 0;
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      this._platformMacros.push("HAS_TEX_LOD");
+      _platformMacros.push("HAS_TEX_LOD");
     }
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      this._platformMacros.push("HAS_DERIVATIVES");
+      _platformMacros.push("HAS_DERIVATIVES");
     }
     if (isWebGL2) {
-      this._platformMacros.push("GRAPHICS_API_WEBGL2");
+      _platformMacros.push("GRAPHICS_API_WEBGL2");
     } else {
-      this._platformMacros.push("GRAPHICS_API_WEBGL1");
+      _platformMacros.push("GRAPHICS_API_WEBGL1");
     }
 
     const start = performance.now();
@@ -180,7 +187,9 @@ export class ShaderPass extends ShaderPart {
       fragmentEntry,
       macros,
       isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
-      this._platformMacros
+      _platformMacros,
+      ShaderPass._shaderRootPath,
+      new URL(_path, ShaderPass._shaderRootPath).href
     );
     Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
 
