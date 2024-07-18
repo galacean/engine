@@ -110,7 +110,7 @@ export class XRManagerExtended extends XRManager {
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
       sessionManager.isSupportedMode(sessionMode).then(() => {
-        sessionManager.state = XRSessionState.Requesting;
+        sessionManager.state = XRSessionState.Initializing;
         // 2. Initialize session
         sessionManager._initialize(sessionMode, this.features).then(() => {
           autoRun && sessionManager.run();
@@ -256,7 +256,7 @@ export function registerXRFeature<T extends XRFeature>(type: XRFeatureType): (fe
 }
 
 export interface IXRListener {
-  fn: Function;
+  fn: (...args: any[]) => any;
   destroyed?: boolean;
 }
 

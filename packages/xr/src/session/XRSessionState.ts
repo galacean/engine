@@ -4,8 +4,8 @@
 export enum XRSessionState {
   /** Not initialized. */
   None,
-  /** Requesting the session. */
-  Requesting,
+  /** Initializing session. */
+  Initializing,
   /** Initialized but not started. */
   Initialized,
   /** Running. */
