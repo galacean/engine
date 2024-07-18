@@ -424,7 +424,7 @@ export class TextUtils {
         h: size,
         offsetX: 0,
         offsetY: (ascent - descent) * 0.5,
-        xAdvance: width,
+        xAdvance: Math.round(textMetrics.width),
         uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
         ascent,
         descent,
