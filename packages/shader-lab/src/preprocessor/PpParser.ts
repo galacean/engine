@@ -10,6 +10,7 @@ import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
+import { ShaderPass } from "@galacean/engine";
 
 export interface ExpandSegment {
   // #if _EDITOR
@@ -29,9 +30,8 @@ export default class PpParser {
 
   private static _includeMap: Record<string, string>;
   private static _basePathForIncludeKey: string;
-  private static _pathOrigin: string;
 
-  static reset(includeMap: Record<string, string>, pathOrigin: string, basePathForIncludeKey: string) {
+  static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
     this._definedMacros.clear();
     this._expandSegmentsStack.length = 0;
     this._expandSegmentsStack.push([]);
@@ -39,7 +39,6 @@ export default class PpParser {
     this.addPredefinedMacro("GL_ES");
     this._includeMap = includeMap;
     this._basePathForIncludeKey = basePathForIncludeKey;
-    this._pathOrigin = pathOrigin;
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
@@ -104,7 +103,8 @@ export default class PpParser {
       includedPath = id.lexeme;
     } else {
       // relative path
-      includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(this._pathOrigin.length);
+      // @ts-ignore
+      includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
     }
 
     scanner.scanToChar("\n");

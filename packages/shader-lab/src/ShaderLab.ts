@@ -5,7 +5,7 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { IShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
 
@@ -54,11 +54,10 @@ export class ShaderLab implements IShaderLab {
     macros: ShaderMacro[],
     backend: ShaderPlatformTarget,
     platformMacros: string[],
-    pathOrigin: string,
     basePathForIncludeKey: string
   ) {
     ShaderLabObjectPool.clearAllShaderLabObjectPool();
-    Preprocessor.reset(ShaderLib, pathOrigin, basePathForIncludeKey);
+    Preprocessor.reset(ShaderLib, basePathForIncludeKey);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
     }
@@ -121,8 +120,8 @@ export class ShaderLab implements IShaderLab {
           macros,
           backend,
           [],
-          "shaders://root/",
-          new URL(pass.name, "shaders://root/").href
+          // @ts-ignore
+          new URL(pass.name, ShaderPass._shaderRootPath).href
         ) as any;
         passInfo.name = pass.name;
         passResult.push(passInfo);
