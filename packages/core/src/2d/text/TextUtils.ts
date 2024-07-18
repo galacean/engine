@@ -355,7 +355,12 @@ export class TextUtils {
     // In certain situations, actualBoundingBoxRight and actualBoundingBoxLeft may be smaller than width. Therefore, the maximum value should be taken.
     const width = Math.max(
       1,
-      Math.round(Math.max(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft, textMetrics.width))
+      Math.round(
+        Math.max(
+          Math.abs(textMetrics.actualBoundingBoxRight) + Math.abs(textMetrics.actualBoundingBoxLeft),
+          textMetrics.width
+        )
+      )
     );
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     let height = baseline * TextUtils._heightMultiplier;
