@@ -70,7 +70,6 @@ export abstract class XRTrackableFeature<
       return;
     }
     added.length = updated.length = removed.length = 0;
-    let trackedChanged = false;
     platformFeature.getTrackedResult(platformSession, platformFrame, requestTrackings, this._generateTracked);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
@@ -83,7 +82,6 @@ export abstract class XRTrackableFeature<
             if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
               removed.push(tracked);
               allTracked.splice(allTracked.indexOf(tracked), 1);
-              trackedChanged = true;
             }
             statusSnapshot[trackId] = XRTrackingState.NotTracking;
           }
@@ -101,12 +99,10 @@ export abstract class XRTrackableFeature<
                 statusSnapshot[trackId] = XRTrackingState.Tracking;
                 allTracked.push(trackedObject);
               }
-              trackedChanged = true;
             } else {
               if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
                 removed.push(trackedObject);
                 allTracked.splice(allTracked.indexOf(trackedObject), 1);
-                trackedChanged = true;
               }
               statusSnapshot[trackId] = trackedObject.state;
             }
@@ -119,7 +115,7 @@ export abstract class XRTrackableFeature<
     for (let i = requestTrackings.length - 1; i >= 0; i--) {
       requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
-    if (trackedChanged) {
+    if (added.length > 0 || updated.length > 0 || removed.length > 0) {
       const count = listeners.length;
       if (count > 0) {
         const { _listenersPool: listenerPool } = XRManagerExtended;
