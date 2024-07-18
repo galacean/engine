@@ -41,9 +41,14 @@ export class ShaderPass extends ShaderPart {
   private readonly _shaderLabSource: string;
   private readonly _vertexEntry: string;
   private readonly _fragmentEntry: string;
-  private readonly _path: string;
+  private _path = "";
 
   private _platformMacros: string[] = [];
+
+  /** @internal */
+  set path(val: string) {
+    this._path = val;
+  }
 
   /**
    * @internal
@@ -53,7 +58,6 @@ export class ShaderPass extends ShaderPart {
     shaderLabSource: string,
     vertexEntry: string,
     fragmentEntry: string,
-    path: string,
     tags?: Record<string, number | string | boolean>
   );
 
@@ -84,7 +88,6 @@ export class ShaderPass extends ShaderPart {
     vertexSourceOrFragmentSourceOrCode?: string | Record<string, number | string | boolean>,
     fragmentSourceOrTagsOrVertexEntry?: string | Record<string, number | string | boolean>,
     fragmentEntryOrTags?: string | Record<string, number | string | boolean>,
-    tagsOrPath?: Record<string, number | string | boolean> | string,
     tags?: Record<string, number | string | boolean>
   ) {
     super();
@@ -93,7 +96,6 @@ export class ShaderPass extends ShaderPart {
 
     if (typeof fragmentEntryOrTags === "string") {
       this._name = nameOrVertexSource;
-      this._path = tagsOrPath as string;
       this._shaderLabSource = vertexSourceOrFragmentSourceOrCode as string;
       this._vertexEntry = fragmentSourceOrTagsOrVertexEntry as string;
       this._fragmentEntry = fragmentEntryOrTags;

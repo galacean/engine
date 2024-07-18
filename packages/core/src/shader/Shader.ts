@@ -44,13 +44,12 @@ export class Shader implements IReferable {
    * ```
    *
    * @param shaderSource - shader code
-   * @param path - used by the preprocessor in `ShaderLab` to resolve the relative path of `#include` directive
    * @returns Shader
    *
    * @throws
    * Throw string exception if shaderLab has not been enabled properly.
    */
-  static create(shaderSource: string, path?: string): Shader;
+  static create(shaderSource: string): Shader;
 
   /**
    * Create a shader.
@@ -79,17 +78,13 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    vertexSourceOrShaderPassesOrSubShadersOrPath?: SubShader[] | ShaderPass[] | string,
+    vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
   ): Shader {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
 
-    if (
-      !fragmentSource &&
-      (vertexSourceOrShaderPassesOrSubShadersOrPath === undefined ||
-        typeof vertexSourceOrShaderPassesOrSubShadersOrPath === "string")
-    ) {
+    if (!vertexSourceOrShaderPassesOrSubShaders) {
       if (!Shader._shaderLab) {
         throw "ShaderLab has not been set up yet.";
       }
@@ -114,7 +109,6 @@ export class Shader implements IReferable {
             passInfo.contents,
             passInfo.vertexEntry,
             passInfo.fragmentEntry,
-            <string>vertexSourceOrShaderPassesOrSubShadersOrPath ?? "",
             passInfo.tags
           );
 
@@ -149,17 +143,17 @@ export class Shader implements IReferable {
         console.error(`Shader named "${nameOrShaderSource}" already exists.`);
         return;
       }
-      if (typeof vertexSourceOrShaderPassesOrSubShadersOrPath === "string") {
-        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrPath, fragmentSource);
+      if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
         shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
-        if (vertexSourceOrShaderPassesOrSubShadersOrPath.length > 0) {
-          if (vertexSourceOrShaderPassesOrSubShadersOrPath[0].constructor === ShaderPass) {
+        if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
+          if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
             shader = new Shader(nameOrShaderSource, [
-              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShadersOrPath)
+              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
             ]);
           } else {
-            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShadersOrPath.slice());
+            shader = new Shader(nameOrShaderSource, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
           }
         } else {
           throw "SubShader or ShaderPass count must large than 0.";
@@ -285,6 +279,18 @@ export class Shader implements IReferable {
    */
   get destroyed(): boolean {
     return this._destroyed;
+  }
+
+  /**
+   * @internal
+   * path should follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
+   */
+  _registerPath(path: string) {
+    for (const subShader of this._subShaders) {
+      for (const shaderPass of subShader.passes) {
+        shaderPass.path = path;
+      }
+    }
   }
 
   private constructor(
