@@ -334,7 +334,7 @@ export class BasicRenderPipeline {
       const canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay];
       if (canvases) {
         for (let i = 0, l = canvases.length; i < l; ++i) {
-          const canvas = canvases[i];
+          const canvas = canvases.get(i);
           const renderMode = canvas.renderMode;
           if (
             camera === canvas._overlayCamera &&
@@ -377,7 +377,6 @@ export class BasicRenderPipeline {
           if (!(cullingMask & canvas._entity.layer)) {
             return;
           }
-          debugger;
           canvas._prepareRender(context);
         },
         (canvas: UICanvas, index: number) => {
