@@ -1,6 +1,6 @@
 import { Engine } from "@galacean/engine";
 import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
-import { XRManagerExtended } from "../XRManagerExtended";
+import { IXRListener, XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
@@ -17,7 +17,7 @@ export class XRSessionManager {
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
-  private _listeners: ((state: XRSessionState) => void)[] = [];
+  private _listeners: IXRListener[] = [];
 
   /**
    * The current session mode( AR or VR ).
@@ -39,8 +39,16 @@ export class XRSessionManager {
   set state(value: XRSessionState) {
     this._state = value;
     const listeners = this._listeners;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i](value);
+    const count = listeners.length;
+    const { _listenersPool: listenerPool } = XRManagerExtended;
+    const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
+    tempListeners.length = count;
+    for (let i = 0; i < count; i++) {
+      tempListeners[i] = listeners[i];
+    }
+    for (let i = 0; i < count; i++) {
+      const listener = tempListeners[i];
+      !listener.destroyed && listener.fn(value);
     }
   }
 
@@ -122,21 +130,27 @@ export class XRSessionManager {
 
   /**
    * Add a listening function for session state changes.
-   * @param listener - The listening function
+   * @param fn - The listening function
    */
-  addChangedListener(listener: (state: XRSessionState) => void): void {
-    this._listeners.push(listener);
+  addChangedListener(fn: (state: XRSessionState) => void): void {
+    const { _listeners: listeners } = this;
+    if (!listeners.find((listener) => listener.fn === fn)) {
+      listeners.push({ fn });
+    }
   }
 
   /**
    * Remove a listening function of session state changes.
-   * @param listener - The listening function
+   * @param fn - The listening function
    */
-  removeChangedListener(listener: (state: XRSessionState) => void): void {
+  removeChangedListener(fn: (state: XRSessionState) => void): void {
     const { _listeners: listeners } = this;
-    const index = listeners.indexOf(listener);
-    if (index >= 0) {
-      listeners.splice(index, 1);
+    for (let i = listeners.length - 1; i >= 0; i--) {
+      if (listeners[i].fn === fn) {
+        listeners[i].destroyed = true;
+        listeners.splice(i, 1);
+        break;
+      }
     }
   }
 

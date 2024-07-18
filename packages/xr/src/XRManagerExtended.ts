@@ -13,6 +13,7 @@ import { XRSessionState } from "./session/XRSessionState";
 export class XRManagerExtended extends XRManager {
   /** @internal */
   static _featureMap: Map<TFeatureConstructor<XRFeature>, XRFeatureType> = new Map();
+  static _listenersPool: IXRListener[][] = [];
 
   /** Input manager for XR. */
   override inputManager: XRInputManager;
@@ -252,6 +253,11 @@ export function registerXRFeature<T extends XRFeature>(type: XRFeatureType): (fe
   return (feature: TFeatureConstructor<T>) => {
     XRManagerExtended._featureMap.set(feature, type);
   };
+}
+
+export interface IXRListener {
+  fn: Function;
+  destroyed?: boolean;
 }
 
 type TFeatureConstructor<T extends XRFeature> = new (xrManager: XRManagerExtended, ...args: any[]) => T;

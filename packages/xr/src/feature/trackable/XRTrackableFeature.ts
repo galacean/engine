@@ -1,4 +1,5 @@
 import { IXRTrackablePlatformFeature } from "@galacean/engine-design";
+import { IXRListener, XRManagerExtended } from "../../XRManagerExtended";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
@@ -21,25 +22,31 @@ export abstract class XRTrackableFeature<
   protected _updated: T[] = [];
   protected _removed: T[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
-  private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
+  private _listeners: IXRListener[] = [];
 
   /**
    * Add a listening function for tracked object changes.
-   * @param listener - The listening function
+   * @param fn - The listening function
    */
-  addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    this._listeners.push(listener);
+  addChangedListener(fn: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
+    const { _listeners: listeners } = this;
+    if (!listeners.find((listener) => listener.fn === fn)) {
+      listeners.push({ fn });
+    }
   }
 
   /**
    * Remove a listening function of tracked object changes.
-   * @param listener - The listening function
+   * @param fn - The listening function
    */
-  removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
+  removeChangedListener(fn: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
     const { _listeners: listeners } = this;
-    const index = listeners.indexOf(listener);
-    if (index >= 0) {
-      listeners.splice(index, 1);
+    for (let i = listeners.length - 1; i >= 0; i--) {
+      if (listeners[i].fn === fn) {
+        listeners[i].destroyed = true;
+        listeners.splice(i, 1);
+        break;
+      }
     }
   }
 
@@ -63,6 +70,7 @@ export abstract class XRTrackableFeature<
       return;
     }
     added.length = updated.length = removed.length = 0;
+    let trackedChanged = false;
     platformFeature.getTrackedResult(platformSession, platformFrame, requestTrackings, this._generateTracked);
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
@@ -75,6 +83,7 @@ export abstract class XRTrackableFeature<
             if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
               removed.push(tracked);
               allTracked.splice(allTracked.indexOf(tracked), 1);
+              trackedChanged = true;
             }
             statusSnapshot[trackId] = XRTrackingState.NotTracking;
           }
@@ -92,10 +101,12 @@ export abstract class XRTrackableFeature<
                 statusSnapshot[trackId] = XRTrackingState.Tracking;
                 allTracked.push(trackedObject);
               }
+              trackedChanged = true;
             } else {
               if (statusSnapshot[trackId] === XRTrackingState.Tracking) {
                 removed.push(trackedObject);
                 allTracked.splice(allTracked.indexOf(trackedObject), 1);
+                trackedChanged = true;
               }
               statusSnapshot[trackId] = trackedObject.state;
             }
@@ -108,9 +119,19 @@ export abstract class XRTrackableFeature<
     for (let i = requestTrackings.length - 1; i >= 0; i--) {
       requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
-    if (added.length > 0 || updated.length > 0 || removed.length > 0) {
-      for (let i = 0, n = listeners.length; i < n; i++) {
-        listeners[i](added, updated, removed);
+    if (trackedChanged) {
+      const count = listeners.length;
+      if (count > 0) {
+        const { _listenersPool: listenerPool } = XRManagerExtended;
+        const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
+        tempListeners.length = count;
+        for (let i = 0; i < count; i++) {
+          tempListeners[i] = listeners[i];
+        }
+        for (let i = 0; i < count; i++) {
+          const listener = tempListeners[i];
+          !listener.destroyed && listener.fn(added, updated, removed);
+        }
       }
     }
   }
