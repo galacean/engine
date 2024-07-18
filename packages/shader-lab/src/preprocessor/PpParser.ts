@@ -99,7 +99,7 @@ export default class PpParser {
     const id = scanner.scanQuotedString();
     let includedPath: string;
     // builtin path
-    if (id.lexeme[0] !== "." && id.lexeme[0] !== "/") {
+    if (id.lexeme[0] !== ".") {
       includedPath = id.lexeme;
     } else {
       // relative path
