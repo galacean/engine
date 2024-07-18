@@ -98,11 +98,17 @@ export default class PpParser {
 
     scanner.skipSpace(true);
     const id = scanner.scanQuotedString();
-    const includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(this._pathOrigin.length);
+    let includedPath: string;
+    // builtin path
+    if (id.lexeme[0] !== "." && id.lexeme[0] !== "/") {
+      includedPath = id.lexeme;
+    } else {
+      // relative path
+      includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(this._pathOrigin.length);
+    }
 
     scanner.scanToChar("\n");
     const end = scanner.getShaderPosition();
-
     const chunk = this._includeMap[includedPath];
     if (!chunk) {
       ParserUtils.throw(id.location, `Shader slice "${includedPath}" not founded.`);
