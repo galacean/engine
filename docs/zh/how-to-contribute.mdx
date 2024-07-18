@@ -1,0 +1,239 @@
+---
+title: 如何参与文档贡献
+---
+
+我们的文档底层基于 Nextra 实现，通过 `_meta.json` 来定义文件顺序、页面标题、页面布局等配置。
+
+## 能力介绍
+
+### TOC
+
+TOC(*Table-Of-Content*) 可以快速的让你的读者索引到特定的内容。你只需要设计好恰当的标题和层级结构，读者就可以通过页面右侧的 TOC 选单来实现文件内容的快速跳转。当然，你在书写文档时也可以时刻通过 TOC 来检查自己文档的层级结构设计的是否合理。
+
+### MDX
+
+MDX 是一种基于 `.md` 的新的文档格式，它支持你在其中引入 React 组件来丰富文档的内容。新的官网也同时提供了一些内置 React 组件供你使用
+
+```tsx filename="example.mdx"
+some doc content that you write before...
+
+<Callout>
+You could write some additional information in that place. You also could use mardown syntax in it such as [link](#) or `code`
+</Callout>
+```
+
+<Callout type="info">
+你当然可以继续使用 `.md` 来编写文档！不过可以尝试使用 `.mdx` 来为读者提供更好的阅读体验
+</Callout>
+
+
+### Callout
+
+Callout 组件与你在 markdown 中使用的引言语法 `> some text` 类似，不过它会以高亮块的方式来突出显示内容，从而更直观的传递一些信息。
+Callout 组件提供了四种类型: `info`，`warning`，`positive` 以及 `negative`，用来适配不同的是用场景。
+
+例如，对于一般性的额外信息来说，我们可以使用 `info` 类型：
+
+<Callout type="info">
+  这是一条需要额外说明的信息，可以使用 **加粗** 语法或者 `代码块` 语法。触控回调 **依赖物理引擎** ，使用此功能前请确保物理引擎已初始化完毕。
+</Callout>
+
+对于一些可能对性能有影响的操作，可以使用 `warning` 类型增加醒目的提示：
+
+<Callout type="warning">
+需要注意的是，图片追踪在添加功能时就需要指定追踪的图片，并且在 WebXR 中，同张图片只会被追踪一次。
+</Callout>
+
+对于一些推荐操作来说，或者最佳实践来说，可以使用 `positive` 类型：
+
+<Callout type="positive">
+点击`精灵图集`资产，通过调整 `打包设置` 的 `纹理最大宽度` 与 `纹理最大高度`，同时调用 `打包对象` 中的 `打包并预览` ，可以保证图集利用率在一个较高的水平。
+</Callout>
+
+最后，对于 `breaking change`，或者某些非常不推荐的用法，可以使用 `negative` 类型：
+
+<Callout type="negative">
+注意，如果你没有把脚本资产绑定到实体的脚本组件上，则脚本不会运行
+</Callout>
+
+### 图片缩放
+
+新版官网引入了 `react-medium-image-zoom` 来实现了图片点击放大的功能。你可以使用下面的方式来实现：
+
+````mdx filename="your-doc.mdx"
+import { Image } from '@/mdx'
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/334d8ca3-639f-4cd9-8aaa-93c1da7acdc3/image-20240318173506046.png" figcaption="This is an embedded image using the Image component" />
+
+````
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/334d8ca3-639f-4cd9-8aaa-93c1da7acdc3/image-20240318173506046.png" figcaption="This is an embedded image using the Image component" />
+
+<Callout type="warning">
+由于我们之前文档中的图片是 markdown 语法和 img 标签混用的，新版在解析时无法正确区分这两种情况。导致无法直接将此功能应用到所有图片中。  
+举例来说，我们在文档中有时候会在一行内显示某个按钮截图，这时候就不应该使用缩放组件了。所以需要等老文档的图片语法更新后才可以全量使用
+</Callout>
+
+### 代码高亮
+
+新版的代码高亮功能十分强大，你不仅可以在行内代码和独立代码块中实现代码高亮，对于独立代码块，还新增了 **行显示**，**文件名指定**，**行高亮**，**区间高亮**，**关键词高亮** 等特色功能。
+
+#### 行内高亮
+
+```md
+`let x = 1{:ts}`
+```
+
+比如，这是一段嵌入到文字中的代码 `let x = 1{:ts}`, 可以看到 TypeScript 代码有了高亮的效果。
+
+#### 文件名
+
+下面的示例包括了如何显示文件名，以及如何显示行指示器。
+
+````md filename="script-component.mdx"
+```ts showLineNumbers filename="example.ts"
+class CustomScript extends Script {
+  @ignoreClone
+  a:boolean = false;
+  @assignmentClone
+  b:number = 1;
+  @shallowClone
+  c:Vector3[] = [new Vector3(0,0,0)];
+}
+```
+````
+
+上面的语法产生的效果如下：
+
+```ts showLineNumbers filename="example.ts"
+class CustomScript extends Script{
+  @ignoreClone
+  a:boolean = false;
+  @assignmentClone
+  b:number = 1;
+  @shallowClone
+  c:Vector3[] = [new Vector3(0,0,0)];
+}
+```
+
+<Callout type='info'>
+使用文件名的场景可能并不常见，但某些情况下显示文件名是有必要的。譬如，对于 `project.json` 或 `Scene.json` 这种文件内容，增加文件名的显示可以更直观的传递信息。
+</Callout>
+
+#### 行高亮
+
+````md filename="Markdown"
+```ts {1,4-5}
+async function setupDefaultScene(scene: Scene){
+  const root = scene.createRootEntity();
+  const cameraEntity = root.createChild();
+  cameraEntity.transform.setPosition(0, 0, 10);
+  cameraEntity.addComponent(Camera);
+  cameraEntity.addComponent(OrbitControl);
+}
+```
+````
+
+通过 `{1,4-5}` 这样的语法，我们可以同时实现单行高亮和多行高亮的功能。
+
+```js {1,4-5} showLineNumbers
+async function setupDefaultScene(scene: Scene) {
+  const root = scene.createRootEntity();
+  const cameraEntity = root.createChild();
+  cameraEntity.transform.setPosition(0, 0, 10);
+  cameraEntity.addComponent(Camera);
+  cameraEntity.addComponent(OrbitControl);
+}
+```
+
+#### 指定代码高亮
+
+在某些情况下，你可能需要用户关注某一个关键方法，或某一个类的名称。这时候就可以使用 ` ```ts /specularTexture/ ` 语法来实现指定代码高亮的功能。
+
+````md filename="Markdown"
+```ts /specularTexture/
+  engine.resourceManager
+    .load<AmbientLight>({
+      type: AssetType.Env,
+      url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
+    })
+    .then((ambientLight) => {
+      scene.ambientLight = ambientLight;
+      skyMaterial.texture = ambientLight.specularTexture;
+      skyMaterial.textureDecodeRGBM = true;
+      openDebug(ambientLight.specularTexture);
+      engine.run();
+    });
+```
+````
+上面的语法产生的效果如下：
+
+```ts /specularTexture/
+engine.resourceManager
+  .load<AmbientLight>({
+    type: AssetType.Env,
+    url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
+  })
+  .then((ambientLight) => {
+    scene.ambientLight = ambientLight;
+    skyMaterial.texture = ambientLight.specularTexture;
+    skyMaterial.textureDecodeRGBM = true;
+    openDebug(ambientLight.specularTexture);
+    engine.run();
+  });
+
+```
+
+### 嵌入示例 
+
+在之前，你使用的是 `<playground src="ambient-light.ts"></playground>{:html}` 语法来嵌入的示例。新版的官网对此语法也做了兼容。但后续嵌入示例时推荐使用下面新的语法。毕竟，这里嵌入的示例只是一个 iframe 而已。
+
+````mdx filename="light.mdx"
+...
+
+Ambient light emits from all directions and enters the eye, as shown in the example below:
+
+<playground href="/embed/ambient-light">
+
+...
+````
+
+## 新增文档
+
+新增文档相较于之前可能多了一些步骤（在某些情况下）。需要提前说明的是，在新的官网中，文件路径即是路由。同时文档的顺序以及标题需要使用 `_meta.json` 进行配置。
+
+以新增动画系统的文档 joint 来说：
+
+1. 新增文档 `docs/animation/joint.mdx`
+2. 为文档新增 frontMatter。目前支持的字段有:
+   1. **title** 文档标题
+   2. **group** 文档子标题
+   3. **banner** 头图
+3. 编写文档内容
+4. 修改 `animation/_meta.json` 来定义文档的顺序和侧边栏中的标题
+
+对于文档国际化而言，则同步在 `/docs/en` 文件夹中做上述操作
+
+## 新增博客
+
+新增博客与新增文档的过程类似，只是 frontMatter 多了一些支持的字段。
+
+1. 新增博客文档 `blog/new_blog.mdx`
+2. 为博客增加 frontMatter, 支持的字段有：
+   1. **title** 博客标题
+   2. **group** 博客分类，可使用英文 `,` 隔开多个 group 名称
+   3. **banner** 头图
+   4. **published** 发布时间。年月日格式，例如 `2024-03-14`
+   5. **author** 博客作者定义。包含 name avatar website 三个字段
+   6. **searchable** 需要配置为 `searchable: false` 从而避免被内置的搜索引擎搜索到
+   7. **summary** 博客的摘要，会显示在博客列表页中
+
+## 新增 Changelog
+
+和新增博客的过程一样，只不过文件位于 `/changelog` 中。
+
+## 新增示例
+
+除了以往的单文件示例开发外，我们许你将一个大的示例进行拆分。比如将资产文件列表拆分成一个 `json`，或者将 `dat-gui` 的配置拆分到 `gui-config.ts` 中等等。
+
+要实现文件拆分，你只需要在 `examples` 文件中新建示例文件夹，确保文件夹中包含一个 `index.ts` 即可。在示例页面生成时，会自动检测代码中所依赖的其他文件，并注入到工作区中。
