@@ -118,7 +118,7 @@ export abstract class XRTrackableFeature<
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
       const count = listeners.length;
       if (count > 0) {
-        const { _listenersPool: listenerPool } = XRManagerExtended;
+        const listenerPool = XRManagerExtended._listenersPool;
         const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
         tempListeners.length = count;
         for (let i = 0; i < count; i++) {
@@ -128,6 +128,8 @@ export abstract class XRTrackableFeature<
           const listener = tempListeners[i];
           !listener.destroyed && listener.fn(added, updated, removed);
         }
+        tempListeners.length = 0;
+        listenerPool.push(tempListeners);
       }
     }
   }

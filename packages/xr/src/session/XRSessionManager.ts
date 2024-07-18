@@ -40,7 +40,7 @@ export class XRSessionManager {
     this._state = value;
     const listeners = this._listeners;
     const count = listeners.length;
-    const { _listenersPool: listenerPool } = XRManagerExtended;
+    const listenerPool = XRManagerExtended._listenersPool;
     const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
     tempListeners.length = count;
     for (let i = 0; i < count; i++) {
@@ -50,6 +50,8 @@ export class XRSessionManager {
       const listener = tempListeners[i];
       !listener.destroyed && listener.fn(value);
     }
+    tempListeners.length = 0;
+    listenerPool.push(tempListeners);
   }
 
   /**
