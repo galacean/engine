@@ -288,7 +288,7 @@ export class Shader implements IReferable {
   _registerPath(path: string) {
     for (const subShader of this._subShaders) {
       for (const shaderPass of subShader.passes) {
-        shaderPass.path = path;
+        shaderPass._path = path;
       }
     }
   }

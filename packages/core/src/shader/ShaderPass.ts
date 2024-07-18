@@ -41,14 +41,10 @@ export class ShaderPass extends ShaderPart {
   private readonly _shaderLabSource: string;
   private readonly _vertexEntry: string;
   private readonly _fragmentEntry: string;
-  private _path = "";
+  /** @internal */
+  _path = "";
 
   private _platformMacros: string[] = [];
-
-  /** @internal */
-  set path(val: string) {
-    this._path = val;
-  }
 
   /**
    * @internal
