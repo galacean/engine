@@ -131,6 +131,7 @@ class SceneLoader extends Loader<Scene> {
 
               postProcessManager.isActive = postProcessData.isActive;
               bloomEffect.enabled = postProcessData.bloom.enabled;
+              bloomEffect.downScale = postProcessData.bloom.downScale;
               bloomEffect.threshold = postProcessData.bloom.threshold;
               bloomEffect.scatter = postProcessData.bloom.scatter;
               bloomEffect.intensity = postProcessData.bloom.intensity;
