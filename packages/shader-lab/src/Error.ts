@@ -1,4 +1,3 @@
-// #if _EDITOR
 import { ShaderPosition, ShaderRange } from "./common";
 
 export abstract class GSError extends Error {
@@ -10,7 +9,7 @@ export abstract class GSError extends Error {
   }
 
   override toString(): string {
-    return `${this.loc.toString()}: ${this.message}`;
+    return `${this.loc.toString()}\nReason: ${this.message}`;
   }
 }
 
@@ -27,4 +26,3 @@ export class SemanticError extends GSError {
     this.name = "SemanticError";
   }
 }
-// #endif

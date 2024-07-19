@@ -44,6 +44,16 @@ export default class BaseScanner {
     );
   }
 
+  // #if _EDITOR
+  get line() {
+    return this._line;
+  }
+
+  get column() {
+    return this._column;
+  }
+  // #endif
+
   protected readonly _keywordsMap: Map<string, number>;
 
   constructor(source: string, kws: Map<string, number> = new Map()) {
@@ -73,8 +83,6 @@ export default class BaseScanner {
       return;
     }
 
-    this._currentIndex++;
-
     // #if _EDITOR
     if (this.getCurChar() === "\n") {
       this._line += 1;
@@ -83,6 +91,7 @@ export default class BaseScanner {
       this._column += 1;
     }
     // #endif
+    this._currentIndex++;
   }
 
   skipSpace(includeLineBreak: boolean): void {

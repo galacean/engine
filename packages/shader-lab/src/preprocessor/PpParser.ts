@@ -22,7 +22,7 @@ export interface ExpandSegment {
 }
 
 /** @internal */
-export default class PpParser {
+export class PpParser {
   private static _definedMacros: Map<string, MacroDefine> = new Map();
   private static _expandSegmentsStack: ExpandSegment[][] = [[]];
 
@@ -34,6 +34,10 @@ export default class PpParser {
 
   /** @internal */
   static _errors: PreprocessorError[] = [];
+  /** @internal */
+  static _scanningText: string;
+  /** @internal */
+  static _scanningFile = "__main__";
 
   static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
     this._definedMacros.clear();
@@ -60,6 +64,8 @@ export default class PpParser {
   }
 
   static parse(scanner: PpScanner): string | null {
+    this._scanningText = scanner.source;
+    this._scanningFile = scanner.file;
     while (!scanner.isEnd() && this._errors.length === 0) {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;

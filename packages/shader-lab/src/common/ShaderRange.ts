@@ -16,6 +16,6 @@ export class ShaderRange implements IPoolElement {
   }
 
   toString() {
-    return `[Start: ${this.start.toString()}; End: ${this.end.toString()}]`;
+    return `Start: ${this.start.toString()};\nEnd: ${this.end.toString()}\n`;
   }
 }

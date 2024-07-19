@@ -1,14 +1,8 @@
-import { PreprocessorError } from "../Error";
-import PpParser from "./PpParser";
+import { PpParser } from "./PpParser";
 import PpScanner from "./PpScanner";
 
 /** @internal */
 export class Preprocessor {
-  /** @internal */
-  static get errors(): PreprocessorError[] {
-    return PpParser._errors;
-  }
-
   static baseScanner: PpScanner;
 
   /**

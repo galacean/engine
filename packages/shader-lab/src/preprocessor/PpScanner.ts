@@ -15,9 +15,6 @@ export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 export default class PpScanner extends BaseScanner {
   private static _splitCharacters = /[\w#.]/;
 
-  private line: number = 0;
-  private column: number = 0;
-
   private macroLvl = 0;
 
   // #if _EDITOR

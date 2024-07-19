@@ -8,7 +8,8 @@ import { ShaderContentParser } from "./contentParser";
 import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget, ShaderProgram } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
-import { GSError, PreprocessorError } from "./Error";
+import { PreprocessorError } from "./Error";
+import { PpParser } from "./preprocessor/PpParser";
 
 export class ShaderLab implements IShaderLab {
   /**
@@ -75,8 +76,8 @@ export class ShaderLab implements IShaderLab {
     const preprocessorStart = performance.now();
 
     const ppdContent = Preprocessor.process(source);
-    if (Preprocessor.errors.length > 0) {
-      this._reportPreprocessError(Preprocessor.errors, source);
+    if (PpParser._errors.length > 0) {
+      this._reportPreprocessError(PpParser._errors);
       return { vertex: "", fragment: "" };
     }
 
@@ -136,14 +137,16 @@ export class ShaderLab implements IShaderLab {
   }
   // #endif
 
-  private _reportPreprocessError(errors: PreprocessorError[], source: string) {
+  private _reportPreprocessError(errors: PreprocessorError[]) {
     const errorsMsg = errors.map((item) => item.toString()).join("\n");
-    console.error(
-      "Error occur when expansion ShaderLab code:\n\n" +
-        errorsMsg +
-        "ShaderLab source:\n\n" +
-        ShaderProgram._addLineNum(source)
-    );
+    if (Logger.isEnabled) {
+      Logger.error(
+        `\nPreprocessor error occur in file ${PpParser._scanningFile}:\n\n` +
+          errorsMsg +
+          "ShaderLab source:\n\n" +
+          ShaderProgram._addLineNum(PpParser._scanningText)
+      );
+    }
   }
 
   // private _reportParserError()
