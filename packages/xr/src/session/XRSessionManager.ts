@@ -242,5 +242,8 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  _onDestroy(): void {}
+  _onDestroy(): void {
+    this._listeners.length = 0;
+    this._raf = this._caf = null;
+  }
 }
