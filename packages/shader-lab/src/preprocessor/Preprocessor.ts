@@ -1,8 +1,14 @@
+import { PreprocessorError } from "../Error";
 import PpParser from "./PpParser";
 import PpScanner from "./PpScanner";
 
 /** @internal */
 export class Preprocessor {
+  /** @internal */
+  static get errors(): PreprocessorError[] {
+    return PpParser._errors;
+  }
+
   static baseScanner: PpScanner;
 
   /**
@@ -16,7 +22,7 @@ export class Preprocessor {
   /**
    * Should call it after reset.
    */
-  static process(source: string): string {
+  static process(source: string): string | null {
     this.baseScanner = new PpScanner(source);
     return PpParser.parse(this.baseScanner);
   }

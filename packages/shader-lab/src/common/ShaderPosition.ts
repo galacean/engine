@@ -26,4 +26,8 @@ export class ShaderPosition implements IPoolElement {
     this.line = 0;
     this.column = 0;
   }
+
+  toString() {
+    return `<Position: line: ${this.line}, column: ${this.column}, index: ${this.index}>`;
+  }
 }

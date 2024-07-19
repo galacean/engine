@@ -1,12 +1,23 @@
 // #if _EDITOR
-import { ShaderRange } from "./common";
+import { ShaderPosition, ShaderRange } from "./common";
 
 export abstract class GSError extends Error {
-  readonly loc: ShaderRange;
+  readonly loc: ShaderRange | ShaderPosition;
 
-  constructor(message: string, loc: ShaderRange, cause?: Error) {
+  constructor(message: string, loc: ShaderRange | ShaderPosition, cause?: Error) {
     super(message, { cause });
     this.loc = loc;
+  }
+
+  override toString(): string {
+    return `${this.loc.toString()}: ${this.message}`;
+  }
+}
+
+export class PreprocessorError extends GSError {
+  constructor(message: string, loc: ShaderRange | ShaderPosition, cause?: Error) {
+    super(message, loc, cause);
+    this.name = "PreprocessorError";
   }
 }
 

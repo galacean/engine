@@ -5,9 +5,10 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { IShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget, ShaderProgram } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
+import { GSError, PreprocessorError } from "./Error";
 
 export class ShaderLab implements IShaderLab {
   /**
@@ -74,6 +75,10 @@ export class ShaderLab implements IShaderLab {
     const preprocessorStart = performance.now();
 
     const ppdContent = Preprocessor.process(source);
+    if (Preprocessor.errors.length > 0) {
+      this._reportPreprocessError(Preprocessor.errors, source);
+      return { vertex: "", fragment: "" };
+    }
 
     Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
 
@@ -130,4 +135,16 @@ export class ShaderLab implements IShaderLab {
     return passResult;
   }
   // #endif
+
+  private _reportPreprocessError(errors: PreprocessorError[], source: string) {
+    const errorsMsg = errors.map((item) => item.toString()).join("\n");
+    console.error(
+      "Error occur when expansion ShaderLab code:\n\n" +
+        errorsMsg +
+        "ShaderLab source:\n\n" +
+        ShaderProgram._addLineNum(source)
+    );
+  }
+
+  // private _reportParserError()
 }

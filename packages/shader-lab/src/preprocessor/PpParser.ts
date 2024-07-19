@@ -1,4 +1,4 @@
-import { ShaderRange } from "../common";
+import { ShaderPosition, ShaderRange } from "../common";
 import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 // #if _EDITOR
@@ -10,7 +10,8 @@ import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
-import { ShaderPass } from "@galacean/engine";
+import { Logger, ShaderPass } from "@galacean/engine";
+import { PreprocessorError } from "../Error";
 
 export interface ExpandSegment {
   // #if _EDITOR
@@ -31,6 +32,9 @@ export default class PpParser {
   private static _includeMap: Record<string, string>;
   private static _basePathForIncludeKey: string;
 
+  /** @internal */
+  static _errors: PreprocessorError[] = [];
+
   static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
     this._definedMacros.clear();
     this._expandSegmentsStack.length = 0;
@@ -39,6 +43,7 @@ export default class PpParser {
     this.addPredefinedMacro("GL_ES");
     this._includeMap = includeMap;
     this._basePathForIncludeKey = basePathForIncludeKey;
+    this._errors.length = 0;
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
@@ -54,8 +59,8 @@ export default class PpParser {
     this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 
-  static parse(scanner: PpScanner): string {
-    while (!scanner.isEnd()) {
+  static parse(scanner: PpScanner): string | null {
+    while (!scanner.isEnd() && this._errors.length === 0) {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
       switch (directive.type) {
@@ -84,12 +89,17 @@ export default class PpParser {
           break;
       }
     }
+    if (this._errors.length > 0) return null;
 
     return PpUtils.expand(this.expandSegments, scanner.source, scanner.sourceMap);
   }
 
   private static get expandSegments() {
     return this._expandSegmentsStack[this._expandSegmentsStack.length - 1];
+  }
+
+  private static reportError(loc: ShaderRange | ShaderPosition, message: string) {
+    this._errors.push(new PreprocessorError(message, loc));
   }
 
   private static _parseInclude(scanner: PpScanner) {
@@ -111,7 +121,9 @@ export default class PpParser {
     const end = scanner.getShaderPosition();
     const chunk = this._includeMap[includedPath];
     if (!chunk) {
-      ParserUtils.throw(id.location, `Shader slice "${includedPath}" not founded.`);
+      this.reportError(id.location, `Shader slice "${includedPath}" not founded.`);
+
+      return;
     }
 
     const range = ShaderLab.createRange(start, end);
@@ -285,7 +297,8 @@ export default class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseRelationalExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        ParserUtils.throw(opPos, "invalid operator in relation expression.");
+        this.reportError(opPos, "invalid operator in relation expression.");
+        return;
       }
       switch (operator) {
         case ">":
@@ -310,7 +323,8 @@ export default class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseShiftExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        ParserUtils.throw(opPos, "invalid operator in shift expression.");
+        this.reportError(opPos, "invalid operator in shift expression.");
+        return;
       }
       switch (operator) {
         case ">>":
@@ -333,7 +347,8 @@ export default class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseAdditiveExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        ParserUtils.throw(opPos, "invalid operator.");
+        this.reportError(opPos, "invalid operator.");
+        return false;
       }
       switch (operator) {
         case "+":
@@ -354,7 +369,8 @@ export default class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseMulticativeExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        ParserUtils.throw(opPos, "invalid operator.");
+        this.reportError(opPos, "invalid operator.");
+        return;
       }
       switch (operator) {
         case "*":
@@ -375,7 +391,7 @@ export default class PpParser {
       const opPos = scanner.getShaderPosition();
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
-        ParserUtils.throw(opPos, "invalid operator.");
+        this.reportError(opPos, "invalid operator.");
       }
 
       switch (operator) {
@@ -417,15 +433,14 @@ export default class PpParser {
       } else {
         const macro = this._definedMacros.get(id.lexeme);
         if (!macro) {
-          // ParserUtils.throw(id.location, 'undefined macro:', id.lexeme);
           return false;
         }
         if (macro.isFunction) {
-          ParserUtils.throw(id.location, "invalid function macro usage");
+          this.reportError(id.location, "invalid function macro usage");
         }
         const value = Number(macro.body.lexeme);
         if (!Number.isInteger(value)) {
-          ParserUtils.throw(id.location, "invalid const macro:", id.lexeme);
+          this.reportError(id.location, `invalid const macro: ${id.lexeme}`);
         }
         this._branchMacros.add(id.lexeme);
         return value;
@@ -434,7 +449,7 @@ export default class PpParser {
       const integer = scanner.scanInteger();
       return Number(integer.lexeme);
     } else {
-      ParserUtils.throw(scanner.getShaderPosition(), "invalid token", scanner.getCurChar());
+      this.reportError(scanner.getShaderPosition(), `invalid token: ${scanner.getCurChar()}`);
     }
   }
 
@@ -571,7 +586,7 @@ export default class PpParser {
 
     let end = macro.location.end;
     if (this._definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
-      ParserUtils.throw(macro.location, "redefined macro:", macro.lexeme);
+      this.reportError(macro.location, `redefined macro: ${macro.lexeme}`);
     }
 
     let macroArgs: BaseToken[] | undefined;

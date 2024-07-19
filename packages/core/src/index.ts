@@ -66,3 +66,5 @@ export * from "./Utils";
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 export * from "./postProcess";
+/** @internal */
+export { ShaderProgram } from "./shader/ShaderProgram";
