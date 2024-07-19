@@ -14,7 +14,7 @@ label: Graphics/Camera
 
 添加完毕后，就可以在检查器里可以查看相机属性，并且左下角的相机预览可以方便地查看项目实际运行时的相机效果：
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/24fa20d2-8f50-49bd-907a-3806f31e462e/image-20231009114816056.png" alt="image-20231009114816056" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/d60e9f91-137e-4148-b85e-7458007333c3/image-20240718211520816.png" alt="image-20240718211520816" style="zoom:50%;" />
 
 您也可以在脚本中通过如下代码为 [Entity](/docs/core-entity) 挂载相机组件：
 
@@ -29,7 +29,7 @@ const camera = entity.addComponent(Camera);
 
 通过修改相机组件的属性可以定制渲染效果。下方是相机组件在 **[检查器面板](/docs/interface-inspector)** 暴露的属性设置。
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Za1RSJcYrSMAAAAAAAAAAAAADhuCAQ/original)
+<img src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style="zoom:50%;" />
 
 也可以通过脚本去获取相机组件并设置相应的属性。
 
@@ -76,6 +76,8 @@ camera.clearFlags = CameraClearFlags.All;
 |  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>)     | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。                                                             |
 |  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)     | 可以设置独立画布的多样本抗锯齿采样样本数量，仅当非透明纹理开启，且没有设置 renderTarget 时才生效。                                                            |
 |  | [independentCanvasEnabled](<(/apis/core/#Camera-independentCanvasEnabled)>)     | 只读属性，是否启用独立画布，仅当非透明纹理开启，且没有设置 renderTarget 时才生效。                                                            |
+|  | [enableHDR](<(/apis/core/#Camera-enableHDR)>)     | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
+|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics-postProcess)。|
 
 ### 裁剪遮罩
 
