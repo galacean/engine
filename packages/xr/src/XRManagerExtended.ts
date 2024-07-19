@@ -21,7 +21,7 @@ export class XRManagerExtended extends XRManager {
   override sessionManager: XRSessionManager;
   /** Camera manager for XR. */
   override cameraManager: XRCameraManager;
-  /** Initialized features for XR. */
+  /** Initialized features. */
   override readonly features: XRFeature[] = [];
 
   /** @internal */
@@ -272,7 +272,7 @@ declare module "@galacean/engine" {
     sessionManager: XRSessionManager;
     /** Camera manager for XR. */
     cameraManager: XRCameraManager;
-    /** Initialized features for XR. */
+    /** Initialized features. */
     readonly features: XRFeature[];
 
     /**
