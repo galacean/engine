@@ -38,9 +38,7 @@ export abstract class XRTrackableFeature<
    * @param listener - The listening function
    */
   removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    this._listeners.findAndRemove((value) => {
-      return value.fn === listener ? (value.destroyed = true) : false;
-    });
+    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
   }
 
   override _onUpdate(): void {
@@ -122,9 +120,7 @@ export abstract class XRTrackableFeature<
   override _onSessionExit(): void {
     // prettier-ignore
     this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length  = 0;
-    this._listeners.findAndRemove((value) => {
-      return (value.destroyed = true);
-    });
+    this._listeners.findAndRemove((value) => (value.destroyed = true));
   }
 
   protected _addRequestTracking(requestTracking: K): void {

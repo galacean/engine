@@ -14,13 +14,9 @@ export class XRManagerExtended extends XRManager {
   /** @internal */
   static _featureMap: Map<TFeatureConstructor<XRFeature>, XRFeatureType> = new Map();
 
-  /** Input manager for XR. */
   override inputManager: XRInputManager;
-  /** Session manager for XR. */
   override sessionManager: XRSessionManager;
-  /** Camera manager for XR. */
   override cameraManager: XRCameraManager;
-  /** Initialized features. */
   override readonly features: XRFeature[] = [];
 
   /** @internal */
@@ -28,10 +24,6 @@ export class XRManagerExtended extends XRManager {
 
   private _origin: Entity;
 
-  /**
-   * The current origin of XR space.
-   * @remarks The connection point between the virtual world and the real world ( XR Space )
-   */
   override get origin(): Entity {
     return this._origin;
   }
@@ -43,21 +35,10 @@ export class XRManagerExtended extends XRManager {
     this._origin = value;
   }
 
-  /**
-   * Check if the specified feature is supported.
-   * @param type - The type of the feature
-   * @returns If the feature is supported
-   */
   override isSupportedFeature<T extends XRFeature>(feature: TFeatureConstructor<T>): boolean {
     return this._platformDevice.isSupportedFeature(XRManagerExtended._featureMap.get(feature));
   }
 
-  /**
-   * Add feature based on the xr feature type.
-   * @param type - The type of the feature
-   * @param args - The constructor params of the feature
-   * @returns The feature which has been added
-   */
   override addFeature<T extends new (xrManager: XRManagerExtended, ...args: any[]) => XRFeature>(
     type: T,
     ...args: TFeatureConstructorArguments<T>
@@ -77,11 +58,6 @@ export class XRManagerExtended extends XRManager {
     return feature;
   }
 
-  /**
-   * Get feature which match the type.
-   * @param type - The type of the feature
-   * @returns	The feature which match type
-   */
   override getFeature<T extends XRFeature>(type: TFeatureConstructor<T>): T | null {
     const { features } = this;
     for (let i = 0, n = features.length; i < n; i++) {
@@ -92,12 +68,6 @@ export class XRManagerExtended extends XRManager {
     }
   }
 
-  /**
-   * Enter XR immersive mode, when you call this method, it will initialize and display the XR virtual world.
-   * @param sessionMode - The mode of the session
-   * @param autoRun - Whether to automatically run the session, when `autoRun` is set to true, xr will start working immediately after initialization. Otherwise, you need to call `sessionManager.run` later to work.
-   * @returns A promise that resolves if the XR virtual world is entered, otherwise rejects
-   */
   override enterXR(sessionMode: XRSessionMode, autoRun: boolean = true): Promise<void> {
     const { sessionManager } = this;
     if (sessionManager._platformSession) {
@@ -119,10 +89,6 @@ export class XRManagerExtended extends XRManager {
     });
   }
 
-  /**
-   * Exit XR immersive mode, when you call this method, it will destroy the XR virtual world.
-   * @returns A promise that resolves if the XR virtual world is destroyed, otherwise rejects
-   */
   override exitXR(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sessionManager._exit().then(() => {

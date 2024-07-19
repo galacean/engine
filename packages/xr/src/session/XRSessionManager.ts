@@ -122,9 +122,7 @@ export class XRSessionManager {
    * @param listener - The listening function
    */
   removeChangedListener(listener: (state: XRSessionState) => void): void {
-    this._listeners.findAndRemove((value) => {
-      return value.fn === listener ? (value.destroyed = true) : false;
-    });
+    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
   }
 
   /**
@@ -225,9 +223,7 @@ export class XRSessionManager {
    * @internal
    */
   _onDestroy(): void {
-    this._listeners.findAndRemove((value) => {
-      return (value.destroyed = true);
-    });
+    this._listeners.findAndRemove((value) => (value.destroyed = true));
     this._raf = this._caf = null;
   }
 }
