@@ -4,6 +4,7 @@ changelog:
     labels:
       - ignore for release
       - document
+      - test
   categories:
     - title: Breaking Changes 🛠
       labels:
@@ -17,5 +18,4 @@ changelog:
         - bug
     - title: Other Changes
       labels:
-        - test
         - "*"
