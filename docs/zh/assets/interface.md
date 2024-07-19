@@ -66,6 +66,14 @@ this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });
 
 你可以在选中一个资产后点击资产面板上的删除按钮，或者通过右键菜单中的删除选项来删除资产。删除资产时，你需要注意所删除的资产是否会影响场景中其他节点的关联性。
 
+## 复制和粘贴资产
+
+你可以在资产面板右键资产复制，然后粘贴在你进入的文件夹中：
+
+![2024-07-19 14.18.11](https://mdn.alipayobjects.com/rms/afts/img/A*0Wf5T6tEvnYAAAAAAAAAAAAAARQnAQ/original/2024-07-19 14.18.11.gif)
+
+也可以使用 `⌘`+ `C` 和 `⌘`+ `V` 操作。 
+
 ### 预览资产
 
 在选中一个资产后, 右侧的 **[检查器面板](/docs/interface-inspector)** 会显示出此资产可配置的属性。不同的资产所对应的可配置项是不同的, 比如 glTF 资产会显示模型预览窗, 材质资产会显示出详细的材质配置选项 。
@@ -89,3 +97,5 @@ this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });
 | `⌫` / `Delete` | 删除资源 |
 | `⌘` + `D`      | 复制资源 |
 | `⌘`+ `F`       | 搜索资源 |
+| `⌘`+ `C`       | 复制资源 |
+| `⌘`+ `V`       | 粘贴资源 |
