@@ -108,7 +108,8 @@ export abstract class XRTrackableFeature<
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
       const listeners = this._listeners.getLoopArray();
       for (let i = 0, n = listeners.length; i < n; i++) {
-        !listeners[i].destroyed && listeners[i].fn(added, updated, removed);
+        const listener = listeners[i];
+        !listener.destroyed && listener.fn(added, updated, removed);
       }
     }
   }

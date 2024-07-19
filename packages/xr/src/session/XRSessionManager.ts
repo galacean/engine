@@ -132,7 +132,8 @@ export class XRSessionManager {
     this._state = value;
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
-      !listeners[i].destroyed && listeners[i].fn(value);
+      const listener = listeners[i];
+      !listener.destroyed && listener.fn(value);
     }
   }
 
