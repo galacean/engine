@@ -3,7 +3,7 @@ changelog:
   exclude:
     labels:
       - ignore for release
-      - document
+      - documentation
       - test
   categories:
     - title: Breaking Changes 🛠
