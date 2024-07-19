@@ -26,23 +26,23 @@ export abstract class XRTrackableFeature<
 
   /**
    * Add a listening function for tracked object changes.
-   * @param fn - The listening function
+   * @param listener - The listening function
    */
-  addChangedListener(fn: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
+  addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
     const { _listeners: listeners } = this;
-    if (!listeners.find((listener) => listener.fn === fn)) {
-      listeners.push({ fn });
+    if (!listeners.find((xrListener) => xrListener.fn === listener)) {
+      listeners.push({ fn: listener });
     }
   }
 
   /**
    * Remove a listening function of tracked object changes.
-   * @param fn - The listening function
+   * @param listener - The listening function
    */
-  removeChangedListener(fn: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
+  removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
     const { _listeners: listeners } = this;
     for (let i = listeners.length - 1; i >= 0; i--) {
-      if (listeners[i].fn === fn) {
+      if (listeners[i].fn === listener) {
         listeners[i].destroyed = true;
         listeners.splice(i, 1);
         break;

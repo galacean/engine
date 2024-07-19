@@ -34,27 +34,6 @@ export class XRSessionManager {
   }
 
   /**
-   * @internal
-   */
-  set state(value: XRSessionState) {
-    this._state = value;
-    const listeners = this._listeners;
-    const count = listeners.length;
-    const listenerPool = XRManagerExtended._listenersPool;
-    const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
-    tempListeners.length = count;
-    for (let i = 0; i < count; i++) {
-      tempListeners[i] = listeners[i];
-    }
-    for (let i = 0; i < count; i++) {
-      const listener = tempListeners[i];
-      !listener.destroyed && listener.fn(value);
-    }
-    tempListeners.length = 0;
-    listenerPool.push(tempListeners);
-  }
-
-  /**
    * Return a list of supported frame rates.(only available in-session)
    */
   get supportedFrameRate(): Float32Array {
@@ -100,7 +79,7 @@ export class XRSessionManager {
       throw new Error("Without session to run.");
     }
     platformSession.start();
-    this.state = XRSessionState.Running;
+    this._setState(XRSessionState.Running);
     this._xrManager._onSessionStart();
     if (!engine.isPaused) {
       engine.pause();
@@ -122,7 +101,7 @@ export class XRSessionManager {
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.stop();
-    this.state = XRSessionState.Paused;
+    this._setState(XRSessionState.Paused);
     this._xrManager._onSessionStop();
     if (!engine.isPaused) {
       engine.pause();
@@ -132,28 +111,49 @@ export class XRSessionManager {
 
   /**
    * Add a listening function for session state changes.
-   * @param fn - The listening function
+   * @param listener - The listening function
    */
-  addChangedListener(fn: (state: XRSessionState) => void): void {
+  addChangedListener(listener: (state: XRSessionState) => void): void {
     const { _listeners: listeners } = this;
-    if (!listeners.find((listener) => listener.fn === fn)) {
-      listeners.push({ fn });
+    if (!listeners.find((xrListener) => xrListener.fn === listener)) {
+      listeners.push({ fn: listener });
     }
   }
 
   /**
    * Remove a listening function of session state changes.
-   * @param fn - The listening function
+   * @param listener - The listening function
    */
-  removeChangedListener(fn: (state: XRSessionState) => void): void {
+  removeChangedListener(listener: (state: XRSessionState) => void): void {
     const { _listeners: listeners } = this;
     for (let i = listeners.length - 1; i >= 0; i--) {
-      if (listeners[i].fn === fn) {
+      if (listeners[i].fn === listener) {
         listeners[i].destroyed = true;
         listeners.splice(i, 1);
         break;
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  _setState(value: XRSessionState) {
+    this._state = value;
+    const listeners = this._listeners;
+    const count = listeners.length;
+    const listenerPool = XRManagerExtended._listenersPool;
+    const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
+    tempListeners.length = count;
+    for (let i = 0; i < count; i++) {
+      tempListeners[i] = listeners[i];
+    }
+    for (let i = 0; i < count; i++) {
+      const listener = tempListeners[i];
+      !listener.destroyed && listener.fn(value);
+    }
+    tempListeners.length = 0;
+    listenerPool.push(tempListeners);
   }
 
   /**
@@ -173,7 +173,7 @@ export class XRSessionManager {
         .then((platformSession: IXRSession) => {
           this._mode = mode;
           this._platformSession = platformSession;
-          this.state = XRSessionState.Initialized;
+          this._setState(XRSessionState.Initialized);
           platformSession.setSessionExitCallBack(this._onSessionExit);
           platformSession.addEventListener();
           xrManager._onSessionInit();
@@ -231,7 +231,7 @@ export class XRSessionManager {
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.removeEventListener();
     this._platformSession = null;
-    this.state = XRSessionState.None;
+    this._setState(XRSessionState.None);
     this._xrManager._onSessionExit();
     if (!engine.isPaused) {
       engine.pause();

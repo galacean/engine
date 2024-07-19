@@ -21,8 +21,8 @@ export class XRManagerExtended extends XRManager {
   override sessionManager: XRSessionManager;
   /** Camera manager for XR. */
   override cameraManager: XRCameraManager;
-  /** All initialized features at this moment. */
-  readonly features: XRFeature[] = [];
+  /** Initialized features for XR. */
+  override readonly features: XRFeature[] = [];
 
   /** @internal */
   _platformDevice: IXRDevice;
@@ -110,7 +110,7 @@ export class XRManagerExtended extends XRManager {
     return new Promise((resolve, reject) => {
       // 1. Check if this xr mode is supported
       sessionManager.isSupportedMode(sessionMode).then(() => {
-        sessionManager.state = XRSessionState.Initializing;
+        sessionManager._setState(XRSessionState.Initializing);
         // 2. Initialize session
         sessionManager._initialize(sessionMode, this.features).then(() => {
           autoRun && sessionManager.run();
@@ -136,7 +136,6 @@ export class XRManagerExtended extends XRManager {
    * @internal
    */
   override _initialize(engine: Engine, xrDevice: IXRDevice): void {
-    this.features.length = 0;
     this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(this, engine);
     this.inputManager = new XRInputManager(this, engine);
@@ -273,6 +272,8 @@ declare module "@galacean/engine" {
     sessionManager: XRSessionManager;
     /** Camera manager for XR. */
     cameraManager: XRCameraManager;
+    /** Initialized features for XR. */
+    readonly features: XRFeature[];
 
     /**
      * The current origin of XR space.
