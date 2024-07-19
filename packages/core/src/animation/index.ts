@@ -21,3 +21,6 @@ export { WrapMode } from "./enums/WrapMode";
 export * from "./Keyframe";
 export * from "./AnimatorLayerMask";
 export { StateMachineScript } from "./StateMachineScript";
+export { AnimatorCondition } from "./AnimatorCondition";
+export * from "./AnimatorControllerParameter";
+export { LayerPathMask } from "./LayerPathMask";
