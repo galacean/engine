@@ -13,7 +13,6 @@ import { XRSessionState } from "./session/XRSessionState";
 export class XRManagerExtended extends XRManager {
   /** @internal */
   static _featureMap: Map<TFeatureConstructor<XRFeature>, XRFeatureType> = new Map();
-  static _listenersPool: IXRListener[][] = [];
 
   /** Input manager for XR. */
   override inputManager: XRInputManager;

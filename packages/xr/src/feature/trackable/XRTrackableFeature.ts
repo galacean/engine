@@ -1,5 +1,6 @@
+import { SafeLoopArray } from "@galacean/engine";
 import { IXRTrackablePlatformFeature } from "@galacean/engine-design";
-import { IXRListener, XRManagerExtended } from "../../XRManagerExtended";
+import { IXRListener } from "../../XRManagerExtended";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
@@ -22,7 +23,7 @@ export abstract class XRTrackableFeature<
   protected _updated: T[] = [];
   protected _removed: T[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
-  private _listeners: IXRListener[] = [];
+  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * Add a listening function for tracked object changes.
@@ -37,13 +38,9 @@ export abstract class XRTrackableFeature<
    * @param listener - The listening function
    */
   removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    const { _listeners: listeners } = this;
-    for (let i = listeners.length - 1; i >= 0; i--) {
-      if (listeners[i].fn === listener) {
-        listeners[i].destroyed = true;
-        listeners.splice(i, 1);
-      }
-    }
+    this._listeners.findAndRemove((value) => {
+      return value.fn === listener ? (value.destroyed = true) : false;
+    });
   }
 
   override _onUpdate(): void {
@@ -51,7 +48,6 @@ export abstract class XRTrackableFeature<
     const { frame: platformFrame } = platformSession;
     const {
       _platformFeature: platformFeature,
-      _listeners: listeners,
       _requestTrackings: requestTrackings,
       _statusSnapshot: statusSnapshot,
       _tracked: allTracked,
@@ -112,20 +108,9 @@ export abstract class XRTrackableFeature<
       requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
-      const count = listeners.length;
-      if (count > 0) {
-        const listenerPool = XRManagerExtended._listenersPool;
-        const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
-        tempListeners.length = count;
-        for (let i = 0; i < count; i++) {
-          tempListeners[i] = listeners[i];
-        }
-        for (let i = 0; i < count; i++) {
-          const listener = tempListeners[i];
-          !listener.destroyed && listener.fn(added, updated, removed);
-        }
-        tempListeners.length = 0;
-        listenerPool.push(tempListeners);
+      const listeners = this._listeners.getLoopArray();
+      for (let i = 0, n = listeners.length; i < n; i++) {
+        !listeners[i].destroyed && listeners[i].fn(added, updated, removed);
       }
     }
   }
@@ -137,11 +122,9 @@ export abstract class XRTrackableFeature<
   override _onSessionExit(): void {
     // prettier-ignore
     this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length  = 0;
-    const { _listeners: listeners } = this;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i].destroyed = true;
-    }
-    this._listeners.length = 0;
+    this._listeners.findAndRemove((value) => {
+      return (value.destroyed = true);
+    });
   }
 
   protected _addRequestTracking(requestTracking: K): void {

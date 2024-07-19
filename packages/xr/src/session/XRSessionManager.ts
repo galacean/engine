@@ -1,4 +1,4 @@
-import { Engine } from "@galacean/engine";
+import { Engine, SafeLoopArray } from "@galacean/engine";
 import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
 import { IXRListener, XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
@@ -17,7 +17,7 @@ export class XRSessionManager {
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
-  private _listeners: IXRListener[] = [];
+  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * The current session mode( AR or VR ).
@@ -122,13 +122,9 @@ export class XRSessionManager {
    * @param listener - The listening function
    */
   removeChangedListener(listener: (state: XRSessionState) => void): void {
-    const { _listeners: listeners } = this;
-    for (let i = listeners.length - 1; i >= 0; i--) {
-      if (listeners[i].fn === listener) {
-        listeners[i].destroyed = true;
-        listeners.splice(i, 1);
-      }
-    }
+    this._listeners.findAndRemove((value) => {
+      return value.fn === listener ? (value.destroyed = true) : false;
+    });
   }
 
   /**
@@ -136,20 +132,10 @@ export class XRSessionManager {
    */
   _setState(value: XRSessionState) {
     this._state = value;
-    const listeners = this._listeners;
-    const count = listeners.length;
-    const listenerPool = XRManagerExtended._listenersPool;
-    const tempListeners = listenerPool.length > 0 ? listenerPool.pop() : [];
-    tempListeners.length = count;
-    for (let i = 0; i < count; i++) {
-      tempListeners[i] = listeners[i];
+    const listeners = this._listeners.getLoopArray();
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      !listeners[i].destroyed && listeners[i].fn(value);
     }
-    for (let i = 0; i < count; i++) {
-      const listener = tempListeners[i];
-      !listener.destroyed && listener.fn(value);
-    }
-    tempListeners.length = 0;
-    listenerPool.push(tempListeners);
   }
 
   /**
@@ -239,11 +225,9 @@ export class XRSessionManager {
    * @internal
    */
   _onDestroy(): void {
-    const { _listeners: listeners } = this;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i].destroyed = true;
-    }
-    this._listeners.length = 0;
+    this._listeners.findAndRemove((value) => {
+      return (value.destroyed = true);
+    });
     this._raf = this._caf = null;
   }
 }
