@@ -113,7 +113,7 @@ export class XRSessionManager {
    * Add a listening function for session state changes.
    * @param listener - The listening function
    */
-  addChangedListener(listener: (state: XRSessionState) => void): void {
+  addStateChangedListener(listener: (state: XRSessionState) => void): void {
     this._listeners.push({ fn: listener });
   }
 
@@ -121,7 +121,7 @@ export class XRSessionManager {
    * Remove a listening function of session state changes.
    * @param listener - The listening function
    */
-  removeChangedListener(listener: (state: XRSessionState) => void): void {
+  removeStateChangedListener(listener: (state: XRSessionState) => void): void {
     this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
   }
 
