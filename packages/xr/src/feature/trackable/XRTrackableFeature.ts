@@ -29,10 +29,7 @@ export abstract class XRTrackableFeature<
    * @param listener - The listening function
    */
   addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    const { _listeners: listeners } = this;
-    if (!listeners.find((xrListener) => xrListener.fn === listener)) {
-      listeners.push({ fn: listener });
-    }
+    this._listeners.push({ fn: listener });
   }
 
   /**
@@ -45,7 +42,6 @@ export abstract class XRTrackableFeature<
       if (listeners[i].fn === listener) {
         listeners[i].destroyed = true;
         listeners.splice(i, 1);
-        break;
       }
     }
   }
@@ -140,7 +136,12 @@ export abstract class XRTrackableFeature<
 
   override _onSessionExit(): void {
     // prettier-ignore
-    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = this._listeners.length = 0;
+    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length  = 0;
+    const { _listeners: listeners } = this;
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      listeners[i].destroyed = true;
+    }
+    this._listeners.length = 0;
   }
 
   protected _addRequestTracking(requestTracking: K): void {

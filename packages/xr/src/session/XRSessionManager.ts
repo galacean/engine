@@ -114,10 +114,7 @@ export class XRSessionManager {
    * @param listener - The listening function
    */
   addChangedListener(listener: (state: XRSessionState) => void): void {
-    const { _listeners: listeners } = this;
-    if (!listeners.find((xrListener) => xrListener.fn === listener)) {
-      listeners.push({ fn: listener });
-    }
+    this._listeners.push({ fn: listener });
   }
 
   /**
@@ -130,7 +127,6 @@ export class XRSessionManager {
       if (listeners[i].fn === listener) {
         listeners[i].destroyed = true;
         listeners.splice(i, 1);
-        break;
       }
     }
   }
@@ -243,6 +239,10 @@ export class XRSessionManager {
    * @internal
    */
   _onDestroy(): void {
+    const { _listeners: listeners } = this;
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      listeners[i].destroyed = true;
+    }
     this._listeners.length = 0;
     this._raf = this._caf = null;
   }
