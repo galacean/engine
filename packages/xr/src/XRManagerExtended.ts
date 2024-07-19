@@ -8,7 +8,7 @@ import { XRSessionManager } from "./session/XRSessionManager";
 import { XRSessionMode } from "./session/XRSessionMode";
 import { XRSessionState } from "./session/XRSessionState";
 /**
- * XRManager is the entry point of the XR system.
+ * @internal
  */
 export class XRManagerExtended extends XRManager {
   /** @internal */
@@ -97,9 +97,6 @@ export class XRManagerExtended extends XRManager {
     });
   }
 
-  /**
-   * @internal
-   */
   override _initialize(engine: Engine, xrDevice: IXRDevice): void {
     this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(this, engine);
@@ -107,9 +104,6 @@ export class XRManagerExtended extends XRManager {
     this.cameraManager = new XRCameraManager(this);
   }
 
-  /**
-   * @internal
-   */
   override _update(): void {
     const { sessionManager } = this;
     if (sessionManager.state !== XRSessionState.Running) return;
@@ -123,9 +117,6 @@ export class XRManagerExtended extends XRManager {
     }
   }
 
-  /**
-   * @internal
-   */
   override _destroy(): void {
     if (this.sessionManager._platformSession) {
       this.exitXR().then(() => {
@@ -140,23 +131,14 @@ export class XRManagerExtended extends XRManager {
     }
   }
 
-  /**
-   * @internal
-   */
   override _getRequestAnimationFrame(): (callback: FrameRequestCallback) => number {
     return this.sessionManager._getRequestAnimationFrame();
   }
 
-  /**
-   * @internal
-   */
   override _getCancelAnimationFrame(): (id: number) => void {
     return this.sessionManager._getCancelAnimationFrame();
   }
 
-  /**
-   * @internal
-   */
   override _getCameraClearFlagsMask(type: CameraType): CameraClearFlags {
     return this.cameraManager._getCameraClearFlagsMask(type);
   }
