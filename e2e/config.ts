@@ -45,6 +45,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-play",
       threshold: 0.1
     },
+    playBeforeActive: {
+      category: "Animator",
+      caseFileName: "animator-play-beforeActive",
+      threshold: 0.1
+    },
     reuse: {
       category: "Animator",
       caseFileName: "animator-reuse",

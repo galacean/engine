@@ -227,10 +227,7 @@ export class Animator extends Component {
    * @internal
    */
   override _onEnable(): void {
-    const layersData = this._animatorLayersData;
-    for (let i = 0, n = layersData.length; i < n; i++) {
-      layersData[i].layerState = LayerState.Standby;
-    }
+    this._reset();
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
 
