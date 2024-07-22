@@ -17,12 +17,16 @@ export class XRManagerExtended extends XRManager {
   override inputManager: XRInputManager;
   override sessionManager: XRSessionManager;
   override cameraManager: XRCameraManager;
-  override readonly features: XRFeature[] = [];
 
   /** @internal */
   _platformDevice: IXRDevice;
 
+  private _features: XRFeature[];
   private _origin: Entity;
+
+  override get features(): XRFeature[] {
+    return this._features;
+  }
 
   override get origin(): Entity {
     return this._origin;
@@ -98,6 +102,7 @@ export class XRManagerExtended extends XRManager {
   }
 
   override _initialize(engine: Engine, xrDevice: IXRDevice): void {
+    this._features = [];
     this._platformDevice = xrDevice;
     this.sessionManager = new XRSessionManager(this, engine);
     this.inputManager = new XRInputManager(this, engine);
@@ -219,8 +224,9 @@ declare module "@galacean/engine" {
     sessionManager: XRSessionManager;
     /** Camera manager for XR. */
     cameraManager: XRCameraManager;
+
     /** Initialized features. */
-    readonly features: XRFeature[];
+    get features(): XRFeature[];
 
     /**
      * The current origin of XR space.
