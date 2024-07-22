@@ -113,8 +113,8 @@ describe("InputManager", async () => {
         console.log("onPointerClick");
       }
 
-      onPointerStartDrag(pointer: Pointer): void {
-        console.log("onPointerStartDrag");
+      onPointerBeginDrag(pointer: Pointer): void {
+        console.log("onPointerBeginDrag");
       }
 
       onPointerDrag(pointer: Pointer): void {

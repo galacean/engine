@@ -112,7 +112,7 @@ export class Pointer {
       rayCastEntity._scripts.forEach(
         (element: Script) => {
           element.onPointerDown(this);
-          element.onPointerStartDrag(this);
+          element.onPointerBeginDrag(this);
         },
         (element: Script, index: number) => {
           element._entityScriptsIndex = index;

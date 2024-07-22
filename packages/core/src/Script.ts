@@ -151,7 +151,7 @@ export class Script extends Component {
    * This function will be called when the pointer is pressed on the collider.
    * @param pointer
    */
-  onPointerStartDrag(pointer: Pointer): void {}
+  onPointerBeginDrag(pointer: Pointer): void {}
 
   /**
    * When a drag collision occurs on the pointer, this function will be called every time it moves.
