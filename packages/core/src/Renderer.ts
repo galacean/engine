@@ -323,6 +323,10 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _prepareRender(context: RenderContext): void {
+    if (this._renderFrameCount !== this.engine.time.frameCount) {
+      this._update(context);
+    }
+
     const virtualCamera = context.virtualCamera;
     const cameraPosition = virtualCamera.position;
     const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
@@ -332,10 +336,6 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
     } else {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
-    }
-
-    if (this._renderFrameCount !== this.engine.time.frameCount) {
-      this._update(context);
     }
 
     this._render(context);
