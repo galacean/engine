@@ -131,7 +131,6 @@ export class PrimitiveChunk {
         return newArea;
       } else if (size === needSize) {
         areas.splice(i, 1);
-        pool.return(area);
         return area;
       }
     }
