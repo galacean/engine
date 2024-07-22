@@ -1,7 +1,7 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
 // #if _EDITOR
-import { SemanticError } from "../Error";
+import { CompilationError } from "../Error";
 // #endif
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
@@ -22,9 +22,7 @@ export default class SematicAnalyzer {
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
   private _shaderData = new ShaderData();
 
-  // #if _EDITOR
-  readonly errors: SemanticError[] = [];
-  // #endif
+  readonly errors: CompilationError[] = [];
 
   get shaderData() {
     return this._shaderData;
@@ -41,9 +39,7 @@ export default class SematicAnalyzer {
     this._shaderData = new ShaderData();
     this.symbolTable.clear();
     this.newScope();
-    // #if _EDITOR
     this.errors.length = 0;
-    // #endif
   }
 
   newScope() {
@@ -63,13 +59,11 @@ export default class SematicAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  // #if _EDITOR
   error(loc: ShaderRange, ...param: any[]) {
-    Logger.error(loc, ...param);
+    // Logger.warn(loc, ...param);
 
-    const err = new SemanticError(param.join(""), loc);
+    const err = new CompilationError(param.join(""), loc);
     this.errors.push(err);
     return err;
   }
-  // #endif
 }

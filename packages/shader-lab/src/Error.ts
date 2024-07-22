@@ -9,7 +9,7 @@ export abstract class GSError extends Error {
   }
 
   override toString(): string {
-    return `${this.loc.toString()}\nReason: ${this.message}`;
+    return `>>>>>\n${this.loc.toString()}\nReason: ${this.message}\n<<<<<`;
   }
 }
 
@@ -20,7 +20,7 @@ export class PreprocessorError extends GSError {
   }
 }
 
-export class SemanticError extends GSError {
+export class CompilationError extends GSError {
   constructor(message: string, loc: ShaderRange, cause?: Error) {
     super(message, loc, cause);
     this.name = "SemanticError";

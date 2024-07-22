@@ -10,6 +10,7 @@ import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "@galacean/engine";
+import { CompilationError } from "../Error";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -29,6 +30,11 @@ export class ShaderTargetParser {
   }
   private get stateGotoTable() {
     return this.gotoTable.get(this.curState);
+  }
+
+  /** @internal */
+  get errors() {
+    return this.sematicAnalyzer.errors;
   }
 
   static _singleton: ShaderTargetParser;
@@ -53,7 +59,7 @@ export class ShaderTargetParser {
   }
 
   parse(tokens: Generator<BaseToken, BaseToken>): ASTNode.GLShaderProgram | null {
-    this.sematicAnalyzer.reset();
+    this._reset();
     const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
@@ -103,10 +109,14 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        Logger.error(token.location, `parse error token ${token.lexeme}`);
+        this.sematicAnalyzer.errors.push(new CompilationError(`Unexpected token ${token.lexeme}`, token.location));
         return null;
       }
     }
+  }
+
+  private _reset() {
+    this.sematicAnalyzer.reset();
   }
 
   // #if _EDITOR
