@@ -192,7 +192,7 @@ export class ParticleRenderer extends Renderer {
     }
   }
 
-  protected override _updateRendererShaderData(context: RenderContext): void {
+  protected override _update(context: RenderContext): void {
     const generator = this.generator;
     generator._update(this.engine.time.deltaTime);
 
