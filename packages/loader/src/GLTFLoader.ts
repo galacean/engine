@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
-import { MeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
+import { getMeshoptDecoder, ready } from "./gltf/extensions/MeshoptDecoder";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
@@ -19,14 +19,19 @@ export class GLTFLoader extends Loader<GLTFResource> {
    * @remarks If use loader after releasing, we should release again.
    */
   static release(): void {
-    MeshoptDecoder.release();
+    if (ready) {
+      getMeshoptDecoder().then((meshoptDecoder) => {
+        meshoptDecoder.release();
+      });
+    }
   }
 
   override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
-    const meshOptOptions = configuration.glTF?.meshOpt;
+    const meshOptOptions = configuration.glTFLoader?.meshOpt ?? configuration.glTF?.meshOpt;
     if (meshOptOptions) {
-      MeshoptDecoder.workerCount = meshOptOptions.workerCount;
-      MeshoptDecoder.useWorkers();
+      return getMeshoptDecoder().then((meshoptDecoder) => {
+        meshoptDecoder.useWorkers(meshOptOptions.workerCount);
+      });
     }
     return Promise.resolve();
   }

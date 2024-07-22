@@ -233,15 +233,22 @@ export class BasicRenderPipeline {
         const replacementSubShaders = replacementShader.subShaders;
         const { replacementTag } = context;
         if (replacementTag) {
+          let replacementSuccess = false;
           for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
             const subShader = replacementSubShaders[j];
             if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
               this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes, renderStates);
-              break;
+              replacementSuccess = true;
             }
           }
-          context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader &&
+
+          if (
+            !replacementSuccess &&
+            context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
+          ) {
             this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
+          }
+          
         } else {
           this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
