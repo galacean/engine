@@ -248,7 +248,6 @@ export class BasicRenderPipeline {
           ) {
             this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
           }
-          
         } else {
           this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
         }
