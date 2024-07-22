@@ -44,7 +44,7 @@ const lottie = lottieEntity.getComponent(LottieAnimation);
 // 设置 lottie 属性
 lottie.speed = 2;
 ```
-有时候开发者在编辑器中仅上传 Lottie 资源，在运行时需要的时候才去动态的创建 Lottie 组件，使用方式如下：
+有时候开发者在编辑器中仅上传 Lottie 资源，需要的时候才动态的创建 Lottie 组件，使用方式如下：
 ```typescript
 // 动态加载编辑器中的 Lottie 资源
 const lottieResource = await engine.resourceManager.load({url: '/光球.json', type: 'EditorLottie'});

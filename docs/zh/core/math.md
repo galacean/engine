@@ -254,6 +254,19 @@ color2.toLinear(linearColor);
 ```
 
 ## 平面
+我们可以通过一个向量(normal)和距离(distance)来确定一个平面，normal 表示平面基于坐标原点的方向，平面和 normal 垂直，distance 表示平面沿着 normal 方向距离坐标原点的距离。我们以垂直 Y 轴的平面，并且距离为 5 为例，图示如下：
+
+![plane](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*1HMeRbPQv1kAAAAAAAAAAAAADjCHAQ/original)
+
+
+代码创建方式如下：
+```typescript
+const normal = new Vector3(0, 1, 0);
+const distance = 5;
+const plane = new Plane(normal, distance);
+```
+其他用法：
+
 ```typescript
 import { Plane, Vector3 } from "@galacean/engine-math";
 

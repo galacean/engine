@@ -253,6 +253,19 @@ color2.toLinear(linearColor);
 ```
 
 ## Plane
+We can determine a plane through a vector (normal) and a distance (distance). Normal means the direction of the plane based on the origin of the coordinate system. The plane is perpendicular to normal. Distance means the distance of the plane from the origin of the coordinate system along the normal direction. We take a plane perpendicular to the Y axis with a distance of 5 as an example, as shown below:
+
+![plane](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*1HMeRbPQv1kAAAAAAAAAAAAADjCHAQ/original)
+
+
+The creation method is as follows:
+
+```typescript
+const normal = new Vector3(0, 1, 0);
+const distance = 5;
+const plane = new Plane(normal, distance);
+```
+Other usage:
 
 ```typescript
 import { Plane, Vector3 } from "@galacean/engine-math";

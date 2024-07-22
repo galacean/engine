@@ -44,7 +44,7 @@ const lottie = lottieEntity.getComponent(LottieAnimation);
 // Set lottie's property
 lottie.speed = 2;
 ```
-Sometimes developers only upload Lottie assets in the editor and dynamically create the LottieAnimation at runtime when needed. The usage is as follows:
+Sometimes developers only upload Lottie assets in the editor and dynamically create the LottieAnimation when needed. The usage is as follows:
 ```typescript
 // Dynamically load Lottie assets from the editor.
 const lottieResource = await engine.resourceManager.load({url: '/光球.json', type: 'EditorLottie'});
