@@ -160,14 +160,16 @@ export class Script extends Component {
   onPointerDrag(pointer: Pointer): void {}
 
   /**
-   * This function will be called when the pointer is released while dragging.
+   * When dragging ends, this function will be called(Dragged object).
    * @param pointer - The pointer that triggered
+   * @remarks Dragged object: The object being dragged.
    */
   onPointerEndDrag(pointer: Pointer): void {}
 
   /**
-   * This function will be called when the pointer is lifted on the collider.
+   * When dragging ends, this function will be called(Receiving object).
    * @param pointer - The pointer that triggered
+   * @remarks Receiving object: The collider hit when ending the drag.
    */
   onPointerDrop(pointer: Pointer): void {}
 
