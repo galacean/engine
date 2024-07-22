@@ -159,14 +159,6 @@ export class ParticleRenderer extends Renderer {
       return;
     }
 
-    const generator = this.generator;
-    generator._update(this.engine.time.deltaTime);
-
-    // No particles to render
-    if (generator._firstActiveElement === generator._firstFreeElement) {
-      return;
-    }
-
     super._prepareRender(context);
   }
 
@@ -201,6 +193,14 @@ export class ParticleRenderer extends Renderer {
   }
 
   protected override _updateRendererShaderData(context: RenderContext): void {
+    const generator = this.generator;
+    generator._update(this.engine.time.deltaTime);
+
+    // No particles to render
+    if (generator._firstActiveElement === generator._firstFreeElement) {
+      return;
+    }
+
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
