@@ -52,6 +52,10 @@ camera.priority = 0;
 camera.enableFrustumCulling = true;
 // 设置相机渲染前的清除标记
 camera.clearFlags = CameraClearFlags.All;
+// 开启后处理
+camera.enablePostProcess = true;
+// 开启 HDR
+camera.enableHDR = true;
 ```
 
 其中每个属性对应的功能如下：

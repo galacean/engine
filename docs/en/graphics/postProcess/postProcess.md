@@ -26,6 +26,33 @@ The post-processing configuration is placed in the `scene` panel. To prevent per
 
 > For specific post-processing effect configuration, please refer to [Post-processing effects list](/en/docs/graphics-postProcess-effects)
 
+As of version 1.3, the engine does not export a public API (because the API may change after supporting post-processing extensions). We recommend that users perform post-processing operations in the editor. If you want to use the internal experimental interface, you can call:
+
+```typescript
+// Get Post-Processing manager
+// @ts-ignore
+const postProcessManager = scene._postProcessManager;
+// Get BloomEffect
+const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
+// Get TonemappingEffect
+const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
+
+// Activate the main switch
+postProcessManager.isActive = true;
+
+// Adjusting BloomEffect Properties
+bloomEffect.enabled = true;
+bloomEffect.downScale = BloomDownScaleMode.Half;
+bloomEffect.threshold = 0.9;
+bloomEffect.scatter = 0.7;
+bloomEffect.intensity = 1;
+bloomEffect.tint.set(1, 1, 1, 1);
+
+// Adjusting TonemappingEffect Properties
+tonemappingEffect.enabled = true;
+tonemappingEffect.mode = TonemappingMode.ACES;
+```
+
 ### 2.Camera component switch
 
 The camera component has a switch that can determine whether to enable post-processing, as well as whether to enable post-processing related properties such as HDR and MSAA. (Although the camera has post-processing enabled by default, you need to turn on the post-processing configuration master switch to take effect. This is to more flexibly control multiple cameras to apply post-processing configuration)

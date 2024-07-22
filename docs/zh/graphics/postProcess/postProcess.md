@@ -26,6 +26,33 @@ label: Graphics/PostProcess
 
 > 具体的后处理效果配置，请参考 [后处理效果列表](/docs/graphics-postProcess-effects)
 
+截止 1.3 版本，引擎没有暴露公共 API（因为支持后处理拓展后，API 可能会产生变动），我们建议用户在编辑器进行后处理操作。如果想使用内部实验接口，可以调用：
+
+```typescript
+// 获取后处理管理器
+// @ts-ignore
+const postProcessManager = scene._postProcessManager;
+// 获取 BloomEffect
+const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
+// 获取 TonemappingEffect
+const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
+
+// 激活总开关
+postProcessManager.isActive = true;
+
+// 调整 BloomEffect 属性
+bloomEffect.enabled = true;
+bloomEffect.downScale = BloomDownScaleMode.Half;
+bloomEffect.threshold = 0.9;
+bloomEffect.scatter = 0.7;
+bloomEffect.intensity = 1;
+bloomEffect.tint.set(1, 1, 1, 1);
+
+// 调整 TonemappingEffect 属性
+tonemappingEffect.enabled = true;
+tonemappingEffect.mode = TonemappingMode.ACES;
+```
+
 ### 2.相机开关
 
 相机组件拥有开关，能够决定是否开启后处理，以及是否开启 HDR、 MSAA 等后处理相关属性。（相机虽然默认开启后处理，但是需要打开后处理配置总开关才能生效，这是为了更加灵活地控制多相机去应用后处理配置）
