@@ -1,4 +1,4 @@
-import { Engine, ReferResource, Scene } from "@galacean/engine-core";
+import { Engine, Scene } from "@galacean/engine-core";
 import type { IScene } from "../schema";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext, ParserType } from "../parser/ParserContext";

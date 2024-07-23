@@ -10,6 +10,7 @@ import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
+import { ShaderPass } from "@galacean/engine";
 
 export interface ExpandSegment {
   // #if _EDITOR
@@ -28,14 +29,16 @@ export default class PpParser {
   private static _branchMacros: Set<string> = new Set();
 
   private static _includeMap: Record<string, string>;
+  private static _basePathForIncludeKey: string;
 
-  static reset(includeMap: Record<string, string>) {
+  static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
     this._definedMacros.clear();
     this._expandSegmentsStack.length = 0;
     this._expandSegmentsStack.push([]);
     this._branchMacros.clear();
     this.addPredefinedMacro("GL_ES");
     this._includeMap = includeMap;
+    this._basePathForIncludeKey = basePathForIncludeKey;
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
@@ -94,12 +97,21 @@ export default class PpParser {
 
     scanner.skipSpace(true);
     const id = scanner.scanQuotedString();
+    let includedPath: string;
+    // builtin path
+    if (id.lexeme[0] !== ".") {
+      includedPath = id.lexeme;
+    } else {
+      // relative path
+      // @ts-ignore
+      includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
+    }
+
     scanner.scanToChar("\n");
     const end = scanner.getShaderPosition();
-
-    const chunk = this._includeMap[id.lexeme];
+    const chunk = this._includeMap[includedPath];
     if (!chunk) {
-      ParserUtils.throw(id.location, `Shader slice "${id.lexeme}" not founded.`);
+      ParserUtils.throw(id.location, `Shader slice "${includedPath}" not founded.`);
     }
 
     const range = ShaderLab.createRange(start, end);
@@ -382,7 +394,7 @@ export default class PpParser {
     if (scanner.getCurChar() === "(") {
       scanner.advance();
       scanner.skipSpace(false);
-      const ret = this._parseConstant(scanner);
+      const ret = this._parseConstantExpression(scanner);
       scanner.scanToChar(")");
       scanner.advance();
       return ret;

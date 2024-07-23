@@ -1,6 +1,6 @@
-import { Engine } from "@galacean/engine";
+import { Engine, SafeLoopArray } from "@galacean/engine";
 import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
-import { XRManagerExtended } from "../XRManagerExtended";
+import { IXRListener, XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
@@ -17,6 +17,7 @@ export class XRSessionManager {
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
+  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * The current session mode( AR or VR ).
@@ -78,7 +79,7 @@ export class XRSessionManager {
       throw new Error("Without session to run.");
     }
     platformSession.start();
-    this._state = XRSessionState.Running;
+    this._setState(XRSessionState.Running);
     this._xrManager._onSessionStart();
     if (!engine.isPaused) {
       engine.pause();
@@ -100,11 +101,39 @@ export class XRSessionManager {
     rhi._mainFrameBuffer = null;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.stop();
-    this._state = XRSessionState.Paused;
+    this._setState(XRSessionState.Paused);
     this._xrManager._onSessionStop();
     if (!engine.isPaused) {
       engine.pause();
       engine.resume();
+    }
+  }
+
+  /**
+   * Add a listening function for session state changes.
+   * @param listener - The listening function
+   */
+  addStateChangedListener(listener: (state: XRSessionState) => void): void {
+    this._listeners.push({ fn: listener });
+  }
+
+  /**
+   * Remove a listening function of session state changes.
+   * @param listener - The listening function
+   */
+  removeStateChangedListener(listener: (state: XRSessionState) => void): void {
+    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
+  }
+
+  /**
+   * @internal
+   */
+  _setState(value: XRSessionState) {
+    this._state = value;
+    const listeners = this._listeners.getLoopArray();
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      const listener = listeners[i];
+      !listener.destroyed && listener.fn(value);
     }
   }
 
@@ -125,7 +154,7 @@ export class XRSessionManager {
         .then((platformSession: IXRSession) => {
           this._mode = mode;
           this._platformSession = platformSession;
-          this._state = XRSessionState.Initialized;
+          this._setState(XRSessionState.Initialized);
           platformSession.setSessionExitCallBack(this._onSessionExit);
           platformSession.addEventListener();
           xrManager._onSessionInit();
@@ -183,7 +212,7 @@ export class XRSessionManager {
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.removeEventListener();
     this._platformSession = null;
-    this._state = XRSessionState.None;
+    this._setState(XRSessionState.None);
     this._xrManager._onSessionExit();
     if (!engine.isPaused) {
       engine.pause();
@@ -194,5 +223,8 @@ export class XRSessionManager {
   /**
    * @internal
    */
-  _onDestroy(): void {}
+  _onDestroy(): void {
+    this._listeners.findAndRemove((value) => (value.destroyed = true));
+    this._raf = this._caf = null;
+  }
 }

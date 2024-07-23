@@ -227,10 +227,7 @@ export class Animator extends Component {
    * @internal
    */
   override _onEnable(): void {
-    const layersData = this._animatorLayersData;
-    for (let i = 0, n = layersData.length; i < n; i++) {
-      layersData[i].layerState = LayerState.Standby;
-    }
+    this._reset();
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
 
@@ -1078,8 +1075,11 @@ export class Animator extends Component {
       if (exitTime >= lastClipTime) {
         playState.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
         if (this._checkConditions(state, transition)) {
-          this._applyTransition(layerIndex, layerData, stateMachine, transition);
-          return transition;
+          if (this._applyTransition(layerIndex, layerData, stateMachine, transition)) {
+            return transition;
+          } else {
+            return null;
+          }
         }
       }
     }
@@ -1108,8 +1108,11 @@ export class Animator extends Component {
       if (exitTime <= lastClipTime) {
         playState.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
         if (this._checkConditions(state, transition)) {
-          this._applyTransition(layerIndex, layerData, stateMachine, transition);
-          return transition;
+          if (this._applyTransition(layerIndex, layerData, stateMachine, transition)) {
+            return transition;
+          } else {
+            return null;
+          }
         }
       }
     }
@@ -1126,8 +1129,11 @@ export class Animator extends Component {
     for (let i = 0, n = transitions.length; i < n; i++) {
       const transition = transitions[i];
       if (this._checkConditions(state, transition)) {
-        this._applyTransition(layerIndex, layerData, stateMachine, transition);
-        return transition;
+        if (this._applyTransition(layerIndex, layerData, stateMachine, transition)) {
+          return transition;
+        } else {
+          return null;
+        }
       }
     }
   }
@@ -1155,13 +1161,14 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     stateMachine: AnimatorStateMachine,
     transition: AnimatorStateTransition
-  ): void {
+  ): boolean {
     // Need prepare first, it should crossFade when to exit
-    this._prepareCrossFadeByTransition(transition, layerIndex);
+    const success = this._prepareCrossFadeByTransition(transition, layerIndex);
     if (transition.isExit) {
       this._checkAnyAndEntryState(layerIndex, layerData, stateMachine);
-      return;
+      return true;
     }
+    return success;
   }
 
   private _checkConditions(state: AnimatorState, transition: AnimatorStateTransition): boolean {
@@ -1176,6 +1183,10 @@ export class Animator extends Component {
       let pass = false;
       const { mode, parameterName: name, threshold } = conditions[i];
       const parameter = this.getParameter(name);
+      if (!parameter) {
+        return false;
+      }
+
       switch (mode) {
         case AnimatorConditionMode.Equals:
           if (parameter.value === threshold) {

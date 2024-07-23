@@ -5,8 +5,12 @@ import PpScanner from "./PpScanner";
 export class Preprocessor {
   static baseScanner: PpScanner;
 
-  static reset(includeMap: Record<string, string>): void {
-    PpParser.reset(includeMap);
+  /**
+   * Reset the parser of `Preprocessor`
+   * @param basePathForIncludeKey - the base path to resolve the relative path of `#include` directive
+   */
+  static reset(includeMap: Record<string, string>, basePathForIncludeKey: string): void {
+    PpParser.reset(includeMap, basePathForIncludeKey);
   }
 
   /**

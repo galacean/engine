@@ -209,11 +209,15 @@ export class Entity extends EngineObject {
   /**
    * Add component based on the component type.
    * @param type - The type of the component
+   * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
+    type: T,
+    ...args: ComponentArguments<T>
+  ): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
-    const component = new type(this);
+    const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
     this._updateFlagManager.dispatch(EntityModifyFlags.AddComponent, component);
@@ -800,3 +804,9 @@ export enum EntityModifyFlags {
   AddComponent = 0x8,
   DelComponent = 0x10
 }
+type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+  entity: Entity,
+  ...args: infer P
+) => Component
+  ? P
+  : never;

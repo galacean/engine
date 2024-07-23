@@ -1,6 +1,6 @@
 import { Engine } from "@galacean/engine-core";
 import { BufferReader } from "./utils/BufferReader";
-import { decoderMap, decoder } from "./utils/Decorator";
+import { decoderMap } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
 
 export { MeshDecoder } from "./resources/mesh/MeshDecoder";
@@ -29,3 +29,7 @@ export * from "./resources/scene/SceneParser";
 export * from "./resources/scene/MeshLoader";
 export * from "./resources/scene/EditorTextureLoader";
 export * from "./resources/parser/ParserContext";
+
+export * from "./utils/BufferReader";
+export * from "./utils/Decorator";
+export * from "./utils/FileHeader";
