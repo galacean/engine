@@ -24,7 +24,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
         type: "json"
       })
         .then((data) => {
-          const animatorController = new AnimatorController();
+          const animatorController = new AnimatorController(resourceManager.engine);
           const { layers, parameters } = data;
           const promises = [];
           layers.forEach((layerData, layerIndex: number) => {

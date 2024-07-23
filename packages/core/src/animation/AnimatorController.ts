@@ -2,11 +2,13 @@ import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
+import { ReferResource } from "../asset/ReferResource";
+import { Engine } from "../Engine";
 
 /**
  * Store the data for Animator playback.
  */
-export class AnimatorController {
+export class AnimatorController extends ReferResource {
   /** @internal */
   _parameters: AnimatorControllerParameter[] = [];
   /** @internal */
@@ -30,6 +32,10 @@ export class AnimatorController {
    */
   get parameters(): Readonly<AnimatorControllerParameter[]> {
     return this._parameters;
+  }
+
+  constructor(engine?: Engine) {
+    engine && super(engine);
   }
 
   /**
