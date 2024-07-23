@@ -61,6 +61,6 @@ export class BatchUtils {
     }
     chunk.updateIndexLength += length;
     chunk.updateVertexStart = Math.min(chunk.updateVertexStart, start);
-    chunk.updateVertexLength = Math.max(chunk.updateVertexLength, start + size);
+    chunk.updateVertexEnd = Math.max(chunk.updateVertexEnd, start + size);
   }
 }
