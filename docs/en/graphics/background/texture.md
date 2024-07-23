@@ -8,11 +8,11 @@ label: Graphics/Background
 
 When the background type of the scene is set to texture, the rendering area of the canvas will be filled with the corresponding texture according to the fill rule before camera rendering.
 
-## Set Solid Color Background
+## Set Texture Background
 
 Based on the path **[Hierarchy Panel](/en/docs/interface-hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface-inspector)** -> Set **Mode** to **Texture** in the **Background** section, then choose the desired texture. You can see the background of the scene change in real-time.
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*-JYDQoHcbSsAAAAAAAAAAAAADhuCAQ/original)
+![](https://gw.alipayobjects.com/zos/OasisHub/2673b2a2-a87b-4707-b3fc-9af334231298/2024-07-18%25252017.50.16.gif)
 
 Similarly, you can also set it in scripts using the following code:
 
