@@ -79,9 +79,8 @@ camera.enableHDR = true;
 |  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>)     | 是否启用非透明纹理，默认关闭，如果启用，可以在透明队列的 shader 中使用 `camera_OpaqueTexture` 非透明纹理。                                                             |
 |  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>)     | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。                                                             |
 |  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)     | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
-|  | [independentCanvasEnabled](<(/apis/core/#Camera-independentCanvasEnabled)>)     | 只读属性，是否启用独立画布，仅当非透明纹理开启，且没有设置 renderTarget 时才生效。                                                            |
 |  | [enableHDR](<(/apis/core/#Camera-enableHDR)>)     | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
-|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics-postProcess)。|
+|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。|
 
 ### 裁剪遮罩
 

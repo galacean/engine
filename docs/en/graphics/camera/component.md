@@ -79,9 +79,8 @@ The functionality of each property is as follows:
 |  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>)    | Whether to enable opaque texture, default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in shaders in the transparent queue. |
 |  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>)    | When enabling opaque texture, downsampling can be set based on clarity requirements and performance considerations. |
 |  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)    | Multi-sample anti-aliasing samples when use independent canvas mode, such as `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`. |
-|  | [independentCanvasEnabled](<(/apis/core/#Camera-independentCanvasEnabled)>)    | Read-only property, whether to enable independent canvas, only effective when opaque texture is enabled and no renderTarget is set. |
 |  | [enableHDR](<(/apis/core/#Camera-enableHDR)>)     | Enable HDR rendering, allowing the shader output color to be stored using floating point numbers, which can get a wider range of values ​​for post-processing and other situations. |
-|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | Enable post process. The specific configuration refs to [Post Process Tutorial](/docs/graphics-postProcess).|
+|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | Enable post process. The specific configuration refs to [Post Process Tutorial](/docs/graphics/postProcess/postProcess).|
 
 ### Clipping Masks
 
