@@ -151,4 +151,16 @@ describe("CharacterController", function () {
     // Test that set collider shape position works correctly.
     expect(boxColliderShape.position).to.deep.include({ x: 0, y: 2, z: -1 });
   });
+
+  it("setSize when disabled", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.enabled = false;
+    controller.clearShapes();
+
+    const boxColliderShape = new BoxColliderShape();
+    controller.addShape(boxColliderShape);
+    boxColliderShape.size = new Vector3(1, 1, 1);
+
+    expect(boxColliderShape.size).to.deep.include({ x: 1, y: 1, z: 1 });
+  });
 });
