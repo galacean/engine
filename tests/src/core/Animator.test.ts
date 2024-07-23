@@ -1,5 +1,7 @@
 import {
+  AnimationClip,
   AnimationEvent,
+  AnimationFloatCurve,
   Animator,
   AnimatorConditionMode,
   AnimatorControllerLayer,
@@ -8,7 +10,11 @@ import {
   AnimatorStateMachine,
   AnimatorStateTransition,
   Camera,
-  Script
+  Keyframe,
+  Script,
+  Transform,
+  AnimatorController,
+  WrapMode
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -549,5 +555,49 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+  });
+
+  it("change state in one update", () => {
+    const animatorController = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    animatorController.addLayer(layer);
+    const state1 = layer.stateMachine.addState("state1");
+    const state2 = layer.stateMachine.addState("state2");
+    state1.wrapMode = WrapMode.Once;
+    const clip1 = new AnimationClip("clip1");
+    const rotationCurve = new AnimationFloatCurve();
+    const key1 = new Keyframe<number>();
+    const key2 = new Keyframe<number>();
+    key1.time = 0;
+    key1.value = 0;
+    key2.time = 1;
+    key2.value = 90;
+    rotationCurve.addKey(key1);
+    rotationCurve.addKey(key2);
+    clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+
+    const clip2 = new AnimationClip("clip2");
+    state1.clip = clip1;
+    state2.clip = clip2;
+
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = state2;
+    transition.exitTime = 1;
+    transition.duration = 0;
+    transition.mute = true;
+    state1.addTransition(transition);
+
+    animator.animatorController = animatorController;
+
+    animator.play("state1");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(1);
+    expect(animator.entity.transform.rotation.x).to.eq(90);
+    transition.mute = false;
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(1);
+    expect(animator.entity.transform.rotation.x).to.eq(0);
   });
 });
