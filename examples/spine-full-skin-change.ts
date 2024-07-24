@@ -1,12 +1,15 @@
 /**
- * @title Spine Animation
+ * @title Spine Full Skin Change
  * @category 2D
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*IALeTYOXMXwAAAAAAAAAAAAADiR2AQ/original
  */
 import { Camera, Entity, Logger, Vector3, WebGLEngine } from "@galacean/engine";
 import { SpineAnimationRenderer } from "@galacean/engine-spine";
+import * as dat from "dat.gui";
 
 Logger.enable();
+
+const gui = new dat.GUI();
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -24,7 +27,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   engine.resourceManager
     .load({
-      url: "https://mdn.alipayobjects.com/huamei_kz4wfo/uri/file/as/2/kz4wfo/4/mp/qGISZ7QTJFkEL0Qx/spineboy/spineboy.json",
+      url: "https://mdn.alipayobjects.com/huamei_kz4wfo/uri/file/as/2/kz4wfo/4/mp/24ejL92gvbWxsXRi/mix-and-match/mix-and-match.json",
       type: "spine",
     })
     .then((spineResource: any) => {
@@ -33,28 +36,28 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const spine = spineEntity.addComponent(SpineAnimationRenderer);
       spine.resource = spineResource;
       spine.defaultState.scale = 0.05;
+      spine.defaultState.skinName = 'full-skins/girl';
+      spine.defaultState.animationName = 'idle';
       rootEntity.addChild(spineEntity);
-      const { state } = spine;
-      state.data.defaultMix = 0.3;
-      state.data.setMix('death', 'portal', 0);
-      const queue = () => {
-        state.setAnimation(0, 'portal', false);
-        state.addAnimation(0, 'idle', true, 0);
-        state.addAnimation(0, 'walk', true, 1);
-        state.addAnimation(0, 'run', true, 2);
-        state.addAnimation(0, 'jump', false, 2);
-        state.addAnimation(0, 'death', false, 0);
+      const { skeleton, state } = spine;
+      const info = {
+        skin: "full-skins/girl",
       };
-      queue();
-      state.addListener({
-        complete: (entry) => {
-          if (entry?.animation?.name === 'death') {
-            setTimeout(() => {
-              queue();
-            }, 1000);
-          }
-        }
-      });
+      gui
+        .add(info, "skin", [
+          "full-skins/girl",
+          "full-skins/girl-blue-cape",
+          "full-skins/girl-spring-dress",
+          "full-skins/boy",
+        ])
+        .onChange((skinName) => {
+          skeleton.setSkinByName(skinName);
+          skeleton.setSlotsToSetupPose();
+          state.data.defaultMix = 0.2;
+          state.setAnimation(0, 'dress-up', false);
+          state.addAnimation(0, 'idle', true, 0);
+        });
+      
     });
 
   engine.run();
