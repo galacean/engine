@@ -33,11 +33,11 @@ const normalShaderSource = `Shader "Triangle" {
 
       struct a2v {
         vec4 POSITION;
-      }
+      };
 
       struct v2f {
         vec3 v_color;
-      }
+      };
 
       VertexShader = vert;
       FragmentShader = frag;
@@ -66,12 +66,12 @@ Shader "Lines" {
 
       struct a2v {
         vec4 POSITION;
-      }
+      };
 
       struct v2f {
         vec4 v_pos;
         vec3 v_color;
-      }
+      };
 
       VertexShader = vert;
       FragmentShader = frag;

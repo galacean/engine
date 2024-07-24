@@ -6,45 +6,49 @@ group: 网格
 label: Graphics/Shader
 ---
 
-在[材质教程](/docs/graphics-material-composition) 中提到，着色器可以编写顶点、片元代码来决定渲染管线输出到屏幕上像素的颜色。
-
 <img src="https://gw.alipayobjects.com/zos/OasisHub/a3f74864-241e-4cd8-9ad4-733c2a0b2cc2/image-20240206153815596.png" alt="image-20240206153815596" style="zoom:50%;" />
 
-本节包含以下相关信息：
+## 着色器简介
 
-- 内置着色器
-  - [PBR](/docs/graphics-shader-pbr)
-  - [Unlit](/docs/graphics-shader-unlit)
-  - [Blinn Phong](/docs/graphics-shader-blinnPhong)
-- [自定义着色器](/docs/graphics-shader-custom)
-- [Shader Lab](/docs/graphics-shader-lab)
+着色器(Shader)是一段运行在GPU中的程序，通常由2个“入口函数”组成，我们称之为顶点着色器(Vertex Shader)和片元着色器(Fragment Shader)，分别对应于渲染管线的2个阶段。如果我们聚焦于着色器，引擎渲染一幅图像的过程(即渲染管线)可以简化为
 
-
-```glsl
-const float PI = 3.1415926535897932384626433832795;
-
-uniform vec3 lightDirection;
-uniform vec3 lightColour;
-uniform vec2 lightBias;
-uniform mat4 projectionViewMatrix;
-
-vec3 calcSpecularLighting(vec3 toCamVector, vec3 toLightVector, vec3 normal){
-	vec3 reflectedLightDirection = reflect(-toLightVector, normal);
-	float specularFactor = dot(reflectedLightDirection , toCamVector);
-	specularFactor = max(specularFactor,0.0);
-	specularFactor = pow(specularFactor, shineDamper);
-	return specularFactor * specularReflectivity * lightColour;
-}
-
-void main(void){
-	
-	vec3 currentVertex = vec3(in_position.x, height, in_position.y);
-	vec3 vertex1 = currentVertex + vec3(in_indicators.x, 0.0, in_indicators.y);
-	vec3 vertex2 = currentVertex + vec3(in_indicators.z, 0.0, in_indicators.w);
-}
+```mermaid
+flowchart LR
+	A[CPU应用层] -->|准备顶点和其他\n渲染计算相关的数据| B{Vertex Shader}
+    subgraph Shader / 着色器
+	B --> |计算顶点在三维空间的真实坐标\n以及其他后续渲染阶段需要的数据| C{Fragment Shader}
+    end
+	C -->|基于上一个渲染阶段的计算结果数据\n计算每个顶点的最终像素值| D[帧图像]
 ```
 
+<figcaption style="text-align:center; color: #889096;font-size:12px">简化的渲染管线</figcaption>
+
+## Shader 对象
+
+在Galacean中，我们将上述着色器以及其他渲染相关信息封装抽象为Shader对象。具体的，Shader对象包含:
+- Shader本身信息，如Shader名字
+- 一个或多个SubShader对象
+
+## SubShader
+
+Galacean中通过SubShader可以将Shader对象拆分为多个子模块(即SubShader)，通过对每个子模块设置不同的tag以实现对不同的渲染管线、不同的GPU硬件平台分别设置不同的渲染逻辑。具体的，SubShader对象包含:
+
+- SubShader名字
+- tas: 用于标识兼容的硬件平台和渲染管线的key-value键值对
+- 一个或多个ShaderPass对象
+
+此外，你还可以定义其他额外的信息，如SubShader下所有ShaderPass公用的全局函数、变量、渲染状态等等。
+
+## ShaderPass
+
+一个ShaderPass对象包含:
+
+- tags: 用于提供ShaderPass相关信息的key-value键值对
+- Shader程序，通过宏指令，最终被编译成多个Shader变种程序
+
 ## 内置着色器
+
+目前Galacean引擎内置了许多常用的Shader，诸如
 
 | 类型 | 描述 |
 | :-- | :-- |

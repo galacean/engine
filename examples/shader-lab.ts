@@ -189,11 +189,11 @@ const PlanarShadowShaderSource = `Shader "PlanarShadow" {
         vec4 POSITION;
         vec4 JOINTS_0; 
         vec4 WEIGHTS_0;
-      }
+      };
 
       struct v2f {
         vec4 color;
-      }
+      };
 
       v2f vert(a2v v) {
         v2f o;
