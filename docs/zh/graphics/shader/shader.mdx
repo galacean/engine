@@ -6,7 +6,7 @@ group: 网格
 label: Graphics/Shader
 ---
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/a3f74864-241e-4cd8-9ad4-733c2a0b2cc2/image-20240206153815596.png" alt="image-20240206153815596" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a3f74864-241e-4cd8-9ad4-733c2a0b2cc2/image-20240206153815596.png"  />
 
 ## 着色器简介
 
@@ -21,7 +21,7 @@ flowchart LR
 	C -->|基于上一个渲染阶段的计算结果数据\n计算每个顶点的最终像素值| D[帧图像]
 ```
 
-<figcaption style="text-align:center; color: #889096;font-size:12px">简化的渲染管线</figcaption>
+<figcaption style={{"text-align":"center", color: "#889096","font-size":"12px"}}>简化的渲染管线</figcaption>
 
 ## Shader 对象
 
@@ -58,7 +58,7 @@ Galacean中通过SubShader可以将Shader对象拆分为多个子模块(即SubSh
 
 以下属性在内置着色器中可以直接使用。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/94cf8176-569d-4605-bd73-967b03316c3d/image-20240206173751409.png" alt="image-20240206173751409" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/94cf8176-569d-4605-bd73-967b03316c3d/image-20240206173751409.png"  />
 
 | 参数 | 应用 |
 | :-- | :-- |
@@ -67,3 +67,37 @@ Galacean中通过SubShader可以将Shader对象拆分为多个子模块(即SubSh
 | [renderFace](/apis/core/#BaseMaterial-renderFace) | 渲染面。可以决定渲染正面、背面、双面。 |
 | [blendMode](/apis/core/#BaseMaterial-blendMode) | 颜色混合模式。当设置材质为透明后，可以设置此枚举来决定颜色混合模式，参考 [案例](${examples}blend-mode) |
 | [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | 纹理坐标的缩放与偏移。是一个 Vector4 数据，分别控制纹理坐标在 uv 方向上的缩放和偏移，参考 [案例](${examples}tiling-offset) |
+
+## Shader创建
+
+### Procode代码创建
+
+引擎开放了`Shader.Create`API用于Shader对象创建，共4种方法
+```ts
+/**
+* 通过ShaderLab进行Shader创建，需要在引擎初始化时启用ShaderLab
+* ```ts
+* // Import shaderLab
+* import { ShaderLab } from "@galacean/engine-shader-lab";
+* // Create engine with shaderLab
+* const engine = await WebGLEngine.create({ canvas: "canvas", shader: new ShaderLab() });
+* ...
+* ```
+ */
+static create(shaderSource: string): Shader;
+/**
+ * 通过GLSL直接指定Shader程序，渲染状态相关设置需要引擎上层或者用户手动设置
+ */
+static create(name: string, vertexSource: string, fragmentSource: string): Shader;
+/**
+ * 指定Shader包含的ShaderPass，默认归属于同一个SubShader
+*/
+static create(name: string, shaderPasses: ShaderPass[]): Shader;
+/**
+ * 指定Shader包含的SubShader
+ */
+static create(name: string, subShaders: SubShader[]): Shader;
+```
+### 编辑器创建
+
+<Image src="https://mdn.alipayobjects.com/huamei_rmtxpm/afts/img/A*JTyxQonySxsAAAAAAAAAAAAADv-7AQ/original" figcaption="编辑器创建Shader" />
