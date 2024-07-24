@@ -1,5 +1,5 @@
 ---
-order: 1
+order: 2
 title: 主菜单
 type: 基础知识
 group: 界面
@@ -17,7 +17,7 @@ label: Basics/Interface
 
 ### 项目设置
 
-点击 **Project Settings**  项，会出现项目设置弹窗，包含项目重命名、引擎版本管理、快照管理等操作。
+点击 **Project Settings** 项，会出现项目设置弹窗，包含项目重命名、引擎版本管理、快照管理等操作。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/9cb6b514-2191-40b9-a904-5f5ad79aca73/image-20240319100534596.png" alt="image-20240319100534596" style="zoom:50%;" />
 
@@ -26,7 +26,7 @@ label: Basics/Interface
 **Basic** 中包含项目的基础信息设置：
 
 - **Engine Version**：引擎版本升级，以便快速修复某个 bug 或享受新的功能（注意：引擎版本升级操作是不可逆的。为避免损坏项目，升级引擎过程中会自动克隆一个项目）。
-- **Physics Backend**：物理引擎后端，可以选择  *Physics Lite*  或 *PhysX* 两种后端。前者是一个轻量级的物理引擎，后者是基于 [PhysX](https://developer.nvidia.com/physx-sdk) 的高级物理引擎。
+- **Physics Backend**：物理引擎后端，可以选择 _Physics Lite_ 或 _PhysX_ 两种后端。前者是一个轻量级的物理引擎，后者是基于 [PhysX](https://developer.nvidia.com/physx-sdk) 的高级物理引擎。
 - **Model Import Options**：模型导入选项，包含计算切线、移除灯光的选项。
 
 #### 快照管理

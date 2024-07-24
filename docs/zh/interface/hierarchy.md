@@ -1,5 +1,5 @@
 ---
-order: 2
+order: 3
 title: 层级面板
 type: 基础知识
 group: 界面
@@ -103,11 +103,11 @@ label: Basics/Interface
 
 以下操作在选中节点后方可生效。
 
-| 操作             | 快捷键                                                                                                                            |
-| :--------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
-| `删除节点`       | <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*PzBBTZF1HwEAAAAAAAAAAAAADhuCAQ/original" width="65" height="25"> |
-| `复制节点`       | `⌘` + `D`                                                                                                                         |
-| `选中上一个节点` | 方向键 ⬆️                                                                                                                         |
-| `选中下一个节点` | 方向键 ⬇️                                                                                                                         |
-| `展开节点`       | 方向键 ➡️                                                                                                                         |
-| `折叠节点`       | 方向键 ⬅️                                                                                                                         |
+| 操作 | 快捷键 |
+| :-- | :-- |
+| `删除节点` | <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*PzBBTZF1HwEAAAAAAAAAAAAADhuCAQ/original" width="65" height="25"> |
+| `复制节点` | `⌘` + `D` |
+| `选中上一个节点` | 方向键 ⬆️ |
+| `选中下一个节点` | 方向键 ⬇️ |
+| `展开节点` | 方向键 ➡️ |
+| `折叠节点` | 方向键 ⬅️ |

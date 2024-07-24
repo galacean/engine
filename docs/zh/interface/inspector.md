@@ -1,5 +1,5 @@
 ---
-order: 4
+order: 5
 title: 检查器面板
 type: 基础知识
 group: 界面
@@ -22,7 +22,6 @@ label: Basics/Interface
     <figcaption style="text-align:center; color: #889096;font-size:12px">资产检查器</figcaption>
   </figure>
 </div>
-
 
 ## 属性类型
 
@@ -69,4 +68,3 @@ label: Basics/Interface
     <figcaption style="text-align:center; color: #889096;font-size:12px">Texture Asset Picker</figcaption>
   </figure>
 </div>
-
