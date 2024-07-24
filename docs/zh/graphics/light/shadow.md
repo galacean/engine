@@ -6,21 +6,38 @@ group: 光照
 label: Graphics/Light
 ---
 
-阴影能够有效增强渲染画面的立体感和真实感。在实时渲染中，一般使用所谓的 ShadowMap 技术来进行阴影的绘制，简单来说就是把光源作为一个虚拟的相机渲染场景的深度，然后从场景相机渲染画面时，比较渲染的物体与深度信息的关系，如果物体的深度比深度信息中的要深，会导致被其他物体遮挡，由此渲染阴影。
+阴影能够有效增强渲染画面的立体感和真实感。在实时渲染中，一般使用所谓的 ShadowMap 技术来进行阴影的绘制，简单来说就是把光源作为一个虚拟的相机渲染场景的深度，然后从场景相机渲染画面时，如果物体的深度比之前保存的深度信息中的要深，认为被其他物体遮挡，由此渲染阴影。
 
-## 光照与阴影
+## 场景配置
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/bf6acb06-c026-4a36-b243-0b39a759624c/image-20240319174904033.png" alt="image-20240319174904033" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/192802cc-f0f0-4904-a59b-4471faa68bd2/image-20240724181456427.png" alt="image-20240724181456427" style="zoom:50%;" />
 
-基于这样的原理就比较好理解在 `Light` 组件中有关阴影的各项属性设置：
+场景中拥有一些配置能够影响全局阴影：
 
-| 参数                                                  | 应用                 |
-| :---------------------------------------------------- | :------------------- |
-| [shadowType](/apis/core/#Light-shadowType)             | 阴影投射类型         |
-| [shadowBias](/apis/core/#Light-shadowBias)             | 阴影的偏移           |
-| [shadowNormalBias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移       |
-| [shadowNearPlane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面 |
-| [shadowStrength](/apis/core/#Light-shadowStrength)     | 阴影强度             |
+| 参数 | 应用 |
+| :-- | :-- |
+| [Cast Shadow](/apis/core/#Scene-castShadows) | 是否投射阴影。这是总开关。 |
+| [Transparent](/apis/core/#Scene-enableTransparentShadow) | 是否投射透明阴影。开启后，透明物体也能投射阴影。 |
+| [Resolution](/apis/core/#Scene-shadowResolution) | Shadowmap 的分辨率。 |
+| [Cascades](/apis/core/#Scene-shadowCascades) | 级联阴影数量设置。一般用于大场景分割阴影分辨率。 |
+| [ShadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits) | 划分二级级联阴影的参数。 |
+| [ShadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits) | 划分四级级联阴影的参数。 |
+| [Distance](/apis/core/#Scene-shadowDistance) | 最远阴影距离。超过这个距离后看不到阴影。 |
+| [Fade Border](/apis/core/#Scene-shadowFadeBorder) | 阴影衰减距离，表示从阴影距离的多少比例开始衰减，范围为 [0~1]，为 0 时表示没有衰减。 |
+
+## 灯光配置
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/1b572189-db78-4f56-9d42-d8b5ea1fe857/image-20240724183629537.png" alt="image-20240724183629537" style="zoom:50%;" />
+
+要投射阴影，需要场景中有一盏[方向光](/docs/graphics/light/directional)，然后可以配置决定 shadowmap 的一些属性：
+
+| 参数                                              | 应用                    |
+| :------------------------------------------------ | :---------------------- |
+| [Shadow Type](/apis/core/#Light-shadowType)       | 阴影投射类型。          |
+| [Shadow Bias](/apis/core/#Light-shadowBias)       | 阴影的偏移 。           |
+| [Normal Bias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移 。       |
+| [Near Plane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面 。 |
+| [Strength](/apis/core/#Light-shadowStrength)      | 阴影强度 。             |
 
 这里需要特别说明一下阴影偏移：
 
@@ -28,25 +45,7 @@ label: Graphics/Light
 
 因为深度精度问题，从相机采样时会产生伪影。所以通常需要设置阴影的偏移量，以便产生干净的阴影，如右图所示。但如果偏移量过大，阴影就会偏离投射物，可以看到右图中的影子和脚后跟分离了。因此，这个参数是使用阴影时需要仔细调整的参数。
 
-除了上述位于 `Light` 组件当中的阴影配置外，还有一些有关阴影的全局配置位于 `Scene` 当中:
-
-<img src="https://gw.alipayobjects.com/zos/OasisHub/05b00536-63c3-42f4-b89f-1f3270aa375e/image-20240319175051723.png" alt="image-20240319175051723" style="zoom:50%;" />
-
-| 参数 | 应用 |
-| :-- | :-- |
-| [castShadows](/apis/core/#Scene-castShadows) | 是否投射阴影 |
-| [shadowResolution](/apis/core/#Scene-shadowResolution) | 阴影的分辨率 |
-| [shadowCascades](/apis/core/#Scene-shadowCascades) | 级联阴影的数量 |
-| [shadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits) | 划分二级级联阴影的参数 |
-| [shadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits) | 划分四级级联阴影的参数 |
-| [shadowDistance](/apis/core/#Scene-shadowDistance) | 最大阴影距离 |
-| [shadowFadeBorder](/apis/core/#Scene-shadowFadeBorder) | 阴影衰减比例，表示从阴影距离的多少比例开始衰减，范围为 [0~1]，为 0 时表示没有衰减 |
-
-上述参数可以通过在 Playground 的例子中进行调试进行理解：
-
-<playground src="cascaded-shadow.ts"></playground>
-
-目前引擎**只支持为一盏有向光 `DirectLight` 开启阴影**，这主要是因为阴影的渲染使得 DrawCall 翻倍，会严重影响渲染的性能。一般来说都会使用 `DirectLight` 模仿太阳光，所以才只支持一盏。对于有向光的阴影，有两点需要注意。
+目前引擎**只支持为一盏有向光 `DirectLight` 投射阴影**，这主要是因为阴影的渲染使得 DrawCall 翻倍，会严重影响渲染的性能。一般来说都会使用 `DirectLight` 模仿太阳光，所以才只支持一盏。对于有向光的阴影，有两点需要注意。
 
 ### 级联阴影
 
@@ -62,19 +61,12 @@ label: Graphics/Light
 
 ## 投射物与接受物
 
-在光照中配置 enableShadow 只能控制深度图是否被渲染，还需要在 Renderer 当中对应选项，才能控制该物体是否投射阴影，或者是否接受其他物体的阴影。
+<img src="https://gw.alipayobjects.com/zos/OasisHub/f3125f0f-09e6-4404-a84c-7013df5c0db3/image-20240724184711014.png" alt="image-20240724184711014" style="zoom:50%;" />
 
-| 参数                                                 | 应用                 |
-| :--------------------------------------------------- | :------------------- |
-| [receiveShadows](/apis/core/#Renderer-receiveShadows) | 该物体是否接受阴影   |
-| [castShadows](/apis/core/#Renderer-castShadows)       | 该物体是否会投射阴影 |
-
-开启 receiveShadows 的 Renderer，如果被其他物体遮挡则会渲染出阴影。开启 castShadows 的 Renderer，则会向其他物体投射阴影。
+在 [网格渲染器组件](/docs/graphics/renderer/meshRenderer) 中，`receiveShadows` 能够决定该物体是否接受阴影，`castShadows` 能够决定该物体是否投射阴影。
 
 ## 透明阴影
 
-对于大多数需要阴影的场景，上述的控制参数基本够用了。但有时候我们希望在一个透明物体上投射阴影，例如场景中其实没有地面（比如 AR 的画面），但也希望物体能够拥有一个阴影，用以增强画面立体感。如果给地面设置标准的渲染材质，并且使得 alpha 设置为 0，那么地面上不会看到任何阴影。因为在真实世界中，光线会直接穿过透明物体。因此，对于透明地面这样的场景，需要一个特殊的材质进行渲染。可以参考 Playground 当中阴影绘制方式:
+从 `1.3` 版本开始，引擎支持投射透明裁剪（Alpha Test）物体和透明（Transparent）物体的阴影，其中，透明物体投射阴影需要在场景面板中打开 `Transparent` 开关:
 
-<playground src="transparent-shadow.ts"></playground>
-
-在这一案例当中，背景其实只是一张贴图，但通过增加一个透明阴影，可以使得 3D 物体更加自然地融合到场景当中。
+![](https://gw.alipayobjects.com/zos/OasisHub/cf763750-8d2b-45f6-91d0-15502a199010/2024-07-24%25252019.03.15.gif)

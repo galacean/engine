@@ -18,6 +18,9 @@ Directional light has 3 main properties: _Color_ ([color](/apis/core/#DirectLigh
 | Color     | Controls the color of the parallel light, default is white       |
 | Culling Mask     | Controls which objects the light needs to illuminate, default is Everything. Needs to be used in conjunction with the Entity's Layer  |
 
+> Directional lights can cast shadows. For more information, see the [shadow documentation](/en/docs/graphics/light/shadow).
+
+
 
 
 ## Script Usage
