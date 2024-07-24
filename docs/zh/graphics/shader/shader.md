@@ -10,7 +10,7 @@ label: Graphics/Shader
 
 ## 着色器简介
 
-着色器(Shader)是一段运行在GPU中的程序，通常由2个“入口函数”组成，我们称之为顶点着色器(Vertex Shader)和片元着色器(Fragment Shader)，分别对应于渲染管线的2个阶段。如果我们聚焦于着色器，引擎渲染一幅图像的过程(即渲染管线)可以简化为
+着色器(Shader)是一段运行在GPU中的程序，通常由2个“入口函数”组成，我们称之为顶点着色器(Vertex Shader)和片元着色器(Fragment Shader)，分别对应于渲染管线的两个不同阶段。下面是一幅简化的引擎渲染过程（渲染管线）的图示，我们聚焦于着色器部分进行描述
 
 ```mermaid
 flowchart LR
@@ -25,13 +25,13 @@ flowchart LR
 
 ## Shader 对象
 
-在Galacean中，我们将上述着色器以及其他渲染相关信息封装抽象为Shader对象。具体的，Shader对象包含:
+在Galacean中，我们将上述着色器以及其他渲染相关信息封装抽象为Shader对象。具体来说，Shader 对象包含：
 - Shader本身信息，如Shader名字
 - 一个或多个SubShader对象
 
 ## SubShader
 
-Galacean中通过SubShader可以将Shader对象拆分为多个子模块(即SubShader)，通过对每个子模块设置不同的tag以实现对不同的渲染管线、不同的GPU硬件平台分别设置不同的渲染逻辑。具体的，SubShader对象包含:
+Galacean中通过SubShader可以将Shader对象拆分为多个子模块(即SubShader)，通过对每个子模块设置不同的tag以实现对不同的渲染管线、不同的GPU硬件平台分别设置不同的渲染逻辑。具体来说，SubShader 对象包含：
 
 - SubShader名字
 - tas: 用于标识兼容的硬件平台和渲染管线的key-value键值对
