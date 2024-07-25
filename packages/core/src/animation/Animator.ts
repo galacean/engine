@@ -535,7 +535,6 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const { srcPlayData } = layerData;
-    const { stateMachine } = layer;
     const { state } = srcPlayData;
 
     const actualSpeed = state.speed * this.speed;
@@ -556,7 +555,7 @@ export class Animator extends Component {
         layerData,
         layer,
         state,
-        stateMachine.anyStateTransitions,
+        layer.stateMachine.anyStateTransitions,
         aniUpdate
       ) ||
       this._applyStateTransitions(
@@ -639,9 +638,8 @@ export class Animator extends Component {
     additive: boolean,
     aniUpdate: boolean
   ): void {
-    const { clipTime, playState, state } = playData;
     const curveBindings = playData.state.clip._curveBindings;
-    const finished = playState === AnimatorStatePlayState.Finished;
+    const finished = playData.playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
       const curveLayerOwner = playData.stateData.curveLayerOwner;
@@ -657,14 +655,16 @@ export class Animator extends Component {
         if (curve.keys.length) {
           this._checkRevertOwner(owner, additive);
 
-          const value = owner.evaluateValue(curve, clipTime, additive);
+          const value = owner.evaluateValue(curve, playData.clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
           finished && layerOwner.saveFinalValue();
         }
       }
     }
 
-    if (playState === AnimatorStatePlayState.Finished) {
+    const { state } = playData;
+
+    if (finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
@@ -722,7 +722,7 @@ export class Animator extends Component {
 
     srcPlayData.update(srcCostTime);
     destPlayData.update(destCostTime);
-
+    // For precision problem, loose judgment, expect to crossFade
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
@@ -741,17 +741,20 @@ export class Animator extends Component {
         );
     }
 
-    const { clipTime: srcClipTime } = srcPlayData;
-    const { clipTime: destClipTime } = destPlayData;
-
     srcEventHandlers.length &&
-      this._fireAnimationEvents(srcPlayData, srcEventHandlers, lastSrcClipTime, srcClipTime, Math.abs(srcCostTime));
+      this._fireAnimationEvents(
+        srcPlayData,
+        srcEventHandlers,
+        lastSrcClipTime,
+        srcPlayData.clipTime,
+        Math.abs(srcCostTime)
+      );
     destEventHandlers.length &&
       this._fireAnimationEvents(
         destPlayData,
         destEventHandlers,
         lastDestClipTime,
-        destClipTime,
+        destPlayData.clipTime,
         Math.abs(destCostTime)
       );
 
@@ -764,8 +767,8 @@ export class Animator extends Component {
 
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
 
-    // For precision problem, strict judgment, expect not to update
     const remainDeltaTime = deltaTime - costTime;
+    // For precision problem, strict judgment, expect not to update
     willSwitchState &&
       remainDeltaTime > MathUtil.zeroTolerance &&
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
@@ -837,7 +840,7 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ) {
-    const { srcPlayData, destPlayData } = layerData;
+    const { destPlayData } = layerData;
     const { state, stateData } = destPlayData;
     const { eventHandlers } = stateData;
 
