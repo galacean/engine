@@ -14,7 +14,8 @@ import {
   Script,
   Transform,
   AnimatorController,
-  WrapMode
+  WrapMode,
+  StateMachineScript
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -564,6 +565,7 @@ describe("Animator test", function () {
     const state1 = layer.stateMachine.addState("state1");
     const state2 = layer.stateMachine.addState("state2");
     state1.wrapMode = WrapMode.Once;
+    state2.wrapMode = WrapMode.Once;
     const clip1 = new AnimationClip("clip1");
     const rotationCurve = new AnimationFloatCurve();
     const key1 = new Keyframe<number>();
@@ -577,27 +579,46 @@ describe("Animator test", function () {
     clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
 
     const clip2 = new AnimationClip("clip2");
+    const positionCurve = new AnimationFloatCurve();
+    const key3 = new Keyframe<number>();
+    const key4 = new Keyframe<number>();
+    key3.time = 0;
+    key3.value = 0;
+    key4.time = 1;
+    key4.value = 5;
+    positionCurve.addKey(key3);
+    positionCurve.addKey(key4);
+    clip2.addCurveBinding("", Transform, "position.x", positionCurve);
     state1.clip = clip1;
     state2.clip = clip2;
 
     const transition = new AnimatorStateTransition();
     transition.destinationState = state2;
     transition.exitTime = 1;
-    transition.duration = 0;
-    transition.mute = true;
+    transition.duration = 1;
     state1.addTransition(transition);
 
     animator.animatorController = animatorController;
-
+    let enterRotation;
+    let exitRotation;
+    state1.addStateMachineScript(
+      class extends StateMachineScript {
+        onStateEnter(animator) {
+          enterRotation = animator.entity.transform.rotation.x;
+        }
+        onStateExit(animator) {
+          exitRotation = animator.entity.transform.rotation.x;
+        }
+      }
+    );
     animator.play("state1");
+
     // @ts-ignore
     animator.engine.time._frameCount++;
-    animator.update(1);
-    expect(animator.entity.transform.rotation.x).to.eq(90);
-    transition.mute = false;
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.update(1);
+    animator.update(3);
+    expect(enterRotation).to.eq(90);
+    expect(exitRotation).to.eq(90);
     expect(animator.entity.transform.rotation.x).to.eq(0);
+    expect(animator.entity.transform.position.x).to.eq(5);
   });
 });
