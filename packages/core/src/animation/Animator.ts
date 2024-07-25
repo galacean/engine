@@ -618,7 +618,6 @@ export class Animator extends Component {
     costTime = Math.abs(costTime);
 
     const { eventHandlers } = srcPlayData.stateData;
-    //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(srcPlayData, eventHandlers, lastClipTime, clipTime, costTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
@@ -722,8 +721,9 @@ export class Animator extends Component {
 
     srcPlayData.update(srcCostTime);
     destPlayData.update(destCostTime);
-    // For precision problem, loose judgment, expect to crossFade
+
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
+    // For precision problem, loose judgment, expect to crossFade
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const willSwitchState = crossWeight === 1.0;
