@@ -15,7 +15,8 @@ import {
   Transform,
   AnimatorController,
   WrapMode,
-  StateMachineScript
+  StateMachineScript,
+  AnimatorState
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -600,11 +601,15 @@ describe("Animator test", function () {
 
     animator.animatorController = animatorController;
     let enterRotation;
+    let updateRotation;
     let exitRotation;
     state1.addStateMachineScript(
       class extends StateMachineScript {
         onStateEnter(animator) {
           enterRotation = animator.entity.transform.rotation.x;
+        }
+        onStateUpdate(animator) {
+          updateRotation = animator.entity.transform.rotation.x;
         }
         onStateExit(animator) {
           exitRotation = animator.entity.transform.rotation.x;
@@ -617,6 +622,7 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(3);
     expect(enterRotation).to.eq(90);
+    expect(updateRotation).to.eq(90);
     expect(exitRotation).to.eq(90);
     expect(animator.entity.transform.rotation.x).to.eq(0);
     expect(animator.entity.transform.position.x).to.eq(5);
