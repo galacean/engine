@@ -476,8 +476,6 @@ export class Animator extends Component {
   ): void {
     let { weight } = layer;
     const layerData = this._getAnimatorLayerData(layerIndex);
-    const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = layerData.srcPlayData;
-    const { clipTime: lastDstClipTime, playState: lastDstPlayState } = layerData.destPlayData;
 
     this._updateState(layerIndex, layerData, layer, deltaTime, aniUpdate);
 
@@ -488,31 +486,13 @@ export class Animator extends Component {
 
     switch (layerData.layerState) {
       case LayerState.Playing:
-        this._evaluatePlayingState(layerIndex, srcPlayData, weight, additive, lastSrcPlayState, aniUpdate);
+        this._evaluatePlayingState(layerIndex, srcPlayData, weight, additive, aniUpdate);
         break;
       case LayerState.FixedCrossFading:
-        this._evaluateCrossFadeFromPoseState(
-          layerIndex,
-          layerData,
-          destPlayData,
-          weight,
-          additive,
-          lastDstPlayState,
-          aniUpdate
-        );
+        this._evaluateCrossFadeFromPoseState(layerIndex, layerData, destPlayData, weight, additive, aniUpdate);
         break;
       case LayerState.CrossFading:
-        this._evaluateCrossFadeState(
-          layerIndex,
-          layerData,
-          srcPlayData,
-          destPlayData,
-          weight,
-          additive,
-          lastSrcPlayState,
-          lastDstPlayState,
-          aniUpdate
-        );
+        this._evaluateCrossFadeState(layerIndex, layerData, srcPlayData, destPlayData, weight, additive, aniUpdate);
         break;
       case LayerState.Finished:
         this._evaluateFinishedState(srcPlayData, weight, additive, aniUpdate);
@@ -632,7 +612,6 @@ export class Animator extends Component {
         srcPlayData,
         layer.weight,
         layer.blendingMode === AnimatorLayerBlendingMode.Additive,
-        lastPlayState,
         aniUpdate
       );
     }
@@ -642,6 +621,10 @@ export class Animator extends Component {
     const { eventHandlers } = srcPlayData.stateData;
     //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(srcPlayData, eventHandlers, lastClipTime, clipTime, costTime);
+
+    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(state, layerIndex);
+    }
 
     if (willSwitchState) {
       const remainDeltaTime = deltaTime - costTime;
@@ -654,7 +637,6 @@ export class Animator extends Component {
     playData: AnimatorStatePlayData,
     weight: number,
     additive: boolean,
-    lastPlayState: AnimatorStatePlayState,
     aniUpdate: boolean
   ): void {
     const { clipTime, playState, state } = playData;
@@ -682,12 +664,10 @@ export class Animator extends Component {
       }
     }
 
-    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
-    }
-    this._callAnimatorScriptOnUpdate(state, layerIndex);
     if (playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
   }
 
@@ -715,7 +695,7 @@ export class Animator extends Component {
     srcPlayData && srcPlayData.updateOrientation(actualSrcSpeed * deltaTime);
     destPlayData && destPlayData.updateOrientation(actualDestDeltaTime);
 
-    const { clipTime: lastSrcClipTime } = srcPlayData;
+    const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
 
     let destCostTime = 0;
@@ -757,7 +737,6 @@ export class Animator extends Component {
           destPlayData,
           layer.weight,
           layer.blendingMode === AnimatorLayerBlendingMode.Additive,
-          lastDstPlayState,
           aniUpdate
         );
     }
@@ -776,6 +755,13 @@ export class Animator extends Component {
         Math.abs(destCostTime)
       );
 
+    if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(srcState, layerIndex);
+    }
+    if (lastDstPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(destState, layerIndex);
+    }
+
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
 
     // For precision problem, strict judgment, expect not to update
@@ -792,8 +778,6 @@ export class Animator extends Component {
     destPlayData: AnimatorStatePlayData,
     weight: number,
     additive: boolean,
-    lastSrcPlayState: AnimatorStatePlayState,
-    lastDstPlayState: AnimatorStatePlayState,
     aniUpdate: boolean
   ) {
     const { crossLayerOwnerCollection } = layerData;
@@ -831,23 +815,18 @@ export class Animator extends Component {
       }
     }
 
-    const { state: srcState, stateData: srcStateData, clipTime: srcClipTime, playState: srcPlayState } = srcPlayData;
-    const { stateData: dstStateData, clipTime: dstClipTime, playState: destPlayState } = destPlayData;
+    const { state: srcState, playState: srcPlayState } = srcPlayData;
 
-    if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(srcState, layerIndex);
-    }
-    this._callAnimatorScriptOnUpdate(srcState, layerIndex);
     if (crossWeight === 1.0 || srcPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(srcState, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(srcState, layerIndex);
     }
 
-    if (lastDstPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(destState, layerIndex);
-    }
-    this._callAnimatorScriptOnUpdate(destState, layerIndex);
-    if (destPlayState === AnimatorStatePlayState.Finished) {
+    if (destPlayData.playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(destState, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(destState, layerIndex);
     }
   }
 
@@ -910,7 +889,6 @@ export class Animator extends Component {
           destPlayData,
           layer.weight,
           layer.blendingMode === AnimatorLayerBlendingMode.Additive,
-          lastPlayState,
           aniUpdate
         );
     }
@@ -923,6 +901,10 @@ export class Animator extends Component {
         destPlayData.clipTime,
         Math.abs(destCostTime)
       );
+
+    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(state, layerIndex);
+    }
 
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
     // For precision problem, strict judgment, expect not to update
@@ -938,7 +920,6 @@ export class Animator extends Component {
     destPlayData: AnimatorStatePlayData,
     weight: number,
     additive: boolean,
-    lastDstPlayState: AnimatorStatePlayState,
     aniUpdate: boolean
   ) {
     const { crossLayerOwnerCollection } = layerData;
@@ -975,12 +956,10 @@ export class Animator extends Component {
       }
     }
 
-    if (lastDstPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
-    }
-    this._callAnimatorScriptOnUpdate(state, layerIndex);
     if (playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
   }
 
