@@ -11,7 +11,6 @@ import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateMachine } from "./AnimatorStateMachine";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { KeyframeValueType } from "./Keyframe";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
