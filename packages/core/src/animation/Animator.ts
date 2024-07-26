@@ -755,7 +755,7 @@ export class Animator extends Component {
           destPlayData,
           destState,
           lastDestClipTime,
-          lastSrcPlayState,
+          lastDstPlayState,
           Math.abs(destCostTime)
         );
 
@@ -786,7 +786,7 @@ export class Animator extends Component {
           destPlayData,
           destState,
           lastDestClipTime,
-          lastSrcPlayState,
+          lastDstPlayState,
           Math.abs(destCostTime)
         );
       }
