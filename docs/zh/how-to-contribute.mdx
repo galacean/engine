@@ -208,19 +208,28 @@ engine.resourceManager
 
 ```
 
-### 嵌入示例 
+### 示例 
 
-在之前，你使用的是 `<playground src="ambient-light.ts"></playground>{:html}` 语法来嵌入的示例。新版的官网对此语法也做了兼容。但后续嵌入示例时推荐使用下面新的语法。毕竟，这里嵌入的示例只是一个 iframe 而已。
+#### 编写示例代码
+
+我们现在提供两种方式让你组织示例代码：
+
+- 在 `examples/` 文件夹下新建 `.ts` 示例文件来组织示例代码
+- 在 `examples/` 文件夹下新建一个 **示例文件夹**，最后通过 `示例文件夹/index.ts` 来暴露示例代码
+
+#### 嵌入示例
 
 ````mdx filename="light.mdx"
 ...
 
 Ambient light emits from all directions and enters the eye, as shown in the example below:
 
-<playground href="/embed/ambient-light">
+<playground href="/embed/ambient-light" />
 
 ...
 ````
+
+<Playground href="/embed/ambient-light" />
 
 ## 新增文档
 
