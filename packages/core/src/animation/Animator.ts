@@ -1,4 +1,3 @@
-import { MathUtil } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
