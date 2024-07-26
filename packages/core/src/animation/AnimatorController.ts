@@ -62,12 +62,12 @@ export class AnimatorController extends ReferResource {
    */
   addParameter(parameter: AnimatorControllerParameter): AnimatorControllerParameter;
 
-  addParameter(param: AnimatorControllerParameter | string, value?: AnimatorControllerParameterValue) {
+  addParameter(param: AnimatorControllerParameter | string, defaultValue?: AnimatorControllerParameterValue) {
     if (typeof param === "string") {
       const name = param;
       param = new AnimatorControllerParameter();
       param.name = name;
-      param.defaultValue = value;
+      param.defaultValue = defaultValue;
     }
     this._parametersMap[param.name] = param;
     this._parameters.push(param);
