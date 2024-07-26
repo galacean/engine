@@ -138,7 +138,7 @@ const PlanarShadowShaderSource = `Shader "PlanarShadow" {
 
       BlendState = blendState;
 
-      RenderQueueType = RenderQueueType.Transparent;
+      RenderQueueType = Transparent;
 
       vec3 u_lightDir;
       float u_planarHeight;

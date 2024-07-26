@@ -6,7 +6,9 @@ group: 网格
 label: Graphics/Shader
 ---
 
-`ShaderLab` 是一个针对 Galacean 引擎打造的 Shader 包装语言，它允许开发人员使用熟悉的 [GLSL](https://www.khronos.org/files/opengles_shading_language.pdf) 语法编写自定义 Shader，同时提供了额外的高级抽象和管理特性以增强开发效率。在[材质组成](../material/composition/)章节我们提到，未引入ShaderLab前各类[渲染状态](./material/composition/#渲染状态)的设置需要开发者手动调用api进行设置，有了 ShaderLab 后，开发者能够直接在"Shader"文件中对渲染状态进行设置和指定，此外还能定义绑定Shader的材质渲染参数，映射到编辑器的Inspector面板中，方便开发者即时调整渲染效果。
+> 在[自定义着色器](./custom)章节我们了解到如何使用 WebGL 原生 GLSL 语言创建自定义 Shader，本节我们将介绍另一种创建 Shader 的方式 --- ShaderLab。
+
+`ShaderLab` 是一个针对 Galacean 引擎打造的 Shader 包装语言，它允许开发人员使用熟悉的 [GLSL](https://www.khronos.org/files/opengles_shading_language.pdf) 语法编写自定义 Shader，同时提供了额外的高级抽象和管理特性以增强开发效率。在[材质组成](../material/composition/)章节我们提到，未引入 ShaderLab 前各类[渲染状态](./material/composition/#渲染状态)的设置需要开发者手动调用 api 进行设置，有了 ShaderLab 后，开发者能够直接在 "Shader" 文件中对渲染状态进行设置和指定，此外还能定义绑定 Shader 的材质渲染参数，映射到编辑器的 Inspector 面板中，方便开发者即时调整渲染效果。
 
 尽管 ShaderLab 为着色器的编写引入了便利性，但它并不取代 GLSL，而是与之兼容。开发者可以在 ShaderLab 框架内编写原生 GLSL 代码块，享受两者的结合优势。ShaderLab 使用流程如下:
 
@@ -23,11 +25,11 @@ flowchart LR
 
 #### 在编辑器中创建
 
-编辑器中可以添加 3 种 ShaderLab 模板: 自定义、`PBR`、和 着色器片段
+编辑器中可以添加 3 种 ShaderLab 模板: `Unlit`、`PBR`、和 着色器片段
 
-  <img src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*MiW5RYzGUhwAAAAAAAAAAAAADteEAQ/original" style="zoom:50%;">
+  <img src="https://mdn.alipayobjects.com/huamei_rmtxpm/afts/img/A*iKzITo5ggqQAAAAAAAAAAAAADv-7AQ/original" >
 
-其中 **自定义** 和 **`PBR`** 是使用 ShaderLab 语法进行编写的着色器模板，**着色器片段** 则是为了方便代码段复用，ShaderLab 中可以如下使用 `include` 宏进行代码段引用，后续编译过程中会被自动扩展替换。使用方式详见语法标准模块。
+其中 **`Unlit`** 和 **`PBR`** 是使用 ShaderLab 语法进行编写的着色器模板，**着色器片段** 则是为了方便代码段复用，ShaderLab 中可以如下使用 `include` 宏进行代码段引用，后续编译过程中会被自动扩展替换。使用方式详见语法标准模块。
 
 #### 在脚本中创建
 
@@ -50,7 +52,7 @@ const engine = await WebGLEngine.create({ canvas: 'canvas', shaderLab });
 const shader = Shader.create(galaceanShaderCode);
 ```
 
-## `ShaderLab`编写
+## `ShaderLab` 编写
 
 ### 在编辑器中编辑着色器
 
@@ -92,7 +94,24 @@ Shader "ShaderName" {
 }
 ```
 
-ShaderLab 中的`Shader`是传统渲染管线中着色器程序和其他引擎渲染设置相关信息的集合封装，它允许在同一个`Shader`对象中定义多个着色器程序，并告诉 Galacean 在渲染过程中如何选择使用它们。`Shader` 对象具有嵌套的结构，包含 `SubShader` 和 `Pass` 子结构。
+ShaderLab 中的`Shader`是传统渲染管线中着色器程序和其他引擎渲染设置相关信息的集合封装，它允许在同一个`Shader`对象中定义多个着色器程序，并告诉 Galacean 在渲染过程中如何选择使用它们。`Shader` 对象具有嵌套的结构，包分别对应引擎封装的 [Shader](./class/#shader)，[SubShader](./class/#subshader) 和 [ShaderPass](./class/#shaderpass) 对象。
+
+#### 宏
+
+ShaderLab 支持 GLSL 标准语法中的部分宏和宏操作符：
+- `#define`
+- `#undef`
+- `#if`
+- `#ifdef`
+- `#ifndef`
+- `#else`
+- `#elif`
+- `#endif`
+- `defined` 
+  
+以及额外引入的 `#include` 宏。
+
+> ShaderLab 宏不能影响 ShaderLab 结构，即 `Shader`，`SubShader`，`Pass`，`EditorProperties`，`EditorMacros` 关键字不能被包含在类似 `#ifdef` 这样的分支宏内。
 
 #### 材质属性定义
 
@@ -337,7 +356,7 @@ Pass "PassName" {
   VertexShader = vert;
 
   // 指定渲染队列
-  RenderQueueType = RenderQueueType.Transparent;
+  RenderQueueType = Transparent;
 }
 ```
 
@@ -443,31 +462,7 @@ const commonSource = `// shader chunk`;
 ShaderFactory.registerInclude('includeKey', commonSource);
 ```
 
-#### 当前不支持的 GLSL 语法格式
-
-1. 浮点数小数点前后的 0 不能省略
-
-   - ❌ `float n = 1. + .9;`
-   - ✅ `float n = 1.0 + 0.9;`
-
-2. 变量赋值语句中当赋值为函数调用返回值的属性时，需要用括弧包含函数调用
-
-   - ❌ `float a3 = texture2D(u_texture, (p.xy * 0.4 + um) * u_water_scale).x;`
-   - ✅ `float a3 = (texture2D(u_texture, (p.xy * 0.4 + um) * u_water_scale)).x;`
-
-3. if / for 判断语句后如果只有一行代码，"{}"不能省略
-
-   - ❌
-     ```
-     if(dis < EPS || dis > MAX_DIS)
-       break;
-     ```
-   - ✅
-     ```
-     if(dis < EPS || dis > MAX_DIS) {
-       break;
-     }
-     ```
+Shader 文件引入代码段支持相对路径引用，所有相对路径都基于主 Shader 文件路径进行转换。如Shader文件路径为`/root/hair/shader.gs`，引入代码段路径为`/root/hair/common.glsl`，则引入的相对路径为 `#include "./common.glsl"`。
 
 ## 材质绑定着色器
 
