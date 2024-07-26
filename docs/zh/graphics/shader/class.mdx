@@ -25,7 +25,18 @@ SubShader 包含以下内容:
 
 - Tags
 
-指定该 SubShader 兼容的运行环境，如渲染管线、硬件平台等
+Tags 是用于被渲染管线消费的 key-value 键值对，通常用于指定 Shader 兼容的硬件平台、渲染管线等信息，当前引擎内置管线消费的 Tags 有
+
+|Key|value|
+|--|--|
+|pipelineStage|Forward|
+|pipelineStage|DepthOnly|
+|pipelineStage|ShadowCaster|
+|pipelineStage|DepthOnly|
+
+此外还可以通过 [Camera.setReplacementShader](/engine/apis/galacean/#Camera-resetReplacementShader)，指定渲染管线的`replacementTag`，实现对设置指定 `Tag` 的 `SubShader` 替换的目的。
+
+Tags可以通过 [SubShader.setTag](/engine/apis/galacean/#SubShader-setTag) 和 [ShaderPass.setTag](/engine/apis/galacean/#ShaderPass-setTag)进行指定，ShaderLab指定Tag方式详见[文档](./lab)
 
 - Passes
 

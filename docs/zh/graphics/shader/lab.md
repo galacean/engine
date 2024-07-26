@@ -321,7 +321,9 @@ SubShader "SubShaderName" {
 }
 ```
 
-一个`Shader`对象可以包含多个，但至少一个`SubShader`。它表示一组渲染管线的具体实现，定义了一种渲染效果的多个实现步骤(Pass),当前`SubShader`可以通过自定义 Tag，如`ReplaceTag`，搭配 [`Camera.setReplacementShader`](/apis/core/#Camera) 指定可能需要替换的着色器程序。
+- `Tags`
+
+在 [Shader 对象](./class) 章节我们了解了 Tags 的基本概念和用途，ShaderLab 中可以通过 `Tags` 指令直接声明和指定，无须通过 `SubShader.setTag` api 方式手动指定。
 
 - `UsePass` 指令
 
@@ -459,6 +461,8 @@ ShaderFactory.registerInclude('includeKey', commonSource);
 ```
 
 Shader 文件引入代码段支持相对路径引用，所有相对路径都基于主 Shader 文件路径进行转换。如Shader文件路径为`/root/hair/shader.gs`，引入代码段路径为`/root/hair/common.glsl`，则引入的相对路径为 `#include "./common.glsl"`。
+
+> `EditorProperties` 和 `EditorMacros` 只能声明在 Shader 主文件内，不能声明在 Shader 文件片段中，通过 `#include` 宏引入。
 
 ## 材质绑定着色器
 
