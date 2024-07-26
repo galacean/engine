@@ -19,7 +19,7 @@ Scene 作为场景单元，可以方便的进行实体树管理，尤其是大�
 
 ### 属性面板
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/4cab176f-a274-4d97-a98d-334f6bc611ac/image-20240319180602935.png" alt="image-20240319180602935" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/2eaad4b1-d3e3-4c17-ae7f-58b488cd3606/image-20240718190944508.png" alt="image-20240718190944508" style="zoom:50%;" />
 
 ### 环境光
 
@@ -32,6 +32,10 @@ Scene 作为场景单元，可以方便的进行实体树管理，尤其是大�
 ### 阴影
 
 详情请参照[阴影教程](/docs/graphics-light-shadow)。
+
+### 后处理
+
+详情请参照[后处理教程](/docs/graphics-postProcess)。
 
 ### 雾化
 

@@ -1,11 +1,17 @@
 import { SpriteMask, SpriteMaskInteraction, SpriteRenderer } from "../2d";
+import { ShaderTagKey } from "../shader";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * @internal
  */
 export class BatchUtils {
+  protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
+
   static canBatchSprite(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    if (elementB.shaderPasses[0].getTagValue(BatchUtils._disableBatchTag) === true) {
+      return false;
+    }
     if (elementA.subChunk.chunk !== elementB.subChunk.chunk) {
       return false;
     }
@@ -61,6 +67,6 @@ export class BatchUtils {
     }
     chunk.updateIndexLength += length;
     chunk.updateVertexStart = Math.min(chunk.updateVertexStart, start);
-    chunk.updateVertexLength = Math.max(chunk.updateVertexLength, start + size);
+    chunk.updateVertexEnd = Math.max(chunk.updateVertexEnd, start + size);
   }
 }

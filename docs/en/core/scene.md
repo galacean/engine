@@ -19,7 +19,7 @@ Right-click in the **[Asset Panel](/en/docs/assets-interface)** (or click the + 
 
 ### Property Panel
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/4cab176f-a274-4d97-a98d-334f6bc611ac/image-20240319180602935.png" alt="image-20240319180602935" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/2eaad4b1-d3e3-4c17-ae7f-58b488cd3606/image-20240718190944508.png" alt="image-20240718190944508" style="zoom:50%;" />
 
 ### Ambient Light
 
@@ -32,6 +32,10 @@ For more details, please refer to the [Background Tutorial](/en/docs/graphics-ba
 ### Shadows
 
 For more details, please refer to the [Shadows Tutorial](/en/docs/graphics-light-shadow).
+
+### Post Process
+
+For more details, please refer to the [PostProcess Tutorial](/en/docs/graphics-postProcess).
 
 ### Fog
 
