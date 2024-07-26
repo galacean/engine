@@ -54,7 +54,7 @@ export class Animator extends Component {
   @ignoreClone
   private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
   @ignoreClone
-  private _parametersValeMap: Record<string, AnimatorControllerParameterValueType> = Object.create(null);
+  private _parametersValueMap: Record<string, AnimatorControllerParameterValueType> = Object.create(null);
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
@@ -232,7 +232,7 @@ export class Animator extends Component {
   getParameterValue(name: string): AnimatorControllerParameterValueType {
     const parameter = this._animatorController?._parametersMap[name];
     if (parameter) {
-      return this._parametersValeMap[name] ?? parameter.value;
+      return this._parametersValueMap[name] ?? parameter.value;
     }
     return undefined;
   }
@@ -245,7 +245,7 @@ export class Animator extends Component {
   setParameterValue(name: string, value: AnimatorControllerParameterValueType) {
     const parameter = this._animatorController?._parametersMap[name];
     if (parameter && parameter.value !== value) {
-      this._parametersValeMap[name] = value;
+      this._parametersValueMap[name] = value;
     }
   }
 
@@ -288,7 +288,7 @@ export class Animator extends Component {
 
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = Object.create(null);
-    this._parametersValeMap = Object.create(null);
+    this._parametersValueMap = Object.create(null);
     this._animationEventHandlerPool.clear();
 
     if (this._controllerUpdateFlag) {
