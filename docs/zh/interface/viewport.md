@@ -95,6 +95,6 @@ label: Basics/Interface
 | 切换比例 | 切换不同设备、不同比例的窗口 |
 | 锁定     | 锁定相机预览窗口             |
 
-特别的，在层级树中带有相机组件的物体，能够通过直接同步视图的场景相机。
+在层级树中包含相机组件的物体，可以直接同步视图的场景相机的相关属性，方便进行位置和视角的调整。
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*IEaMQYLe1HgAAAAAAAAAAAAADtKFAQ/original" style="zoom:50%;" />
