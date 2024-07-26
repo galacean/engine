@@ -6,7 +6,7 @@ group: 光照
 label: Graphics/Light
 ---
 
-阴影能够有效增强渲染画面的立体感和真实感。在实时渲染中，一般使用所谓的 ShadowMap 技术来进行阴影的绘制，简单来说就是把光源作为一个虚拟的相机渲染场景的深度，然后从场景相机渲染画面时，如果物体的深度比之前保存的深度信息中的要深，认为被其他物体遮挡，则渲染阴影。
+阴影能够有效增强渲染画面的立体感和真实感。为了实现这一点，通常使用所谓的 ShadowMap 技术。简单来说，就是把光源作为一个虚拟的相机渲染场景的深度，然后从场景相机渲染画面时，如果物体的深度比之前保存的深度信息中的要深，认为被其他物体遮挡，则渲染阴影。
 
 ## 场景配置
 
@@ -29,13 +29,13 @@ label: Graphics/Light
 
 要投射阴影，需要场景中有[方向光](/docs/graphics/light/directional)，引擎目前只能为一盏方向光 `DirectLight` 开启阴影，这主要是因为阴影的渲染使得 DrawCall 翻倍，会严重影响渲染的性能。在没有确定[主光(scene.sun)](/apis/core/#Scene-sun)的情况下，引擎会默认选择光强最强的那一盏灯投射阴影:
 
-| 参数                                              | 应用                    |
-| :------------------------------------------------ | :---------------------- |
-| [Shadow Type](/apis/core/#Light-shadowType)       | 阴影投射类型。          |
-| [Shadow Bias](/apis/core/#Light-shadowBias)       | 阴影的偏移 。           |
-| [Normal Bias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移 。       |
-| [Near Plane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面 。 |
-| [Strength](/apis/core/#Light-shadowStrength)      | 阴影强度 。             |
+| 参数                                              | 应用                                               |
+| :------------------------------------------------ | :------------------------------------------------- |
+| [Shadow Type](/apis/core/#Light-shadowType)       | 阴影投射类型。不同的类型会影响渲染性能和视觉效果。 |
+| [Shadow Bias](/apis/core/#Light-shadowBias)       | 阴影的偏移。防止阴影失真。                       |
+| [Normal Bias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移。避免阴影失真。                    |
+| [Near Plane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面。影响阴影的裁剪面和精度。   |
+| [Strength](/apis/core/#Light-shadowStrength)      | 阴影强度。控制阴影的透明度。                      |
 
 ## 投射物与接受物
 
