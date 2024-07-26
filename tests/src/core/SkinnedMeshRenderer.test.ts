@@ -72,8 +72,10 @@ describe("SkinnedMeshRenderer", async () => {
       new Matrix(1, 0, 0, -1, 0, 0, 0, -1, 0, 0, -2, -1).invert()
     ];
 
+    const position = new Vector3();
     const modelMesh = new ModelMesh(engine);
     const entity = rootEntity.createChild("SkinEntity");
+    entity.transform.position = position;
     const rootBone = entity.createChild("RootBone");
     rootBone.createChild("Joint0");
     rootBone.createChild("Joint1");
@@ -84,6 +86,8 @@ describe("SkinnedMeshRenderer", async () => {
 
     skinnedMR.skin = skin;
     engine.update();
+    expect(skinnedMR.bounds.min).to.deep.eq(position);
+    expect(skinnedMR.bounds.max).to.deep.eq(position);
 
     // Test that the skin is set correctly.
     expect(skinnedMR.skin).to.be.equal(skin);
@@ -94,10 +98,14 @@ describe("SkinnedMeshRenderer", async () => {
 
     // Test that the rootBone is set correctly.
     expect(skinnedMR.rootBone).to.be.equal(rootBone0);
+
+    position.set(1, 0, 0);
+    rootBone0.transform.position = position;
+    expect(skinnedMR.bounds.min).to.deep.eq(position);
+    expect(skinnedMR.bounds.max).to.deep.eq(position);
   });
 
   it("clone", () => {
-    // @ts-ignore
     const modelMesh = new ModelMesh(engine);
 
     const positions = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];
