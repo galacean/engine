@@ -601,6 +601,7 @@ describe("Animator test", function () {
 
     animator.animatorController = animatorController;
     let enterRotation;
+    let updateRotation;
     let exitRotation;
     state1.addStateMachineScript(
       class extends StateMachineScript {
@@ -618,6 +619,7 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(3);
     expect(enterRotation).to.eq(90);
+    expect(updateRotation).to.eq(90);
     expect(exitRotation).to.eq(90);
     expect(animator.entity.transform.rotation.x).to.eq(0);
     expect(animator.entity.transform.position.x).to.eq(5);
