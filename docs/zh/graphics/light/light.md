@@ -9,12 +9,16 @@ label: Graphics/Light
 合理使用光照，能够提供逼真的渲染效果。本节包含以下相关信息：
 
 - 光源类型
-  - [方向光](/docs/graphics-light-directional)
-  - [点光源](/docs/graphics-light-point)
-  - [聚光灯](/docs/graphics-light-spot)
-  - [环境光](/docs/graphics-light-ambient)
+  - 直接光
+    - [方向光](/docs/graphics-light-directional)
+    - [点光源](/docs/graphics-light-point)
+    - [聚光灯](/docs/graphics-light-spot)
+  - 间接光
+    - [环境光](/docs/graphics-light-ambient)
 - [烘焙](/docs/graphics-light-bake)
 - [阴影](/docs/graphics-light-shadow)
+
+> 需要注意的是，直接光的数量会影响性能损耗，引擎限制了每种直接光的数量不能超过10盏，通常建议使用环境光 + 部分直接光进行点缀。
 
 ## 直接光
 
@@ -22,7 +26,7 @@ label: Graphics/Light
 
 <playground src="light-type.ts"></playground>
 
-## 环境光
+## 间接光
 
 环境光从四周发射进入眼睛，如下案例：
 
