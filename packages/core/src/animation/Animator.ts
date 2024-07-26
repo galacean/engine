@@ -739,7 +739,7 @@ export class Animator extends Component {
     if (needSwitchLayerState) {
       this._preparePlayOwner(layerData, destState);
       if (dstPlayDataFinished) {
-        // need newest value when finished
+        // Need newest value when finished
         this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
 
         this._fireAnimationEventsAndCallScripts(
@@ -896,7 +896,7 @@ export class Animator extends Component {
     if (needSwitchLayerState) {
       this._preparePlayOwner(layerData, state);
       if (destPlayDataFinished) {
-        // need newest value when finished
+        // Need newest value when finished
         this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
 
         this._fireAnimationEventsAndCallScripts(
