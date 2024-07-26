@@ -56,7 +56,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     const radius = this._pxGeometry.radius;
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setRadius(radius);
+      controllers.get(i)._pxController?.setRadius(radius);
     }
   }
 
@@ -82,7 +82,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     const height = this._pxGeometry.halfHeight * 2;
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setHeight(height);
+      controllers.get(i)._pxController?.setHeight(height);
     }
   }
 
@@ -142,8 +142,10 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
       const pxController = controllers.get(i)._pxController;
-      pxController.setRadius(radius);
-      pxController.setHeight(height);
+      if (pxController) {
+        pxController.setRadius(radius);
+        pxController.setHeight(height);
+      }
     }
   }
 }
