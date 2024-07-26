@@ -172,7 +172,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
-    this._attachTransform(entity.transform);
+    this._setTransform(entity.transform);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -366,7 +366,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    this._attachTransform(null);
+    this._setTransform(null);
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -465,7 +465,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _attachTransform(transform: Transform): void {
+  protected _setTransform(transform: Transform): void {
     this._transform?._updateFlagManager.removeListener(this._onTransformChanged);
     transform?._updateFlagManager.addListener(this._onTransformChanged);
     this._transform = transform;
