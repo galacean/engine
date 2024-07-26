@@ -726,70 +726,40 @@ export class Animator extends Component {
     srcPlayData.update(srcCostTime);
     destPlayData.update(destCostTime);
 
-    const dstPlayDataFinished = destPlayData.playState === AnimatorStatePlayState.Finished;
-
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    // For precision problem, loose judgment, expect to crossFade
-    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
-    const needSwitchLayerState = crossWeight === 1.0;
+    const crossFadeFinished = crossWeight === 1.0;
 
-    let fired = false;
-
-    if (needSwitchLayerState) {
+    if (crossFadeFinished) {
       this._preparePlayOwner(layerData, destState);
-      if (dstPlayDataFinished) {
-        // Need newest value when finished
-        this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
-
-        this._fireAnimationEventsAndCallScripts(
-          layerIndex,
-          srcPlayData,
-          srcState,
-          lastSrcClipTime,
-          lastSrcPlayState,
-          Math.abs(srcCostTime)
-        );
-        this._fireAnimationEventsAndCallScripts(
-          layerIndex,
-          destPlayData,
-          destState,
-          lastDestClipTime,
-          lastDstPlayState,
-          Math.abs(destCostTime)
-        );
-
-        fired = true;
-      }
-
-      this._updateCrossFadeData(layerData);
-    }
-
-    // For precision problem, strict judgment, expect not to update
-    const remainDeltaTime = deltaTime - costTime;
-    if (needSwitchLayerState && remainDeltaTime > MathUtil.zeroTolerance) {
-      this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
       this._evaluateState(layerData, weight, additive, aniUpdate);
+    }
 
-      if (!fired) {
-        this._fireAnimationEventsAndCallScripts(
-          layerIndex,
-          srcPlayData,
-          srcState,
-          lastSrcClipTime,
-          lastSrcPlayState,
-          Math.abs(srcCostTime)
-        );
-        this._fireAnimationEventsAndCallScripts(
-          layerIndex,
-          destPlayData,
-          destState,
-          lastDestClipTime,
-          lastDstPlayState,
-          Math.abs(destCostTime)
-        );
-      }
+    this._fireAnimationEventsAndCallScripts(
+      layerIndex,
+      srcPlayData,
+      srcState,
+      lastSrcClipTime,
+      lastSrcPlayState,
+      Math.abs(srcCostTime)
+    );
+
+    this._fireAnimationEventsAndCallScripts(
+      layerIndex,
+      destPlayData,
+      destState,
+      lastDestClipTime,
+      lastDstPlayState,
+      Math.abs(destCostTime)
+    );
+
+    if (crossFadeFinished) {
+      this._updateCrossFadeData(layerData);
+      const remainDeltaTime = deltaTime - costTime;
+      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -808,7 +778,7 @@ export class Animator extends Component {
 
     const transitionDuration = destState._getDuration() * layerData.crossFadeTransition.duration;
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
     const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
 
@@ -887,48 +857,30 @@ export class Animator extends Component {
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
     // For precision problem, loose judgment, expect to crossFade
-    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
-    const needSwitchLayerState = crossWeight === 1.0;
+    const crossFadeFinished = crossWeight === 1.0;
 
-    let fired = false;
-
-    if (needSwitchLayerState) {
+    if (crossFadeFinished) {
       this._preparePlayOwner(layerData, state);
-      if (destPlayDataFinished) {
-        // Need newest value when finished
-        this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
-
-        this._fireAnimationEventsAndCallScripts(
-          layerIndex,
-          destPlayData,
-          state,
-          lastDestClipTime,
-          lastPlayState,
-          Math.abs(destCostTime)
-        );
-        fired = true;
-      }
-
-      this._updateCrossFadeData(layerData);
-    }
-
-    // For precision problem, strict judgment, expect not to update
-    const remainDeltaTime = deltaTime - costTime;
-    if (needSwitchLayerState && remainDeltaTime > MathUtil.zeroTolerance) {
-      this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
       this._evaluateState(layerData, weight, additive, aniUpdate);
+    }
 
-      !fired &&
-        this._fireAnimationEventsAndCallScripts(
-          layerIndex,
-          destPlayData,
-          state,
-          lastDestClipTime,
-          lastPlayState,
-          Math.abs(destCostTime)
-        );
+    this._fireAnimationEventsAndCallScripts(
+      layerIndex,
+      destPlayData,
+      state,
+      lastDestClipTime,
+      lastPlayState,
+      Math.abs(destCostTime)
+    );
+
+    if (crossFadeFinished) {
+      this._updateCrossFadeData(layerData);
+      const remainDeltaTime = deltaTime - costTime;
+      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
