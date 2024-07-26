@@ -9,7 +9,7 @@ import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ClearableObjectPool } from "../utils/ClearableObjectPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { KeyframeValueType } from "./Keyframe";
@@ -54,7 +54,7 @@ export class Animator extends Component {
   @ignoreClone
   private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
   @ignoreClone
-  private _parametersValueMap: Record<string, AnimatorControllerParameterValueType> = Object.create(null);
+  private _parametersValueMap = <Record<string, AnimatorControllerParameterValue>>Object.create(null);
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
@@ -229,10 +229,10 @@ export class Animator extends Component {
    * @param name - The name of the parameter
    * @param value - The value of the parameter
    */
-  getParameterValue(name: string): AnimatorControllerParameterValueType {
+  getParameterValue(name: string): AnimatorControllerParameterValue {
     const parameter = this._animatorController?._parametersMap[name];
     if (parameter) {
-      return this._parametersValueMap[name] ?? parameter.value;
+      return this._parametersValueMap[name] ?? parameter.defaultValue;
     }
     return undefined;
   }
@@ -242,9 +242,9 @@ export class Animator extends Component {
    * @param name - The name of the parameter
    * @param value - The value of the parameter
    */
-  setParameterValue(name: string, value: AnimatorControllerParameterValueType) {
+  setParameterValue(name: string, value: AnimatorControllerParameterValue) {
     const parameter = this._animatorController?._parametersMap[name];
-    if (parameter && parameter.value !== value) {
+    if (parameter && parameter.defaultValue !== value) {
       this._parametersValueMap[name] = value;
     }
   }
@@ -599,7 +599,7 @@ export class Animator extends Component {
         aniUpdate
       );
 
-    let costTime = actualDeltaTime;
+    let costTime: number;
     if (transition) {
       const clipDuration = state.clip.length;
       const clipEndTime = state.clipEndTime * clipDuration;
@@ -622,18 +622,27 @@ export class Animator extends Component {
       }
       // Revert actualDeltaTime and update costTime
       srcPlayData.update(costTime - actualDeltaTime);
+    } else {
+      costTime = actualDeltaTime;
     }
 
-    let willSwitchState = !!transition;
+    let needSwitchLayerState = !!transition;
 
     const { playState } = srcPlayData;
-    if (playState === AnimatorStatePlayState.Finished) {
+
+    let layerFinished: boolean;
+    if (!needSwitchLayerState) {
+      layerFinished = playState === AnimatorStatePlayState.Finished;
+    } else {
+      layerFinished = false;
+    }
+
+    if (layerFinished) {
       layerData.layerState = LayerState.Finished;
-      willSwitchState = true;
     }
 
     // need newest value when crossFading with the next state
-    if (willSwitchState) {
+    if (needSwitchLayerState || layerFinished) {
       this._evaluatePlayingState(
         layerIndex,
         srcPlayData,
@@ -652,7 +661,7 @@ export class Animator extends Component {
       this._callAnimatorScriptOnEnter(state, layerIndex);
     }
 
-    if (willSwitchState) {
+    if (needSwitchLayerState) {
       const remainDeltaTime = deltaTime - costTime;
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
@@ -711,7 +720,7 @@ export class Animator extends Component {
     const { eventHandlers: srcEventHandlers } = srcStateData;
     const { state: destState, stateData: destStateData } = destPlayData;
     const { eventHandlers: destEventHandlers } = destStateData;
-
+    if (srcPlayData.state.name === "squat") console.log(111);
     const destStateDuration = destState._getDuration();
     const transitionDuration = destStateDuration * layerData.crossFadeTransition.duration;
 
@@ -725,7 +734,7 @@ export class Animator extends Component {
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
 
-    let destCostTime = 0;
+    let destCostTime: number;
     if (destPlayData.isForwards) {
       destCostTime =
         lastDestClipTime + actualDestDeltaTime > transitionDuration
@@ -754,8 +763,8 @@ export class Animator extends Component {
     // For precision problem, loose judgment, expect to crossFade
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
-    const willSwitchState = crossWeight === 1.0;
-    if (willSwitchState) {
+    const needSwitchLayerState = crossWeight === 1.0;
+    if (needSwitchLayerState) {
       this._preparePlayOwner(layerData, destState);
       this._callAnimatorScriptOnExit(srcState, layerIndex);
       destPlayData.playState === AnimatorStatePlayState.Finished &&
@@ -797,7 +806,7 @@ export class Animator extends Component {
 
     const remainDeltaTime = deltaTime - costTime;
     // For precision problem, strict judgment, expect not to update
-    willSwitchState &&
+    needSwitchLayerState &&
       remainDeltaTime > MathUtil.zeroTolerance &&
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
   }
@@ -882,7 +891,7 @@ export class Animator extends Component {
 
     const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
 
-    let destCostTime = 0;
+    let destCostTime: number;
     if (destPlayData.isForwards) {
       destCostTime =
         lastDestClipTime + actualDeltaTime > transitionDuration
@@ -909,8 +918,8 @@ export class Animator extends Component {
     // For precision problem, loose judgment, expect to crossFade
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
-    const willSwitchState = crossWeight === 1.0;
-    if (willSwitchState) {
+    const needSwitchLayerState = crossWeight === 1.0;
+    if (needSwitchLayerState) {
       this._preparePlayOwner(layerData, state);
       this._callAnimatorScriptOnExit(state, layerIndex);
       destPlayData.playState === AnimatorStatePlayState.Finished &&
@@ -940,7 +949,7 @@ export class Animator extends Component {
     crossWeight === 1.0 && this._updateCrossFadeData(layerData);
     // For precision problem, strict judgment, expect not to update
     const remainDeltaTime = deltaTime - costTime;
-    willSwitchState &&
+    needSwitchLayerState &&
       remainDeltaTime > MathUtil.zeroTolerance &&
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
   }

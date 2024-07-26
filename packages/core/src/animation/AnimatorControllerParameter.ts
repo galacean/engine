@@ -1,4 +1,4 @@
-export type AnimatorControllerParameterValueType = number | string | boolean;
+export type AnimatorControllerParameterValue = number | string | boolean;
 
 /**
  * Used to communicate between scripting and the controller, parameters can be set in scripting and used by the controller.
@@ -6,6 +6,6 @@ export type AnimatorControllerParameterValueType = number | string | boolean;
 export class AnimatorControllerParameter {
   /** The name of the parameter. */
   name: string;
-  /** The initial value of the parameter. */
-  value: AnimatorControllerParameterValueType;
+  /** The default value of the parameter. */
+  defaultValue: AnimatorControllerParameterValue;
 }

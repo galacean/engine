@@ -1,5 +1,5 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { ReferResource } from "../asset/ReferResource";
@@ -34,6 +34,17 @@ export class AnimatorController extends ReferResource {
     return this._parameters;
   }
 
+  /**
+   * Create an AnimatorController.
+   * @param engine - Engine to which the animatorController belongs
+   */
+  constructor(engine: Engine);
+
+  /**
+   * @deprecated
+   */
+  constructor();
+
   constructor(engine?: Engine) {
     engine && super(engine);
   }
@@ -41,9 +52,9 @@ export class AnimatorController extends ReferResource {
   /**
    * Add a parameter to the controller.
    * @param name - The name of the parameter
-   * @param initialValue - The initial value of the parameter
+   * @param defaultValue - The default value of the parameter
    */
-  addParameter(name: string, initialValue?: AnimatorControllerParameterValueType): AnimatorControllerParameter;
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter;
 
   /**
    * Add a parameter to the controller.
@@ -51,12 +62,12 @@ export class AnimatorController extends ReferResource {
    */
   addParameter(parameter: AnimatorControllerParameter): AnimatorControllerParameter;
 
-  addParameter(param: AnimatorControllerParameter | string, value?: AnimatorControllerParameterValueType) {
+  addParameter(param: AnimatorControllerParameter | string, value?: AnimatorControllerParameterValue) {
     if (typeof param === "string") {
       const name = param;
       param = new AnimatorControllerParameter();
       param.name = name;
-      param.value = value;
+      param.defaultValue = value;
     }
     this._parametersMap[param.name] = param;
     this._parameters.push(param);
