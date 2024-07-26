@@ -54,6 +54,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _materials: Material[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
+  @ignoreClone
+  protected _transform: Transform;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -159,7 +161,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
-    this._registerEntityTransformListener();
+    this._setTransform(entity.transform);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -350,7 +352,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    this._unRegisterEntityTransformListener();
+    this._setTransform(null);
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -376,15 +378,14 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    const entity = this.entity;
-    const worldMatrix = entity.transform.worldMatrix;
+    const worldMatrix = this._transform.worldMatrix;
     if (onlyMVP) {
       this._updateMVPShaderData(context, worldMatrix);
       return;
     }
     this._updateTransformShaderData(context, worldMatrix);
 
-    const layer = entity.layer;
+    const layer = this.entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
@@ -399,7 +400,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();
 
-    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
+    shaderData.setMatrix(Renderer._localMatrixProperty, this._transform.localMatrix);
     shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
     shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
     shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
@@ -417,15 +418,10 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _registerEntityTransformListener(): void {
-    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
-  }
-
-  /**
-   * @internal
-   */
-  protected _unRegisterEntityTransformListener(): void {
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
+  protected _setTransform(transform: Transform): void {
+    this._transform?._updateFlagManager.removeListener(this._onTransformChanged);
+    transform?._updateFlagManager.addListener(this._onTransformChanged);
+    this._transform = transform;
   }
 
   /**
