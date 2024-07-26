@@ -527,25 +527,6 @@ export class Animator extends Component {
     }
   }
 
-  private _evaluateState(layerData: AnimatorLayerData, weight: number, additive: boolean, aniUpdate: boolean) {
-    const { srcPlayData, destPlayData } = layerData;
-
-    switch (layerData.layerState) {
-      case LayerState.Playing:
-        this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
-        break;
-      case LayerState.FixedCrossFading:
-        this._evaluateCrossFadeFromPoseState(layerData, destPlayData, weight, additive, aniUpdate);
-        break;
-      case LayerState.CrossFading:
-        this._evaluateCrossFadeState(layerData, srcPlayData, destPlayData, weight, additive, aniUpdate);
-        break;
-      case LayerState.Finished:
-        this._evaluateFinishedState(srcPlayData, weight, additive, aniUpdate);
-        break;
-    }
-  }
-
   private _updatePlayingState(
     layerIndex: number,
     layerData: AnimatorLayerData,
@@ -626,20 +607,12 @@ export class Animator extends Component {
 
     costTime = Math.abs(costTime);
 
-    if (needSwitchLayerState) {
-      this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
-      this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
+    this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
+    this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
 
+    if (needSwitchLayerState) {
       const remainDeltaTime = deltaTime - costTime;
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
-    } else {
-      if (layerFinished) {
-        this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
-      } else {
-        this._evaluateState(layerData, weight, additive, aniUpdate);
-      }
-
-      this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
     }
   }
 
@@ -734,7 +707,7 @@ export class Animator extends Component {
       this._preparePlayOwner(layerData, destState);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
-      this._evaluateState(layerData, weight, additive, aniUpdate);
+      this._evaluateCrossFadeState(layerData, srcPlayData, destPlayData, weight, additive, aniUpdate);
     }
 
     this._fireAnimationEventsAndCallScripts(
@@ -861,7 +834,7 @@ export class Animator extends Component {
       this._preparePlayOwner(layerData, state);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
-      this._evaluateState(layerData, weight, additive, aniUpdate);
+      this._evaluateCrossFadeFromPoseState(layerData, destPlayData, weight, additive, aniUpdate);
     }
 
     this._fireAnimationEventsAndCallScripts(
@@ -966,7 +939,7 @@ export class Animator extends Component {
     if (transition) {
       this._updateState(layerIndex, layerData, layer, deltaTime, aniUpdate);
     } else {
-      this._evaluateState(layerData, weight, additive, aniUpdate);
+      this._evaluateFinishedState(playData, weight, additive, aniUpdate);
     }
   }
 
