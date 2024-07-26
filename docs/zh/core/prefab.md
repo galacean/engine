@@ -1,5 +1,5 @@
 ---
-order: 2
+order: 10
 title: 预制体
 type: 核心概念
 label: Core
