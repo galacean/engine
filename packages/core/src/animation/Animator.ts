@@ -619,28 +619,26 @@ export class Animator extends Component {
       costTime = actualDeltaTime;
     }
 
-    const playDataFinished = srcPlayData.playState === AnimatorStatePlayState.Finished;
-
     const needSwitchLayerState = !!transition;
-    const layerFinished = !needSwitchLayerState && playDataFinished;
+    const layerFinished = !needSwitchLayerState && srcPlayData.playState === AnimatorStatePlayState.Finished;
     if (layerFinished) {
       layerData.layerState = LayerState.Finished;
-    }
-
-    // need newest value when crossFading with the next state
-    if (needSwitchLayerState || layerFinished) {
-      this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
-
-      this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
     }
 
     costTime = Math.abs(costTime);
 
     if (needSwitchLayerState) {
+      this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
+      this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
+
       const remainDeltaTime = deltaTime - costTime;
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     } else {
-      this._evaluateState(layerData, weight, additive, aniUpdate);
+      if (layerFinished) {
+        this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
+      } else {
+        this._evaluateState(layerData, weight, additive, aniUpdate);
+      }
 
       this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
     }
@@ -735,6 +733,9 @@ export class Animator extends Component {
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const needSwitchLayerState = crossWeight === 1.0;
+
+    let fired = false;
+
     if (needSwitchLayerState) {
       this._preparePlayOwner(layerData, destState);
       if (dstPlayDataFinished) {
@@ -757,34 +758,38 @@ export class Animator extends Component {
           lastSrcPlayState,
           Math.abs(destCostTime)
         );
+
+        fired = true;
       }
+
+      this._updateCrossFadeData(layerData);
     }
 
-    crossWeight === 1.0 && this._updateCrossFadeData(layerData);
-
-    const remainDeltaTime = deltaTime - costTime;
     // For precision problem, strict judgment, expect not to update
+    const remainDeltaTime = deltaTime - costTime;
     if (needSwitchLayerState && remainDeltaTime > MathUtil.zeroTolerance) {
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     } else {
       this._evaluateState(layerData, weight, additive, aniUpdate);
 
-      this._fireAnimationEventsAndCallScripts(
-        layerIndex,
-        srcPlayData,
-        srcState,
-        lastSrcClipTime,
-        lastSrcPlayState,
-        Math.abs(srcCostTime)
-      );
-      this._fireAnimationEventsAndCallScripts(
-        layerIndex,
-        destPlayData,
-        destState,
-        lastDestClipTime,
-        lastSrcPlayState,
-        Math.abs(destCostTime)
-      );
+      if (!fired) {
+        this._fireAnimationEventsAndCallScripts(
+          layerIndex,
+          srcPlayData,
+          srcState,
+          lastSrcClipTime,
+          lastSrcPlayState,
+          Math.abs(srcCostTime)
+        );
+        this._fireAnimationEventsAndCallScripts(
+          layerIndex,
+          destPlayData,
+          destState,
+          lastDestClipTime,
+          lastSrcPlayState,
+          Math.abs(destCostTime)
+        );
+      }
     }
   }
 
@@ -885,23 +890,29 @@ export class Animator extends Component {
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const needSwitchLayerState = crossWeight === 1.0;
+
+    let fired = false;
+
     if (needSwitchLayerState) {
       this._preparePlayOwner(layerData, state);
       if (destPlayDataFinished) {
         // need newest value when finished
         this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
-        if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-          this._callAnimatorScriptOnEnter(state, layerIndex);
-        }
-        if (destPlayDataFinished) {
-          this._callAnimatorScriptOnExit(state, layerIndex);
-        } else {
-          this._callAnimatorScriptOnUpdate(state, layerIndex);
-        }
+
+        this._fireAnimationEventsAndCallScripts(
+          layerIndex,
+          destPlayData,
+          state,
+          lastDestClipTime,
+          lastPlayState,
+          Math.abs(destCostTime)
+        );
+        fired = true;
       }
+
+      this._updateCrossFadeData(layerData);
     }
 
-    crossWeight === 1.0 && this._updateCrossFadeData(layerData);
     // For precision problem, strict judgment, expect not to update
     const remainDeltaTime = deltaTime - costTime;
     if (needSwitchLayerState && remainDeltaTime > MathUtil.zeroTolerance) {
@@ -909,14 +920,15 @@ export class Animator extends Component {
     } else {
       this._evaluateState(layerData, weight, additive, aniUpdate);
 
-      this._fireAnimationEventsAndCallScripts(
-        layerIndex,
-        destPlayData,
-        state,
-        lastDestClipTime,
-        lastPlayState,
-        Math.abs(destCostTime)
-      );
+      !fired &&
+        this._fireAnimationEventsAndCallScripts(
+          layerIndex,
+          destPlayData,
+          state,
+          lastDestClipTime,
+          lastPlayState,
+          Math.abs(destCostTime)
+        );
     }
   }
 
