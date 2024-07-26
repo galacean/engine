@@ -522,10 +522,9 @@ export class Animator extends Component {
       case LayerState.CrossFading:
         this._updateCrossFadeState(layerIndex, layerData, layer, weight, additive, deltaTime, aniUpdate);
         break;
-      case LayerState.FixedCrossFading: {
+      case LayerState.FixedCrossFading:
         this._updateCrossFadeFromPoseState(layerIndex, layerData, layer, weight, additive, deltaTime, aniUpdate);
         break;
-      }
     }
   }
 
