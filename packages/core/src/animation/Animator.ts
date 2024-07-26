@@ -853,10 +853,7 @@ export class Animator extends Component {
 
     destPlayData.update(destCostTime);
 
-    const destPlayDataFinished = destPlayData.playState === AnimatorStatePlayState.Finished;
-
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    // For precision problem, loose judgment, expect to crossFade
     (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
