@@ -1,9 +1,5 @@
 ---
-order: 5
-title: Shader Lab
-type: 着色器
-group: 网格
-label: Graphics/Shader
+title: ShaderLab
 ---
 
 > 在[自定义着色器](./custom)章节我们了解到如何使用 WebGL 原生 GLSL 语言创建自定义 Shader，本节我们将介绍另一种创建 Shader 的方式 --- ShaderLab。

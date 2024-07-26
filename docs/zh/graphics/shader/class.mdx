@@ -2,7 +2,7 @@
 title: Shader
 ---
 
-在[着色器简介](../intro)我们了解了着色器的基本概念，Galacean 引擎在着色器程序的基础上，将其他渲染相关的信息一起进行了统一的封装，即 Shader 对象。Shader 对象和 [材质](../../material/material)一起决定了被渲染物体最终的渲染结果。
+在[着色器简介](../intro)我们了解了着色器的基本概念，Galacean 引擎基于着色器程序，将其他渲染相关的信息进行了统一封装，形成了 Shader 对象。Shader 对象和 [材质](../../material/material)共同决定了被渲染物体最终的渲染结果。
 
 
 ## Shader
@@ -11,7 +11,7 @@ Shader 对象包含以下内容:
 
 - name
 
-Shader 实例对象名。Shader 对象创建后会被引擎缓存，后续复用可以通过 `Shader.find()` 以 `Shader.name` 为索引进行查找，因此引擎规定 Shader 的 `name` 属性在单个引擎实例下必须唯一。
+Shader 实例对象名。Shader 对象创建后会被引擎缓存，后续复用可以通过 `Shader.find()` 以 `Shader.name` 为索引进行查找，因此，引擎规定在单个引擎实例下，Shader 的 name 属性必须唯一。
 
 - SubShader
 
@@ -40,5 +40,5 @@ SubShader 下所有 ShaderPass 共享的 [RenderState 渲染状态](../../materi
 ShaderPass 封装了具体的着色器程序，以及执行最终渲染时的[渲染状态](../../material/composition/#渲染状态)。
 
 <Callout type="info">
-同一 SubShader 下的 ShaderPass 按照数组顺序依次渲染，渲染效果依次叠加形成 Shader 在当前帧的最终渲染结果
+同一 SubShader 下的 ShaderPass 按照数组顺序依次渲染，渲染效果逐步叠加，形成 Shader 在当前帧的最终渲染结果。
 </Callout>
