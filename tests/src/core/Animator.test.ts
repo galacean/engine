@@ -415,7 +415,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0.4);
+    animator.setParameterValue("playerSpeed", 0.4);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(runToWalkTime - 0.001);
@@ -425,7 +425,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0);
+    animator.setParameterValue("playerSpeed", 0);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(anyToIdleTime - 0.001);
@@ -537,7 +537,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0.4);
+    animator.setParameterValue("playerSpeed", 0.4);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(runToWalkTime - 0.001);
@@ -547,7 +547,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0);
+    animator.setParameterValue("playerSpeed", 0);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(anyToIdleTime - 0.001);

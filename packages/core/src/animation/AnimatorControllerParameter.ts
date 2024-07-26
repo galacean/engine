@@ -6,6 +6,6 @@ export type AnimatorControllerParameterValueType = number | string | boolean;
 export class AnimatorControllerParameter {
   /** The name of the parameter. */
   name: string;
-  /** The value of the parameter. */
+  /** The initial value of the parameter. */
   value: AnimatorControllerParameterValueType;
 }

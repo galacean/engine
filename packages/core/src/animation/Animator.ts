@@ -9,7 +9,7 @@ import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ClearableObjectPool } from "../utils/ClearableObjectPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { AnimatorControllerParameter } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { KeyframeValueType } from "./Keyframe";
@@ -53,6 +53,8 @@ export class Animator extends Component {
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
   private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
+  @ignoreClone
+  private _parametersValeMap: Record<string, AnimatorControllerParameterValueType> = Object.create(null);
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
@@ -223,6 +225,31 @@ export class Animator extends Component {
   }
 
   /**
+   * Get the value of the given parameter.
+   * @param name - The name of the parameter
+   * @param value - The value of the parameter
+   */
+  getParameterValue(name: string): AnimatorControllerParameterValueType {
+    const parameter = this._animatorController?._parametersMap[name];
+    if (parameter) {
+      return this._parametersValeMap[name] ?? parameter.value;
+    }
+    return undefined;
+  }
+
+  /**
+   * Set the value of the given parameter.
+   * @param name - The name of the parameter
+   * @param value - The value of the parameter
+   */
+  setParameterValue(name: string, value: AnimatorControllerParameterValueType) {
+    const parameter = this._animatorController?._parametersMap[name];
+    if (parameter && parameter.value !== value) {
+      this._parametersValeMap[name] = value;
+    }
+  }
+
+  /**
    * @internal
    */
   override _onEnable(): void {
@@ -260,7 +287,8 @@ export class Animator extends Component {
     }
 
     this._animatorLayersData.length = 0;
-    this._curveOwnerPool = {};
+    this._curveOwnerPool = Object.create(null);
+    this._parametersValeMap = Object.create(null);
     this._animationEventHandlerPool.clear();
 
     if (this._controllerUpdateFlag) {
@@ -1292,39 +1320,40 @@ export class Animator extends Component {
     for (let i = 0, n = conditions.length; i < n; ++i) {
       let pass = false;
       const { mode, parameterName: name, threshold } = conditions[i];
-      const parameter = this.getParameter(name);
-      if (!parameter) {
+      const parameterValue = this.getParameterValue(name);
+
+      if (parameterValue === undefined) {
         return false;
       }
 
       switch (mode) {
         case AnimatorConditionMode.Equals:
-          if (parameter.value === threshold) {
+          if (parameterValue === threshold) {
             pass = true;
           }
           break;
         case AnimatorConditionMode.Greater:
-          if (parameter.value > threshold) {
+          if (parameterValue > threshold) {
             pass = true;
           }
           break;
         case AnimatorConditionMode.Less:
-          if (parameter.value < threshold) {
+          if (parameterValue < threshold) {
             pass = true;
           }
           break;
         case AnimatorConditionMode.NotEquals:
-          if (parameter.value !== threshold) {
+          if (parameterValue !== threshold) {
             pass = true;
           }
           break;
         case AnimatorConditionMode.If:
-          if (parameter.value === true) {
+          if (parameterValue === true) {
             pass = true;
           }
           break;
         case AnimatorConditionMode.IfNot:
-          if (parameter.value === false) {
+          if (parameterValue === false) {
             pass = true;
           }
           break;
