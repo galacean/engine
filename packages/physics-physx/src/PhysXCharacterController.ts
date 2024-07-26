@@ -86,6 +86,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.addShape }
    */
   addShape(shape: PhysXColliderShape): void {
+    // When CharacterController is disabled, set shape property need check pxController whether exist because of this._pxManager is null and  won't create pxController.
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
     shape._controllers.add(this);
