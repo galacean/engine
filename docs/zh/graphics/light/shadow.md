@@ -10,7 +10,7 @@ label: Graphics/Light
 
 ## 场景配置
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/192802cc-f0f0-4904-a59b-4471faa68bd2/image-20240724181456427.png" alt="image-20240724181456427" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/51e08840-95c0-4c68-82f0-0d2e29fbe966/image-20240726111645816.png" alt="image-20240726111645816" style="zoom:50%;" />
 
 场景中拥有一些配置能够影响全局阴影：
 

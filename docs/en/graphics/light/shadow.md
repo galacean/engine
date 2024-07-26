@@ -10,7 +10,7 @@ Shadows can effectively enhance the three-dimensionality and realism of the rend
 
 ## Scene Configuration
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/192802cc-f0f0-4904-a59b-4471faa68bd2/image-20240724181456427.png" alt="image-20240724181456427" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/51e08840-95c0-4c68-82f0-0d2e29fbe966/image-20240726111645816.png" alt="image-20240726111645816" style="zoom:50%;" />
 
 There are some configurations in the scene that can affect the global shadow:
 
