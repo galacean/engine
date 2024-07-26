@@ -86,6 +86,8 @@ this.engine.resourceManager.load<GLTFResource>("Assets/texture.png");
 
 > 在编辑器中可以通过 **[资产面板](/docs/assets-interface)** -> **右键资产** -> **Copy relative path** 快速复制资产的相对路径
 
+![image-20240717180517517](https://mdn.alipayobjects.com/rms/afts/img/A*yft2SLLgIyQAAAAAAAAAAAAAARQnAQ/original/image-20240717180517517.png)
+
 ### baseUrl
 
 `ResourceManger` 目前也支持了 `baseUrl` 的设置：
