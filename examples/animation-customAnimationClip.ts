@@ -22,7 +22,7 @@ import {
   SystemInfo,
   Transform,
   Vector3,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
 
 Logger.enable();
@@ -63,9 +63,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   spotLightEntity2.transform.setRotation(-60, 0, 0);
 
   engine.resourceManager
-    .load<GLTFResource>(
-      "https://gw.alipayobjects.com/os/bmw-prod/ca50859b-d736-4a3e-9fc3-241b0bd2afef.gltf"
-    )
+    .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/ca50859b-d736-4a3e-9fc3-241b0bd2afef.gltf")
     .then((gltfResource) => {
       const { defaultSceneRoot } = gltfResource;
       defaultSceneRoot.transform.setScale(0.05, 0.05, 0.05);
@@ -73,16 +71,14 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     });
 
   engine.resourceManager
-    .load<GLTFResource>(
-      "https://gw.alipayobjects.com/os/OasisHub/244228a7-361c-4c63-a790-dd9e19d12e78/data.gltf"
-    )
+    .load<GLTFResource>("https://gw.alipayobjects.com/os/OasisHub/244228a7-361c-4c63-a790-dd9e19d12e78/data.gltf")
     .then((gltfResource) => {
       const { defaultSceneRoot, animations = [] } = gltfResource;
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator);
 
       const sceneAnimator = rootEntity.addComponent(Animator);
-      sceneAnimator.animatorController = new AnimatorController();
+      sceneAnimator.animatorController = new AnimatorController(engine);
       const layer = new AnimatorControllerLayer("base");
       sceneAnimator.animatorController.addLayer(layer);
       const stateMachine = (layer.stateMachine = new AnimatorStateMachine());
@@ -183,49 +179,14 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       spotLight2RotateCurve.addKey(key14);
       spotLight2RotateCurve.addKey(key15);
 
-      sceneClip.addCurveBinding(
-        "/light_wrap/spotLight1",
-        SpotLight,
-        "color",
-        colorCurve
-      );
-      sceneClip.addCurveBinding(
-        "/light_wrap/spotLight1",
-        Transform,
-        "rotation",
-        spotLight1RotateCurve
-      );
-      sceneClip.addCurveBinding(
-        "/light_wrap/spotLight2",
-        Transform,
-        "rotation",
-        spotLight2RotateCurve
-      );
-      sceneClip.addCurveBinding(
-        "/light_wrap/spotLight2",
-        SpotLight,
-        "color",
-        color2Curve
-      );
-      sceneClip.addCurveBinding(
-        "/light_wrap",
-        Transform,
-        "rotation",
-        rotateCurve
-      );
+      sceneClip.addCurveBinding("/light_wrap/spotLight1", SpotLight, "color", colorCurve);
+      sceneClip.addCurveBinding("/light_wrap/spotLight1", Transform, "rotation", spotLight1RotateCurve);
+      sceneClip.addCurveBinding("/light_wrap/spotLight2", Transform, "rotation", spotLight2RotateCurve);
+      sceneClip.addCurveBinding("/light_wrap/spotLight2", SpotLight, "color", color2Curve);
+      sceneClip.addCurveBinding("/light_wrap", Transform, "rotation", rotateCurve);
       // curve can be reused
-      sceneClip.addCurveBinding(
-        "/camera_wrap",
-        Transform,
-        "rotation",
-        rotateCurve
-      );
-      sceneClip.addCurveBinding(
-        "/camera_wrap/camera",
-        Camera,
-        "fieldOfView",
-        fovCurve
-      );
+      sceneClip.addCurveBinding("/camera_wrap", Transform, "rotation", rotateCurve);
+      sceneClip.addCurveBinding("/camera_wrap/camera", Camera, "fieldOfView", fovCurve);
 
       sceneAnimator.play("sceneAnim", 0);
       animator.play(animations[0].name, 0);

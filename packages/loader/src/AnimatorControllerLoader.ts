@@ -10,7 +10,7 @@ import {
   AnimatorStateTransition,
   AnimatorState,
   AnimatorConditionMode,
-  AnimatorControllerParameterValueType,
+  AnimatorControllerParameterValue,
   WrapMode,
   AnimatorControllerParameter
 } from "@galacean/engine-core";
@@ -24,7 +24,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
         type: "json"
       })
         .then((data) => {
-          const animatorController = new AnimatorController();
+          const animatorController = new AnimatorController(resourceManager.engine);
           const { layers, parameters } = data;
           const promises = [];
           layers.forEach((layerData, layerIndex: number) => {
@@ -102,7 +102,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
           parameters.forEach((parameterData) => {
             const parameter = new AnimatorControllerParameter();
             parameter.name = parameterData.name;
-            parameter.value = parameterData.value;
+            parameter.defaultValue = parameterData.defaultValue;
             animatorController.addParameter(parameter);
           });
           Promise.all(promises).then((clipData) => {
@@ -164,5 +164,5 @@ interface ITransitionData {
 interface IConditionData {
   mode: AnimatorConditionMode;
   parameterName: string;
-  threshold?: AnimatorControllerParameterValueType;
+  threshold?: AnimatorControllerParameterValue;
 }

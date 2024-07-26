@@ -137,7 +137,7 @@ To overlay animations, add the desired animation state to another layer and set 
 You can set the animation data of the animator controller using the [animatorController](/apis/core/#Animator-animatorController) property. A default AnimatorController will be automatically added when a GLTF model is loaded.
 
 ```typescript
-animator.animatorController = new AnimatorController();
+animator.animatorController = new AnimatorController(engine);
 ```
 
 #### Reusing Animation Data

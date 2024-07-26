@@ -1,4 +1,4 @@
-import { AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorCondition } from "./AnimatorCondition";
 import { AnimatorState } from "./AnimatorState";
@@ -61,7 +61,7 @@ export class AnimatorStateTransition {
   addCondition(
     mode: AnimatorConditionMode,
     parameterName: string,
-    threshold?: AnimatorControllerParameterValueType
+    threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition;
 
   /**
@@ -73,7 +73,7 @@ export class AnimatorStateTransition {
   addCondition(
     param: AnimatorConditionMode | AnimatorCondition,
     parameterName?: string,
-    threshold?: AnimatorControllerParameterValueType
+    threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition {
     if (typeof param === "object") {
       this._conditions.push(param);
