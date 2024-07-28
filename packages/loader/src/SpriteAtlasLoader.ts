@@ -101,7 +101,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
         const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
         sprite.atlasRegionOffset.set(offsetLeft * invW, offsetTop * invH, offsetRight * invW, offsetBottom * invH);
       }
-      config.atlasRotated && (sprite.atlasRotated = true);
+      sprite.atlasRotated = config.atlasRotated ?? false;
     }
     isNaN(width) || (sprite.width = width);
     isNaN(height) || (sprite.height = height);
