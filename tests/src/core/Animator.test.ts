@@ -325,6 +325,8 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     const stateMachine = animator.animatorController.layers[0].stateMachine;
     const idleState = animator.findAnimatorState("Survey");
+    const idleSpeed = 2;
+    idleState.speed = idleSpeed;
     idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
     walkState.clearTransitions();
@@ -344,7 +346,9 @@ describe("Animator test", function () {
     idleState.addTransition(toWalkTransition);
     idleToWalkTime =
       //@ts-ignore
-      toWalkTransition.exitTime * idleState._getDuration() + toWalkTransition.duration * walkState._getDuration();
+      (toWalkTransition.exitTime * idleState._getDuration()) / idleSpeed +
+      //@ts-ignore
+      toWalkTransition.duration * walkState._getDuration();
 
     const exitTransition = idleState.addExitTransition();
     exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
@@ -370,7 +374,7 @@ describe("Animator test", function () {
       //@ts-ignore
       (toIdleTransition.exitTime - toRunTransition.duration) * walkState._getDuration() +
       //@ts-ignore
-      toIdleTransition.duration * idleState._getDuration();
+      (toIdleTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // to run state
     const runToWalkTransition = new AnimatorStateTransition();
@@ -395,7 +399,7 @@ describe("Animator test", function () {
       // @ts-ignore
       (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
-      anyTransition.duration * idleState._getDuration();
+      (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
     animator.engine.time._frameCount++;
@@ -447,6 +451,8 @@ describe("Animator test", function () {
     stateMachine._anyStateTransitions.length = 0;
 
     const idleState = animator.findAnimatorState("Survey");
+    const idleSpeed = 2;
+    idleState.speed = idleSpeed;
     idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
     walkState.clearTransitions();
@@ -466,7 +472,9 @@ describe("Animator test", function () {
     idleState.addTransition(toWalkTransition);
     idleToWalkTime =
       //@ts-ignore
-      (1 - toWalkTransition.exitTime) * idleState._getDuration() + toWalkTransition.duration * walkState._getDuration();
+      ((1 - toWalkTransition.exitTime) * idleState._getDuration()) / idleSpeed +
+      //@ts-ignore
+      toWalkTransition.duration * walkState._getDuration();
 
     const exitTransition = idleState.addExitTransition();
     exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
@@ -492,7 +500,7 @@ describe("Animator test", function () {
       //@ts-ignore
       (1 - toIdleTransition.exitTime - toRunTransition.duration) * walkState._getDuration() +
       //@ts-ignore
-      toIdleTransition.duration * idleState._getDuration();
+      (toIdleTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // to run state
     const runToWalkTransition = new AnimatorStateTransition();
@@ -517,7 +525,7 @@ describe("Animator test", function () {
       // @ts-ignore
       (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
-      anyTransition.duration * idleState._getDuration();
+      (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
     animator.engine.time._frameCount++;

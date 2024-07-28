@@ -23,6 +23,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+import { MathUtil } from "@galacean/engine-math";
 
 /**
  * The controller of the animation system.
@@ -602,13 +603,11 @@ export class Animator extends Component {
       layerData.layerState = LayerState.Finished;
     }
 
-    costTime = Math.abs(costTime);
-
     this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
     this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
 
     if (needSwitchLayerState) {
-      const remainDeltaTime = deltaTime - costTime;
+      const remainDeltaTime = deltaTime - costTime / actualSpeed;
       this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
@@ -696,7 +695,7 @@ export class Animator extends Component {
     destPlayData.update(destCostTime);
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
@@ -713,7 +712,7 @@ export class Animator extends Component {
       srcState,
       lastSrcClipTime,
       lastSrcPlayState,
-      Math.abs(srcCostTime)
+      srcCostTime
     );
 
     this._fireAnimationEventsAndCallScripts(
@@ -722,13 +721,14 @@ export class Animator extends Component {
       destState,
       lastDestClipTime,
       lastDstPlayState,
-      Math.abs(destCostTime)
+      destCostTime
     );
 
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
       const remainDeltaTime = deltaTime - costTime;
-      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime > MathUtil.zeroTolerance &&
+        this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -840,13 +840,14 @@ export class Animator extends Component {
       state,
       lastDestClipTime,
       lastPlayState,
-      Math.abs(destCostTime)
+      destCostTime
     );
 
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
       const remainDeltaTime = deltaTime - costTime;
-      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime > MathUtil.zeroTolerance &&
+        this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -863,7 +864,7 @@ export class Animator extends Component {
 
     const duration = state._getDuration() * layerData.crossFadeTransition.duration;
     let crossWeight = Math.abs(destPlayData.frameTime) / duration;
-    (crossWeight >= 1.0 || duration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || duration === 0) && (crossWeight = 1.0);
 
     const { clipTime: destClipTime, playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
@@ -1321,10 +1322,9 @@ export class Animator extends Component {
     const clipDuration = state.clip.length;
     const startTime = state.clipStartTime * clipDuration;
     const endTime = state.clipEndTime * clipDuration;
-    const actualDeltaTime = this.speed * state.speed * deltaTime;
 
     if (isForwards) {
-      if (lastClipTime + actualDeltaTime >= endTime) {
+      if (lastClipTime + deltaTime >= endTime) {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
         playData.currentEventIndex = 0;
         this._fireSubAnimationEvents(playData, eventHandlers, state.clipStartTime * clipDuration, clipTime);
@@ -1332,7 +1332,7 @@ export class Animator extends Component {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }
     } else {
-      if (lastClipTime + actualDeltaTime <= startTime) {
+      if (lastClipTime + deltaTime <= startTime) {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, state.clipStartTime * clipDuration);
         playData.currentEventIndex = eventHandlers.length - 1;
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, state.clipEndTime * clipDuration, clipTime);

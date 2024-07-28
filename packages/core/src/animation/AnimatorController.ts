@@ -69,6 +69,10 @@ export class AnimatorController extends ReferResource {
       param.name = name;
       param.defaultValue = defaultValue;
     }
+    param._onNameChanged = (oldName, newName) => {
+      delete this._parametersMap[oldName];
+      this._parametersMap[newName] = param as AnimatorControllerParameter;
+    };
     this._parametersMap[param.name] = param;
     this._parameters.push(param);
     return param;
