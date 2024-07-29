@@ -14,7 +14,9 @@ export class AnimatorControllerParameter {
 
   private _name: string;
 
-  /** The name of the parameter. */
+  /**
+   * The name of the parameter.
+   */
   get name(): string {
     return this._name;
   }

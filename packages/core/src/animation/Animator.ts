@@ -703,7 +703,7 @@ export class Animator extends Component {
       this._preparePlayOwner(layerData, destState);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
-      this._evaluateCrossFadeState(layerData, srcPlayData, destPlayData, weight, additive, aniUpdate);
+      this._evaluateCrossFadeState(layerData, srcPlayData, destPlayData, weight, crossWeight, additive, aniUpdate);
     }
 
     this._fireAnimationEventsAndCallScripts(
@@ -737,6 +737,7 @@ export class Animator extends Component {
     srcPlayData: AnimatorStatePlayData,
     destPlayData: AnimatorStatePlayData,
     weight: number,
+    crossWeight: number,
     additive: boolean,
     aniUpdate: boolean
   ) {
@@ -744,10 +745,6 @@ export class Animator extends Component {
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: destState } = destPlayData;
     const { _curveBindings: destCurves } = destState.clip;
-
-    const transitionDuration = destState._getDuration() * layerData.crossFadeTransition.duration;
-    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
     const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
 
@@ -823,7 +820,7 @@ export class Animator extends Component {
     destPlayData.update(destCostTime);
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
@@ -831,7 +828,7 @@ export class Animator extends Component {
       this._preparePlayOwner(layerData, state);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
-      this._evaluateCrossFadeFromPoseState(layerData, destPlayData, weight, additive, aniUpdate);
+      this._evaluateCrossFadeFromPoseState(layerData, destPlayData, weight, crossWeight, additive, aniUpdate);
     }
 
     this._fireAnimationEventsAndCallScripts(
@@ -855,16 +852,13 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     destPlayData: AnimatorStatePlayData,
     weight: number,
+    crossWeight: number,
     additive: boolean,
     aniUpdate: boolean
   ) {
     const { crossLayerOwnerCollection } = layerData;
     const { state } = destPlayData;
     const { _curveBindings: curveBindings } = state.clip;
-
-    const duration = state._getDuration() * layerData.crossFadeTransition.duration;
-    let crossWeight = Math.abs(destPlayData.frameTime) / duration;
-    (crossWeight >= 1.0 - MathUtil.zeroTolerance || duration === 0) && (crossWeight = 1.0);
 
     const { clipTime: destClipTime, playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
