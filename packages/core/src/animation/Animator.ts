@@ -606,7 +606,7 @@ export class Animator extends Component {
     if (transition) {
       // actualCostTime = playCostTime / playSpeed
       const remainDeltaTime = deltaTime - playCostTime / playSpeed;
-      remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -725,7 +725,7 @@ export class Animator extends Component {
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
       const remainDeltaTime = deltaTime - actualCostTime;
-      remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -838,7 +838,7 @@ export class Animator extends Component {
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
       const remainDeltaTime = deltaTime - actualCostTime;
-      remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 

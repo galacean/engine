@@ -54,35 +54,29 @@ export class AnimatorController extends ReferResource {
    * @param name - The name of the parameter
    * @param defaultValue - The default value of the parameter
    */
-  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter;
-
-  /**
-   * Add a parameter to the controller.
-   * @param parameter - The parameter
-   */
-  addParameter(parameter: AnimatorControllerParameter): AnimatorControllerParameter;
-
-  addParameter(param: AnimatorControllerParameter | string, defaultValue?: AnimatorControllerParameterValue) {
-    if (typeof param === "string") {
-      const name = param;
-      param = new AnimatorControllerParameter();
-      param.name = name;
-      param.defaultValue = defaultValue;
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue) {
+    if (this._parametersMap[name]) {
+      console.warn(`Parameter ${name} already exists.`);
+      return null;
     }
+    const param = new AnimatorControllerParameter();
+    param.name = name;
+    param.defaultValue = defaultValue;
     param._onNameChanged = (oldName, newName) => {
       delete this._parametersMap[oldName];
       this._parametersMap[newName] = param as AnimatorControllerParameter;
     };
-    this._parametersMap[param.name] = param;
+    this._parametersMap[name] = param;
     this._parameters.push(param);
     return param;
   }
 
   /**
-   * Remove a parameter from the controller.
-   * @param parameter - The parameter
+   * Remove a parameter from the controller by name.
+   * @param name - The parameter name
    */
-  removeParameter(parameter: AnimatorControllerParameter) {
+  removeParameter(name: string) {
+    const parameter = this._parametersMap[name];
     const index = this._parameters.indexOf(parameter);
     if (index !== -1) {
       this._parameters.splice(index, 1);

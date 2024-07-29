@@ -1,5 +1,3 @@
-import { AnimatorController } from "./AnimatorController";
-
 export type AnimatorControllerParameterValue = number | string | boolean;
 
 /**

@@ -630,4 +630,16 @@ describe("Animator test", function () {
     expect(animator.entity.transform.rotation.x).to.eq(0);
     expect(animator.entity.transform.position.x).to.eq(5);
   });
+
+  it("parameter rename", () => {
+    animator.animatorController.addParameter("oldName", 1);
+    const param = animator.getParameter("oldName");
+    param.name = "newName";
+    const value = animator.getParameterValue("newName");
+    expect(value).to.eq(1);
+    const newParam = animator.animatorController.addParameter("oldName", 2);
+    expect(newParam.defaultValue).to.eq(2);
+    const newParam2 = animator.animatorController.addParameter("oldName", 2);
+    expect(newParam2).to.eq(null);
+  });
 });
