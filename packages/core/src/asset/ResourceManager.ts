@@ -428,32 +428,34 @@ export class ResourceManager {
     const resolvedValue = subPromiseCallback?.resolve;
     const rejectedValue = subPromiseCallback?.reject;
 
-    const promise = new AssetPromise<T>((resolve, reject) => {
-      if (resolvedValue) {
-        // Already resolved
-        resolve(resolvedValue);
-      } else if (rejectedValue) {
-        // Already rejected
-        reject(rejectedValue);
-      } else {
-        // Pending
-        loadingPromises[assetURL] = promise;
+    if (resolvedValue || rejectedValue) {
+      return new AssetPromise<T>((resolve, reject) => {
+        if (resolvedValue) {
+          // Already resolved
+          resolve(resolvedValue);
+        } else if (rejectedValue) {
+          // Already rejected
+          reject(rejectedValue);
+        }
+      });
+    }
 
-        (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
-          resolve,
-          reject
-        };
-      }
+    const promise = new AssetPromise<T>((resolve, reject) => {
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        resolve,
+        reject
+      };
     });
 
-    if (!resolvedValue && !rejectedValue) {
-      promise.then(
-        () => {
-          delete loadingPromises[assetURL];
-        },
-        () => delete loadingPromises[assetURL]
-      );
-    }
+    // Pending
+    loadingPromises[assetURL] = promise;
+
+    promise.then(
+      () => {
+        delete loadingPromises[assetURL];
+      },
+      () => delete loadingPromises[assetURL]
+    );
 
     return promise;
   }
