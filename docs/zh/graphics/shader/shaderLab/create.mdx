@@ -1,0 +1,32 @@
+---
+title: 创建
+---
+
+## 在编辑器中创建
+
+编辑器中可以添加 3 种 ShaderLab 模板: `Unlit`、`PBR`、和 着色器片段
+
+  <Image src="https://mdn.alipayobjects.com/huamei_rmtxpm/afts/img/A*namMTLNnCPYAAAAAAAAAAAAADv-7AQ/original" style={{width: "50%"}} />
+
+其中 **`Unlit`** 和 **`PBR`** 是使用 ShaderLab 语法进行编写的着色器模板，**着色器片段** 则是为了方便代码段复用，ShaderLab 中可以如下使用 `include` 宏进行代码段引用，后续编译过程中会被自动扩展替换。使用方式详见语法标准模块。
+
+## 在脚本中创建
+
+当前`ShaderLab`尚未集成到引擎 core 核心包中，需要在引擎初始化时传入新建的`ShaderLab`对象，否则引擎无法解析使用`ShaderLab`语法编写的 Shader。
+
+1.  `ShaderLab` 初始化
+
+```ts
+import { ShaderLab } from '@galacean/engine-shaderlab';
+
+const shaderLab = new ShaderLab();
+// 使用ShaderLab初始化Engine
+const engine = await WebGLEngine.create({ canvas: 'canvas', shaderLab });
+```
+
+2. 创建 Shader
+
+```glsl
+// 直接使用ShaderLab创建Shader
+const shader = Shader.create(galaceanShaderCode);
+```

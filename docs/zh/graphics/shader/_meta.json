@@ -4,5 +4,5 @@
   "builtins": {"title": "内置着色器"},
   "custom": {"title": "自定义着色器"},
   "assets": {"title": "Shader 资产"},
-  "lab": {"title": "ShaderLab"}
+  "shaderLab": {"title": "ShaderLab"}
 }
