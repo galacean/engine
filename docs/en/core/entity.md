@@ -7,17 +7,17 @@ label: Core
 
 ## Editor Usage
 
-The **[Hierarchy Panel](/en/docs/interface-hierarchy)** is located on the far left of the editor, displaying all nodes in the current scene in a tree structure. Scene nodes are parent nodes of all other nodes, including cameras, lights, grids, and more. There is a search box above the node panel for fuzzy searching nodes in the scene to quickly locate them. Through the node panel, you can add or delete nodes and organize them better by sorting through drag-and-drop.
+The **[Hierarchy Panel](/en/docs/interface/hierarchy)** is located on the far left of the editor, displaying all nodes in the current scene in a tree structure. Scene nodes are parent nodes of all other nodes, including cameras, lights, grids, and more. There is a search box above the node panel for fuzzy searching nodes in the scene to quickly locate them. Through the node panel, you can add or delete nodes and organize them better by sorting through drag-and-drop.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/e85a8a9b-decd-4a80-a7b2-9eccaeed1e2c/image-20230925173904478.png" alt="image-20230925173904478" style="zoom:50%;" />
 
 ### Adding Nodes
 
-To add a node, you can click the add button on the node panel or right-click on a node and select "Add Child Node." After adding, you can edit the properties of the new node in the **[Inspector Panel](/en/docs/interface-inspector)**. If you use the add node button, you can also quickly create basic models like cubes/spheres.
+To add a node, you can click the add button on the node panel or right-click on a node and select "Add Child Node." After adding, you can edit the properties of the new node in the **[Inspector Panel](/en/docs/interface/inspector)**. If you use the add node button, you can also quickly create basic models like cubes/spheres.
 
 ### Editing Nodes
 
-Click on a node to edit it. In the **[Inspector Panel](/en/docs/interface-inspector)** on the right, you can edit its name.
+Click on a node to edit it. In the **[Inspector Panel](/en/docs/interface/inspector)** on the right, you can edit its name.
 
 <img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*qBiVT6YtvkQAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style="zoom:50%;" />
 
@@ -47,13 +47,13 @@ There is a search box at the top of the node panel where users can enter the nam
 
 ### Node Visibility
 
-Each entity node has an eye button on the right side that can toggle the visibility of the node in the scene. It is important to note that adjusting the node's display status here is only a modification in the workspace and not the `isActive` property in the **[Inspector Panel](/en/docs/interface-inspector)**.
+Each entity node has an eye button on the right side that can toggle the visibility of the node in the scene. It is important to note that adjusting the node's display status here is only a modification in the workspace and not the `isActive` property in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 ## Script Usage
 
 ### Creating New Entities
 
-In the [scene](/en/docs/core-scene), it has been explained how to get the active scene. In a new scene, we usually start by adding a root node:
+In the [scene](/en/docs/core/scene), it has been explained how to get the active scene. In a new scene, we usually start by adding a root node:
 
 ```typescript
 const scene = engine.sceneManager.activeScene;

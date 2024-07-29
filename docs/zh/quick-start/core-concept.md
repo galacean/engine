@@ -22,9 +22,9 @@ label: Basics/GettingStarted
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g-zmTr6rD9MAAAAAAAAAAAAADhuCAQ/original" alt="image-20230921161422138" style="zoom:50%;" />
 
-我们用鼠标左键选中新建的实体节点，此时右侧的 **[检查器面板](/docs/interface-inspector)** 会显示出当前实体的一些可配置属性。因为我们的实体现在没有绑定任何组件（[什么是组件？](https://galacean.antgroup.com/#/docs/latest/cn/entity)），所以我们暂时只能调整实体的坐标信息这类的基础属性。
+我们用鼠标左键选中新建的实体节点，此时右侧的 **[检查器面板](/docs/interface/inspector)** 会显示出当前实体的一些可配置属性。因为我们的实体现在没有绑定任何组件（[什么是组件？](https://galacean.antgroup.com/#/docs/latest/cn/entity)），所以我们暂时只能调整实体的坐标信息这类的基础属性。
 
-接下来，我们点击 **[检查器面板](/docs/interface-inspector)** 中的 `Add Component` 按钮唤起组件选单，然后选择添加 `Mesh Renderer` 组件（什么是 [Mesh Renderer?](/docs/graphics-renderer-meshRenderer)）。
+接下来，我们点击 **[检查器面板](/docs/interface/inspector)** 中的 `Add Component` 按钮唤起组件选单，然后选择添加 `Mesh Renderer` 组件（什么是 [Mesh Renderer?](/docs/graphics-renderer-meshRenderer)）。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*TrArQ7FmXc4AAAAAAAAAAAAADhuCAQ/original" alt="image-20230921161622497" style="zoom:50%;" />
 
@@ -46,7 +46,7 @@ label: Basics/GettingStarted
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/81ad7299-158b-4347-8e67-86b835980a04/image-20230921172453377.png" alt="image-20230921172453377" style="zoom:50%;" />
 
-我们首先在 **资产管理面板** 中依次选择 `右键` → `Create` → `Material` 让编辑器会创建出一个默认的 PBR 材质。我们选中这个材质，此时 **[检查器面板](/docs/interface-inspector)** 会显示当前材质的配置选项。默认的材质比较简单，我们可以为这个材质增加一些纹理贴图，如基础纹理、粗糙度纹理、法线贴图。
+我们首先在 **资产管理面板** 中依次选择 `右键` → `Create` → `Material` 让编辑器会创建出一个默认的 PBR 材质。我们选中这个材质，此时 **[检查器面板](/docs/interface/inspector)** 会显示当前材质的配置选项。默认的材质比较简单，我们可以为这个材质增加一些纹理贴图，如基础纹理、粗糙度纹理、法线贴图。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/65bf4b63-3f09-4ad6-abc9-a9d26e173783/image-20230921173056885.png" alt="image-20230921173056885" style="zoom:50%;" />
 
@@ -63,9 +63,9 @@ label: Basics/GettingStarted
 
 接下来，我们为这个节点再绑定一个 `Script` 组件（[什么是 Script 组件?](https://galacean.antgroup.com/#/docs/latest/cn/script)）。
 
-1. 我们继续使用上述方式在 **[检查器面板](/docs/interface-inspector)** 中添加 `Script` 组件
+1. 我们继续使用上述方式在 **[检查器面板](/docs/interface/inspector)** 中添加 `Script` 组件
 2. 接下来，我们在 **[资产面板](/docs/assets-interface)** 中 `右键` → `Create` → `Script` 创建一个 `Script` 资产
-3. 最后，在 **[检查器面板](/docs/interface-inspector)** 中将刚创建的脚本文件绑定到脚本组件上
+3. 最后，在 **[检查器面板](/docs/interface/inspector)** 中将刚创建的脚本文件绑定到脚本组件上
 
 > ⚠️ 注意，如果你没有把脚本资产绑定到实体的脚本组件上，则脚本不会运行
 
@@ -127,14 +127,14 @@ import {
 
 | 类型           | 类名                                                                                    | 释义                                                                                                                                                                  |
 | -------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| WebGL 引擎类   | [WebGLEngine](${api}rhi-webgl/WebGLEngine)                                              | WebGL 平台引擎，支持 WebGL1.0 和 WebGL2.0，它能够控制画布的一切行为，包括资源管理、场景管理、执行/暂停/继续、垂直同步等功能。(详见 [引擎](/docs/core-engine) 章节。) |
+| WebGL 引擎类   | [WebGLEngine](${api}rhi-webgl/WebGLEngine)                                              | WebGL 平台引擎，支持 WebGL1.0 和 WebGL2.0，它能够控制画布的一切行为，包括资源管理、场景管理、执行/暂停/继续、垂直同步等功能。(详见 [引擎](/docs/core/engine) 章节。) |
 | 组件类         | [Camera](/apis/core/#Camera)                                                             | 相机，是一个图形引擎对 3D 投影的抽象概念，作用好比现实世界中的摄像机或眼睛，如果不加相机，画布将什么都画不出来。（详见 [相机](/docs/graphics-camera) 章节）          |
 |                | [DirectLight](/apis/core/#DirectLight)                                                   | 直接光，是光照的一种，光照使场景更有层次感，使用光照，能建立更真实的三维场景。（详见 [光照](/docs/graphics-light) 章节）                                             |
 |                | [Script](/apis/core/#Script)                                                             | 脚本，是衔接引擎能力和游戏逻辑的纽带，可以通过它来扩展引擎的功能，也可以脚本组件提供的生命周期钩子函数中编写自己的游戏逻辑代码。（详见 [脚本](/docs/script) 章节）   |
 |                | [MeshRenderer](/apis/core/#MeshRenderer)                                                 | 网格渲染器，使用网格对象（这个例子中就是立方体）作为几何体轮廓的数据源                                                                                                |
 | 几何体和材质类 | [PrimitiveMesh](/apis/core/#PrimitiveMesh)                                               | 基础几何体，提供了创建立方体、球体等网格对象的便捷方法。（详见 [内置几何体](/docs/graphics-model) 章节）                                                             |
 |                | [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial)                                     | 材质定义了如何渲染这个立方体，BlinnPhong 材质是经典的材质之一。（详见 [材质](/docs/graphics-material) 章节）                                                         |
-| 数学库相关类   | [Vector3](/apis/math/#Vector3), [Vector4](/apis/math/#Vector4), [Color](/apis/math/#Color) | 这几个类是数学计算的一些基本单元，用来计算立方体的位置、颜色等。（详见 [数学库](/docs/core-math) 章节）                                                              |
+| 数学库相关类   | [Vector3](/apis/math/#Vector3), [Vector4](/apis/math/#Vector4), [Color](/apis/math/#Color) | 这几个类是数学计算的一些基本单元，用来计算立方体的位置、颜色等。（详见 [数学库](/docs/core/math) 章节）                                                              |
 
 ## 创建引擎实例
 

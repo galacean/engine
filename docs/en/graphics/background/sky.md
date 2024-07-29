@@ -24,13 +24,13 @@ The skybox texture is a [cubemap texture](/en/docs/graphics-texture-cube), first
 
 ### 2. Create Skybox Material
 
-After creating the cubemap asset, follow the path **[Asset Panel](/en/docs/assets-interface)** -> **Right-click to create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface-inspector)** -> **Click on the Shader property in the Base column** -> **Select Sky Box** -> **Click on HDR in the Base column** -> **Select the cubemap created in the first step** to create the skybox material.
+After creating the cubemap asset, follow the path **[Asset Panel](/en/docs/assets-interface)** -> **Right-click to create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Click on the Shader property in the Base column** -> **Select Sky Box** -> **Click on HDR in the Base column** -> **Select the cubemap created in the first step** to create the skybox material.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9j2eSYkwg8MAAAAAAAAAAAAADhuCAQ/original)
 
 ### 3. Set up Skybox
 
-Finally, just follow the path **[Hierarchy Panel](/en/docs/interface-hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface-inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the material created in the second step for Material** -> **Set Mesh to the built-in Cuboid** to see the background of the scene change to a skybox.
+Finally, just follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the material created in the second step for Material** -> **Set Mesh to the built-in Cuboid** to see the background of the scene change to a skybox.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original)
 
@@ -61,7 +61,7 @@ background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 
 ## Setting up Procedural Sky
 
-Procedural Sky is the default background in the editor for 3D projects. You can also follow the path **[Hierarchy Panel](/en/docs/interface-hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface-inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the built-in SkyMat material** -> **Set Mesh to the built-in Sphere**
+Procedural Sky is the default background in the editor for 3D projects. You can also follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the built-in SkyMat material** -> **Set Mesh to the built-in Sphere**
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Qe3IRJ9ciNoAAAAAAAAAAAAADhuCAQ/original)
 
@@ -79,7 +79,7 @@ background.sky.mesh = PrimitiveMesh.createSphere(engine);
 
 ### Properties
 
-In the **[Inspector Panel](/en/docs/interface-inspector)** of the atmospheric scattering material, you can see many adjustable properties:
+In the **[Inspector Panel](/en/docs/interface/inspector)** of the atmospheric scattering material, you can see many adjustable properties:
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*igE-RLCRc24AAAAAAAAAAAAADhuCAQ/original" alt="image-4" style="zoom:40%;" />
 

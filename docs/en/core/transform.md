@@ -9,7 +9,7 @@ label: Core
 
 `Transform` is a basic component that comes with `Entity`, allowing developers to manage the position, rotation, and scale of the `Entity` in both **local space** and **world space**.
 
-> Combining with Galacean's **[coordinate system](/en/docs/core-space)** will provide a deeper understanding.
+> Combining with Galacean's **[coordinate system](/en/docs/core/space)** will provide a deeper understanding.
 
 <playground src="transform-basic.ts"></playground>
 
@@ -44,7 +44,7 @@ Red represents rotation around the X-axis, green represents rotation around the 
 
 点击中心立方体，在所有轴上均匀的缩放选中实体。点击辅助轴，在单个方向缩放选中实体。
 
-通过 **[检查器面板](/en/docs/interface-inspector)** 可以为节点设置更精确的位置、旋转和缩放信息。
+通过 **[检查器面板](/en/docs/interface/inspector)** 可以为节点设置更精确的位置、旋转和缩放信息。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Y0qPTptpIBoAAAAAAAAAAAAADhuCAQ/original" alt="image.png"  />
 

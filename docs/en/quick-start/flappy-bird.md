@@ -36,7 +36,7 @@ At this point, we have uploaded the resources. However, if you have a tendency f
 
 ### Create Sprite Atlas
 
-To achieve better runtime performance, we choose to pack these Sprite resources into an Atlas resource. Click the <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style="zoom:50%;" /> button and select `Sprite Atlas`. After creating it, select the Sprite Atlas and use the `Add to List` button on the **[Inspector Panel](/en/docs/interface-inspector)** to add all Sprite resources to the list.
+To achieve better runtime performance, we choose to pack these Sprite resources into an Atlas resource. Click the <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style="zoom:50%;" /> button and select `Sprite Atlas`. After creating it, select the Sprite Atlas and use the `Add to List` button on the **[Inspector Panel](/en/docs/interface/inspector)** to add all Sprite resources to the list.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1YsTTZdjmm4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007171348757" style="zoom:50%;" />
 
@@ -48,7 +48,7 @@ Congratulations, you have completed the resource upload and management operation
 
 ## Build Scene
 
-Building a 2D scene is as fun as playing a puzzle. First, let's try dragging the game background image from the resource panel into the scene. Don't worry if the dragging position is not accurate, as we can fine-tune it later in the **[Inspector Panel](/en/docs/interface-inspector)**.
+Building a 2D scene is as fun as playing a puzzle. First, let's try dragging the game background image from the resource panel into the scene. Don't worry if the dragging position is not accurate, as we can fine-tune it later in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 ![drag1](https://gw.alipayobjects.com/zos/OasisHub/6cabaeea-cc36-4fe1-8bb5-d7ed8a9a49b7/drag1.gif)
 
@@ -88,7 +88,7 @@ Here are the steps:
 
 1. Create a node named `ground` in the node tree.
 
-2. In the **[Inspector Panel](/en/docs/interface-inspector)**, add a `Sprite Renderer` component by clicking the `Add Component` button, set the `SpriteRenderer DrawMode Info` property to `Tiled`, and set the width to `8.14`.
+2. In the **[Inspector Panel](/en/docs/interface/inspector)**, add a `Sprite Renderer` component by clicking the `Add Component` button, set the `SpriteRenderer DrawMode Info` property to `Tiled`, and set the width to `8.14`.
 
 ```markdown
    <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*pDBbTp6a78oAAAAAAAAAAAAADleLAQ/original" alt="image-20231007173243980" style="zoom:50%;" />
@@ -569,7 +569,7 @@ class Pipe extends Script {
 As seen above, the logic above complements the flowchart's code:
 
 - When the state switches to `Idle`, the `Pipe._reset()` function is triggered, and all pipes on the field are recycled back to the pool.
-- When the state switches to `Flying`, the `Pipe._move()` function is triggered, and the gears of the pipe's fate start turning. Within the frame loop, it checks whether a new pipe needs to be generated, whether an old pipe needs to be recycled. Generating a new pipe uses the engine's built-in [clone](/en/docs/core-clone) ability, which can fully replicate the structure and components of a node.
+- When the state switches to `Flying`, the `Pipe._move()` function is triggered, and the gears of the pipe's fate start turning. Within the frame loop, it checks whether a new pipe needs to be generated, whether an old pipe needs to be recycled. Generating a new pipe uses the engine's built-in [clone](/en/docs/core/clone) ability, which can fully replicate the structure and components of a node.
 - When the state switches to `Crash`, the `Pipe._pause()` function is triggered, and the pipe stops moving.
 
 #### Ground

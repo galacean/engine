@@ -7,10 +7,10 @@ label: Core
 
 `Engine` 在 Galacean Engine 中扮演着总控制器的角色，主要包含了**画布**、**渲染控制**和**引擎子系统管理**等三大功能：
 
-- **[画布](/docs/core-canvas)**：主画布相关的操作，如修改画布宽高等。
+- **[画布](/docs/core/canvas)**：主画布相关的操作，如修改画布宽高等。
 - **渲染控制**： 控制渲染的执行/暂停/继续、垂直同步等功能。
 - **引擎子系统管理**：
-  - [场景管理](/docs/core-scene)
+  - [场景管理](/docs/core/scene)
   - [资源管理](/docs/assets-overall)
   - [物理系统](/docs/physics-overall)
   - [交互系统](/docs/input)

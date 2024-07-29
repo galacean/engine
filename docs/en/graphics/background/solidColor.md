@@ -10,7 +10,7 @@ When the background type of the scene is set to Solid Color, the rendering area 
 
 ## Set Solid Color Background
 
-Navigate to **[Hierarchy Panel](/en/docs/interface-hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface-inspector)** -> **Background section** and set **Mode** to **Solid Color**. Then choose the desired background color, and you will see the background of the scene change in real-time.
+Navigate to **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** and set **Mode** to **Solid Color**. Then choose the desired background color, and you will see the background of the scene change in real-time.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*RDQ-T5h7YdEAAAAAAAAAAAAADhuCAQ/original)
 

@@ -5,9 +5,9 @@ type: Script
 label: Script
 ---
 
-The base class for custom scripts is [Script](/apis/core/#Script), which extends [Component](/en/docs/core-component). Therefore, in addition to the basic capabilities of components, it also supports:
+The base class for custom scripts is [Script](/apis/core/#Script), which extends [Component](/en/docs/core/component). Therefore, in addition to the basic capabilities of components, it also supports:
 
-- Mounting on [Entity](/en/docs/core-entity)
+- Mounting on [Entity](/en/docs/core/entity)
 - Conveniently accessing node instances and component instances
 - Following the disable and destroy rules of components
 - ...
@@ -149,7 +149,7 @@ For details on the input system interface, see [Input Interaction](/en/docs/inpu
 
 ## Entity Operations
 
-[Entities](/en/docs/core-entity) are the main objects of scripts. You can modify nodes and components in the editor's scene inspector and dynamically modify them in scripts. Scripts can respond to player input, modify, create, and destroy entities or components, thereby implementing various game logics.
+[Entities](/en/docs/core/entity) are the main objects of scripts. You can modify nodes and components in the editor's scene inspector and dynamically modify them in scripts. Scripts can respond to player input, modify, create, and destroy entities or components, thereby implementing various game logics.
 
 ### Accessing Entities and Components
 

@@ -38,7 +38,7 @@ You can also follow the steps of **right-clicking a node** -> **selecting the no
 </div>
 <figcaption style="text-align:center; color: #889096;font-size:12px">Adding a node via right-click</figcaption>
 
-After adding, you can edit the properties of the new node in the **[Inspector Panel](/en/docs/interface-inspector)**.
+After adding, you can edit the properties of the new node in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 ### Deleting a Node
 
@@ -63,7 +63,7 @@ In addition, you can also delete the node directly after selecting it using the 
 
 ### Copy Node
 
-> Copying a node will copy the selected node and all its child nodes, essentially invoking the engine's [clone](/en/docs/core-clone) capability.
+> Copying a node will copy the selected node and all its child nodes, essentially invoking the engine's [clone](/en/docs/core/clone) capability.
 
 After selecting a node, you can quickly clone the node at the same level by using `Duplicated`.
 
@@ -98,7 +98,7 @@ There is a search box at the top of the hierarchy panel where users can enter th
 
 Each entity node has an eye button on the right side, which can toggle the node's display/hide status in the scene.
 
-> It is important to note that the adjustment of the node's display status here is only a modification in the workspace, not the `isActive` property in the **[Inspector Panel](/en/docs/interface-inspector)**.
+> It is important to note that the adjustment of the node's display status here is only a modification in the workspace, not the `isActive` property in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 ## Shortcut Keys
 

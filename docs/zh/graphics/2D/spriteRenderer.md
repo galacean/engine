@@ -34,13 +34,13 @@ label: Graphics/2D
 
 #### 创建带精灵渲染器的节点
 
-通过在 **[层级面板](/docs/interface-hierarchy)** 选中某个节点，依次 **右键** -> **2D Object** -> **Sprite Renderer** 即可快速为选中节点添加一个装载了精灵渲染器的子节点。
+通过在 **[层级面板](/docs/interface/hierarchy)** 选中某个节点，依次 **右键** -> **2D Object** -> **Sprite Renderer** 即可快速为选中节点添加一个装载了精灵渲染器的子节点。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*fiA8R5ZwXyUAAAAAAAAAAAAADhuCAQ/original" alt="avatar" style="zoom:50%;" />
 
 #### 为节点挂载精灵渲染器
 
-为已存在的节点挂载精灵渲染器，只需在选中节点的 **[检查器面板](/docs/interface-inspector)** ，依次选择 **Add Component** -> **2D** -> **Sprite Renderer** 即可为该节点挂载精灵渲染器。
+为已存在的节点挂载精灵渲染器，只需在选中节点的 **[检查器面板](/docs/interface/inspector)** ，依次选择 **Add Component** -> **2D** -> **Sprite Renderer** 即可为该节点挂载精灵渲染器。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*UnDbQZHMOCcAAAAAAAAAAAAADhuCAQ/original" alt="avatar" style="zoom:50%;" />
 

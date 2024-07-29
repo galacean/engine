@@ -10,7 +10,7 @@ When the background type of the scene is set to texture, the rendering area of t
 
 ## Set Texture Background
 
-Based on the path **[Hierarchy Panel](/en/docs/interface-hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface-inspector)** -> Set **Mode** to **Texture** in the **Background** section, then choose the desired texture. You can see the background of the scene change in real-time.
+Based on the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> Set **Mode** to **Texture** in the **Background** section, then choose the desired texture. You can see the background of the scene change in real-time.
 
 ![](https://gw.alipayobjects.com/zos/OasisHub/2673b2a2-a87b-4707-b3fc-9af334231298/2024-07-18%25252017.50.16.gif)
 
