@@ -608,7 +608,8 @@ export class Animator extends Component {
 
     if (needSwitchLayerState) {
       const remainDeltaTime = deltaTime - costTime / actualSpeed;
-      this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime > MathUtil.zeroTolerance &&
+        this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
