@@ -54,7 +54,7 @@ export class AnimatorController extends ReferResource {
    * @param name - The name of the parameter
    * @param defaultValue - The default value of the parameter
    */
-  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue) {
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
     if (this._parametersMap[name]) {
       console.warn(`Parameter ${name} already exists.`);
       return null;

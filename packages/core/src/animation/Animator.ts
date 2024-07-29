@@ -604,7 +604,7 @@ export class Animator extends Component {
     this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, playCostTime);
 
     if (transition) {
-      // actualCostTime = playCostTime / playSpeed
+      // Remove speed factor, use actual cost time
       const remainDeltaTime = deltaTime - playCostTime / playSpeed;
       remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
