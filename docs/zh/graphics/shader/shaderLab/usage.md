@@ -8,7 +8,7 @@ title: "使用"
 
 - `ShaderLab`反射材质属性
 
-如果我们在`ShaderLab`中编写了`材质属性定义`模块，模块中定义的属性会暴露在绑定该 Shader 的材质资产 Inspector 面板中
+如果我们在 `ShaderLab` 中编写了`材质属性定义`模块，模块中定义的属性会暴露在绑定该 Shader 的材质资产 Inspector 面板中
 
 <img src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*38UISKqK2WUAAAAAAAAAAAAADteEAQ/original" style="zoom:50%">
 
