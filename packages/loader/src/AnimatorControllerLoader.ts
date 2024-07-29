@@ -100,10 +100,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             animatorController.addLayer(layer);
           });
           parameters.forEach((parameterData) => {
-            const parameter = new AnimatorControllerParameter();
-            parameter.name = parameterData.name;
-            parameter.defaultValue = parameterData.defaultValue;
-            animatorController.addParameter(parameter);
+            animatorController.addParameter(parameterData.name, parameterData.defaultValue);
           });
           Promise.all(promises).then((clipData) => {
             clipData.forEach((data) => {

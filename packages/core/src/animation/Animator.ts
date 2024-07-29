@@ -23,6 +23,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+import { MathUtil } from "@galacean/engine-math";
 
 /**
  * The controller of the animation system.
@@ -536,15 +537,15 @@ export class Animator extends Component {
     const { srcPlayData } = layerData;
     const { state } = srcPlayData;
 
-    const actualSpeed = state.speed * this.speed;
-    const actualDeltaTime = actualSpeed * deltaTime;
+    const playSpeed = state.speed * this.speed;
+    const playDeltaTime = playSpeed * deltaTime;
 
-    srcPlayData.updateOrientation(actualDeltaTime);
+    srcPlayData.updateOrientation(playDeltaTime);
 
     const { clipTime: lastClipTime, playState: lastPlayState } = srcPlayData;
 
     // Precalculate to get the transition
-    srcPlayData.update(actualDeltaTime);
+    srcPlayData.update(playDeltaTime);
 
     const { clipTime, isForwards } = srcPlayData;
     const transition =
@@ -565,11 +566,11 @@ export class Animator extends Component {
         state.transitions,
         lastClipTime,
         clipTime,
-        actualDeltaTime,
+        playDeltaTime,
         aniUpdate
       );
 
-    let costTime: number;
+    let playCostTime: number;
     if (transition) {
       const clipDuration = state.clip.length;
       const clipEndTime = state.clipEndTime * clipDuration;
@@ -577,39 +578,35 @@ export class Animator extends Component {
 
       if (isForwards) {
         if (exitTime < lastClipTime) {
-          costTime = exitTime + clipEndTime - lastClipTime;
+          playCostTime = exitTime + clipEndTime - lastClipTime;
         } else {
-          costTime = exitTime - lastClipTime;
+          playCostTime = exitTime - lastClipTime;
         }
       } else {
         const startTime = state.clipStartTime * clipDuration;
         if (lastClipTime < exitTime) {
-          costTime = clipEndTime - exitTime + lastClipTime - startTime;
+          playCostTime = clipEndTime - exitTime + lastClipTime - startTime;
         } else {
-          costTime = lastClipTime - exitTime;
+          playCostTime = lastClipTime - exitTime;
         }
-        costTime = -costTime;
+        playCostTime = -playCostTime;
       }
-      // Revert actualDeltaTime and update costTime
-      srcPlayData.update(costTime - actualDeltaTime);
+      // Revert actualDeltaTime and update playCostTime
+      srcPlayData.update(playCostTime - playDeltaTime);
     } else {
-      costTime = actualDeltaTime;
+      playCostTime = playDeltaTime;
+      if (srcPlayData.playState === AnimatorStatePlayState.Finished) {
+        layerData.layerState = LayerState.Finished;
+      }
     }
-
-    const needSwitchLayerState = !!transition;
-    const layerFinished = !needSwitchLayerState && srcPlayData.playState === AnimatorStatePlayState.Finished;
-    if (layerFinished) {
-      layerData.layerState = LayerState.Finished;
-    }
-
-    costTime = Math.abs(costTime);
 
     this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
-    this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, costTime);
+    this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, playCostTime);
 
-    if (needSwitchLayerState) {
-      const remainDeltaTime = deltaTime - costTime;
-      this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+    if (transition) {
+      // Remove speed factor, use actual cost time
+      const remainDeltaTime = deltaTime - playCostTime / playSpeed;
+      remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -660,43 +657,43 @@ export class Animator extends Component {
     const destStateDuration = destState._getDuration();
     const transitionDuration = destStateDuration * layerData.crossFadeTransition.duration;
 
-    const actualSrcSpeed = srcState.speed * speed;
-    const actualDestSpeed = destState.speed * speed;
-    const actualDestDeltaTime = actualDestSpeed * deltaTime;
+    const srcPlaySpeed = srcState.speed * speed;
+    const dstPlaySpeed = destState.speed * speed;
+    const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
 
-    srcPlayData && srcPlayData.updateOrientation(actualSrcSpeed * deltaTime);
-    destPlayData && destPlayData.updateOrientation(actualDestDeltaTime);
+    srcPlayData && srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
+    destPlayData && destPlayData.updateOrientation(dstPlayDeltaTime);
 
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
 
-    let destCostTime: number;
+    let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
-      destCostTime =
-        lastDestClipTime + actualDestDeltaTime > transitionDuration
+      dstPlayCostTime =
+        lastDestClipTime + dstPlayDeltaTime > transitionDuration
           ? transitionDuration - lastDestClipTime
-          : actualDestDeltaTime;
+          : dstPlayDeltaTime;
     } else {
       // The time that has been played
       const playedTime = destStateDuration - lastDestClipTime;
-      destCostTime =
+      dstPlayCostTime =
         // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
         // > transition: The time that will be played is enough to finish the transition
-        playedTime - actualDestDeltaTime > transitionDuration
+        playedTime - dstPlayDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
             // -(transitionDuration - playedTime)
             playedTime - transitionDuration
-          : actualDestDeltaTime;
+          : dstPlayDeltaTime;
     }
 
-    const costTime = actualDestSpeed === 0 ? 0 : destCostTime / actualDestSpeed;
-    const srcCostTime = costTime * actualSrcSpeed;
+    const actualCostTime = dstPlaySpeed === 0 ? 0 : dstPlayCostTime / dstPlaySpeed;
+    const srcPlayCostTime = actualCostTime * srcPlaySpeed;
 
-    srcPlayData.update(srcCostTime);
-    destPlayData.update(destCostTime);
+    srcPlayData.update(srcPlayCostTime);
+    destPlayData.update(dstPlayCostTime);
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
@@ -704,7 +701,7 @@ export class Animator extends Component {
       this._preparePlayOwner(layerData, destState);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
-      this._evaluateCrossFadeState(layerData, srcPlayData, destPlayData, weight, additive, aniUpdate);
+      this._evaluateCrossFadeState(layerData, srcPlayData, destPlayData, weight, crossWeight, additive, aniUpdate);
     }
 
     this._fireAnimationEventsAndCallScripts(
@@ -713,7 +710,7 @@ export class Animator extends Component {
       srcState,
       lastSrcClipTime,
       lastSrcPlayState,
-      Math.abs(srcCostTime)
+      srcPlayCostTime
     );
 
     this._fireAnimationEventsAndCallScripts(
@@ -722,12 +719,12 @@ export class Animator extends Component {
       destState,
       lastDestClipTime,
       lastDstPlayState,
-      Math.abs(destCostTime)
+      dstPlayCostTime
     );
 
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
-      const remainDeltaTime = deltaTime - costTime;
+      const remainDeltaTime = deltaTime - actualCostTime;
       remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
@@ -737,6 +734,7 @@ export class Animator extends Component {
     srcPlayData: AnimatorStatePlayData,
     destPlayData: AnimatorStatePlayData,
     weight: number,
+    crossWeight: number,
     additive: boolean,
     aniUpdate: boolean
   ) {
@@ -744,10 +742,6 @@ export class Animator extends Component {
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: destState } = destPlayData;
     const { _curveBindings: destCurves } = destState.clip;
-
-    const transitionDuration = destState._getDuration() * layerData.crossFadeTransition.duration;
-    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
     const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
 
@@ -792,38 +786,36 @@ export class Animator extends Component {
     const stateDuration = state._getDuration();
     const transitionDuration = stateDuration * layerData.crossFadeTransition.duration;
 
-    const actualSpeed = state.speed * this.speed;
-    const actualDeltaTime = actualSpeed * deltaTime;
+    const playSpeed = state.speed * this.speed;
+    const playDeltaTime = playSpeed * deltaTime;
 
-    destPlayData.updateOrientation(actualDeltaTime);
+    destPlayData.updateOrientation(playDeltaTime);
 
     const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
 
-    let destCostTime: number;
+    let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
-      destCostTime =
-        lastDestClipTime + actualDeltaTime > transitionDuration
-          ? transitionDuration - lastDestClipTime
-          : actualDeltaTime;
+      dstPlayCostTime =
+        lastDestClipTime + playDeltaTime > transitionDuration ? transitionDuration - lastDestClipTime : playDeltaTime;
     } else {
       // The time that has been played
       const playedTime = stateDuration - lastDestClipTime;
-      destCostTime =
+      dstPlayCostTime =
         // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
         // > transition: The time that will be played is enough to finish the transition
-        playedTime - actualDeltaTime > transitionDuration
+        playedTime - playDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
             // -(transitionDuration - playedTime)
             playedTime - transitionDuration
-          : actualDeltaTime;
+          : playDeltaTime;
     }
 
-    const costTime = actualSpeed === 0 ? 0 : destCostTime / actualSpeed;
+    const actualCostTime = playSpeed === 0 ? 0 : dstPlayCostTime / playSpeed;
 
-    destPlayData.update(destCostTime);
+    destPlayData.update(dstPlayCostTime);
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
@@ -831,7 +823,7 @@ export class Animator extends Component {
       this._preparePlayOwner(layerData, state);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
-      this._evaluateCrossFadeFromPoseState(layerData, destPlayData, weight, additive, aniUpdate);
+      this._evaluateCrossFadeFromPoseState(layerData, destPlayData, weight, crossWeight, additive, aniUpdate);
     }
 
     this._fireAnimationEventsAndCallScripts(
@@ -840,12 +832,12 @@ export class Animator extends Component {
       state,
       lastDestClipTime,
       lastPlayState,
-      Math.abs(destCostTime)
+      dstPlayCostTime
     );
 
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
-      const remainDeltaTime = deltaTime - costTime;
+      const remainDeltaTime = deltaTime - actualCostTime;
       remainDeltaTime > 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
@@ -854,16 +846,13 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     destPlayData: AnimatorStatePlayData,
     weight: number,
+    crossWeight: number,
     additive: boolean,
     aniUpdate: boolean
   ) {
     const { crossLayerOwnerCollection } = layerData;
     const { state } = destPlayData;
     const { _curveBindings: curveBindings } = state.clip;
-
-    const duration = state._getDuration() * layerData.crossFadeTransition.duration;
-    let crossWeight = Math.abs(destPlayData.frameTime) / duration;
-    (crossWeight >= 1.0 || duration === 0) && (crossWeight = 1.0);
 
     const { clipTime: destClipTime, playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
@@ -1321,10 +1310,9 @@ export class Animator extends Component {
     const clipDuration = state.clip.length;
     const startTime = state.clipStartTime * clipDuration;
     const endTime = state.clipEndTime * clipDuration;
-    const actualDeltaTime = this.speed * state.speed * deltaTime;
 
     if (isForwards) {
-      if (lastClipTime + actualDeltaTime >= endTime) {
+      if (lastClipTime + deltaTime >= endTime) {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
         playData.currentEventIndex = 0;
         this._fireSubAnimationEvents(playData, eventHandlers, state.clipStartTime * clipDuration, clipTime);
@@ -1332,7 +1320,7 @@ export class Animator extends Component {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }
     } else {
-      if (lastClipTime + actualDeltaTime <= startTime) {
+      if (lastClipTime + deltaTime <= startTime) {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, state.clipStartTime * clipDuration);
         playData.currentEventIndex = eventHandlers.length - 1;
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, state.clipEndTime * clipDuration, clipTime);
