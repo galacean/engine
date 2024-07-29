@@ -5,7 +5,7 @@ type: 核心
 label: Core
 ---
 
-`Engine` 在 Galacean Engine 中扮演着总控制器的角色，主要包含了**画布**、**渲染控制**和**引擎子系统管理**等三大功能：
+`Engine` 在 Galacean Engine 中扮演着总控制器的角色，主要包含了**画布**、**渲染控制**和**引擎子系统管理**等功能：
 
 - **[画布](/docs/core-canvas)**：主画布相关的操作，如修改画布宽高等。
 - **渲染控制**： 控制渲染的执行/暂停/继续、垂直同步等功能。
@@ -25,46 +25,60 @@ label: Core
 const engine = await WebGLEngine.create({ canvas: "canvas" });
 ```
 
-> `WebGLEngine.create` 不仅承担着实例化引擎的职责，还负责渲染上下文的配置和某些子系统的初始化。
+`WebGLEngine.create` 不仅承担着实例化引擎的职责，还负责渲染上下文的配置和某些子系统的初始化，下方是创建引擎时传入配置的类型说明：
 
-### 渲染上下文
+```mermaid
+---
+title: WebGLEngineConfiguration Interface
+---
+classDiagram
+    EngineConfiguration <|-- WebGLEngineConfiguration
+    class EngineConfiguration {
+       <<interface>>
+       +IPhysics physics
+       +IXRDevice xrDevice
+       +ColorSpace colorSpace
+       +IShaderLab shaderLab
+       +IInputOptions input
+    }
 
-开发者可以在 [导出界面](/docs/assets-build) 设置上下文的渲染配置。
+    class WebGLEngineConfiguration{
+        <<interface>>
+        +HTMLCanvasElement | OffscreenCanvas | string canvas
+        +WebGLGraphicDeviceOptions graphicDeviceOptions
+    }
+```
+
+编辑器导出的项目通常自动设置了编辑器配置的相关选项，比如开发者可以在 [导出界面](/docs/assets-build) 设置上下文的渲染配置：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*WZHzRYIpUzQAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 
-您也可以通过脚本设置 [WebGLEngine](${api}rhi-webgl/WebGLEngine) 的第三个参数 [WebGLGraphicDeviceOptions](${api}rhi-webgl/WebGLGraphicDeviceOptions) 来进行管理，拿**画布透明**来举例，引擎默认是将画布的透明通道开启的，即画布会和背后的网页元素混合，如果需要关闭透明，可以这样设置：
+又或者在编辑器的项目设置界面选择物理后端与 XR 后端：
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*iBDlTbGGuroAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
+
+您也可以修改代码变更引擎配置，拿**画布透明**来举例，引擎默认是将画布的透明通道开启的，即画布会和背后的网页元素混合，如果需要关闭透明，可以这样设置：
 
 ```typescript
 const engine = await WebGLEngine.create({
   canvas: htmlCanvas,
-  graphicDeviceOptions: { alpha: false },
+  graphicDeviceOptions: { alpha: false }
 });
 ```
 
 类似的，可以用 `webGLMode` 控制 WebGL1/2，除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。
 
-### 物理系统
-
-可参考 [物理系统](/docs/physics-overall) 文档
-
-### 交互系统
-
-可参考 [交互系统](/docs/input) 文档
-
-### XR 系统
-
-可参考 [XR 系统](/docs/xr-overall) 文档
+更多相关配置信息，可参考[物理系统](/docs/physics-overall)、[交互系统](/docs/input)、[XR 系统](/docs/xr-overall)。
 
 ## 属性
 
-| 属性名称                                             | 属性释义                                                                                                                                                                                                                                        |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [time](/apis/core/#Engine-time)                       | 引擎时间相关的信息。                                                                                                                                                                                                                            |
-| [vSyncCount](/apis/core/#Engine-vSyncCount)           | 引擎默认开启[垂直同步](https://baike.baidu.com/item/%E5%9E%82%E7%9B%B4%E5%90%8C%E6%AD%A5/7263524?fromtitle=V-Sync&fromid=691778)且刷新率 `vSyncCount` 为`1`，即与屏幕刷新率保持一致。如果 `vSyncCount` 设置为`2`，则每刷新 2 帧，引擎更新一次。 |
-| [resourceManager](/apis/core/#Engine-resourceManager) | 资源管理                                                                                                                                                                                                                                        |
-| [sceneManager](/apis/core/#Engine-sceneManager)       | 场景管理。_Engine_ 是总控制器，_Scene_ 作为场景单元，可以方便大型场景的实体管理；_Camera_ 作为组件挂载在 _Scene_ 中的某一实体下，和现实中的摄像机一样，可以选择拍摄 _Scene_ 中的任何实体 ，最后渲染到屏幕上的一块区域或者离屏渲染。             |
-| [inputManager](/apis/core/#Engine-inputManager)       | 交互管理                                                                                                                                                                                                                                        |
+| 属性名称 | 属性释义 |
+| --- | --- |
+| [time](/apis/core/#Engine-time) | 引擎时间相关信息，详情可参考[时间](/docs/core/time/) |
+| [vSyncCount](/apis/core/#Engine-vSyncCount) | 垂直同步刷新率，引擎默认开启[垂直同步](https://baike.baidu.com/item/%E5%9E%82%E7%9B%B4%E5%90%8C%E6%AD%A5/7263524?fromtitle=V-Sync&fromid=691778)且刷新率 `vSyncCount` 为`1` （与屏幕刷新率保持一致）。若 `vSyncCount` 设置为`2`，则屏幕每刷新 2 帧，引擎更新 1 次。 |
+| [resourceManager](/apis/core/#Engine-resourceManager) | 资源管理器，一般通过它进行资产的[加载](/docs/assets/load/)和[释放](/docs/assets/gc/) |
+| [sceneManager](/apis/core/#Engine-sceneManager) | 场景管理器。Galacean 支持多场景同时渲染，通过场景管理器可以方便地管理当前场景的增删改查，详情可参考[场景](/docs/core/scene/) |
+| [inputManager](/apis/core/#Engine-inputManager) | 交互管理器，一般通过它获取键盘，触控与滚轮信息，详情可参考[交互](/docs/input/input/) |
 
 ### 刷新率
 
@@ -86,8 +100,8 @@ engine.targetFrameRate = 120;
 
 ## 方法
 
-| 方法名称                             | 方法释义           |
-| ------------------------------------ | ------------------ |
+| 方法名称                              | 方法释义           |
+| ------------------------------------- | ------------------ |
 | [run](/apis/core/#Engine-run)         | 执行引擎渲染帧循环 |
 | [pause](/apis/core/#Engine-pause)     | 暂停引擎渲染帧循环 |
 | [resume](/apis/core/#Engine-resume)   | 恢复引擎渲渲染循环 |

@@ -144,6 +144,12 @@ engine.resourceManager.load({
 
 <playground src="lottie-3d-rotation.ts"></playground>
 
+### 版本依赖
+| 引擎版本 |  Lottie 版本 |
+| :--- | :--- |
+| 1.2.x | 1.1.0-beta.0 |
+| 1.3.x | 1.1.0-beta.0 |
+
 ## 性能方面的建议
 
 - 动画简单化。创建动画时需时刻记着保持 json 文件的精简，比如尽量不使用占用空间最多的路径关键帧动画。诸如自动跟踪描绘、颤动之类的技术会使得 json 文件变得非常大且耗性能。
@@ -164,9 +170,3 @@ engine.resourceManager.load({
 - 只导出 1x 图。
 - 为了防止 lottie 导出的兼容性问题，请尽量使用英文版本 AE ，图层需简洁，命名清晰
 - 避免大面积矢量部分，以及大面积粒子效果
-
-### Lottie 使用版本说明
-| 引擎版本 |  Lottie 版本 |
-| :--- | :--- |
-| 1.2.x | 1.1.0-beta.0 |
-| 1.3.x | 1.1.0-beta.0 |

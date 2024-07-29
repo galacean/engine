@@ -1,5 +1,5 @@
 ---
-order: 3
+order: 4
 title: 相机管理器
 type: XR
 label: XR
@@ -9,9 +9,9 @@ label: XR
 
 ## 属性
 
-| 属性           | 类型   | 解释                   |
-| :------------- | :----- | :--------------------- |
-| fixedFoveation | number | 设置相机的固定视觉焦点 |
+| 属性 | 类型 | 解释 |
+| :-- | :-- | :-- |
+| fixedFoveation | number | 设置相机的固定视觉焦点，详情可参考[fixedFoveation](https://developer.mozilla.org/en-US/docs/Web/API/XRProjectionLayer/fixedFoveation) |
 
 ## 方法
 
@@ -19,6 +19,10 @@ label: XR
 | :----------- | :------------------------------------------- |
 | attachCamera | 将虚拟世界的摄像头与现实世界的摄像头绑定     |
 | detachCamera | 解除虚拟世界的摄像头与现实世界的摄像头的绑定 |
+
+> 当 XR 会话类型为 AR 时，需要绑定的相机类型为 `XRTrackedInputDevice.Camera`
+
+> 当 XR 会话类型为 VR 时，需要绑定的相机类型为 `XRTrackedInputDevice.LeftCamera` 和 `XRTrackedInputDevice.RightCamera`
 
 ## 更新流程
 

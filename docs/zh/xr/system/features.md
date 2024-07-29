@@ -1,5 +1,5 @@
 ---
-order: 6
+order: 5
 title: XR 能力
 type: XR
 label: XR
@@ -41,11 +41,7 @@ const anchor = anchorTracking.addAnchor(position, rotation);
 anchorTracking.removeAnchor(anchor);
 // 监听锚点变化
 anchorTracking.addChangedListener(
-  (
-    added: readonly XRAnchor[],
-    updated: readonly XRAnchor[],
-    removed: readonly XRAnchor[]
-  ) => {
+  (added: readonly XRAnchor[], updated: readonly XRAnchor[], removed: readonly XRAnchor[]) => {
     // 此处添加对新增锚点，更新锚点和移除锚点的处理
   }
 );
@@ -89,13 +85,19 @@ xrManager.addFeature(XRPlaneTracking, XRPlaneMode.EveryThing);
 > 需要注意的是，图片追踪在添加功能时就需要指定追踪的图片，并且在 WebXR 中，同张图片只会被追踪一次。
 
 ```typescript
-// 在初始化时指定平面追踪的类型为所有
-xrManager.addFeature(XRImageTracking, [refImage]);
+const image = new Image();
+image.onload = () => {
+  // 创建追踪图片
+  const refImage = new XRReferenceImage("test", image, 0.08);
+  // 初始化图片追踪能力，并指定追踪图片
+  xrManager.addFeature(XRImageTracking, [refImage]);
+};
+image.src = "图片的 URL";
 ```
 
 我们可以追踪现实图片，并为他们标记坐标系：
 
-<playground src="xr-ar-planeTracking.ts"></playground>
+<playground src="xr-ar-imageTracking.ts"></playground>
 
 ## 碰撞检测
 
@@ -111,10 +113,6 @@ if (pointer) {
   const hitTest = xrManager.getFeature(XRHitTest);
   const { position } = pointer;
   // 通过屏幕空间坐标与现实空间的平面进行碰撞检测
-  const result = hitTest.screenHitTest(
-    position.x,
-    position.y,
-    TrackableType.Plane
-  );
+  const result = hitTest.screenHitTest(position.x, position.y, TrackableType.Plane);
 }
 ```
