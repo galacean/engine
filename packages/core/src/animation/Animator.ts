@@ -595,18 +595,15 @@ export class Animator extends Component {
       srcPlayData.update(playCostTime - playDeltaTime);
     } else {
       playCostTime = playDeltaTime;
-    }
-
-    const needSwitchLayerState = !!transition;
-    const layerFinished = !needSwitchLayerState && srcPlayData.playState === AnimatorStatePlayState.Finished;
-    if (layerFinished) {
-      layerData.layerState = LayerState.Finished;
+      if (srcPlayData.playState === AnimatorStatePlayState.Finished) {
+        layerData.layerState = LayerState.Finished;
+      }
     }
 
     this._evaluatePlayingState(srcPlayData, weight, additive, aniUpdate);
     this._fireAnimationEventsAndCallScripts(layerIndex, srcPlayData, state, lastClipTime, lastPlayState, playCostTime);
 
-    if (needSwitchLayerState) {
+    if (transition) {
       // actualCostTime = playCostTime / playSpeed
       const remainDeltaTime = deltaTime - playCostTime / playSpeed;
       remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
