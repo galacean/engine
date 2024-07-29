@@ -608,8 +608,7 @@ export class Animator extends Component {
 
     if (needSwitchLayerState) {
       const remainDeltaTime = deltaTime - costTime / actualSpeed;
-      remainDeltaTime > MathUtil.zeroTolerance &&
-        this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -696,7 +695,7 @@ export class Animator extends Component {
     destPlayData.update(destCostTime);
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
@@ -728,8 +727,7 @@ export class Animator extends Component {
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
       const remainDeltaTime = deltaTime - costTime;
-      remainDeltaTime > MathUtil.zeroTolerance &&
-        this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
@@ -821,7 +819,7 @@ export class Animator extends Component {
     destPlayData.update(destCostTime);
 
     let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
-    (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
+    (crossWeight >= 1.0 || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
@@ -844,8 +842,7 @@ export class Animator extends Component {
     if (crossFadeFinished) {
       this._updateCrossFadeData(layerData);
       const remainDeltaTime = deltaTime - costTime;
-      remainDeltaTime > MathUtil.zeroTolerance &&
-        this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
+      remainDeltaTime >= 0 && this._updateState(layerIndex, layerData, layer, remainDeltaTime, aniUpdate);
     }
   }
 
