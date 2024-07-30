@@ -39,9 +39,9 @@ label: Animation
 
 | 属性 | 功能说明 |
 | :------- | :---------------------------------------------------------|
-| Duration | 过渡时长，时间为相对目标状态的归一化时间, 默认值为 0.25            |
-| Offset   | 目标状态向前的偏移时间，时间为相对目标状态的归一化时间, 默认值为 0  |
-| ExitTime | 起始状态过渡开始时间，时间为相对起始状态的归一化时间, 默认值为 0.75  |
+| Duration | 过渡时长，时间为相对目标状态的归一化时间，默认值为 0.25            |
+| Offset   | 目标状态向前的偏移时间，时间为相对目标状态的归一化时间，默认值为 0  |
+| ExitTime | 起始状态过渡开始时间，时间为相对起始状态的归一化时间，默认值为 0.75  |
 | Solo     | 使选定的动画过渡成为唯一活动的状态。其它动画过渡将被忽略。 |
 | Mute     | 禁用选定的动画过渡 |
 
@@ -100,7 +100,7 @@ animator.play("walk");
 通过这样的方式你之后每次在该动画状态机所在的层播放 `walk` 动画时都会在播放一半时开始过渡到 `run` 动画。
 
 ##### 为动画过渡添加条件
-你可以通过为 [animatorStateTransition.addCondition](/apis/core/#AnimatorStateTransition-addCondition) 方法为动画过渡添加条件
+你可以通过 [animatorStateTransition.addCondition](/apis/core/#AnimatorStateTransition-addCondition) 方法为动画过渡添加条件
 
 ```typescript
 const idleState = animatorStateMachine.addState('idle');
