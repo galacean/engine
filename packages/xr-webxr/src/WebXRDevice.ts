@@ -25,7 +25,16 @@ export class WebXRDevice implements IXRDevice {
   }
 
   isSupportedFeature(type: XRFeatureType): boolean {
-    return true;
+    switch (type) {
+      case XRFeatureType.HitTest:
+      case XRFeatureType.PlaneTracking:
+        return typeof XRPlane !== "undefined";
+      case XRFeatureType.AnchorTracking:
+        return typeof XRAnchor !== "undefined";
+      case XRFeatureType.ImageTracking:
+        // @ts-ignore
+        return typeof XRImageTrackingResult !== "undefined";
+    }
   }
 
   createPlatformFeature(type: XRFeatureType, ...args: any[]): WebXRFeature {

@@ -14,7 +14,7 @@ First, you need to attach the camera component to an activated [Entity](/en/docs
 
 After adding it, you can view the camera properties in the inspector, and the camera preview in the bottom left corner allows you to easily see the camera effect when the project is running:
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/24fa20d2-8f50-49bd-907a-3806f31e462e/image-20231009114816056.png" alt="image-20231009114816056" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/d60e9f91-137e-4148-b85e-7458007333c3/image-20240718211520816.png" alt="image-20240718211520816" style="zoom:50%;" />
 
 You can also attach the camera component to an [Entity](/en/docs/core-entity) in scripts using the following code:
 
@@ -29,7 +29,7 @@ const camera = entity.addComponent(Camera);
 
 Customize rendering effects by modifying the properties of the camera component. Below are the properties exposed in the **[Inspector Panel](/en/docs/interface-inspector)** for the camera component.
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Za1RSJcYrSMAAAAAAAAAAAAADhuCAQ/original)
+<img src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style="zoom:50%;" />
 
 You can also get the camera component in scripts and set the corresponding properties.
 
@@ -52,6 +52,10 @@ camera.priority = 0;
 camera.enableFrustumCulling = true;
 // 设置相机渲染前的清除标记
 camera.clearFlags = CameraClearFlags.All;
+// 开启后处理
+camera.enablePostProcess = true;
+// 开启 HDR
+camera.enableHDR = true;
 ```
 
 The functionality of each property is as follows:
@@ -74,8 +78,9 @@ The functionality of each property is as follows:
 | Rendering Related | [depthTextureMode](<(/apis/core/#Camera-depthTextureMode)>)    | Depth texture mode, default is `DepthTextureMode.None`. If enabled, the `camera_DepthTexture` depth texture can be used in shaders. |
 |  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>)    | Whether to enable opaque texture, default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in shaders in the transparent queue. |
 |  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>)    | When enabling opaque texture, downsampling can be set based on clarity requirements and performance considerations. |
-|  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)    | Sets the number of multisample antialiasing samples for an independent canvas, only effective when opaque texture is enabled and no renderTarget is set. |
-|  | [independentCanvasEnabled](<(/apis/core/#Camera-independentCanvasEnabled)>)    | Read-only property, whether to enable independent canvas, only effective when opaque texture is enabled and no renderTarget is set. |
+|  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)    | Multi-sample anti-aliasing samples when use independent canvas mode, such as `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`. |
+|  | [enableHDR](<(/apis/core/#Camera-enableHDR)>)     | Enable HDR rendering, allowing the shader output color to be stored using floating point numbers, which can get a wider range of values ​​for post-processing and other situations. |
+|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | Enable post process. The specific configuration refs to [Post Process Tutorial](/docs/graphics/postProcess/postProcess).|
 
 ### Clipping Masks
 

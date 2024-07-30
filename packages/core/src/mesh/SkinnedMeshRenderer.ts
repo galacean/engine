@@ -154,7 +154,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
-  protected override _updateRendererShaderData(context: RenderContext): void {
+  protected override _update(context: RenderContext): void {
     const { skin } = this;
     if (skin?.bones.length > 0) {
       skin._updateSkinMatrices(this);
@@ -210,7 +210,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       }
     }
 
-    super._updateRendererShaderData(context);
+    super._update(context);
   }
 
   /**

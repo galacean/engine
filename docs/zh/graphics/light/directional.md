@@ -12,13 +12,13 @@ label: Graphics/Light
 
 方向光有 3 个主要个特性：_颜色_（[color](/apis/core/#DirectLight-color)）、_强度_（[intensity](/apis/core/#DirectLight-intensity)）、_方向_（[direction](/apis/core/#DirectLight-direction)）。_方向_ 则由方向光所在的节点的朝向表示。
 
-| 属性      | 作用                             |
-| :-------- | :------------------------------- |
-| Intensity | 控制平行光的强度，**值越高越亮** |
-| Color     | 控制平行光的颜色，默认白色       |
-| Culling Mask     | 控制灯光需要照亮的物体，默认 Everything。 需要配合 Entity 的 Layer 来使用  |
+| 属性         | 作用                                                                      |
+| :----------- | :------------------------------------------------------------------------ |
+| Intensity    | 控制平行光的强度，**值越高越亮**                                          |
+| Color        | 控制平行光的颜色，默认白色                                                |
+| Culling Mask | 控制灯光需要照亮的物体，默认 Everything。 需要配合 Entity 的 Layer 来使用 |
 
-
+> 方向光可以投射阴影，相关配置参考[阴影文档](/docs/graphics/light/shadow)。
 
 ## 脚本使用
 

@@ -31,5 +31,8 @@
   },
   "particle": {
     "title": "粒子"
+  },
+  "postProcess": {
+    "title": "后处理"
   }
 }

@@ -135,7 +135,7 @@ animator.play("walkThenRun");
 你可以通过 [animatorController](/apis/core/#Animator-animatorController)  属性来设置动画控制器的动画数据，加载完成的 GLTF 模型会自动添加一个默认的 AnimatorController。
 
 ```typescript
-animator.animatorController = new AnimatorController()；
+animator.animatorController = new AnimatorController(engine)；
 ```
 
 #### 复用动画数据

@@ -48,9 +48,9 @@ To create a blank sprite asset, right-click on a blank space in the **[Assets Pa
 Similarly, in scripts, we can create a sprite using the following code:
 
 ```typescript
-// 创建一个空白精灵
+// Create a blank sprite.
 const sprite = new Sprite(engine);
-// 创建一个带纹理的精灵
+// Creating a textured sprite.
 const spriteWithTexture = new Sprite(engine, texture2D);
 ```
 

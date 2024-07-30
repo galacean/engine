@@ -21,7 +21,7 @@ class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
-      this.request<IScene>(item.url, { type: "json" })
+      this.request<IScene>(item.url, { ...item, type: "json" })
         .then((data) => {
           return SceneParser.parse(engine, data).then((scene) => {
             const promises = [];
@@ -106,6 +106,9 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
               if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
+              if (shadow.enableTransparentShadow != undefined) {
+                scene.enableTransparentShadow = shadow.enableTransparentShadow;
+              }
               scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
               shadow.shadowFourCascadeSplits && scene.shadowFourCascadeSplits.copyFrom(shadow.shadowFourCascadeSplits);
               scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;
@@ -131,6 +134,7 @@ class SceneLoader extends Loader<Scene> {
 
               postProcessManager.isActive = postProcessData.isActive;
               bloomEffect.enabled = postProcessData.bloom.enabled;
+              bloomEffect.downScale = postProcessData.bloom.downScale;
               bloomEffect.threshold = postProcessData.bloom.threshold;
               bloomEffect.scatter = postProcessData.bloom.scatter;
               bloomEffect.intensity = postProcessData.bloom.intensity;

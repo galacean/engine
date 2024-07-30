@@ -323,6 +323,10 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _prepareRender(context: RenderContext): void {
+    if (this._renderFrameCount !== this.engine.time.frameCount) {
+      this._update(context);
+    }
+
     const virtualCamera = context.virtualCamera;
     const cameraPosition = virtualCamera.position;
     const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
@@ -332,11 +336,6 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
     } else {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
-    }
-
-    // Update once per frame per renderer, not influenced by batched
-    if (this._renderFrameCount !== this.engine.time.frameCount) {
-      this._updateRendererShaderData(context);
     }
 
     this._render(context);
@@ -411,7 +410,10 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
-  protected _updateRendererShaderData(context: RenderContext): void {
+  /**
+   * Update once per frame per renderer, not influenced by batched.
+   */
+  protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }

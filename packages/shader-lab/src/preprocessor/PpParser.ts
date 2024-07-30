@@ -5,12 +5,11 @@ import { MacroDefine } from "./MacroDefine";
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
 import { BaseToken } from "../common/BaseToken";
-import { ParserUtils } from "../Utils";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
-import { Logger, ShaderPass } from "@galacean/engine";
+import { ShaderPass } from "@galacean/engine";
 import { PreprocessorError } from "../Error";
 
 export interface ExpandSegment {
@@ -128,7 +127,6 @@ export class PpParser {
     const chunk = this._includeMap[includedPath];
     if (!chunk) {
       this.reportError(id.location, `Shader slice "${includedPath}" not founded.`);
-
       return;
     }
 

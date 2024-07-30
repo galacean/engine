@@ -22,7 +22,7 @@
             float time = key.x;
             if(alphaAge <= time){
                 if(i == 0){
-                    value.a = colorKeys[0].y;
+                    value.a = alphaKeys[0].y;
                 }
                 else {
                     vec2 lastKey = alphaKeys[i-1];

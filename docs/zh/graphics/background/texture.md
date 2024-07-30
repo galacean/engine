@@ -8,11 +8,11 @@ label: Graphics/Background
 
 当场景的背景类型设置为纹理时，画布的渲染区域会在相机渲染前会按照填充规则填上对应的纹理。
 
-## 设置纯色背景
+## 设置纹理背景
 
 依据路径 **[层级面板](/docs/interface-hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface-inspector)** -> **Background 栏** 设置 **Mode** 为 **Texture**，然后选择期望的纹理，可以看到场景的背景发生实时变化。
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*-JYDQoHcbSsAAAAAAAAAAAAADhuCAQ/original)
+![](https://gw.alipayobjects.com/zos/OasisHub/2673b2a2-a87b-4707-b3fc-9af334231298/2024-07-18%25252017.50.16.gif)
 
 同样的，在脚本中也可通过如下代码进行设置：
 

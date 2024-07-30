@@ -4,6 +4,8 @@ import "./XRManagerExtended";
 export { XRPose } from "./XRPose";
 // xr feature
 export { XRFeature } from "./feature/XRFeature";
+export { XRTrackableFeature } from "./feature/trackable/XRTrackableFeature";
+export { XRTracked } from "./feature/trackable/XRTracked";
 // camera
 export { XRCameraManager } from "./feature/camera/XRCameraManager";
 // hitTest
@@ -38,3 +40,6 @@ export { XRFeatureType } from "./feature/XRFeatureType";
 export { XRRequestTrackingState } from "./feature/trackable/XRRequestTrackingState";
 export { XRInputEventType } from "./input/XRInputEventType";
 export { XRTargetRayMode } from "./input/XRTargetRayMode";
+
+export * from "./loader/XRReferenceImageDecoder";
+export * from "./loader/XRReferenceImageLoader";

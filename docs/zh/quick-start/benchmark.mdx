@@ -15,12 +15,17 @@ title: 基准测试
 
 ### 基础渲染
 
-本基准测试，我们测试了三款引擎在加载 225 个 glTF 模型场景下的初始化时间，以及在同时播放 255 个 glTF 动画时的性能。
+本基准测试，我们测试了三款引擎在加载 100 个 glTF 模型后，配置 10 个 PointerLight 时的渲染性能。
 
 <BenchmarkDisplay type="gltf" />
 
+### 动画
 
-### 例子系统
+本基准测试，我们测试了三款引擎在加载 225 个 glTF 模型后，同时播放 255 个 glTF 动画时的性能。
+
+<BenchmarkDisplay type="animation" />
+
+### 粒子系统
 
 本基准测试，我们测试了三款引擎在使用 500 个粒子系统，以相似参数在不透明背景下的渲染性能。
 
@@ -30,7 +35,7 @@ title: 基准测试
 
 ### 2D 渲染
 
-In the 2D test, we tested the performance of placing 7920 2D sprites and rotating them simultaneously.
+在2D测试中，我们测试了同时放置 7920 个 2D 精灵并旋转时它们的性能。
 
 <BenchmarkDisplay type="2d" />
 
