@@ -119,8 +119,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
-  _canSpriteBatch: boolean = true;
-  /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();

@@ -22,7 +22,7 @@ import {
   Animator,
   Texture2D,
   Rect,
-  InterpolationType,
+  InterpolationType
 } from "@galacean/engine";
 
 // Create engine
@@ -46,14 +46,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load<SpriteAtlas>({
       url: "https://gw.alipayobjects.com/os/bmw-prod/da0bccd4-020a-41d5-82e0-a04f4413d9a6.atlas",
-      type: AssetType.SpriteAtlas,
+      type: AssetType.SpriteAtlas
     })
     .then((atlas) => {
       const spriteEntity = rootEntity.createChild();
       spriteEntity.transform.position = new Vector3();
       spriteEntity.transform.scale.set(100 / 32, 100 / 32, 100 / 32);
-      spriteEntity.addComponent(SpriteRenderer).sprite =
-      atlas.getSprite("npcs-11");
+      spriteEntity.addComponent(SpriteRenderer).sprite = atlas.getSprite("npcs-11");
 
       const spriteCurve = new AnimationRefCurve();
       for (let i = 0; i < 10; ++i) {
@@ -67,7 +66,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       atlasState.clip = spriteClip;
 
       const animator = spriteEntity.addComponent(Animator);
-      const animatorController = new AnimatorController();
+      const animatorController = new AnimatorController(engine);
       animator.animatorController = animatorController;
       animatorController.addLayer(layer);
       animator.play(atlasState.name);
@@ -77,7 +76,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load<Texture2D>({
       url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*9nsHSpx28rAAAAAAAAAAAAAAARQnAQ",
-      type: AssetType.Texture2D,
+      type: AssetType.Texture2D
     })
     .then((texture) => {
       const spriteEntity = rootEntity.createChild("Sprite");
@@ -94,21 +93,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         spriteCurve.addKey(key);
       }
       const spriteClip = new AnimationClip("sprite");
-      spriteClip.addCurveBinding(
-        "",
-        SpriteRenderer,
-        "sprite.region",
-        spriteCurve
-      );
+      spriteClip.addCurveBinding("", SpriteRenderer, "sprite.region", spriteCurve);
       regionState.clip = spriteClip;
 
       const animator = spriteEntity.addComponent(Animator);
-      const animatorController = new AnimatorController();
+      const animatorController = new AnimatorController(engine);
       animator.animatorController = animatorController;
       animatorController.addLayer(layer);
       animator.play(regionState.name);
     });
 
-  
   engine.run();
 });

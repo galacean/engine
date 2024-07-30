@@ -106,6 +106,9 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
               if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
+              if (shadow.enableTransparentShadow != undefined) {
+                scene.enableTransparentShadow = shadow.enableTransparentShadow;
+              }
               scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
               shadow.shadowFourCascadeSplits && scene.shadowFourCascadeSplits.copyFrom(shadow.shadowFourCascadeSplits);
               scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;

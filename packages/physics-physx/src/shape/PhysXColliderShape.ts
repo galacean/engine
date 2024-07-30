@@ -100,7 +100,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setContactOffset(offset);
+      controllers.get(i)._pxController?.setContactOffset(offset);
     }
   }
 

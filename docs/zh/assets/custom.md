@@ -1,0 +1,28 @@
+---
+order: 4
+title: 自定义加载器
+type: 资产工作流
+label: Resource
+---
+
+用户也可以自定义加载器来加载自定义的资源：
+
+```typescript
+@resourceLoader(FBX, ["fbx"])
+export class FBXLoader extends Loader<FBXResource> {
+	load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<FBXResource> {
+  	return new AssetPromise((resolve, reject)=> {
+    	...
+    })
+  }
+}
+```
+
+1. 通过 [@resourceLoader](/apis/core/#resourceLoader) 装饰器标注为 _ResourceLoader_，传入类型枚举和被解析的资源后缀名。上面的例子 `FBX` 是类型枚举， `["fbx"]`  是被解析资源的后缀名。
+2. 重写 [load](/apis/core/#ResourceManager-load) 方法， `load`  方法会传入 `loadItem` 和 `resourceManager` ， `loadItem`  包含了加载的基信息， `resourceManager`  可以帮助加载其他引用资源。
+3. 返回 [AssetPromise](/apis/core/#AssetPromise)  对象， `resolve`  解析后的资源结果，例如 FBX 返回特定的 `FBXResource` 。
+4. 若报错则 `reject`  错误。
+
+## 参考
+
+<playground src="obj-loader.ts"></playground>

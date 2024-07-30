@@ -29,6 +29,12 @@ You could write some additional information in that place. You also could use ma
 
 ### Callout
 
+```mdx
+<Callout type="info">
+your text...
+</Callout>
+```
+
 Callout 组件与你在 markdown 中使用的引言语法 `> some text` 类似，不过它会以高亮块的方式来突出显示内容，从而更直观的传递一些信息。
 Callout 组件提供了四种类型: `info`，`warning`，`positive` 以及 `negative`，用来适配不同的是用场景。
 
@@ -55,6 +61,24 @@ Callout 组件提供了四种类型: `info`，`warning`，`positive` 以及 `neg
 <Callout type="negative">
 注意，如果你没有把脚本资产绑定到实体的脚本组件上，则脚本不会运行
 </Callout>
+
+### Comparison
+
+```mdx
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*AxpMSqxO5-IAAAAAAAAAAAAADknZAQ/original"
+  leftText="offset: 15.3"
+  rightSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*-Q8FS7vQhkkAAAAAAAAAAAAADknZAQ/original"
+  rightText="offset: 20.4"
+/>
+```
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*AxpMSqxO5-IAAAAAAAAAAAAADknZAQ/original"
+  leftText="offset: 15.3"
+  rightSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*-Q8FS7vQhkkAAAAAAAAAAAAADknZAQ/original"
+  rightText="offset: 20.4"
+/>
 
 ### 图片缩放
 
@@ -184,19 +208,28 @@ engine.resourceManager
 
 ```
 
-### 嵌入示例 
+### 示例 
 
-在之前，你使用的是 `<playground src="ambient-light.ts"></playground>{:html}` 语法来嵌入的示例。新版的官网对此语法也做了兼容。但后续嵌入示例时推荐使用下面新的语法。毕竟，这里嵌入的示例只是一个 iframe 而已。
+#### 编写示例代码
+
+我们现在提供两种方式让你组织示例代码：
+
+- 在 `examples/` 文件夹下新建 `.ts` 示例文件来组织示例代码
+- 在 `examples/` 文件夹下新建一个 **示例文件夹**，最后通过 `示例文件夹/index.ts` 来暴露示例代码
+
+#### 嵌入示例
 
 ````mdx filename="light.mdx"
 ...
 
 Ambient light emits from all directions and enters the eye, as shown in the example below:
 
-<playground href="/embed/ambient-light">
+<playground href="/embed/ambient-light" />
 
 ...
 ````
+
+<Playground href="/embed/ambient-light" />
 
 ## 新增文档
 

@@ -39,6 +39,7 @@ export interface IScene extends IHierarchyFile {
     };
     shadow?: {
       castShadows: boolean;
+      enableTransparentShadow: boolean;
       shadowResolution: ShadowResolution;
       shadowDistance: number;
       shadowCascades: ShadowCascadesMode;
