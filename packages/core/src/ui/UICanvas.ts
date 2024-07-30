@@ -96,6 +96,8 @@ export class UICanvas extends Component {
           preMode === CanvasRenderMode.ScreenSpaceCamera && !camera ? CanvasRenderMode.ScreenSpaceOverlay : preMode;
         mode = mode === CanvasRenderMode.ScreenSpaceCamera && !camera ? CanvasRenderMode.ScreenSpaceOverlay : mode;
         if (preMode !== mode) {
+          const { _componentsManager: componentsManager } = this.scene;
+
           if (preMode === CanvasRenderMode.ScreenSpaceCamera) {
             this._removeCameraListener(camera);
             // @ts-ignore
@@ -104,6 +106,8 @@ export class UICanvas extends Component {
             this._removeCanvasListener();
             // @ts-ignore
             this._referenceResolution._onValueChanged = null;
+            // Remove overlay camera from scene's active cameras.
+            componentsManager.removeCamera(this._overlayCamera);
           }
 
           if (mode === CanvasRenderMode.ScreenSpaceCamera) {
@@ -114,11 +118,12 @@ export class UICanvas extends Component {
             this._addCanvasListener();
             // @ts-ignore
             this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
+            // Add overlay camera to scene's active cameras.
+            componentsManager.addCamera(this._overlayCamera);
           }
 
           this._adapterPoseInScreenSpace();
           this._adapterSizeInScreenSpace();
-          const { _componentsManager: componentsManager } = this.scene;
           componentsManager.removeUICanvas(preMode, this);
           componentsManager.addUICanvas(mode, this);
         }
@@ -149,6 +154,11 @@ export class UICanvas extends Component {
           const { _componentsManager: componentsManager } = this.scene;
           componentsManager.removeUICanvas(preMode, this);
           componentsManager.addUICanvas(curMode, this);
+          if (curMode === CanvasRenderMode.ScreenSpaceOverlay) {
+            componentsManager.addCamera(this._overlayCamera);
+          } else {
+            componentsManager.removeCamera(this._overlayCamera);
+          }
         }
       }
     }
@@ -229,8 +239,6 @@ export class UICanvas extends Component {
     this._entity._updateFlagManager.addListener(this._onEntityListener);
     this._addParentListener();
     this._setIsRootCanvas(this._checkIsRootCanvas());
-    // TODO
-    this.scene._componentsManager.addCamera(this._overlayCamera);
   }
 
   /**
@@ -240,9 +248,6 @@ export class UICanvas extends Component {
     this._entity._updateFlagManager.removeListener(this._onEntityListener);
     this._removeParentListener();
     this._setIsRootCanvas(false);
-
-    // TODO
-    this.scene._componentsManager.removeCamera(this._overlayCamera);
   }
 
   /**
@@ -443,7 +448,8 @@ export class UICanvas extends Component {
   private _setIsRootCanvas(value: boolean): void {
     if (this._isRootCanvas !== value) {
       this._isRootCanvas = value;
-      const { _renderMode: renderMode } = this;
+      const renderMode = this._renderMode;
+      const componentsManager = this.scene._componentsManager;
       if (value) {
         switch (renderMode) {
           case CanvasRenderMode.ScreenSpaceCamera:
@@ -451,6 +457,7 @@ export class UICanvas extends Component {
               this._addCameraListener(this._renderCamera);
             } else {
               this._addCanvasListener();
+              componentsManager.addCamera(this._overlayCamera);
             }
             // @ts-ignore
             this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
@@ -463,11 +470,12 @@ export class UICanvas extends Component {
             this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
             this._adapterPoseInScreenSpace();
             this._adapterSizeInScreenSpace();
+            componentsManager.addCamera(this._overlayCamera);
             break;
           default:
             break;
         }
-        this.scene._componentsManager.addUICanvas(renderMode, this);
+        componentsManager.addUICanvas(renderMode, this);
       } else {
         switch (renderMode) {
           case CanvasRenderMode.ScreenSpaceCamera:
@@ -487,7 +495,8 @@ export class UICanvas extends Component {
           default:
             break;
         }
-        this.scene._componentsManager.removeUICanvas(renderMode, this);
+        componentsManager.removeUICanvas(renderMode, this);
+        componentsManager.removeCamera(this._overlayCamera);
       }
     }
   }
