@@ -245,7 +245,7 @@ export class Animator extends Component {
    */
   setParameterValue(name: string, value: AnimatorControllerParameterValue) {
     const parameter = this._animatorController?._parametersMap[name];
-    if (parameter && parameter.defaultValue !== value) {
+    if (parameter) {
       this._parametersValueMap[name] = value;
     }
   }
@@ -618,7 +618,6 @@ export class Animator extends Component {
   ): void {
     const curveBindings = playData.state.clip._curveBindings;
     const finished = playData.playState === AnimatorStatePlayState.Finished;
-
     if (aniUpdate || finished) {
       const curveLayerOwner = playData.stateData.curveLayerOwner;
       for (let i = curveBindings.length - 1; i >= 0; i--) {
