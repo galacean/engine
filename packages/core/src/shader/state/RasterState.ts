@@ -1,5 +1,8 @@
-import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
+import { IHardwareRenderer } from "@galacean/engine-design";
+import { ShaderData } from "../ShaderData";
+import { ShaderProperty } from "../ShaderProperty";
 import { CullMode } from "../enums/CullMode";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { RenderState } from "./RenderState";
 
 /**
@@ -17,6 +20,26 @@ export class RasterState {
   _cullFaceEnable: boolean = true;
   /** @internal */
   _frontFaceInvert: boolean = false;
+
+  /**
+   * @internal
+   */
+  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    const cullModeProperty = renderStateDataMap[RenderStateElementKey.RasterStateCullMode];
+    if (cullModeProperty !== undefined) {
+      this.cullMode = shaderData.getFloat(cullModeProperty) ?? CullMode.Back;
+    }
+
+    const depthBiasProperty = renderStateDataMap[RenderStateElementKey.RasterStateDepthBias];
+    if (depthBiasProperty !== undefined) {
+      this.depthBias = shaderData.getFloat(depthBiasProperty) ?? 0;
+    }
+
+    const slopeScaledDepthBiasProperty = renderStateDataMap[RenderStateElementKey.RasterStateSlopeScaledDepthBias];
+    if (slopeScaledDepthBiasProperty !== undefined) {
+      this.slopeScaledDepthBias = shaderData.getFloat(slopeScaledDepthBiasProperty) ?? 0;
+    }
+  }
 
   /**
    * @internal

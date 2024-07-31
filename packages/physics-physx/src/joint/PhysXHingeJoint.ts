@@ -1,8 +1,8 @@
+import { IHingeJoint } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "../PhysXCollider";
-import { PhysXJoint } from "./PhysXJoint";
-import { IHingeJoint } from "@oasis-engine/design";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { PhysXJoint } from "./PhysXJoint";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -10,12 +10,11 @@ import { Quaternion, Vector3 } from "oasis-engine";
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _axisRotationQuaternion = new Quaternion();
   private _swingOffset = new Vector3();
-  private _velocity = new Vector3();
 
-  constructor(collider: PhysXCollider) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+    super(physXPhysics);
     this._collider = collider;
-    this._pxJoint = PhysXPhysics._pxPhysics.createRevoluteJoint(
+    this._pxJoint = physXPhysics._pxPhysics.createRevoluteJoint(
       null,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,
@@ -58,10 +57,8 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.getVelocity }
    */
-  getVelocity(): Readonly<Vector3> {
-    const velocity = this._velocity;
-    velocity.copyFrom(this._pxJoint.getVelocity());
-    return velocity;
+  getVelocity(): Readonly<number> {
+    return this._pxJoint.getVelocity();
   }
 
   /**
@@ -81,8 +78,8 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.setDriveVelocity }
    */
-  setDriveVelocity(velocity: number): void {
-    this._pxJoint.setDriveVelocity(velocity);
+  setDriveVelocity(velocity: number, autowake: boolean = true): void {
+    this._pxJoint.setDriveVelocity(velocity, autowake);
   }
 
   /**

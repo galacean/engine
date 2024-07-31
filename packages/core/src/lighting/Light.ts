@@ -1,47 +1,50 @@
-import { Color, Matrix } from "@oasis-engine/math";
-import { ignoreClone } from "../clone/CloneManager";
+import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShadowType } from "../shadow";
 
 /**
  * Light base class.
  */
 export abstract class Light extends Component {
-  /**
-   * Each type of light source is at most 10, beyond which it will not take effect.
-   * */
-  protected static _maxLight: number = 10;
-
   /** Light Intensity */
-  intensity: number = 1;
+  intensity = 1;
 
   /**
-   * @beta
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
-  cullingMask: Layer = Layer.Everything;
+  cullingMask = Layer.Everything;
 
   /** How this light casts shadows. */
-  shadowType: ShadowType = ShadowType.None;
+  shadowType = ShadowType.None;
   /** Shadow bias.*/
-  shadowBias: number = 1;
+  shadowBias = 1;
   /** Shadow mapping normal-based bias. */
-  shadowNormalBias: number = 1;
+  shadowNormalBias = 1;
   /** Near plane value to use for shadow frustums. */
-  shadowNearPlane: number = 0.1;
-  /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
-  shadowStrength: number = 1.0;
+  shadowNearPlane = 0.1;
 
   /** @internal */
   @ignoreClone
-  _lightIndex: number = -1;
+  _lightIndex = -1;
+  /** @internal */
+  _lightColor = new Color();
 
-  private _color: Color = new Color(1, 1, 1, 1);
+  private _shadowStrength = 1.0;
+  private _color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
-  private _lightColor: Color = new Color();
+
+  /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1]. */
+  get shadowStrength(): number {
+    return this._shadowStrength;
+  }
+
+  set shadowStrength(value: number) {
+    this._shadowStrength = MathUtil.clamp(value, 0, 1);
+  }
 
   /**
    * Light Color.
@@ -79,7 +82,11 @@ export abstract class Light extends Component {
    */
   abstract get _shadowProjectionMatrix(): Matrix;
 
-  protected _getLightColor(): Color {
+  /**
+   * Light Color, include intensity.
+   * @internal
+   */
+  _getLightIntensityColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;
     this._lightColor.g = this.color.g * this.intensity;
     this._lightColor.b = this.color.b * this.intensity;

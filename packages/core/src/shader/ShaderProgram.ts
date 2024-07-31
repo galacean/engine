@@ -1,17 +1,13 @@
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { Logger } from "../base/Logger";
-import { Camera } from "../Camera";
+import { IHardwareRenderer } from "@galacean/engine-design";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { Material } from "../material/Material";
-import { Renderer } from "../Renderer";
-import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
-import { Scene } from "../Scene";
+import { Logger } from "../base/Logger";
 import { Texture } from "../texture";
-import { ShaderDataGroup } from "./enums/ShaderDataGroup";
-import { Shader } from "./Shader";
 import { ShaderData } from "./ShaderData";
+import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
+import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 
 /**
  * Shader program, corresponding to the GPU shader program.
@@ -42,18 +38,19 @@ export class ShaderProgram {
   readonly cameraUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly rendererUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly materialUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
+  readonly renderElementUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly otherUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
 
   /** @internal */
   _uploadRenderCount: number = -1;
   /** @internal */
-  _uploadScene: Scene;
+  _uploadSceneId: number = -1;
   /** @internal */
-  _uploadCamera: Camera;
+  _uploadCameraId: number = -1;
   /** @internal */
-  _uploadRenderer: Renderer;
+  _uploadRendererId: number = -1;
   /** @internal */
-  _uploadMaterial: Material;
+  _uploadMaterialId: number = -1;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
 
@@ -61,8 +58,6 @@ export class ShaderProgram {
   private _isValid: boolean;
   private _engine: Engine;
   private _gl: WebGLRenderingContext;
-  private _vertexShader: WebGLShader;
-  private _fragmentShader: WebGLShader;
   private _glProgram: WebGLProgram;
   private _activeTextureUint: number = 0;
 
@@ -165,9 +160,9 @@ export class ShaderProgram {
    */
   bind(): boolean {
     const rhi: IHardwareRenderer = this._engine._hardwareRenderer;
-    if (rhi._currentBind !== this) {
+    if (rhi._currentBindShaderProgram !== this) {
       this._gl.useProgram(this._glProgram);
-      rhi._currentBind = this;
+      rhi._currentBindShaderProgram = this;
       return true;
     } else {
       return false;
@@ -179,15 +174,13 @@ export class ShaderProgram {
    */
   destroy(): void {
     const gl = this._gl;
-    this._vertexShader && gl.deleteShader(this._vertexShader);
-    this._fragmentShader && gl.deleteShader(this._fragmentShader);
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
   private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
     for (let i = uniforms.length - 1; i >= 0; i--) {
       const uniform = uniforms[i];
-      const group = Shader._getShaderPropertyGroup(uniform.name);
+      const group = ShaderProperty._getShaderPropertyGroup(uniform.name);
       if (group !== undefined) {
         uniforms.splice(uniforms.indexOf(uniform), 1);
         this._groupingUniform(uniform, group, isTexture);
@@ -225,6 +218,13 @@ export class ShaderProgram {
           this.materialUniformBlock.constUniforms.push(uniform);
         }
         break;
+      case ShaderDataGroup.RenderElement:
+        if (isTexture) {
+          this.renderElementUniformBlock.textureUniforms.push(uniform);
+        } else {
+          this.renderElementUniformBlock.constUniforms.push(uniform);
+        }
+        break;
       default:
         if (isTexture) {
           this.otherUniformBlock.textureUniforms.push(uniform);
@@ -235,12 +235,12 @@ export class ShaderProgram {
   }
 
   /**
-   * init and link program with shader.
+   * Init and link program with shader.
    */
   private _createProgram(vertexSource: string, fragmentSource: string): WebGLProgram | null {
     const gl = this._gl;
 
-    // create and compile shader
+    // Create and compile shader
     const vertexShader = this._createShader(gl.VERTEX_SHADER, vertexSource);
     if (!vertexShader) {
       return null;
@@ -251,28 +251,32 @@ export class ShaderProgram {
       return null;
     }
 
-    // link program and shader
+    // Create program and link shader
     const program = gl.createProgram();
+    if (!program) {
+      console.warn("Context lost while create program.");
+      return null;
+    }
+
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
     gl.validateProgram(program);
 
-    if (gl.isContextLost()) {
-      Logger.error("Context lost while linking program.");
-      gl.deleteShader(vertexShader);
-      gl.deleteShader(fragmentShader);
-      return null;
-    }
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
 
-    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
+    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
+      Logger.error(
+        `Could not link WebGL program\n\n` +
+          `Shader error: ${gl.getError()}\n\n` +
+          `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
+          `Program information log: ${gl.getProgramInfoLog(program)}`
+      );
       gl.deleteProgram(program);
       return null;
     }
 
-    this._vertexShader = vertexShader;
-    this._fragmentShader = fragmentShader;
     return program;
   }
 
@@ -288,16 +292,12 @@ export class ShaderProgram {
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
 
-    if (gl.isContextLost()) {
-      console.warn("Context lost while compiling shader.");
-      gl.deleteShader(shader);
-      return null;
-    }
-
-    if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
       console.warn(
-        `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
-        ShaderProgram._addLineNum(shaderSource)
+        `Could not compile WebGL shader\n\n` +
+          `Shader type: ${shaderType == gl.VERTEX_SHADER ? "vertex" : "fragment"}\n\n` +
+          `Shader information log:\n${gl.getShaderInfoLog(shader)}\n` +
+          `Shader source:\n${ShaderProgram._addLineNum(shaderSource)}`
       );
       gl.deleteShader(shader);
       return null;
@@ -314,6 +314,7 @@ export class ShaderProgram {
     const program = this._glProgram;
     const uniformInfos = this._getUniformInfos();
     const attributeInfos = this._getAttributeInfos();
+    const basicResources = this._engine._basicResources;
 
     uniformInfos.forEach(({ name, size, type }) => {
       const shaderUniform = new ShaderUniform(this._engine);
@@ -327,7 +328,7 @@ export class ShaderProgram {
 
       const location = gl.getUniformLocation(program, name);
       shaderUniform.name = name;
-      shaderUniform.propertyId = Shader.getPropertyByName(name)._uniqueId;
+      shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
       shaderUniform.location = location;
 
       switch (type) {
@@ -384,10 +385,11 @@ export class ShaderProgram {
         case gl.BOOL_VEC3:
         case gl.INT_VEC3:
           if (isArray) {
+            shaderUniform.applyFunc = shaderUniform.upload3iv;
           } else {
+            shaderUniform.applyFunc = shaderUniform.upload3i;
+            shaderUniform.cacheValue = new Vector3(0, 0, 0);
           }
-          shaderUniform.applyFunc = isArray ? shaderUniform.upload3iv : shaderUniform.upload3i;
-          shaderUniform.cacheValue = new Vector3(0, 0, 0);
           break;
         case gl.BOOL_VEC4:
         case gl.INT_VEC4:
@@ -403,22 +405,26 @@ export class ShaderProgram {
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
+        case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
         case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
         case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
           let defaultTexture: Texture;
           switch (type) {
             case gl.SAMPLER_2D:
-              defaultTexture = this._engine._magentaTexture2D;
+              defaultTexture = basicResources.whiteTexture2D;
               break;
             case gl.SAMPLER_CUBE:
-              defaultTexture = this._engine._magentaTextureCube;
+              defaultTexture = basicResources.whiteTextureCube;
+              break;
+            case (<WebGL2RenderingContext>gl).UNSIGNED_INT_SAMPLER_2D:
+              defaultTexture = basicResources.uintWhiteTexture2D;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
-              defaultTexture = this._engine._magentaTexture2DArray;
+              defaultTexture = basicResources.whiteTexture2DArray;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;
-              shaderUniform.textureUseComporeMode = true;
+              shaderUniform.textureUseCompareMode = true;
               break;
           }
 
@@ -447,9 +453,11 @@ export class ShaderProgram {
             gl.uniform1i(location, this._activeTextureUint++);
           }
           break;
+        default:
+          throw new Error("Unsupported uniform type");
       }
 
-      const group = Shader._getShaderPropertyGroup(name);
+      const group = ShaderProperty._getShaderPropertyGroup(name);
       this._groupingUniform(shaderUniform, group, isTexture);
     });
 

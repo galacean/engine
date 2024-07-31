@@ -1,10 +1,18 @@
-import { AssetPromise, AssetType, Font, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
+import {
+  AssetPromise,
+  AssetType,
+  Font,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Font, ["font"], false)
 class FontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, { type: "json" })
+      this.request<any>(item.url, { ...item, type: "json" })
         .then((data) => {
           const { fontName, fontUrl } = data;
 

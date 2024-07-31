@@ -1,5 +1,5 @@
-import { ICollider } from "@oasis-engine/design";
-import { Quaternion, Ray, Vector3 } from "oasis-engine";
+import { ICollider } from "@galacean/engine-design";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteTransform } from "./LiteTransform";
@@ -8,6 +8,9 @@ import { LiteTransform } from "./LiteTransform";
  * Abstract class of physical collider.
  */
 export abstract class LiteCollider implements ICollider {
+  /** @internal */
+  abstract readonly _isStaticCollider: boolean;
+
   /** @internal */
   _shapes: LiteColliderShape[] = [];
   /** @internal */

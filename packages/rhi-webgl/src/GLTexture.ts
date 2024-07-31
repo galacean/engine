@@ -2,16 +2,16 @@ import {
   GLCapabilityType,
   IPlatformTexture,
   Logger,
-  RenderBufferDepthFormat,
   Texture,
   TextureCubeFace,
   TextureDepthCompareFunction,
   TextureFilterMode,
   TextureFormat,
+  TextureUsage,
   TextureWrapMode
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
-import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * Texture in WebGL platform.
@@ -81,6 +81,13 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case TextureFormat.R11G11B10_UFloat:
+        return {
+          internalFormat: isWebGL2 ? gl.R11F_G11F_B10F : gl.NONE,
+          baseFormat: gl.RGB,
+          dataType: gl.FLOAT,
+          isCompressed: false
+        };
       case TextureFormat.R16G16B16A16:
         return {
           internalFormat: isWebGL2 ? gl.RGBA16F : gl.RGBA,
@@ -95,14 +102,26 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.FLOAT,
           isCompressed: false
         };
-      case TextureFormat.DXT1:
+      case TextureFormat.R32G32B32A32_UInt:
+        return {
+          internalFormat: isWebGL2 ? gl.RGBA32UI : gl.NONE,
+          baseFormat: gl.RGBA_INTEGER,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false
+        };
+      case TextureFormat.BC1:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
           isCompressed: true
         };
-      case TextureFormat.DXT5:
+      case TextureFormat.BC3:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT,
+          isCompressed: true
+        };
+      case TextureFormat.BC7:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT,
           isCompressed: true
         };
       case TextureFormat.ETC1_RGB:
@@ -233,7 +252,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
@@ -242,12 +261,12 @@ export class GLTexture implements IPlatformTexture {
    * @internal
    */
   static _getRenderBufferDepthFormatDetail(
-    format: RenderBufferDepthFormat,
+    format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
     switch (format) {
-      case RenderBufferDepthFormat.Depth:
+      case TextureFormat.Depth:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -255,7 +274,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case RenderBufferDepthFormat.DepthStencil:
+      case TextureFormat.DepthStencil:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH32F_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
@@ -263,7 +282,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Stencil:
+      case TextureFormat.Stencil:
         return {
           internalFormat: gl.STENCIL_INDEX8,
           baseFormat: gl.STENCIL_ATTACHMENT,
@@ -271,7 +290,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.STENCIL_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth16:
+      case TextureFormat.Depth16:
         return {
           internalFormat: gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -279,7 +298,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth24Stencil8:
+      case TextureFormat.Depth24Stencil8:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
@@ -287,7 +306,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth24:
+      case TextureFormat.Depth24:
         return {
           internalFormat: gl.DEPTH_COMPONENT24,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -295,7 +314,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case RenderBufferDepthFormat.Depth32:
+      case TextureFormat.Depth32:
         return {
           internalFormat: gl.DEPTH_COMPONENT32F,
           baseFormat: gl.DEPTH_COMPONENT,
@@ -304,7 +323,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_ATTACHMENT
         };
 
-      case RenderBufferDepthFormat.Depth32Stencil8:
+      case TextureFormat.Depth32Stencil8:
         return {
           internalFormat: gl.DEPTH32F_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
@@ -313,7 +332,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
@@ -321,7 +340,7 @@ export class GLTexture implements IPlatformTexture {
    * Check whether the corresponding texture format is supported.
    * @internal
    */
-  static _supportTextureFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+  static _supportTextureFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     switch (format) {
       case TextureFormat.R16G16B16A16:
         if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
@@ -341,6 +360,8 @@ export class GLTexture implements IPlatformTexture {
           return false;
         }
         break;
+      case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R32G32B32A32_UInt:
       case TextureFormat.Depth24:
       case TextureFormat.Depth32:
       case TextureFormat.Depth32Stencil8:
@@ -352,7 +373,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     let isSupported = true;
 
     switch (format) {
@@ -370,6 +391,12 @@ export class GLTexture implements IPlatformTexture {
           }
         }
         break;
+
+      case TextureFormat.R11G11B10_UFloat:
+        {
+          isSupported = rhi.isWebGL2;
+        }
+        break;
     }
 
     return isSupported;
@@ -378,12 +405,12 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLRenderer): boolean {
+  static _supportRenderBufferDepthFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     if (!rhi.isWebGL2) {
       switch (format) {
-        case RenderBufferDepthFormat.Depth24:
-        case RenderBufferDepthFormat.Depth32:
-        case RenderBufferDepthFormat.Depth32Stencil8:
+        case TextureFormat.Depth24:
+        case TextureFormat.Depth32:
+        case TextureFormat.Depth32Stencil8:
           return false;
       }
     }
@@ -396,7 +423,7 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _glTexture: WebGLTexture;
   /** @internal */
-  _rhi: WebGLRenderer;
+  _rhi: WebGLGraphicDevice;
   /** @internal */
   _gl: WebGLRenderingContext & WebGL2RenderingContext;
   /** @internal */
@@ -492,7 +519,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * Create texture in WebGL platform.
    */
-  constructor(rhi: WebGLRenderer, texture: Texture, target: GLenum) {
+  constructor(rhi: WebGLGraphicDevice, texture: Texture, target: GLenum) {
     this._texture = texture;
     this._rhi = rhi;
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
@@ -542,11 +569,11 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
+    const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
 
-    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA)) {
+    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {

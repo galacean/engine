@@ -1,5 +1,5 @@
-import { IColliderShape } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
+import { IColliderShape } from "@galacean/engine-design";
 import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
@@ -30,16 +30,17 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
 
-  protected _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _physXPhysics: PhysXPhysics;
+  protected _worldScale: Vector3 = new Vector3(1, 1, 1);
   protected _position: Vector3 = new Vector3();
   protected _rotation: Vector3 = null;
   protected _axis: Quaternion = null;
-  protected _physxRotation: Quaternion = new Quaternion();
+  protected _physXRotation: Quaternion = new Quaternion();
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   /** @internal */
-  _pxMaterials: any[] = new Array(1);
+  _pxMaterial: any;
   /** @internal */
   _pxShape: any;
   /** @internal */
@@ -47,14 +48,18 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _id: number;
 
+  constructor(physXPhysics: PhysXPhysics) {
+    this._physXPhysics = physXPhysics;
+  }
+
   /**
    * {@inheritDoc IColliderShape.setRotation }
    */
   setRotation(value: Vector3): void {
     this._rotation = value;
-    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physxRotation);
-    this._axis && Quaternion.multiply(this._physxRotation, this._axis, this._physxRotation);
-    this._physxRotation.normalize();
+    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physXRotation);
+    this._axis && Quaternion.multiply(this._physXRotation, this._axis, this._physXRotation);
+    this._physXRotation.normalize();
     this._setLocalPose();
   }
 
@@ -65,13 +70,26 @@ export abstract class PhysXColliderShape implements IColliderShape {
     if (value !== this._position) {
       this._position.copyFrom(value);
     }
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._updateShapePosition(this._position, this._worldScale);
+    }
+
     this._setLocalPose();
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  abstract setWorldScale(scale: Vector3): void;
+  setWorldScale(scale: Vector3): void {
+    this._worldScale.copyFrom(scale);
+    this._setLocalPose();
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._updateShapePosition(this._position, this._worldScale);
+    }
+  }
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
@@ -82,7 +100,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setContactOffset(offset);
+      controllers.get(i)._pxController?.setContactOffset(offset);
     }
   }
 
@@ -90,8 +108,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
-    this._pxMaterials[0] = value._pxMaterial;
-    this._pxShape.setMaterials(this._pxMaterials);
+    this._pxMaterial = value._pxMaterial;
+    this._pxShape.setMaterial(this._pxMaterial);
   }
 
   /**
@@ -115,26 +133,26 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   _setShapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
-    this._pxShape.setFlags(new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags));
+    this._pxShape.setFlags(new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags));
   }
 
   protected _setLocalPose(): void {
     const transform = PhysXColliderShape.transform;
-    Vector3.multiply(this._position, this._scale, transform.translation);
-    transform.rotation = this._physxRotation;
+    Vector3.multiply(this._position, this._worldScale, transform.translation);
+    transform.rotation = this._physXRotation;
     this._pxShape.setLocalPose(transform);
   }
 
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
-    this._pxMaterials[0] = material._pxMaterial;
-    this._pxShape = PhysXPhysics._pxPhysics.createShape(
+    this._pxMaterial = material._pxMaterial;
+    this._pxShape = this._physXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,
       true,
-      new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
+      new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
-    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
+    this._pxShape.setUUID(id);
   }
 
   private _modifyFlag(flag: ShapeFlag, value: boolean): void {

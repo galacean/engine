@@ -10,7 +10,7 @@ export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimation
   private _skinnedMeshRenderer: SkinnedMeshRenderer;
 
   initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
-    this._skinnedMeshRenderer = owner.target.getComponent(SkinnedMeshRenderer);
+    this._skinnedMeshRenderer = <SkinnedMeshRenderer>owner.component;
   }
 
   getTargetValue(): Float32Array {

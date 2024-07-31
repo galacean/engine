@@ -7,9 +7,13 @@ import {
   ResourceManager,
   AnimatorController,
   AnimatorControllerLayer,
-  AnimatorStateMachine,
-  AnimatorStateTransition
-} from "@oasis-engine/core";
+  AnimatorStateTransition,
+  AnimatorState,
+  AnimatorConditionMode,
+  AnimatorControllerParameterValue,
+  WrapMode,
+  AnimatorControllerParameter
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.AnimatorController, ["json"], false)
 class AnimatorControllerLoader extends Loader<AnimatorController> {
@@ -20,8 +24,8 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
         type: "json"
       })
         .then((data) => {
-          const animatorController = new AnimatorController();
-          const { layers } = data;
+          const animatorController = new AnimatorController(resourceManager.engine);
+          const { layers, parameters } = data;
           const promises = [];
           layers.forEach((layerData, layerIndex: number) => {
             const { name, blendingMode, weight, stateMachine: stateMachineData } = layerData;
@@ -29,24 +33,30 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             layer.blendingMode = blendingMode;
             layer.weight = weight;
             if (stateMachineData) {
-              const { states } = stateMachineData;
-              const stateMachine = (layer.stateMachine = new AnimatorStateMachine());
-              states.forEach((stateData, stateIndex: number) => {
+              const { states, transitions, entryTransitions, anyTransitions } = stateMachineData;
+              const stateMachine = layer.stateMachine;
+              const statesMap: Record<string, AnimatorState> = {};
+              const transitionsMap: Record<string, AnimatorStateTransition> = {};
+              states.forEach((stateData: IStateData, stateIndex: number) => {
                 const {
+                  id,
                   name,
                   speed,
                   wrapMode,
                   clipStartNormalizedTime,
                   clipEndNormalizedTime,
-                  isDefaultState,
-                  clip: clipData
+                  clip: clipData,
+                  scripts
                 } = stateData;
                 const state = stateMachine.addState(name);
-                isDefaultState && (stateMachine.defaultState = state);
                 state.speed = speed;
                 state.wrapMode = wrapMode;
                 state.clipStartTime = clipStartNormalizedTime;
                 state.clipEndTime = clipEndNormalizedTime;
+                scripts.forEach((script) => {
+                  state.addStateMachineScript(Loader.getClass(script));
+                });
+                statesMap[id] = state;
                 if (clipData) {
                   promises.push(
                     new Promise((resolve) => {
@@ -62,22 +72,35 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                   );
                 }
               });
-              states.forEach((stateData) => {
-                const { name, transitions } = stateData;
-                transitions.forEach((transitionData) => {
-                  const { targetStateName, duration, offset, exitTime } = transitionData;
-                  const sourceState = stateMachine.findStateByName(name);
-                  const destState = stateMachine.findStateByName(targetStateName);
-                  const transition = new AnimatorStateTransition();
-                  transition.destinationState = destState;
-                  transition.duration = duration;
-                  transition.exitTime = exitTime;
-                  transition.offset = offset;
-                  sourceState.addTransition(transition);
+              transitions.forEach((transitionData: ITransitionData) => {
+                const transition = this._createTransition(transitionData, statesMap[transitionData.destinationStateId]);
+                transitionsMap[transitionData.id] = transition;
+              });
+
+              states.forEach((stateData: IStateData) => {
+                const { id, transitions } = stateData;
+                transitions.forEach((transitionId) => {
+                  const transition = transitionsMap[transitionId];
+                  transition && statesMap[id].addTransition(transition);
                 });
+              });
+
+              entryTransitions.forEach((entryTransitionData: ITransitionData) => {
+                stateMachine.addEntryStateTransition(
+                  this._createTransition(entryTransitionData, statesMap[entryTransitionData.destinationStateId])
+                );
+              });
+
+              anyTransitions.forEach((anyTransitionData: ITransitionData) => {
+                stateMachine.addAnyStateTransition(
+                  this._createTransition(anyTransitionData, statesMap[anyTransitionData.destinationStateId])
+                );
               });
             }
             animatorController.addLayer(layer);
+          });
+          parameters.forEach((parameterData) => {
+            animatorController.addParameter(parameterData.name, parameterData.defaultValue);
           });
           Promise.all(promises).then((clipData) => {
             clipData.forEach((data) => {
@@ -90,4 +113,53 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
         .catch(reject);
     });
   }
+
+  private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
+    const transition = new AnimatorStateTransition();
+    transition.duration = transitionData.duration;
+    transition.offset = transitionData.offset;
+    transition.exitTime = transitionData.exitTime;
+    transition.solo = transitionData.solo;
+    transition.mute = transitionData.mute;
+    // @ts-ignore
+    transition._isExit = transitionData.isExit;
+    transition.destinationState = destinationState;
+    transitionData.conditions.forEach((conditionData) => {
+      transition.addCondition(conditionData.mode, conditionData.parameterName, conditionData.threshold);
+    });
+    return transition;
+  }
+}
+
+interface IStateData {
+  id?: string;
+  name: string;
+  speed: number;
+  wrapMode: WrapMode;
+  clipStartNormalizedTime: number;
+  clipEndNormalizedTime: number;
+  clip: any;
+  transitions: string[];
+  scripts: string[];
+  isEntryState: boolean;
+  isExitState: boolean;
+  isAnyState: boolean;
+}
+
+interface ITransitionData {
+  id?: string;
+  duration: number;
+  offset: number;
+  exitTime: number;
+  destinationStateId: string;
+  solo: boolean;
+  mute: boolean;
+  isExit: boolean;
+  conditions: IConditionData[];
+}
+
+interface IConditionData {
+  mode: AnimatorConditionMode;
+  parameterName: string;
+  threshold?: AnimatorControllerParameterValue;
 }

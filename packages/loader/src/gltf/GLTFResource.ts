@@ -1,71 +1,119 @@
 import {
   AnimationClip,
+  AnimatorController,
   Camera,
   Engine,
-  EngineObject,
   Entity,
   Light,
   Material,
   ModelMesh,
-  Renderer,
+  ReferResource,
   Skin,
   Texture2D
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 /**
- * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * The glTF resource.
  */
-export class GLTFResource extends EngineObject {
-  /** GLTF file url. */
-  url: string;
-  /** Oasis Texture2D after TextureParser. */
-  textures?: Texture2D[];
-  /** Oasis Material after MaterialParser. */
-  materials?: Material[];
-  /** Oasis ModelMesh after MeshParser. */
-  meshes?: ModelMesh[][];
-  /** Oasis Skin after SkinParser. */
-  skins?: Skin[];
-  /** Oasis AnimationClip after AnimationParser. */
-  animations?: AnimationClip[];
-  /** Oasis Entity after EntityParser. */
-  entities: Entity[];
-  /** Oasis Camera after SceneParser. */
-  cameras?: Camera[];
-  /** GLTF can export lights in extension KHR_lights_punctual */
-  lights?: Light[];
-  /** Oasis RootEntities after SceneParser. */
-  sceneRoots: Entity[];
-  /** Oasis RootEntity after SceneParser. */
-  defaultSceneRoot: Entity;
-  /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
-  variants?: { renderer: Renderer; material: Material; variants: string[] }[];
+export class GLTFResource extends ReferResource {
+  /** glTF file url. */
+  readonly url: string;
+  /** The array of loaded textures. */
+  readonly textures?: Texture2D[];
+  /** The array of loaded materials. */
+  readonly materials?: Material[];
+  /** The array of loaded Meshes. */
+  readonly meshes?: ModelMesh[][];
+  /** The array of loaded skins. */
+  readonly skins?: Skin[];
+  /** The array of loaded animationClips. */
+  readonly animations?: AnimationClip[];
+  /** The loaded  AnimatorController. */
+  readonly animatorController?: AnimatorController;
 
+  /** @internal */
+  _defaultSceneRoot: Entity;
+  /** @internal */
+  _sceneRoots: Entity[];
+  /** @internal */
+  _extensionsData: Record<string, any>;
+
+  /**
+   * Extensions data.
+   */
+  get extensionsData(): Record<string, any> {
+    return this._extensionsData;
+  }
+
+  /**
+   * @internal
+   */
   constructor(engine: Engine, url: string) {
     super(engine);
     this.url = url;
   }
 
   /**
-   * @override
+   * Instantiate scene root entity.
+   * @param sceneIndex - Scene index
+   * @returns Root entity
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
+  instantiateSceneRoot(sceneIndex?: number): Entity {
+    const sceneRoot = sceneIndex === undefined ? this._defaultSceneRoot : this._sceneRoots[sceneIndex];
+    return sceneRoot.clone();
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+
+    const { textures, materials, meshes } = this;
+    textures && this._disassociationSuperResource(textures);
+    materials && this._disassociationSuperResource(materials);
+    if (meshes) {
+      for (let i = 0, n = meshes.length; i < n; i++) {
+        this._disassociationSuperResource(meshes[i]);
+      }
     }
+  }
 
-    super.destroy();
-    this.defaultSceneRoot.destroy();
+  private _disassociationSuperResource(resources: ReferResource[]): void {
+    for (let i = 0, n = resources.length; i < n; i++) {
+      // @ts-ignore
+      resources[i]._disassociationSuperResource(this);
+    }
+  }
 
-    this.textures = null;
-    this.materials = null;
-    this.meshes = null;
-    this.skins = null;
-    this.animations = null;
-    this.entities = null;
-    this.cameras = null;
-    this.lights = null;
-    this.sceneRoots = null;
-    this.variants = null;
+  /**
+   * @deprecated
+   * Entity after EntityParser.
+   */
+  entities: Entity[];
+
+  /**
+   * @deprecated
+   * Camera after SceneParser.
+   */
+  cameras?: Camera[];
+
+  /**
+   * @deprecated
+   * Export lights in extension KHR_lights_punctual.
+   */
+  lights?: Light[];
+
+  /**
+   * @deprecated Please use `instantiateSceneRoot` instead.
+   * RootEntities after SceneParser.
+   */
+  get sceneRoots(): Entity[] {
+    return this._sceneRoots;
+  }
+
+  /**
+   * @deprecated Please use `instantiateSceneRoot` instead.
+   * RootEntity after SceneParser.
+   */
+  get defaultSceneRoot(): Entity {
+    return this._defaultSceneRoot;
   }
 }

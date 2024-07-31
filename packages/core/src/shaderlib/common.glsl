@@ -18,7 +18,14 @@ vec4 gammaToLinear(vec4 srgbIn){
 }
 
 vec4 linearToGamma(vec4 linearIn){
+	linearIn = max(linearIn, 0.0);
     return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
+}
+
+uniform vec4 camera_DepthBufferParams;
+
+float remapDepthBufferLinear01(float z){
+	return 1.0/ (camera_DepthBufferParams.x * z + camera_DepthBufferParams.y);
 }
 
 

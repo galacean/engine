@@ -1,15 +1,7 @@
-import { IClone } from "@oasis-engine/design";
+import { Entity } from "../Entity";
+import { TypedArray } from "../base/Constant";
+import { IComponentCustomClone, ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
-
-type TypeArray =
-  | Uint8Array
-  | Uint16Array
-  | Uint32Array
-  | Int8Array
-  | Int16Array
-  | Int32Array
-  | Float32Array
-  | Float64Array;
 
 /**
  * Property decorator, ignore the property when cloning.
@@ -102,51 +94,28 @@ export class CloneManager {
     return cloneModes;
   }
 
-  /**
-   * Deep clone the object.
-   * @param source - Clone source
-   * @param target - Clone target
-   */
-  static deepCloneObject(source: Object, target: Object): void {
-    const type = source.constructor;
-    switch (type) {
-      case Uint8Array:
-      case Uint16Array:
-      case Uint32Array:
-      case Int8Array:
-      case Int16Array:
-      case Int32Array:
-      case Float32Array:
-      case Float64Array:
-        // Type array clone.
-        (<TypeArray>target).set(<TypeArray>source);
-        break;
-      case Array:
-        // Array clone.
-        for (let i = 0, n = (<[]>source).length; i < n; i++) {
-          CloneManager._deepCloneObjectItem(source, target, i);
-        }
-        break;
-      default:
-        const customSource = <IClone>source;
-        if (customSource.clone && customSource.cloneTo) {
-          // Custom clone.
-          customSource.cloneTo(target);
-        } else {
-          // Object or other class not implements custom clone.
-          const keys = Object.keys(source);
-          for (let i = 0, n = keys.length; i < n; i++) {
-            CloneManager._deepCloneObjectItem(source, target, keys[i]);
-          }
-        }
+  static cloneProperty(
+    source: Object,
+    target: Object,
+    k: string | number,
+    cloneMode: CloneMode,
+    srcRoot: Entity,
+    targetRoot: Entity,
+    deepInstanceMap: Map<Object, Object>
+  ): void {
+    if (cloneMode === CloneMode.Ignore) {
+      return;
     }
-  }
 
-  private static _deepCloneObjectItem(source: object, target: object, k: number | string): void {
-    const sourceItem = source[k];
-    if (sourceItem instanceof Object) {
-      const itemType = (<Object>sourceItem).constructor;
-      switch (itemType) {
+    const sourceProperty = source[k];
+    if (sourceProperty instanceof Object) {
+      if (cloneMode === undefined || cloneMode === CloneMode.Assignment) {
+        target[k] = sourceProperty;
+        return;
+      }
+
+      const type = sourceProperty.constructor;
+      switch (type) {
         case Uint8Array:
         case Uint16Array:
         case Uint32Array:
@@ -155,47 +124,83 @@ export class CloneManager {
         case Int32Array:
         case Float32Array:
         case Float64Array:
-          // Type array clone.
-          const sourceTypeArrayItem = <TypeArray>sourceItem;
-          let targetTypeArrayItem = <TypeArray>target[k];
-          if (targetTypeArrayItem == null) {
-            target[k] = sourceTypeArrayItem.slice();
+          let targetPropertyT = <TypedArray>target[k];
+          if (targetPropertyT == null || targetPropertyT.length !== (<TypedArray>sourceProperty).length) {
+            target[k] = (<TypedArray>sourceProperty).slice();
           } else {
-            targetTypeArrayItem.set(sourceTypeArrayItem);
+            targetPropertyT.set(<TypedArray>sourceProperty);
           }
           break;
         case Array:
-          // Array clone.
-          const sourceArrayItem = <[]>sourceItem;
-          let targetArrayItem = <[]>target[k];
-          if (targetArrayItem == null) {
-            target[k] = new Array(sourceArrayItem.length);
+          let targetPropertyA = <Array<any>>target[k];
+          const length = (<Array<any>>sourceProperty).length;
+          if (targetPropertyA == null) {
+            target[k] = targetPropertyA = new Array<any>(length);
           } else {
-            targetArrayItem.length = sourceArrayItem.length;
+            targetPropertyA.length = length;
           }
-          CloneManager.deepCloneObject(sourceArrayItem, targetArrayItem);
+          for (let i = 0; i < length; i++) {
+            CloneManager.cloneProperty(
+              <Array<any>>sourceProperty,
+              targetPropertyA,
+              i,
+              cloneMode,
+              srcRoot,
+              targetRoot,
+              deepInstanceMap
+            );
+          }
           break;
         default:
-          if (sourceItem.clone && sourceItem.cloneTo) {
-            // Custom clone.
-            let sourceCustomItem = <IClone>sourceItem;
-            let targetCustomItem = <IClone>target[k];
-            if (targetCustomItem) {
-              sourceCustomItem.cloneTo(targetCustomItem);
-            } else {
-              target[k] = sourceCustomItem.clone();
+          let targetProperty = <Object>target[k];
+          // If the target property is undefined, create new instance and keep reference sharing like the source
+          if (!targetProperty) {
+            targetProperty = deepInstanceMap.get(sourceProperty);
+            if (!targetProperty) {
+              targetProperty = new sourceProperty.constructor();
+              deepInstanceMap.set(sourceProperty, targetProperty);
             }
-          } else {
-            // Object or other class not implements custom clone.
-            let targetItem = <Object>target[k];
-            targetItem == null && (target[k] = targetItem = new sourceItem.constructor());
-            CloneManager.deepCloneObject(sourceItem, targetItem);
-            break;
+            target[k] = targetProperty;
           }
+
+          if ((<ICustomClone>sourceProperty).copyFrom) {
+            // Custom clone
+            (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
+          } else {
+            // Universal clone
+            const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
+            for (let k in sourceProperty) {
+              CloneManager.cloneProperty(
+                <Object>sourceProperty,
+                targetProperty,
+                k,
+                cloneModes[k],
+                srcRoot,
+                targetRoot,
+                deepInstanceMap
+              );
+            }
+
+            // Custom incremental clone
+            if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
+              (<IComponentCustomClone>sourceProperty)._cloneTo(
+                <IComponentCustomClone>targetProperty,
+                srcRoot,
+                targetRoot
+              );
+            }
+          }
+          break;
       }
     } else {
-      // Null or undefined and primitive type.
-      target[k] = sourceItem;
+      // null, undefined, primitive type, function
+      target[k] = sourceProperty;
+    }
+  }
+
+  static deepCloneObject(source: Object, target: Object, deepInstanceMap: Map<Object, Object>): void {
+    for (let k in source) {
+      CloneManager.cloneProperty(source, target, k, CloneMode.Deep, null, null, deepInstanceMap);
     }
   }
 }

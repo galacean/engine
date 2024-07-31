@@ -1,15 +1,20 @@
-import { PBRSpecularMaterial } from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
-import { MaterialParser } from "../parser/MaterialParser";
-import { Parser, registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
-import { IKHRMaterialsPbrSpecularGlossiness } from "./Schema";
+import { PBRSpecularMaterial, Texture2D } from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
+import type { IMaterial } from "../GLTFSchema";
+import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
+import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
-@registerExtension("KHR_materials_pbrSpecularGlossiness")
-class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
-  createEngineResource(schema: IKHRMaterialsPbrSpecularGlossiness, context: ParserContext): PBRSpecularMaterial {
-    const { engine, textures } = context.glTFResource;
+@registerGLTFExtension("KHR_materials_pbrSpecularGlossiness", GLTFExtensionMode.CreateAndParse)
+class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
+  override createAndParse(
+    context: GLTFParserContext,
+    schema: IKHRMaterialsPbrSpecularGlossiness,
+    ownerSchema: IMaterial
+  ): PBRSpecularMaterial {
+    const engine = context.glTFResource.engine;
     const material = new PBRSpecularMaterial(engine);
     const { diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture } = schema;
 
@@ -23,11 +28,10 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
     }
 
     if (diffuseTexture) {
-      material.baseTexture = textures[diffuseTexture.index];
-      const KHR_texture_transform = diffuseTexture.extensions?.KHR_texture_transform;
-      if (KHR_texture_transform) {
-        Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
-      }
+      context.get<Texture2D>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
+        material.baseTexture = texture;
+        GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
+      });
     }
 
     if (specularFactor) {
@@ -43,10 +47,15 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
     }
 
     if (specularGlossinessTexture) {
-      material.specularGlossinessTexture = textures[specularGlossinessTexture.index];
-      MaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
+      GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
+
+      context.get<Texture2D>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
+        material.specularGlossinessTexture = texture;
+      });
     }
 
+    material.name = ownerSchema.name;
+    GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema);
     return material;
   }
 }

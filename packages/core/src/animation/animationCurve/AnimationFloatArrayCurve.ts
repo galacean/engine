@@ -1,4 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -10,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -23,6 +24,14 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     owner.fixedPoseValue = new Float32Array(size);
     owner.baseEvaluateData.value = new Float32Array(size);
     owner.crossEvaluateData.value = new Float32Array(size);
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    const size = (<Float32Array>owner.curveOwner.referenceTargetValue).length;
+    owner.finalValue = new Float32Array(size);
   }
 
   /**
@@ -69,7 +78,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
-  static _copyValue(source: Float32Array, out: Float32Array): Float32Array {
+  static _setValue(source: Float32Array, out: Float32Array): Float32Array {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = source[i];
     }
@@ -110,9 +119,8 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
 
   /**
    * @inheritdoc
-   * @override
    */
-  addKey(key: Keyframe<Float32Array>): void {
+  override addKey(key: Keyframe<Float32Array>): void {
     super.addKey(key);
 
     const evaluateData = this._evaluateData;

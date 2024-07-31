@@ -1,26 +1,32 @@
+import "./AnimationClipLoader";
 import "./AnimatorControllerLoader";
 import "./BufferLoader";
 import "./EnvLoader";
 import "./FontLoader";
-import "./gltf/extensions/index";
 import "./GLTFLoader";
+import "./PrefabLoader";
 import "./HDRLoader";
 import "./JSONLoader";
 import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./MaterialLoader";
 import "./MeshLoader";
+import "./PrimitiveMeshLoader";
+import "./ProjectLoader";
 import "./SourceFontLoader";
 import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
-import "./AnimationClipLoader";
+import "./ktx2/KTX2Loader";
 
-export { parseSingleKTX } from "./compressed-texture";
-export { GLTFResource } from "./gltf/GLTFResource";
+export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";
-export * from "./resource-deserialize";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
-
+export { parseSingleKTX } from "./compressed-texture";
+export * from "./gltf";
+export { KTX2Loader, KTX2Transcoder } from "./ktx2/KTX2Loader";
+export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
+export * from "./resource-deserialize";
+export * from "./prefab/PrefabResource";

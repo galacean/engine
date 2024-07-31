@@ -1,4 +1,4 @@
-import { Vector3 } from "oasis-engine";
+import { Vector3 } from "@galacean/engine";
 
 /**
  * Structure used to get information back from a raycast or a sweep.

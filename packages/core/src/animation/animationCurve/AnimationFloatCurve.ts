@@ -1,4 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -10,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
-  static _isReferenceType: boolean = false;
+  static _isCopyMode: boolean = false;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -27,6 +28,13 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = 0;
+  }
+
+  /**
+   * @internal
+   */
   static _lerpValue(srcValue: number, destValue: number, crossWeight: number): number {
     return srcValue + (destValue - srcValue) * crossWeight;
   }
@@ -34,8 +42,8 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _additiveValue(value: number, weight: number, scource: number): number {
-    return (scource += value * weight);
+  static _additiveValue(value: number, weight: number, source: number): number {
+    return (source += value * weight);
   }
 
   /**
@@ -55,7 +63,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _copyValue(source: number): number {
+  static _setValue(source: number): number {
     return source;
   }
 

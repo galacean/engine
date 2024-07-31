@@ -1,1 +1,1 @@
-A subpackage of `oasis-engine`.
+A subpackage of `@galacean/engine`.

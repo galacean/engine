@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "./ICollider";
 
 /**

@@ -1,4 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -10,9 +11,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _isCopyMode: boolean = true;
   /** @internal */
-  static _isInterpolationType: boolean = true;
+  static _supportInterpolationMode: boolean = true;
 
   /**
    * @internal
@@ -22,6 +23,13 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     owner.fixedPoseValue = [];
     owner.baseEvaluateData.value = [];
     owner.crossEvaluateData.value = [];
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = [];
   }
 
   /**
@@ -68,7 +76,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  static _copyValue(source: number[], out: number[]): number[] {
+  static _setValue(source: number[], out: number[]): number[] {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = source[i];
     }

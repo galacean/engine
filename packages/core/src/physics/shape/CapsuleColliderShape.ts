@@ -1,14 +1,18 @@
 import { ColliderShape } from "./ColliderShape";
-import { ICapsuleColliderShape } from "@oasis-engine/design";
-import { PhysicsManager } from "../PhysicsManager";
+import { ICapsuleColliderShape } from "@galacean/engine-design";
+import { PhysicsScene } from "../PhysicsScene";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for capsule.
  */
 export class CapsuleColliderShape extends ColliderShape {
+  @ignoreClone
   private _radius: number = 1;
+  @ignoreClone
   private _height: number = 2;
+  @ignoreClone
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**
@@ -55,11 +59,21 @@ export class CapsuleColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsManager._nativePhysics.createCapsuleColliderShape(
+    this._nativeShape = PhysicsScene._nativePhysics.createCapsuleColliderShape(
       this._id,
       this._radius,
       this._height,
       this._material._nativeMaterial
     );
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: CapsuleColliderShape) {
+    super._cloneTo(target);
+    target.radius = this.radius;
+    target.height = this.height;
+    target.upAxis = this.upAxis;
   }
 }

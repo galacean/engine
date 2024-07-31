@@ -7,8 +7,8 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace
-} from "@oasis-engine/core";
-import { Color, Vector3 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Color, Vector3 } from "@galacean/engine-math";
 
 const PI = Math.PI;
 
@@ -27,6 +27,7 @@ interface IHDRHeader {
   dataPosition: number;
 }
 
+// referenece: https://www.flipcode.com/archives/HDR_Image_Reader.shtml
 @resourceLoader(AssetType.HDR, ["hdr"])
 class HDRLoader extends Loader<TextureCube> {
   private static _rightBottomBack = new Vector3(1.0, -1.0, -1.0);
@@ -162,7 +163,7 @@ class HDRLoader extends Loader<TextureCube> {
     inputWidth: number,
     inputHeight: number
   ): Color {
-    let theta = Math.atan2(vDir.z, -vDir.x);
+    let theta = Math.atan2(vDir.z, vDir.x);
     let phi = Math.acos(vDir.y);
 
     while (theta < -PI) {
@@ -282,17 +283,23 @@ class HDRLoader extends Loader<TextureCube> {
     let offset = 0,
       pos = 0;
     const ptrEnd = 4 * scanLineWidth;
-    const rgbeStart = new Uint8Array(4);
     const scanLineBuffer = new Uint8Array(ptrEnd);
     let numScanLines = height; // read in each successive scanLine
 
     while (numScanLines > 0 && pos < byteLength) {
-      rgbeStart[0] = buffer[pos++];
-      rgbeStart[1] = buffer[pos++];
-      rgbeStart[2] = buffer[pos++];
-      rgbeStart[3] = buffer[pos++];
+      const a = buffer[pos++];
+      const b = buffer[pos++];
+      const c = buffer[pos++];
+      const d = buffer[pos++];
 
-      if (2 != rgbeStart[0] || 2 != rgbeStart[1] || ((rgbeStart[2] << 8) | rgbeStart[3]) != scanLineWidth) {
+      if (a != 2 || b != 2 || c & 0x80 || width < 8 || width > 32767) {
+        // this file is not run length encoded
+        // read values sequentially
+        return buffer;
+      }
+
+      if (((c << 8) | d) != scanLineWidth) {
+        // eslint-disable-next-line no-throw-literal
         throw "HDR Bad header format, wrong scan line width";
       }
 
@@ -374,7 +381,7 @@ class HDRLoader extends Loader<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
 
-      this.request<ArrayBuffer>(item.url, { type: "arraybuffer" })
+      this.request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
         .then((buffer) => {
           const uint8Array = new Uint8Array(buffer);
           const { width, height, dataPosition } = HDRLoader._parseHeader(uint8Array);

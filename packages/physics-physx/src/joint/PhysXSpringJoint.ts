@@ -1,8 +1,8 @@
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
-import { ISpringJoint } from "@oasis-engine/design";
+import { ISpringJoint } from "@galacean/engine-design";
 import { PhysXCollider } from "../PhysXCollider";
-import { Vector3 } from "oasis-engine";
+import { Vector3 } from "@galacean/engine";
 
 /**
  * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
@@ -10,10 +10,10 @@ import { Vector3 } from "oasis-engine";
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   private _swingOffset = new Vector3();
 
-  constructor(collider: PhysXCollider) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+    super(physXPhysics);
     this._collider = collider;
-    this._pxJoint = PhysXPhysics._pxPhysics.createDistanceJoint(
+    this._pxJoint = physXPhysics._pxPhysics.createDistanceJoint(
       null,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,

@@ -1,24 +1,26 @@
 import {
   AssetPromise,
   AssetType,
+  Engine,
   Loader,
   LoadItem,
   resourceLoader,
   ResourceManager,
   Sprite,
   SpriteAtlas,
-  Texture2D
-} from "@oasis-engine/core";
-import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
-import { Rect, Vector2 } from "@oasis-engine/math";
-import { GLTFUtil } from "./gltf/GLTFUtil";
+  Texture2D,
+  Utils
+} from "@galacean/engine-core";
+import { AtlasConfig, AtlasSprite } from "@galacean/engine-core/types/2d/atlas/types";
+import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
   private _tempVec2: Vector2 = new Vector2();
+  private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise((resolve, reject, _, onCancel) => {
+    return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
       const chainPromises = [];
       onCancel(() => {
         for (let i = 0; i < chainPromises.length; i++) {
@@ -32,75 +34,77 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       chainPromises.push(configPromise);
       configPromise
         .then((atlasData) => {
-          const { atlasItems, format } = atlasData;
-          const atlasItemsLen = atlasItems.length;
-          const imagePromises = AssetPromise.all(
-            atlasItems.map(({ img }) =>
-              this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
-                ...item,
-                type: "image"
-              })
-            )
-          );
-          chainPromises.push(imagePromises);
-          return imagePromises.then((imgs) => {
-            const { engine } = resourceManager;
-            // Generate a SpriteAtlas object.
-            const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
-            const spriteAtlas = new SpriteAtlas(engine);
-            for (let i = 0; i < atlasItemsLen; i++) {
-              // Generate Texture2D according to configuration.
-              const originalImg = imgs[i];
-              const { width, height } = originalImg;
-              const texture = new Texture2D(engine, width, height, format);
-              texture.setImageSource(originalImg);
-              texture.generateMipmaps();
-              // Generate all the sprites on this texture.
-              const atlasItem = atlasItems[i];
-              const sprites = atlasItem.sprites;
-              const sourceWidthReciprocal = 1.0 / width;
-              const sourceHeightReciprocal = 1.0 / height;
-              for (let j = sprites.length - 1; j >= 0; j--) {
-                const atlasSprite = sprites[j];
-                const { region, atlasRegionOffset, atlasRegion, id, pivot } = atlasSprite;
-                const sprite = new Sprite(
-                  engine,
-                  texture,
-                  region ? tempRect.set(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempVec2.set(pivot.x, pivot.y) : undefined,
-                  undefined,
-                  atlasSprite.name
-                );
-                sprite.atlasRegion.set(
-                  atlasRegion.x * sourceWidthReciprocal,
-                  atlasRegion.y * sourceHeightReciprocal,
-                  atlasRegion.w * sourceWidthReciprocal,
-                  atlasRegion.h * sourceHeightReciprocal
-                );
-                atlasSprite.atlasRotated && (sprite.atlasRotated = true);
-                if (atlasRegionOffset) {
-                  const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
-                  sprite.atlasRegionOffset.set(
-                    offsetLeft * sourceWidthReciprocal,
-                    offsetTop * sourceHeightReciprocal,
-                    offsetRight * sourceWidthReciprocal,
-                    offsetBottom * sourceHeightReciprocal
-                  );
-                }
-                if (id !== undefined) {
-                  // @ts-ignore
-                  sprite._assetID = id;
-                }
+          const { atlasItems, mipmap, anisoLevel, filterMode, wrapModeU, wrapModeV, format } = atlasData;
+          const atlasItemsLen = atlasItems ? atlasItems.length : 0;
+          const { engine } = resourceManager;
+          const spriteAtlas = new SpriteAtlas(engine);
+          if (atlasItemsLen <= 0) {
+            resolve(spriteAtlas);
+            return;
+          }
+          chainPromises.length = 0;
+          for (let i = 0; i < atlasItemsLen; i++) {
+            const atlasItem = atlasItems[i];
+            if (atlasItem.img) {
+              chainPromises.push(
+                resourceManager
+                  .load<Texture2D>({
+                    url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
+                    type: atlasItem.type ?? AssetType.Texture2D,
+                    params: { format, mipmap }
+                  })
+                  .then((texture: Texture2D) => {
+                    anisoLevel && (texture.anisoLevel = anisoLevel);
+                    filterMode !== undefined && (texture.filterMode = filterMode);
+                    wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
+                    wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
+                    for (let i = 0; i < atlasItem.sprites.length; i++) {
+                      // @ts-ignore
+                      spriteAtlas._addSprite(this._makeSprite(engine, atlasItem.sprites[i], texture));
+                    }
+                  })
+                  .catch(reject)
+              );
+            } else {
+              for (let i = 0; i < atlasItem.sprites.length; i++) {
                 // @ts-ignore
-                spriteAtlas._addSprite(sprite);
+                spriteAtlas._addSprite(this._makeSprite(engine, atlasItem.sprites[i]));
               }
             }
-            resolve(spriteAtlas);
-          });
+          }
+          AssetPromise.all(chainPromises)
+            .then(() => {
+              resolve(spriteAtlas);
+            })
+            .catch(reject);
         })
-        .catch((e) => {
-          reject(e);
-        });
+        .catch(reject);
     });
+  }
+
+  private _makeSprite(engine: Engine, config: AtlasSprite, texture?: Texture2D): Sprite {
+    // Generate a SpriteAtlas object.
+    const { region, atlasRegionOffset, atlasRegion, pivot, border, width, height } = config;
+    const sprite = new Sprite(
+      engine,
+      texture,
+      region ? this._tempRect.set(region.x, region.y, region.w, region.h) : undefined,
+      pivot ? this._tempVec2.set(pivot.x, pivot.y) : undefined,
+      border ? this._tempVec4.set(border.x, border.y, border.z, border.w) : undefined,
+      config.name
+    );
+    if (texture) {
+      const invW = 1 / texture.width;
+      const invH = 1 / texture.height;
+      sprite.atlasRegion.set(atlasRegion.x * invW, atlasRegion.y * invH, atlasRegion.w * invW, atlasRegion.h * invH);
+      if (atlasRegionOffset) {
+        const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+        sprite.atlasRegionOffset.set(offsetLeft * invW, offsetTop * invH, offsetRight * invW, offsetBottom * invH);
+      }
+      config.atlasRotated && (sprite.atlasRotated = true);
+    }
+    isNaN(width) || (sprite.width = width);
+    isNaN(height) || (sprite.height = height);
+    return sprite;
   }
 }

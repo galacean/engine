@@ -1,15 +1,29 @@
+import { Vector4 } from "@galacean/engine-math";
+import { ShaderData } from "../shader/ShaderData";
+import { ShaderProperty } from "../shader/ShaderProperty";
+
 /**
- * Tools for calculating the time per frame.
+ * Provide time related information.
  */
 export class Time {
-  /** @internal */
-  _frameCount: number = 0;
+  private static _elapsedTimeProperty = ShaderProperty.getByName("scene_ElapsedTime");
+  private static _deltaTimeProperty = ShaderProperty.getByName("scene_DeltaTime");
 
-  private _clock: { now: () => number };
-  private _timeScale: number;
-  private _deltaTime: number;
-  private _startTime: number;
-  private _lastTickTime: number;
+  private _frameCount: number = 0;
+  private _deltaTime: number = 0;
+  private _actualDeltaTime: number = 0;
+  private _elapsedTime: number = 0;
+  private _actualElapsedTime: number = 0;
+  private _lastSystemTime: number;
+
+  private _elapsedTimeValue: Vector4 = new Vector4();
+  private _deltaTimeValue: Vector4 = new Vector4();
+
+  /** Maximum delta time allowed per frame in seconds. */
+  maximumDeltaTime: number = 0.333333;
+
+  /** The scale of time. */
+  timeScale: number = 1.0;
 
   /*
    * The total number of frames since the start of the engine.
@@ -19,68 +33,80 @@ export class Time {
   }
 
   /**
-   * Constructor of the Time.
-   */
-  constructor() {
-    this._clock = performance ? performance : Date;
-
-    this._timeScale = 1.0;
-    this._deltaTime = 0.0001;
-
-    const now = this._clock.now();
-    this._startTime = now;
-    this._lastTickTime = now;
-  }
-
-  reset() {
-    this._lastTickTime = this._clock.now();
-  }
-
-  /**
-   * Current Time
-   */
-  get nowTime(): number {
-    return this._clock.now();
-  }
-
-  /**
-   * Time between two ticks
+   * The delta time in seconds from the last frame to the current frame.
+   *
+   * @remarks When the frame rate is low or stutter occurs, `deltaTime` will not exceed the value of `maximumDeltaTime` * `timeScale`.
    */
   get deltaTime(): number {
     return this._deltaTime;
   }
 
   /**
-   * Scaled delta time.
+   * The amount of elapsed time in seconds since the start of the engine.
    */
-  get timeScale(): number {
-    return this._timeScale;
-  }
-  set timeScale(s) {
-    this._timeScale = s;
+  get elapsedTime(): number {
+    return this._elapsedTime;
   }
 
   /**
-   * Unscaled delta time.
+   * The actual delta time in seconds from the last frame to the current frame.
+   *
+   * @remarks The actual delta time is not affected by `maximumDeltaTime` and `timeScale`.
    */
-  get unscaledDeltaTime(): number {
-    return this._deltaTime / this._timeScale;
+  get actualDeltaTime(): number {
+    return this._actualDeltaTime;
   }
 
   /**
-   * The elapsed time, after the clock is initialized.
+   * The amount of actual elapsed time in seconds since the start of the engine.
    */
-  get timeSinceStartup(): number {
-    return this.nowTime - this._startTime;
+  get actualElapsedTime(): number {
+    return this._actualElapsedTime;
   }
 
   /**
-   * Call every frame, update delta time and other data.
+   * Constructor of the Time.
    */
-  public tick(): void {
-    const now = this.nowTime;
-    this._deltaTime = (now - this._lastTickTime) * this._timeScale;
-    this._lastTickTime = now;
+  constructor() {
+    this._lastSystemTime = performance.now() / 1000;
+  }
+
+  /**
+   * @internal
+   */
+  _reset() {
+    this._lastSystemTime = performance.now() / 1000;
+  }
+
+  /**
+   * @internal
+   */
+  _update(): void {
+    const currentSystemTime = performance.now() / 1000;
+
+    const actualDeltaTime = currentSystemTime - this._lastSystemTime;
+    this._actualDeltaTime = actualDeltaTime;
+    this._actualElapsedTime += actualDeltaTime;
+
+    const deltaTime = Math.min(actualDeltaTime, this.maximumDeltaTime) * this.timeScale;
+    this._deltaTime = deltaTime;
+    this._elapsedTime += deltaTime;
     this._frameCount++;
+
+    this._lastSystemTime = currentSystemTime;
+  }
+
+  /**
+   * @internal
+   */
+  _updateSceneShaderData(shaderData: ShaderData): void {
+    const { _elapsedTimeValue: elapsedTimeValue, _deltaTimeValue: deltaTimeValue } = this;
+
+    const time = this._elapsedTime;
+    elapsedTimeValue.set(time, Math.sin(time), Math.cos(time), 0);
+    shaderData.setVector4(Time._elapsedTimeProperty, elapsedTimeValue);
+
+    deltaTimeValue.set(this._deltaTime, 0, 0, 0);
+    shaderData.setVector4(Time._deltaTimeProperty, deltaTimeValue);
   }
 }

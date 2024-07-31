@@ -2,6 +2,7 @@ import { Engine } from "../Engine";
 import { IPlatformTexture2D } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
+import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
 
@@ -16,18 +17,21 @@ export class Texture2D extends Texture {
    * @param height - Texture height
    * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
+   * @param usage - Texture usage
    */
   constructor(
     engine: Engine,
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true
+    mipmap: boolean = true,
+    usage: TextureUsage = TextureUsage.Static
   ) {
     super(engine);
     this._mipmap = mipmap;
     this._width = width;
     this._height = height;
+    this._usage = usage;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
@@ -42,7 +46,7 @@ export class Texture2D extends Texture {
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
 
-    this.filterMode = TextureFilterMode.Bilinear;
+    this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
   }
 
@@ -65,6 +69,7 @@ export class Texture2D extends Texture {
     height?: number
   ): void {
     (this._platformTexture as IPlatformTexture2D).setPixelBuffer(colorBuffer, mipLevel, x, y, width, height);
+    this._isContentLost = false;
   }
 
   /**
@@ -77,7 +82,7 @@ export class Texture2D extends Texture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
@@ -85,6 +90,7 @@ export class Texture2D extends Texture {
     y: number = 0
   ): void {
     (this._platformTexture as IPlatformTexture2D).setImageSource(imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
+    this._isContentLost = false;
   }
 
   /**
@@ -167,5 +173,13 @@ export class Texture2D extends Texture {
         out
       );
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
+    super._rebuild();
   }
 }

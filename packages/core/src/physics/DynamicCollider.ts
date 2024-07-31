@@ -1,26 +1,42 @@
-import { IDynamicCollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { IDynamicCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
+  @ignoreClone
   private _linearDamping: number = 0;
+  @ignoreClone
   private _angularDamping: number = 0.05;
+  @ignoreClone
   private _linearVelocity = new Vector3();
+  @ignoreClone
   private _angularVelocity = new Vector3();
+  @ignoreClone
   private _mass: number = 1.0;
+  @ignoreClone
   private _centerOfMass = new Vector3();
+  @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
+  @ignoreClone
   private _maxAngularVelocity: number = 100;
+  @ignoreClone
   private _maxDepenetrationVelocity: number = 1000;
+  @ignoreClone
   private _solverIterations: number = 4;
+  @ignoreClone
   private _isKinematic: boolean = false;
+  @ignoreClone
   private _constraints: DynamicColliderConstraints = 0;
+  @ignoreClone
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
+  @ignoreClone
   private _sleepThreshold: number = 5e-3;
 
   /**
@@ -221,7 +237,7 @@ export class DynamicCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsManager._nativePhysics.createDynamicCollider(
+    this._nativeCollider = PhysicsScene._nativePhysics.createDynamicCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
@@ -295,14 +311,34 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onLateUpdate(): void {
+  override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
     this._updateFlag.flag = false;
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: DynamicCollider): void {
+    super._cloneTo(target);
+    target.linearDamping = this.linearDamping;
+    target.angularDamping = this.angularDamping;
+    target.linearVelocity = this.linearVelocity;
+    target.angularVelocity = this.angularVelocity;
+    target.mass = this.mass;
+    target.centerOfMass = this.centerOfMass;
+    target.inertiaTensor = this.inertiaTensor;
+    target.maxAngularVelocity = this.maxAngularVelocity;
+    target.maxDepenetrationVelocity = this.maxDepenetrationVelocity;
+    target.sleepThreshold = this.sleepThreshold;
+    target.solverIterations = this.solverIterations;
+    target.isKinematic = this.isKinematic;
+    target.constraints = this.constraints;
+    target.collisionDetectionMode = this.collisionDetectionMode;
   }
 
   private _setLinearVelocity(): void {

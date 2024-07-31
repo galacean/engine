@@ -1,7 +1,7 @@
-uniform sampler2D u_baseTexture;
+uniform sampler2D material_BaseTexture;
 
 varying vec2 v_uv;
 
 void main() {
-  gl_FragColor = texture2D(u_baseTexture, v_uv);
+  gl_FragColor = texture2D(material_BaseTexture, v_uv);
 }

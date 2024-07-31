@@ -1,0 +1,34 @@
+{
+  "name": "@galacean/engine-shader-lab",
+  "version": "1.3.0-beta.8",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "umd": {
+    "name": "Galacean.ShaderLab",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "devDependencies": {
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
+  }
+}

@@ -1,6 +1,7 @@
-import { IJoint } from "@oasis-engine/design";
+import { IJoint } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "../PhysXCollider";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { PhysXPhysics } from "../PhysXPhysics";
 
 /**
  * a base interface providing common functionality for PhysX joints
@@ -15,6 +16,12 @@ export class PhysXJoint implements IJoint {
   private _connectedAnchor = new Vector3();
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
+
+  protected _physXPhysics: PhysXPhysics;
+
+  constructor(physXPhysics: PhysXPhysics) {
+    this._physXPhysics = physXPhysics;
+  }
 
   /**
    * {@inheritDoc IJoint.setConnectedCollider }

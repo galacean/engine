@@ -1,4 +1,4 @@
-import { Matrix, Vector3, Quaternion } from "@oasis-engine/math";
+import { Matrix, Vector3, Quaternion } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("Matrix test", () => {

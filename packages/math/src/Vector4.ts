@@ -503,6 +503,19 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out[outOffset + 2] = this._z;
     out[outOffset + 3] = this._w;
   }
+
+  /**
+   * Serialize this vector to a JSON representation.
+   * @returns A JSON representation of this vector
+   */
+  toJSON(): Vector4Like {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z,
+      w: this._w
+    };
+  }
 }
 
 interface Vector4Like {

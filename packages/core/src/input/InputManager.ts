@@ -1,11 +1,13 @@
+import { IInputOptions } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { KeyboardManager } from "./keyboard/KeyboardManager";
+import { Scene } from "../Scene";
 import { Keys } from "./enums/Keys";
+import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
+import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
-import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { Vector3 } from "@oasis-engine/math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.
@@ -149,18 +151,14 @@ export class InputManager {
   /**
    * @internal
    */
-  constructor(engine: Engine) {
+  constructor(engine: Engine, inputOptions?: IInputOptions) {
     this._engine = engine;
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
     if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
-      this._wheelManager = new WheelManager(engine);
-      this._pointerManager = new PointerManager(engine);
-      this._keyboardManager = new KeyboardManager(engine);
-      this._onBlur = this._onBlur.bind(this);
-      window.addEventListener("blur", this._onBlur);
-      this._onFocus = this._onFocus.bind(this);
-      window.addEventListener("focus", this._onFocus);
+      this._wheelManager = new WheelManager(engine, inputOptions?.wheelTarget ?? canvas);
+      this._pointerManager = new PointerManager(engine, inputOptions?.pointerTarget ?? canvas);
+      this._keyboardManager = new KeyboardManager(engine, inputOptions?.keyboardTarget ?? window);
       this._initialized = true;
     }
   }
@@ -179,25 +177,21 @@ export class InputManager {
   /**
    * @internal
    */
+  _firePointerScript(scenes: readonly Scene[]): void {
+    this._initialized && this._pointerManager._firePointerScript(scenes);
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     if (this._initialized) {
-      window.removeEventListener("blur", this._onBlur);
-      window.removeEventListener("focus", this._onFocus);
       this._wheelManager._destroy();
+      this._wheelManager = null;
       this._pointerManager._destroy();
+      this._pointerManager = null;
       this._keyboardManager._destroy();
+      this._keyboardManager = null;
     }
-  }
-
-  private _onBlur(): void {
-    this._wheelManager._onBlur();
-    this._pointerManager._onBlur();
-    this._keyboardManager._onBlur();
-  }
-
-  private _onFocus(): void {
-    this._wheelManager._onFocus();
-    this._pointerManager._onFocus();
-    this._keyboardManager._onFocus();
   }
 }

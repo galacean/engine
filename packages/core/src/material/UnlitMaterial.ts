@@ -1,4 +1,4 @@
-import { Color, Vector4 } from "@oasis-engine/math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -61,17 +61,17 @@ export class UnlitMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("OMIT_NORMAL");
-    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
 
     shaderData.setColor(UnlitMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setVector4(UnlitMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
   }
 
   /**
-   * @override
+   * @inheritdoc
    */
-  clone(): UnlitMaterial {
+  override clone(): UnlitMaterial {
     const dest = new UnlitMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

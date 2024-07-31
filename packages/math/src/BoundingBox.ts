@@ -73,13 +73,17 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     source.getCenter(center);
     source.getExtent(extent);
     Vector3.transformCoordinate(center, matrix, center);
-
     const { x, y, z } = extent;
     const e = matrix.elements;
-    extent.x = Math.abs(x * e[0]) + Math.abs(y * e[4]) + Math.abs(z * e[8]);
-    extent.y = Math.abs(x * e[1]) + Math.abs(y * e[5]) + Math.abs(z * e[9]);
-    extent.z = Math.abs(x * e[2]) + Math.abs(y * e[6]) + Math.abs(z * e[10]);
-
+    // prettier-ignore
+    const e0 = e[0], e1 = e[1], e2 = e[2],
+    e4 = e[4], e5 = e[5], e6 = e[6],
+    e8 = e[8], e9 = e[9], e10 = e[10];
+    extent.set(
+      (e0 === 0 ? 0 : Math.abs(x * e0)) + (e4 === 0 ? 0 : Math.abs(y * e4)) + (e8 === 0 ? 0 : Math.abs(z * e8)),
+      (e1 === 0 ? 0 : Math.abs(x * e1)) + (e5 === 0 ? 0 : Math.abs(y * e5)) + (e9 === 0 ? 0 : Math.abs(z * e9)),
+      (e2 === 0 ? 0 : Math.abs(x * e2)) + (e6 === 0 ? 0 : Math.abs(y * e6)) + (e10 === 0 ? 0 : Math.abs(z * e10))
+    );
     // set min、max
     Vector3.subtract(center, extent, out.min);
     Vector3.add(center, extent, out.max);
@@ -119,8 +123,11 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @returns The center point of this bounding box
    */
   getCenter(out: Vector3): Vector3 {
-    Vector3.add(this.min, this.max, out);
-    Vector3.scale(out, 0.5, out);
+    const { min, max } = this;
+    const centerX = max._x + min._x;
+    const centerY = max._y + min._y;
+    const centerZ = max._z + min._z;
+    out.set(isNaN(centerX) ? 0 : centerX * 0.5, isNaN(centerY) ? 0 : centerY * 0.5, isNaN(centerZ) ? 0 : centerZ * 0.5);
     return out;
   }
 
@@ -130,8 +137,11 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @returns The extent of this bounding box
    */
   getExtent(out: Vector3): Vector3 {
-    Vector3.subtract(this.max, this.min, out);
-    Vector3.scale(out, 0.5, out);
+    const { min, max } = this;
+    const extentX = max._x - min._x;
+    const extentY = max._y - min._y;
+    const extentZ = max._z - min._z;
+    out.set(isNaN(extentX) ? 0 : extentX * 0.5, isNaN(extentY) ? 0 : extentY * 0.5, isNaN(extentZ) ? 0 : extentZ * 0.5);
     return out;
   }
 

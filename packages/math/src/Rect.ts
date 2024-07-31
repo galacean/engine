@@ -3,14 +3,64 @@ import { ICopy } from "./ICopy";
 
 // A 2d rectangle defined by x and y position, width and height.
 export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
-  /** The x coordinate of the rectangle. */
-  public x: number;
-  /** The y coordinate of the rectangle. */
-  public y: number;
-  /** The width of the rectangle, measured from the x position. */
-  public width: number;
-  /** The height of the rectangle, measured from the y position. */
-  public height: number;
+  /** @internal */
+  _x: number;
+  /** @internal */
+  _y: number;
+  /** @internal */
+  _width: number;
+  /** @internal */
+  _height: number;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   *  The x coordinate of the rectangle.
+   */
+  get x(): number {
+    return this._x;
+  }
+
+  set x(value: number) {
+    this._x = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   *  The y coordinate of the rectangle.
+   */
+  get y(): number {
+    return this._y;
+  }
+
+  set y(value: number) {
+    this._y = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The width of the rectangle, measured from the x position.
+   */
+  get width(): number {
+    return this._width;
+  }
+
+  set width(value: number) {
+    this._width = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The height of the rectangle, measured from the y position.
+   */
+  get height(): number {
+    return this._height;
+  }
+
+  set height(value: number) {
+    this._height = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Rect.
@@ -20,10 +70,10 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
    * @param height - The height of the rectangle, measured from the y position, default 0
    */
   constructor(x: number = 0, y: number = 0, width: number = 0, height: number = 0) {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
+    this._x = x;
+    this._y = y;
+    this._width = width;
+    this._height = height;
   }
 
   /**
@@ -35,10 +85,11 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
    * @returns This rectangle
    */
   set(x: number, y: number, width: number, height: number): Rect {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
+    this._x = x;
+    this._y = y;
+    this._width = width;
+    this._height = height;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -56,10 +107,11 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
    * @returns This rect
    */
   copyFrom(source: Rect): Rect {
-    this.x = source.x;
-    this.y = source.y;
-    this.width = source.width;
-    this.height = source.height;
+    this._x = source.x;
+    this._y = source.y;
+    this._width = source.width;
+    this._height = source.height;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 }

@@ -1,50 +1,59 @@
-import { BoundingBox, Matrix, Vector2 } from "@oasis-engine/math";
-import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { BoundingBox, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
-import { RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader } from "../shader";
+import { RendererUpdateFlags } from "../Renderer";
+import { Logger } from "../base/Logger";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ShaderProperty } from "../shader";
+import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
-import { Texture2D } from "../texture/Texture2D";
-import { Utils } from "../Utils";
 import { MeshRenderer } from "./MeshRenderer";
 import { ModelMesh } from "./ModelMesh";
-import { Skin } from "./Skin";
+import { Skin, SkinUpdateFlag } from "./Skin";
 
 /**
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _tempMatrix = new Matrix();
-  private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
-  private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
-  private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
-
-  @ignoreClone
-  private _hasInitSkin: boolean = false;
-  @ignoreClone
-  private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
-  private _skin: Skin;
-  @ignoreClone
-  private _blendShapeWeights: Float32Array;
-  @ignoreClone
-  private _maxVertexUniformVectors: number;
-  @ignoreClone
-  private _rootBone: Entity;
-  @ignoreClone
-  private _localBounds: BoundingBox = new BoundingBox();
-  @ignoreClone
-  private _jointMatrices: Float32Array;
-  @ignoreClone
-  private _jointTexture: Texture2D;
-  @ignoreClone
-  private _jointEntities: Entity[];
+  private static _jointCountProperty = ShaderProperty.getByName("renderer_JointCount");
+  private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
+  private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
   /** @internal */
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
+
+  @deepClone
+  private _localBounds: BoundingBox = new BoundingBox();
+
+  @ignoreClone
+  private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
+  @ignoreClone
+  private _blendShapeWeights: Float32Array;
+  @ignoreClone
+  private _maxVertexUniformVectors: number;
+
+  @ignoreClone
+  private _jointTexture: Texture2D;
+
+  @deepClone
+  private _skin: Skin;
+
+  /**
+   * Skin of the SkinnedMeshRenderer.
+   */
+  get skin(): Skin {
+    return this._skin;
+  }
+
+  set skin(value: Skin) {
+    const lastSkin = this._skin;
+    if (lastSkin !== value) {
+      this._applySkin(lastSkin, value);
+      this._skin = value;
+    }
+  }
 
   /**
    * The weights of the BlendShapes.
@@ -68,20 +77,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Skin Object.
-   */
-  get skin(): Skin {
-    return this._skin;
-  }
-
-  set skin(value: Skin) {
-    if (this._skin !== value) {
-      this._skin = value;
-      this._hasInitSkin = false;
-    }
-  }
-
-  /**
    * Local bounds.
    */
   get localBounds(): BoundingBox {
@@ -95,19 +90,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Root bone.
-   */
-  get rootBone(): Entity {
-    return this._rootBone;
-  }
-
-  set rootBone(value: Entity) {
-    this._skin.skeleton = value.name;
-    this._hasInitSkin = false;
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -116,14 +98,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const rhi = this.entity.engine._hardwareRenderer;
     let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    if (rhi.renderer === "Apple GPU") {
-      // When uniform is large than 256, the skeleton matrix array access in shader very slow in Safari or WKWebview.
-      // This may be a apple bug, Chrome and Firefox is OK!
-      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
-    }
+
+    // Limit size to 256 to avoid some problem:
+    // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
+    // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
+    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, rhi._options._maxAllowSkinUniformVectorCount);
+
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
+    this._onSkinUpdated = this._onSkinUpdated.bind(this);
 
     const localBounds = this._localBounds;
     // @ts-ignore
@@ -135,185 +119,110 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(): void {
-    if (!this._hasInitSkin) {
-      this._initSkin();
-      this._hasInitSkin = true;
-    }
-    const skin = this._skin;
-    if (skin) {
-      const ibms = skin.inverseBindMatrices;
-      const worldToLocal = this._rootBone.getInvModelMatrix();
-      const { _jointEntities: joints, _jointMatrices: jointMatrices } = this;
-
-      for (let i = joints.length - 1; i >= 0; i--) {
-        const joint = joints[i];
-        const offset = i * 16;
-        if (joint) {
-          Utils._floatMatrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrices, offset);
-        } else {
-          jointMatrices.set(ibms[i].elements, offset);
-        }
-        Utils._floatMatrixMultiply(worldToLocal, jointMatrices, offset, jointMatrices, offset);
-      }
-    }
-  }
-
-  /**
-   * @override
-   */
-  protected _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : this.entity.transform.worldMatrix;
-    this._updateTransformShaderData(context, worldMatrix);
-
-    const shaderData = this.shaderData;
-
-    const mesh = <ModelMesh>this.mesh;
-    const blendShapeManager = mesh._blendShapeManager;
-    blendShapeManager._updateShaderData(shaderData, this);
-
-    const skin = this._skin;
-    if (skin) {
-      const bsUniformOccupiesCount = blendShapeManager._uniformOccupiesCount;
-      const jointCount = skin.joints.length;
-      const jointDataCreateCache = this._jointDataCreateCache;
-      const jointCountChange = jointCount !== jointDataCreateCache.x;
-
-      if (jointCountChange || bsUniformOccupiesCount !== jointDataCreateCache.y) {
-        // directly use max joint count to avoid shader recompile
-        // @TODO: different shader type should use different count, not always 44
-        const remainUniformJointCount = Math.ceil((this._maxVertexUniformVectors - (44 + bsUniformOccupiesCount)) / 4);
-
-        if (jointCount > remainUniformJointCount) {
-          const engine = this.engine;
-          if (engine._hardwareRenderer.canIUseMoreJoints) {
-            if (jointCountChange) {
-              this._jointTexture?.destroy();
-              this._jointTexture = new Texture2D(engine, 4, jointCount, TextureFormat.R32G32B32A32, false);
-              this._jointTexture.filterMode = TextureFilterMode.Point;
-            }
-            shaderData.disableMacro("O3_JOINTS_NUM");
-            shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
-            shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
-          } else {
-            Logger.error(
-              `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
-              this
-            );
-          }
-        } else {
-          this._jointTexture?.destroy();
-          shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
-          shaderData.enableMacro("O3_JOINTS_NUM", remainUniformJointCount.toString());
-          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrices);
-        }
-        jointDataCreateCache.set(jointCount, bsUniformOccupiesCount);
-      }
-
-      if (this._jointTexture) {
-        this._jointTexture.setPixelBuffer(this._jointMatrices);
-      }
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    const worldMatrix = (this.skin?.rootBone ?? this.entity).transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
     }
   }
 
   /**
    * @internal
    */
-  _cloneTo(target: SkinnedMeshRenderer): void {
-    super._cloneTo(target);
+  override _onDestroy(): void {
+    super._onDestroy();
+    this._jointDataCreateCache = null;
+    this._skin = null;
+    this._blendShapeWeights = null;
+    this._localBounds = null;
+    this._jointTexture?.destroy();
+    this._jointTexture = null;
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: SkinnedMeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+
+    if (this.skin) {
+      target._applySkin(null, target.skin);
+    }
+
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
-  /**
-   * @override
-   */
-  protected _registerEntityTransformListener(): void {
-    // Cancel register listener to entity transform.
+  protected override _update(context: RenderContext): void {
+    const { skin } = this;
+    if (skin?.bones.length > 0) {
+      skin._updateSkinMatrices(this);
+    }
+
+    const shaderData = this.shaderData;
+    const mesh = <ModelMesh>this.mesh;
+
+    const blendShapeManager = mesh._blendShapeManager;
+    blendShapeManager._updateShaderData(shaderData, this);
+
+    const bones = skin?.bones;
+    if (bones) {
+      const bsUniformOccupiesCount = blendShapeManager._uniformOccupiesCount;
+      const boneCount = bones.length;
+      const boneDataCreateCache = this._jointDataCreateCache;
+      const boneCountChange = boneCount !== boneDataCreateCache.x;
+
+      if (boneCountChange || bsUniformOccupiesCount !== boneDataCreateCache.y) {
+        // directly use max joint count to avoid shader recompile
+        // @TODO: different shader type should use different count, not always 44
+        const remainUniformJointCount = Math.ceil((this._maxVertexUniformVectors - (44 + bsUniformOccupiesCount)) / 4);
+
+        if (boneCount > remainUniformJointCount) {
+          const engine = this.engine;
+          if (engine._hardwareRenderer.canIUseMoreJoints) {
+            if (boneCountChange) {
+              this._jointTexture?.destroy();
+              this._jointTexture = new Texture2D(engine, 4, boneCount, TextureFormat.R32G32B32A32, false);
+              this._jointTexture.filterMode = TextureFilterMode.Point;
+              this._jointTexture.isGCIgnored = true;
+            }
+            shaderData.disableMacro("RENDERER_JOINTS_NUM");
+            shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
+            shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
+          } else {
+            Logger.error(
+              `component's joints count(${boneCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
+              this
+            );
+          }
+        } else {
+          this._jointTexture?.destroy();
+          shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
+          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, skin._skinMatrices);
+        }
+        boneDataCreateCache.set(boneCount, bsUniformOccupiesCount);
+      }
+
+      if (this._jointTexture) {
+        this._jointTexture.setPixelBuffer(skin._skinMatrices);
+      }
+    }
+
+    super._update(context);
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
-    if (this._rootBone) {
-      const localBounds = this._localBounds;
-      const worldMatrix = this._rootBone.transform.worldMatrix;
-      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    const rootBone = this.skin?.rootBone;
+    if (rootBone) {
+      BoundingBox.transform(this._localBounds, rootBone.transform.worldMatrix, worldBounds);
     } else {
       super._updateBounds(worldBounds);
     }
-  }
-
-  private _initSkin(): void {
-    const rhi = this.entity.engine._hardwareRenderer;
-    if (!rhi) return;
-
-    const { _skin: skin, shaderData } = this;
-    if (!skin) {
-      shaderData.disableMacro("O3_HAS_SKIN");
-      return;
-    }
-
-    const joints = skin.joints;
-    const jointCount = joints.length;
-    const jointEntities = new Array<Entity>(jointCount);
-    for (let i = jointCount - 1; i >= 0; i--) {
-      jointEntities[i] = this._findByEntityName(this.entity, joints[i]);
-    }
-    this._jointEntities = jointEntities;
-    this._jointMatrices = new Float32Array(jointCount * 16);
-
-    const lastRootBone = this._rootBone;
-    const rootBone = this._findByEntityName(this.entity, skin.skeleton);
-
-    lastRootBone && lastRootBone.transform._updateFlagManager.removeListener(this._onTransformChanged);
-    rootBone.transform._updateFlagManager.addListener(this._onTransformChanged);
-
-    const rootIndex = joints.indexOf(skin.skeleton);
-    if (rootIndex !== -1) {
-      BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
-    } else {
-      // Root bone is not in joints list, we can only compute approximate inverse bind matrix
-      // Average all root bone's children inverse bind matrix
-      let subRootBoneCount = 0;
-      const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-      const inverseBindMatrices = skin.inverseBindMatrices;
-      const rootBoneChildren = rootBone.children;
-      for (let i = 0; i < jointCount; i++) {
-        const index = jointEntities.indexOf(rootBoneChildren[i]);
-        if (index !== -1) {
-          Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
-          subRootBoneCount++;
-        }
-      }
-      if (subRootBoneCount !== 0) {
-        Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
-        BoundingBox.transform(this._mesh.bounds, approximateBindMatrix, this._localBounds);
-      } else {
-        this._localBounds.copyFrom(this._mesh.bounds);
-      }
-    }
-
-    this._rootBone = rootBone;
-    if (jointCount) {
-      shaderData.enableMacro("O3_HAS_SKIN");
-      shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-    } else {
-      shaderData.disableMacro("O3_HAS_SKIN");
-    }
-  }
-
-  private _findByEntityName(rootEntity: Entity, name: string): Entity {
-    if (!rootEntity) {
-      return null;
-    }
-
-    const result = rootEntity.findByName(name);
-    if (result) {
-      return result;
-    }
-
-    return this._findByEntityName(rootEntity.parent, name);
   }
 
   private _checkBlendShapeWeightLength(): void {
@@ -341,5 +250,62 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _onLocalBoundsChanged(): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+
+  @ignoreClone
+  private _onSkinUpdated(type: SkinUpdateFlag, value: Object): void {
+    switch (type) {
+      case SkinUpdateFlag.BoneCountChanged:
+        const shaderData = this.shaderData;
+        if (<number>value > 0) {
+          shaderData.enableMacro("RENDERER_HAS_SKIN");
+          shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, <number>value);
+        } else {
+          shaderData.disableMacro("RENDERER_HAS_SKIN");
+        }
+        break;
+      case SkinUpdateFlag.RootBoneChanged:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        break;
+    }
+  }
+
+  private _applySkin(lastSkin: Skin, value: Skin): void {
+    const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
+    const lastRootBone = lastSkin?.rootBone ?? this.entity;
+    lastSkin?._updatedManager.removeListener(this._onSkinUpdated);
+
+    const skinBoneCount = value?.bones?.length ?? 0;
+    const rootBone = value?.rootBone ?? this.entity;
+    value?._updatedManager.addListener(this._onSkinUpdated);
+
+    if (lastSkinBoneCount !== skinBoneCount) {
+      this._onSkinUpdated(SkinUpdateFlag.BoneCountChanged, skinBoneCount);
+    }
+    if (lastRootBone !== rootBone) {
+      this._onSkinUpdated(SkinUpdateFlag.RootBoneChanged, rootBone);
+    }
+  }
+
+  /**
+   * @deprecated use {@link SkinnedMeshRenderer.skin.rootBone} instead.
+   */
+  get rootBone(): Entity {
+    return this.skin.rootBone;
+  }
+
+  set rootBone(value: Entity) {
+    this.skin.rootBone = value;
+  }
+
+  /**
+   * @deprecated use {@link SkinnedMeshRenderer.skin.bones} instead.
+   */
+  get bones(): Readonly<Entity[]> {
+    return this.skin.bones;
+  }
+
+  set bones(value: Readonly<Entity[]>) {
+    this.skin.bones = value;
   }
 }
