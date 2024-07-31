@@ -570,10 +570,11 @@ export class TextRenderer extends Renderer {
       const { _pixelsPerUnit } = Engine;
       const { horizontalAlignment } = this;
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-      const rendererWidth = this.width * _pixelsPerUnit;
+      const rendererWidth = this._width * _pixelsPerUnit;
       const halfRendererWidth = rendererWidth * 0.5;
-      const rendererHeight = this.height * _pixelsPerUnit;
+      const rendererHeight = this._height * _pixelsPerUnit;
       const halfLineHeight = lineHeight * 0.5;
+      const letterSpacing = this._letterSpacing * _pixelsPerUnit;
 
       let startY = 0;
       const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
@@ -635,7 +636,7 @@ export class TextRenderer extends Renderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance;
+            startX += charInfo.xAdvance + letterSpacing;
           }
         }
         startY -= lineHeight;
