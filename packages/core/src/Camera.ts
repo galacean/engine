@@ -599,7 +599,8 @@ export class Camera extends Component {
    * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
-    const context = this.engine._renderContext;
+    const engine = this._engine;
+    const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
     const transform = this.entity.transform;
@@ -630,16 +631,16 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
-    if (mipLevel > 0 && !this.engine._hardwareRenderer.isWebGL2) {
+    if (mipLevel > 0 && !engine._hardwareRenderer.isWebGL2) {
       mipLevel = 0;
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let clearMask: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal) {
-      clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
+    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
+      clearMask = engine.xrManager._getCameraClearFlagsMask(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);
-    this._engine._renderCount++;
+    engine._renderCount++;
   }
 
   /**
