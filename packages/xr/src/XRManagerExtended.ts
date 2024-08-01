@@ -144,8 +144,8 @@ export class XRManagerExtended extends XRManager {
     return this.sessionManager._getCancelAnimationFrame();
   }
 
-  override _getCameraClearFlagsMask(type: CameraType): CameraClearFlags {
-    return this.cameraManager._getCameraClearFlagsMask(type);
+  override _getCameraIgnoreClearFlags(type: CameraType): CameraClearFlags {
+    return this.cameraManager._getIgnoreClearFlags(type);
   }
 
   /**
@@ -290,7 +290,7 @@ declare module "@galacean/engine" {
     /**
      * @internal
      */
-    _getCameraClearFlagsMask(type: CameraType): CameraClearFlags;
+    _getCameraIgnoreClearFlags(type: CameraType): CameraClearFlags;
 
     /**
      * @internal

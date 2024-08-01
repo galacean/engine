@@ -125,7 +125,7 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  _getCameraClearFlagsMask(cameraType: CameraType): CameraClearFlags {
+  _getIgnoreClearFlags(cameraType: CameraType): CameraClearFlags {
     if (cameraType === CameraType.XRCenterCamera) {
       if (this._xrManager.sessionManager.state === XRSessionState.Running) {
         return CameraClearFlags.Color;
