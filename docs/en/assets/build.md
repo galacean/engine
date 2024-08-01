@@ -36,7 +36,7 @@ Rendering export settings can be used to control parameters related to the proje
 | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------|
 | WebGL Mode                                                                                            | WebGL version, `Auto` means automatically select WebGL version based on device capabilities |
 | WebGL [Context](https://developer.mozilla.org/en-US/en/docs/Web/API/HTMLCanvasElement/getContext) settings | Anti-Alias, Alpha, Preserve Drawing Buffer, etc.                           |
-| Device Pixel Ratio                                                                                    | [Device pixel ratio](/en/docs/core-canvas) used to control canvas size        |
+| Device Pixel Ratio                                                                                    | [Device pixel ratio](/en/docs/core/canvas) used to control canvas size        |
 
 ### Project Start
 

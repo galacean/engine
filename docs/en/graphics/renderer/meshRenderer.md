@@ -12,11 +12,11 @@ label: Graphics/Renderer
 
 ## Usage
 
-In the editor **[Hierarchy Panel](/en/docs/interface-hierarchy)**, you can quickly create a node with a cuboid mesh renderer attached ( **Hierarchy Panel** -> **Right-click** -> **3D Object** -> **Cuboid** ).
+In the editor **[Hierarchy Panel](/en/docs/interface/hierarchy)**, you can quickly create a node with a cuboid mesh renderer attached ( **Hierarchy Panel** -> **Right-click** -> **3D Object** -> **Cuboid** ).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Pca9RZvOsNMAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
 
-Alternatively, you can attach a mesh renderer to existing nodes in the scene and set any [mesh](/en/docs/graphics-mesh) and [material](/en/docs/graphics-material). ( **Select Node** -> **[Inspector Panel](/en/docs/interface-inspector)** -> **Add Component** -> **Mesh Renderer** ).
+Alternatively, you can attach a mesh renderer to existing nodes in the scene and set any [mesh](/en/docs/graphics-mesh) and [material](/en/docs/graphics-material). ( **Select Node** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Add Component** -> **Mesh Renderer** ).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*UHfjTYk0b4sAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
 

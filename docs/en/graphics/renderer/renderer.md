@@ -6,7 +6,7 @@ group: Renderer
 label: Graphics/Renderer
 ---
 
-The renderer is responsible for displaying graphics [**components**](/en/docs/core-component), which will display corresponding rendering effects based on different data sources. By attaching a renderer to a node and setting the corresponding rendering data, various complex 3D scenes can be displayed.
+The renderer is responsible for displaying graphics [**components**](/en/docs/core/component), which will display corresponding rendering effects based on different data sources. By attaching a renderer to a node and setting the corresponding rendering data, various complex 3D scenes can be displayed.
 
 ## Renderer Types
 

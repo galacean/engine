@@ -7,10 +7,10 @@ label: Core
 
 `Engine` plays the role of the main controller in Galacean Engine, mainly including three major functions: **canvas**, **render control**, and **engine subsystem management**:
 
-- **[Canvas](/en/docs/core-canvas)**: Operations related to the main canvas, such as modifying the canvas width and height.
+- **[Canvas](/en/docs/core/canvas)**: Operations related to the main canvas, such as modifying the canvas width and height.
 - **Render Control**: Controls rendering execution/pause/resume, vertical synchronization, and other functions.
 - **Engine Subsystem Management**:
-  - [Scene Management](/en/docs/core-scene})
+  - [Scene Management](/en/docs/core/scene})
   - [Resource Management](/en/docs/assets-overall})
   - [Physics System](/en/docs/physics-overall})
   - [Interaction System](/en/docs/input})

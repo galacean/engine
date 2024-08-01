@@ -24,7 +24,7 @@ label: Graphics/2D
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*W-HZSrvAiG8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-选中`精灵图集`资产，可以在 **[检查器面板](/docs/interface-inspector)** 查看资产的详细信息。
+选中`精灵图集`资产，可以在 **[检查器面板](/docs/interface/inspector)** 查看资产的详细信息。
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*LW0JS7v5dP8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
@@ -34,13 +34,13 @@ label: Graphics/2D
 
 #### 方式一：操作精灵
 
-左键选中需要添加的`精灵`资产，可以在 **[检查器面板](/docs/interface-inspector)** 找到精灵的`从属关系`，选择`打包进图集`就可以选取希望打包进的`精灵图集`资产了。
+左键选中需要添加的`精灵`资产，可以在 **[检查器面板](/docs/interface/inspector)** 找到精灵的`从属关系`，选择`打包进图集`就可以选取希望打包进的`精灵图集`资产了。
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*G_utQZfPYPoAAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
 #### 方式二：操作精灵图集
 
-左键选中目标`精灵图集`资产，可以在 **[检查器面板](/docs/interface-inspector)** 找到图集打包的精灵列表，选择`添加精灵`就可以选取希望打包的`精灵`资产了。（若选取文件夹，则会添加文件夹目录下的所有精灵）
+左键选中目标`精灵图集`资产，可以在 **[检查器面板](/docs/interface/inspector)** 找到图集打包的精灵列表，选择`添加精灵`就可以选取希望打包的`精灵`资产了。（若选取文件夹，则会添加文件夹目录下的所有精灵）
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*6unHT7e-S-8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
@@ -48,19 +48,19 @@ label: Graphics/2D
 
 #### 方式一：操作精灵
 
-左键选中需要从图集中移除的的`精灵`资产，可以在 **[检查器面板](/docs/interface-inspector)** 找到精灵的`从属关系`（注意需确认目标图集的路径是否匹配），点击移除按钮就可以从目标图集中移除该精灵。
+左键选中需要从图集中移除的的`精灵`资产，可以在 **[检查器面板](/docs/interface/inspector)** 找到精灵的`从属关系`（注意需确认目标图集的路径是否匹配），点击移除按钮就可以从目标图集中移除该精灵。
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*dQ_CT5qjHacAAAAAAAAAAAAADleLAQ/original" alt="buildBox" style="zoom: 67%;" />
 
 #### 方式二：操作精灵图集
 
-左键选中需要操作的`精灵图集`资产，可以在 **[检查器面板](/docs/interface-inspector)** 找到图集的精灵列表，找到要移除的精灵对象并点击移除按钮即可。
+左键选中需要操作的`精灵图集`资产，可以在 **[检查器面板](/docs/interface/inspector)** 找到图集的精灵列表，找到要移除的精灵对象并点击移除按钮即可。
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*aZcoS6ISXAoAAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
 ### 快速操作精灵
 
-`精灵`资产被加入`精灵图集`后，可以在`精灵图集`的 **[检查器面板](/docs/interface-inspector)** 中快速操作精灵，他的属性会同步修改到`精灵`资产中
+`精灵`资产被加入`精灵图集`后，可以在`精灵图集`的 **[检查器面板](/docs/interface/inspector)** 中快速操作精灵，他的属性会同步修改到`精灵`资产中
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*WxzIS5If7NsAAAAAAAAAAAAADjCHAQ/original" alt="buildBox"  />
 

@@ -11,7 +11,7 @@ When loading and using model assets, you will generally encounter the following 
 - Models that are preloaded with the scene file and used in scripts
 - Models that are not preloaded, loaded and used in scripts
 
-In the editor, **models placed in the scene** will be preloaded with the scene file. Follow the steps **Asset Panel** -> **Left-click and drag the model thumbnail** -> **Drag it to the [Viewport](/en/docs/interface-viewport)** -> **Release the left mouse button** -> **Adjust the coordinates** to place the model in the corresponding scene.
+In the editor, **models placed in the scene** will be preloaded with the scene file. Follow the steps **Asset Panel** -> **Left-click and drag the model thumbnail** -> **Drag it to the [Viewport](/en/docs/interface/viewport)** -> **Release the left mouse button** -> **Adjust the coordinates** to place the model in the corresponding scene.
 
 > The editor cannot directly adjust the scale property of model nodes, so in most cases, you need to drag the model node under an entity node and then adjust the scale property of the entity node.
 

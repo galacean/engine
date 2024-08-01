@@ -5,12 +5,11 @@ type: 脚本
 label: Script
 ---
 
-自定义脚本的基类是 [Script](/apis/core/#Script) ，它扩展自 [Component](/docs/core-component)，因此组件包含的能力与操作，它不仅支持组件的基础能力：
+自定义脚本的基类是 [Script](/apis/core/#Script) ，它扩展自 [Component](/docs/core/component)，因此包含组件的能力与操作。如：
 
-- 挂载到 [Entity](/docs/core-entity) 上
+- 挂载到 [Entity](/docs/core/entity) 上
 - 方便地获取节点实例，组件实例
 - 遵循组件的禁用销毁规则
-- ……
 
 除此以外，脚本还提供丰富的生命周期回调函数，只要脚本中重写特定的回调函数，不需要手工调用它们，Galacean 就会在特定的时期自动执行相关脚本。
 
@@ -22,7 +21,7 @@ label: Script
 >
 > **当且仅当实体挂载了相机组件** 也就是添加了相机组件时，他们才会被调用。
 
-### [**onAwake**](/apis/core/#Script-onAwake)
+### onAwake
 
 如果脚本添加到的实体的 [isActiveInHierarchy](/apis/core/#Entity-isactiveinhierarchy) 为 `true`，则在脚本初始化时回调函数将被调用，如果[isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) 为 `false`，则在实体被激活，即 [isActive](/apis/core/#Entity-isActive)  被设为 `true`  时被调用。 `onAwake`  只会被调用一次，并且在所有生命周期的最前面，通常我们会在 `onAwake`  中做一些初始化相关的操作：
 
@@ -33,17 +32,17 @@ onAwake() {
 }
 ```
 
-### [**onEnable**](/apis/core/#Script-onEnable)
+### onEnable
 
 当脚本的 [enabled](/apis/core/#Component-enabled) 属性从 `false` 变为 `true` 时，或者所在实体的 [isActiveInHierarchy](/apis/core/#Entity-isactiveinhierarchy) 属性从 `false` 变为 `true` 时，会激活 `onEnable` 回调。倘若实体第一次被创建且 [enabled](/apis/core/#Component-enabled) 为 `true`，则会在 `onAwake` 之后，`onStart` 之前被调用。
 
-### [**onDisable**](/apis/core/#Script-ondisable)
+### onDisable
 
 当组件的 [enabled](/apis/core/#Component-enabled) 属性从 `true` 变为 `false` 时，或者所在实体的 [isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) 属性从 `true` 变为 `false` 时，会激活 `onDisable` 回调
 
 注意：[isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) 的判断方法为实体在层级树中是被激活状态即该实体为激活状态，它的父亲及父亲的父亲直到根实体都为激活状态 [isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) 才为 `true`
 
-### [**onStart**](/apis/core/#Script-onStart)
+### onStart
 
 `onStart` 回调函数会在脚本第一次进入帧循环，也就是第一次执行 `onUpdate` 之前触发。`onStart` 通常用于初始化一些需要经常修改的数据，这些数据可能在 `onUpdate` 时会发生改变。
 
@@ -71,35 +70,35 @@ onUpdate() {
 }
 ```
 
-### [**onPhysicsUpdate**](/apis/core/#Script-onPhysicsUpdate)
+### onPhysicsUpdate
 
 `onPhysicsUpdate` 回调函数调用频率与物理引擎更新频率保持一致。每个渲染帧可能会调用多次。
 
-### [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)
+### onTriggerEnter
 
 `onTriggerEnter` 回调函数会在触发器相互接触时调用，以处理触发器相遇时的逻辑，例如在触发发生时删除实体。
 
-### [**onTriggerStay**](/apis/core/#Script-onTriggerStay)
+### onTriggerStay
 
 `onTriggerStay` 回调函数会在触发器接触过程中**持续**调用，每帧调用一次。
 
-### [**onTriggerExit**](/apis/core/#Script-onTriggerExit)
+### onTriggerExit
 
 `onTriggerExit` 回调函数会在两个触发器分离时被调用，即触发关系发生改变，只调用一次。
 
-### [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter)
+### onCollisionEnter
 
 `onCollisionEnter` 回调函数会在碰撞器碰撞时调用，以处理碰撞体相遇时的逻辑，例如在碰撞发生时删除实体。
 
-### [**onCollisionStay**](/apis/core/#Script-onCollisionStay)
+### onCollisionStay
 
 `onCollisionStay` 回调函数会在碰撞器碰撞过程中**持续**调用，每帧调用一次。
 
-### [**onCollisionExit**](/apis/core/#Script-onCollisionExit)
+### onCollisionExit
 
 `onCollisionExit` 回调函数会在两个碰撞器分离时被调用，即碰撞关系发生改变，只调用一次。
 
-### [**onUpdate**](/apis/core/#Script-onUpdate)
+### onUpdate
 
 游戏/动画开发的一个关键点是在每一帧渲染前更新物体的行为，状态和方位。这些更新操作通常都放在 `onUpdate` 回调中。接收与上一次 `onUpdate` 执行时间差参数, 类型是 `number`
 
@@ -113,7 +112,7 @@ onUpdate(deltaTime: number) {
 }
 ```
 
-### [**onLateUpdate**](/apis/core/#Script-onLateUpdate)
+### onLateUpdate
 
 `onUpdate` 会在所有动画更新前执行，但如果我们要在动效（如动画、粒子等）更新之后才进行一些额外操作，或者希望在所有组件的 `onUpdate` 都执行完之后才进行其它操作比如相机跟随，那就需要用到 `onLateUpdate` 回调。接收与上一次 `onLateUpdate` 执行时间差参数, 类型是 `number`
 
@@ -131,15 +130,15 @@ onLateUpdate(deltaTime: number) {
 }
 ```
 
-### [**onBeginRender**](/apis/core/#Script-onBeginRender)
+### onBeginRender
 
 **当且仅当实体挂载了相机组件**，那么相机组件的 [render](/apis/core/#Camera-render) 方法调用之前 `onBeginRender` 回调将被调用。
 
-### [**onEndRender**](/apis/core/#Script-onEndRender)
+### onEndRender
 
 **当且仅当实体挂载了相机组件**，那么相机组件的 [render](/apis/core/#Camera-render) 方法调用之后 `onEndRender` 回调将被调用。
 
-### [**onDestroy**](/apis/core/#Script-onDestroy)
+### onDestroy
 
 当组件或者所在实体调用了 [destroy](/apis/core/#Entity-destroy)，则会调用 `onDestroy` 回调，并在当帧结束时统一回收组件。
 
@@ -149,7 +148,7 @@ onLateUpdate(deltaTime: number) {
 
 ## 实体操作
 
-[实体](/docs/core-entity)是脚本的主要操作对象。你可以在编辑器场景检查器里修改节点和组件，也能在脚本中动态修改。脚本能够响应玩家输入，能够修改、创建和销毁实体或组件，从而实现各种各样的游戏逻辑。
+[实体](/docs/core/entity)是脚本的主要操作对象。你可以在编辑器场景检查器里修改节点和组件，也能在脚本中动态修改。脚本能够响应玩家输入，能够修改、创建和销毁实体或组件，从而实现各种各样的游戏逻辑。
 
 ### 访问实体和组件
 

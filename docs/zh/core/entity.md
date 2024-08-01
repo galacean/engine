@@ -7,17 +7,17 @@ label: Core
 
 ## 编辑器使用
 
-**[层级面板](/docs/interface-hierarchy)** 位于编辑器的最左侧，它以树状结构显示当前场景中的所有节点，场景节点是所有其他节点的父节点，包括相机、灯光、网格等等。在节点面板上方有一个搜索框，可以模糊搜索场景中的节点，来快速定位。通过节点面板，你可以添加或删除节点，通过拖拽的方式来排序从而更好的组织节点。
+**[层级面板](/docs/interface/hierarchy)** 位于编辑器的最左侧，它以树状结构显示当前场景中的所有节点，场景节点是所有其他节点的父节点，包括相机、灯光、网格等等。在节点面板上方有一个搜索框，可以模糊搜索场景中的节点，来快速定位。通过节点面板，你可以添加或删除节点，通过拖拽的方式来排序从而更好的组织节点。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/e85a8a9b-decd-4a80-a7b2-9eccaeed1e2c/image-20230925173904478.png" alt="image-20230925173904478" style="zoom:50%;" />
 
 ### 新增节点
 
-要新增节点，你可以点击节点面板上的添加按钮，或右键某个节点后选择添加子节点。添加完成后，你可以在 **[检查器面板](/docs/interface-inspector)** 中对新节点的属性进行编辑。如果使用新增节点按钮, 你还可以快速创建立方体/球体等基本模型
+要新增节点，你可以点击节点面板上的添加按钮，或右键某个节点后选择添加子节点。添加完成后，你可以在 **[检查器面板](/docs/interface/inspector)** 中对新节点的属性进行编辑。如果使用新增节点按钮, 你还可以快速创建立方体/球体等基本模型
 
 ### 编辑节点
 
-点击节点，你就可以对它进行编辑，在右侧的 **[检查器面板](/docs/interface-inspector)** 中你可以编辑它的名字
+点击节点，你就可以对它进行编辑，在右侧的 **[检查器面板](/docs/interface/inspector)** 中你可以编辑它的名字
 
 <img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*qBiVT6YtvkQAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style="zoom:50%;" />
 
@@ -47,13 +47,13 @@ Transform
 
 ### 节点隐藏
 
-每个实体节点右侧都有一个眼睛按钮，点击可以切换节点在场景中的显示/隐藏状态。需要注意的是, 此处对节点显示状态的调整仅是工作区的修改，而非在 **[检查器面板](/docs/interface-inspector)** 中的 `isActive` 的属性。
+每个实体节点右侧都有一个眼睛按钮，点击可以切换节点在场景中的显示/隐藏状态。需要注意的是, 此处对节点显示状态的调整仅是工作区的修改，而非在 **[检查器面板](/docs/interface/inspector)** 中的 `isActive` 的属性。
 
 ## 脚本使用
 
 ### 创建新实体
 
-在[场景](/docs/core-scene)中已经介绍了如何获取激活场景。在新场景中，我们通常会先添加根节点：
+在[场景](/docs/core/scene)中已经介绍了如何获取激活场景。在新场景中，我们通常会先添加根节点：
 
 ```typescript
 const scene = engine.sceneManager.activeScene;

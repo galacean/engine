@@ -24,7 +24,7 @@ Right-click inside the **[Asset Panel](/en/docs/assets-interface)**, select `Cre
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*W-HZSrvAiG8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-Select the `Sprite Atlas` asset to view detailed information in the **[Inspector Panel](/en/docs/interface-inspector)**.
+Select the `Sprite Atlas` asset to view detailed information in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*LW0JS7v5dP8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
@@ -34,13 +34,13 @@ After determining the relationship between the `Sprite Atlas` and `Sprites`, you
 
 #### Method 1: Operate Sprite
 
-Left-click on the `Sprite` asset that needs to be added, and in the **[Inspector Panel](/en/docs/interface-inspector)**, find the `Hierarchy` of the sprite. Select `Pack into Atlas` to choose the desired `Sprite Atlas` asset to pack into.
+Left-click on the `Sprite` asset that needs to be added, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the `Hierarchy` of the sprite. Select `Pack into Atlas` to choose the desired `Sprite Atlas` asset to pack into.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*G_utQZfPYPoAAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
 #### Method 2: Operate Sprite Atlas
 
-Left-click on the target `Sprite Atlas` asset, and in the **[Inspector Panel](/en/docs/interface-inspector)**, find the list of sprites packed in the atlas. Select `Add Sprite` to choose the desired `Sprite` asset to pack (selecting a folder will add all sprites under that folder).
+Left-click on the target `Sprite Atlas` asset, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the list of sprites packed in the atlas. Select `Add Sprite` to choose the desired `Sprite` asset to pack (selecting a folder will add all sprites under that folder).
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*6unHT7e-S-8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
@@ -48,19 +48,19 @@ Left-click on the target `Sprite Atlas` asset, and in the **[Inspector Panel](/e
 
 #### Method 1: Operate Sprite
 
-Left-click on the `Sprite` asset that needs to be removed from the atlas, and in the **[Inspector Panel](/en/docs/interface-inspector)**, find the sprite's `Hierarchy` (make sure the path of the target atlas matches). Click the remove button to remove the sprite from the target atlas.
+Left-click on the `Sprite` asset that needs to be removed from the atlas, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the sprite's `Hierarchy` (make sure the path of the target atlas matches). Click the remove button to remove the sprite from the target atlas.
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*dQ_CT5qjHacAAAAAAAAAAAAADleLAQ/original" alt="buildBox" style="zoom: 67%;" />
 
 #### Method 2: Operate Sprite Atlas
 
-Left-click on the `Sprite Atlas` asset to be operated, and in the **[Inspector Panel](/en/docs/interface-inspector)**, find the list of sprites in the atlas. Locate the sprite to be removed and click the remove button.
+Left-click on the `Sprite Atlas` asset to be operated, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the list of sprites in the atlas. Locate the sprite to be removed and click the remove button.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*aZcoS6ISXAoAAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
 ### Quickly Operate Sprites
 
-After a `Sprite` asset is added to a `Sprite Atlas`, you can quickly operate the sprite in the `Sprite Atlas` **[Inspector Panel](/en/docs/interface-inspector)**, and its properties will be synchronized with the `Sprite` asset.
+After a `Sprite` asset is added to a `Sprite Atlas`, you can quickly operate the sprite in the `Sprite Atlas` **[Inspector Panel](/en/docs/interface/inspector)**, and its properties will be synchronized with the `Sprite` asset.
 
 
 ### Settings

@@ -12,11 +12,11 @@ label: Graphics/Renderer
 
 ## 使用
 
-在编辑器 **[层级面板](/docs/interface-hierarchy)** 中，你可以快速创建一个挂载了长方体网格渲染器的节点（ **层级面板** -> **右键** -> **3D Object** -> **Cuboid** ）。
+在编辑器 **[层级面板](/docs/interface/hierarchy)** 中，你可以快速创建一个挂载了长方体网格渲染器的节点（ **层级面板** -> **右键** -> **3D Object** -> **Cuboid** ）。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Pca9RZvOsNMAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
 
-当然，也可以为场景中已有的节点挂载上网格渲染器，并设置任意[网格](/docs/graphics-mesh)与[材质](/docs/graphics-material)。（ **选中节点** -> **[检查器面板](/docs/interface-inspector)** -> **Add Component** -> **Mesh Renderer** ）。
+当然，也可以为场景中已有的节点挂载上网格渲染器，并设置任意[网格](/docs/graphics-mesh)与[材质](/docs/graphics-material)。（ **选中节点** -> **[检查器面板](/docs/interface/inspector)** -> **Add Component** -> **Mesh Renderer** ）。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*UHfjTYk0b4sAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
 
