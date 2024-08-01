@@ -1,14 +1,6 @@
-import {
-  BlendFactor,
-  BlendOperation,
-  CompareFunction,
-  CullMode,
-  RenderQueueType,
-  RenderStateDataKey,
-  StencilOperation
-} from "@galacean/engine-core";
+import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab } from "@galacean/engine-shader-lab/dist/main.editor";
 import { glslValidate } from "./ShaderValidate";
 
 import chai, { expect } from "chai";

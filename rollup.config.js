@@ -8,7 +8,6 @@ import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
-import modify from "rollup-plugin-modify";
 import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
@@ -25,6 +24,8 @@ const pkgs = fs
       pkgJson: require(path.resolve(location, "package.json"))
     };
   });
+
+const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-lab");
 
 // toGlobalName
 
@@ -49,9 +50,6 @@ const commonPlugins = [
     })
   ),
   commonjs(),
-  jscc({
-    values: { _EDITOR: NODE_ENV !== "release" }
-  }),
   NODE_ENV === "development"
     ? serve({
         contentBase: "packages",
@@ -60,9 +58,15 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson }) {
+function config({ location, pkgJson, editorMode }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
+  commonPlugins.push(
+    jscc({
+      values: { _EDITOR: NODE_ENV !== "release" || editorMode }
+    })
+  );
+
   const external = Object.keys(dependencies);
   commonPlugins.push(
     replace({
@@ -76,16 +80,13 @@ function config({ location, pkgJson }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
-      const plugins = [
-        modify({
-          find: "chevrotain",
-          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
-        }),
-        ...commonPlugins
-      ];
+      const plugins = commonPlugins;
       if (compress) {
         plugins.push(minify({ sourceMap: true }));
         file = path.join(location, "dist", "browser.min.js");
+      }
+      if (editorMode) {
+        file = path.join(location, "dist", "browser.editor.js");
       }
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});
@@ -106,13 +107,17 @@ function config({ location, pkgJson }) {
       };
     },
     mini: () => {
+      let file = path.join(location, "dist", "miniprogram.js");
       const plugins = [...commonPlugins, ...miniProgramPlugin];
+      if (editorMode) {
+        file = path.join(location, "dist", "miniprogram.editor.js");
+      }
       return {
         input,
         output: [
           {
             format: "cjs",
-            file: path.join(location, "dist/miniprogram.js"),
+            file,
             sourcemap: false
           }
         ],
@@ -121,24 +126,24 @@ function config({ location, pkgJson }) {
       };
     },
     module: () => {
-      const plugins = [
-        modify({
-          find: "chevrotain",
-          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
-        }),
-        ...commonPlugins
-      ];
+      const plugins = commonPlugins;
+      let esFile = pkgJson.module;
+      let mainFile = pkgJson.main;
+      if (editorMode) {
+        esFile = path.join(location, "dist", "module.editor.js");
+        mainFile = path.join(location, "dist", "main.editor.js");
+      }
       return {
         input,
         external,
         output: [
           {
-            file: path.join(location, pkgJson.module),
+            file: esFile,
             format: "es",
             sourcemap: true
           },
           {
-            file: path.join(location, pkgJson.main),
+            file: mainFile,
             sourcemap: true,
             format: "commonjs"
           }
@@ -174,7 +179,7 @@ switch (BUILD_TYPE) {
 
 function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.umd);
-  return configs
+  const umds = configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
     .concat(
       configs.map((config) =>
@@ -186,16 +191,22 @@ function getUMD() {
         })
       )
     );
+  umds.push(makeRollupConfig({ ...shaderLabPkg, editorMode: true, type: "umd" }));
+  return umds;
 }
 
 function getModule() {
   const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+  const modules = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+  modules.push(makeRollupConfig({ ...shaderLabPkg, editorMode: true, type: "module" }));
+  return modules;
 }
 
 function getMini() {
   const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
+  const minis = configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
+  minis.push(makeRollupConfig({ ...shaderLabPkg, editorMode: true, type: "mini" }));
+  return minis;
 }
 
 function getAll() {

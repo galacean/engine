@@ -14,7 +14,9 @@
     "skipLibCheck": true,
     "paths": {
       "@/*": ["src/*"] // 配置模块别名，对于 chair 项目需做更改，见下文
-    }
+    },
+    "allowJs": true,
+    "checkJs": false
   },
   "exclude": ["node_modules", "types", "packages/*/tests"]
 }
