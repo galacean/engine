@@ -635,11 +635,11 @@ export class Camera extends Component {
       mipLevel = 0;
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
-    let ignoreClear: CameraClearFlags;
+    let ignoreClearFlags: CameraClearFlags;
     if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
-      ignoreClear = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
+      ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClear);
+    this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
     engine._renderCount++;
   }
 

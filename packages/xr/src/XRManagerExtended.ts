@@ -145,7 +145,7 @@ export class XRManagerExtended extends XRManager {
   }
 
   override _getCameraIgnoreClearFlags(type: CameraType): CameraClearFlags {
-    return this.cameraManager._getCameraIgnoreClearFlags(type);
+    return this.cameraManager._getIgnoreClearFlags(type);
   }
 
   /**
