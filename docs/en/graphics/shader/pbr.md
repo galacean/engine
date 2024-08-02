@@ -39,8 +39,8 @@ In addition, there are many common properties that can be configured, such as an
 | [normalTexture](/apis/core/#PBRBaseMaterial-normalTexture) | Normal texture. Can be set to create a visual bump effect and control the bump intensity through the normal strength. |
 | [emissiveTexture](/apis/core/#PBRBaseMaterial-emissiveTexture) | Emissive texture. By setting an emissive texture and emissive color ([emissiveFactor](/apis/core/#PBRBaseMaterial-emissiveTexture})), an emissive effect can be achieved, rendering color even without lighting. |
 | [occlusionTexture](/apis/core/#PBRBaseMaterial-occlusionTexture) | Occlusion texture. Enhances object shadow details by setting an occlusion texture. |
-| [tilingOffset](/apis/core/#PBRBaseMaterial-tilingOffset) | Texture coordinate scaling and offset. A Vector4 data that controls the scaling and offset of texture coordinates in the UV direction, refer to the [example](${examples}tiling-offset). |
-| [clearCoat](/apis/core/#PBRBaseMaterial-clearCoat) | Strength of the clear coat, default is 0, which means the clear coat effect is not enabled, refer to the [example](${examples}pbr-clearcoat). |
+| [tilingOffset](/apis/core/#PBRBaseMaterial-tilingOffset) | Texture coordinate scaling and offset. A Vector4 data that controls the scaling and offset of texture coordinates in the UV direction, refer to the [example](/embed/tiling-offset). |
+| [clearCoat](/apis/core/#PBRBaseMaterial-clearCoat) | Strength of the clear coat, default is 0, which means the clear coat effect is not enabled, refer to the [example](/embed/pbr-clearcoat). |
 | [clearCoatTexture](/apis/core/#PBRBaseMaterial-clearCoatTexture) | Clear coat strength texture, multiplied with clear coat. |
 | [clearCoatRoughness](/apis/core/#PBRBaseMaterial-clearCoatRoughness) | Roughness of the clear coat. |
 | [clearCoatRoughnessTexture](/apis/core/#PBRBaseMaterial-clearCoatRoughnessTexture) | Clear coat roughness texture, multiplied with clear coat roughness. |
@@ -55,7 +55,7 @@ In addition to the above common parameters, PBR provides two workflows: **Metal-
 | [metallic](/apis/core/#PBRMaterial-metallic) | Metallic. Simulates the metallicity of the material. The higher the metallic value, the stronger the specular reflection, reflecting more of the surrounding environment. |
 | [roughness](/apis/core/#PBRMaterial-roughness) | Roughness. Simulates the roughness of the material. The higher the roughness value, the more uneven the microsurface, resulting in a blurry specular reflection. |
 | [roughnessMetallicTexture](/apis/core/#PBRMaterial-roughnessMetallicTexture) | Metallic Roughness Texture. Used in conjunction with metallic roughness, it is a multiplication relationship. |
-| [anisotropy](/apis/core/#PBRMaterial-anisotropy) | Anisotropy Strength. Default is 0, disabling anisotropic calculations. Refer to [example](${examples}pbr-anisotropy). |
+| [anisotropy](/apis/core/#PBRMaterial-anisotropy) | Anisotropy Strength. Default is 0, disabling anisotropic calculations. Refer to [example](/embed/pbr-anisotropy). |
 | [anisotropyRotation](/apis/core/#PBRMaterial-anisotropyRotation) | Anisotropy Rotation Angle. Rotate along the tangent and bitangent space by the corresponding angle. |
 | [anisotropyTexture](/apis/core/#PBRMaterial-anisotropyTexture) | Anisotropy Texture. The RG channels store the anisotropic direction, which will be multiplied by the result of anisotropyRotation; the B channel stores the anisotropic strength, which will be multiplied by anisotropy. |
 

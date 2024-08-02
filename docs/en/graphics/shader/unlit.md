@@ -20,7 +20,7 @@ In some simple scenarios, you may not want to calculate lighting. The engine pro
 | :-- | :-- |
 | [baseColor](/apis/core/#UnlitMaterial-baseColor) | Base color. **Base color \* Base color texture = Final color.** |
 | [baseTexture](/apis/core/#UnlitMaterial-baseTexture) | Base texture. Used in conjunction with the base color, it is a multiplication relationship. |
-| [tilingOffset](/apis/core/#UnlitMaterial-tilingOffset) | Scaling and offset of texture coordinates. It is a Vector4 data that controls the scaling and offset of texture coordinates in the UV direction. Refer to the [example](${examples}tiling-offset) |
+| [tilingOffset](/apis/core/#UnlitMaterial-tilingOffset) | Scaling and offset of texture coordinates. It is a Vector4 data that controls the scaling and offset of texture coordinates in the UV direction. Refer to the [example](/embed/tiling-offset) |
 
 If you need to use the material through scripts, you can refer to the [tutorial on using materials](/en/docs/graphics-material-script).
 
