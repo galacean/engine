@@ -86,7 +86,7 @@ SpineAtlas 资产存储了texture atlas 文件，并包含了其对所需 Textur
 
 1. 拖入添加
 
-拖入添加是最快捷的一种方式。点击 SpineSkeletonData 资产，按住后拖动到视图区，就能快速创建一个添加了 Spine 组件的实体，并指定资产为刚刚选中的 SpineSkeletonData 资产。
+拖入添加是最快捷的一种方式。点击 SpineSkeletonData 资产，按住后拖动到视图区，就能快速创建一个添加了 SpineAnimationRenderer 组件的实体，并指定资产为刚刚选中的 SpineSkeletonData 资产。
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/gif/76063/1721210070086-6db51cd8-4493-4b4d-93ee-16c8187fe843.gif#clientId=uf07edf19-371c-4&from=paste&height=540&id=ucc4cc750&originHeight=1080&originWidth=1984&originalType=binary&ratio=2&rotation=0&showTitle=false&size=7335004&status=done&style=shadow&taskId=u97b775ac-f0f4-4f0f-80f6-077cacc66d5&title=&width=992" width="992" alt="Drag Spine skeleton data asset into viewport">
 
@@ -96,26 +96,26 @@ SpineAtlas 资产存储了texture atlas 文件，并包含了其对所需 Textur
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721268718386-994e5358-1b2d-44ae-8c3e-721f31e7f8b2.png#clientId=uf07edf19-371c-4&from=paste&height=732&id=u11165e8f&originHeight=1464&originWidth=3014&originalType=binary&ratio=2&rotation=0&showTitle=false&size=1070042&status=done&style=shadow&taskId=uadbb1c9b-c18c-4534-9965-4b74519a4e0&title=&width=1507" width="1507" alt="Quick add Spine animation renderer">
 
-添加完成后，能够看到一个新的实体，挂载了 Spine 组件；点击 Resource 属性，选择上传的 SpineSkeletonData 资产，就能看到 Spine 动画啦
+添加完成后，能够看到一个新的实体，挂载了 SpineAnimationRenderer 组件；点击 Resource 属性，选择上传的 SpineSkeletonData 资产，就能看到 Spine 动画啦
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721268852169-d90ebd7b-e691-462b-acd4-4ad1f8c9b5ec.png#clientId=uf07edf19-371c-4&from=paste&height=735&id=u2c86eb68&originHeight=1470&originWidth=3000&originalType=binary&ratio=2&rotation=0&showTitle=false&size=1241001&status=done&style=shadow&taskId=u80f72acd-3fd6-47e2-aa7a-f3d0ab9b56b&title=&width=1500" width="1500" alt="Select spine skeleton data asset in component panel">
 
 3. 手动添加
 
-手动添加的方式与快速添加类似，不过需要在节点树中手动创建一个新的实体，并通过检查器的 AddComponent 按钮添加 Spine 组件
+手动添加的方式与快速添加类似，不过需要在节点树中手动创建一个新的实体，并通过检查器的 AddComponent 按钮添加 SpineAnimationRenderer 组件
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721269154975-11ceb229-2142-4c6c-9552-0afba11ae924.png#clientId=uf07edf19-371c-4&from=paste&height=476&id=u450ac092&originHeight=1460&originWidth=1048&originalType=binary&ratio=2&rotation=0&showTitle=false&size=276525&status=done&style=shadow&taskId=u1924fec4-712d-4f69-b343-2ab8021cc8e&title=&width=342" width="342" alt="Use add component to add spine animation renderer">
 
-添加了 Spine 组件后，同样需要指定组件的 Resource，也就是 Spine 组件要渲染的 SpineSkeletonData 资产。
+添加了 SpineAnimationRenderer 组件后，同样需要指定组件的 Resource，也就是 SpineAnimationRenderer 组件要渲染的 SpineSkeletonData 资产。
 
-### Spine 组件配置
-以上三种添加 Spine 动画的方法实际上本质其实是相同的，都是通过给实体 `添加 Spine 组件` ，来让 Spine 动画添加至场景中的。
+### SpineAnimationRenderer 组件配置
+以上三种添加 Spine 动画的方法实际上本质其实是相同的，都是通过给实体 `添加 SpineAnimationRenderer 组件` ，来让 Spine 动画添加至场景中的。
 
-Spine 组件的配置如下：
+SpineAnimationRenderer 组件的配置如下：
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721269455151-ceaf0b7e-a00b-4ba4-a109-0cdb08c135f2.png#clientId=uf07edf19-371c-4&from=paste&height=199&id=ucac2f7de&originHeight=398&originWidth=1060&originalType=binary&ratio=2&rotation=0&showTitle=false&size=82934&status=done&style=shadow&taskId=ub50cded7-5559-41de-b104-9db3c4bb4f5&title=&width=530" width="503" alt="Spine animation renderer component config">
 
-通过 Spine 组件能够配置 Spine 动画的资产以及默认状态：
+通过 SpineAnimationRenderer 组件能够配置 Spine 动画的资产以及默认状态：
 
 - Resource：Spine 动画的资源 ( SpineSkeletonData 资产 )
 - Animation：默认播放的动画名称

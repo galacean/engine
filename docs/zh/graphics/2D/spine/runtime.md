@@ -44,7 +44,7 @@ await engine.resourceManager.load({
 
 2. 使用 resourceManager 加载
 
-得到 spine 的骨骼文件资产链接后，需要使用 resourceManager 进行加载。手动加载时，添加 Spine 至场景中，需要创建一个新的实体并添加 Spine 组件，代码如下：
+得到 spine 的骨骼文件资产链接后，需要使用 resourceManager 进行加载。手动加载时，添加 Spine 至场景中，需要创建一个新的实体并添加 SpineAnimationRenderer 组件，代码如下：
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
@@ -57,7 +57,7 @@ const spineResource = await engine.resourceManager.load(
 );
 // 创建一个新的实体
 const spineEntity = new Entity(engine);
-// 添加 spine 组件
+// 添加 SpineAnimationRenderer 组件
 const spine = spineEntity.addComponent(SpineAnimationRenderer);
 // 设置动画资源
 spine.resource = spineResource;
@@ -122,7 +122,7 @@ const resource = await engine.resourceManager.load(
 
 2. 添加至场景
 
-加载完毕后，需要手动创建实体，并添加 Spine 组件：
+加载完毕后，需要手动创建实体，并添加 SpineAnimationRenderer 组件：
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
@@ -134,7 +134,7 @@ const spineResource = await engine.resourceManager.load(
 );
 // 创建实体
 const spineEntity = new Entity(engine);
-// 添加 spine 组件
+// 添加 SpineAnimationRenderer 组件
 const spine = spineEntity.addComponent(SpineAnimationRenderer);
 // 设置动画资源
 spine.resource = spineResource;
@@ -145,20 +145,23 @@ root.addChild(spineEntity);
 
 ## 使用运行时 API 
 
-在[前一个章节](/docs/graphics/2D/spine/editor)中，为大家介绍了编辑器中 Spine 组件的配置项。
-本小节会更加详细介绍在代码中如何使用 Spine 组件的各个 API。
+在[前一个章节](/docs/graphics/2D/spine/editor)中，为大家介绍了编辑器中 SpineAnimationRenderer 组件的配置项。
+本小节会更加详细介绍在代码中如何使用 SpineAnimationRenderer 组件的各个 API。
 
-Spine 组件一共暴露了以下几个属性：
-- resource：Spine 动画资源。设置了资源后，Spine 组件会读取资源数据，并渲染出 Spine 动画
-- setting：渲染设置。用于控制开启裁减和调整图层间隔
-- defaultState：默认状态。与编辑器的配置项对应，用于设置默认状态下 Spine 动画的动画，皮肤，缩放
-- state：动画状态对象。用于进行更加复杂动画控制，如：队列播放，循环控制等。
-- skeleton：骨架对象。用于进行更加复杂的骨架操作，如：附件替换，换肤等。
+SpineAnimationRenderer 组件继承于 Renderer，除了暴露 Renderer 的通用方法外，还提供了以下属性：
+
+| 属性                                                                                         | 解释                   | 
+| :--------------------------------------------------------------------------------------------- | :--------------------- |
+| resource                             | Spine 动画资源。设置了资源后，SpineAnimationRenderer 组件会读取资源数据，并渲染出 Spine 动画 | 
+| setting   | 渲染设置。用于控制开启裁减和调整图层间隔         |
+| defaultState | 默认状态。与编辑器的配置项对应，用于设置默认状态下 Spine 动画的动画，皮肤，缩放         | 
+| state                 | 动画状态对象。用于进行更加复杂动画控制，如：队列播放，循环控制等         |
+| skeleton                 | 骨架对象。用于进行更加复杂的骨架操作，如：附件替换，换肤等        |
 
 下面是更详细的使用介绍：
 
 ### 资源设置
-首先是资源的设置。Spine 组件需要设置资源后，才能完成 Spine动画的渲染。在上一个章节，「加载资产并添加至场景」中，已经为大家展示了设置资产的方式：
+首先是资源的设置。SpineAnimationRenderer 组件需要设置资源后，才能完成 Spine动画的渲染。在上一个章节，「加载资产并添加至场景」中，已经为大家展示了设置资产的方式：
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
@@ -212,7 +215,7 @@ class YourAmazingScript {
 
 }
 ``` 
-注意：默认状态仅在 Spine 组件激活和资源设置时生效。动态修改动画、皮肤、缩放请使用 state 与 skeleton 属性中的方法（见下面的章节）。
+注意：默认状态仅在 SpineAnimationRenderer 组件激活和资源设置时生效。动态修改动画、皮肤、缩放请使用 state 与 skeleton 属性中的方法（见下面的章节）。
 
 
 ### 动画控制
