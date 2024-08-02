@@ -13,7 +13,7 @@ label: XR
 
 ```mermaid
 flowchart LR
-   创建项目 --> 添加 XR 节点 --> 添加 XR 能力 --> 预览 --> 导出
+   创建项目 --> 添加XR节点 --> 添加XR能力 --> 预览 --> 导出
 ```
 
 ### 创建项目
@@ -107,7 +107,7 @@ engine.xrManager.sessionManager.isSupportedMode(xrMode).then(
 );
 ```
 
-## ProCode
+## 脚本开发
 
 在进入纯代码开发前，请先了解部分 [XR 管理器](/docs/xr/system/manager/) 内容，下方为开启 AR 互动的一个最简示例：
 

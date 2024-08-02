@@ -12,7 +12,7 @@ label: Basics
 
 ## 编辑器
 
-[Galacean Editor](https://antg.antgroup.com/editor) 是一个在线 Web 互动创作平台。它可以帮助你快速的创建、编辑和导出一个互动项目。你可以通过 Galacean Editor 快速上传资产，编辑材质、调整灯光、创建实体，从而创造出复杂的场景。
+[Galacean Editor](https://antg.antgroup.com/editor) 是一个在线 Web 互动创作平台。它可以帮助你快速地创建、编辑和导出一个互动项目。你可以通过 Galacean Editor 快速上传资产，编辑材质、调整灯光、创建实体，从而创造出复杂的场景。
 
 使用编辑器创建互动项目的整体流程：
 

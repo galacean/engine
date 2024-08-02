@@ -82,7 +82,15 @@ xrManager.addFeature(XRPlaneTracking, XRPlaneMode.EveryThing);
 | addChangedListener    | 添加监听平面变化的函数 |
 | removeChangedListener | 移除监听平面变化的函数 |
 
-> 需要注意的是，图片追踪在添加功能时就需要指定追踪的图片，并且在 WebXR 中，同张图片只会被追踪一次。
+需要注意的是，图片追踪功能需要事先指定追踪的图片，引擎中用 `XRReferenceImage` 对象表示追踪的图片：
+
+| 属性          | 解释                                                                                                 |
+| :------------ | :--------------------------------------------------------------------------------------------------- |
+| name          | 追踪图片的名称                                                                                       |
+| imageSource   | 追踪图片的来源，一般使用 HtmlImageElement                                                            |
+| physicalWidth | 追踪图片在现实世界的大小，默认以米为单位，若指定 `0.08` 则表示这张图片在现实世界中的尺寸为 `0.08` 米 |
+
+> 在 WebXR 中，同张图片只会被追踪一次。
 
 ```typescript
 const image = new Image();
@@ -95,9 +103,13 @@ image.onload = () => {
 image.src = "图片的 URL";
 ```
 
-我们可以追踪现实图片，并为他们标记坐标系：
+下方示例可以追踪现实图片，并标记坐标系：
 
 <playground src="xr-ar-imageTracking.ts"></playground>
+
+> 上方示例可直接生成二维码从手机侧体验，追踪图如下：
+
+ <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*-MneS5WGJywAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007201437362" style="zoom:20%;" />
 
 ## 碰撞检测
 
