@@ -52,6 +52,6 @@ Now that we've covered the basic concepts of cameras, let's get started:
 
 - Add a [camera component](/en/docs/graphics-camera-component) to the scene
 - Use [camera controls](/en/docs/graphics-camera-control) to easily manipulate the [camera component](/en/docs/graphics-camera-component)
-- Utilize [multiple cameras](graphics-camera-multiCamera) in the scene
-- Access [camera depth textures](graphics-camera-depthTexture)
+- Utilize [multiple cameras](/docs/graphics/camera/multiCamera/) in the scene
+- Access [camera depth textures](/docs/graphics/camera/texture/)
 

@@ -18,8 +18,8 @@ flowchart LR
 
 本章节将主要讲述：
 
-- [资产类型](/docs/assets-type)：介绍**内置资产类型**和如何**自定义资产加载器**
-- 编辑状态下[资产的增删改查](/docs/assets-interface)
-- 构建项目后[资产如何导出并部署](/docs/assets-build)
-- 运行时如何[加载资产](/docs/assets-load)
-- 运行时如何[垃圾回收](/docs/assets-gc)
+- 如何[自定义资产加载器](./custom)
+- 编辑状态下[资产的增删改查](./interface)
+- 构建项目后[资产如何导出并部署](./build)
+- 运行时如何[加载资产](./load)
+- 运行时如何[垃圾回收](./gc)

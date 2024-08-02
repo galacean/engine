@@ -12,14 +12,14 @@ The renderer is responsible for displaying graphics [**components**](/en/docs/co
 
 In Galacean, the following built-in renderers are available:
 
-- [Mesh Renderer](graphics-renderer-meshRenderer): Renders objects by setting `mesh` and `material`.
-- [Skinned Mesh Renderer](graphics-renderer-skinnedMeshRenderer): Based on the [Mesh Renderer](graphics-renderer-meshRenderer), it includes additional capabilities for `skeletal animation` and `Blend Shape`, making object animations more natural.
-- [Sprite Renderer](/en/docs/graphics-2d-spriteRenderer): Displays 2D images in the scene by setting `sprite` and `material` (default built-in sprite material).
-- [Sprite Mask Renderer](/en/docs/graphics-2d-spriteMask): Used to implement masking effects on sprite renderers.
-- [Text Renderer](/en/docs/graphics-2d-text): Displays text in the scene.
-- [Particle Renderer](/en/docs/graphics-particle-renderer): Displays particle effects in the scene.
+- [Mesh Renderer](./meshRenderer): Renders objects by setting `mesh` and `material`.
+- [Skinned Mesh Renderer](./skinnedMeshRenderer): Based on the [Mesh Renderer](./meshRenderer), it includes additional capabilities for `skeletal animation` and `Blend Shape`, making object animations more natural.
+- [Sprite Renderer](/en/docs/graphics/2D/spriteRenderer/): Displays 2D images in the scene by setting `sprite` and `material` (default built-in sprite material).
+- [Sprite Mask Renderer](/en/docs/graphics/2D/spriteMask/): Used to implement masking effects on sprite renderers.
+- [Text Renderer](/en/docs/graphics/2D/text/): Displays text in the scene.
+- [Particle Renderer](/en/docs/graphics/particle/renderer/): Displays particle effects in the scene.
 
-Further understanding of the rendering order of various renderers in the engine can be achieved through [render sorting](/en/docs/graphics-renderer-order).
+Further understanding of the rendering order of various renderers in the engine can be achieved through [render sorting](./order).
 
 ## Properties
 
