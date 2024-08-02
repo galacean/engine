@@ -6,13 +6,13 @@ label: Animation
 ---
 
 动画控制器（[AnimatorController](/apis/core/#AnimatorController)）可以帮助你为角色或其他动画对象组织一组动画的播放逻辑。
-它通过[动画状态机](/docs/state-machine)（[AnimatorStateMachine](/apis/core/#AnimatorStateMachine)）像流程图一样可视化的组织动画对象的动画播放逻辑，并在符合条件时自动切换动画状态（[AnimatorState](/apis/core/#AnimatorState)）并播放引用的[动画片段](/docs/animation-clip)（[AnimationClip](/apis/core/#AnimationClip)）。
+它通过[动画状态机](/docs/animation/state-machine/)（[AnimatorStateMachine](/apis/core/#AnimatorStateMachine)）像流程图一样可视化的组织动画对象的动画播放逻辑，并在符合条件时自动切换动画状态（[AnimatorState](/apis/core/#AnimatorState)）并播放引用的[动画片段](/docs/animation/clip)（[AnimationClip](/apis/core/#AnimationClip)）。
 
 ## 编辑器使用
 
-通过动画控制器的编辑器，用户可以在其中组织[动画片段](/docs/animation-clip)的播放逻辑
+通过动画控制器的编辑器，用户可以在其中组织[动画片段](/docs/animation/clip)的播放逻辑
 
-1. 准备好动画片段（[制作动画片段](/docs/animation-clip)） 
+1. 准备好动画片段（[制作动画片段](/docs/animation/clip)） 
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Wl35T7U_zg8AAAAAAAAAAAAADsJ_AQ/original)
 
@@ -23,16 +23,16 @@ label: Animation
 3. 刚创建的动画控制器中没有任何数据，我们需要对他进行编辑，双击资产, 并为它添加一个动画状态（[AnimatorState](/apis/core/#AnimatorState)）
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*V0n1TJMquGYAAAAAAAAAAAAADsJ_AQ/original)
 
-4. 点击 AnimatorState 为它绑定一个[动画片段](/docs/animation-clip)（[AnimationClip](/apis/core/#AnimationClip)）
+4. 点击 AnimatorState 为它绑定一个[动画片段](/docs/animation/clip)（[AnimationClip](/apis/core/#AnimationClip)）
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xfPTRJg-hOMAAAAAAAAAAAAADsJ_AQ/original)
 
-5. 在[动画控制组件](/docs/animation-animator)上绑定该动画控制器（[AnimatorController](/apis/core/#AnimatorController)）资产
+5. 在[动画控制组件](/docs/animation/animator)上绑定该动画控制器（[AnimatorController](/apis/core/#AnimatorController)）资产
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
 
 6. 至此你在导出的项目中就可以通过 `animator.play("New State")` 播放 `Idle` 动画了
 
 <Callout type="info">
-对于动画控制器编辑器的进一步使用请参考[动画状态机](/docs/state-machine)文档。
+对于动画控制器编辑器的进一步使用请参考[动画状态机](/docs/animation/state-machine/)文档。
 </Callout>
 
 ## 脚本使用

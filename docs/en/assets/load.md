@@ -84,7 +84,7 @@ this.engine.resourceManager.load<GLTFResource>({
 this.engine.resourceManager.load<GLTFResource>("Assets/texture.png");
 ```
 
-> In the editor, you can quickly copy the relative path of an asset by going to **[Asset Panel](/en/docs/assets-interface)** -> **Right-click Asset** -> **Copy relative path**.
+> In the editor, you can quickly copy the relative path of an asset by going to **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Asset** -> **Copy relative path**.
 
 ### baseUrl
 

@@ -5,7 +5,7 @@ type: Basics
 label: Basics
 ---
 
-**Galacean Engine** is a real-time interactive solution that is web-first, mobile-first, and open-source, built with a component-based architecture and written in [Typescript](https://www.typescriptlang.org/). It includes functionalities for [rendering](/en/docs/graphics-renderer), [physics](/en/docs/physics-overall), [animation](/en/docs/animation-system), and [input](/en/docs/input), and provides a visual online editor with a complete workflow to help you create stunning 2D/3D interactive applications in the browser. It mainly consists of two parts:
+**Galacean Engine** is a real-time interactive solution that is web-first, mobile-first, and open-source, built with a component-based architecture and written in [Typescript](https://www.typescriptlang.org/). It includes functionalities for [rendering](/en/docs/graphics-renderer), [physics](/en/docs/physics-overall), [animation](/en/docs/animation/system/), and [input](/en/docs/input), and provides a visual online editor with a complete workflow to help you create stunning 2D/3D interactive applications in the browser. It mainly consists of two parts:
 
 - Editor: An online web interactive creation platform [Editor](https://galacean.antgroup.com/editor)
 - Runtime: A high-performance interactive runtime that is web-first and mobile-first [Runtime](https://github.com/galacean/runtime), a series of non-core functionalities and custom business logic functionalities [Toolkit](https://github.com/galacean/runtime-toolkit)
@@ -81,7 +81,7 @@ There are also some second-party ecosystem packages with similar import and usag
 
 | Feature                                                                             | Explanation | API                             |
 | :----------------------------------------------------------------------------------- | :---------- | :------------------------------ |
-| [@galacean/engine-spine](https://www.npmjs.com/package/@galacean/engine-spine)       | Spine Animation | [Doc](/en/docs/graphics-2d-spine) |
+| [@galacean/engine-spine](https://www.npmjs.com/package/@galacean/engine-spine)       | Spine Animation | [Doc](/en/docs/graphics/2D/spine/overview/) |
 | [@galacean/engine-lottie](https://www.npmjs.com/package/@galacean/engine-lottie)     | Lottie Animation | [Doc](/en/docs/graphics-lottie)   |
 
 ### Compatibility

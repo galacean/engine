@@ -24,7 +24,7 @@ Asset export settings can be used to control parameters such as resource types a
 | Texture Type   | Check [KTX2](https://www.khronos.org/ktx/) to enable [texture compression](/en/docs/graphics-texture-compression) optimization options |
 | Texture Format | Visible after checking [KTX2](https://www.khronos.org/ktx/), different compression formats will affect texture size and rendering quality |
 | Texture Quality| Visible after checking [KTX2](https://www.khronos.org/ktx/), can adjust texture size and rendering quality to some extent |
-| Main Scene     | Choose a scene from the **[Asset Panel](/en/docs/assets-interface)** to be the main scene when the project is loaded |
+| Main Scene     | Choose a scene from the **[Asset Panel](/en/docs/assets/interface)** to be the main scene when the project is loaded |
 
 #### Rendering Export Settings
 

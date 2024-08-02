@@ -6,11 +6,11 @@ group: 2D
 label: Graphics/2D
 ---
 
-The Sprite Mask component is used to achieve masking effects on [sprites](/en/docs/graphics-2d-spriteRenderer) and [text](/en/docs/graphics-2d-text) in 3D/2D scenes.
+The Sprite Mask component is used to achieve masking effects on [sprites](/en/docs/graphics/2D/spriteRenderer) and [text](/en/docs/graphics/2D/text) in 3D/2D scenes.
 
 <playground src="sprite-mask.ts"></playground>
 
-Control the effect on [sprites](/en/docs/graphics-2d-sprite}) by the parameters provided by [SpriteMask](/apis/core/#SpriteMask).
+Control the effect on [sprites](/en/docs/graphics/2D/sprite}) by the parameters provided by [SpriteMask](/apis/core/#SpriteMask).
 
 | Parameter        | Type   | Description                                                                                      |
 | :--------------- | :----- | :----------------------------------------------------------------------------------------------- |

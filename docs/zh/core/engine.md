@@ -11,10 +11,10 @@ label: Core
 - **渲染控制**： 控制渲染的执行/暂停/继续、垂直同步等功能。
 - **引擎子系统管理**：
   - [场景管理](/docs/core/scene)
-  - [资源管理](/docs/assets-overall)
-  - [物理系统](/docs/physics-overall)
+  - [资源管理](/docs/assets/overall)
+  - [物理系统](/docs/physics/overall)
   - [交互系统](/docs/input)
-  - [XR 系统](/docs/xr-overall)
+  - [XR 系统](/docs/xr/overall)
 - **执行环境的上下文管理**：控制 WebGL 等执行环境的上下文管理。
 
 ## 初始化
@@ -49,7 +49,7 @@ classDiagram
     }
 ```
 
-编辑器导出的项目通常自动设置了编辑器配置的相关选项，比如开发者可以在 [导出界面](/docs/assets-build) 设置上下文的渲染配置：
+编辑器导出的项目通常自动设置了编辑器配置的相关选项，比如开发者可以在 [导出界面](/docs/assets/build) 设置上下文的渲染配置：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*WZHzRYIpUzQAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 
@@ -68,7 +68,7 @@ const engine = await WebGLEngine.create({
 
 类似的，可以用 `webGLMode` 控制 WebGL1/2，除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。
 
-更多相关配置信息，可参考[物理系统](/docs/physics-overall)、[交互系统](/docs/input)、[XR 系统](/docs/xr-overall)。
+更多相关配置信息，可参考[物理系统](/docs/physics/overall)、[交互系统](/docs/input)、[XR 系统](/docs/xr/overall)。
 
 ## 属性
 

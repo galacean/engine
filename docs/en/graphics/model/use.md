@@ -41,7 +41,7 @@ engine.resourceManager
   });
 ```
 
-In the editor, you can directly get the URL of the model asset (**[Asset Panel](/en/docs/assets-interface)** -> **Right-click on the model asset thumbnail** -> **Copy file info / Copy relative path**):
+In the editor, you can directly get the URL of the model asset (**[Asset Panel](/en/docs/assets/interface)** -> **Right-click on the model asset thumbnail** -> **Copy file info / Copy relative path**):
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*T6-QR7KrH8oAAAAAAAAAAAAADhuCAQ/original" alt="import" style="zoom: 50%;" />
 

@@ -6,7 +6,7 @@ group: Model
 label: Graphics/Model
 ---
 
-After the model is imported, new model assets will be added to the **[Assets Panel](/en/docs/assets-interface)**. Clicking on the asset thumbnail will display basic information about the model.
+After the model is imported, new model assets will be added to the **[Assets Panel](/en/docs/assets/interface)**. Clicking on the asset thumbnail will display basic information about the model.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Aiu9SpMRvxYAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
 
@@ -56,7 +56,7 @@ In general, users do not need to perform any operations on the material that com
 
 ### Animation Sub-Asset
 
-Animation sub-assets appear in the model asset in the form of [animation clips](/en/docs/animation-clip) and are also **read-only**.
+Animation sub-assets appear in the model asset in the form of [animation clips](/en/docs/animation/clip) and are also **read-only**.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rAq5T4i3TTQAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
 

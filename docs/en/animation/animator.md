@@ -5,7 +5,7 @@ type: Animation
 label: Animation
 ---
 
-The Animation Control Component ([Animator](/apis/core/#Animator)) is responsible for reading data from an [Animator Controller](/en/docs/animation-animatorController) ([AnimatorController](/apis/core/#AnimatorController)) and playing its content.
+The Animation Control Component ([Animator](/apis/core/#Animator)) is responsible for reading data from an [Animator Controller](/en/docs/animation/animatorController/) ([AnimatorController](/apis/core/#AnimatorController)) and playing its content.
 
 ### Parameter Description
 
@@ -19,19 +19,19 @@ The Animation Control Component ([Animator](/apis/core/#Animator)) is responsibl
 
 ![2](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kuSLTaxomrUAAAAAAAAAAAAADsJ_AQ/original)
 
-2. The Animation Control Component ([Animator](/apis/core/#Animator}) needs to be bound to an [Animator Controller](/en/docs/animation-animatorController}) asset. We create and bind it.
+2. The Animation Control Component ([Animator](/apis/core/#Animator}) needs to be bound to an [Animator Controller](/en/docs/animation/animatorController/}) asset. We create and bind it.
 
 ![3](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*irT7SZvw4N8AAAAAAAAAAAAADsJ_AQ/original)
 
 ![4](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VtX3RJR8kdMAAAAAAAAAAAAADsJ_AQ/original)
 
-3. Now you can play the animations in the [Animator Controller](/en/docs/animation-animatorController) in your exported project using `animator.play`.
+3. Now you can play the animations in the [Animator Controller](/en/docs/animation/animatorController/) in your exported project using `animator.play`.
 
-If you haven't added an Animation Control Component ([Animator](/apis/core/#Animator}) to the entity, Galacean Engine will create one for you by default, and the [Animator Controller](/en/docs/animation-animatorController}) will automatically add all animation clips of the model. Of course, you can achieve more functionality through the [Animator Controller](/en/docs/animation-animatorController}).
+If you haven't added an Animation Control Component ([Animator](/apis/core/#Animator}) to the entity, Galacean Engine will create one for you by default, and the [Animator Controller](/en/docs/animation/animatorController/}) will automatically add all animation clips of the model. Of course, you can achieve more functionality through the [Animator Controller](/en/docs/animation/animatorController/}).
 
 ## Script Usage
 
-> Before using scripts, it is recommended to read the [Animation System Composition](/en/docs/animation-system) document to help you better understand the animation system's operational logic.
+> Before using scripts, it is recommended to read the [Animation System Composition](/en/docs/animation/system/) document to help you better understand the animation system's operational logic.
 
 ### Play Animation
 

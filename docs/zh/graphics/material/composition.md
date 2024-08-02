@@ -6,7 +6,7 @@ group: 网格
 label: Graphics/Material
 ---
 
-Galacean 材质包含 **[着色器（shader）](/docs/graphics-shader)、渲染状态（renderStates）、[着色器数据（shaderData）](/docs/graphics-shader-shaderData)**。着色器可以编写顶点、片元代码来决定渲染管线输出到屏幕上像素的颜色；渲染状态可以对渲染管线的上下文做一些额外配置；着色器数据封装了 CPU 传到 GPU 的一些数据集，比如颜色、矩阵、纹理等。
+Galacean 材质包含 **[着色器（shader）](/docs/graphics/shader/intro/)、渲染状态（renderStates）、着色器数据（shaderData）**。着色器可以编写顶点、片元代码来决定渲染管线输出到屏幕上像素的颜色；渲染状态可以对渲染管线的上下文做一些额外配置；着色器数据封装了 CPU 传到 GPU 的一些数据集，比如颜色、矩阵、纹理等。
 
 ## 渲染状态
 

@@ -41,7 +41,7 @@ engine.resourceManager
   });
 ```
 
-在编辑器中，可以直接获取模型资产的 URL （ **[资产面板](/docs/assets-interface)** -> **右键模型资产缩略图** -> **Copy file info / Copy relative path**）：
+在编辑器中，可以直接获取模型资产的 URL （ **[资产面板](/docs/assets/interface)** -> **右键模型资产缩略图** -> **Copy file info / Copy relative path**）：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*T6-QR7KrH8oAAAAAAAAAAAAADhuCAQ/original" alt="import" style="zoom: 50%;" />
 

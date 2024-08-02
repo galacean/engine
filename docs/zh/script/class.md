@@ -5,7 +5,7 @@ type: 脚本
 label: Script
 ---
 
-脚本是衔接引擎能力和游戏逻辑的纽带，可以通过它来扩展引擎的功能，也可以脚本组件提供的生命周期钩子函数中编写自己的游戏逻辑代码。自定义脚本的基类是 [Script](/apis/core/#Script) ，它扩展自 [Component](/docs/core-component)，因此它不仅支持组件的基础能力：
+脚本是衔接引擎能力和游戏逻辑的纽带，可以通过它来扩展引擎的功能，也可以脚本组件提供的生命周期钩子函数中编写自己的游戏逻辑代码。自定义脚本的基类是 [Script](/apis/core/#Script) ，它扩展自 [Component](/docs/core/component)，因此它不仅支持组件的基础能力：
 
 - 挂载到 [Entity](/docs/core/entity) 上
 - 方便地获取节点实例，组件实例

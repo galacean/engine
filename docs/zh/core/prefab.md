@@ -7,7 +7,7 @@ label: Core
 
 ## 简介
 
-预制体（Prefab）是一种资产, 可以被视为存储 **[实体](/docs/core-entity)**（包括其子实体和组件）数据的模版。预制体允许开发者创建、更新此模板，然后在需要时将其实例化到场景中。
+预制体（Prefab）是一种资产, 可以被视为存储 **[实体](/docs/core/entity)**（包括其子实体和组件）数据的模版。预制体允许开发者创建、更新此模板，然后在需要时将其实例化到场景中。
 
 如果要在场景中的多个位置或项目中的多个场景之间重用以特定方式配置的实体，比如非玩家角色 (NPC)、道具或景物，则应将此游戏对象转换为预制体。这种方式比简单复制和粘贴游戏对象更好，因为预制体可以保持所有副本同步。
 
@@ -33,7 +33,7 @@ label: Core
 
 1. 右键实体即可创建以此实体作为模版的预制体
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1D-6TpXqDWcAAAAAAAAAAAAADsJ_AQ/original)
-2. 将实体从 **[层级面板](/docs/interface-hierarchy)** 拖到 **[资产面板](/docs/assets-interface)** 中即可创建以此实体作为模版的预制体
+2. 将实体从 **[层级面板](/docs/interface/hierarchy)** 拖到 **[资产面板](/docs/assets/interface)** 中即可创建以此实体作为模版的预制体
 ![create](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IXI9Q4ljEu8AAAAAAAAAAAAADsJ_AQ/original)
 
 ### 更新预制体
@@ -89,7 +89,7 @@ label: Core
 
 ### 加载预制体
 预制体资产的引擎对象为[PrefabResource](/apis/loader/#PrefabResource})。
-加载（[资产的加载](/docs/assets-load)）预制体后，使用[instantiate](/apis/loader/#PrefabResource-instantiate})方法可以实例化预制体。
+加载（[资产的加载](/docs/assets/load)）预制体后，使用[instantiate](/apis/loader/#PrefabResource-instantiate})方法可以实例化预制体。
 
 ```typescript
 engine.resourceManager

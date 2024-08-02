@@ -65,7 +65,7 @@ Now it looks more normal.
 Next, we will bind a `Script` component to this node ([What is a Script component?](https://galacean.antgroup.com/#/en/docs/latest/en/script)).
 
 1. We continue to add a `Script` component in the **[Inspector Panel](/en/docs/interface/inspector)** in the same way as above
-2. Next, in the **[Assets Panel](/en/docs/assets-interface)**, `right-click` → `Create` → `Script` to create a `Script` asset
+2. Next, in the **[Assets Panel](/en/docs/assets/interface)**, `right-click` → `Create` → `Script` to create a `Script` asset
 3. Finally, in the **[Inspector Panel](/en/docs/interface/inspector)**, bind the newly created script file to the script component
 
 > ⚠️ Note that if you do not bind the script asset to the entity's script component, the script will not run

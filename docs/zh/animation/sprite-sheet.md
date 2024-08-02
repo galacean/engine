@@ -11,11 +11,11 @@ Galacean 支持引用类型的动画曲线，你可以添加类型为资产的�
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XiUaQ76M4Q0AAAAAAAAAAAAADsJ_AQ/original)
 
-2. 添加`精灵`，可以参考[精灵](/docs/graphics-2d-sprite)
+2. 添加`精灵`，可以参考[精灵](/docs/graphics/2D/sprite)
    
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ababSZAMpJMAAAAAAAAAAAAADsJ_AQ/original)
   
-3. 在 **[资产面板](/docs/assets-interface)** 中创建 [动画片段](/docs/animation-clip)
+3. 在 **[资产面板](/docs/assets/interface)** 中创建 [动画片段](/docs/animation/clip)
    
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*CZQjSqZAHGsAAAAAAAAAAAAADsJ_AQ/original)
 
