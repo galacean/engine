@@ -43,7 +43,7 @@ Shader.create("demo", vertexSource, fragmentSource);
 const material = new Material(engine, Shader.find("demo"));
 ```
 
-`Shader.create()`用来将 shader 添加到引擎的缓存池子中，因此整个 runtime 只需要创建一次,接下来就可以通过 [Shader.find(name)](/apis/core/#Shader-find) 来反复使用.
+`Shader.create()`用来将 shader 添加到引擎的缓存池子中，因此整个 runtime 只需要创建一次,接下来就可以通过 [Shader.find(name)](/engine/apis/galacean/#Shader-find) 来反复使用.
 
 > 注：引擎已经预先 create 了 blinn-phong、pbr、shadow-map、shadow、skybox、framebuffer-picker-color、trail。用户可以直接使用这些内置 shader，并且不能重名创建。
 

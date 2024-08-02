@@ -1,9 +1,5 @@
 ---
-order: 1
 title: PBR
-type: 着色器
-group: 网格
-label: Graphics/Shader
 ---
 
 PBR 全称是 **Physically Based Rendering**，中文意思是**基于物理的渲染**，最早由迪士尼在 2012 年提出，后来被游戏界广泛使用。跟传统的 **Blinn-Phong** 等渲染方法相比，PBR 遵循能量守恒，符合物理规则，美术们只需要调整几个简单的参数，即使在复杂的场景中也能保证正确的渲染效果。PBR 遵循能量守恒，是基于物理的渲染，并且引入了 [IBL](/docs/graphics-light-ambient) 模拟全局光照，通过金属度、粗糙度等参数，更加方便地调节渲染效果。

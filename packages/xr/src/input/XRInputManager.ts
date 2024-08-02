@@ -1,4 +1,6 @@
+import { Engine, SafeLoopArray } from "@galacean/engine";
 import { IXRInputEvent } from "@galacean/engine-design";
+import { IXRListener, XRManagerExtended } from "../XRManagerExtended";
 import { XRCamera } from "./XRCamera";
 import { XRController } from "./XRController";
 import { XRInput } from "./XRInput";
@@ -7,8 +9,6 @@ import { XRInputEventType } from "./XRInputEventType";
 import { XRTargetRayMode } from "./XRTargetRayMode";
 import { XRTrackedInputDevice } from "./XRTrackedInputDevice";
 import { XRTrackingState } from "./XRTrackingState";
-import { XRManagerExtended } from "../XRManagerExtended";
-import { Engine } from "@galacean/engine";
 
 /**
  * The manager of XR input.
@@ -23,7 +23,7 @@ export class XRInputManager {
   private _removed: XRInput[] = [];
   private _trackedDevices: XRInput[] = [];
   private _statusSnapshot: XRTrackingState[] = [];
-  private _listeners: ((added: readonly XRInput[], removed: readonly XRInput[]) => any)[] = [];
+  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * @internal
@@ -66,7 +66,7 @@ export class XRInputManager {
    * @param listener - The listener to add
    */
   addTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
-    this._listeners.push(listener);
+    this._listeners.push({ fn: listener });
   }
 
   /**
@@ -74,18 +74,14 @@ export class XRInputManager {
    * @param listener - The listener to remove
    */
   removeTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
-    const { _listeners: listeners } = this;
-    const index = listeners.indexOf(listener);
-    if (index >= 0) {
-      listeners.splice(index, 1);
-    }
+    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
   }
 
   /**
    * @internal
    */
   _onUpdate(): void {
-    const { _added: added, _removed: removed, _listeners: listeners, _statusSnapshot: statusSnapshot } = this;
+    const { _added: added, _removed: removed, _statusSnapshot: statusSnapshot } = this;
     const { _trackedDevices: trackedDevices, _controllers: controllers } = this;
     // Reset data
     added.length = removed.length = 0;
@@ -118,8 +114,10 @@ export class XRInputManager {
     }
     // Dispatch change event
     if (added.length > 0 || removed.length > 0) {
+      const listeners = this._listeners.getLoopArray();
       for (let i = 0, n = listeners.length; i < n; i++) {
-        listeners[i](added, removed);
+        const listener = listeners[i];
+        !listener.destroyed && listener.fn(added, removed);
       }
     }
   }
@@ -128,7 +126,7 @@ export class XRInputManager {
    * @internal
    */
   _onDestroy(): void {
-    this._listeners.length = 0;
+    this._listeners.findAndRemove((value) => (value.destroyed = true));
   }
 
   private _handleEvent(event: IXRInputEvent): void {

@@ -68,6 +68,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+  @ignoreClone
   protected _transform: Transform;
 
   @deepClone

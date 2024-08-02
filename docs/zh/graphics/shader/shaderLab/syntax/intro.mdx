@@ -1,0 +1,31 @@
+---
+title: ShaderLab 语法标准
+---
+
+## 在编辑器中编辑着色器
+
+双击我们在上一步创建的着色器资产即可跳转到代码编辑页
+
+> 未来版本会推出 Galacean VSCode 插件，该插件会为`ShaderLab`提供语法检测和自动补全功能以及代码同步功能，敬请期待
+
+  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*Djs2RJsoPawAAAAAAAAAAAAADteEAQ/original" style={{zoom:"50%"}}/>
+
+## 语法标准
+
+`ShaderLab` 语法骨架如下:
+
+```glsl
+Shader "ShaderName" {
+  ...
+  SubShader "SubShaderName" {
+    ...
+    Pass "PassName" {
+      ...
+    }
+    ...
+  }
+  ...
+}
+```
+
+主要包含 [Shader](./shader)，[SubShader](./subShader) 和 [ShaderPass](./Pass) 模块。
