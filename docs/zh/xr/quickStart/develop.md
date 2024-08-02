@@ -34,7 +34,7 @@ flowchart LR
 
 ### 预览
 
-若已按照 [调试 XR 项目]() 的要求使用 Chrome 与 [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) 插件，此时便可以直接预览。
+若已按照 [调试 XR 项目](/docs/xr/quickStart/debug/) 的要求使用 Chrome 与 [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) 插件，此时便可以直接预览。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*aiw2Tq994REAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -109,6 +109,6 @@ engine.xrManager.sessionManager.isSupportedMode(xrMode).then(
 
 ## ProCode
 
-在进入纯代码开发前，请先了解部分 [XR 管理器]() 内容，下方为开启 AR 互动的一个最简示例：
+在进入纯代码开发前，请先了解部分 [XR 管理器](/docs/xr/system/manager/) 内容，下方为开启 AR 互动的一个最简示例：
 
 <playground src="xr-ar-simple.ts"></playground>

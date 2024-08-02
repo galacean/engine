@@ -5,7 +5,7 @@ type: XR
 label: XR
 ---
 
-为了方便开发者快速[开发 XR 项目]()，Galacean 提供了 [@galacean/engine-toolkit-xr]() 高级组件 ，本文将详细讲述高级组件的属性与接口。
+为了方便开发者快速[开发 XR 项目](/docs/xr/quickStart/develop/)，Galacean 提供了 [@galacean/engine-toolkit-xr](/docs/xr/system/toolkit/) 高级组件 ，本文将详细讲述高级组件的属性与接口。
 
 | 类型 | 类 | 释义 |
 | :-- | :-- | :-- |
@@ -27,7 +27,7 @@ flowchart TD
     D --> G[XRPlaneManager]
 ```
 
-> 本质上都是基于脚本实现的高级功能，实际上是对 [@galacean/engine-xr]() 核心操作的高级封装。
+> 本质上都是基于脚本实现的高级功能，是对 **@galacean/engine-xr** 核心操作的高级封装。
 
 ## XROrigin
 
