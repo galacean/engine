@@ -1,7 +1,7 @@
 import { AssetPromise } from "../../asset/AssetPromise";
 import { ContentRestorer } from "../../asset/ContentRestorer";
 import { Engine } from "../../Engine";
-import { Texture2D, TextureFilterMode, TextureFormat } from "../../texture";
+import { Texture2D } from "../../texture";
 import { FontAtlas } from "../atlas/FontAtlas";
 import { CharInfo } from "./CharInfo";
 import { TextUtils } from "./TextUtils";
@@ -93,10 +93,6 @@ export class SubFont {
   private _createFontAtlas(): FontAtlas {
     const { _engine: engine } = this;
     const fontAtlas = new FontAtlas(engine);
-    const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false);
-    texture.filterMode = TextureFilterMode.Bilinear;
-    fontAtlas.texture = texture;
-    fontAtlas.isGCIgnored = texture.isGCIgnored = true;
     this._fontAtlases.push(fontAtlas);
 
     const nativeFontString = this.nativeFontString;
