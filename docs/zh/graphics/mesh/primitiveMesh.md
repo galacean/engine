@@ -6,7 +6,7 @@ group: 网格
 label: Graphics/Mesh
 ---
 
-常用几何体统一在 [PrimitiveMesh](/apis/core/#PrimitiveMesh) 中提供。
+[PrimitiveMesh](/apis/core/#PrimitiveMesh)提供了创建立方体、球体等网格对象的便捷方法。
 
 ## 编辑器使用
 

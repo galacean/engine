@@ -23,7 +23,7 @@ Galacean Engine 封装了不同平台的画布，如 [WebCanvas](${api}rhi-webgl
 
 > 开发者要注意检查 canvas 的高度和宽度，避免出现高度或宽度的值为 **0** 导致渲染不出来。
 
-创建 WebGLEngine 实例的时候会自动创建一个 WebCanvas 实例：
+创建 WebGLEngine 实例的时候会自动创建一个 WebCanvas 实例。其中，参数 `canvas` 是 _Canvas_ 元素的 `id`。
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });

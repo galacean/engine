@@ -1,7 +1,6 @@
 ---
 order: 0
 title: 概述
-type: 基础知识
 label: Basics
 ---
 
@@ -76,7 +75,7 @@ import { WebGLEngine, Camera } from "@galacean/engine";
 
 > 二方生态包的版本依赖关系，请参照对应文档说明。
 
-> [点击深入了解 Galacean 的版本管理](/docs/quick-start/version/)
+> [点击深入了解 Galacean 的版本管理](/docs/basics/version/)
 
 ## 兼容性
 

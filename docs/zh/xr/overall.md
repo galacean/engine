@@ -27,7 +27,7 @@ Galacean 对 XR 做了干净灵活的设计：
 
 > `@galacean/engine-xr` 和 `@galacean/engine-web-xr`是实现 **WebXR** 必须引入的依赖，相较于上述两个包，`@galacean/engine-toolkit-xr` 则不是必须的，但它的存在可以让编辑器开发 XR 变得更加简单。
 
-> XR 包之间的依赖规则遵守[版本依赖规则](/docs/quick-start/version/#版本依赖)，即 `@galacean/engine-xr` 和 `@galacean/engine-web-xr` 的版本需与 `@galacean/engine` 保持一致，`@galacean/engine-toolkit-xr` 的大版本需要与 `@galacean/engine` 保持一致。
+> XR 包之间的依赖规则遵守[版本依赖规则](/docs/basics/version/#版本依赖)，即 `@galacean/engine-xr` 和 `@galacean/engine-web-xr` 的版本需与 `@galacean/engine` 保持一致，`@galacean/engine-toolkit-xr` 的大版本需要与 `@galacean/engine` 保持一致。
 
 ## 快速上手
 
