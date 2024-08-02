@@ -34,7 +34,7 @@ The following properties can be directly used in built-in shaders.
 | Parameter | Application |
 | :-- | :-- |
 | [isTransparent](/apis/core/#BaseMaterial-isTransparent) | Transparency. It can be used to set whether the material is transparent. If set to transparent, you can use [BlendMode](/apis/core/#BaseMaterial-blendMode) to set the color blending mode. |
-| [alphaCutoff](/apis/core/#BaseMaterial-alphaCutoff) | Alpha cutoff value. It can be used to set a cutoff value, where fragments with transparency lower than this value will be clipped. Refer to the [example](${examples}blend-mode) |
+| [alphaCutoff](/apis/core/#BaseMaterial-alphaCutoff) | Alpha cutoff value. It can be used to set a cutoff value, where fragments with transparency lower than this value will be clipped. Refer to the [example](/embed/blend-mode) |
 | [renderFace](/apis/core/#BaseMaterial-renderFace) | Render face. It can determine whether to render the front face, back face, or both faces. |
-| [blendMode](/apis/core/#BaseMaterial-blendMode) | Color blending mode. When the material is set to transparent, this enum can be used to determine the color blending mode. Refer to the [example](${examples}blend-mode) |
-| [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | Scale and offset of texture coordinates. It is a Vector4 data that controls the scaling and offset of texture coordinates in the UV direction. Refer to the [example](${examples}tiling-offset) |
+| [blendMode](/apis/core/#BaseMaterial-blendMode) | Color blending mode. When the material is set to transparent, this enum can be used to determine the color blending mode. Refer to the [example](/embed/blend-mode) |
+| [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | Scale and offset of texture coordinates. It is a Vector4 data that controls the scaling and offset of texture coordinates in the UV direction. Refer to the [example](/embed/tiling-offset) |

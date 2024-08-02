@@ -27,6 +27,6 @@ label: Graphics/Shader
 | [emissiveColor](/apis/core/#BlinnPhongMaterial-emissiveColor)      | Emissive color. **Emissive color \* Emissive texture = Final emissive color. Can render color even without lighting.**      |
 | [emissiveTexture](/apis/core/#BlinnPhongMaterial-emissiveTexture)  | Emissive texture. Used in conjunction with emissive color, it is a multiplication relationship.                               |
 | [shininess](/apis/core/#BlinnPhongMaterial-shininess)              | Specular reflection coefficient. The larger the value, the more concentrated the specular reflection effect.                |
-| [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset)        | Scaling and offset of texture coordinates. It is a Vector4 data, which controls the scaling and offset of texture coordinates in the uv direction, refer to [example](${examples}tiling-offset) |
+| [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset)        | Scaling and offset of texture coordinates. It is a Vector4 data, which controls the scaling and offset of texture coordinates in the uv direction, refer to [example](/embed/tiling-offset) |
 
 如果需要通过脚本使用材质，可以前往[材质的使用教程](/en/docs/graphics-material-script)。
