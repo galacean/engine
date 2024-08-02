@@ -1,5 +1,5 @@
 ---
-order: 4
+order: 7
 title: 帧动画
 type: 动画
 label: Animation

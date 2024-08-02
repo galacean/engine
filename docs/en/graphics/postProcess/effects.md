@@ -1,9 +1,6 @@
 ---
 order: 1
 title: Post Process Effects
-type: Graphics
-group: Post Process
-label: Graphics/PostProcess
 ---
 
 ## Bloom

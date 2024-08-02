@@ -168,8 +168,9 @@ Galacean 还支持组件中的资产属性的动画编辑。如果组件中有�
 
 
 ## 脚本使用
-
-> 在使用脚本之前，最好阅读[动画系统构成](/docs/animation-system)文档，以帮助你更好的了解动画系统的运行逻辑
+<Callout type="positive">
+在使用脚本之前，最好阅读[动画系统构成](/docs/animation/system)文档，以帮助你更好的了解动画系统的运行逻辑
+</Callout>
 
 你可以自己创建一个 [AnimationClip](/apis/core/#AnimationClip)  并通过 [addCurveBinding](/apis/core/#AnimationClip-addCurveBinding) 为它绑定 [AnimationCurve](/apis/core/#AnimationCurve)。
 
@@ -211,7 +212,7 @@ colorClip.addCurveBinding("/light", DirectLight, "color.r", colorCurve);
 
 你同样可以为你的子实体 `/light` 绑定 AnimationCurve，就像上面的代码示例，同时 `addCurveBinding` 的第三个参数并不局限于组件的属性，它是一个能索引到值的路径。
 
-<playground src="animation-customAnimationClip.ts"></playground>
+<Playground href="/embed/animation-customAnimationClip" />
 
 ### 动画事件
 
@@ -224,4 +225,5 @@ event.time = 0.5;
 clip.addEvent(event);
 ```
 
-<playground src="animation-event.ts"></playground>
+<Playground href="/embed/animation-event" />
+
