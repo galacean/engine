@@ -16,12 +16,29 @@ label: Animation
 
 ## 编辑器使用
 
-1. 当把模型拖入到场景中，模型以初始姿态展示出来，并不会播放任何动画，这时需要在模型实体上找到动画控制组件（[Animator](/apis/core/#Animator)）并为它绑定一个 [动画控制器](/docs/animation-animatorController) 资产
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1dtmQowpdocAAAAAAAAAAAAADsJ_AQ/original)
+当把模型拖入到场景中，模型以初始姿态展示，并不会播放任何动画，这时需要在模型实体上找到动画控制组件（[Animator](/apis/core/#Animator)）并为它绑定一个 [动画控制器](/docs/animation-animatorController) 资产
+
+
+1. 找到或者创建动画控制组件（[Animator](/apis/core/#Animator)）
+
+
+<Callout type="info">
+模型的动画控制组件（[Animator](/apis/core/#Animator)）在glTF实例的根实体上，也就是编辑器的模型实体下的第一个子实体上。
+
+如果模型内有动画，会为你自动绑定一个只读的[动画控制器](/docs/animation-animatorController)。
+</Callout>
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WkafRagPFo8AAAAAAAAAAAAADsJ_AQ/original)
+
+如果没有动画控制组件（[Animator](/apis/core/#Animator)）可以按下图方式创建
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uOuPT5cFwx4AAAAAAAAAAAAADsJ_AQ/original)
 
 2. 创建一个[动画控制器](/docs/animation-animatorController) 资产并绑定到模型上
+
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original)
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
+
 3. 编辑动画控制器（[详见](/docs/animation-animatorController)）后你就可以按照[动画控制器](/docs/animation-animatorController) 的逻辑播放其中的动画了。
 
 ## 脚本使用
