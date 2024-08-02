@@ -9,7 +9,7 @@ label: Animation
 
 There are two common ways to obtain animation clips:
 
-1. Import models with animations created using third-party tools (such as Autodesk® 3ds Max®, Autodesk® Maya®, Blender). See [Creating Animation Clips for Artists](/en/docs/animation-clip-for-artist) for more details.
+1. Import models with animations created using third-party tools (such as Autodesk® 3ds Max®, Autodesk® Maya®, Blender). See [Creating Animation Clips for Artists](/en/docs/animation/clip-for-artist) for more details.
 
 ![1](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Qc8sQ6iJd8IAAAAAAAAAAAAADsJ_AQ/original)
 
@@ -27,7 +27,7 @@ The animation clip editor currently supports editing all interpolatable properti
 
 ### Transform Component Example
 
-1. Right-click or click + in the **[Asset Panel](/en/docs/assets-interface)** to create an `Animation Clip` asset.
+1. Right-click or click + in the **[Asset Panel](/en/docs/assets/interface)** to create an `Animation Clip` asset.
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j4FMRKx91nEAAAAAAAAAAAAADsJ_AQ/original)
 
@@ -35,7 +35,7 @@ The animation clip editor currently supports editing all interpolatable properti
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_E1kRqt8LroAAAAAAAAAAAAADsJ_AQ/original)
 
-Click the `Create` button, and the editor will automatically add an [Animation Controller Component](/en/docs/animation-animator) to your Entity and add this animation clip to the [Animation Controller](/en/docs/animation-animatorController).
+Click the `Create` button, and the editor will automatically add an [Animation Controller Component](/en/docs/animation/animator) to your Entity and add this animation clip to the [Animation Controller](/en/docs/animation/animatorController).
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*q46SRrV6WfsAAAAAAAAAAAAADsJ_AQ/original)
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*C2a4SZDGG_4AAAAAAAAAAAAADsJ_AQ/original)
@@ -75,7 +75,7 @@ Follow the steps above to add keyframes using the recording mode.
 
 ### Frame Animation Example
 
-In addition to numerical types, Galacean also supports reference types of animation curves. You can read about how to create frame animations in the [Frame Animation](/en/docs/animation-sprite-sheet) documentation.
+In addition to numerical types, Galacean also supports reference types of animation curves. You can read about how to create frame animations in the [Frame Animation](/en/docs/animation/sprite-sheet/) documentation.
 
 ### Material Animation Example
 
@@ -168,7 +168,7 @@ Selecting a property in the property panel allows you to edit the curve of that 
 
 ## Script Usage
 
-> Before using scripts, it is recommended to read the [Animation System Composition](/en/docs/animation-system) document to help you better understand the operation logic of the animation system.
+> Before using scripts, it is recommended to read the [Animation System Composition](/en/docs/animation/system/) document to help you better understand the operation logic of the animation system.
 
 You can create an [AnimationClip](/apis/core/#AnimationClip) yourself and bind it with [AnimationCurve](/apis/core/#AnimationCurve) using [addCurveBinding](/apis/core/#AnimationClip-addCurveBinding).
 

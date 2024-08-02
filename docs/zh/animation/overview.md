@@ -27,14 +27,14 @@ flowchart LR
 
 Galacean 的动画系统基于动画片段的概念，动画片段包含某些对象应如何随时间改变其位置、旋转或其他属性的相关信息。每个动画片段可视为单个线性录制。
 
-你可以在编辑器中创建动画片段，详见[制作动画片段](/docs/animation-clip)，也可以导入用第三方工具（例如 Autodesk® 3ds Max®， Autodesk® Maya®， Blender）创建的带动画的模型，详见[美术制作动画片段](/docs/animation-clip-for-artist)，或者来自动作捕捉工作室或其他来源。
+你可以在编辑器中创建动画片段，详见[制作动画片段](/docs/animation/clip)，也可以导入用第三方工具（例如 Autodesk® 3ds Max®， Autodesk® Maya®， Blender）创建的带动画的模型，详见[美术制作动画片段](/docs/animation/clip-for-artist)，或者来自动作捕捉工作室或其他来源。
 
 ### 2. 创建动画控制器并导入动画片段
 
 动画控制器是一个类似于流程图的结构化系统，它在动画系统中充当状态机，负责跟踪当前应该播放哪个片段以及动画应该何时改变或混合在一起。
 
-你可以在这篇[动画控制器](/docs/animation-animatorController)中了解如何使用。
+你可以在这篇[动画控制器](/docs/animation/animatorController/)中了解如何使用。
 
 ### 3. 添加动画控制组件
 
-编辑好动画控制器后，我们需要在实体上添加[动画控制组件](/docs/animation-animator)并绑定动画控制器资产来播放动画。
+编辑好动画控制器后，我们需要在实体上添加[动画控制组件](/docs/animation/animator)并绑定动画控制器资产来播放动画。

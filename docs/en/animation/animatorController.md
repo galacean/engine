@@ -5,15 +5,15 @@ type: Animation
 label: Animation
 ---
 
-The Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) is used to organize [animation clips](/en/docs/animation-clip) ([AnimationClip](/apis/core/#AnimationClip)) to achieve more flexible and rich animation effects.
+The Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) is used to organize [animation clips](/en/docs/animation/clip) ([AnimationClip](/apis/core/#AnimationClip)) to achieve more flexible and rich animation effects.
 
 ## Editor Usage
 
 ### Basic Usage
 
-Through the editor of the animation controller, users can organize the playback logic of [animation clips](/en/docs/animation-clip}).
+Through the editor of the animation controller, users can organize the playback logic of [animation clips](/en/docs/animation/clip}).
 
-1. Prepare the animation clips ([Create animation clips](/en/docs/animation-clip}))
+1. Prepare the animation clips ([Create animation clips](/en/docs/animation/clip}))
 
 ![1](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Qc8sQ6iJd8IAAAAAAAAAAAAADsJ_AQ/original)
 
@@ -29,7 +29,7 @@ Through the editor of the animation controller, users can organize the playback 
 
 ![6](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KwFzRZCmbxoAAAAAAAAAAAAADsJ_AQ/original)
 
-5. Bind this animation controller ([AnimatorController](/apis/core/#AnimatorController})) asset to the [animation control component](/en/docs/animation-animator})
+5. Bind this animation controller ([AnimatorController](/apis/core/#AnimatorController})) asset to the [animation control component](/en/docs/animation/animator})
 
 ![4](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VtX3RJR8kdMAAAAAAAAAAAAADsJ_AQ/original)
 
@@ -91,7 +91,7 @@ You can also adjust the weight of the `Layer` in the blend by modifying the `Wei
 
 ## Script Usage
 
-> Before using the script, it is recommended to read the [Animation System Composition](/en/docs/animation-system) documentation to help you better understand the operation logic of the animation system.
+> Before using the script, it is recommended to read the [Animation System Composition](/en/docs/animation/system/) documentation to help you better understand the operation logic of the animation system.
 
 ### Default Playback
 

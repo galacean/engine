@@ -15,19 +15,19 @@ label: Graphics/Texture
 本文将主要介绍：
 
 - 纹理的类型，纹理空间和通用属性
-- [2D 纹理](/docs/graphics-texture-2d)
-- [立方纹理](/docs/graphics-texture-cube)
-- [通过纹理播放视频](/docs/graphics-texture-2d)
-- [设置天空纹理](/docs/graphics-background-sky)
-- [离屏渲染纹理](/docs/graphics-texture-rtt)
-- 使用[压缩纹理](/docs/graphics-texture-compression)
+- [2D 纹理](/docs/graphics/texture/2d/)
+- [立方纹理](/docs/graphics/texture/cube/)
+- [通过纹理播放视频](/docs/graphics/texture/2d/)
+- [设置天空纹理](/docs/graphics/background/sky/)
+- [离屏渲染纹理](/docs/graphics/texture/rtt/)
+- 使用[压缩纹理](/docs/graphics/texture/compression/)
 
 ## 纹理类型
 
 | 类型                                     | 描述                                                               |
 | :--------------------------------------- | :----------------------------------------------------------------- |
-| [2D 纹理](/docs/graphics-texture-2d)    | 最常用的美术资源，使用二维 UV 坐标进行采样                         |
-| [立方纹理](/docs/graphics-texture-cube) | 6 张 2D 纹理组成了一个立方纹理，可以用来实现天空盒、环境反射等特效 |
+| [2D 纹理](/docs/graphics/texture/2d/)    | 最常用的美术资源，使用二维 UV 坐标进行采样                         |
+| [立方纹理](/docs/graphics/texture/cube/) | 6 张 2D 纹理组成了一个立方纹理，可以用来实现天空盒、环境反射等特效 |
 | 2D 纹理数组                              | 只占用一个纹理单元，非常适合用来实现需要切换纹理图集的需求         |
 
 ## 纹理空间

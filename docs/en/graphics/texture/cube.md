@@ -22,7 +22,7 @@ Due to this sampling characteristic, cube textures can be used to achieve effect
 
 > You can download free HDR textures from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/)
 
-After preparing the HDR, follow the steps **[Assets Panel](/en/docs/assets-interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR texture** -> **Cube texture asset created** to complete the operation.
+After preparing the HDR, follow the steps **[Assets Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR texture** -> **Cube texture asset created** to complete the operation.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original)
 

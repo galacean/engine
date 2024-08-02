@@ -20,7 +20,7 @@ In the example below, only one drawing command is called per frame in the sprite
 
 ### Create Sprite Atlas
 
-Right-click inside the **[Asset Panel](/en/docs/assets-interface)**, select `Create` from the `Feature List`, and choose `Sprite Atlas`. This will create an empty sprite atlas asset.
+Right-click inside the **[Asset Panel](/en/docs/assets/interface)**, select `Create` from the `Feature List`, and choose `Sprite Atlas`. This will create an empty sprite atlas asset.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*W-HZSrvAiG8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 

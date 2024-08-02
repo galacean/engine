@@ -13,7 +13,7 @@ Structurally, each Engine can contain one or more active scenes (the editor curr
 
 ### Creation and Switching
 
-Right-click in the **[Asset Panel](/en/docs/assets-interface)** (or click the + icon in the upper right corner of the asset panel) to create a scene. Double-click on a scene to switch to it:
+Right-click in the **[Asset Panel](/en/docs/assets/interface)** (or click the + icon in the upper right corner of the asset panel) to create a scene. Double-click on a scene to switch to it:
 
 ![scene-switch](https://gw.alipayobjects.com/zos/OasisHub/eef870a7-2630-4f74-8c0e-478696a553b0/2024-03-19%25252018.04.02.gif)
 

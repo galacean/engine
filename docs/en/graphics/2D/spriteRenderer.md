@@ -87,7 +87,7 @@ The sprite renderer currently provides three drawing modes: normal, nine-slice, 
 
 ### Masking
 
-Please refer to the [Sprite Mask](/en/docs/graphics-2d-spriteMask) documentation.
+Please refer to the [Sprite Mask](/en/docs/graphics/2D/spriteMask) documentation.
 
 ## Custom Materials
 

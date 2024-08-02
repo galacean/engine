@@ -22,7 +22,7 @@ label: Graphics/Texture
 
 > 可以在 [Poly Haven](https://polyhaven.com/) 或 [BimAnt HDRI](http://hdri.bimant.com/) 下载免费的 HDR 贴图
 
-在准备好 HDR 后，依照路径 **[资产面板](/docs/assets-interface)** -> **右键上传** -> **选择 TextureCube(.hdr)** -> **选择对应 HDR 贴图** -> **立方纹理资产创建完毕** 操作即可。
+在准备好 HDR 后，依照路径 **[资产面板](/docs/assets/interface)** -> **右键上传** -> **选择 TextureCube(.hdr)** -> **选择对应 HDR 贴图** -> **立方纹理资产创建完毕** 操作即可。
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original)
 
@@ -50,4 +50,4 @@ engine.resourceManager.load(cubeTextureResource).then((resource) => {
 
 ## 使用
 
-立方纹理主要在天空盒中使用，详情可参考[天空背景](/docs/graphics-background-sky)
+立方纹理主要在天空盒中使用，详情可参考[天空背景](/docs/graphics/background/sky/)

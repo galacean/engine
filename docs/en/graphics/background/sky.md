@@ -18,13 +18,13 @@ In the editor, you can set up a skybox for the background by following these ste
 
 > You can download free HDR textures from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/)
 
-The skybox texture is a [cubemap texture](/en/docs/graphics-texture-cube), first prepare the HDR, then follow the path **[Asset Panel](/en/docs/assets-interface)** -> **Right-click to upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR texture** -> **Cubemap asset created** to complete the operation.
+The skybox texture is a [cubemap texture](/en/docs/graphics-texture-cube), first prepare the HDR, then follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click to upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR texture** -> **Cubemap asset created** to complete the operation.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original)
 
 ### 2. Create Skybox Material
 
-After creating the cubemap asset, follow the path **[Asset Panel](/en/docs/assets-interface)** -> **Right-click to create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Click on the Shader property in the Base column** -> **Select Sky Box** -> **Click on HDR in the Base column** -> **Select the cubemap created in the first step** to create the skybox material.
+After creating the cubemap asset, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click to create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Click on the Shader property in the Base column** -> **Select Sky Box** -> **Click on HDR in the Base column** -> **Select the cubemap created in the first step** to create the skybox material.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9j2eSYkwg8MAAAAAAAAAAAAADhuCAQ/original)
 

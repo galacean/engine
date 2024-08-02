@@ -32,7 +32,7 @@ label: Graphics/Light
 
 ### 3. 设置背景
 
-参考 [背景教程](/docs/graphics-background-sky) 设置完场景的背景后，编辑器会根据上面设置的烘焙分辨率和烘焙开关进行光照烘焙，期间针对背景的修改（颜色、旋转、曝光、换 HDR 贴图等）都会根据烘焙开关来决定是否自动烘焙。**如果想要设置纯色背景或者透明背景，但是又不想要烘焙纯色背景，可以先关闭自动烘焙开关，然后再切换到[纯色背景](/docs/graphics-background-solidColor)。**
+参考 [背景教程](/docs/graphics/background/sky/) 设置完场景的背景后，编辑器会根据上面设置的烘焙分辨率和烘焙开关进行光照烘焙，期间针对背景的修改（颜色、旋转、曝光、换 HDR 贴图等）都会根据烘焙开关来决定是否自动烘焙。**如果想要设置纯色背景或者透明背景，但是又不想要烘焙纯色背景，可以先关闭自动烘焙开关，然后再切换到[纯色背景](/docs/graphics/background/solidColor/)。**
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1604407b-f6e0-442a-b179-aef4836877cf/image-20231009114455268.png" alt="image-20231009114455268" style="zoom:50%;" />
 

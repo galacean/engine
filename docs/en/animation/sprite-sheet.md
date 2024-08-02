@@ -11,11 +11,11 @@ Galacean supports referencing type animation curves, you can add keyframes of ty
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XiUaQ76M4Q0AAAAAAAAAAAAADsJ_AQ/original)
 
-2. Add a `sprite`, you can refer to [Sprite](/en/docs/graphics-2d-sprite)
+2. Add a `sprite`, you can refer to [Sprite](/en/docs/graphics/2D/sprite)
    
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ababSZAMpJMAAAAAAAAAAAAADsJ_AQ/original)
   
-3. Create an [animation clip](/en/docs/animation-clip) in the **[Asset Panel](/en/docs/assets-interface)**
+3. Create an [animation clip](/en/docs/animation/clip) in the **[Asset Panel](/en/docs/assets/interface)**
    
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*CZQjSqZAHGsAAAAAAAAAAAAADsJ_AQ/original)
 

@@ -35,4 +35,4 @@ Navigate to **Assets panel** -> **Right-click** -> **Upload** -> **GLTF/GLB/FBX*
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*OtKERZfkrEAAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112129853" style="zoom:50%;" />
 
-After importing, the imported model asset will appear in the **[Assets panel](/en/docs/assets-interface)**. Let's explore what the [model asset contains](/en/docs/graphics-model-assets).
+After importing, the imported model asset will appear in the **[Assets panel](/en/docs/assets/interface)**. Let's explore what the [model asset contains](/en/docs/graphics-model-assets).

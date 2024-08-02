@@ -56,7 +56,7 @@ label: Resource
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/8749922b-9989-47c2-ba42-85c122391c85/image-20240319132804611.png" alt="image-20240319132804611" style="zoom:50%;" />
 
-这对项目开发来说很重要，因为项目中经常遇到需要异步加载资产的情况，即初始化不需要加载某个资产（甚至是场景），可以通过脚本来控制某个资产的加载。具体的语法可以看[资产](/docs/assets-load)和[场景](/docs/core/scene)的加载使用，以加载场景为例：
+这对项目开发来说很重要，因为项目中经常遇到需要异步加载资产的情况，即初始化不需要加载某个资产（甚至是场景），可以通过脚本来控制某个资产的加载。具体的语法可以看[资产](/docs/assets/load)和[场景](/docs/core/scene)的加载使用，以加载场景为例：
 
 ```typescript
 this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });
