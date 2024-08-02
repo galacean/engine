@@ -20,6 +20,7 @@ Like collider components, a `ColliderShape` is constructed and added to the comp
 2. Currently, character controllers only support `CapsuleColliderShape` and `BoxColliderShape`, with `CapsuleColliderShape` being the most commonly used.
 
 The behavior of the character controller can be controlled through the parameters and methods of `CharacterController`, with the most important one being the `move` function:
+
 ```typescript
 class Controller extends Script {
     onPhysicsUpdate() {
@@ -32,9 +33,10 @@ class Controller extends Script {
         this._displacement.setValue(0, 0, 0);
     }
 }
-````
+```
 
 In the `move` method, you can specify the character's displacement, and this method returns an enum type composite value. By using the enum type `ControllerCollisionFlag`, you can determine if the character controller collides with other collider components:
+
 ```typescript
 export enum ControllerCollisionFlag {
   /** Character is colliding to the sides. */
@@ -45,5 +47,7 @@ export enum ControllerCollisionFlag {
   Down = 4
 }
 ```
+
 Based on this, the character's subsequent animations and movements can be determined. In the example below, you can control the character's movement using the keyboard to make it climb or jump over specific obstacles.
+
 <playground src="physx-controller.ts"></playground>

@@ -20,6 +20,7 @@ characterController.addShape(physicsCapsule);
 2. 角色控制器目前只支持 `CapsuleColliderShape` 和 `BoxColliderShape`，且其中 `CapsuleColliderShape` 最为常用。
 
 后续角色控制器的行为通过 `CharacterController` 的各个参数和方法进行控制，其中最重要的是 `move` 函数:
+
 ```typescript
 class Controller extends Script {
     onPhysicsUpdate() {
@@ -32,9 +33,10 @@ class Controller extends Script {
         this._displacement.setValue(0, 0, 0);
     }
 }
-````
+```
 
 可以在 `move` 方法中指定角色位移，并且该方法返回一个枚举类型的复合值，通过该枚举类型 `ControllerCollisionFlag` 可以判断角色控制器是否碰到其他的碰撞器组件：
+
 ```typescript
 export enum ControllerCollisionFlag {
   /** Character is colliding to the sides. */
@@ -45,5 +47,7 @@ export enum ControllerCollisionFlag {
   Down = 4
 }
 ```
+
 由此角色接下来的动画和运动要怎么进行。在下面的例子当中，可以通过键盘控制角色的运动，使其爬上或者跳过特定的障碍物。
+
 <playground src="physx-controller.ts"></playground>
