@@ -1,5 +1,5 @@
 ---
-order: 7
+order: 8
 title: 美术动画切片
 type: 动画
 label: Animation

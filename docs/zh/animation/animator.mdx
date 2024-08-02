@@ -5,6 +5,7 @@ type: 动画
 label: Animation
 ---
 
+## 简介
 动画控制组件（[Animator](/apis/core/#Animator)）的作用是读取[动画控制器](/docs/animation-animatorController)（[AnimatorController](/apis/core/#AnimatorController)）的数据，并播放其内容。
 
 ### 参数说明
@@ -15,23 +16,36 @@ label: Animation
 
 ## 编辑器使用
 
-1. 当我们把模型拖入到场景中，模型以初始姿态展示出来，但是并不会播放任何动画，我们需要在模型实体上添加动画控制组件（[Animator](/apis/core/#Animator)）
+当把模型拖入到场景中，模型以初始姿态展示，并不会播放任何动画，这时需要在模型实体上找到动画控制组件（[Animator](/apis/core/#Animator)）并为它绑定一个 [动画控制器](/docs/animation-animatorController) 资产。
 
-![2](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kuSLTaxomrUAAAAAAAAAAAAADsJ_AQ/original)
 
-2. 动画控制组件（[Animator](/apis/core/#Animator)）需要绑定一个 [动画控制器](/docs/animation-animatorController) 资产，我们创建并绑定
+1. 找到或者创建动画控制组件（[Animator](/apis/core/#Animator)）
 
-![3](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*irT7SZvw4N8AAAAAAAAAAAAADsJ_AQ/original)
 
-![4](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VtX3RJR8kdMAAAAAAAAAAAAADsJ_AQ/original)
+<Callout type="info">
+模型的动画控制组件（[Animator](/apis/core/#Animator)）在glTF实例的根实体上，也就是编辑器的模型实体下的第一个子实体上。
 
-3. 至此你在导出的项目中就可以通过 `animator.play` 播放[动画控制器](/docs/animation-animatorController)中的动画了。
+如果模型内有动画，会为你自动绑定一个只读的[动画控制器](/docs/animation-animatorController)。
+</Callout>
 
-如果你没有为实体添加 动画控制组件（[Animator](/apis/core/#Animator)）的话 Galacean Engine 会为你默认创建一个并且 [动画控制器](/docs/animation-animatorController) 中默认添加了模型的所有动画片段，当然除此以外你可以通过 [动画控制器](/docs/animation-animatorController) 实现更多的功能。
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WkafRagPFo8AAAAAAAAAAAAADsJ_AQ/original)
+
+如果没有动画控制组件（[Animator](/apis/core/#Animator)）可以按下图方式创建
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uOuPT5cFwx4AAAAAAAAAAAAADsJ_AQ/original)
+
+2. 创建一个[动画控制器](/docs/animation-animatorController) 资产并绑定到模型上
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original)
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
+
+3. 编辑动画控制器（[详见](/docs/animation-animatorController)）后你就可以按照[动画控制器](/docs/animation-animatorController) 的逻辑播放其中的动画了
 
 ## 脚本使用
+<Callout type="positive">
+在使用脚本之前，最好阅读[动画系统构成](/docs/animation/system)文档，以帮助你更好的了解动画系统的运行逻辑
+</Callout>
 
-> 在使用脚本之前，最好阅读[动画系统构成](/docs/animation-system)文档，以帮助你更好的了解动画系统的运行逻辑
 
 ### 播放动画
 
@@ -58,16 +72,27 @@ engine.resourceManager
 animator.speed = 2.0；
 ```
 
-#### 暂停/恢复播放
+#### 停止/重新播放
 
-你可以通过设置 Animator 的 [enabled](/apis/core/#Animator-enabled) 来控制动画的暂停和播放.
+你可以通过设置 Animator 的 [enabled](/apis/core/#Animator-enabled) 来停止和重新播放动画
+
+```typescript
+// 停止
+animator.enabled = false;
+// 重新播放
+animator.enabled = true;
+```
+
+#### 暂停/恢复播放
+你可以通过设置 Animator 的 [speed](/apis/core/#Animator-speed) 暂停和恢复播放
 
 ```typescript
 // 暂停
-animator.enabled = false;
+animator.speed = 0;
 // 恢复
-animator.enabled = true;
+animator.speed = 1;
 ```
+
 
 如果你只想针对某一个动画状态进行暂停，可以通过将它的速度设置为 0 来实现。
 
@@ -78,9 +103,7 @@ state.speed = 0;
 
 #### 播放指定动画状态
 
-<playground src="skeleton-animation-play.ts"></playground>
-
-你可以使用 [play](/apis/core/#Animator-play)  方法来播放指定的 AnimatorState。参数为 AnimatorState 的`name`，其他参数说明详见[API 文档](/apis/core/#Animator-play)。
+你可以使用 [animator.play](/apis/core/#Animator-play) 方法来播放指定的 `AnimatorState`，参数说明详见[API 文档](/apis/core/#Animator-play)。
 
 ```typescript
 animator.play("run");
@@ -93,6 +116,18 @@ const layerIndex = 0;
 const normalizedTimeOffset = 0.5; // 归一化的时间
 animator.play("run", layerIndex, normalizedTimeOffset);
 ```
+
+<Playground href="/embed/skeleton-animation-play" />
+
+#### 过渡指定动画状态
+
+你可以使用 [animator.crossfade](/apis/core/#Animator-crossfade) 方法来将动画过渡到指定的 `AnimatorState`，参数说明详见[API 文档](/apis/core/#Animator-crossFade)。
+
+```typescript
+animator.crossFade("run", 0.3);
+```
+
+<Playground href="/embed/skeleton-animation-crossfade" />
 
 ### 获取当前在播放的动画状态
 
@@ -117,3 +152,8 @@ state.wrapMode = WrapMode.Once;
 // 循环播放
 state.wrapMode = WrapMode.Loop;
 ```
+
+### 动画裁剪
+你可以通过设置 [Animator](/apis/core/#Animator) 的 [cullingMode](/apis/core/#Animator-cullingMode) 来设置当 Animator 绑定的实体不可见时动画是否进行计算。在动画被裁剪时，动画不会进行计算并应用到实体上，但动画的状态仍然会随着时间更新，使其再可见时是正确地表现。
+
+

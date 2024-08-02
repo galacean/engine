@@ -1,0 +1,63 @@
+---
+order: 5
+title: 动画层
+type: 动画
+label: Animation
+---
+
+## 简介
+动画层（[AnimatorControllerLayer](/apis/core/#AnimatorControllerLayer)）用于在一个动画控制器（[AnimatorController](/apis/core/#AnimatorController)）中组织和管理动画状态机。通过使用动画层，开发者可以将不同的动画状态机组合在一起，使得复杂的动画逻辑更容易管理和控制。每个层都有其自己的动画状态机、权重和混合模式。
+
+| 属性     | 功能说明                                                                           |
+| :------- | :--------------------------------------------------------------------------------- |
+| Name     | 该层的名字。                                                                       |
+| Weight   | 该层的混合权重，默认值为 1.0 。                                                    |
+| Blending | 该层的混合模式，`Additive` 为叠加模式， `Override` 为覆盖模式，默认值为 `Override` |
+
+### 叠加模式
+叠加模式下，较高层的动画会在较低层动画的基础上叠加。这个模式下先计算动画关键帧的差异，将这些差异应用到较低层动画上，从而实现动画的叠加效果，它常用于在基础动作上添加细节或调整。例如，角色在行走时可以使用 `Additive` 模式叠加一个呼吸动画，或在攻击时增加一个表情变化。
+
+### 覆盖模式
+覆盖模式下，较高层的动画会完全覆盖较低层的动画。这意味着在最终的动画输出中，较高层的动画会优先显示并替代较低层的动画效果。它常用于动画的分层控制。例如，你可能需要对不同身体部位的动作进行单独控制。`Override` 模式可以分离地控制各个部分，比如在跑步的同时调整上半身的姿势或动作。
+<Callout type="info">
+第一层的混合模式始终是覆盖模式。
+</Callout>
+
+### 混合权重
+它用于控制特定动画层对最终动画结果的影响程度，是一个介于 0 到 1 之间的浮点值，决定了该层动画在最终动画中的混合比例。例如，叠加模式的层会使角色的头转90度，如果该层的混合权重是0.5，则角色只会旋转45度。
+<Callout type="info">
+第一层的权重始终是1.0。
+</Callout>
+
+
+
+
+## 编辑器使用
+### 叠加模式
+我们在编辑器添加一个动画层，并将 `Blending` 选为 `Additive` 即可
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JyqiQ6kvqBcAAAAAAAAAAAAADsJ_AQ/original)
+可以看到这个角色在原来的动画基础上增加了 `摇头` 的动画。
+
+### 覆盖模式
+将 `Blending` 选为 `Override` 即可
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*5TfbQJjPZDMAAAAAAAAAAAAADsJ_AQ/original)
+可以看到角色的动画完全替换掉了第一层的动画
+
+### 混合权重
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*HSxgTZIDqQ0AAAAAAAAAAAAADsJ_AQ/original)
+可以看到动画层的权重越高对动画效果的影响越大。
+
+
+## 脚本使用
+
+```typescript
+const layers = animator.animatorController.layers;
+const baseLayer = layers[0];
+const additiveLayer = layers[1];
+// 叠加模式
+additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
+// 覆盖模式
+additiveLayer.blendingMode = AnimatorLayerBlendingMode.Override;
+additiveLayer.weight = 0.5;
+```
+<Playground href="/embed/skeleton-animation-additive" />
