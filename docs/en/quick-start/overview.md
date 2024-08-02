@@ -33,10 +33,10 @@ Including the following sub-packages:
 
 | Feature                                                                                         | Explanation             | API                          |
 | :---------------------------------------------------------------------------------------------- | :---------------------- | ---------------------------- |
-| [@galacean/engine](https://www.npmjs.com/package/@galacean/engine)                             | Core architecture logic and core functionalities | [API](${api}core)            |
-| [@galacean/engine-physics-lite](https://www.npmjs.com/package/@galacean/engine-physics-lite)   | Lightweight physics engine | [API](${api}physics-lite)    |
-| [@galacean/engine-physics-physx](https://www.npmjs.com/package/@galacean/engine-physics-physx) | Full-featured physics engine | [API](${api}physics-physx)   |
-| [@galacean/engine-draco](https://www.npmjs.com/package/@galacean/engine-draco)                 | Draco model compression | [API](${api}draco)           |
+| [@galacean/engine](https://www.npmjs.com/package/@galacean/engine)                             | Core architecture logic and core functionalities | [API](/apis/core)            |
+| [@galacean/engine-physics-lite](https://www.npmjs.com/package/@galacean/engine-physics-lite)   | Lightweight physics engine | [API](/apis/physics-lite)    |
+| [@galacean/engine-physics-physx](https://www.npmjs.com/package/@galacean/engine-physics-physx) | Full-featured physics engine | [API](/apis/physics-physx)   |
+| [@galacean/engine-draco](https://www.npmjs.com/package/@galacean/engine-draco)                 | Draco model compression | [API](/apis/draco)           |
 
 You can install via [NPM](https://docs.npmjs.com/):
 

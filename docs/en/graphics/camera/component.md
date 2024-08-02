@@ -75,12 +75,12 @@ The functionality of each property is as follows:
 |          | [pixelViewport](/apis/core/#Camera-pixelViewport)              | The viewport of the camera on the screen (in pixel coordinates). In pixel screen coordinates, the top left corner is (0, 0) and the bottom right corner is (1.0, 1.0). |
 | Perspective Projection | [fieldOfView](/apis/core/#Camera-fieldOfView)                  | Field of view                                                                                           |
 | Orthographic Projection | [orthographicSize](/apis/core/#Camera-orthographicSize)        | Half size of the camera in orthographic mode                                                             |
-| Rendering Related | [depthTextureMode](<(/apis/core/#Camera-depthTextureMode)>)    | Depth texture mode, default is `DepthTextureMode.None`. If enabled, the `camera_DepthTexture` depth texture can be used in shaders. |
-|  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>)    | Whether to enable opaque texture, default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in shaders in the transparent queue. |
-|  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>)    | When enabling opaque texture, downsampling can be set based on clarity requirements and performance considerations. |
-|  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)    | Multi-sample anti-aliasing samples when use independent canvas mode, such as `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`. |
-|  | [enableHDR](<(/apis/core/#Camera-enableHDR)>)     | Enable HDR rendering, allowing the shader output color to be stored using floating point numbers, which can get a wider range of values ​​for post-processing and other situations. |
-|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | Enable post process. The specific configuration refs to [Post Process Tutorial](/docs/graphics/postProcess/postProcess).|
+| Rendering Related | [depthTextureMode](/apis/core/#Camera-depthTextureMode)    | Depth texture mode, default is `DepthTextureMode.None`. If enabled, the `camera_DepthTexture` depth texture can be used in shaders. |
+|  | [opaqueTextureEnabled](/apis/core/#Camera-opaqueTextureEnabled)    | Whether to enable opaque texture, default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in shaders in the transparent queue. |
+|  | [opaqueTextureDownsampling](/apis/core/#Camera-opaqueTextureDownsampling)    | When enabling opaque texture, downsampling can be set based on clarity requirements and performance considerations. |
+|  | [msaaSamples](/apis/core/#Camera-msaaSamples)    | Multi-sample anti-aliasing samples when use independent canvas mode, such as `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`. |
+|  | [enableHDR](/apis/core/#Camera-enableHDR)     | Enable HDR rendering, allowing the shader output color to be stored using floating point numbers, which can get a wider range of values ​​for post-processing and other situations. |
+|  | [enablePostProcess](/apis/core/#Camera-enablePostProcess)     | Enable post process. The specific configuration refs to [Post Process Tutorial](/docs/graphics/postProcess/postProcess).|
 
 ### Clipping Masks
 
