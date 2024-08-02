@@ -24,13 +24,13 @@ label: Graphics/Background
 
 ### 2. 创建天空盒材质
 
-创建完立方纹理资产后，依照路径 **[资产面板](/docs/assets-interface)** -> **右键创建** -> **选择 Material** -> **选中生成的资产** -> **[检查器面板](/docs/interface-inspector)** -> **点击 Base 栏的 Shader 属性** -> **选择 Sky Box** -> **点击 Base 栏的 HDR** -> **选择第一步创建的立方纹理** 创建天空盒材质。
+创建完立方纹理资产后，依照路径 **[资产面板](/docs/assets-interface)** -> **右键创建** -> **选择 Material** -> **选中生成的资产** -> **[检查器面板](/docs/interface/inspector)** -> **点击 Base 栏的 Shader 属性** -> **选择 Sky Box** -> **点击 Base 栏的 HDR** -> **选择第一步创建的立方纹理** 创建天空盒材质。
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9j2eSYkwg8MAAAAAAAAAAAAADhuCAQ/original)
 
 ### 3. 设置天空盒
 
-最后只需依照路径 **[层级面板](/docs/interface-hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface-inspector)** -> **Background 栏** -> **Mode 设置 Sky** -> **Material 选择第二步创建的材质** -> **Mesh 设置内置的 Cuboid** 可以看到场景的背景变成了天空盒。
+最后只需依照路径 **[层级面板](/docs/interface/hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface/inspector)** -> **Background 栏** -> **Mode 设置 Sky** -> **Material 选择第二步创建的材质** -> **Mesh 设置内置的 Cuboid** 可以看到场景的背景变成了天空盒。
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original)
 
@@ -61,7 +61,7 @@ background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 
 ## 设置程序化天空
 
-程序化天空是编辑器在 3D 项目中的默认背景，您也可以依照路径 **[层级面板](/docs/interface-hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface-inspector)** -> **Background 栏** -> **Mode 设置 Sky** -> **Material 选择内置的 SkyMat 材质** -> **Mesh 设置内置的 Sphere**
+程序化天空是编辑器在 3D 项目中的默认背景，您也可以依照路径 **[层级面板](/docs/interface/hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface/inspector)** -> **Background 栏** -> **Mode 设置 Sky** -> **Material 选择内置的 SkyMat 材质** -> **Mesh 设置内置的 Sphere**
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Qe3IRJ9ciNoAAAAAAAAAAAAADhuCAQ/original)
 
@@ -79,7 +79,7 @@ background.sky.mesh = PrimitiveMesh.createSphere(engine);
 
 ### 属性
 
-在大气散射材质的 **[检查器面板](/docs/interface-inspector)** 可以看到很多可调整的属性：
+在大气散射材质的 **[检查器面板](/docs/interface/inspector)** 可以看到很多可调整的属性：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*igE-RLCRc24AAAAAAAAAAAAADhuCAQ/original" alt="image-4" style="zoom:40%;" />
 

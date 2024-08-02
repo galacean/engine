@@ -5,7 +5,7 @@ type: Core
 label: Core
 ---
 
-In a rendering scene, we often perform operations such as translation, rotation, scaling on objects (these operations are collectively referred to as [transform](/en/docs/core-transform)), in order to achieve the interactive effects we desire. The calculations for these transformations are typically implemented using vectors, quaternions, matrices, etc. Therefore, we provide a mathematics library to handle operations related to *vectors*, *quaternions*, *matrices*, and more. Additionally, the mathematics library offers a variety of classes to help us describe *points*, *lines*, *planes*, *geometric shapes* in space, as well as determine their intersections and spatial relationships in three-dimensional space.
+In a rendering scene, we often perform operations such as translation, rotation, scaling on objects (these operations are collectively referred to as [transform](/en/docs/core/transform)), in order to achieve the interactive effects we desire. The calculations for these transformations are typically implemented using vectors, quaternions, matrices, etc. Therefore, we provide a mathematics library to handle operations related to *vectors*, *quaternions*, *matrices*, and more. Additionally, the mathematics library offers a variety of classes to help us describe *points*, *lines*, *planes*, *geometric shapes* in space, as well as determine their intersections and spatial relationships in three-dimensional space.
 
 | Type | Description |
 | :--- | :--- |

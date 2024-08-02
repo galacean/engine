@@ -34,7 +34,7 @@ Currently, the editor supports uploading or creating the following assets (**+**
 
 ### Add Assets
 
-To add assets to your scene, you can click the add button on the asset panel or use the add option in the right-click menu of the asset panel to add new assets. After adding assets, you can edit the properties of the assets in the **[Inspector Panel](/en/docs/interface-inspector)**. The asset panel offers a wide variety of asset types, such as materials, textures, models, fonts, and more. Refer to the table above for specific details.
+To add assets to your scene, you can click the add button on the asset panel or use the add option in the right-click menu of the asset panel to add new assets. After adding assets, you can edit the properties of the assets in the **[Inspector Panel](/en/docs/interface/inspector)**. The asset panel offers a wide variety of asset types, such as materials, textures, models, fonts, and more. Refer to the table above for specific details.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/aec9a0de-98c4-47ce-bc4d-6a7a80decfc8/image-20240319103341208.png" alt="image-20240319103341208" style="zoom:50%;" />
 
@@ -56,7 +56,7 @@ After organizing assets, each asset has a **relative path**, and you can right-c
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/8749922b-9989-47c2-ba42-85c122391c85/image-20240319132804611.png" alt="image-20240319132804611" style="zoom:50%;" />
 
-This is crucial for project development because there are often cases where assets need to be asynchronously loaded in a project, meaning that certain assets (or even scenes) do not need to be loaded during initialization and can be controlled to load through scripts. For specific syntax, refer to the [Assets](/en/docs/assets-load) and [Scenes](/en/docs/core-scene) loading usage. For loading a scene, for example:
+This is crucial for project development because there are often cases where assets need to be asynchronously loaded in a project, meaning that certain assets (or even scenes) do not need to be loaded during initialization and can be controlled to load through scripts. For specific syntax, refer to the [Assets](/en/docs/assets-load) and [Scenes](/en/docs/core/scene) loading usage. For loading a scene, for example:
 
 ```typescript
 this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });

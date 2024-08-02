@@ -15,7 +15,7 @@ label: Physics
  - [physics-lite](https://github.com/galacean/engine/tree/main/packages/physics-lite)
  - [physics-physx](https://github.com/galacean/engine/tree/main/packages/physics-physx)
 
-开发者可以在 [主菜单](/docs/interface-menu) 界面打开的 **项目设置** 面板中设置物理后端。
+开发者可以在 [主菜单](/docs/interface/menu) 界面打开的 **项目设置** 面板中设置物理后端。
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LO_FRIsaIzIAAAAAAAAAAAAADsJ_AQ/original)
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ZvWdQqEfIKoAAAAAAAAAAAAADsJ_AQ/original)

@@ -12,7 +12,7 @@ For scenarios requiring various physics components and Raycast picking, such as 
 - [physics-lite](https://github.com/galacean/engine/tree/main/packages/physics-lite)
 - [physics-physx](https://github.com/galacean/engine/tree/main/packages/physics-physx)
 
-Developers can set the physics backend in the **Project Settings** panel opened in the [main menu](/en/docs/interface-menu) interface.
+Developers can set the physics backend in the **Project Settings** panel opened in the [main menu](/en/docs/interface/menu) interface.
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LO_FRIsaIzIAAAAAAAAAAAAADsJ_AQ/original)
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ZvWdQqEfIKoAAAAAAAAAAAAADsJ_AQ/original)

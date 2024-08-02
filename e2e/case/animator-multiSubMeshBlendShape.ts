@@ -49,7 +49,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       defaultSceneRoot.transform.rotation = new Vector3(-90, -0, 0);
       const animator = entity.addComponent(Animator);
 
-      animator.animatorController = new AnimatorController();
+      animator.animatorController = new AnimatorController(engine);
       const layer = new AnimatorControllerLayer("base");
       animator.animatorController.addLayer(layer);
       const stateMachine = (layer.stateMachine = new AnimatorStateMachine());

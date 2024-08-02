@@ -26,7 +26,7 @@ Common components:
 
 ## Editor Usage
 
-After selecting an entity from the **[Hierarchy Panel](/en/docs/interface-hierarchy)** or the scene, the Inspector will display all the components attached to the currently selected node, with the component names shown in the top left corner
+After selecting an entity from the **[Hierarchy Panel](/en/docs/interface/hierarchy)** or the scene, the Inspector will display all the components attached to the currently selected node, with the component names shown in the top left corner
 
 <img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tZcpRrrYQcMAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style="zoom:50%;" />
 

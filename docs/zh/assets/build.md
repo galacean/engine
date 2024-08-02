@@ -36,7 +36,7 @@ Galacean Editor 项目导出功能可以将当前编辑器项目作为一个前�
 | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | WebGL Mode                                                                                            | WebGL 的版本，`Auto` 值表示根据设备能力自动选择 WebGL 版本 |
 | WebGL [Context](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext) 的配置 | Anti-Alias、Alpha、Preserve Drawing Buffer 等              |
-| Device Pixel Ratio                                                                                    | [设备的像素比](/docs/core-canvas)，用来控制画布的尺寸     |
+| Device Pixel Ratio                                                                                    | [设备的像素比](/docs/core/canvas)，用来控制画布的尺寸     |
 
 ### 项目启动
 

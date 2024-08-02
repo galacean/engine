@@ -8,7 +8,7 @@ label: Graphics/Camera
 
 The camera component can project a 3D scene onto a 2D screen. Based on the camera component, we can customize various rendering effects.
 
-First, you need to attach the camera component to an activated [Entity](/en/docs/core-entity) in the scene. The editor project usually comes with a camera component, but you can also add it manually.
+First, you need to attach the camera component to an activated [Entity](/en/docs/core/entity) in the scene. The editor project usually comes with a camera component, but you can also add it manually.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/c6a1a344-630c-40c6-88ef-abb447cfd183/image-20231009114711623.png" alt="image-20231009114711623" style="zoom:50%;" />
 
@@ -16,7 +16,7 @@ After adding it, you can view the camera properties in the inspector, and the ca
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/d60e9f91-137e-4148-b85e-7458007333c3/image-20240718211520816.png" alt="image-20240718211520816" style="zoom:50%;" />
 
-You can also attach the camera component to an [Entity](/en/docs/core-entity) in scripts using the following code:
+You can also attach the camera component to an [Entity](/en/docs/core/entity) in scripts using the following code:
 
 ```typescript
 // 创建实体
@@ -27,7 +27,7 @@ const camera = entity.addComponent(Camera);
 
 ## Properties
 
-Customize rendering effects by modifying the properties of the camera component. Below are the properties exposed in the **[Inspector Panel](/en/docs/interface-inspector)** for the camera component.
+Customize rendering effects by modifying the properties of the camera component. Below are the properties exposed in the **[Inspector Panel](/en/docs/interface/inspector)** for the camera component.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style="zoom:50%;" />
 

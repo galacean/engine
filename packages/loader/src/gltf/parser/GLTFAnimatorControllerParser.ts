@@ -15,13 +15,15 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
     }
 
     return context.get<AnimationClip>(GLTFParserType.Animation).then((animations) => {
-      const animatorController = this._createAnimatorController(animations);
+      const animatorController = this._createAnimatorController(context, animations);
       return Promise.resolve(animatorController);
     });
   }
 
-  private _createAnimatorController(animations: AnimationClip[]): AnimatorController {
-    const animatorController = new AnimatorController();
+  private _createAnimatorController(context: GLTFParserContext, animations: AnimationClip[]): AnimatorController {
+    const { glTFResource } = context;
+    const engine = glTFResource.engine;
+    const animatorController = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("layer");
     const animatorStateMachine = new AnimatorStateMachine();
     animatorController.addLayer(layer);
