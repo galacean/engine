@@ -5,7 +5,7 @@ group: Basic
 label: Core
 ---
 
-The Galacean Engine encapsulates canvases for different platforms. For example, [WebCanvas](${api}rhi-webgl/WebCanvas) supports controlling [HTMLCanvasElement](https://developer.mozilla.org/en-US/en/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/en/docs/Web/API/OffscreenCanvas) using [Engine](/apis/core/#Engine).
+The Galacean Engine encapsulates canvases for different platforms. For example, [WebCanvas](/apis/rhi-webgl/WebCanvas) supports controlling [HTMLCanvasElement](https://developer.mozilla.org/en-US/en/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/en/docs/Web/API/OffscreenCanvas) using [Engine](/apis/core/#Engine).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -33,7 +33,7 @@ console.log(engine.canvas); // => WebCanvas instance
 
 ### Basic Adaptation
 
-The canvas size is generally controlled by the **device pixel ratio**, using [WebCanvas](${api}rhi-webgl/WebCanvas) as an example:
+The canvas size is generally controlled by the **device pixel ratio**, using [WebCanvas](/apis/rhi-webgl/WebCanvas) as an example:
 
 ```mermaid
 flowchart TD
@@ -60,7 +60,7 @@ engine.canvas.resizeByClientSize(1.5);
 
 Regarding adaptation, the key point to note is the **device pixel ratio**. For example, on an iPhoneX, the device pixel ratio `window.devicePixelRatio` is _3_, the window width `window.innerWidth` is _375_, and the physical screen pixel width is: 375 * 3 = *1125\*.
 
-Rendering load and physical screen pixel height and width are directly proportional. The larger the physical pixels, the greater the rendering load and power consumption. It is recommended to set the height and width of the canvas using the API exposed by [WebCanvas](${api}rhi-webgl/WebCanvas), and not to use native canvas APIs such as `canvas.width` or `canvas.style.width`.
+Rendering load and physical screen pixel height and width are directly proportional. The larger the physical pixels, the greater the rendering load and power consumption. It is recommended to set the height and width of the canvas using the API exposed by [WebCanvas](/apis/rhi-webgl/WebCanvas), and not to use native canvas APIs such as `canvas.width` or `canvas.style.width`.
 
 > ⚠️ **Note**: Some front-end scaffolding tools may insert the following tag to modify the page's scaling factor:
 >

@@ -19,7 +19,7 @@ label: Core
 
 ## Initialization
 
-To facilitate users in creating a web-based engine directly, Galacean provides [WebGLEngine](${api}rhi-webgl/WebGLEngine):
+To facilitate users in creating a web-based engine directly, Galacean provides [WebGLEngine](/apis/rhi-webgl/WebGLEngine):
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });
@@ -33,7 +33,7 @@ Developers can set the context's rendering configuration in the [Export Interfac
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*WZHzRYIpUzQAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 
-You can also manage this by setting the third parameter [WebGLGraphicDeviceOptions](${api}rhi-webgl/WebGLGraphicDeviceOptions) of [WebGLEngine](${api}rhi-webgl/WebGLEngine}), for example, to manage **canvas transparency**, the engine by default enables the canvas's alpha channel, meaning the canvas will blend with the elements behind it. If you need to disable transparency, you can do so like this:
+You can also manage this by setting the third parameter [WebGLGraphicDeviceOptions](/apis/rhi-webgl/WebGLGraphicDeviceOptions) of [WebGLEngine](/apis/rhi-webgl/WebGLEngine}), for example, to manage **canvas transparency**, the engine by default enables the canvas's alpha channel, meaning the canvas will blend with the elements behind it. If you need to disable transparency, you can do so like this:
 
 ```typescript
 const engine = await WebGLEngine.create({

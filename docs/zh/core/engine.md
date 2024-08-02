@@ -19,7 +19,7 @@ label: Core
 
 ## 初始化
 
-为了方便用户直接创建 web 端 engine，Galacean 提供了 [WebGLEngine](${api}rhi-webgl/WebGLEngine) ：
+为了方便用户直接创建 web 端 engine，Galacean 提供了 [WebGLEngine](/apis/rhi-webgl/WebGLEngine) ：
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });

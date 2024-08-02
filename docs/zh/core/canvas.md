@@ -5,7 +5,7 @@ group: 基础
 label: Core
 ---
 
-Galacean Engine 封装了不同平台的画布，如 [WebCanvas](${api}rhi-webgl/WebCanvas)  支持用 [Engine](/apis/core/#Engine) 控制 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) 或者 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) 。
+Galacean Engine 封装了不同平台的画布，如 [WebCanvas](/apis/rhi-webgl/WebCanvas)  支持用 [Engine](/apis/core/#Engine) 控制 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) 或者 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) 。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -33,7 +33,7 @@ console.log(engine.canvas); // => WebCanvas 实例
 
 ### 基础适配
 
-画布尺寸一般通过**设备像素比**控制，以 [WebCanvas](${api}rhi-webgl/WebCanvas) 为例：
+画布尺寸一般通过**设备像素比**控制，以 [WebCanvas](/apis/rhi-webgl/WebCanvas) 为例：
 
 ```mermaid
 flowchart TD
@@ -60,7 +60,7 @@ engine.canvas.resizeByClientSize(1.5);
 
 关于适配，核心要注意的点是**设备像素比**，以 iPhoneX 为例，设备像素比 `window.devicePixelRatio` 为 _3_，  窗口宽度 `window.innerWidth` 为 _375_，屏幕物理像素宽度则为：375 * 3 = *1125\*。
 
-渲染压力和屏幕物理像素高宽成正比，物理像素越大，渲染压力越大，也就越耗电。画布的高宽建议通过 [WebCanvas](${api}rhi-webgl/WebCanvas) 暴露的 API 设置，不建议使用原生 canvas 的 API ，如 `canvas.width` 或 `canvas.style.width` 这些方法修改。
+渲染压力和屏幕物理像素高宽成正比，物理像素越大，渲染压力越大，也就越耗电。画布的高宽建议通过 [WebCanvas](/apis/rhi-webgl/WebCanvas) 暴露的 API 设置，不建议使用原生 canvas 的 API ，如 `canvas.width` 或 `canvas.style.width` 这些方法修改。
 
 > ️ **注意**：有些前端脚手架会插入以下标签修改页面的缩放比：
 >

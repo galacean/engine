@@ -75,12 +75,12 @@ camera.enableHDR = true;
 |  | [pixelViewport](/apis/core/#Camera-pixelViewport) | 屏幕上相机的视口（以像素坐标表示）。若渲染目标为画布，且视口为整个画布，则左上角为(0, 0)，右下角为(canvas.width, canvas.height)。 |
 | 透视投影 | [fieldOfView](/apis/core/#Camera-fieldOfView) | 视角，默认为 45 度（0，180） |
 | 正交投影 | [orthographicSize](/apis/core/#Camera-orthographicSize) | 正交模式下相机取景上边框至下边框距离的一半 |
-| 渲染相关 | [depthTextureMode](<(/apis/core/#Camera-depthTextureMode)>) | 深度纹理模式，默认为`DepthTextureMode.None`，如果开启，可以在 shader 中使用 `camera_DepthTexture` 深度纹理。详情可参考[相机纹理](/docs/graphics/camera/texture/) |
-|  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>) | 是否启用非透明纹理，默认关闭，如果启用，可以在透明队列的 shader 中使用 `camera_OpaqueTexture` 非透明纹理。 |
-|  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>) | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。 |
-|  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>) | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
-|  | [enableHDR](<(/apis/core/#Camera-enableHDR)>) | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
-|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>) | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
+| 渲染相关 | [depthTextureMode](/apis/core/#Camera-depthTextureMode) | 深度纹理模式，默认为`DepthTextureMode.None`，如果开启，可以在 shader 中使用 `camera_DepthTexture` 深度纹理。详情可参考[相机纹理](/docs/graphics/camera/texture/) |
+|  | [opaqueTextureEnabled](/apis/core/#Camera-opaqueTextureEnabled) | 是否启用非透明纹理，默认关闭，如果启用，可以在透明队列的 shader 中使用 `camera_OpaqueTexture` 非透明纹理。 |
+|  | [opaqueTextureDownsampling](/apis/core/#Camera-opaqueTextureDownsampling) | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。 |
+|  | [msaaSamples](/apis/core/#Camera-msaaSamples) | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
+|  | [enableHDR](/apis/core/#Camera-enableHDR) | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
+|  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
 
 ### 裁剪遮罩
 
