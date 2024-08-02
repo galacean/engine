@@ -1,0 +1,14 @@
+{
+  "overall": {
+    "title": "XR 总览"
+  },
+  "system": {
+    "title": "核心设计"
+  },
+  "quickStart": {
+    "title": "快速上手"
+  },
+  "compatibility": {
+    "title": "兼容性"
+  }
+}

@@ -60,27 +60,27 @@ camera.enableHDR = true;
 
 其中每个属性对应的功能如下：
 
-| 类型     | 属性                                                           | 解释                                                                                                   |
-| :------- | :------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| 通用     | [isOrthographic](/apis/core/#Camera-isOrthographic)             | 通过设置 [isOrthographic](/apis/core/#Camera-isOrthographic) 来决定透视投影或正交投影。，默认是 `false` |
-|          | [nearClipPlane](/apis/core/#Camera-nearClipPlane)               | 近裁剪平面                                                                                             |
-|          | [farClipPlane](/apis/core/#Camera-farClipPlane)                 | 远裁剪平面                                                                                             |
-|          | [viewport](/apis/core/#Camera-viewport)                         | 视口，确定内容最后被渲染到目标设备里的范围。                                                           |
-|          | [priority](/apis/core/#Camera-priority)                         | 渲染优先级，用来确定在多相机的情况下按照什么顺序去渲染相机包含的内容。                                 |
-|          | [enableFrustumCulling](/apis/core/#Camera-enableFrustumCulling) | 是否开启视锥剔除，默认为 `true`                                                                        |
-|          | [clearFlags](/apis/core/#Camera-clearFlags)                     | 在渲染这个相机前清理画布缓冲的标记                                                                     |
-|          | [cullingMask](/apis/core/#Camera-cullingMask)                   | 裁剪遮罩，用来选择性地渲染场景中的渲染组件。                                                           |
-|          | [aspectRatio](/apis/core/#Camera-aspectRatio)                   | 渲染目标的宽高比，一般是根据 canvas 大小自动计算，也可以手动改变（不推荐）                             |
-|          | [renderTarget](/apis/core/#Camera-renderTarget)                 | 渲染目标，确定内容被渲染到哪个目标上。                                                                 |
-|          | [pixelViewport](/apis/core/#Camera-pixelViewport)               | 屏幕上相机的视口（以像素坐标表示）。 在像素屏幕坐标中，左上角为(0, 0)，右下角为(1.0, 1.0)。            |
-| 透视投影 | [fieldOfView](/apis/core/#Camera-fieldOfView)                   | 视角                                                                                                   |
-| 正交投影 | [orthographicSize](/apis/core/#Camera-orthographicSize)         | 正交模式下相机的一半尺寸                                                                               |
-| 渲染相关 | [depthTextureMode](<(/apis/core/#Camera-depthTextureMode)>)     | 深度纹理模式，默认为`DepthTextureMode.None`，如果开启，可以在 shader 中使用 `camera_DepthTexture` 深度纹理。   
-|  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>)     | 是否启用非透明纹理，默认关闭，如果启用，可以在透明队列的 shader 中使用 `camera_OpaqueTexture` 非透明纹理。                                                             |
-|  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>)     | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。                                                             |
-|  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>)     | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
-|  | [enableHDR](<(/apis/core/#Camera-enableHDR)>)     | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
-|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>)     | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。|
+| 类型 | 属性 | 解释 |
+| :-- | :-- | :-- |
+| 通用 | [isOrthographic](/apis/core/#Camera-isOrthographic) | 通过设置 [isOrthographic](/apis/core/#Camera-isOrthographic) 来决定透视投影或正交投影。若需要透视效果则设为 `false`，默认为 `false` |
+|  | [nearClipPlane](/apis/core/#Camera-nearClipPlane) | 近裁剪平面,若渲染物体与相机的距离小于此值则无法正常渲染 |
+|  | [farClipPlane](/apis/core/#Camera-farClipPlane) | 远裁剪平面，若渲染 物体与相机的距离大于此值则无法正常渲染 |
+|  | [viewport](/apis/core/#Camera-viewport) | 视口，确定内容最后被渲染到目标设备里的范围，修改此值可以决定最终渲染结果在渲染目标中的位置 |
+|  | [priority](/apis/core/#Camera-priority) | 渲染优先级，用来确定在多相机的情况下按照什么顺序去渲染相机包含的内容。 |
+|  | [enableFrustumCulling](/apis/core/#Camera-enableFrustumCulling) | 是否开启视锥剔除，开启后可剔除不在渲染范围内物体的渲染，默认为 `true` |
+|  | [clearFlags](/apis/core/#Camera-clearFlags) | 在渲染这个相机前清理画布缓冲的标记，通过编标记可以选择性地保留上次相机渲染的结果 |
+|  | [cullingMask](/apis/core/#Camera-cullingMask) | 裁剪遮罩，用来选择性地渲染场景中的渲染组件。 |
+|  | [aspectRatio](/apis/core/#Camera-aspectRatio) | 渲染目标的宽高比，一般是根据 canvas 大小自动计算，也可以手动改变（不推荐） |
+|  | [renderTarget](/apis/core/#Camera-renderTarget) | 渲染目标，确定内容被渲染到哪个目标上。 |
+|  | [pixelViewport](/apis/core/#Camera-pixelViewport) | 屏幕上相机的视口（以像素坐标表示）。若渲染目标为画布，且视口为整个画布，则左上角为(0, 0)，右下角为(canvas.width, canvas.height)。 |
+| 透视投影 | [fieldOfView](/apis/core/#Camera-fieldOfView) | 视角，默认为 45 度（0，180） |
+| 正交投影 | [orthographicSize](/apis/core/#Camera-orthographicSize) | 正交模式下相机取景上边框至下边框距离的一半 |
+| 渲染相关 | [depthTextureMode](<(/apis/core/#Camera-depthTextureMode)>) | 深度纹理模式，默认为`DepthTextureMode.None`，如果开启，可以在 shader 中使用 `camera_DepthTexture` 深度纹理。详情可参考[相机纹理](/docs/graphics/camera/texture/) |
+|  | [opaqueTextureEnabled](<(/apis/core/#Camera-opaqueTextureEnabled)>) | 是否启用非透明纹理，默认关闭，如果启用，可以在透明队列的 shader 中使用 `camera_OpaqueTexture` 非透明纹理。 |
+|  | [opaqueTextureDownsampling](<(/apis/core/#Camera-opaqueTextureDownsampling)>) | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。 |
+|  | [msaaSamples](<(/apis/core/#Camera-msaaSamples)>) | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
+|  | [enableHDR](<(/apis/core/#Camera-enableHDR)>) | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
+|  | [enablePostProcess](<(/apis/core/#Camera-enablePostProcess)>) | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
 
 ### 裁剪遮罩
 
@@ -102,27 +102,7 @@ camera.enableHDR = true;
 
 ## 方法
 
-相机组件提供各种方法（主要涉及`渲染`与`空间转换`）方便开发者实现期望的定制能力。
-
-| 类型     | 属性                                                               | 解释                                     |
-| :------- | :----------------------------------------------------------------- | :--------------------------------------- |
-| 渲染     | [resetProjectionMatrix](/apis/core/#Camera-resetProjectionMatrix)   | 重置自定义投影矩阵，恢复到自动模式。     |
-|          | [resetAspectRatio](/apis/core/#Camera-resetAspectRatio)             | 重置自定义渲染横纵比，恢复到自动模式。   |
-|          | [render](/apis/core/#Camera-render)                                 | 手动渲染。                               |
-|          | [setReplacementShader](/apis/core/#Camera-setReplacementShader)     | 设置全局渲染替换着色器。                 |
-|          | [resetReplacementShader](/apis/core/#Camera-resetReplacementShader) | 清空全局渲染替换着色器。                 |
-| 空间转换 | [worldToViewportPoint](/apis/core/#Camera-worldToViewportPoint)     | 将一个点从世界空间转换到视口空间。       |
-|          | [viewportToWorldPoint](/apis/core/#Camera-viewportToWorldPoint)     | 将一个点从视口空间转换到世界空间。       |
-|          | [viewportPointToRay](/apis/core/#Camera-viewportPointToRay)         | 通过视口空间中的一个点生成世界空间射线。 |
-|          | [screenToViewportPoint](/apis/core/#Camera-screenToViewportPoint)   | 将一个点从屏幕空间转换到视口空间。       |
-|          | [viewportToScreenPoint](/apis/core/#Camera-viewportToScreenPoint)   | 将一个点从视口空间转换到屏幕空间。       |
-|          | [worldToScreenPoint](/apis/core/#Camera-worldToScreenPoint)         | 将一个点从世界空间转换到屏幕空间。       |
-|          | [screenToWorldPoint](/apis/core/#Camera-screenToWorldPoint)         | 将一个点从屏幕空间转换到世界空间。       |
-|          | [screenPointToRay](/apis/core/#Camera-screenPointToRay)             | 通过屏幕空间中的一个点生成世界空间射线。 |
-
-## 获取相机组件
-
-在清楚相机组件挂载在哪个节点的前提下，可直接通过 `getComponent` 或 `getComponentsIncludeChildren` 获取：
+相机组件提供各种方法（主要涉及`渲染`与`空间转换`）方便开发者实现期望的定制能力，在此之前，要先学会如何获取相机组件，在知道相机组件挂载在哪个节点的前提下，可直接通过 `getComponent` 或 `getComponentsIncludeChildren` 获取：
 
 ```typescript
 // 从挂载相机的节点上获取相机组件
@@ -135,9 +115,35 @@ const cameras = entity.getComponentsIncludeChildren(Camera, []);
 
 ```typescript
 // 获取这个场景中的所有相机组件（不推荐）
-const cameras = scene._activeCameras;
+const cameras = scene._componentsManager._activeCameras;
 ```
+
+| 类型 | 属性 | 解释 |
+| :-- | :-- | :-- |
+| 渲染 | [resetProjectionMatrix](/apis/core/#Camera-resetProjectionMatrix) | 重置自定义投影矩阵，恢复到自动模式。 |
+|  | [resetAspectRatio](/apis/core/#Camera-resetAspectRatio) | 重置自定义渲染横纵比，恢复到自动模式。 |
+|  | [render](/apis/core/#Camera-render) | 手动渲染。 |
+|  | [setReplacementShader](/apis/core/#Camera-setReplacementShader) | 设置全局渲染替换着色器。 |
+|  | [resetReplacementShader](/apis/core/#Camera-resetReplacementShader) | 清空全局渲染替换着色器。 |
+| 空间转换 | [worldToViewportPoint](/apis/core/#Camera-worldToViewportPoint) | 将一个点从世界空间转换到视口空间。 |
+|  | [viewportToWorldPoint](/apis/core/#Camera-viewportToWorldPoint) | 将一个点从视口空间转换到世界空间。 |
+|  | [viewportPointToRay](/apis/core/#Camera-viewportPointToRay) | 通过视口空间中的一个点生成世界空间射线。 |
+|  | [screenToViewportPoint](/apis/core/#Camera-screenToViewportPoint) | 将一个点从屏幕空间转换到视口空间。 |
+|  | [viewportToScreenPoint](/apis/core/#Camera-viewportToScreenPoint) | 将一个点从视口空间转换到屏幕空间。 |
+|  | [worldToScreenPoint](/apis/core/#Camera-worldToScreenPoint) | 将一个点从世界空间转换到屏幕空间。 |
+|  | [screenToWorldPoint](/apis/core/#Camera-screenToWorldPoint) | 将一个点从屏幕空间转换到世界空间。 |
+|  | [screenPointToRay](/apis/core/#Camera-screenPointToRay) | 通过屏幕空间中的一个点生成世界空间射线。 |
+
+### Shader 替换
+
+借助 `setReplacementShader` 全局替换 Shader 的能力可以观测特定的渲染效果：
+
+<playground src="shader-replacement.ts"></playground>
+
+### 空间转换
+
+需要注意的是 `screenToWorldPoint` 、 `viewportToWorldPoint` 等方法传入点的 Z 表示返回的点到相机的距离。
 
 ## onBeginRender 与 onEndRender
 
-相机组件额外包含了 [onBeginRender](/apis/core/#Script-onBeginRender) 与 [onEndRender](/apis/core/#Script-onEndRender) 两个生命周期回调，它们的时序可参考[脚本生命周期时序图](/docs/script)
+相机组件额外包含了 [onBeginRender](/apis/core/#Script-onBeginRender) 与 [onEndRender](/apis/core/#Script-onEndRender) 两个生命周期回调，它们的时序可参考[脚本生命周期时序图](/docs/script/class/#脚本生命周期)

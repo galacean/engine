@@ -48,6 +48,10 @@ console.log("bounds", renderer.bounds);
 console.log("isCulled", renderer.isCulled);
 ```
 
+下方展示如何获取多个 `Renderer` 的整体包围盒：
+
+<playground src="bounding-box.ts"></playground>
+
 ## 方法
 
 `Renderer` 渲染器基类主要提供设置与获取材质相关的方法，需要注意的是，一个渲染器内可能包含多个材质，因此下列方法更像是在**操作材质数组的增删改查**。

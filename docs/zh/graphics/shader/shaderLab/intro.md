@@ -10,7 +10,7 @@ title: ShaderLab
 
 ```mermaid
 flowchart LR
-   创建着色器 --> 编辑 shaderlab --> 调试 shaderlab
+   创建着色器 --> 编辑shaderlab --> 调试shaderlab
 ```
 
 以下是一个简单的 ShaderLab 使用示例，其中包含了两个 Shader。`normal` Shader 定义了一个只实现 MVP 转换的顶点着色器，并且通过 Uniform 变量指定了像素颜色的片元着色器。另外，`lines` Shader 是一个使用 ShaderLab 进行改造的 [shadertoy](https://www.shadertoy.com/view/DtXfDr) 示例。

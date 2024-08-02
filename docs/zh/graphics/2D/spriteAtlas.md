@@ -20,7 +20,7 @@ label: Graphics/2D
 
 ### 创建精灵图集
 
-在 **[资产面板](/docs/assets-interface)** 内右键，选择`功能列表`中的`创建`，并选中`精灵图集`，此时，一个空白的精灵图集资产就创建成功了。
+在 **[资产面板](/docs/assets/interface/)** 内右键，选择`功能列表`中的`创建`，并选中`精灵图集`，此时，一个空白的精灵图集资产就创建成功了。
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*W-HZSrvAiG8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
@@ -72,23 +72,27 @@ label: Graphics/2D
 
 | 设置名称           | 释义                                     |
 | ------------------ | ---------------------------------------- |
-| 纹理最大宽度       | 打包得到纹理的最大限制宽度               |
-| 纹理最大高度       | 打包得到纹理的最大限制高度               |
+| 纹理最大宽度       | 打包得到纹理的最大限制宽度(1，2048]      |
+| 纹理最大高度       | 打包得到纹理的最大限制高度(1，2048]      |
 | 边缘填充           | 打包精灵的边缘填充宽度                   |
 | 允许旋转（未启用） | 是否通过旋转提高图集打包的空间利用率     |
 | 空白裁减（未启用） | 是否通过空白裁减提高图集打包的空间利用率 |
+
+若打包遇到如下警告，说明图集结果的尺寸超过了纹理最大宽度和最大高度，此时可通过调整`纹理最大宽度`与`纹理最大高度`或**重新编排**打包的散图解决。
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*dE71RKXvGAAAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 
 #### 导出设置
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1f4302b8-d485-4d3e-b508-36b570f5a883/image-20231208165430415.png" alt="image-20231208165430415" style="zoom:50%;" />
 
-| 属性                                                            | 值                                                                                                                                                                                         |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 循环模式 U（[wrapModeU](/apis/core/#Texture-wrapModeU)）         | 截取模式（[Clamp](/apis/core/#TextureWrapMode-Clamp)）、 重复模式（[Repeat](/apis/core/#TextureWrapMode-Repeat)）、镜像重复模式（[Mirror](/apis/core/#TextureWrapMode-Mirror)）               |
-| 循环模式 V（[wrapModeV](/apis/core/#Texture-wrapModeV)）         | 截取模式（[Clamp](/apis/core/#TextureWrapMode-Clamp)）、重复模式（[Repeat](/apis/core/#TextureWrapMode-Repeat)）、 镜像重复模式（[Mirror](/apis/core/#TextureWrapMode-Mirror)）               |
-| 过滤模式（[filterMode](/apis/core/#Texture-filterMode)）         | 点过滤（[Point](/apis/core/#TextureFilterMode-Point)）、双线性过滤（[Bilinear](/apis/core/#TextureFilterMode-Bilinear)）、 三线性过滤（[Trilinear](/apis/core/#TextureFilterMode-Trilinear)） |
-| 各向异性过滤等级（[anisoLevel](/apis/core/#Texture-anisoLevel)） | 向向异性等级，1 ~ 16                                                                                                                                                                       |
-| 纹理映射([Mipmap](/apis/core/#Texture-generateMipmaps)）         | true , false                                                                                                                                                                               |
+| 属性 | 值 |
+| --- | --- |
+| 循环模式 U（[wrapModeU](/apis/core/#Texture-wrapModeU)） | 截取模式（[Clamp](/apis/core/#TextureWrapMode-Clamp)）、 重复模式（[Repeat](/apis/core/#TextureWrapMode-Repeat)）、镜像重复模式（[Mirror](/apis/core/#TextureWrapMode-Mirror)） |
+| 循环模式 V（[wrapModeV](/apis/core/#Texture-wrapModeV)） | 截取模式（[Clamp](/apis/core/#TextureWrapMode-Clamp)）、重复模式（[Repeat](/apis/core/#TextureWrapMode-Repeat)）、 镜像重复模式（[Mirror](/apis/core/#TextureWrapMode-Mirror)） |
+| 过滤模式（[filterMode](/apis/core/#Texture-filterMode)） | 点过滤（[Point](/apis/core/#TextureFilterMode-Point)）、双线性过滤（[Bilinear](/apis/core/#TextureFilterMode-Bilinear)）、 三线性过滤（[Trilinear](/apis/core/#TextureFilterMode-Trilinear)） |
+| 各向异性过滤等级（[anisoLevel](/apis/core/#Texture-anisoLevel)） | 向向异性等级，1 ~ 16 |
+| 纹理映射([Mipmap](/apis/core/#Texture-generateMipmaps)） | true , false |
 
 ### 最佳实践
 
@@ -144,7 +148,7 @@ galacean-tool-atlas p inputPath -o outputName
 engine.resourceManager
   .load<SpriteAtlas>({
     url: "https://*cdnDir*/*atlasName*.atlas",
-    type: AssetType.SpriteAtlas,
+    type: AssetType.SpriteAtlas
   })
   .then((atlas) => {
     // Get all sprites.
