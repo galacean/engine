@@ -18,8 +18,8 @@ flowchart LR
 
 This chapter will mainly cover:
 
-- [Asset Types](/en/docs/assets-type): Introducing **built-in asset types** and how to **customize asset loaders**
-- [CRUD operations on assets](assets-interface): while in edit mode
-- How assets are [exported and deployed](assets-build) after building the project
-- How to [load assets](assets-load) at runtime
-- [Garbage collection](assets-gc) at runtime
+- How to [customize asset loaders](./custom)
+- [CRUD operations on assets](./interface): while in edit mode
+- How assets are [exported and deployed](./interface) after building the project
+- How to [load assets](./load) at runtime
+- [Garbage collection](./gc) at runtime

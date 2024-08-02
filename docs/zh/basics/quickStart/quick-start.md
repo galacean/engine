@@ -41,9 +41,9 @@ label: Basics
 
 ### 调整鸭子的变换
 
-首先，为了更好地预览最后在移动设备上的效果，我们可以选中**相机**实体，并且通过选择不同尺寸的移动设备来模拟真机预览，我们也可以选择锁定预览窗口，这样在选择其他实体的时候预览窗口就不会消失。
+首先，为了更好地预览最后在移动设备上的效果，我们可以选中**相机**实体，可以通过定位按钮明确当前预览的相机在场景中的位置，通过选择不同尺寸的移动设备来模拟真机预览，也可以选择锁定预览窗口，这样在选择其他实体的时候预览窗口就不会消失。
 
-<img src="/Users/xuqianwei/Library/Application Support/typora-user-images/image-20240705162931132.png" alt="image-20240705162931132" style="zoom:50%;" />
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*V33tQ4FZlVsAAAAAAAAAAAAADhuCAQ/original" alt="image-20240705162931132" style="zoom:50%;" />
 
 接着，我们选中鸭子，通过选择上方工具栏中的**移动**、**旋转**、**缩放**等[变换](/docs/core/transform)操作。切换不同的变换类型，鸭子身上也会随之切换不同的操作手柄。这些操作手柄和大部分 3D 软件的交互是类似的，如果你是第一次使用这类手柄，请不用担心，把鼠标移到手柄上，随意摆弄一下，就能很快上手。通过简单的变换操作，我们就能把鸭子的位置、角度、大小都调整到符合我们预期的效果。左上角的相机预览器会实时地展示你调整的效果。
 
@@ -51,11 +51,9 @@ label: Basics
 
 ### 调整灯光
 
-此时鸭子有点暗，我们选中节点树上的 `DirectLight` 灯光实体，在右侧的面板中拖动滑杆适当调整一下灯管的强度，让场景的照明更加亮一点。
+此时鸭子有点暗，我们选中节点树上的 `DirectLight` 灯光实体，在右侧的观察面板中拖动滑杆适当调整一下灯管的强度，让场景的照明更加亮一点。
 
-<img src="/Users/xuqianwei/Library/Application Support/typora-user-images/image-20240705164814972.png" alt="image-20240705164814972" style="zoom:50%;" />
-
-
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lA07Ro1SfuwAAAAAAAAAAAAADhuCAQ/original" alt="image-20240705164814972" style="zoom:80%;" />
 
 ### 让小鸭子转起来
 
@@ -73,7 +71,7 @@ label: Basics
 
 点击 **Select asset** 选择刚创建的 Script，这样脚本就绑定到该实体上了，也就是说脚本的生命周期函数会作用到该实体上。
 
-<img src="/Users/xuqianwei/Library/Application Support/typora-user-images/image-20240705170349805.png" alt="image-20240705170349805" style="zoom:50%;" />
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*MfjMQ7KA0B0AAAAAAAAAAAAADhuCAQ/original" alt="image-20240705170349805" style="zoom:80%;" />
 
 创建脚本后，我们可以 **双击它** 来跳转到代码编辑器页面。
 
