@@ -1,6 +1,6 @@
 {
-  "quick-start": {
-    "title": "快速开始",
+  "basics": {
+    "title": "基础",
     "theme": {
       "collapse": true
     }

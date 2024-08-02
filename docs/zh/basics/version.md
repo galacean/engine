@@ -1,7 +1,6 @@
 ---
 order: 0
 title: 版本管理
-type: 基础知识
 label: Basics
 ---
 

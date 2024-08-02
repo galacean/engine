@@ -2,7 +2,7 @@
 title: Blinn Phong
 ---
 
-[BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial) 虽然不是基于物理渲染，但是其高效的渲染算法和基本齐全的光学部分，流传至今仍可以适用很多的场景。
+[BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial) 材质是经典的材质之一，虽然不是基于物理渲染，但是其高效的渲染算法和基本齐全的光学部分，流传至今仍可以适用很多的场景。
 
 <playground src="blinn-phong.ts"></playground>
 
