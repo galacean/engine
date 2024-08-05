@@ -5,20 +5,34 @@ type: XR
 label: XR
 ---
 
-`XR` is a generic term used to describe the concept of Extended Reality (`Extended Reality`), which includes Virtual Reality (VR), Augmented Reality (AR), Mixed Reality (MR), and more.
+`XR` is a general term used to describe the concept of Extended Reality, which includes Virtual Reality (VR), Augmented Reality (AR), and Mixed Reality (MR).
 
-Galacean has designed XR with a clean and flexible approach:
+## Architecture
 
-- Cleaner: When XR capabilities are not needed, the package does not contain any XR logic, and its size does not increase at all
-- More flexible: Plug-and-play features make development easier
-- Future-oriented: Multi-backend design for future adaptability to different platforms and interfaces
+Galacean has designed XR to be clean and flexible:
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*2eBJQKOZrQsAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+- Clean: When XR capabilities are not needed, the package does not contain any XR logic, and the size does not increase at all.
+- Flexible: Pluggable functionality makes development easier.
+- Future-oriented: Multi-backend design allows for adaptation to different platforms and interfaces in the future.
 
-In this chapter, you can learn about:
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_lUbQblVmQYAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
-- [Quick XR Interaction Development](/en/docs/xr-start): XR workflow and debugging
-- [XR Manager](/en/docs/xr-manager): Managing [camera](/en/docs/xr-camera), [session](/en/docs/xr-session), [input](/en/docs/xr-input), [features](/en/docs/xr-features), and more
-- [XR Compatibility](/en/docs/xr-compatibility): Introduction to the current WebXR compatibility
+## Module Management
 
-{ /*examples*/ }
+| Package | Description | Related Documentation |
+| :-- | :-- | --- |
+| [@galacean/engine-xr](https://www.npmjs.com/package/@galacean/engine-xr) | Core architecture logic | [API](/en/apis/galacean) |
+| [@galacean/engine-web-xr](https://www.npmjs.com/package/@galacean/engine-web-xr) | Backend package | [Doc](/en/docs/physics/overall) |
+| [@galacean/engine-toolkit-xr](https://www.npmjs.com/package/@galacean/engine-toolkit-xr) | Advanced tool components | [Doc](/en/docs/xr/toolkit) |
+
+> `@galacean/engine-xr` and `@galacean/engine-web-xr` are dependencies that must be introduced to implement **WebXR**. Compared to these two packages, `@galacean/engine-toolkit-xr` is not mandatory, but its presence can make XR development in the editor much simpler.
+
+> The dependency rules between XR packages follow the [version dependency rules](/en/docs/basics/version/#版本依赖), meaning that the versions of `@galacean/engine-xr` and `@galacean/engine-web-xr` must be consistent with `@galacean/engine`, and the major version of `@galacean/engine-toolkit-xr` must be consistent with `@galacean/engine`.
+
+## Quick Start
+
+In this section, you can:
+
+- Quickly [develop XR interactions](/en/docs/xr/quickStart/develop) and [debug XR interactions](/en/docs/xr/quickStart/debug) without any specialized knowledge.
+- If you want to deeply understand Galacean XR, refer to [XR Core Logic](/en/docs/xr/system/manager).
+- Finally, by understanding [XR Compatibility](/en/docs/xr/compatibility), you can overall control project risks.

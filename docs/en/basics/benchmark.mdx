@@ -1,0 +1,46 @@
+---
+order: 4
+title: Benchmarking
+---
+
+## Test Preparation
+
+We have designed a set of test plans to compare the performance of various game engines across multiple performance factors. All tests are conducted in the following environment:
+
+-  Macbook M2 Pro
+-  Memory 16GB
+-  Sonoma 14.4.1
+
+Like the engine, our benchmarking code is also open source. You can get the source code from the [benchmark](https://github.com/galacean/benchmark) repository. This test includes the Galacean Engine, Babylon.js, and Three.js engines.
+
+### Basic Rendering
+
+In this benchmark, we tested the rendering performance of the three engines after loading 100 glTF models and configuring 10 PointerLights.
+
+<BenchmarkDisplay type="gltf" />
+
+### Animation
+
+In this benchmark, we tested the performance of the three engines when loading 225 glTF models and simultaneously playing 255 glTF animations.
+
+<BenchmarkDisplay type="animation" />
+
+### Particle System
+
+In this benchmark, we tested the rendering performance of the three engines using 500 particle systems with similar parameters on an opaque background.
+
+<BenchmarkDisplay type="particle" />
+
+> Three.js does not have its own Particle System, nor does it have a currently maintained preferred third-party library. Similar effects are generally implemented independently by developers. Therefore, we used `three-nebula` to represent the particle system of Three.js in this test.
+
+### 2D Rendering
+
+In the 2D test, we tested the performance of placing and rotating 7920 2D sprites simultaneously.
+
+<BenchmarkDisplay type="2d" />
+
+## Summary
+
+We chose Babylon.js, Three.js, and PixiJS for testing because they are currently the most popular game engines, and during development, they have always been our benchmarks to surpass. We hope to provide the community with transparent and comparable performance information through these benchmarks.
+
+If you want us to include your game engine or have suggestions for improving these tests, feel free to open an [issue](https://github.com/galacean/benchmark/issues).

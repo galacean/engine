@@ -1,24 +1,24 @@
 ---
 order: 3
-title: Off-screen Rendering Texture
+title: Offscreen Render Texture
 type: Graphics
 group: Texture
 label: Graphics/Texture
 ---
 
-Off-screen rendering texture, as the name suggests, is a texture that can be obtained through off-screen rendering. The underlying technology uses [FBO](https://developer.mozilla.org/en-US/en/docs/Web/API/WebGLRenderingContext/framebufferTexture2D) to output rendering operations to a texture instead of the screen. Users can use this texture to implement post-processing effects, refraction, reflection, dynamic environment mapping, and other artistic creations.
+Offscreen render texture, as the name suggests, can be obtained through offscreen rendering. It uses [FBO](https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/framebufferTexture2D) technology at the underlying level, redirecting rendering operations from the screen to a texture. This texture can be used to achieve post-processing effects, refraction, reflection, dynamic environment mapping, and other artistic creations.
 
-The engine provides the [RenderTarget](/apis/core/#RenderTarget) class for off-screen rendering and obtaining the corresponding off-screen rendering texture. Currently, the engine supports generating the following types of off-screen rendering textures:
+The engine provides the [RenderTarget](/en/apis/core/#RenderTarget) class for offscreen rendering and obtaining the corresponding offscreen render texture. Currently, the engine supports generating the following offscreen render textures:
 
 | Type | Application |
 | :-- | :-- |
-| Color Texture ([Texture](/apis/core/#Texture)) | Single color texture, multiple color textures (MRT), color cube texture |
-| Depth Texture ([Texture](/apis/core/#Texture)) | Depth texture, depth cube texture |
+| Color Texture ([Texture](/en/apis/core/#Texture)) | Can input a single color texture, multiple color textures (MRT), or a color cube texture |
+| Depth Texture ([Texture](/en/apis/core/#Texture)) | Can input a depth texture or a depth cube texture |
 | Texture Combination | Color texture + depth texture, color cube texture + depth cube texture, multiple color textures + depth texture |
 
 ## Usage
 
-Here is an example using the `onBeginRender` script hook. Before rendering each frame, render the screen `object A` to the `off-screen texture`, then use the off-screen texture as the base texture of `object B` and render object B to the `screen`. Assuming `object A` has a layer of `Layer0` and `object B` has a layer of `Layer1`;
+Here is an example using the `onBeginRender` hook script. Before rendering each frame, first render the screen `Object A` to the `offscreen texture`, then use the offscreen texture as the base texture for `Object B`, and render Object B to the `screen`. Assume the layer of `Object A` is `Layer0` and the layer of `Object B` is `Layer1`;
 
 ```
 class switchRTScript extends Script {
@@ -52,4 +52,3 @@ class switchRTScript extends Script {
 ```
 
 <playground src="render-target.ts"></playground>
-

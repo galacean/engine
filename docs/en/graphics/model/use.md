@@ -6,18 +6,18 @@ group: Model
 label: Graphics/Model
 ---
 
-When loading and using model assets, you will generally encounter the following two situations:
+Loading and using model assets generally involves the following two scenarios:
 
-- Models that are preloaded with the scene file and used in scripts
-- Models that are not preloaded, loaded and used in scripts
+- Using models preloaded with the scene file in the script
+- Loading and using models not preloaded in the script
 
-In the editor, **models placed in the scene** will be preloaded with the scene file. Follow the steps **Asset Panel** -> **Left-click and drag the model thumbnail** -> **Drag it to the [Viewport](/en/docs/interface/viewport)** -> **Release the left mouse button** -> **Adjust the coordinates** to place the model in the corresponding scene.
+In the editor, **models placed in the scene** will be preloaded with the scene file. Follow the steps **Assets Panel** -> **Left-click and drag the model thumbnail** -> **Drag to [Viewport](/en/docs/interface/viewport)** -> **Release the left mouse button** -> **Adjust coordinates** to place the model in the corresponding scene.
 
-> The editor cannot directly adjust the scale property of model nodes, so in most cases, you need to drag the model node under an entity node and then adjust the scale property of the entity node.
+> The editor cannot directly adjust the scale property of the model node. Therefore, in most cases, you need to drag the model node under an entity node and then adjust the scale property of the entity node.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/8e088349-f36d-4d16-a525-bbb63fe00105/import.gif" alt="import" style="zoom:100%;" />
 
-In this case, during runtime, you just need to find the specific node in the scene to access the corresponding model object.
+In this case, you only need to find the specific node in the scene at runtime to get the corresponding model object.
 
 ```typescript
 // 根据节点名寻找模型节点
@@ -28,7 +28,7 @@ const model2 = scene.findEntityByPath("ModelPath");
 
 ## Loading Models
 
-As long as we have the URL information of the model, we can easily load it.
+As long as we have the URL information of the model, we can easily load the model.
 
 ```typescript
 engine.resourceManager
@@ -41,15 +41,15 @@ engine.resourceManager
   });
 ```
 
-In the editor, you can directly get the URL of the model asset (**[Asset Panel](/en/docs/assets/interface)** -> **Right-click on the model asset thumbnail** -> **Copy file info / Copy relative path**):
+In the editor, you can directly get the URL of the model asset (**[Assets Panel](/en/docs/assets/interface)** -> **Right-click the model asset thumbnail** -> **Copy file info / Copy relative path**):
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*T6-QR7KrH8oAAAAAAAAAAAAADhuCAQ/original" alt="import" style="zoom: 50%;" />
 
-For models not imported into the editor, the corresponding URL is the path where the model asset is stored.
+For models not imported into the editor, the corresponding URL is the path where the model assets are stored.
 
 ## Loading Progress
 
-When loading models, you can also get the total task/detailed task loading progress through the [onProgress](/apis/core/#AssetPromise-onProgress) event.
+When loading models, you can also get the loading progress of the total task/detailed task through the [onProgress](/en/apis/core/#AssetPromise-onProgress) event.
 
 ```typescript
 this.engine.resourceManager
@@ -67,13 +67,13 @@ this.engine.resourceManager
 
 ## Using Models
 
-The loaded model object will return a root node containing rendering and animation information, and its usage is no different from regular nodes.
+The loaded model object will return a root node containing rendering information and animation information. Its usage is no different from ordinary nodes.
 
 <playground src="gltf-basic.ts"></playground>
 
-### 1. Selecting the Scene Root Node
+### 1. Select Scene Root Node
 
-glTF may contain multiple scene root nodes `sceneRoots`, and developers can manually select the root node they wish to instantiate.
+glTF may contain multiple scene root nodes `sceneRoots`. Developers can manually select the root node they wish to instantiate.
 
 ```typescript
 engine.resourceManager
@@ -86,9 +86,9 @@ engine.resourceManager
   });
 ```
 
-### 2. Playing Animations
+### 2. Play Animation
 
-If the model contains animation information, you can get the [Animator](/apis/core/#Animator) component from the root node and then choose to play any animation clip.
+If the model carries animation information, you can get the [Animator](/en/apis/core/#Animator) component from the root node and then choose to play any animation clip.
 
 ```typescript
 engine.resourceManager
@@ -107,9 +107,9 @@ engine.resourceManager
   });
 ```
 
-### 3. Multiple Material Switching
+### 3. Multi-Material Switching
 
-The glTF [Multiple Material Extension](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_variants) can be used to switch materials.
+The glTF [multi-material extension](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_variants) can be used to switch materials.
 
 ```typescript
 engine.resourceManager

@@ -6,35 +6,35 @@ group: Background
 label: Graphics/Background
 ---
 
-Sky is a type of background that is drawn before the camera renders. This type of background is very useful for 3D games and applications as it can provide a sense of depth, making the environment appear much larger than it actually is. The sky itself can contain any objects (such as clouds, mountains, buildings, and other unreachable objects) to create a sense of a distant three-dimensional environment. Galacean can also use the sky to generate realistic environmental lighting in the scene, for more details refer to [Baking](/en/docs/graphics-light-bake).
+The sky is a type of background drawn before the camera renders. This type of background is useful for 3D games and applications because it provides a sense of depth, making the environment appear much larger than its actual size. The sky itself can contain any objects (such as clouds, mountains, buildings, and other unreachable objects) to create the feeling of a distant three-dimensional environment. Galacean can also use the sky to produce realistic ambient lighting in the scene. For more details, refer to [Baking](/en/docs/graphics/light/bake/).
 
-In Sky mode, developers can set the `material` and `mesh` themselves, and with Galacean's built-in `Skybox` and `Procedural Sky`, they can easily set the desired sky effect.
+In sky mode, developers can set `material` and `mesh` themselves. With Galacean's built-in `skybox` and `procedural sky`, you can set the desired sky effect with one click.
 
-## Setting up Skybox
+## Setting the Skybox
 
-In the editor, you can set up a skybox for the background by following these steps:
+In the editor, simply follow these steps to set the skybox for the background:
 
 ### 1. Create Skybox Texture
 
-> You can download free HDR textures from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/)
+> You can download free HDR maps from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/)
 
-The skybox texture is a [cubemap texture](/en/docs/graphics-texture-cube), first prepare the HDR, then follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click to upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR texture** -> **Cubemap asset created** to complete the operation.
+A skybox texture is a [cube texture](/en/docs/graphics/texture/cube/). After preparing the HDR, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR map** -> **Cube texture asset creation complete**.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original)
 
 ### 2. Create Skybox Material
 
-After creating the cubemap asset, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click to create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Click on the Shader property in the Base column** -> **Select Sky Box** -> **Click on HDR in the Base column** -> **Select the cubemap created in the first step** to create the skybox material.
+After creating the cube texture asset, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Click the Shader property in the Base section** -> **Select Sky Box** -> **Click HDR in the Base section** -> **Choose the cube texture created in the first step** to create the skybox material.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9j2eSYkwg8MAAAAAAAAAAAAADhuCAQ/original)
 
-### 3. Set up Skybox
+### 3. Set the Skybox
 
-Finally, just follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the material created in the second step for Material** -> **Set Mesh to the built-in Cuboid** to see the background of the scene change to a skybox.
+Finally, follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the material created in the second step** -> **Set Mesh to the built-in Cuboid** to see the background of the scene change to the skybox.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original)
 
-### Code for setting up Skybox
+### Code to Set Skybox
 
 ```typescript
 // 创建天空盒纹理
@@ -59,13 +59,13 @@ background.sky.material = skyMaterial;
 background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 ```
 
-## Setting up Procedural Sky
+## Setting Procedural Sky
 
-Procedural Sky is the default background in the editor for 3D projects. You can also follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the built-in SkyMat material** -> **Set Mesh to the built-in Sphere**
+Procedural sky is the default background in 3D projects in the editor. You can also follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the built-in SkyMat material** -> **Set Mesh to the built-in Sphere**
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Qe3IRJ9ciNoAAAAAAAAAAAAADhuCAQ/original)
 
-### Code for setting up Procedural Sky
+### Code to Set Procedural Sky
 
 ```typescript
 // 创建大气散射材质
@@ -79,17 +79,18 @@ background.sky.mesh = PrimitiveMesh.createSphere(engine);
 
 ### Properties
 
-In the **[Inspector Panel](/en/docs/interface/inspector)** of the atmospheric scattering material, you can see many adjustable properties:
+In the atmospheric scattering material's **[Inspector Panel](/en/docs/interface/inspector)**, you can see many adjustable properties:
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*igE-RLCRc24AAAAAAAAAAAAADhuCAQ/original" alt="image-4" style="zoom:40%;" />
 
+> The built-in atmospheric scattering material cannot have its properties freely adjusted; developers can create and adjust their own.
 
-| Property Name                                                              | Explanation                                                                                   |
-| :------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
-| [exposure](/apis/core/#SkyProceduralMaterial-exposure)                     | The exposure of the sky, the higher the value, the brighter the sky.                           |
-| [sunMode](/apis/core/#SkyProceduralMaterial-sunMode)                       | The method used to generate the sun in the sky, including `None`, `Simple`, and `HighQuality`, where None does not generate a sun, Simple generates a simple sun, and HighQuality generates a sun with a customizable appearance. |
-| [sunSize](/apis/core/#SkyProceduralMaterial-sunSize)                       | The size of the sun, the larger the value, the larger the sun.                                 |
-| [sunSizeConvergence](/apis/core/#SkyProceduralMaterial-sunSizeConvergence) | The convergence of the sun's size, only effective when the sun generation mode is `HighQuality`. |
-| [atmosphereThickness](/apis/core/#SkyProceduralMaterial-atmosphereThickness) | The density of the atmosphere, higher density absorbs more light.                             |
-| [skyTint](/apis/core/#SkyProceduralMaterial-skyTint)                       | The color of the sky.                                                                         |
-| [groundTint](/apis/core/#SkyProceduralMaterial-groundTint)                 | The color of the ground.                                                                      |
+| Property Name                                                               | Description                                                                                                                                             |
+| :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [exposure](/en/apis/core/#SkyProceduralMaterial-exposure)                   | The exposure of the sky, the higher the value, the brighter the sky.                                                                                     |
+| [sunMode](/en/apis/core/#SkyProceduralMaterial-sunMode)                     | The method used to generate the sun in the sky, including `None`, `Simple`, and `HighQuality`. None does not generate a sun, Simple generates a simple sun, and HighQuality generates a sun with a definable appearance. |
+| [sunSize](/en/apis/core/#SkyProceduralMaterial-sunSize)                     | The size of the sun, the larger the value, the larger the sun.                                                                                           |
+| [sunSizeConvergence](/en/apis/core/#SkyProceduralMaterial-sunSizeConvergence) | The convergence of the sun's size, effective only when the sun generation mode is `HighQuality`.                                                         |
+| [atmosphereThickness](/en/apis/core/#SkyProceduralMaterial-atmosphereThickness) | The density of the atmosphere, higher density absorbs more light.                                                                                        |
+| [skyTint](/en/apis/core/#SkyProceduralMaterial-skyTint)                     | The color of the sky.                                                                                                                                    |
+| [groundTint](/en/apis/core/#SkyProceduralMaterial-groundTint)               | The color of the ground.                                                                                                                                 |

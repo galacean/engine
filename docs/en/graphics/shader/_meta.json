@@ -1,0 +1,9 @@
+{
+  "intro": { "title": "Shader Introduction" },
+  "class": { "title": "Shader Object" },
+  "builtins": { "title": "Built-in Shaders" },
+  "custom": { "title": "Custom Shaders" },
+  "assets": { "title": "Shader Assets" },
+  "shaderLab": { "title": "ShaderLab" },
+  "shaderAPI": { "title": "Shader API [Experimental]" }
+}

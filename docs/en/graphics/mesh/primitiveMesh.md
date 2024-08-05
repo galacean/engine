@@ -1,34 +1,34 @@
 ---
 order: 3
-title: 原始网格
-type: 图形
-group: 网格
-label: 图形/网格
+title: Primitive Mesh
+type: Graphics
+group: Mesh
+label: Graphics/Mesh
 ---
 
-常用几何体统一在 [PrimitiveMesh](/apis/core/#PrimitiveMesh) 中提供。
+[PrimitiveMesh](/en/apis/core/#PrimitiveMesh) provides convenient methods for creating mesh objects such as cubes and spheres.
 
-## 编辑器使用
+## Editor Usage
 
-编辑器已经内置了`立方体`、`球`、`圆柱体` 等基础几何体，可以直接在左侧节点树点击 `+` 置入模型：
+The editor has built-in basic geometries such as `Cube`, `Sphere`, and `Cylinder`, which can be directly placed in the model by clicking `+` on the left node tree:
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/331ff39f-54a4-4e8b-912b-e6a0cac38d71/image-20231009111916680.png" alt="image-20231009111916680" style="zoom:50%;" />
 
-当然，我们也可以在组件面板点击 `1` 添加 `Mesh Renderer`组件，点击 `2` 绑定想要的基础几何体：
+Of course, we can also click `1` in the component panel to add the `Mesh Renderer` component, and click `2` to bind the desired basic geometry:
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/b61f5f8c-1eba-4ea8-a019-f823a6c0b17d/image-20231009112014068.png" alt="image-20231009112014068" style="zoom:50%;" />
 
-内置几何体无法满足需求？您可以在 **[资产面板](/en/docs/assets/interface)** 中 **右键** → **Create** → **PrimitiveMesh** 创建一个 `Mesh` 资产，并通过调整 `Mesh` 的各项参数来满足需求。
+Built-in geometries not meeting your needs? You can create a `Mesh` asset in the **[Asset Panel](/en/docs/assets/interface)** by **right-clicking** → **Create** → **PrimitiveMesh**, and adjust the parameters of the `Mesh` to meet your requirements.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g3XwRrrVv8kAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009111916680" style="zoom:50%;" />
 
-## 脚本使用
+## Script Usage
 
 <playground src="primitive-mesh.ts"></playground>
 
-目前提供的几何体如下：
+The currently provided geometries are as follows:
 
-- [createCuboid](/apis/core/#PrimitiveMesh-createCuboid) **立方体**
+- [createCuboid](/en/apis/core/#PrimitiveMesh-createCuboid) **Cuboid**
 
 ```typescript
 const entity = rootEntity.createChild("cuboid");
@@ -41,7 +41,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createSphere](/apis/core/#PrimitiveMesh-createSphere) **球体**
+- [createSphere](/en/apis/core/#PrimitiveMesh-createSphere) **Sphere**
 
 ```typescript
 const entity = rootEntity.createChild("sphere");
@@ -54,7 +54,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createPlane](/apis/core/#PrimitiveMesh-createPlane) **平面**
+- [createPlane](/en/apis/core/#PrimitiveMesh-createPlane) **Plane**
 
 ```typescript
 const entity = rootEntity.createChild("plane");
@@ -67,7 +67,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createCylinder](/apis/core/#PrimitiveMesh-createCylinder) **圆柱**
+- [createCylinder](/en/apis/core/#PrimitiveMesh-createCylinder) **Cylinder**
 
 ```typescript
 const entity = rootEntity.createChild("cylinder");
@@ -80,7 +80,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createTorus](/apis/core/#PrimitiveMesh-createTorus) **圆环**
+- [createTorus](/en/apis/core/#PrimitiveMesh-createTorus) **Torus**
 
 ```typescript
 const entity = rootEntity.createChild("torus");
@@ -93,7 +93,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createCone](/apis/core/#PrimitiveMesh-createCone) **圆锥**
+- [createCone](/en/apis/core/#PrimitiveMesh-createCone) **Cone**
 
 ```typescript
 const entity = rootEntity.createChild("cone");
@@ -106,7 +106,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createCapsule](/apis/core/#PrimitiveMesh-createCapsule) **胶囊体**
+- [createCapsule](/en/apis/core/#PrimitiveMesh-createCapsule) **Capsule**
 
 ```typescript
 const entity = rootEntity.createChild("capsule");

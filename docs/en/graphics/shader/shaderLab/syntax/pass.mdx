@@ -1,0 +1,86 @@
+---
+title: Pass
+---
+
+```glsl
+Pass "PassName" {
+  Tag {PipelineStage = "ShadowCaster"}
+
+  ...
+  // 全局变量区：公共变量声明，结构体声明，函数声明
+  ...
+
+  // 渲染管线和渲染状态设置
+
+  // 指定顶点着色器和片元着色器  强调glsl语言
+  VertexShader = vert;
+
+  // 指定渲染队列
+  RenderQueueType = Transparent;
+}
+```
+
+`Pass` is the basic element of a `Shader` object. A simple shader object may contain only one `Pass`, but more complex shaders can contain multiple `Pass`es. It defines the operations performed at specific stages of the rendering pipeline, such as the shader programs running on the GPU, rendering states, and settings related to the rendering pipeline.
+
+## Rendering State
+
+It can be specified in the following two ways:
+
+1. Explicit assignment
+
+  ```
+  BlendState = blendState;
+  ```
+
+2. Declaration in the global variable domain of Pass
+
+  ```
+  BlendState blendState {
+    Rendering state property = Property value;
+  }
+  ```
+
+## Specifying uniform Variables
+
+Directly declare them as global variables
+
+```glsl
+mediump vec4 u_color;
+float material_AlphaCutoff;
+mat4 renderer_ModelMat;
+vec3 u_lightDir;
+```
+
+## Declaring varying Variables
+
+Specify by defining the output structure of the vertex shader and the input structure of the fragment shader
+
+```glsl
+struct v2f {
+  vec3 color;
+}
+
+v2f vert(a2v o) {
+  ...
+}
+void frag(v2f i) {
+  ...
+}
+```
+
+## Specifying Vertex and Fragment Shaders
+
+Explicitly specify the shader entry functions using `VertexShader` and `FragmentShader`
+
+```
+VertexShader = vert;
+FragmentShader = frag;
+```
+
+## Setting the Render Queue
+
+Specify using the `RenderQueueType` directive, which is equivalent to the engine API.
+
+```
+RenderQueueType = Transparent;
+```

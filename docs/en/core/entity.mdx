@@ -1,0 +1,146 @@
+---
+order: 3
+title: Entity
+type: Core
+label: Core
+---
+
+## Editor Usage
+
+**[Hierarchy Panel](/en/docs/interface/hierarchy)** is located on the far left side of the editor. It displays all nodes in the current scene in a tree structure. The scene node is the parent node of all other nodes, including cameras, lights, meshes, etc. There is a search box at the top of the node panel that allows you to search for nodes in the scene to quickly locate them. Through the **[Hierarchy Panel](/en/docs/interface/hierarchy)**, you can add or delete nodes and organize nodes better by dragging and dropping to sort them.
+
+<Callout type="info">
+Nodes in the editor are called `entities` in the engine. To avoid confusion, the term `entity` will be used uniformly below.
+</Callout>
+
+<Image
+  src="https://gw.alipayobjects.com/zos/OasisHub/e85a8a9b-decd-4a80-a7b2-9eccaeed1e2c/image-20230925173904478.png"
+  figcaption="The Hierarchy Panel"
+  style={{ zoom: "50%" }}
+/>
+
+### Adding a New Entity
+
+To add a new entity, you can click the add button in the **[Hierarchy Panel](/en/docs/interface/hierarchy)** or right-click an entity and select Add Child Entity. After adding, you can edit the properties of the new entity in the **[Inspector Panel](/en/docs/interface/inspector)**. If you use the add entity button, you can also quickly create basic models such as cubes/spheres.
+
+### Editing an Entity
+
+Click on an entity to edit it. In the **[Inspector Panel](/en/docs/interface/inspector)** on the right, you can edit its name.
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*qBiVT6YtvkQAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="Name"
+  style={{ zoom: "50%" }}
+/>
+
+Whether it is active
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1l5_QqTgZYUAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="IsActive"
+    style={{zoom:"50%"}}
+/>
+
+Transform
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*3JO6S7BdgMsAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="Transform"
+    style={{zoom:"50%"}}
+/>
+
+And add or remove components for it
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*iZKVRrznLOAAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="AddComponent"
+    style={{zoom:"50%"}}
+/>
+
+### Deleting an Entity
+
+After selecting an entity, you can click the delete button in the **[Hierarchy Panel](/en/docs/interface/hierarchy)** or use the delete option in the right-click menu to delete the entity. Deleting an entity will delete the entity and all its child entities. Therefore, when deleting an entity, you need to be aware of whether the deleted entity will affect other entities in the scene.
+
+### Sorting Entities
+
+To better organize entities, you can sort entities by dragging and dropping. After selecting an entity, you can change its position in the hierarchy tree by dragging it with the left mouse button.
+
+### Searching for Entities
+
+There is a search box at the top of the **[Hierarchy Panel](/en/docs/interface/hierarchy)** where users can enter the name of an entity to search for entities in the scene. The search box supports fuzzy search, allowing you to enter part of the entity's name to find it.
+
+### Hiding Entities
+
+Each entity has an eye button on the right side. Clicking it toggles the entity's visibility in the scene. Note that this adjustment to the entity's visibility only affects the workspace and not the `isActive` property in the **[Inspector Panel](/en/docs/interface/inspector)**.
+
+## Script Usage
+
+### Creating a New Entity
+
+In the [Scene](/en/docs/core/scene), we have already introduced how to get the active scene. In a new scene, we usually add a root entity first:
+
+```typescript
+const scene = engine.sceneManager.activeScene;
+const rootEntity = scene.createRootEntity();
+```
+
+Generally, a new entity is created by adding a child entity:
+
+```typescript
+const newEntity = rootEntity.createChild("firstEntity");
+```
+
+Of course, you can also create an entity directly. However, such an entity is detached and will not appear in the scene until it is associated with the hierarchy tree.
+
+```typescript
+const newEntity = new Entity(engine, "firstEntity");
+rootEntity.addChild(newEntity);
+```
+
+### Delete Entity
+
+When an entity is no longer needed in the scene, we can delete it:
+
+```typescript
+rootEntity.removeChild(newEntity);
+```
+
+It is worth noting that this method only releases the object from the hierarchy tree and does not display it in the scene. To completely destroy it, you need to:
+
+```typescript
+newEntity.destroy();
+```
+
+### Find Child Entity
+
+When the parent entity is known, we usually obtain the child entity through the parent entity:
+
+```typescript
+const childrenEntity = newEntity.children;
+```
+
+If you know the child's _index_ in the parent entity, you can directly use [getChild](/en/apis/core/#Entity-getChild):
+
+```typescript
+newEntity.getChild(0);
+```
+
+If you don't know the child's index, you can use [findByName](/en/apis/core/#Entity-findByName) to search by name. `findByName` will search not only child entities but also grandchild entities.
+
+```typescript
+newEntity.findByName("model");
+```
+
+If there are entities with the same name, you can use [findByPath](/en/apis/core/#Entity-findByPath) to pass in the path for step-by-step search. Using this API will also improve search efficiency to some extent.
+
+```typescript
+newEntity.findByPath("parent/child/grandson");
+```
+
+### State
+
+When an entity is temporarily not in use, you can stop activating it by calling the entity's [isActive](/en/apis/core/#Entity-isActive). At the same time, the components under this entity will be passively `component.enabled = false`
+
+```typescript
+newEntity.isActive = false;
+```

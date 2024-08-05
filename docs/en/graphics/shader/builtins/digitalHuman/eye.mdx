@@ -1,0 +1,54 @@
+---
+title: Eyes
+---
+
+The eye shader provides realistic rendering for eyeball models, giving your creations a lifelike artistic effect.
+
+<img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*VVUtRL4JfE0AAAAAAAAAAAAADgDwAQ/original"  />
+
+<Callout type="info">
+This shader is strongly associated with the model UV. If you need to build eyes from scratch, it is not recommended to use this shader. For those without shader code development experience, it is recommended to use the eyeball geometry model from the official examples and simply replace the necessary textures to meet your needs. If you need to create your own eye shader variant, please refer to the [shader lab development tutorial](/en/docs/graphics-shader-lab) document.
+</Callout>
+
+## Import Eye Example
+
+Galacean comes with an eyeball material example to further help you get started. To view this example, [click here](https://galacean.antgroup.com/editor/projects).
+
+1. Navigate to the editor homepage in the Galacean editor.
+2. Select the **Templates** panel, navigate to the template interface, preview, and download the eyeball example to **Project**.
+
+## Eyeball Anatomy
+
+Before starting to render eyes, familiarize yourself with the biological structure of the eyeball to better use the shader.
+
+|       Parameter       |                        Description                        |
+| :-------------------: | :-------------------------------------------------------: |
+|  Sclera (Sclera)      | The sclera is the opaque membrane on the outer layer of the eyeball, commonly known as the "white of the eye" |
+| Limbus (Limbus)       | Also known as the corneoscleral junction, it is the boundary between the cornea and the sclera (white of the eye) |
+|   Iris (Iris)         | The iris is a ring of color surrounding the pupil center, forming a hollow ring |
+|  Pupil (Pupil)        | The pupil is the black part at the center of the eyeball, allowing light to enter the eye and reach the retina |
+|  Cornea (Cornea)      | The cornea is the transparent part located at the front of the eyeball |
+
+## Eye Textures
+
+|                             Texture                             |         Parameter          | Description                                                         |
+| :-------------------------------------------------------------: | :------------------------: | :------------------------------------------------------------------ |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*74fgRYw9nS4AAAAAAAAAAAAADgDwAQ/original"  /> |    Sclera Texture          | Specifies the texture that controls the color of the sclera (white of the eye) and the color of the blood vessels around the eye. If you want the eyeball to be full of blood vessels, you need to modify this texture |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*Nc_XTpVNlFAAAAAAAAAAAAAADgDwAQ/original"  /> |     Iris Texture           | Controls the color of the iris                                           |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*jkZ5QoeXyWUAAAAAAAAAAAAADgDwAQ/original"  /> |  Iris Normal Texture       | Specifies the texture to control the normals of the iris, determining the light flow on the surface of the iris     |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*B8McQpjhh98AAAAAAAAAAAAADgDwAQ/original"  /> | Cornea Normal Texture      | Specifies the texture to control the normals of the sclera, providing subtle texture variations of the sclera (white of the eye)     |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*c_zmQ5DwI1wAAAAAAAAAAAAADgDwAQ/original" /> |      Sclera Mask           | Specifies a mask texture to control the size of the sclera/iris/limbus/pupil. The `R` channel controls the iris area, the `G` channel controls the limbus area, and the `B` channel controls the pupil scaling area |
+
+## Material Properties
+
+|        Parameter        |               Description               |
+| :---------------------: | :-------------------------------------: |
+|      Sclera Color       |           Sclera texture color          |
+|      Sclera Size        |            Sclera UV size               |
+|    Sclera Specular      |        Sclera (white of the eye) metallicity        |
+|   Sclera Roughness      |        Sclera (white of the eye) roughness        |
+|    Pupil Dilation       | Pupil size, adjustable in the xy direction |
+| Limbal Ring Amount      |           Intensity of the limbal ring           |
+|     Parallax Layer      |             Parallax depth             |
+|       Iris Color        |             Iris color             |
+|     Eye Iris Size       |             Iris size             |

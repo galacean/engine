@@ -1,0 +1,24 @@
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a3f74864-241e-4cd8-9ad4-733c2a0b2cc2/image-20240206153815596.png"  />
+
+## Introduction to Shaders {#examples}
+
+A shader is a program that runs on the GPU, typically consisting of two "entry functions" known as the Vertex Shader and the Fragment Shader, corresponding to two different stages of the rendering pipeline. Below is a simplified illustration of the engine's rendering process (rendering pipeline), focusing on the shader part.
+
+```mermaid
+flowchart LR
+	A[CPU应用层] -->|准备顶点和其他\n渲染计算相关的数据| B{Vertex Shader}
+    subgraph Shader / 着色器
+	B --> |计算顶点在三维空间的真实坐标\n以及其他后续渲染阶段需要的数据| C{Fragment Shader}
+    end
+	C -->|基于上一个渲染阶段的计算结果数据\n计算每个顶点的最终像素值| D[帧图像]
+```
+
+<figcaption style={{"text-align":"center", color: "#889096","font-size":"12px"}}>Simplified Rendering Pipeline</figcaption>
+
+In this chapter, we will cover the following topics:
+|Section|Content|
+|:--:|:--:|
+|[Shader Object](/en/docs/graphics/shader/class/)|Overview and basic usage of the Shader object in the engine|
+|[Built-in Shaders](/en/docs/graphics/shader/builtins/intro/)|Common built-in shaders in the engine|
+|[Shader Assets](/en/docs/graphics/shader/assets/)|How to create and modify Shader assets in the editor|
+|[ShaderLab](/en/docs/graphics/shader/shaderLab/intro/)|A more convenient way to create Shaders|

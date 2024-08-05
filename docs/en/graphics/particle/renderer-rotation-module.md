@@ -1,21 +1,21 @@
 ---
 order: 4
-title: Lifecycle Rotation Module
+title: Rotation Over Lifetime Module
 type: Graphics
 group: Particle
 label: Graphics/Particle
 ---
 
-[`RotationOverLifetimeModule`](/apis/core/#RotationOverLifetimeModule) inherits from `ParticleGeneratorModule` and is used to control the rotation changes of particles within the lifecycle of a particle system.
+[`RotationOverLifetimeModule`](/en/apis/core/RotationOverLifetimeModule) inherits from `ParticleGeneratorModule` and is used to control the rotation changes of the particle system over its lifetime.
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*mEUfRa3o7V8AAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 
 ## Properties
 
-| Property                                                           | Description                                                                                         |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| [separateAxes](/apis/core/#RotationOverLifetimeModule-separateAxes) | A `boolean` indicating whether rotation is done separately on each axis. If disabled, only the z-axis will be used |
-| [rotationX](/apis/core/#RotationOverLifetimeModule-rotationX)       | A [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the x-axis rotation of particles within their lifetime |
-| [rotationY](/apis/core/#RotationOverLifetimeModule-rotationY)       | A [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the y-axis rotation of particles within their lifetime |
-| [rotationZ](/apis/core/#RotationOverLifetimeModule-rotationZ)       | A [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the z-axis rotation of particles within their lifetime |
+| Property                                                            | Description                                                                                         |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [separateAxes](/en/apis/core/RotationOverLifetimeModule#separateAxes) | `boolean` type, indicates whether to rotate separately on each axis. If disabled, only the z-axis will be used |
+| [rotationX](/en/apis/core/RotationOverLifetimeModule#rotationX)       | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object, represents the x-axis rotation of the particle over its lifetime |
+| [rotationY](/en/apis/core/RotationOverLifetimeModule#rotationY)       | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object, represents the y-axis rotation of the particle over its lifetime |
+| [rotationZ](/en/apis/core/RotationOverLifetimeModule#rotationZ)       | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object, represents the z-axis rotation of the particle over its lifetime |
 

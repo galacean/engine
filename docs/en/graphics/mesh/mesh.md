@@ -1,38 +1,38 @@
 ---
 order: 0
-title: Grid Overview
+title: Mesh Overview
 type: Graphics
-group: Grid
+group: Mesh
 label: Graphics/Mesh
 ---
 
-A grid is a data object of the [Mesh Renderer](/en/docs/graphics-renderer-meshRenderer), which describes various information about vertices (such as position, topology, vertex color, UV, etc.).
+A mesh is the data object of the [Mesh Renderer](/en/docs/graphics/renderer/meshRenderer/), which describes various information of vertices (position, topology, vertex color, UV, etc.).
 
 ## Mesh Assets
 
-Mesh assets are typically sourced from:
+Mesh assets generally come from:
 
-- Importing models to acquire [model-embedded mesh assets](/en/docs/graphics-model-assets) created by third-party tools through [model importation](/en/docs/graphics-model-importGlTF}).
-- Editor's [built-in mesh assets](/en/docs/graphics-mesh-primitiveMesh}).
-- Developers creating [mesh assets](/en/docs/graphics-mesh-primitiveMesh}) themselves.
+- By [importing models](/en/docs/graphics/model/importGlTF/), obtaining [model built-in mesh assets](/en/docs/graphics/model/assets/) created by third-party tools
+- [Built-in mesh assets](/en/docs/graphics/mesh/primitiveMesh/) of the editor
+- Developers [creating mesh assets](/en/docs/graphics/mesh/primitiveMesh/) themselves
 
 ## Usage
 
-When setting a mesh for the mesh renderer, simply select the corresponding mesh asset.
+When you need to set a mesh for the mesh renderer, you only need to select the corresponding mesh asset.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*fmhoSrmQQ78AAAAAAAAAAAAADhuCAQ/original" alt="import" style="zoom:100%;" />
 
-Similarly, in scripts, the use of meshes will be more flexible, but also more complex. Let's first look at
+Correspondingly, in the script, the use of the mesh will be more free, and the complexity will also be higher. First, let's look at
 
-| Type                                             | Description                                                                                                                                         |
-| :----------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [ModelMesh](/en/docs/graphics-mesh-modelMesh)      | Encapsulates methods for setting vertex and index data, making it very simple and easy to use. Developers who want to quickly customize geometries can use this class. |
-| [BufferMesh](/en/docs/graphics-mesh-bufferMesh)    | Allows for free manipulation of vertex buffer and index buffer data, as well as some geometry drawing-related instructions. It is efficient, flexible, and concise. Developers who want to efficiently and flexibly implement custom geometries can use this class. |
-| [Primitive Mesh](/en/docs/graphics-mesh-primitiveMesh) | Essentially a preset ModelMesh, containing common shapes like cuboids, spheres, planes, cylinders, tori, cylinders with capsules, etc. |
+| Type                                             | Description                                                                                                                                                 |
+| :----------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ModelMesh](/en/docs/graphics/mesh/modelMesh/)      | Encapsulates commonly used methods for setting vertex data and index data, very simple and easy to use. Developers can use this class to quickly customize geometry |
+| [BufferMesh](/en/docs/graphics/mesh/bufferMesh/)    | Allows free manipulation of vertex buffers and index buffer data, as well as some instructions related to geometry drawing. It is efficient, flexible, and concise. Developers can use this class to efficiently and flexibly implement custom geometry |
+| [Built-in Geometry](/en/docs/graphics/mesh/primitiveMesh/) | Essentially pre-set ModelMesh, including commonly used cuboids, spheres, planes, cylinders, toruses, cylinders, and capsules.                                  |
 
 ## Usage
 
-In the editor, meshes appear in the form of mesh assets, which can be accessed through
+In the editor, the mesh appears in the form of mesh assets, we can use
 
 ```typescript
 const meshRenderer = entity.addComponent(MeshRenderer);
@@ -43,6 +43,6 @@ meshRenderer.mesh = new BufferMesh(engine);
 
 ## Common Geometries
 
-Constructing mesh data for geometries manually can be a painful process, so Galacean provides some practical geometries.
+Constructing geometric mesh data by yourself is a rather painful process, so Galacean has built-in some more practical geometries.
 
-- [Primitive Meshes](/en/docs/graphics-model}): Includes common shapes like cuboids, spheres, planes, cylinders, tori, cylinders with capsules, etc.
+- [Built-in Geometry](/en/docs/graphics/mesh/primitiveMesh/): Includes commonly used cuboids, spheres, planes, cylinders, toruses, cylinders, and capsules.
