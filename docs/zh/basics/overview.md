@@ -24,7 +24,7 @@ flowchart LR
 
 ## 运行时
 
-核心功能由 [Galacean Runtime](https://www.npmjs.com/package/@galacean/runtime) 提供，非核心和偏业务逻辑定制的高级功能由 [Galacean Toolkit](https://github.com/galacean/runtime-toolkit) 提供。你可以通过浏览器在线浏览引擎的各种[示例](https://galacean.antgroup.com/engine-archive/examples/latest/background)。
+核心功能由 [Galacean Runtime](https://www.npmjs.com/package/@galacean/runtime) 提供，非核心和偏业务逻辑定制的高级功能由 [Galacean Toolkit](https://github.com/galacean/runtime-toolkit) 提供。你可以通过浏览器在线浏览引擎的各种[示例](/examples/latest/background)。
 
 ### 核心包
 
