@@ -1,0 +1,54 @@
+---
+title: 眼睛
+---
+
+眼睛着色器为眼球模型提供真实的渲染，使你的创作呈现逼真的艺术效果。
+
+<img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*VVUtRL4JfE0AAAAAAAAAAAAADgDwAQ/original"  />
+
+<Callout type="info">
+该着色器与模型 uv 强关联，如果需要从头开始构建眼睛，不建议使用此着色器，对于无着色器代码开发经验的人，建议使用官方示例中的眼球几何模型，只需替换必要的纹理满足你的需求，如需创建自己的eye shader变体，请参阅 [shader lab 开发教程](/docs/graphics-shader-lab)文档。
+</Callout>
+
+## 导入眼睛示例
+
+Galacean 内置了眼球材质示例进一步帮助你入门。要查看此示例，请[点击](https://galacean.antgroup.com/editor/projects)。
+
+1. 在 Galacean 编辑器中导航到编辑器首页。
+2. 选择 **Templates** 面板，导航到模板界面，预览并且下载眼球示例到 **Project**。
+
+## 眼球剖析
+
+在开始渲染眼睛前，熟悉眼球的生物结构以便更好地使用着色器。
+
+|       参数       |                        描述                        |
+| :--------------: | :------------------------------------------------: |
+|  Sclera（巩膜）  |      巩膜是眼球外层的不透明膜，通常叫做“眼白”      |
+| Limbus（角膜缘） |      又称角巩膜缘，是角膜和巩膜（眼白）的边界      |
+|   Iris（虹膜）   |       虹膜是瞳孔中心周围的一圈颜色，呈中空环       |
+|  Pupil（瞳孔）   | 是眼球中心的黑色部分，可让光线进入眼睛并到达视网膜 |
+|  Cornea（角膜）  |           角膜是位于眼球最前端的透明部分           |
+
+## 眼睛纹理
+
+|                             纹理                             |         参数          | 描述                                                         |
+| :----------------------------------------------------------: | :-------------------: | :----------------------------------------------------------- |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*74fgRYw9nS4AAAAAAAAAAAAADgDwAQ/original"  /> |    Sclera Texture     | 指定控制巩膜（眼白）颜色的纹理，以及眼周的血管颜色，如果你希望眼球充满血丝，则需要修改此纹理 |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*Nc_XTpVNlFAAAAAAAAAAAAAADgDwAQ/original"  /> |     Iris Texture      | 控制虹膜颜色的纹理                                           |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*jkZ5QoeXyWUAAAAAAAAAAAAADgDwAQ/original"  /> |  Iris Normal Texture  | 指定纹理来控制眼睛虹膜的法线，决定眼睛虹膜表面的光线流动     |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*B8McQpjhh98AAAAAAAAAAAAADgDwAQ/original"  /> | cornea normal Texture | 指定纹理来控制巩膜的法线，提供巩膜（眼白）的细小纹路变化     |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*c_zmQ5DwI1wAAAAAAAAAAAAADgDwAQ/original" /> |      sclera mask      | 指定一张遮罩纹理控制巩膜/虹膜/角膜缘/瞳孔的大小，`R` 通道控制虹膜区域，`G` 通道控制角膜缘区域，`B` 通道控制瞳孔缩放区域 |
+
+## 材质属性
+
+|        参数        |               描述               |
+| :----------------: | :------------------------------: |
+|    Sclera Color    |           巩膜纹理颜色           |
+|    Sclera Size     |            巩膜 uv 大小            |
+|  Sclera Specular   |        巩膜（眼白）金属度        |
+|  Sclera Roughness  |        巩膜（眼白）粗糙度        |
+|   Pupil Dilation   | 瞳孔大小，可调节 xy 方向的瞳孔大小 |
+| Limbal Ring Amount |           角膜缘的强度           |
+|   Parallax Layer   |             视差深度             |
+|     Iris Color     |             虹膜颜色             |
+|   Eye Iris Size    |             虹膜大小             |
