@@ -6,7 +6,7 @@ group: Renderer
 label: Graphics/Renderer
 ---
 
-[MeshRenderer](/en/apis/core/#MeshRenderer) is a mesh renderer component that uses mesh objects (such as cubes) as the data source for geometric outlines. When an entity is mounted with a mesh renderer component, you only need to set its `mesh` and `material` to render the object.
+[MeshRenderer](/apis/core/#MeshRenderer) is a mesh renderer component that uses mesh objects (such as cubes) as the data source for geometric outlines. When an entity is mounted with a mesh renderer component, you only need to set its `mesh` and `material` to render the object.
 
 <playground src="scene-basic.ts"></playground>
 

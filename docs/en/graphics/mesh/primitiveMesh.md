@@ -6,7 +6,7 @@ group: Mesh
 label: Graphics/Mesh
 ---
 
-[PrimitiveMesh](/en/apis/core/#PrimitiveMesh) provides convenient methods for creating mesh objects such as cubes and spheres.
+[PrimitiveMesh](/apis/core/#PrimitiveMesh) provides convenient methods for creating mesh objects such as cubes and spheres.
 
 ## Editor Usage
 
@@ -28,7 +28,7 @@ Built-in geometries not meeting your needs? You can create a `Mesh` asset in the
 
 The currently provided geometries are as follows:
 
-- [createCuboid](/en/apis/core/#PrimitiveMesh-createCuboid) **Cuboid**
+- [createCuboid](/apis/core/#PrimitiveMesh-createCuboid) **Cuboid**
 
 ```typescript
 const entity = rootEntity.createChild("cuboid");
@@ -41,7 +41,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createSphere](/en/apis/core/#PrimitiveMesh-createSphere) **Sphere**
+- [createSphere](/apis/core/#PrimitiveMesh-createSphere) **Sphere**
 
 ```typescript
 const entity = rootEntity.createChild("sphere");
@@ -54,7 +54,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createPlane](/en/apis/core/#PrimitiveMesh-createPlane) **Plane**
+- [createPlane](/apis/core/#PrimitiveMesh-createPlane) **Plane**
 
 ```typescript
 const entity = rootEntity.createChild("plane");
@@ -67,7 +67,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createCylinder](/en/apis/core/#PrimitiveMesh-createCylinder) **Cylinder**
+- [createCylinder](/apis/core/#PrimitiveMesh-createCylinder) **Cylinder**
 
 ```typescript
 const entity = rootEntity.createChild("cylinder");
@@ -80,7 +80,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createTorus](/en/apis/core/#PrimitiveMesh-createTorus) **Torus**
+- [createTorus](/apis/core/#PrimitiveMesh-createTorus) **Torus**
 
 ```typescript
 const entity = rootEntity.createChild("torus");
@@ -93,7 +93,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createCone](/en/apis/core/#PrimitiveMesh-createCone) **Cone**
+- [createCone](/apis/core/#PrimitiveMesh-createCone) **Cone**
 
 ```typescript
 const entity = rootEntity.createChild("cone");
@@ -106,7 +106,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createCapsule](/en/apis/core/#PrimitiveMesh-createCapsule) **Capsule**
+- [createCapsule](/apis/core/#PrimitiveMesh-createCapsule) **Capsule**
 
 ```typescript
 const entity = rootEntity.createChild("capsule");

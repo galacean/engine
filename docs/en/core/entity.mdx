@@ -119,19 +119,19 @@ When the parent entity is known, we usually obtain the child entity through the 
 const childrenEntity = newEntity.children;
 ```
 
-If you know the child's _index_ in the parent entity, you can directly use [getChild](/en/apis/core/#Entity-getChild):
+If you know the child's _index_ in the parent entity, you can directly use [getChild](/apis/core/#Entity-getChild):
 
 ```typescript
 newEntity.getChild(0);
 ```
 
-If you don't know the child's index, you can use [findByName](/en/apis/core/#Entity-findByName) to search by name. `findByName` will search not only child entities but also grandchild entities.
+If you don't know the child's index, you can use [findByName](/apis/core/#Entity-findByName) to search by name. `findByName` will search not only child entities but also grandchild entities.
 
 ```typescript
 newEntity.findByName("model");
 ```
 
-If there are entities with the same name, you can use [findByPath](/en/apis/core/#Entity-findByPath) to pass in the path for step-by-step search. Using this API will also improve search efficiency to some extent.
+If there are entities with the same name, you can use [findByPath](/apis/core/#Entity-findByPath) to pass in the path for step-by-step search. Using this API will also improve search efficiency to some extent.
 
 ```typescript
 newEntity.findByPath("parent/child/grandson");
@@ -139,7 +139,7 @@ newEntity.findByPath("parent/child/grandson");
 
 ### State
 
-When an entity is temporarily not in use, you can stop activating it by calling the entity's [isActive](/en/apis/core/#Entity-isActive). At the same time, the components under this entity will be passively `component.enabled = false`
+When an entity is temporarily not in use, you can stop activating it by calling the entity's [isActive](/apis/core/#Entity-isActive). At the same time, the components under this entity will be passively `component.enabled = false`
 
 ```typescript
 newEntity.isActive = false;

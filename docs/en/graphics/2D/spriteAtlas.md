@@ -6,7 +6,7 @@ group: 2D
 label: Graphics/2D
 ---
 
-[SpriteAtlas](/en/apis/core/#SpriteAtlas) is a collection of sprite resources that combines multiple sprite textures into a single sprite atlas to merge draw calls during rendering. It has the following advantages:
+[SpriteAtlas](/apis/core/#SpriteAtlas) is a collection of sprite resources that combines multiple sprite textures into a single sprite atlas to merge draw calls during rendering. It has the following advantages:
 
 - Better performance (merged draw calls);
 - Less video memory (packing algorithm reduces texture size);
@@ -88,11 +88,11 @@ If you encounter the following warning during packaging, it means that the size 
 
 | Property | Value |
 | --- | --- |
-| Wrap Mode U ([wrapModeU](/en/apis/core/#Texture-wrapModeU)) | Clamp ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror ([Mirror](/en/apis/core/#TextureWrapMode-Mirror)) |
-| Wrap Mode V ([wrapModeV](/en/apis/core/#Texture-wrapModeV)) | Clamp ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror ([Mirror](/en/apis/core/#TextureWrapMode-Mirror)) |
-| Filter Mode ([filterMode](/en/apis/core/#Texture-filterMode)) | Point ([Point](/en/apis/core/#TextureFilterMode-Point)), Bilinear ([Bilinear](/en/apis/core/#TextureFilterMode-Bilinear)), Trilinear ([Trilinear](/en/apis/core/#TextureFilterMode-Trilinear)) |
-| Anisotropic Filtering Level ([anisoLevel](/en/apis/core/#Texture-anisoLevel)) | Anisotropic level, 1 ~ 16 |
-| Mipmap ([Mipmap](/en/apis/core/#Texture-generateMipmaps)) | true, false |
+| Wrap Mode U ([wrapModeU](/apis/core/#Texture-wrapModeU)) | Clamp ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeat ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirror ([Mirror](/apis/core/#TextureWrapMode-Mirror)) |
+| Wrap Mode V ([wrapModeV](/apis/core/#Texture-wrapModeV)) | Clamp ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeat ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirror ([Mirror](/apis/core/#TextureWrapMode-Mirror)) |
+| Filter Mode ([filterMode](/apis/core/#Texture-filterMode)) | Point ([Point](/apis/core/#TextureFilterMode-Point)), Bilinear ([Bilinear](/apis/core/#TextureFilterMode-Bilinear)), Trilinear ([Trilinear](/apis/core/#TextureFilterMode-Trilinear)) |
+| Anisotropic Filtering Level ([anisoLevel](/apis/core/#Texture-anisoLevel)) | Anisotropic level, 1 ~ 16 |
+| Mipmap ([Mipmap](/apis/core/#Texture-generateMipmaps)) | true, false |
 
 ### Best Practices
 

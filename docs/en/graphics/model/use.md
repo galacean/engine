@@ -49,7 +49,7 @@ For models not imported into the editor, the corresponding URL is the path where
 
 ## Loading Progress
 
-When loading models, you can also get the loading progress of the total task/detailed task through the [onProgress](/en/apis/core/#AssetPromise-onProgress) event.
+When loading models, you can also get the loading progress of the total task/detailed task through the [onProgress](/apis/core/#AssetPromise-onProgress) event.
 
 ```typescript
 this.engine.resourceManager
@@ -88,7 +88,7 @@ engine.resourceManager
 
 ### 2. Play Animation
 
-If the model carries animation information, you can get the [Animator](/en/apis/core/#Animator) component from the root node and then choose to play any animation clip.
+If the model carries animation information, you can get the [Animator](/apis/core/#Animator) component from the root node and then choose to play any animation clip.
 
 ```typescript
 engine.resourceManager

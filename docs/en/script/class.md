@@ -5,7 +5,7 @@ type: Script
 label: Script
 ---
 
-Scripts are the bridge between engine capabilities and game logic. They can be used to extend the engine's functionality and to write your own game logic code in the lifecycle hook functions provided by script components. The base class for custom scripts is [Script](/en/apis/core/#Script), which extends from [Component](/en/docs/core/component). Therefore, it not only supports the basic capabilities of components:
+Scripts are the bridge between engine capabilities and game logic. They can be used to extend the engine's functionality and to write your own game logic code in the lifecycle hook functions provided by script components. The base class for custom scripts is [Script](/apis/core/#Script), which extends from [Component](/en/docs/core/component). Therefore, it not only supports the basic capabilities of components:
 
 - Mounting to [Entity](/en/docs/core/entity)
 - Conveniently obtaining node instances and component instances
@@ -17,13 +17,13 @@ Additionally, it provides a rich set of lifecycle callback functions. As long as
 
 <img src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*_8C-TJP2UIgAAAAAAAAAAAAAARQnAQ" alt="Script Lifecycle-zh" style="zoom:67%;" />
 
-> [onBeginRender](/en/apis/core/#Script-onBeginRender) and [onEndRender](/en/apis/core/#Script-onEndRender) are somewhat different from the others.
+> [onBeginRender](/apis/core/#Script-onBeginRender) and [onEndRender](/apis/core/#Script-onEndRender) are somewhat different from the others.
 >
 > **They are called only when the entity has a camera component mounted**, meaning they are called when a camera component is added.
 
 ### onAwake
 
-If the [isActiveInHierarchy](/en/apis/core/#Entity-isactiveinhierarchy) of the entity to which the script is added is `true`, the callback function will be called when the script is initialized. If [isActiveInHierarchy](/en/apis/core/#Entity-isActiveInHierarchy) is `false`, it will be called when the entity is activated, i.e., when [isActive](/en/apis/core/#Entity-isActive) is set to `true`. `onAwake` will only be called once and is at the very beginning of all lifecycles. Typically, we perform some initialization-related operations in `onAwake`:
+If the [isActiveInHierarchy](/apis/core/#Entity-isactiveinhierarchy) of the entity to which the script is added is `true`, the callback function will be called when the script is initialized. If [isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) is `false`, it will be called when the entity is activated, i.e., when [isActive](/apis/core/#Entity-isActive) is set to `true`. `onAwake` will only be called once and is at the very beginning of all lifecycles. Typically, we perform some initialization-related operations in `onAwake`:
 
 ```typescript
 onAwake() {
@@ -34,13 +34,13 @@ onAwake() {
 
 ### onEnable
 
-The `onEnable` callback is activated when the [enabled](/en/apis/core/#Component-enabled) property of the script changes from `false` to `true`, or when the [isActiveInHierarchy](/en/apis/core/#Entity-isactiveinhierarchy) property of the entity changes from `false` to `true`. If the entity is created for the first time and [enabled](/en/apis/core/#Component-enabled) is `true`, it will be called after `onAwake` and before `onStart`.
+The `onEnable` callback is activated when the [enabled](/apis/core/#Component-enabled) property of the script changes from `false` to `true`, or when the [isActiveInHierarchy](/apis/core/#Entity-isactiveinhierarchy) property of the entity changes from `false` to `true`. If the entity is created for the first time and [enabled](/apis/core/#Component-enabled) is `true`, it will be called after `onAwake` and before `onStart`.
 
 ### onDisable
 
-The `onDisable` callback is activated when the [enabled](/en/apis/core/#Component-enabled) property of the component changes from `true` to `false`, or when the [isActiveInHierarchy](/en/apis/core/#Entity-isActiveInHierarchy) property of the entity changes from `true` to `false`.
+The `onDisable` callback is activated when the [enabled](/apis/core/#Component-enabled) property of the component changes from `true` to `false`, or when the [isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) property of the entity changes from `true` to `false`.
 
-Note: The [isActiveInHierarchy](/en/apis/core/#Entity-isActiveInHierarchy) check means that the entity is in an active state in the hierarchy tree, i.e., the entity is active, and its parent and all ancestors up to the root entity are also active. Only then is [isActiveInHierarchy](/en/apis/core/#Entity-isActiveInHierarchy) `true`.
+Note: The [isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) check means that the entity is in an active state in the hierarchy tree, i.e., the entity is active, and its parent and all ancestors up to the root entity are also active. Only then is [isActiveInHierarchy](/apis/core/#Entity-isActiveInHierarchy) `true`.
 
 ### onStart
 
@@ -132,15 +132,15 @@ onLateUpdate(deltaTime: number) {
 
 ### onBeginRender
 
-**Only when the entity has a camera component attached**, the `onBeginRender` callback will be called before the camera component's [render](/en/apis/core/#Camera-render) method is called.
+**Only when the entity has a camera component attached**, the `onBeginRender` callback will be called before the camera component's [render](/apis/core/#Camera-render) method is called.
 
 ### onEndRender
 
-**Only when the entity has a camera component attached**, the `onEndRender` callback will be called after the camera component's [render](/en/apis/core/#Camera-render) method is called.
+**Only when the entity has a camera component attached**, the `onEndRender` callback will be called after the camera component's [render](/apis/core/#Camera-render) method is called.
 
 ### onDestroy
 
-When a component or its entity calls [destroy](/en/apis/core/#Entity-destroy), the `onDestroy` callback will be called, and the component will be uniformly recycled at the end of the frame.
+When a component or its entity calls [destroy](/apis/core/#Entity-destroy), the `onDestroy` callback will be called, and the component will be uniformly recycled at the end of the frame.
 
 ### onPointerXXX
 
@@ -164,7 +164,7 @@ class MyScript extends Script {
 
 ### Obtaining Other Components
 
-When we need to get other components on the same node, we use the [getComponent](/en/apis/core/#Entity-getComponent) API, which helps you find the component you need.
+When we need to get other components on the same node, we use the [getComponent](/apis/core/#Entity-getComponent) API, which helps you find the component you need.
 
 ```typescript
 onAwake() {
@@ -173,11 +173,11 @@ onAwake() {
 }
 ```
 
-Sometimes there may be multiple components of the same type, and the above method will only return the first found component. If you need to find all components, you can use [getComponents](/en/apis/core/#Entity-getComponents).
+Sometimes there may be multiple components of the same type, and the above method will only return the first found component. If you need to find all components, you can use [getComponents](/apis/core/#Entity-getComponents).
 
 ### Transformation
 
-For example, to rotate an entity in the [onUpdate](/en/apis/core/#Script-onUpdate) method using the [setRotation](/en/apis/core/#Transform-setRotation) method:
+For example, to rotate an entity in the [onUpdate](/apis/core/#Script-onUpdate) method using the [setRotation](/apis/core/#Transform-setRotation) method:
 
 ```typescript
 this.entity.transform.setRotation(0, 5, 0);
@@ -193,7 +193,7 @@ onAwake() {
 
 Sometimes, there are many objects of the same type in the scene, such as multiple particle animations or multiple coins, which usually have a global script to manage them uniformly. If you associate them with this script one by one, the work will be cumbersome. To better manage these objects, we can place them under a unified parent object and then obtain all child objects through the parent object:
 
-If you know the index of the child node in the parent node, you can directly use [getChild](/en/apis/core/#Entity-getChild):
+If you know the index of the child node in the parent node, you can directly use [getChild](/apis/core/#Entity-getChild):
 
 ```typescript
 onAwake() {
@@ -201,7 +201,7 @@ onAwake() {
 }
 ```
 
-If you don't know the index of the child node, you can use [findByName](/en/apis/core/#Entity-findByName) to find it by the node's name. [findByName](/en/apis/core/#Entity-findByName) will search not only child nodes but also grandchild nodes.
+If you don't know the index of the child node, you can use [findByName](/apis/core/#Entity-findByName) to find it by the node's name. [findByName](/apis/core/#Entity-findByName) will search not only child nodes but also grandchild nodes.
 
 ```typescript
 onAwake() {
@@ -209,7 +209,7 @@ onAwake() {
 }
 ```
 
-If there are nodes with the same name, you can use [findByPath](/en/apis/core/#Entity-findByPath) to pass in the path for step-by-step search. Using this API will also improve search efficiency to some extent.
+If there are nodes with the same name, you can use [findByPath](/apis/core/#Entity-findByPath) to pass in the path for step-by-step search. Using this API will also improve search efficiency to some extent.
 
 ```typescript
 onAwake() {

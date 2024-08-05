@@ -10,14 +10,14 @@ The Sprite Mask component is used to apply masking effects to [Sprite Renderer](
 
 <playground src="sprite-mask.ts"></playground>
 
-Control the interaction with [Sprite](/en/docs/graphics/2D/sprite/) using parameters provided by [SpriteMask](/en/apis/core/#SpriteMask).
+Control the interaction with [Sprite](/en/docs/graphics/2D/sprite/) using parameters provided by [SpriteMask](/apis/core/#SpriteMask).
 
 | Parameter       | Type   | Description                                                                                      |
 | :-------------- | :----- | :----------------------------------------------------------------------------------------------- |
 | influenceLayers | number | The mask layers affected by the current mask. Default is SpriteMaskLayer.Everything, meaning it affects all mask layers. |
 | alphaCutoff     | number | The lower limit of the effective alpha value for the current mask (range: 0~1). Pixels with alpha values less than alphaCutoff will be discarded. |
 
-[SpriteMaskLayer](/en/apis/core/#SpriteMaskLayer) declares the mask layers provided by the engine. There are 32 mask layers in total, named Layer0~Layer31. Mask layers are unrelated to rendering and are only used to help developers set how `SpriteMask` and `SpriteRenderer` interact. For a `SpriteMask` object to mask a `SpriteRenderer` object, their mask layers must intersect.
+[SpriteMaskLayer](/apis/core/#SpriteMaskLayer) declares the mask layers provided by the engine. There are 32 mask layers in total, named Layer0~Layer31. Mask layers are unrelated to rendering and are only used to help developers set how `SpriteMask` and `SpriteRenderer` interact. For a `SpriteMask` object to mask a `SpriteRenderer` object, their mask layers must intersect.
 
 The `influenceLayers` of `SpriteMask` indicates which mask layers the mask will affect for `SpriteRenderer`. The `maskLayer` of `SpriteRenderer` indicates which mask layers the sprite belongs to, as shown below:
 

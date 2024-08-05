@@ -6,7 +6,7 @@ group: Particle
 label: Graphics/Particle
 ---
 
-The particle (Particle Renderer) [ParticleRenderer](/en/apis/core/ParticleRenderer) of the Galacean Engine is a commonly used rendering component with rich properties. By adjusting various property values, you can achieve colorful particle effects.
+The particle (Particle Renderer) [ParticleRenderer](/apis/core/ParticleRenderer) of the Galacean Engine is a commonly used rendering component with rich properties. By adjusting various property values, you can achieve colorful particle effects.
 
 ![avatar](https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*oPEmTqfD_asAAAAAAAAAAAAADtKFAQ/original)
 
@@ -31,7 +31,7 @@ let particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
 ## Rendering Material
 
-[ParticleMaterial](/en/apis/core/ParticleMaterial) is the default material for particles.
+[ParticleMaterial](/apis/core/ParticleMaterial) is the default material for particles.
 
 In the editor, create it by adding material - selecting particle material. After editing, go back to the particle inspector panel to select and use the material.
 
@@ -47,8 +47,8 @@ particleRenderer.setMaterial(material);
 
 | Property                                             | Description |
 | ---------------------------------------------------- | ----------- |
-| [baseColor](/en/apis/core/ParticleMaterial#baseColor)   | Base Color  |
-| [baseTexture](/en/apis/core/ParticleMaterial#baseColor) | Base Texture|
+| [baseColor](/apis/core/ParticleMaterial#baseColor)   | Base Color  |
+| [baseTexture](/apis/core/ParticleMaterial#baseColor) | Base Texture|
 
 ## Playback Control
 
@@ -79,7 +79,7 @@ particleRenderer.generator.main.simulationSpeed = 2;
 
 ## Particle Generator
 
-The [generator](/en/apis/core/ParticleGenerator) property of `ParticleRenderer` is mainly responsible for the generation and playback of particles. The functions related to particle generation are composed of multiple modules, including the main module, emitter module, lifetime size module, lifetime color module, lifetime speed module, lifetime rotation module, and texture sheet animation module. In the editor's particle inspector panel, you can visually see each module and its options.
+The [generator](/apis/core/ParticleGenerator) property of `ParticleRenderer` is mainly responsible for the generation and playback of particles. The functions related to particle generation are composed of multiple modules, including the main module, emitter module, lifetime size module, lifetime color module, lifetime speed module, lifetime rotation module, and texture sheet animation module. In the editor's particle inspector panel, you can visually see each module and its options.
 
 ## Other Parameters
 
@@ -87,8 +87,8 @@ The [generator](/en/apis/core/ParticleGenerator) property of `ParticleRenderer` 
 
 | Property | Description |
 | --- | --- |
-| [velocityScale](/en/apis/core/ParticleRenderer#velocityScale) | Specifies the extent to which particles stretch based on their speed |
-| [lengthScale](/en/apis/core/ParticleRenderer#lengthScale) | Defines the extent to which particles stretch in their direction of motion, defined as the ratio of the particle's length to its width |
-| [pivot](/en/apis/core/ParticleRenderer#pivot) | The pivot of the particle |
-| [renderMode](/en/apis/core/ParticleRenderer#renderMode) | The rendering mode of the particle |
-| [mesh](/en/apis/core/ParticleRenderer#mesh) | The mesh of the particle, effective when `renderMode` is `Mesh` |
+| [velocityScale](/apis/core/ParticleRenderer#velocityScale) | Specifies the extent to which particles stretch based on their speed |
+| [lengthScale](/apis/core/ParticleRenderer#lengthScale) | Defines the extent to which particles stretch in their direction of motion, defined as the ratio of the particle's length to its width |
+| [pivot](/apis/core/ParticleRenderer#pivot) | The pivot of the particle |
+| [renderMode](/apis/core/ParticleRenderer#renderMode) | The rendering mode of the particle |
+| [mesh](/apis/core/ParticleRenderer#mesh) | The mesh of the particle, effective when `renderMode` is `Mesh` |

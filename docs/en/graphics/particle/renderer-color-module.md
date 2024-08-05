@@ -6,7 +6,7 @@ group: Particle
 label: Graphics/Particle
 ---
 
-[`ColorOverLifetimeModule`](/en/apis/core/ColorOverLifetimeModule) inherits from `ParticleGeneratorModule` and is used to handle color changes during the lifecycle of a particle system.
+[`ColorOverLifetimeModule`](/apis/core/ColorOverLifetimeModule) inherits from `ParticleGeneratorModule` and is used to handle color changes during the lifecycle of a particle system.
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*8jjgTK0-EWMAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 
@@ -14,10 +14,10 @@ label: Graphics/Particle
 
 | Property                                              | Description                                                                                                     |
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [color](/en/apis/core/ColorOverLifetimeModule#color) | [ParticleCompositeGradient](/en/apis/core/ParticleCompositeGradient) object, representing the color gradient of particles over their lifecycle |
+| [color](/apis/core/ColorOverLifetimeModule#color) | [ParticleCompositeGradient](/apis/core/ParticleCompositeGradient) object, representing the color gradient of particles over their lifecycle |
 
 ## Gradient Editing
 
-For the [ParticleCompositeGradient](/en/apis/core/ParticleCompositeGradient) object, the editor has a built-in gradient editor. The top of the gradient bar represents color keys, and the bottom represents alpha value keys. Each key's position on the gradient bar represents its time. Double-clicking an existing key can create a new key, and long-pressing a key and dragging it downwards can delete the key.
+For the [ParticleCompositeGradient](/apis/core/ParticleCompositeGradient) object, the editor has a built-in gradient editor. The top of the gradient bar represents color keys, and the bottom represents alpha value keys. Each key's position on the gradient bar represents its time. Double-clicking an existing key can create a new key, and long-pressing a key and dragging it downwards can delete the key.
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*BW3dQb--WXAAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" /> <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*NHL9RKwOFTIAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />

@@ -9,20 +9,20 @@ In a rendering scene, we often perform operations such as translation, rotation,
 
 | Type | Description |
 | :--- | :--- |
-| [BoundingBox](/en/apis/math/#BoundingBox) | AABB Bounding Box |
-| [BoundingFrustum](/en/apis/math/#BoundingFrustum) | View Frustum |
-| [BoundingSphere](/en/apis/math/#BoundingSphere) | Bounding Sphere |
-| [CollisionUtil](/en/apis/math/#CollisionUtil) | Provides many static methods to determine intersections and positional relationships between objects in space |
-| [Color](/en/apis/math/#Color) | Color class, described using RGBA |
-| [MathUtil](/en/apis/math/#MathUtil) | Utility class, provides common calculations such as comparisons, angle-radian conversions, etc. |
-| [Matrix](/en/apis/math/#Matrix) | Default 4x4 matrix, provides basic matrix operations and transformation-related operations |
-| [Matrix3x3](/en/apis/math/#Matrix3x3) | 3x3 matrix, provides basic matrix operations and transformation-related operations |
-| [Plane](/en/apis/math/#Plane) | Plane class, used to describe planes in three-dimensional space |
-| [Quaternion](/en/apis/math/#Quaternion) | Quaternion, contains x, y, z, w components, responsible for rotation-related operations |
-| [Ray](/en/apis/math/#Ray) | Ray class, used to describe rays in three-dimensional space |
-| [Vector2](/en/apis/math/#Vector2) | Two-dimensional vector, contains x, y components |
-| [Vector3](/en/apis/math/#Vector3) | Three-dimensional vector, contains x, y, z components |
-| [Vector4](/en/apis/math/#Vector4) | Four-dimensional vector, contains x, y, z, w components |
+| [BoundingBox](/apis/math/#BoundingBox) | AABB Bounding Box |
+| [BoundingFrustum](/apis/math/#BoundingFrustum) | View Frustum |
+| [BoundingSphere](/apis/math/#BoundingSphere) | Bounding Sphere |
+| [CollisionUtil](/apis/math/#CollisionUtil) | Provides many static methods to determine intersections and positional relationships between objects in space |
+| [Color](/apis/math/#Color) | Color class, described using RGBA |
+| [MathUtil](/apis/math/#MathUtil) | Utility class, provides common calculations such as comparisons, angle-radian conversions, etc. |
+| [Matrix](/apis/math/#Matrix) | Default 4x4 matrix, provides basic matrix operations and transformation-related operations |
+| [Matrix3x3](/apis/math/#Matrix3x3) | 3x3 matrix, provides basic matrix operations and transformation-related operations |
+| [Plane](/apis/math/#Plane) | Plane class, used to describe planes in three-dimensional space |
+| [Quaternion](/apis/math/#Quaternion) | Quaternion, contains x, y, z, w components, responsible for rotation-related operations |
+| [Ray](/apis/math/#Ray) | Ray class, used to describe rays in three-dimensional space |
+| [Vector2](/apis/math/#Vector2) | Two-dimensional vector, contains x, y components |
+| [Vector3](/apis/math/#Vector3) | Three-dimensional vector, contains x, y, z components |
+| [Vector4](/apis/math/#Vector4) | Four-dimensional vector, contains x, y, z, w components |
 
 ## Vectors
 
@@ -399,9 +399,9 @@ A ray represents a line that starts from a point (origin) and extends infinitely
 The types of detection supported by rays are as follows:
 | Type | Description |
 | :--- | :--- |
-| [Plane](/en/apis/math/#Plane) | Detects the distance from the ray to the plane. If -1, the ray and the plane do not intersect. |
-| [BoundingSphere](/en/apis/math/#BoundingSphere) | Detects the distance from the ray to the sphere. If -1, the ray and the sphere do not intersect. |
-| [BoundingBox](/en/apis/math/#BoundingBox) | Detects the distance from the ray to the box. If -1, the ray and the box do not intersect. |
+| [Plane](/apis/math/#Plane) | Detects the distance from the ray to the plane. If -1, the ray and the plane do not intersect. |
+| [BoundingSphere](/apis/math/#BoundingSphere) | Detects the distance from the ray to the sphere. If -1, the ray and the sphere do not intersect. |
+| [BoundingBox](/apis/math/#BoundingBox) | Detects the distance from the ray to the box. If -1, the ray and the box do not intersect. |
 
 ```typescript
 import { BoundingBox, BoundingSphere, Plane, Ray, Vector3 } from "@galacean/engine-math";

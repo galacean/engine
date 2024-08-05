@@ -16,7 +16,7 @@ Perspective projection conforms to our model of objects appearing larger when cl
 
 <img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*isMHSpe21ZMAAAAAAAAAAAAAARQnAQ" alt="image.png" style="zoom:50%;" />
 
-As shown in the diagram above, the near clipping plane ([nearClipPlane](/en/apis/core/#Camera-nearClipPlane)), far clipping plane ([farClipPlane](/en/apis/core/#Camera-farClipPlane)), and field of view ([fieldOfView](/en/apis/core/#Camera-fieldOfView)) form a view frustum ([_View Frustum_](https://en.wikipedia.org/wiki/Viewing_frustum)). Objects within the frustum are projected into the camera and rendered on the canvas, while objects outside the frustum are clipped.
+As shown in the diagram above, the near clipping plane ([nearClipPlane](/apis/core/#Camera-nearClipPlane)), far clipping plane ([farClipPlane](/apis/core/#Camera-farClipPlane)), and field of view ([fieldOfView](/apis/core/#Camera-fieldOfView)) form a view frustum ([_View Frustum_](https://en.wikipedia.org/wiki/Viewing_frustum)). Objects within the frustum are projected into the camera and rendered on the canvas, while objects outside the frustum are clipped.
 
 ### Orthographic Projection
 
@@ -24,7 +24,7 @@ In orthographic projection, objects appear the same size regardless of their dis
 
 <img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*KEuGSqX-vXsAAAAAAAAAAAAAARQnAQ" alt="image.png" style="zoom:50%;" />
 
-As shown in the diagram above, there are top, bottom, left, and right boundaries. Galacean simplifies orthographic properties to better suit developers' habits, using only [orthographicSize](/en/apis/core/#Camera-orthographicSize). The relationships between the various properties and [orthographicSize](/en/apis/core/#Camera-orthographicSize) are as follows:
+As shown in the diagram above, there are top, bottom, left, and right boundaries. Galacean simplifies orthographic properties to better suit developers' habits, using only [orthographicSize](/apis/core/#Camera-orthographicSize). The relationships between the various properties and [orthographicSize](/apis/core/#Camera-orthographicSize) are as follows:
 
 - `top = orthographicSize`
 - `bottom = -orthographicSize`

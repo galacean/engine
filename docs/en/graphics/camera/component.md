@@ -62,25 +62,25 @@ The functionality corresponding to each property is as follows:
 
 | Type | Property | Description |
 | :-- | :-- | :-- |
-| General | [isOrthographic](/en/apis/core/#Camera-isOrthographic) | Determines whether to use perspective projection or orthographic projection by setting [isOrthographic](/en/apis/core/#Camera-isOrthographic). Set to `false` for perspective effect, default is `false`. |
-|  | [nearClipPlane](/en/apis/core/#Camera-nearClipPlane) | Near clipping plane. Objects closer to the camera than this value will not be rendered properly. |
-|  | [farClipPlane](/en/apis/core/#Camera-farClipPlane) | Far clipping plane. Objects farther from the camera than this value will not be rendered properly. |
-|  | [viewport](/en/apis/core/#Camera-viewport) | Viewport, determines the range of content rendered to the target device. Modifying this value can determine the final rendering position in the rendering target. |
-|  | [priority](/en/apis/core/#Camera-priority) | Rendering priority, used to determine the order in which cameras render their content in the case of multiple cameras. |
-|  | [enableFrustumCulling](/en/apis/core/#Camera-enableFrustumCulling) | Whether to enable frustum culling. When enabled, objects outside the rendering range will be culled. Default is `true`. |
-|  | [clearFlags](/en/apis/core/#Camera-clearFlags) | Flags to clear the canvas buffer before rendering this camera. By setting these flags, you can selectively retain the results of the previous camera rendering. |
-|  | [cullingMask](/en/apis/core/#Camera-cullingMask) | Culling mask, used to selectively render rendering components in the scene. |
-|  | [aspectRatio](/en/apis/core/#Camera-aspectRatio) | Aspect ratio of the rendering target, generally automatically calculated based on the canvas size, but can also be manually changed (not recommended). |
-|  | [renderTarget](/en/apis/core/#Camera-renderTarget) | Rendering target, determines which target the content is rendered to. |
-|  | [pixelViewport](/en/apis/core/#Camera-pixelViewport) | The camera's viewport on the screen (in pixel coordinates). If the rendering target is the canvas and the viewport is the entire canvas, the top-left corner is (0, 0) and the bottom-right corner is (canvas.width, canvas.height). |
-| Perspective Projection | [fieldOfView](/en/apis/core/#Camera-fieldOfView) | Field of view, default is 45 degrees (0, 180). |
-| Orthographic Projection | [orthographicSize](/en/apis/core/#Camera-orthographicSize) | In orthographic mode, half the distance from the top to the bottom of the camera's view. |
-| Rendering Related | [depthTextureMode](/en/apis/core/#Camera-depthTextureMode) | Depth texture mode, default is `DepthTextureMode.None`. If enabled, the `camera_DepthTexture` depth texture can be used in the shader. For details, refer to [Camera Texture](/en/docs/graphics/camera/texture/). |
-|  | [opaqueTextureEnabled](/en/apis/core/#Camera-opaqueTextureEnabled) | Whether to enable opaque texture. Default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in the shader of the transparent queue. |
-|  | [opaqueTextureDownsampling](/en/apis/core/#Camera-opaqueTextureDownsampling) | When opaque texture is enabled, downsampling can be set according to clarity and performance requirements. |
-|  | [msaaSamples](/en/apis/core/#Camera-msaaSamples) | Number of samples for multi-sample anti-aliasing, effective only when the standalone canvas is enabled, such as `enableHDR`, `enablePostProcess`, `opaqueTextureEnabled`. |
-|  | [enableHDR](/en/apis/core/#Camera-enableHDR) | Whether to enable HDR rendering, allowing the shader's output color to be stored using floating-point numbers, providing a wider range of values for post-processing and other scenarios. |
-|  | [enablePostProcess](/en/apis/core/#Camera-enablePostProcess) | Whether to enable post-processing. For post-processing configuration, see [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess). |
+| General | [isOrthographic](/apis/core/#Camera-isOrthographic) | Determines whether to use perspective projection or orthographic projection by setting [isOrthographic](/apis/core/#Camera-isOrthographic). Set to `false` for perspective effect, default is `false`. |
+|  | [nearClipPlane](/apis/core/#Camera-nearClipPlane) | Near clipping plane. Objects closer to the camera than this value will not be rendered properly. |
+|  | [farClipPlane](/apis/core/#Camera-farClipPlane) | Far clipping plane. Objects farther from the camera than this value will not be rendered properly. |
+|  | [viewport](/apis/core/#Camera-viewport) | Viewport, determines the range of content rendered to the target device. Modifying this value can determine the final rendering position in the rendering target. |
+|  | [priority](/apis/core/#Camera-priority) | Rendering priority, used to determine the order in which cameras render their content in the case of multiple cameras. |
+|  | [enableFrustumCulling](/apis/core/#Camera-enableFrustumCulling) | Whether to enable frustum culling. When enabled, objects outside the rendering range will be culled. Default is `true`. |
+|  | [clearFlags](/apis/core/#Camera-clearFlags) | Flags to clear the canvas buffer before rendering this camera. By setting these flags, you can selectively retain the results of the previous camera rendering. |
+|  | [cullingMask](/apis/core/#Camera-cullingMask) | Culling mask, used to selectively render rendering components in the scene. |
+|  | [aspectRatio](/apis/core/#Camera-aspectRatio) | Aspect ratio of the rendering target, generally automatically calculated based on the canvas size, but can also be manually changed (not recommended). |
+|  | [renderTarget](/apis/core/#Camera-renderTarget) | Rendering target, determines which target the content is rendered to. |
+|  | [pixelViewport](/apis/core/#Camera-pixelViewport) | The camera's viewport on the screen (in pixel coordinates). If the rendering target is the canvas and the viewport is the entire canvas, the top-left corner is (0, 0) and the bottom-right corner is (canvas.width, canvas.height). |
+| Perspective Projection | [fieldOfView](/apis/core/#Camera-fieldOfView) | Field of view, default is 45 degrees (0, 180). |
+| Orthographic Projection | [orthographicSize](/apis/core/#Camera-orthographicSize) | In orthographic mode, half the distance from the top to the bottom of the camera's view. |
+| Rendering Related | [depthTextureMode](/apis/core/#Camera-depthTextureMode) | Depth texture mode, default is `DepthTextureMode.None`. If enabled, the `camera_DepthTexture` depth texture can be used in the shader. For details, refer to [Camera Texture](/en/docs/graphics/camera/texture/). |
+|  | [opaqueTextureEnabled](/apis/core/#Camera-opaqueTextureEnabled) | Whether to enable opaque texture. Default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in the shader of the transparent queue. |
+|  | [opaqueTextureDownsampling](/apis/core/#Camera-opaqueTextureDownsampling) | When opaque texture is enabled, downsampling can be set according to clarity and performance requirements. |
+|  | [msaaSamples](/apis/core/#Camera-msaaSamples) | Number of samples for multi-sample anti-aliasing, effective only when the standalone canvas is enabled, such as `enableHDR`, `enablePostProcess`, `opaqueTextureEnabled`. |
+|  | [enableHDR](/apis/core/#Camera-enableHDR) | Whether to enable HDR rendering, allowing the shader's output color to be stored using floating-point numbers, providing a wider range of values for post-processing and other scenarios. |
+|  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | Whether to enable post-processing. For post-processing configuration, see [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess). |
 
 ### Culling Mask
 
@@ -120,19 +120,19 @@ const cameras = scene._componentsManager._activeCameras;
 
 | Type | Property | Description |
 | :-- | :-- | :-- |
-| Rendering | [resetProjectionMatrix](/en/apis/core/#Camera-resetProjectionMatrix) | Reset the custom projection matrix and revert to automatic mode. |
-|  | [resetAspectRatio](/en/apis/core/#Camera-resetAspectRatio) | Reset the custom rendering aspect ratio and revert to automatic mode. |
-|  | [render](/en/apis/core/#Camera-render) | Manual rendering. |
-|  | [setReplacementShader](/en/apis/core/#Camera-setReplacementShader) | Set a global rendering replacement shader. |
-|  | [resetReplacementShader](/en/apis/core/#Camera-resetReplacementShader) | Clear the global rendering replacement shader. |
-| Space Transformation | [worldToViewportPoint](/en/apis/core/#Camera-worldToViewportPoint) | Convert a point from world space to viewport space. |
-|  | [viewportToWorldPoint](/en/apis/core/#Camera-viewportToWorldPoint) | Convert a point from viewport space to world space. |
-|  | [viewportPointToRay](/en/apis/core/#Camera-viewportPointToRay) | Generate a world space ray from a point in viewport space. |
-|  | [screenToViewportPoint](/en/apis/core/#Camera-screenToViewportPoint) | Convert a point from screen space to viewport space. |
-|  | [viewportToScreenPoint](/en/apis/core/#Camera-viewportToScreenPoint) | Convert a point from viewport space to screen space. |
-|  | [worldToScreenPoint](/en/apis/core/#Camera-worldToScreenPoint) | Convert a point from world space to screen space. |
-|  | [screenToWorldPoint](/en/apis/core/#Camera-screenToWorldPoint) | Convert a point from screen space to world space. |
-|  | [screenPointToRay](/en/apis/core/#Camera-screenPointToRay) | Generate a world space ray from a point in screen space. |
+| Rendering | [resetProjectionMatrix](/apis/core/#Camera-resetProjectionMatrix) | Reset the custom projection matrix and revert to automatic mode. |
+|  | [resetAspectRatio](/apis/core/#Camera-resetAspectRatio) | Reset the custom rendering aspect ratio and revert to automatic mode. |
+|  | [render](/apis/core/#Camera-render) | Manual rendering. |
+|  | [setReplacementShader](/apis/core/#Camera-setReplacementShader) | Set a global rendering replacement shader. |
+|  | [resetReplacementShader](/apis/core/#Camera-resetReplacementShader) | Clear the global rendering replacement shader. |
+| Space Transformation | [worldToViewportPoint](/apis/core/#Camera-worldToViewportPoint) | Convert a point from world space to viewport space. |
+|  | [viewportToWorldPoint](/apis/core/#Camera-viewportToWorldPoint) | Convert a point from viewport space to world space. |
+|  | [viewportPointToRay](/apis/core/#Camera-viewportPointToRay) | Generate a world space ray from a point in viewport space. |
+|  | [screenToViewportPoint](/apis/core/#Camera-screenToViewportPoint) | Convert a point from screen space to viewport space. |
+|  | [viewportToScreenPoint](/apis/core/#Camera-viewportToScreenPoint) | Convert a point from viewport space to screen space. |
+|  | [worldToScreenPoint](/apis/core/#Camera-worldToScreenPoint) | Convert a point from world space to screen space. |
+|  | [screenToWorldPoint](/apis/core/#Camera-screenToWorldPoint) | Convert a point from screen space to world space. |
+|  | [screenPointToRay](/apis/core/#Camera-screenPointToRay) | Generate a world space ray from a point in screen space. |
 
 ### Shader Replacement
 
@@ -146,4 +146,4 @@ It should be noted that the Z of the point passed into methods like `screenToWor
 
 ## onBeginRender and onEndRender
 
-The camera component additionally includes two lifecycle callbacks, [onBeginRender](/en/apis/core/#Script-onBeginRender) and [onEndRender](/en/apis/core/#Script-onEndRender). Their sequence can be referenced in the [script lifecycle sequence diagram](/en/docs/script/class/#脚本生命周期).
+The camera component additionally includes two lifecycle callbacks, [onBeginRender](/apis/core/#Script-onBeginRender) and [onEndRender](/apis/core/#Script-onEndRender). Their sequence can be referenced in the [script lifecycle sequence diagram](/en/docs/script/class/#脚本生命周期).

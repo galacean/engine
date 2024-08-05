@@ -10,7 +10,7 @@ label: Graphics/Light
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/a7f8b3f7-1a5f-4a56-8e57-1636a72aa1fb/image-20240319173643671.png" alt="image-20240319173643671" style="zoom:50%;" />
 
-Directional light has 3 main characteristics: _color_ ([color](/en/apis/core/#DirectLight-color)), _intensity_ ([intensity](/en/apis/core/#DirectLight-intensity)), and _direction_ ([direction](/en/apis/core/#DirectLight-direction)). The _direction_ is represented by the orientation of the node where the directional light is located.
+Directional light has 3 main characteristics: _color_ ([color](/apis/core/#DirectLight-color)), _intensity_ ([intensity](/apis/core/#DirectLight-intensity)), and _direction_ ([direction](/apis/core/#DirectLight-direction)). The _direction_ is represented by the orientation of the node where the directional light is located.
 
 | Property     | Function                                                                 |
 | :----------- | :----------------------------------------------------------------------- |

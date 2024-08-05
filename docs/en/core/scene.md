@@ -48,14 +48,14 @@ You can add **linear, exponential, exponential squared** 3 types of fog to the e
 
 | Property Name                                 | Description |
 | :-------------------------------------------- | :---------- |
-| [scenes](/en/apis/core/#SceneManager-scenes)  | Scene list  |
+| [scenes](/apis/core/#SceneManager-scenes)  | Scene list  |
 
 | Method Name                                           | Description |
 | :--------------------------------------------------- | :---------- |
-| [addScene](/en/apis/core/#SceneManager-addScene)       | Add scene   |
-| [removeScene](/en/apis/core/#SceneManager-removeScene) | Remove scene|
-| [mergeScenes](/en/apis/core/#SceneManager-mergeScenes) | Merge scenes|
-| [loadScene](/en/apis/core/#SceneManager-loadScene)     | Load scene  |
+| [addScene](/apis/core/#SceneManager-addScene)       | Add scene   |
+| [removeScene](/apis/core/#SceneManager-removeScene) | Remove scene|
+| [mergeScenes](/apis/core/#SceneManager-mergeScenes) | Merge scenes|
+| [loadScene](/apis/core/#SceneManager-loadScene)     | Load scene  |
 
 ### Loading a Scene
 
@@ -128,10 +128,10 @@ Call `scene.destroy()` to destroy a scene. The destroyed scene will also be auto
 
 | Method Name                                              | Description                                                                                                 |
 | :------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
-| [createRootEntity](/en/apis/core/#Scene-createRootEntity) | The newly created _scene_ does not have a root entity by default and needs to be created manually            |
-| [addRootEntity](/en/apis/core/#Scene-addRootEntity)       | You can directly create a new entity or add an existing entity                                               |
-| [removeRootEntity](/en/apis/core/#Scene-removeRootEntity) | Remove the root entity                                                                                       |
-| [getRootEntity](/en/apis/core/#Scene-getRootEntity)       | Find the root entity, you can get all root entities or a single entity object. Note that all entities are read-only arrays and cannot change length or order |
+| [createRootEntity](/apis/core/#Scene-createRootEntity) | The newly created _scene_ does not have a root entity by default and needs to be created manually            |
+| [addRootEntity](/apis/core/#Scene-addRootEntity)       | You can directly create a new entity or add an existing entity                                               |
+| [removeRootEntity](/apis/core/#Scene-removeRootEntity) | Remove the root entity                                                                                       |
+| [getRootEntity](/apis/core/#Scene-getRootEntity)       | Find the root entity, you can get all root entities or a single entity object. Note that all entities are read-only arrays and cannot change length or order |
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "demo" });
@@ -154,7 +154,7 @@ const entity2 = scene.getRootEntity(2);
 
 ### Others
 
-It should be noted that when we are familiar with [Engine](/en/apis/core/#Engine) and [Scene](/en/apis/core/#Scene), if we want to output the rendered picture to the screen or perform off-screen rendering, we must also ensure that the entity tree of the current _scene_ has a [Camera](/en/apis/core/#Camera) mounted. The method to mount the camera is as follows:
+It should be noted that when we are familiar with [Engine](/apis/core/#Engine) and [Scene](/apis/core/#Scene), if we want to output the rendered picture to the screen or perform off-screen rendering, we must also ensure that the entity tree of the current _scene_ has a [Camera](/apis/core/#Camera) mounted. The method to mount the camera is as follows:
 
 ```typescript
 const cameraEntity = rootEntity.createChild("camera");

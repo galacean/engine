@@ -6,7 +6,7 @@ group: Texture
 label: Graphics/Texture
 ---
 
-Textures ([Texture](/en/apis/core/#Texture)) are one of the most commonly used resources in 3D rendering. When shading a model, we need to set a color value for each fragment. Besides setting the color value manually, we can also choose to read texels from a texture for shading to achieve richer artistic effects.
+Textures ([Texture](/apis/core/#Texture)) are one of the most commonly used resources in 3D rendering. When shading a model, we need to set a color value for each fragment. Besides setting the color value manually, we can also choose to read texels from a texture for shading to achieve richer artistic effects.
 
 > It is worth noting that images, canvas, raw data, videos, etc., can all be used as textures. The Galacean engine currently supports all WebGL standard textures.
 
@@ -51,10 +51,10 @@ Although there are various types of textures, they all have some similar basic p
 
 | Property                                                            | Value                                                                                                                                                                                         |
 | :-------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Wrap Mode U ([wrapModeU](/en/apis/core/#Texture-wrapModeU))         | Clamp Mode ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/en/apis/core/#TextureWrapMode-Mirror))               |
-| Wrap Mode V ([wrapModeV](/en/apis/core/#Texture-wrapModeV))         | Clamp Mode ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/en/apis/core/#TextureWrapMode-Mirror))               |
-| Filter Mode ([filterMode](/en/apis/core/#Texture-filterMode))         | Point Filter ([Point](/en/apis/core/#TextureFilterMode-Point)), Bilinear Filter ([Bilinear](/en/apis/core/#TextureFilterMode-Bilinear)), Trilinear Filter ([Trilinear](/en/apis/core/#TextureFilterMode-Trilinear)) |
-| Anisotropic Filter Level ([anisoLevel](/en/apis/core/#Texture-anisoLevel)) | 1 ~ 16, depending on device support                                                                                                                                                               |
+| Wrap Mode U ([wrapModeU](/apis/core/#Texture-wrapModeU))         | Clamp Mode ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/apis/core/#TextureWrapMode-Mirror))               |
+| Wrap Mode V ([wrapModeV](/apis/core/#Texture-wrapModeV))         | Clamp Mode ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/apis/core/#TextureWrapMode-Mirror))               |
+| Filter Mode ([filterMode](/apis/core/#Texture-filterMode))         | Point Filter ([Point](/apis/core/#TextureFilterMode-Point)), Bilinear Filter ([Bilinear](/apis/core/#TextureFilterMode-Bilinear)), Trilinear Filter ([Trilinear](/apis/core/#TextureFilterMode-Trilinear)) |
+| Anisotropic Filter Level ([anisoLevel](/apis/core/#Texture-anisoLevel)) | 1 ~ 16, depending on device support                                                                                                                                                               |
 
 ### Loop Mode
 
@@ -97,13 +97,13 @@ Anisotropic filtering technology can make textures appear clearer when viewed at
 
 ### mipmap
 
-**The engine enables [mipmap](/en/apis/core/#Texture-generateMipmaps)** (multi-level texture gradient) by default. Mipmap is used to solve the precision and performance issues when sampling high-resolution textures on low-resolution screens, allowing the selection of different resolution textures at appropriate distances, as shown below:
+**The engine enables [mipmap](/apis/core/#Texture-generateMipmaps)** (multi-level texture gradient) by default. Mipmap is used to solve the precision and performance issues when sampling high-resolution textures on low-resolution screens, allowing the selection of different resolution textures at appropriate distances, as shown below:
 
 ![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ)
 
 It should be noted that WebGL2.0 supports textures of **any resolution** and will generate mip levels based on the [mipmap](http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf) algorithm. However, if your environment is WebGL1.0, please ensure to upload **power-of-two textures**, such as textures with a resolution of 1024 \* 512. Otherwise, Galacean will detect that the environment cannot use mipmap and will automatically downgrade to disable the mipmap function, which may cause some unexpected visual effects.
 
-If you need to change the default behavior of mipmap, you can do so via script. For parameters, see [API](/en/apis/core/#Texture2D-constructor):
+If you need to change the default behavior of mipmap, you can do so via script. For parameters, see [API](/apis/core/#Texture2D-constructor):
 
 ```typescript
 const texture = new Texture2D(
@@ -115,7 +115,7 @@ const texture = new Texture2D(
 ); // 第 5 个参数
 ```
 
-For cube texture scripts, see [API](/en/apis/core/#TextureCube-constructor):
+For cube texture scripts, see [API](/apis/core/#TextureCube-constructor):
 
 ```typescript
 const cubeTexture = new TextureCube(
@@ -130,7 +130,7 @@ const cubeTexture = new TextureCube(
 
 ### flipY
 
-flipY is used to control whether the texture is flipped along the Y-axis, i.e., upside down. **The engine and editor disable it by default**. If you need to change the default behavior of flipY, you can do so via the [setImageSource](/en/apis/core/#Texture2D-setImageSource) method:
+flipY is used to control whether the texture is flipped along the Y-axis, i.e., upside down. **The engine and editor disable it by default**. If you need to change the default behavior of flipY, you can do so via the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
 
 ```typescript
 const texture = new Texture2D(engine, width, height);
@@ -139,7 +139,7 @@ texture.setImageSource(img, 0, true); // The 3rd parameter
 
 ### premultiplyAlpha {/*examples*/}
 
-premultiplyAlpha is used to control whether the texture pre-multiplies the alpha (transparency) channel. **The engine and editor have it turned off by default**. If you need to change the default behavior of premultiplyAlpha, you can do so through the [setImageSource](/en/apis/core/#Texture2D-setImageSource) method:
+premultiplyAlpha is used to control whether the texture pre-multiplies the alpha (transparency) channel. **The engine and editor have it turned off by default**. If you need to change the default behavior of premultiplyAlpha, you can do so through the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
 
 ```typescript
 const texture = new Texture2D(engine, width, height);
@@ -148,7 +148,7 @@ texture.setImageSource(img, 0, undefined, true); // The 4th parameter
 
 ### format {/*examples*/}
 
-The engine uses `TextureFormat.R8G8B8A8` as the default texture format, meaning that the red, green, blue, and alpha channels each use 1 byte, allowing each channel to store color values ranging from 0 to 255. The engine supports configuring different texture formats, which can be referenced in [TextureFormat](/en/apis/core/#TextureFormat). For example, if we do not need to use the alpha channel, i.e., the A channel, we can use `TextureFormat.R8G8B8`:
+The engine uses `TextureFormat.R8G8B8A8` as the default texture format, meaning that the red, green, blue, and alpha channels each use 1 byte, allowing each channel to store color values ranging from 0 to 255. The engine supports configuring different texture formats, which can be referenced in [TextureFormat](/apis/core/#TextureFormat). For example, if we do not need to use the alpha channel, i.e., the A channel, we can use `TextureFormat.R8G8B8`:
 
 ```typescript
 const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8);

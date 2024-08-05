@@ -6,7 +6,7 @@ group: 2D
 label: Graphics/2D
 ---
 
-[TextRenderer](/en/apis/core/#TextRenderer) component is used to display text in 3D/2D scenes.
+[TextRenderer](/apis/core/#TextRenderer) component is used to display text in 3D/2D scenes.
 
 ## Editor Usage
 
@@ -56,8 +56,8 @@ To make the text display more diverse, developers can upload their own font file
 
 <playground src="text-renderer.ts"></playground>
 
-1. Create a [TextRenderer](/en/apis/core/#TextRenderer) component to display text  
-2. Set the [Font](/en/apis/core/#Font) object through the font property  
+1. Create a [TextRenderer](/apis/core/#TextRenderer) component to display text  
+2. Set the [Font](/apis/core/#Font) object through the font property  
 3. Set the text to be displayed through the text property  
 3. Set the font size through the fontSize property  
 4. Set the text color through the color property
@@ -134,8 +134,8 @@ Text alignment is used to set how the text is displayed within the specified wid
 
 | Property Name                                                        | Property Type                                                   | Description                                                                 |
 | :------------------------------------------------------------------- | :-------------------------------------------------------------- | :-------------------------------------------------------------------------- |
-| [horizontalAlignment](/en/apis/core/#TextRenderer-horizontalAlignment) | [TextHorizontalAlignment](/en/apis/core/#TextHorizontalAlignment) | Horizontal alignment: Left/Center/Right represent left-aligned/center-aligned/right-aligned display respectively |
-| [verticalAlignment](/en/apis/core/#TextRenderer-horizontalAlignment)   | [TextVerticalAlignment](/en/apis/core/#TextVerticalAlignment)     | Vertical alignment: Top/Center/Bottom represent top-aligned/center-aligned/bottom-aligned display respectively   |
+| [horizontalAlignment](/apis/core/#TextRenderer-horizontalAlignment) | [TextHorizontalAlignment](/apis/core/#TextHorizontalAlignment) | Horizontal alignment: Left/Center/Right represent left-aligned/center-aligned/right-aligned display respectively |
+| [verticalAlignment](/apis/core/#TextRenderer-horizontalAlignment)   | [TextVerticalAlignment](/apis/core/#TextVerticalAlignment)     | Vertical alignment: Top/Center/Bottom represent top-aligned/center-aligned/bottom-aligned display respectively   |
 
 ### Text Font Style
 
@@ -143,7 +143,7 @@ The text font style is used to set whether the text is displayed in bold or ital
 
 | Property Name                                      | Property Type                   | Description                                      |
 | :------------------------------------------------- | :------------------------------ | :------------------------------------------------ |
-| [fontStyle](/en/apis/core/#TextRenderer-fontStyle) | [FontStyle](/en/apis/core/#FontStyle) | Font style: None/Bold/Italic represent normal/bold/italic display respectively |
+| [fontStyle](/apis/core/#TextRenderer-fontStyle) | [FontStyle](/apis/core/#FontStyle) | Font style: None/Bold/Italic represent normal/bold/italic display respectively |
 
 Usage is as follows:
 
@@ -164,11 +164,11 @@ textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
 
 ### Custom Fonts
 
-[Font](/en/apis/core/#Font) is a font resource used to represent the font used by the text.
+[Font](/apis/core/#Font) is a font resource used to represent the font used by the text.
 
 | Property Name                        | Property Type | Description                                                                 |
 | :----------------------------------- | :------------ | :-------------------------------------------------------------------------- |
-| [name](/en/apis/core/#Sprite-name)   | string        | Font resource name, used to uniquely identify a font resource. Currently, this field is used to represent the required system font |
+| [name](/apis/core/#Sprite-name)   | string        | Font resource name, used to uniquely identify a font resource. Currently, this field is used to represent the required system font |
 
 ```typescript
 const font = Font.createFromOS(engine, "Arial");

@@ -6,7 +6,7 @@ group: Texture
 label: Graphics/Texture
 ---
 
-The difference between a cube texture ([TextureCube](/en/apis/core/#TextureCube)) and a 2D texture is that it has 6 faces, which means a cube texture is composed of 6 2D textures.
+The difference between a cube texture ([TextureCube](/apis/core/#TextureCube)) and a 2D texture is that it has 6 faces, which means a cube texture is composed of 6 2D textures.
 
 ![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*Omw8Qo0WzfYAAAAAAAAAAAAAARQnAQ)
 

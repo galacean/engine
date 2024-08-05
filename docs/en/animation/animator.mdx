@@ -6,7 +6,7 @@ label: Animation
 ---
 
 ## Introduction
-The Animation Control Component ([Animator](/en/apis/core/#Animator)) is responsible for reading data from the [Animation Controller](/en/docs/animation/animatorController/) ([AnimatorController](/en/apis/core/#AnimatorController)) and playing its content.
+The Animation Control Component ([Animator](/apis/core/#Animator)) is responsible for reading data from the [Animation Controller](/en/docs/animation/animatorController/) ([AnimatorController](/apis/core/#AnimatorController)) and playing its content.
 
 ### Parameter Description
 
@@ -16,19 +16,19 @@ The Animation Control Component ([Animator](/en/apis/core/#Animator)) is respons
 
 ## Editor Usage
 
-When you drag a model into the scene, the model is displayed in its initial pose and does not play any animation. At this point, you need to find the Animation Control Component ([Animator](/en/apis/core/#Animator)) on the model entity and bind an [Animation Controller](/en/docs/animation/animatorController/) asset to it.
+When you drag a model into the scene, the model is displayed in its initial pose and does not play any animation. At this point, you need to find the Animation Control Component ([Animator](/apis/core/#Animator)) on the model entity and bind an [Animation Controller](/en/docs/animation/animatorController/) asset to it.
 
-1. Find or create an Animation Control Component ([Animator](/en/apis/core/#Animator))
+1. Find or create an Animation Control Component ([Animator](/apis/core/#Animator))
 
 <Callout type="info">
-The Animation Control Component ([Animator](/en/apis/core/#Animator)) of the model is on the root entity of the glTF instance, which is the first child entity under the model entity in the editor.
+The Animation Control Component ([Animator](/apis/core/#Animator)) of the model is on the root entity of the glTF instance, which is the first child entity under the model entity in the editor.
 
 If the model contains animations, a read-only [Animation Controller](/en/docs/animation/animatorController/) will be automatically bound for you.
 </Callout>
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WkafRagPFo8AAAAAAAAAAAAADsJ_AQ/original)
 
-If there is no Animation Control Component ([Animator](/en/apis/core/#Animator)), you can create one as shown below
+If there is no Animation Control Component ([Animator](/apis/core/#Animator)), you can create one as shown below
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uOuPT5cFwx4AAAAAAAAAAAAADsJ_AQ/original)
 
@@ -63,7 +63,7 @@ engine.resourceManager
 
 #### Control Playback Speed
 
-You can control the animation playback speed through the [speed](/en/apis/core/#Animator-speed) property. The default value of `speed` is `1.0`. The larger the value, the faster the playback; the smaller the value, the slower the playback. When the value is negative, it plays in reverse.
+You can control the animation playback speed through the [speed](/apis/core/#Animator-speed) property. The default value of `speed` is `1.0`. The larger the value, the faster the playback; the smaller the value, the slower the playback. When the value is negative, it plays in reverse.
 
 ```typescript
 animator.speed = 2.0;
@@ -71,7 +71,7 @@ animator.speed = 2.0;
 
 #### Stop/Replay
 
-You can stop and replay the animation by setting the [enabled](/en/apis/core/#Animator-enabled) property of the Animator.
+You can stop and replay the animation by setting the [enabled](/apis/core/#Animator-enabled) property of the Animator.
 
 ```typescript
 // 停止
@@ -81,7 +81,7 @@ animator.enabled = true;
 ```
 
 #### Pause/Resume Playback
-You can pause and resume playback by setting the [speed](/en/apis/core/#Animator-speed) property of the Animator.
+You can pause and resume playback by setting the [speed](/apis/core/#Animator-speed) property of the Animator.
 
 ```typescript
 // 暂停
@@ -99,7 +99,7 @@ state.speed = 0;
 
 #### Play a Specific Animation State
 
-You can use the [animator.play](/en/apis/core/#Animator-play) method to play a specific `AnimatorState`. For parameter details, see the [API documentation](/en/apis/core/#Animator-play).
+You can use the [animator.play](/apis/core/#Animator-play) method to play a specific `AnimatorState`. For parameter details, see the [API documentation](/apis/core/#Animator-play).
 
 ```typescript
 animator.play("run");
@@ -117,7 +117,7 @@ animator.play("run", layerIndex, normalizedTimeOffset);
 
 #### Transition to a Specific Animation State
 
-You can use the [animator.crossfade](/en/apis/core/#Animator-crossfade) method to transition the animation to a specified `AnimatorState`. For parameter details, see the [API documentation](/en/apis/core/#Animator-crossFade).
+You can use the [animator.crossfade](/apis/core/#Animator-crossfade) method to transition the animation to a specified `AnimatorState`. For parameter details, see the [API documentation](/apis/core/#Animator-crossFade).
 
 ```typescript
 animator.crossFade("run", 0.3);
@@ -127,7 +127,7 @@ animator.crossFade("run", 0.3);
 
 ### Get the Currently Playing Animation State
 
-You can use the [getCurrentAnimatorState](/en/apis/core/#Animator-getCurrentAnimatorState) method to get the currently playing AnimatorState. The parameter is the index of the layer where the animation state is located, `layerIndex`. For details, see the [API documentation](/en/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
+You can use the [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) method to get the currently playing AnimatorState. The parameter is the index of the layer where the animation state is located, `layerIndex`. For details, see the [API documentation](/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
 
 ```typescript
 const currentState = animator.getCurrentAnimatorState(0);
@@ -139,7 +139,7 @@ currentState.wrapMode = WrapMode.Loop;
 
 ### Get an Animation State
 
-You can use the [findAnimatorState](/en/apis/core/#Animator-findAnimatorState) method to get an AnimatorState by its specified name. For details, see the [API documentation](/en/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
+You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get an AnimatorState by its specified name. For details, see the [API documentation](/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
 
 ```typescript
 const state = animator.findAnimatorState("xxx");
@@ -151,5 +151,5 @@ state.wrapMode = WrapMode.Loop;
 
 ### Animation Culling
 
-You can set the [cullingMode](/en/apis/core/#Animator-cullingMode) of the [Animator](/en/apis/core/#Animator) to determine whether the animation should be calculated when the entity bound to the Animator is not visible. When the animation is culled, it will not be calculated or applied to the entity, but the animation state will still update over time, ensuring it behaves correctly when it becomes visible again.
+You can set the [cullingMode](/apis/core/#Animator-cullingMode) of the [Animator](/apis/core/#Animator) to determine whether the animation should be calculated when the entity bound to the Animator is not visible. When the animation is culled, it will not be calculated or applied to the entity, but the animation state will still update over time, ensuring it behaves correctly when it becomes visible again.
 ```

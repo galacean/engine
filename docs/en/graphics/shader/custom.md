@@ -8,7 +8,7 @@ There may be some special rendering requirements in the business, such as water 
 
 ## Creating Shaders
 
-The [Shader class](/en/apis/core/#Shader) encapsulates vertex shaders, fragment shaders, shader precompilation, platform precision, and platform differences. Its creation and use are very convenient, and users only need to focus on the shader algorithm itself without worrying about what precision to use or which version of GLSL to write. Here is a simple demo:
+The [Shader class](/apis/core/#Shader) encapsulates vertex shaders, fragment shaders, shader precompilation, platform precision, and platform differences. Its creation and use are very convenient, and users only need to focus on the shader algorithm itself without worrying about what precision to use or which version of GLSL to write. Here is a simple demo:
 
 ```javascript
 import { Material, Shader, Color } from "@galacean/engine";
@@ -39,7 +39,7 @@ Shader.create("demo", vertexSource, fragmentSource);
 const material = new Material(engine, Shader.find("demo"));
 ```
 
-`Shader.create()` is used to add the shader to the engine's cache pool, so it only needs to be created once during the entire runtime. After that, it can be repeatedly used through [Shader.find(name)](/en/apis/galacean/#Shader-find).
+`Shader.create()` is used to add the shader to the engine's cache pool, so it only needs to be created once during the entire runtime. After that, it can be repeatedly used through [Shader.find(name)](/apis/galacean/#Shader-find).
 
 > Note: The engine has already pre-created blinn-phong, pbr, shadow-map, shadow, skybox, framebuffer-picker-color, and trail shaders. Users can directly use these built-in shaders and cannot create them with the same name.
 
@@ -109,13 +109,13 @@ The engine has automatically uploaded some commonly used variables, which users 
 
 > For uploading per-vertex data, please refer to [Mesh Renderer](/en/docs/graphics/mesh/modelMesh), which will not be repeated here.
 
-In addition to built-in variables, we can upload any custom-named variables in the shader. All we need to do is use the correct interface according to the shader data type. All upload interfaces are stored in [ShaderData](/en/apis/core/#ShaderData), and the shaderData instance objects are stored in the engine's four main classes: [Scene](/en/apis/core/#Scene), [Camera](/en/apis/core/#Camera), [Renderer](/en/apis/core/#Renderer), and [Material](/en/apis/core/#Material). We just need to call the interfaces on these shaderData to upload variables, and the engine will automatically assemble these data at the underlying level and perform optimizations such as redundancy checks.
+In addition to built-in variables, we can upload any custom-named variables in the shader. All we need to do is use the correct interface according to the shader data type. All upload interfaces are stored in [ShaderData](/apis/core/#ShaderData), and the shaderData instance objects are stored in the engine's four main classes: [Scene](/apis/core/#Scene), [Camera](/apis/core/#Camera), [Renderer](/apis/core/#Renderer), and [Material](/apis/core/#Material). We just need to call the interfaces on these shaderData to upload variables, and the engine will automatically assemble these data at the underlying level and perform optimizations such as redundancy checks.
 
 ![](https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ijQMQJM_Vy0AAAAAAAAAAAAADleLAQ/original)
 
 ### Benefits of Separating Shader Data
 
-Shader data is stored separately in the engine's four main classes: [Scene](/en/apis/core/#Scene), [Camera](/en/apis/core/#Camera), [Renderer](/en/apis/core/#Renderer), and [Material](/en/apis/core/#Material). One of the benefits of this approach is that the underlying layer can upload a specific block of uniform data based on the upload timing, improving performance. Additionally, separating material-independent shader data allows for shared materials. For example, two renderers sharing one material can both manipulate the same shader without affecting each other's rendering results because this part of the shader data upload comes from the shaderData of the two renderers.
+Shader data is stored separately in the engine's four main classes: [Scene](/apis/core/#Scene), [Camera](/apis/core/#Camera), [Renderer](/apis/core/#Renderer), and [Material](/apis/core/#Material). One of the benefits of this approach is that the underlying layer can upload a specific block of uniform data based on the upload timing, improving performance. Additionally, separating material-independent shader data allows for shared materials. For example, two renderers sharing one material can both manipulate the same shader without affecting each other's rendering results because this part of the shader data upload comes from the shaderData of the two renderers.
 
 Example:
 
@@ -205,7 +205,7 @@ For example, if there are these macro-related operations in the shader:
 #endif
 ```
 
-They are also controlled through [ShaderData](/en/apis/core/#Shader-enableMacro):
+They are also controlled through [ShaderData](/apis/core/#Shader-enableMacro):
 
 ```typescript
 // 开启宏开关

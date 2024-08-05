@@ -5,7 +5,7 @@ group: Basics
 label: Core
 ---
 
-The Galacean Engine encapsulates canvases for different platforms, such as [WebCanvas](/en/apis/rhi-webgl/WebCanvas), supporting control of [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) using [Engine](/en/apis/core/#Engine).
+The Galacean Engine encapsulates canvases for different platforms, such as [WebCanvas](/apis/rhi-webgl/WebCanvas), supporting control of [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) using [Engine](/apis/core/#Engine).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -33,7 +33,7 @@ console.log(engine.canvas); // => WebCanvas instance
 
 ### Basic Adaptation
 
-The canvas size is generally controlled by the **device pixel ratio**. Taking [WebCanvas](/en/apis/rhi-webgl/WebCanvas) as an example:
+The canvas size is generally controlled by the **device pixel ratio**. Taking [WebCanvas](/apis/rhi-webgl/WebCanvas) as an example:
 
 ```mermaid
 flowchart TD
@@ -60,7 +60,7 @@ engine.canvas.resizeByClientSize(1.5);
 
 Regarding adaptation, the core point to note is the **device pixel ratio**. Taking iPhoneX as an example, the device pixel ratio `window.devicePixelRatio` is _3_, the window width `window.innerWidth` is _375_, and the screen physical pixel width is: 375 * 3 = *1125*.
 
-Rendering pressure is proportional to the physical pixel height and width of the screen. The larger the physical pixels, the greater the rendering pressure, and the more power it consumes. It is recommended to set the height and width of the canvas through the API exposed by [WebCanvas](/en/apis/rhi-webgl/WebCanvas), rather than using the native canvas API, such as `canvas.width` or `canvas.style.width`.
+Rendering pressure is proportional to the physical pixel height and width of the screen. The larger the physical pixels, the greater the rendering pressure, and the more power it consumes. It is recommended to set the height and width of the canvas through the API exposed by [WebCanvas](/apis/rhi-webgl/WebCanvas), rather than using the native canvas API, such as `canvas.width` or `canvas.style.width`.
 
 > ️ **Note**: Some front-end scaffolds will insert the following tag to modify the page zoom ratio:
 >

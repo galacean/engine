@@ -9,13 +9,13 @@ To avoid loading resources repeatedly, once a resource is loaded, it is cached i
 
 > Note: Resources are interdependent.
 
-For example, the entity shown in the figure below contains a [MeshRenderer](/en/apis/core/#MeshRenderer) component, which depends on [Material](/en/apis/core/#Material). _Material_ may be referenced by multiple _MeshRenderers_. If _Material_ is released, other _MeshRenderers_ that reference it will not be able to find the _Material_ and will report an error.
+For example, the entity shown in the figure below contains a [MeshRenderer](/apis/core/#MeshRenderer) component, which depends on [Material](/apis/core/#Material). _Material_ may be referenced by multiple _MeshRenderers_. If _Material_ is released, other _MeshRenderers_ that reference it will not be able to find the _Material_ and will report an error.
 
 ![image.png](https://gw.alipayobjects.com/mdn/mybank_yulibao/afts/img/A*wXmqRIwqI18AAAAAAAAAAAAAARQnAQ)
 
 > Note: JavaScript cannot track object references. Generally, in weakly typed languages like JavaScript, memory management functions are not provided to developers. All object memory is managed through garbage collection mechanisms, and you cannot determine when an object will be released, so there is no [destructor](https://zh.wikipedia.org/wiki/%E8%A7%A3%E6%A7%8B%E5%AD%90) to call for releasing referenced resources.
 
-`ResourceManager` provides a set of resource releases based on reference counting, which requires developers to manually call [gc](/en/apis/core/#ResourceManager-gc):
+`ResourceManager` provides a set of resource releases based on reference counting, which requires developers to manually call [gc](/apis/core/#ResourceManager-gc):
 
 ```typescript
 engine.resourceManager.gc();

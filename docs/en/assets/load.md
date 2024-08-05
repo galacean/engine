@@ -30,7 +30,7 @@ const scene = await engine.resourceManager.load({
 engine.sceneManager.activeScene = scene;
 ```
 
-> As for those assets that are not used in the scene, you can use [resourceManager.load](/en/apis/core/#Engine-resourceManager#load) mounted on the Engine instance to load the resources.
+> As for those assets that are not used in the scene, you can use [resourceManager.load](/apis/core/#Engine-resourceManager#load) mounted on the Engine instance to load the resources.
 
 ```typescript
 // 若只传入 URL ，引擎会依据后缀推断加载的资产类型，如 `.png` 对应纹理， `.gltf` 则对应模型
@@ -106,7 +106,7 @@ The actual loading path from the above two lines of code will be `https://cdn.ga
 
 ## Loading Progress
 
-Calling the loading queue can get an [AssetPromise](/en/apis/core/#AssetPromise) object, and you can use [onProgress](/en/apis/core/#AssetPromise-onProgress) to get the loading progress.
+Calling the loading queue can get an [AssetPromise](/apis/core/#AssetPromise) object, and you can use [onProgress](/apis/core/#AssetPromise-onProgress) to get the loading progress.
 
 ```typescript
 this.engine.resourceManager
@@ -118,7 +118,7 @@ this.engine.resourceManager
 
 ## Cancel Loading
 
-The _ResourceManager_ object has a [cancelNotLoaded](/en/apis/core/#ResourceManager-cancelNotLoaded) method, which can be used to cancel resources that have not been loaded yet. Passing in a URL will cancel the resource loading for that specific URL.
+The _ResourceManager_ object has a [cancelNotLoaded](/apis/core/#ResourceManager-cancelNotLoaded) method, which can be used to cancel resources that have not been loaded yet. Passing in a URL will cancel the resource loading for that specific URL.
 
 ```typescript
 // 取消所有未加载完的资源。

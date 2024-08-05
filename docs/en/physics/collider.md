@@ -5,31 +5,31 @@ type: Physics
 label: Physics
 ---
 
-The biggest advantage of introducing a physics engine is that it allows objects in the scene to have physical responses. Colliders ([Collider](/en/apis/core/#Collider)) are a type of component in the engine, and there are currently two types. Before using them, we need to understand these two types of colliders:
+The biggest advantage of introducing a physics engine is that it allows objects in the scene to have physical responses. Colliders ([Collider](/apis/core/#Collider)) are a type of component in the engine, and there are currently two types. Before using them, we need to understand these two types of colliders:
 
-1. [StaticCollider](/en/apis/core/#StaticCollider): Static collider, mainly used for stationary objects in the scene;
-2. [DynamicCollider](/en/apis/core/#DynamicCollider): Dynamic collider, used for objects in the scene that need to be controlled by scripts or respond to physical feedback.
+1. [StaticCollider](/apis/core/#StaticCollider): Static collider, mainly used for stationary objects in the scene;
+2. [DynamicCollider](/apis/core/#DynamicCollider): Dynamic collider, used for objects in the scene that need to be controlled by scripts or respond to physical feedback.
 
 ## Editor Usage
 
 ### Adding Collider Component
 
-Before adding a physics component to an object, the first thing to consider is whether the collider is static or dynamic, and then add the corresponding collider component, either a static collider [StaticCollider](/en/apis/core/#StaticCollider) or a dynamic collider [DynamicCollider](/en/apis/core/#DynamicCollider).
+Before adding a physics component to an object, the first thing to consider is whether the collider is static or dynamic, and then add the corresponding collider component, either a static collider [StaticCollider](/apis/core/#StaticCollider) or a dynamic collider [DynamicCollider](/apis/core/#DynamicCollider).
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-E4USbdiH6sAAAAAAAAAAAAADsJ_AQ/original)
 
 ### Selecting the Shape of the Collider
 
-Next, we need to add a [ColliderShape](/en/apis/core/#ColliderShape) to the collider component. In fact, each `Collider` is a collection of [ColliderShape](/en/apis/core/#ColliderShape), meaning each `Collider` can be set to a composite collider shape by combining [ColliderShape](/en/apis/core/#ColliderShape).
+Next, we need to add a [ColliderShape](/apis/core/#ColliderShape) to the collider component. In fact, each `Collider` is a collection of [ColliderShape](/apis/core/#ColliderShape), meaning each `Collider` can be set to a composite collider shape by combining [ColliderShape](/apis/core/#ColliderShape).
 
 Currently, four types of `ColliderShape` are supported, but the support varies among different backend physics packages, as detailed below:
 
 | Name | Description       | Supported Backend Physics Packages                    |
 | :--- |:---------|:----------------------------|
-| [BoxColliderShape](/en/apis/core/#BoxColliderShape) | Box-shaped collider   | physics-lite, physics-physx |
-| [SphereColliderShape](/en/apis/core/#SphereColliderShape) | Sphere-shaped collider   | physics-lite, physics-physx |
-| [PlaneColliderShape](/en/apis/core/#PlaneColliderShape) | Unbounded plane collider | physics-physx               |
-| [CapsuleColliderShape](/en/apis/core/#CapsuleColliderShape) | Capsule-shaped collider   | physics-physx               |
+| [BoxColliderShape](/apis/core/#BoxColliderShape) | Box-shaped collider   | physics-lite, physics-physx |
+| [SphereColliderShape](/apis/core/#SphereColliderShape) | Sphere-shaped collider   | physics-lite, physics-physx |
+| [PlaneColliderShape](/apis/core/#PlaneColliderShape) | Unbounded plane collider | physics-physx               |
+| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collider   | physics-physx               |
 
 The engine supports composite collider shapes, meaning the collider itself can be composed of `BoxColliderShape`, `SphereColliderShape`, and `CapsuleColliderShape`.
 

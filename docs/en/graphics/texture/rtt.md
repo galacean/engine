@@ -8,12 +8,12 @@ label: Graphics/Texture
 
 Offscreen render texture, as the name suggests, can be obtained through offscreen rendering. It uses [FBO](https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/framebufferTexture2D) technology at the underlying level, redirecting rendering operations from the screen to a texture. This texture can be used to achieve post-processing effects, refraction, reflection, dynamic environment mapping, and other artistic creations.
 
-The engine provides the [RenderTarget](/en/apis/core/#RenderTarget) class for offscreen rendering and obtaining the corresponding offscreen render texture. Currently, the engine supports generating the following offscreen render textures:
+The engine provides the [RenderTarget](/apis/core/#RenderTarget) class for offscreen rendering and obtaining the corresponding offscreen render texture. Currently, the engine supports generating the following offscreen render textures:
 
 | Type | Application |
 | :-- | :-- |
-| Color Texture ([Texture](/en/apis/core/#Texture)) | Can input a single color texture, multiple color textures (MRT), or a color cube texture |
-| Depth Texture ([Texture](/en/apis/core/#Texture)) | Can input a depth texture or a depth cube texture |
+| Color Texture ([Texture](/apis/core/#Texture)) | Can input a single color texture, multiple color textures (MRT), or a color cube texture |
+| Depth Texture ([Texture](/apis/core/#Texture)) | Can input a depth texture or a depth cube texture |
 | Texture Combination | Color texture + depth texture, color cube texture + depth cube texture, multiple color textures + depth texture |
 
 ## Usage

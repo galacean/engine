@@ -2,7 +2,7 @@
 title: Unlit
 ---
 
-In some simple scenes, you might not want to calculate lighting. The engine provides [UnlitMaterial](/en/apis/core/#UnlitMaterial), which uses the most streamlined shader code and only requires color or texture to render. Unlit material is suitable for rendering baked models. It only needs a basic texture or color to display the high-quality rendering results obtained from offline rendering. However, the downside is that it cannot display real-time light and shadow interactions because Unlit is determined by the texture and is not affected by any lighting.
+In some simple scenes, you might not want to calculate lighting. The engine provides [UnlitMaterial](/apis/core/#UnlitMaterial), which uses the most streamlined shader code and only requires color or texture to render. Unlit material is suitable for rendering baked models. It only needs a basic texture or color to display the high-quality rendering results obtained from offline rendering. However, the downside is that it cannot display real-time light and shadow interactions because Unlit is determined by the texture and is not affected by any lighting.
 
 <playground src="unlit-material.ts"></playground>
 
@@ -14,15 +14,15 @@ In some simple scenes, you might not want to calculate lighting. The engine prov
 
 | Parameter | Application |
 | :-- | :-- |
-| [baseColor](/en/apis/core/#UnlitMaterial-baseColor) | Base color. **Base color \* Base color texture = Final color.** |
-| [baseTexture](/en/apis/core/#UnlitMaterial-baseTexture) | Base texture. Used in conjunction with the base color, it is a multiplicative relationship. |
-| [tilingOffset](/en/apis/core/#UnlitMaterial-tilingOffset) | Scaling and offset of texture coordinates. It is a Vector4 data that controls the scaling and offset of texture coordinates in the uv direction. Refer to [example](/en/embed/tiling-offset) |
+| [baseColor](/apis/core/#UnlitMaterial-baseColor) | Base color. **Base color \* Base color texture = Final color.** |
+| [baseTexture](/apis/core/#UnlitMaterial-baseTexture) | Base texture. Used in conjunction with the base color, it is a multiplicative relationship. |
+| [tilingOffset](/apis/core/#UnlitMaterial-tilingOffset) | Scaling and offset of texture coordinates. It is a Vector4 data that controls the scaling and offset of texture coordinates in the uv direction. Refer to [example](/en/embed/tiling-offset) |
 
 If you need to use the material through a script, you can go to the [material usage tutorial](/en/docs/graphics/material/script).
 
 ## Export Unlit Material from Blender
 
-As introduced in the [baking tutorial](/en/docs/art/bake-blender), if we have already created the baked map and want a **convenient material** where the color is only influenced by the baked texture, without adding lights, debugging normals, or adjusting advanced properties like metallic roughness, then you can try Galacean's [UnlitMaterial](/en/apis/core/#UnlitMaterial). glTF has a dedicated [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit) plugin, which Galacean will parse to generate Unlit material.
+As introduced in the [baking tutorial](/en/docs/art/bake-blender), if we have already created the baked map and want a **convenient material** where the color is only influenced by the baked texture, without adding lights, debugging normals, or adjusting advanced properties like metallic roughness, then you can try Galacean's [UnlitMaterial](/apis/core/#UnlitMaterial). glTF has a dedicated [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit) plugin, which Galacean will parse to generate Unlit material.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/39965fc2-3fc2-44b9-a294-a04eb4441120/1623652741734-090284d5-9b1a-4db8-9231-dc3f4d188a38-20210614150743080.png" alt="image.png" style="zoom:50%;" />
 

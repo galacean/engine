@@ -88,8 +88,8 @@ A prefab is an asset, and the deletion method is the same as other assets. It is
 ## Script Usage
 
 ### Load Prefab
-The engine object for the prefab asset is [PrefabResource](/en/apis/loader/#PrefabResource}).
-After loading (see [Asset Loading](/en/docs/assets/load)), you can instantiate the prefab using the [instantiate](/en/apis/loader/#PrefabResource-instantiate}) method.
+The engine object for the prefab asset is [PrefabResource](/apis/loader/#PrefabResource}).
+After loading (see [Asset Loading](/en/docs/assets/load)), you can instantiate the prefab using the [instantiate](/apis/loader/#PrefabResource-instantiate}) method.
 
 ```typescript
 engine.resourceManager

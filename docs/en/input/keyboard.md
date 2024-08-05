@@ -11,9 +11,9 @@ Galacean supports developers to query the current keyboard interaction status at
 
 | Method Name                                               | Description                |
 | --------------------------------------------------------- | -------------------------- |
-| [isKeyHeldDown](/en/apis/core/#InputManager-isKeyHeldDown) | Returns whether the key is being held down |
-| [isKeyDown](/en/apis/core/#InputManager-isKeyDown)         | Returns whether the key was pressed in the current frame |
-| [isKeyUp](/en/apis/core/#InputManager-isKeyUp)             | Returns whether the key was released in the current frame |
+| [isKeyHeldDown](/apis/core/#InputManager-isKeyHeldDown) | Returns whether the key is being held down |
+| [isKeyDown](/apis/core/#InputManager-isKeyDown)         | Returns whether the key was pressed in the current frame |
+| [isKeyUp](/apis/core/#InputManager-isKeyUp)             | Returns whether the key was released in the current frame |
 
 ## Quick Start
 

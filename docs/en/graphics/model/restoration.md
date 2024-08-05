@@ -50,7 +50,7 @@ It is worth mentioning that although different algorithms can cause some visual 
 
 ### Differences in Lighting
 
-Like the real world, 3D scenes can also add [direct and ambient light](/en/docs/graphics/light/light/). By default, Galacean scenes have **no** light sources, only a blue-tinted [solid color diffuse](/en/apis/core/#AmbientLight-diffuseSolidColor), as shown in the first image on the left; whereas many modeling software come with built-in light sources:
+Like the real world, 3D scenes can also add [direct and ambient light](/en/docs/graphics/light/light/). By default, Galacean scenes have **no** light sources, only a blue-tinted [solid color diffuse](/apis/core/#AmbientLight-diffuseSolidColor), as shown in the first image on the left; whereas many modeling software come with built-in light sources:
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png)
 

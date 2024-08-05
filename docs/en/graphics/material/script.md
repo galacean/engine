@@ -6,7 +6,7 @@ group: Mesh
 label: Graphics/Material
 ---
 
-The material exported by the editor is only the base class [Material](/en/apis/core/#Material), while through code you can create the engine's pre-packaged [PBRMaterial](/en/apis/core/#PBRMaterial), [UnlitMaterial](/en/apis/core/#UnlitMaterial), and [BlinnPhongMaterial](/en/apis/core/#BlinnPhongMaterial).
+The material exported by the editor is only the base class [Material](/apis/core/#Material), while through code you can create the engine's pre-packaged [PBRMaterial](/apis/core/#PBRMaterial), [UnlitMaterial](/apis/core/#UnlitMaterial), and [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial).
 
 ## Getting Material
 

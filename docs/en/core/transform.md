@@ -81,32 +81,32 @@ cubeEntity.transform.rotate(new Vector3(45, 0, 0), true);
 
 | 属性名称                                                                | 属性释义                                                                                                                 |
 | :---------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| [position](/en/apis/core/#Transform-position)                               | 局部位移                                                                                                                 |
-| [rotation](/en/apis/core/#Transform-rotation)                               | 局部旋转 - 欧拉角                                                                                                        |
-| [rotationQuaternion](/en/apis/core/#Transform-rotationquaternion)           | 局部旋转 - 四元数                                                                                                        |
-| [scale](/en/apis/core/#Transform-scale)                                     | 局部缩放                                                                                                                 |
-| [worldPosition](/en/apis/core/#Transform-worldPosition)                     | 世界位移                                                                                                                 |
-| [worldRotation](/en/apis/core/#Transform-worldRotation)                     | 世界旋转 - 欧拉角                                                                                                        |
-| [worldRotationQuaternion](/en/apis/core/#Transform-worldRotationQuaternion) | 世界旋转 - 四元数                                                                                                        |
-| [lossyWorldScale](/en/apis/core/#Transform-lossyWorldScale)                 | 世界有损缩放 - 当父节点有缩放，子节点有旋转时，缩放会倾斜，无法使用 Vector3 正确表示,必须使用 Matrix3x3 矩阵才能正确表示 |
-| [localMatrix](/en/apis/core/#Transform-localMatrix)                         | 局部矩阵                                                                                                                 |
-| [worldMatrix](/en/apis/core/#Transform-worldMatrix)                         | 世界矩阵                                                                                                                 |
-| [worldForward](/en/apis/core/#Transform-worldMatrix)                        | forward 向量（世界空间中的单位矩阵）                                                                                     |
-| [worldRight](/en/apis/core/#Transform-worldMatrix)                          | right 向量（世界空间中的单位矩阵）                                                                                       |
-| [worldUp](/en/apis/core/#Transform-worldMatrix)                             | up 向量（世界空间中的单位矩阵）                                                                                          |
+| [position](/apis/core/#Transform-position)                               | 局部位移                                                                                                                 |
+| [rotation](/apis/core/#Transform-rotation)                               | 局部旋转 - 欧拉角                                                                                                        |
+| [rotationQuaternion](/apis/core/#Transform-rotationquaternion)           | 局部旋转 - 四元数                                                                                                        |
+| [scale](/apis/core/#Transform-scale)                                     | 局部缩放                                                                                                                 |
+| [worldPosition](/apis/core/#Transform-worldPosition)                     | 世界位移                                                                                                                 |
+| [worldRotation](/apis/core/#Transform-worldRotation)                     | 世界旋转 - 欧拉角                                                                                                        |
+| [worldRotationQuaternion](/apis/core/#Transform-worldRotationQuaternion) | 世界旋转 - 四元数                                                                                                        |
+| [lossyWorldScale](/apis/core/#Transform-lossyWorldScale)                 | 世界有损缩放 - 当父节点有缩放，子节点有旋转时，缩放会倾斜，无法使用 Vector3 正确表示,必须使用 Matrix3x3 矩阵才能正确表示 |
+| [localMatrix](/apis/core/#Transform-localMatrix)                         | 局部矩阵                                                                                                                 |
+| [worldMatrix](/apis/core/#Transform-worldMatrix)                         | 世界矩阵                                                                                                                 |
+| [worldForward](/apis/core/#Transform-worldMatrix)                        | forward 向量（世界空间中的单位矩阵）                                                                                     |
+| [worldRight](/apis/core/#Transform-worldMatrix)                          | right 向量（世界空间中的单位矩阵）                                                                                       |
+| [worldUp](/apis/core/#Transform-worldMatrix)                             | up 向量（世界空间中的单位矩阵）                                                                                          |
 
 ## Component Methods
 
 | Method Name                                                              | Method Description                     |
 | ----------------------------------------------------------------------- | -------------------------------------- |
-| [getWorldUp](/en/apis/core/#Transform-getWorldUp)                        | Get the world matrix up vector         |
-| [getWorldRight](/en/apis/core/#Transform-getWorldRight)                  | Get the world matrix right vector      |
-| [getWorldForward](/en/apis/core/#Transform-getWorldForward)              | Get the world matrix forward vector    |
-| [lookAt](/en/apis/core/#Transform-lookAt)                                | Rotate and ensure the world forward vector points to the target world position |
-| [registerWorldChangeFlag](/en/apis/core/#Transform-registerWorldChangeFlag) | Register world transformation change flag |
-| [rotate](/en/apis/core/#Transform-rotate)                                | Rotate according to the specified Euler angles |
-| [rotateByAxis](/en/apis/core/#Transform-rotateByAxis)                    | Rotate around the specified axis by the specified angle |
-| [translate](/en/apis/core/#Transform-translate)                          | Translate according to the specified direction and distance |
+| [getWorldUp](/apis/core/#Transform-getWorldUp)                        | Get the world matrix up vector         |
+| [getWorldRight](/apis/core/#Transform-getWorldRight)                  | Get the world matrix right vector      |
+| [getWorldForward](/apis/core/#Transform-getWorldForward)              | Get the world matrix forward vector    |
+| [lookAt](/apis/core/#Transform-lookAt)                                | Rotate and ensure the world forward vector points to the target world position |
+| [registerWorldChangeFlag](/apis/core/#Transform-registerWorldChangeFlag) | Register world transformation change flag |
+| [rotate](/apis/core/#Transform-rotate)                                | Rotate according to the specified Euler angles |
+| [rotateByAxis](/apis/core/#Transform-rotateByAxis)                    | Rotate around the specified axis by the specified angle |
+| [translate](/apis/core/#Transform-translate)                          | Translate according to the specified direction and distance |
 
 ### The Role of `registerWorldChangeFlag`
 

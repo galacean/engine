@@ -5,7 +5,7 @@ type: Animation
 label: Animation
 ---
 
-The Animation Controller ([AnimatorController](/en/apis/core/#AnimatorController)) helps you organize a set of animations for characters or other animated objects. It visualizes the animation playback logic of animated objects like a flowchart through the [Animation State Machine](/en/docs/animation/state-machine/) ([AnimatorStateMachine](/en/apis/core/#AnimatorStateMachine)) and automatically switches animation states ([AnimatorState](/en/apis/core/#AnimatorState)) and plays the referenced [Animation Clips](/en/docs/animation/clip) ([AnimationClip](/en/apis/core/#AnimationClip)) when conditions are met.
+The Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) helps you organize a set of animations for characters or other animated objects. It visualizes the animation playback logic of animated objects like a flowchart through the [Animation State Machine](/en/docs/animation/state-machine/) ([AnimatorStateMachine](/apis/core/#AnimatorStateMachine)) and automatically switches animation states ([AnimatorState](/apis/core/#AnimatorState)) and plays the referenced [Animation Clips](/en/docs/animation/clip) ([AnimationClip](/apis/core/#AnimationClip)) when conditions are met.
 
 ## Editor Usage
 
@@ -15,17 +15,17 @@ Through the Animation Controller editor, users can organize the playback logic o
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Wl35T7U_zg8AAAAAAAAAAAAADsJ_AQ/original)
 
-2. To organize the playback of these Animation Clips, we need to create an Animation Controller ([AnimatorController](/en/apis/core/#AnimatorController)) asset.
+2. To organize the playback of these Animation Clips, we need to create an Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) asset.
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original)
 
-3. The newly created Animation Controller has no data. We need to edit it, double-click the asset, and add an Animation State ([AnimatorState](/en/apis/core/#AnimatorState)) to it.
+3. The newly created Animation Controller has no data. We need to edit it, double-click the asset, and add an Animation State ([AnimatorState](/apis/core/#AnimatorState)) to it.
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*V0n1TJMquGYAAAAAAAAAAAAADsJ_AQ/original)
 
-4. Click AnimatorState to bind an [Animation Clip](/en/docs/animation/clip) ([AnimationClip](/en/apis/core/#AnimationClip)) to it.
+4. Click AnimatorState to bind an [Animation Clip](/en/docs/animation/clip) ([AnimationClip](/apis/core/#AnimationClip)) to it.
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xfPTRJg-hOMAAAAAAAAAAAAADsJ_AQ/original)
 
-5. Bind the Animation Controller ([AnimatorController](/en/apis/core/#AnimatorController)) asset to the [Animation Control Component](/en/docs/animation/animator).
+5. Bind the Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) asset to the [Animation Control Component](/en/docs/animation/animator).
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
 
 6. At this point, you can play the `Idle` animation in the exported project through `animator.play("New State")`.
@@ -42,7 +42,7 @@ For further usage of the Animation Controller editor, please refer to the [Anima
 
 ### Binding the Animation Controller
 
-You can bind the Animation Controller to the [Animator](/en/apis/core/#Animator) through the [animator.animatorController](/en/apis/core/#Animator-animatorController) property. If the loaded glTF model has animation data, it will automatically bind a default AnimatorController to each glTF instance.
+You can bind the Animation Controller to the [Animator](/apis/core/#Animator) through the [animator.animatorController](/apis/core/#Animator-animatorController) property. If the loaded glTF model has animation data, it will automatically bind a default AnimatorController to each glTF instance.
 
 ```typescript
 animator.animatorController = new AnimatorController(engine);
@@ -51,7 +51,7 @@ animator.play("New State");
 
 #### Reusing Animation Data
 
-The [animatorController](/en/apis/core/#AnimatorController) of the Animator is a data storage class and does not contain runtime data. Based on this design, as long as the hierarchical structure and naming of the skeletal nodes of the model bound to the Animator component are the same, we can reuse the animation data of this model.
+The [animatorController](/apis/core/#AnimatorController) of the Animator is a data storage class and does not contain runtime data. Based on this design, as long as the hierarchical structure and naming of the skeletal nodes of the model bound to the Animator component are the same, we can reuse the animation data of this model.
 
 ```typescript
 const animator = model1.getComponent(Animator);

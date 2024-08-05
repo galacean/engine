@@ -5,24 +5,24 @@ type: Core
 label: Core
 ---
 
-In the Galacean engine, [Entity](/en/apis/core/#Entity) does not have actual functionalities such as rendering models. These functionalities are implemented by loading [Component](/en/apis/core/#Component) component classes. For example, if you want to turn an _Entity_ into a camera, you just need to add the camera component [Camera](/en/apis/core/#Camera) to that _Entity_. This component-based functionality extension method focuses on encapsulating the program independently according to functionality, and combining and adding as needed during use, which is very beneficial for reducing program coupling and improving code reusability.
+In the Galacean engine, [Entity](/apis/core/#Entity) does not have actual functionalities such as rendering models. These functionalities are implemented by loading [Component](/apis/core/#Component) component classes. For example, if you want to turn an _Entity_ into a camera, you just need to add the camera component [Camera](/apis/core/#Camera) to that _Entity_. This component-based functionality extension method focuses on encapsulating the program independently according to functionality, and combining and adding as needed during use, which is very beneficial for reducing program coupling and improving code reusability.
 
 Common components:
 
 | Name                                                  | Description    |
 | :---------------------------------------------------- | :------------- |
-| [Camera](/en/apis/core/#Camera)                       | Camera         |
-| [MeshRenderer](/en/apis/core/#MeshRenderer)           | Static Model Renderer |
-| [SkinnedMeshRenderer](/en/apis/core/#SkinnedMeshRenderer) | Skinned Model Renderer |
-| [Animator](/en/apis/core/#Animator)                   | Animation Control Component |
-| [DirectLight](/en/apis/core/#DirectLight)             | Directional Light |
-| [PointLight](/en/apis/core/#PointLight)               | Point Light    |
-| [SpotLight](/en/apis/core/#SpotLight)                 | Spotlight      |
-| [ParticleRenderer](/en/apis/core/#ParticleRenderer)   | Particle System |
-| [BoxCollider](/en/apis/core/#BoxCollider)             | Box Collider   |
-| [SphereCollider](/en/apis/core/#SphereCollider)       | Sphere Collider |
-| [PlaneCollider](/en/apis/core/#PlaneCollider)         | Plane Collider |
-| [Script](/en/apis/core/#Script)                       | Script         |
+| [Camera](/apis/core/#Camera)                       | Camera         |
+| [MeshRenderer](/apis/core/#MeshRenderer)           | Static Model Renderer |
+| [SkinnedMeshRenderer](/apis/core/#SkinnedMeshRenderer) | Skinned Model Renderer |
+| [Animator](/apis/core/#Animator)                   | Animation Control Component |
+| [DirectLight](/apis/core/#DirectLight)             | Directional Light |
+| [PointLight](/apis/core/#PointLight)               | Point Light    |
+| [SpotLight](/apis/core/#SpotLight)                 | Spotlight      |
+| [ParticleRenderer](/apis/core/#ParticleRenderer)   | Particle System |
+| [BoxCollider](/apis/core/#BoxCollider)             | Box Collider   |
+| [SphereCollider](/apis/core/#SphereCollider)       | Sphere Collider |
+| [PlaneCollider](/apis/core/#PlaneCollider)         | Plane Collider |
+| [Script](/apis/core/#Script)                       | Script         |
 
 ## Editor Usage
 
@@ -50,7 +50,7 @@ If it is an empty node, you can click the `Add Component` button to add new comp
 
 ### Adding Components
 
-We use [addComponent(Component)](/en/apis/core/#Entity-addComponent) to add components, for example, adding a "Direct Light" component ([DirectLight](/en/apis/core/#DirectLight)) to an `Entity`:
+We use [addComponent(Component)](/apis/core/#Entity-addComponent) to add components, for example, adding a "Direct Light" component ([DirectLight](/apis/core/#DirectLight)) to an `Entity`:
 
 ```typescript
 const lightEntity = rootEntity.createChild("light");
@@ -61,20 +61,20 @@ directLight.intensity = 1;
 
 ### Finding Components on an Entity
 
-When we need to get a component on an entity, the [getComponent](/en/apis/core/#Entity-getComponent) API will help you find the target component.
+When we need to get a component on an entity, the [getComponent](/apis/core/#Entity-getComponent) API will help you find the target component.
 
 ```typescript
 const component = newEntity.getComponent(Animator);
 ```
 
-Sometimes there may be multiple components of the same type, and the above method will only return the first found component. If you need to find all components, you can use [getComponents](/en/apis/core/#Entity-getComponents):
+Sometimes there may be multiple components of the same type, and the above method will only return the first found component. If you need to find all components, you can use [getComponents](/apis/core/#Entity-getComponents):
 
 ```typescript
 const components = [];
 newEntity.getComponents(Animator, components);
 ```
 
-In assets like glTF, we might not know which entity the target component is on. In this case, you can use [getComponentsIncludeChildren](/en/apis/core/#Entity-getComponentsIncludeChildren) to search.
+In assets like glTF, we might not know which entity the target component is on. In this case, you can use [getComponentsIncludeChildren](/apis/core/#Entity-getComponentsIncludeChildren) to search.
 
 ```typescript
 const components = [];
@@ -91,7 +91,7 @@ const entity = directLight.entity;
 
 ### State
 
-When temporarily not using a component, you can actively call the component's [enabled](/en/apis/core/#Component-enabled)
+When temporarily not using a component, you can actively call the component's [enabled](/apis/core/#Component-enabled)
 
 ```typescript
 directLight.enabled = false;

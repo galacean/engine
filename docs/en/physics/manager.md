@@ -52,7 +52,7 @@ A ray can be understood as an infinite line emitted from a point in a certain di
 ![image.png](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ)
 (_Image source: Internet_)
 
-To use raycasting, you first need to import the [Ray](/en/apis/math/#Ray) module in the code; then generate a ray, which can be custom-generated or converted from screen input through the camera ([camera](/en/apis/core/#Camera-viewportPointToRay)); finally, call the [PhysicsManager.raycast](/en/apis/core/#PhysicsManager-raycast) method to detect the collision body hit by the ray. The code is as follows:
+To use raycasting, you first need to import the [Ray](/apis/math/#Ray) module in the code; then generate a ray, which can be custom-generated or converted from screen input through the camera ([camera](/apis/core/#Camera-viewportPointToRay)); finally, call the [PhysicsManager.raycast](/apis/core/#PhysicsManager-raycast) method to detect the collision body hit by the ray. The code is as follows:
 
 ```typescript
 // 加载 Raycast 模块

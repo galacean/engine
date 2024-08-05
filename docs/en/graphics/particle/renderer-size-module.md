@@ -6,7 +6,7 @@ group: Particle
 label: Graphics/Particle
 ---
 
-[`SizeOverLifetimeModule`](/en/apis/core/SizeOverLifetimeModule) is a subclass of `ParticleGeneratorModule` used to handle size changes over the lifetime of a particle system.
+[`SizeOverLifetimeModule`](/apis/core/SizeOverLifetimeModule) is a subclass of `ParticleGeneratorModule` used to handle size changes over the lifetime of a particle system.
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*e0FeQqj-HvAAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 
@@ -14,15 +14,15 @@ label: Graphics/Particle
 
 | Property                                                      | Description                                                                                         |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [separateAxes](/en/apis/core/SizeOverLifetimeModule#separateAxes) | Boolean value specifying whether the size changes independently for each axis                       |
-| [sizeX](/en/apis/core/SizeOverLifetimeModule#sizeX)               | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object representing the size change curve along the x-axis |
-| [sizeY](/en/apis/core/SizeOverLifetimeModule#sizeY)               | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object representing the size change curve along the y-axis |
-| [sizeZ](/en/apis/core/SizeOverLifetimeModule#sizeZ)               | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object representing the size change curve along the z-axis |
-| [size](/en/apis/core/SizeOverLifetimeModule#size)                 | [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object to get or set the size change curve of particles      |
+| [separateAxes](/apis/core/SizeOverLifetimeModule#separateAxes) | Boolean value specifying whether the size changes independently for each axis                       |
+| [sizeX](/apis/core/SizeOverLifetimeModule#sizeX)               | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) object representing the size change curve along the x-axis |
+| [sizeY](/apis/core/SizeOverLifetimeModule#sizeY)               | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) object representing the size change curve along the y-axis |
+| [sizeZ](/apis/core/SizeOverLifetimeModule#sizeZ)               | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) object representing the size change curve along the z-axis |
+| [size](/apis/core/SizeOverLifetimeModule#size)                 | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) object to get or set the size change curve of particles      |
 
 ## Polyline Editing
 
-For the [ParticleCompositeCurve](/en/apis/core/ParticleCompositeCurve) object, a polyline editor is built into the editor for visual curve adjustments.
+For the [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) object, a polyline editor is built into the editor for visual curve adjustments.
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*70KGQpOg85oAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 

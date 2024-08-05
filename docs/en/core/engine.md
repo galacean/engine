@@ -19,7 +19,7 @@ label: Core
 
 ## Initialization
 
-To facilitate users to directly create a web engine, Galacean provides [WebGLEngine](/en/apis/rhi-webgl/WebGLEngine):
+To facilitate users to directly create a web engine, Galacean provides [WebGLEngine](/apis/rhi-webgl/WebGLEngine):
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });
@@ -74,17 +74,17 @@ For more related configuration information, refer to [Physics System](/en/docs/p
 
 | Property Name | Property Description |
 | --- | --- |
-| [time](/en/apis/core/#Engine-time) | Engine time-related information. For details, refer to [Time](/en/docs/core/time/) |
-| [vSyncCount](/en/apis/core/#Engine-vSyncCount) | Vertical synchronization refresh rate. The engine enables [vertical synchronization](https://baike.baidu.com/item/%E5%9E%82%E7%9B%B4%E5%90%8C%E6%AD%A5/7263524?fromtitle=V-Sync&fromid=691778) by default, and the refresh rate `vSyncCount` is `1` (consistent with the screen refresh rate). If `vSyncCount` is set to `2`, the engine updates once every 2 frames of screen refresh. |
-| [resourceManager](/en/apis/core/#Engine-resourceManager) | Resource manager, generally used for [loading](/en/docs/assets/load/) and [releasing](/en/docs/assets/gc/) assets |
-| [sceneManager](/en/apis/core/#Engine-sceneManager) | Scene manager. Galacean supports rendering multiple scenes simultaneously. The scene manager can be used to conveniently manage the addition, deletion, modification, and query of the current scene. For details, refer to [Scene](/en/docs/core/scene/) |
-| [inputManager](/en/apis/core/#Engine-inputManager) | Interaction manager, generally used to obtain keyboard, touch, and scroll information. For details, refer to [Interaction](/en/docs/input/input/) |
+| [time](/apis/core/#Engine-time) | Engine time-related information. For details, refer to [Time](/en/docs/core/time/) |
+| [vSyncCount](/apis/core/#Engine-vSyncCount) | Vertical synchronization refresh rate. The engine enables [vertical synchronization](https://baike.baidu.com/item/%E5%9E%82%E7%9B%B4%E5%90%8C%E6%AD%A5/7263524?fromtitle=V-Sync&fromid=691778) by default, and the refresh rate `vSyncCount` is `1` (consistent with the screen refresh rate). If `vSyncCount` is set to `2`, the engine updates once every 2 frames of screen refresh. |
+| [resourceManager](/apis/core/#Engine-resourceManager) | Resource manager, generally used for [loading](/en/docs/assets/load/) and [releasing](/en/docs/assets/gc/) assets |
+| [sceneManager](/apis/core/#Engine-sceneManager) | Scene manager. Galacean supports rendering multiple scenes simultaneously. The scene manager can be used to conveniently manage the addition, deletion, modification, and query of the current scene. For details, refer to [Scene](/en/docs/core/scene/) |
+| [inputManager](/apis/core/#Engine-inputManager) | Interaction manager, generally used to obtain keyboard, touch, and scroll information. For details, refer to [Interaction](/en/docs/input/input/) |
 
 ### Refresh Rate
 
-By default, the engine uses vertical synchronization mode and controls the rendering refresh rate with [vSyncCount](/en/apis/core/#Engine-vSyncCount). In this mode, the rendered frame will wait for the screen's vertical sync signal. [vSyncCount](/en/apis/core/#Engine-vSyncCount) represents the desired number of screen sync signals between rendered frames. The default value is 1, and this property must be an integer. For example, if we want to render 30 frames per second on a device with a screen refresh rate of 60 frames, we can set this value to 2.
+By default, the engine uses vertical synchronization mode and controls the rendering refresh rate with [vSyncCount](/apis/core/#Engine-vSyncCount). In this mode, the rendered frame will wait for the screen's vertical sync signal. [vSyncCount](/apis/core/#Engine-vSyncCount) represents the desired number of screen sync signals between rendered frames. The default value is 1, and this property must be an integer. For example, if we want to render 30 frames per second on a device with a screen refresh rate of 60 frames, we can set this value to 2.
 
-Additionally, users can disable vertical synchronization by setting [vSyncCount](/en/apis/core/#Engine-vSyncCount) to 0 and then setting [targetFrameRate](/en/apis/core/#Engine-targetFrameRate) to the desired frame rate. In this mode, rendering does not consider the vertical sync signal. For example, 120 means 120 frames, i.e., the expectation is to refresh 120 times per second.
+Additionally, users can disable vertical synchronization by setting [vSyncCount](/apis/core/#Engine-vSyncCount) to 0 and then setting [targetFrameRate](/apis/core/#Engine-targetFrameRate) to the desired frame rate. In this mode, rendering does not consider the vertical sync signal. For example, 120 means 120 frames, i.e., the expectation is to refresh 120 times per second.
 
 ```typescript
 // 垂直同步
@@ -102,7 +102,7 @@ engine.targetFrameRate = 120;
 
 | Method Name                           | Description        |
 | ------------------------------------- | ------------------ |
-| [run](/en/apis/core/#Engine-run)      | Execute engine rendering frame loop |
-| [pause](/en/apis/core/#Engine-pause)  | Pause engine rendering frame loop   |
-| [resume](/en/apis/core/#Engine-resume)| Resume engine rendering loop        |
-| [destroy](/en/apis/core/#Engine-destroy)| Destroy the engine               |
+| [run](/apis/core/#Engine-run)      | Execute engine rendering frame loop |
+| [pause](/apis/core/#Engine-pause)  | Pause engine rendering frame loop   |
+| [resume](/apis/core/#Engine-resume)| Resume engine rendering loop        |
+| [destroy](/apis/core/#Engine-destroy)| Destroy the engine               |

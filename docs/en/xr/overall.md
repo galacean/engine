@@ -21,7 +21,7 @@ Galacean has designed XR to be clean and flexible:
 
 | Package | Description | Related Documentation |
 | :-- | :-- | --- |
-| [@galacean/engine-xr](https://www.npmjs.com/package/@galacean/engine-xr) | Core architecture logic | [API](/en/apis/galacean) |
+| [@galacean/engine-xr](https://www.npmjs.com/package/@galacean/engine-xr) | Core architecture logic | [API](/apis/galacean) |
 | [@galacean/engine-web-xr](https://www.npmjs.com/package/@galacean/engine-web-xr) | Backend package | [Doc](/en/docs/physics/overall) |
 | [@galacean/engine-toolkit-xr](https://www.npmjs.com/package/@galacean/engine-toolkit-xr) | Advanced tool components | [Doc](/en/docs/xr/toolkit) |
 

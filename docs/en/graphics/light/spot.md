@@ -10,7 +10,7 @@ label: Graphics/Light
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/93b85357-e67b-4c80-b74e-f116250958a7/image-20240319174652884.png" alt="image-20240319174652884" style="zoom:50%;" />
 
-The spotlight has several main characteristics: _color_ ([color](/en/apis/core/#SpotLight-color)), _intensity_ ([intensity](/en/apis/core/#SpotLight-intensity)), _effective distance_ ([distance](/en/apis/core/#SpotLight-distance)), _scatter angle_ ([angle](/en/apis/core/#SpotLight-angle)), _penumbra attenuation angle_ ([penumbra](/en/apis/core/#SpotLight-penumbra)). The scatter angle indicates the angle within which there is light relative to the direction of the light source, and the penumbra attenuation angle indicates that within the effective angle range, the light intensity gradually attenuates to 0 as the angle increases.
+The spotlight has several main characteristics: _color_ ([color](/apis/core/#SpotLight-color)), _intensity_ ([intensity](/apis/core/#SpotLight-intensity)), _effective distance_ ([distance](/apis/core/#SpotLight-distance)), _scatter angle_ ([angle](/apis/core/#SpotLight-angle)), _penumbra attenuation angle_ ([penumbra](/apis/core/#SpotLight-penumbra)). The scatter angle indicates the angle within which there is light relative to the direction of the light source, and the penumbra attenuation angle indicates that within the effective angle range, the light intensity gradually attenuates to 0 as the angle increases.
 
 | Attribute              | Function                                                                 |
 | :--------------------- | :------------------------------------------------------------------------ |

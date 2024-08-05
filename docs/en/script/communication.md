@@ -9,7 +9,7 @@ Projects developed with Galacean Engine often need to communicate with the exter
 
 ## Adding Events {/*examples*/}
 
-Galacean Engine provides [EventDispatcher](/en/apis/core/#EventDispatcher) as the event class, and [Engine](/en/apis/core/#Engine) inherits from [EventDispatcher](/en/apis/core/#EventDispatcher). Therefore, we directly use `engine` in the code as the medium for internal and external communication.
+Galacean Engine provides [EventDispatcher](/apis/core/#EventDispatcher) as the event class, and [Engine](/apis/core/#Engine) inherits from [EventDispatcher](/apis/core/#EventDispatcher). Therefore, we directly use `engine` in the code as the medium for internal and external communication.
 
 **Add events using `engine.on`**
 

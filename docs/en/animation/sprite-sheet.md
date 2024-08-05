@@ -27,6 +27,6 @@ Galacean supports reference-type animation curves. You can add keyframes of asse
 
 ### Script Implementation
 
-The engine supports reference-type animation curves ([AnimationRefCurve](/en/apis/core/#AnimationRefCurve)) in version 1.1. The value of the keyframe can be assets such as (sprites, materials). You can create reference-type animation curves to achieve capabilities such as frame animation:
+The engine supports reference-type animation curves ([AnimationRefCurve](/apis/core/#AnimationRefCurve)) in version 1.1. The value of the keyframe can be assets such as (sprites, materials). You can create reference-type animation curves to achieve capabilities such as frame animation:
 
 <playground src="animation-sprite.ts"></playground>

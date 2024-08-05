@@ -37,7 +37,7 @@ It should be noted that the relevant properties of the background are all in the
 | Property        | Function                                                                                                                                                                                                                                                                               |
 | :-------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | texture         | Set the background texture                                                                                                                                                                                                                                                              |
-| textureFillMode | Set the fill mode of the background texture, optional [AspectFitWidth](/en/apis/core/#BackgroundTextureFillMode-AspectFitWidth), [AspectFitHeight](/en/apis/core/#BackgroundTextureFillMode-AspectFitHeight) or [Fill](/en/apis/core/#BackgroundTextureFillMode-Fill), default is `BackgroundTextureFillMode.AspectFitHeight` |
+| textureFillMode | Set the fill mode of the background texture, optional [AspectFitWidth](/apis/core/#BackgroundTextureFillMode-AspectFitWidth), [AspectFitHeight](/apis/core/#BackgroundTextureFillMode-AspectFitHeight) or [Fill](/apis/core/#BackgroundTextureFillMode-Fill), default is `BackgroundTextureFillMode.AspectFitHeight` |
 
 ### Fill Mode
 
@@ -47,8 +47,8 @@ Currently, there are three texture adaptation modes:
 
 | Fill Mode                                                               | Description                                        |
 | ----------------------------------------------------------------------- | -------------------------------------------------- |
-| [AspectFitWidth](/en/apis/core/#BackgroundTextureFillMode-AspectFitWidth)   | Maintain aspect ratio, scale the texture width to the width of the Canvas, centered vertically. |
-| [AspectFitHeight](/en/apis/core/#BackgroundTextureFillMode-AspectFitHeight) | Maintain aspect ratio, scale the texture height to the height of the Canvas, centered horizontally. |
-| [Fill](/en/apis/core/#BackgroundTextureFillMode-Fill)                       | Fill the width and height of the Canvas with the texture.                   |
+| [AspectFitWidth](/apis/core/#BackgroundTextureFillMode-AspectFitWidth)   | Maintain aspect ratio, scale the texture width to the width of the Canvas, centered vertically. |
+| [AspectFitHeight](/apis/core/#BackgroundTextureFillMode-AspectFitHeight) | Maintain aspect ratio, scale the texture height to the height of the Canvas, centered horizontally. |
+| [Fill](/apis/core/#BackgroundTextureFillMode-Fill)                       | Fill the width and height of the Canvas with the texture.                   |
 
 It seems like your message is empty. Please paste the Markdown content you want translated, and I'll help you with the translation while adhering to the rules you've provided.
