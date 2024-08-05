@@ -107,7 +107,7 @@ The manual add method is similar to the quick add method, but you need to manual
 
 添加了 SpineAnimationRenderer 组件后，同样需要指定组件的 Resource，也就是 SpineAnimationRenderer 组件要渲染的 SpineSkeletonData 资产。
 
-### SpineAnimationRenderer 组件配置 {/*examples*/}
+### SpineAnimationRenderer 组件配置
 以上三种添加 Spine 动画的方法实际上本质其实是相同的，都是通过给实体 `添加 SpineAnimationRenderer 组件` ，来让 Spine 动画添加至场景中的。
 
 SpineAnimationRenderer 组件的配置如下：
@@ -123,7 +123,7 @@ SpineAnimationRenderer 组件的配置如下：
 - Scale：默认的缩放系数
 - Priority：渲染优先级
 
-## 4. 项目导出 {/*examples*/}
+## 4. 项目导出
 最终，完成场景编辑器后，可以参考[项目导出](/en/docs/assets/build/)流程，导出编辑器项目。
 
 </br></br></br></br>

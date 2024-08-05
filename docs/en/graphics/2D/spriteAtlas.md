@@ -102,9 +102,9 @@ Click on the `Sprite Atlas` asset, adjust the `Max Texture Width` and `Max Textu
 
 The left side of the preview image shows the size information of the exported image, and the right side shows the atlas utilization information (representing the percentage of the total area of all scattered images occupying the final large image). You can adjust the packing settings based on this value to achieve better results.
 
-## Script Usage {/*examples*/}
+## Script Usage
 
-### Atlas Generation {/*examples*/}
+### Atlas Generation
 
 Galacean provides a command-line tool for sprite atlas generation. Developers can generate an atlas by following these steps:
 
@@ -138,7 +138,7 @@ Here, `inputPath` represents the path of the folder to be packed, and `outputNam
 
 For more details, refer to [Atlas Packing Tool](https://github.com/galacean/tools/blob/main/packages/atlas/README.md).
 
-### Usage {/*examples*/}
+### Usage
 
 1. Upload the atlas image and atlas file to the same directory on the CDN. For example, the addresses of the file and image should be `https://*cdnDir*/*atlasName*.atlas` and `https://*cdnDir*/*atlasName*.png`, respectively.
 
@@ -160,7 +160,7 @@ engine.resourceManager
   });
 ```
 
-## Notes {/*examples*/}
+## Notes
 
 1. Please pack sprites with connected drawing sequences into the same atlas to significantly improve performance (reduce the number of draw calls);
 2. When cleaning up the sprite atlas, ensure that all sprites in the atlas are no longer in use;

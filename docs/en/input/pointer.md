@@ -7,7 +7,7 @@ label: Interact
 
 Galacean's touch is based on [Pointer](https://www.w3.org/TR/pointerevents3/), which smooths out the differences between [Mouse](https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent) and [Touch](https://developer.mozilla.org/zh-CN/docs/Web/API/TouchEvent), making touch unified in both concept and interface.
 
-## Pointer {/*examples*/}
+## Pointer
 
 In Galacean, whether it's a mouse on a PC, a stylus or a finger on a mobile device, when it performs the corresponding behavior within the touch range (**Down**, **Move**, etc.), it will be instantiated as a [Pointer](/apis/core/#Pointer). You can get all the currently active touch points in the [InputManager](/apis/core/#InputManager).
 
@@ -15,7 +15,7 @@ In Galacean, whether it's a mouse on a PC, a stylus or a finger on a mobile devi
 
 > It should be noted that each touch point is independent of each other, they respond to the corresponding events and callback the corresponding hook functions.
 
-### Lifecycle {/*examples*/}
+### Lifecycle
 
 Each touch point will start its life in **PointerDown** or **PointerMove**, and leave the stage in **PointerLeave** or **PointerCancel**. In Galacean, you can get the real-time status of this touch point through `Pointer.phase`.
 
@@ -38,7 +38,7 @@ timeline
 
 <playground src="input-log.ts"></playground>
 
-### Touch Buttons {/*examples*/}
+### Touch Buttons
 
 Referring to the [W3C standard](https://www.w3.org/TR/uievents/#dom-mouseevent-button) and [Microsoft related documentation](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.mousebutton?view=windowsdesktop-6.0), Galacean defines touch buttons as follows:
 
@@ -58,7 +58,7 @@ Combining touch buttons can easily detect the behavior of touch points triggered
 
 <playground src="input-pointerButton.ts"></playground>
 
-### Touch Callbacks {/*examples*/}
+### Touch Callbacks
 
 You only need to add touch callbacks to an Entity with a Collider component to enable interaction with rendered objects. Touch callbacks are integrated into the engine's [script lifecycle](/en/docs/script/class/#脚本生命周期), allowing users to easily add the following events. The hook functions will carry the Pointer instance that triggered the callback.
 
@@ -81,7 +81,7 @@ Example:
 
 <playground src="input-pointer.ts"></playground>
 
-### Raycasting {/*examples*/}
+### Raycasting
 
 Touch callbacks are implemented based on raycasting. Customizing raycasting is also very simple, just follow these steps.
 
@@ -118,7 +118,7 @@ Design ideas can be referenced at: https://github.com/galacean/engine/wiki/Input
 
 ## QA
 
-### Touch works fine on PC but behaves abnormally on mobile devices {/*examples*/}
+### Touch works fine on PC but behaves abnormally on mobile devices
 
 On mobile devices, touch interactions trigger the default behavior of HTML elements. Once the default behavior is triggered, the touch interaction is removed from the element (PointerCancel). This can be resolved by setting the `touchAction` of the listening source. If the listening source is the default canvas:
 

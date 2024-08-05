@@ -137,7 +137,7 @@ const texture = new Texture2D(engine, width, height);
 texture.setImageSource(img, 0, true); // The 3rd parameter
 ```
 
-### premultiplyAlpha {/*examples*/}
+### premultiplyAlpha
 
 premultiplyAlpha is used to control whether the texture pre-multiplies the alpha (transparency) channel. **The engine and editor have it turned off by default**. If you need to change the default behavior of premultiplyAlpha, you can do so through the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
 
@@ -146,7 +146,7 @@ const texture = new Texture2D(engine, width, height);
 texture.setImageSource(img, 0, undefined, true); // The 4th parameter
 ```
 
-### format {/*examples*/}
+### format
 
 The engine uses `TextureFormat.R8G8B8A8` as the default texture format, meaning that the red, green, blue, and alpha channels each use 1 byte, allowing each channel to store color values ranging from 0 to 255. The engine supports configuring different texture formats, which can be referenced in [TextureFormat](/apis/core/#TextureFormat). For example, if we do not need to use the alpha channel, i.e., the A channel, we can use `TextureFormat.R8G8B8`:
 

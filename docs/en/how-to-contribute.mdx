@@ -241,7 +241,7 @@ For example, to add documentation for the animation system joint:
 
 对于文档国际化而言，则同步在 `/docs/en` 文件夹中做上述操作
 
-## 新增博客 {/*examples*/}
+## 新增博客
 新增博客与新增文档的过程类似，只是 frontMatter 多了一些支持的字段。
 
 1. 新增博客文档 `blog/new_blog.mdx`
@@ -254,10 +254,10 @@ For example, to add documentation for the animation system joint:
    6. **searchable** 需要配置为 `searchable: false` 从而避免被内置的搜索引擎搜索到
    7. **summary** 博客的摘要，会显示在博客列表页中
 
-## 新增 Changelog {/*examples*/}
+## 新增 Changelog
 和新增博客的过程一样，只不过文件位于 `/changelog` 中。
 
-## 新增示例 {/*examples*/}
+## 新增示例
 除了以往的单文件示例开发外，我们许你将一个大的示例进行拆分。比如将资产文件列表拆分成一个 `json`，或者将 `dat-gui` 的配置拆分到 `gui-config.ts` 中等等。
 
 要实现文件拆分，你只需要在 `examples` 文件中新建示例文件夹，确保文件夹中包含一个 `index.ts` 即可。在示例页面生成时，会自动检测代码中所依赖的其他文件，并注入到工作区中。
