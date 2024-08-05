@@ -6,32 +6,33 @@ group: Texture
 label: Graphics/Texture
 ---
 
-Textures ([Texture](/apis/core/#Texture)) are the most commonly used resources in 3D rendering. When shading models, we need to assign a color value to each fragment. Besides manually setting the color value, we can also choose to read texels from textures for shading to achieve more sophisticated artistic effects.
+Textures ([Texture](/en/apis/core/#Texture)) are one of the most commonly used resources in 3D rendering. When shading a model, we need to set a color value for each fragment. Besides setting the color value manually, we can also choose to read texels from a texture for shading to achieve richer artistic effects.
 
-> It is worth noting that images, canvas drawings, raw data, videos, etc., can all be used as textures. The Galacean engine currently supports all standard WebGL textures.
+> It is worth noting that images, canvas, raw data, videos, etc., can all be used as textures. The Galacean engine currently supports all WebGL standard textures.
 
-We will find that many issues in the engine stem from mappings between different spaces (such as MVP transformations), and textures are no exception. Developers not only need to understand the mapping relationship from image space to texture space but also need to understand the mapping rules from texels to pixels.
+We will find that many issues in the engine stem from mapping between different spaces (such as MVP transformations). Textures are no exception. Developers need to understand the mapping relationship from image space to texture space and the mapping rules from texels to pixels.
 
-This document will mainly cover:
+This article will mainly introduce:
 
-- Texture types, texture space, and common properties
-- [2D Texture](/en/docs/graphics-texture-2d)
-- [Cube Texture](/en/docs/graphics-texture-cube)
-- [Playing Video with Textures](/en/docs/graphics-texture-2d)
-- [Setting Skybox Textures](/en/docs/graphics-background-sky)
-- [Offscreen Rendering Textures](/en/docs/graphics-texture-rtt)
-- Using [Compressed Textures](/en/docs/graphics-texture-compression)
+- Types of textures, texture space, and common properties
+- [2D Textures](/en/docs/graphics/texture/2d/)
+- [Cube Textures](/en/docs/graphics/texture/cube/)
+- [Playing Videos through Textures](/en/docs/graphics/texture/2d/)
+- [Setting Sky Textures](/en/docs/graphics/background/sky/)
+- [Off-screen Rendering Textures](/en/docs/graphics/texture/rtt/)
+- Using [Compressed Textures](/en/docs/graphics/texture/compression/)
 
 ## Texture Types
 
-| Type                                      | Description                                                                 |
-| :---------------------------------------- | :-------------------------------------------------------------------------- |
-| [2D Texture](/en/docs/graphics-texture-2d)  | The most commonly used artistic resource, sampled using 2D UV coordinates    |
-| [Cube Texture](/en/docs/graphics-texture-cube}) | Composed of 6 2D textures, a cube texture can be used for skyboxes, environment reflections, and other effects |
+| Type                                     | Description                                                        |
+| :--------------------------------------- | :----------------------------------------------------------------- |
+| [2D Textures](/en/docs/graphics/texture/2d/)    | The most commonly used artistic resource, sampled using 2D UV coordinates                         |
+| [Cube Textures](/en/docs/graphics/texture/cube/) | Composed of 6 2D textures, can be used to achieve skybox, environment reflection effects |
+| 2D Texture Arrays                              | Occupies only one texture unit, very suitable for implementing texture atlas switching needs         |
 
 ## Texture Space
 
-Texture space is determined by the shape of the texture. 2D textures require the use of 2D spatial vectors for texture sampling, while cube textures require the use of 3D spatial vectors for texture sampling.
+Texture space is determined by the shape of the texture. 2D textures require 2D space vectors for texture sampling, while cube textures require 3D space vectors for texture sampling.
 
 <div style="display: flex; gap: 20px;">
   <figure style="flex:1;">
@@ -46,63 +47,63 @@ Texture space is determined by the shape of the texture. 2D textures require the
 
 ## Common Properties
 
-Although texture types vary, they all have some similar basic properties and settings:
+Although there are various types of textures, they all have some similar basic properties and settings:
 
-| Property                                                        | Value                                                                                                                                 |
-| :-------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
-| U Wrap Mode ([wrapModeU](/apis/core/#Texture-wrapModeU))          | Clamping ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeating ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirrored Repeat ([Mirror](/apis/core/#TextureWrapMode-Mirror)) |
-| V Wrap Mode ([wrapModeV](/apis/core/#Texture-wrapModeV))          | Clamping ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeating ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirrored Repeat ([Mirror](/apis/core/#TextureWrapMode-Mirror)) |
-| Filter Mode ([filterMode](/apis/core/#Texture-filterMode))        | Point Filtering ([Point](/apis/core/#TextureFilterMode-Point)), Bilinear Filtering ([Bilinear](/apis/core/#TextureFilterMode-Bilinear)), Trilinear Filtering ([Trilinear](/apis/core/#TextureFilterMode-Trilinear)) |
-| Anisotropic Filtering Level ([anisoLevel](/apis/core/#Texture-anisoLevel)) | 1 to 16, depending on device support                                                                                                 |
+| Property                                                            | Value                                                                                                                                                                                         |
+| :-------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wrap Mode U ([wrapModeU](/en/apis/core/#Texture-wrapModeU))         | Clamp Mode ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/en/apis/core/#TextureWrapMode-Mirror))               |
+| Wrap Mode V ([wrapModeV](/en/apis/core/#Texture-wrapModeV))         | Clamp Mode ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/en/apis/core/#TextureWrapMode-Mirror))               |
+| Filter Mode ([filterMode](/en/apis/core/#Texture-filterMode))         | Point Filter ([Point](/en/apis/core/#TextureFilterMode-Point)), Bilinear Filter ([Bilinear](/en/apis/core/#TextureFilterMode-Bilinear)), Trilinear Filter ([Trilinear](/en/apis/core/#TextureFilterMode-Trilinear)) |
+| Anisotropic Filter Level ([anisoLevel](/en/apis/core/#Texture-anisoLevel)) | 1 ~ 16, depending on device support                                                                                                                                                               |
 
 ### Loop Mode
 
-The texture sampling range is `[0,1]`, so when the texture UV coordinates exceed this range, we can control how to sample the out-of-range parts by setting the loop mode.
+The texture sampling range is `[0,1]`. When the texture UV coordinates exceed this range, we can control how the exceeding part is sampled by setting the loop mode.
 
-| Sampling Loop Mode | Explanation                        |
-| :----------------- | :--------------------------------- |
-| Clamp              | Sample edge pixels when out of range |
-| Repeat             | Re-sample from [0,1] when out of range |
-| Mirror             | Mirror sampling from [1,0] when out of range |
+| Sampling Loop Mode | Explanation                          |
+| :----------------- | :----------------------------------- |
+| Clamp              | Samples the edge texel when out of range |
+| Repeat             | Resamples from [0,1] when out of range |
+| Mirror             | Mirrors sampling from [1,0] when out of range |
 
 <playground src="wrap-mode.ts"></playground>
 
 ### Filter Mode
 
-Generally, pixels and screen pixels do not correspond exactly. We can control the filtering mode for magnification (Mag) and minification (Min) modes by setting the filter mode.
+Generally, texels and screen pixels do not correspond exactly. We can control the filtering mode in magnification (Mag) and minification (Min) modes by setting the filter mode.
 
-| Sampling Filter Mode | Explanation                        |
-| :------------------- | :--------------------------------- |
-| Point                | Use the nearest pixel to the sampling point |
-| Bilinear             | Use the average value of the nearest 2*2 pixel matrix |
-| Trilinear            | In addition to bilinear filtering, also average over mipmap levels |
+| Sampling Filter Mode | Explanation                                                   |
+| :------------------- | :------------------------------------------------------------ |
+| Point                | Uses the texel closest to the sampling point                  |
+| Bilinear             | Uses the average value of the nearest 2\*2 texel matrix       |
+| Trilinear            | Applies average filtering to the mipmap levels based on bilinear filtering |
 
 <playground src="filter-mode.ts"></playground>
 
 ### Anisotropic Filtering Level
 
-Anisotropic filtering technology can make textures look clearer at oblique angles. As shown in the figure below, the end of the texture becomes clearer as the anisotropic filtering level increases. However, please use it carefully, as the larger the value, the greater the computational load on the GPU.
+Anisotropic filtering technology can make textures appear clearer when viewed at oblique angles. As shown in the figure below, the end of the texture becomes clearer as the anisotropic filtering level increases. However, use it with caution; the higher the value, the greater the GPU computation.
 
 <playground src="texture-aniso.ts"></playground>
 
 ## General Settings
 
-| Setting           | Value                      |
-| :---------------- | :-------------------------  |
-| mipmap            | Multi-level texture blending (enabled by default) |
+| Setting           | Value                        |
+| :---------------- | :--------------------------- |
+| mipmap            | Multi-level texture gradient (enabled by default) |
 | flipY             | Flip Y-axis (disabled by default) |
 | premultiplyAlpha  | Premultiply alpha channel (disabled by default) |
 | format            | Texture format (default R8G8B8A8) |
 
-### Mipmap
+### mipmap
 
-The engine defaults to enabling [mipmap](/apis/core/#Texture-generateMipmaps) (multi-level texture blending). Mipmap is used to address the accuracy and performance issues when sampling high-resolution textures from low-resolution screens, allowing for the selection of different resolution textures at appropriate distances, as shown below:
+**The engine enables [mipmap](/en/apis/core/#Texture-generateMipmaps)** (multi-level texture gradient) by default. Mipmap is used to solve the precision and performance issues when sampling high-resolution textures on low-resolution screens, allowing the selection of different resolution textures at appropriate distances, as shown below:
 
 ![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ)
 
-It is important to note that WebGL 2.0 supports textures of **any resolution**, which will generate mipmaps layer by layer according to the [mipmap algorithm](http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf). However, if you are in a WebGL 1.0 environment, be sure to upload **textures with power-of-two dimensions**, such as 1024 \* 512, otherwise Galacean will detect that mipmaps cannot be used in the environment and automatically disable the mipmap feature, leading to unexpected visual results.
+It should be noted that WebGL2.0 supports textures of **any resolution** and will generate mip levels based on the [mipmap](http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf) algorithm. However, if your environment is WebGL1.0, please ensure to upload **power-of-two textures**, such as textures with a resolution of 1024 \* 512. Otherwise, Galacean will detect that the environment cannot use mipmap and will automatically downgrade to disable the mipmap function, which may cause some unexpected visual effects.
 
-If you need to change the default behavior of mipmap, you can achieve this through scripting. For detailed parameters, refer to the [API](/apis/core/#Texture2D-constructor):
+If you need to change the default behavior of mipmap, you can do so via script. For parameters, see [API](/en/apis/core/#Texture2D-constructor):
 
 ```typescript
 const texture = new Texture2D(
@@ -114,7 +115,7 @@ const texture = new Texture2D(
 ); // 第 5 个参数
 ```
 
-For cube texture scripting, refer to the [API](/apis/core/#TextureCube-constructor):
+For cube texture scripts, see [API](/en/apis/core/#TextureCube-constructor):
 
 ```typescript
 const cubeTexture = new TextureCube(
@@ -129,27 +130,27 @@ const cubeTexture = new TextureCube(
 
 ### flipY
 
-flipY is used to control whether the texture is flipped along the Y-axis, i.e., upside down. The engine and editor default to disabled. If you need to change the default behavior of flipY, you can achieve this through the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
+flipY is used to control whether the texture is flipped along the Y-axis, i.e., upside down. **The engine and editor disable it by default**. If you need to change the default behavior of flipY, you can do so via the [setImageSource](/en/apis/core/#Texture2D-setImageSource) method:
 
 ```typescript
 const texture = new Texture2D(engine, width, height);
-texture.setImageSource(img, 0, true); // 第 3 个参数
+texture.setImageSource(img, 0, true); // The 3rd parameter
 ```
 
-### premultiplyAlpha
+### premultiplyAlpha {/*examples*/}
 
-premultiplyAlpha is used to control whether the texture pre-multiplies the alpha (transparency) channel. **The engine and editor have it turned off by default**. If you need to change the default behavior of premultiplyAlpha, you can do so by using the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
+premultiplyAlpha is used to control whether the texture pre-multiplies the alpha (transparency) channel. **The engine and editor have it turned off by default**. If you need to change the default behavior of premultiplyAlpha, you can do so through the [setImageSource](/en/apis/core/#Texture2D-setImageSource) method:
 
 ```typescript
 const texture = new Texture2D(engine, width, height);
-texture.setImageSource(img, 0, undefined, true); // 第 4 个参数
+texture.setImageSource(img, 0, undefined, true); // The 4th parameter
 ```
 
-### format
+### format {/*examples*/}
 
-The engine defaults to using `TextureFormat.R8G8B8A8` as the texture format, which means red, green, blue, and alpha channels each use 1 byte, allowing color values in the range of 0 to 255 for each channel. The engine supports configuring different texture formats, for more details refer to [TextureFormat](/apis/core/#TextureFormat). For example, if we don't need to use the alpha channel, we can use `TextureFormat.R8G8B8`:
+The engine uses `TextureFormat.R8G8B8A8` as the default texture format, meaning that the red, green, blue, and alpha channels each use 1 byte, allowing each channel to store color values ranging from 0 to 255. The engine supports configuring different texture formats, which can be referenced in [TextureFormat](/en/apis/core/#TextureFormat). For example, if we do not need to use the alpha channel, i.e., the A channel, we can use `TextureFormat.R8G8B8`:
 
 ```typescript
 const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8);
 ```
-
+```

@@ -5,17 +5,16 @@ type: Core
 label: Core
 ---
 
-
-Node cloning is a common feature at runtime, and cloning a node will also clone the components bound to it. For example, during initialization, create a certain number of identical entities dynamically based on configuration, and then place them in different positions in the scene according to logical rules. Here, we will provide a detailed explanation of the cloning details of scripts.
+Node cloning is a common runtime feature, and node cloning also includes cloning its bound components. For example, during the initialization phase, dynamically create a certain number of identical entities based on configuration, and then place them in different positions in the scene according to logical rules. Here, the details of script cloning will be explained in detail.
 
 ## Entity Cloning
-It's very simple, just call the [clone()](/apis/design/#IClone-clone) method of the entity to complete the cloning of the entity and its attached components.
+It's very simple, just call the entity's [clone()](/en/apis/design/#IClone-clone) method to complete the cloning of the entity and its attached components.
 ```typescript
 const cloneEntity = entity.clone();
 ```
 
 ## Script Cloning
-Since scripts are essentially components, when we call the [clone()](/apis/design/#IClone-clone) function of an entity, the engine will not only clone the built-in components but also clone custom scripts. The cloning rules for built-in components have been customized by the official, and similarly, we have opened up the cloning capability and rules for scripts to developers. The default cloning method for scripts is shallow copy. For example, if we modify the field values of a script and then clone it, the cloned script will retain the modified values without the need for any additional coding. Here is an example of cloning a custom script:
+Scripts are essentially components, so when we call the entity's [clone()](/en/apis/design/#IClone-clone) function, the engine will not only clone the built-in components but also clone custom scripts. The cloning rules for built-in components have been customized by the official team, and similarly, we have also opened up the cloning capabilities and rules for scripts to developers. The default cloning method for script fields is shallow copy. For example, if we modify the field values of the script and then clone it, the cloned script will retain the modified values without any additional coding. Below is an example of custom script cloning:
 ```typescript
 // define a custom script
 class CustomScript extends Script{
@@ -44,16 +43,16 @@ console.log(cloneScript.b); // output is 2.
 console.log(cloneScript.c); // output is (1,1,1).
 ```
 ### Clone Decorators
-In addition to the default cloning method, the engine also provides "clone decorators" to customize the cloning method of script fields. There are four built-in clone decorators:
+In addition to the default cloning method, the engine also provides "clone decorators" to customize the cloning method for script fields. The engine has four built-in clone decorators:
 
 | Decorator Name | Decorator Description |
 | :--- | :--- |
-| [ignoreClone](/apis/core/#ignoreClone) | Ignore the field during cloning. |
-| [assignmentClone](/apis/core/#assignmentClone) | (Default, equivalent to not adding any clone decorators) Assign the field during cloning. If it is a primitive type, it will copy the value; if it is a reference type, it will copy the reference address. |
-| [shallowClone](/apis/core/#shallowClone) | Perform shallow cloning of the field during cloning. After cloning, it will maintain its own reference independently and clone all its internal fields using the assignment method (copying the value for primitive types and copying the reference address for reference types). |
-| [deepClone](/apis/core/#deepClone) | Perform deep cloning of the field during cloning. After cloning, it will maintain its own reference independently, and all its deep internal fields will remain completely independent. |
+| [ignoreClone](/en/apis/core/#ignoreClone) | Ignore the field during cloning. |
+| [assignmentClone](/en/apis/core/#assignmentClone) | (Default value, equivalent to not adding any clone decorator) Assign the field during cloning. If it is a basic type, the value will be copied; if it is a reference type, the reference address will be copied. |
+| [shallowClone](/en/apis/core/#shallowClone) | Shallow clone the field during cloning. After cloning, it will maintain its own independent reference and clone all its internal fields by assignment (if the internal field is a basic type, the value will be copied; if the internal field is a reference type, the reference address will be copied). |
+| [deepClone](/en/apis/core/#deepClone) | Deep clone the field during cloning. After cloning, it will maintain its own independent reference, and all its internal deep fields will remain completely independent. |
 
-We slightly modified the above example and added different "clone decorators" to the four fields in `CustomScript`. Since `shallowClone` and `deepClone` are more complex, we added additional print outputs for fields `c` and `d` for further explanation.
+We slightly modify the above example and add different "clone decorators" to the four fields in `CustomScript`. Since `shallowClone` and `deepClone` are more complex, we add additional print output to the fields `c` and `d` for further explanation.
 ```typescript
 // define a custom script
 class CustomScript extends Script{
@@ -99,8 +98,6 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
 - Note:
 
   - `shallowClone` and `deepClone` are usually used for *Object*, *Array*, and *Class* types.
-  - `shallowClone` maintains its own reference independently after cloning and clones all its internal fields using the assignment method (copying the value for primitive types and copying the reference address for reference types).
-  - `deepClone` performs deep cloning, recursively cloning properties, and how the sub-properties of properties are cloned depends on the decorators of the sub-properties.
-  - If the clone decorators do not meet the requirements, you can append custom cloning by implementing the [_cloneTo()](/apis/design/#IClone-cloneTo) method. 
-
-
+  - `shallowClone` will maintain its own independent reference after cloning and clone all its internal fields by assignment (if the internal field is a basic type, the value will be copied; if the internal field is a reference type, the reference address will be copied).
+  - `deepClone` is a deep clone that will recursively clone the properties deeply. How the sub-properties of the properties are cloned depends on the decorators of the sub-properties.
+  - If the clone decorators do not meet the requirements, you can implement the [_cloneTo()](/en/apis/design/#IClone-cloneTo) method to add custom cloning.

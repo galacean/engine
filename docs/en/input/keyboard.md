@@ -1,23 +1,23 @@
 ---
 order: 2
 title: Keyboard
-type: Interaction
+type: Interact
 label: Interact
 ---
 
-Galacean supports developers to query the current keyboard interaction status at any time, and the API calls are very simple.
+Galacean supports developers to query the current keyboard interaction status at any time, and the interface is very simple to call.
 
 ## Methods
 
-| Method Name                                               | Method Definition           |
-| --------------------------------------------------------- | ---------------------------- |
-| [isKeyHeldDown](/apis/core/#InputManager-isKeyHeldDown)    | Returns whether the key is held down continuously |
-| [isKeyDown](/apis/core/#InputManager-isKeyDown)            | Returns whether the key was pressed during the current frame |
-| [isKeyUp](/apis/core/#InputManager-isKeyUp)                | Returns whether the key was released during the current frame |
+| Method Name                                               | Description                |
+| --------------------------------------------------------- | -------------------------- |
+| [isKeyHeldDown](/en/apis/core/#InputManager-isKeyHeldDown) | Returns whether the key is being held down |
+| [isKeyDown](/en/apis/core/#InputManager-isKeyDown)         | Returns whether the key was pressed in the current frame |
+| [isKeyUp](/en/apis/core/#InputManager-isKeyUp)             | Returns whether the key was released in the current frame |
 
 ## Quick Start
 
-Below are simple examples of checking the key status.
+Below is a simple example of detecting key states.
 
 ```typescript
 class KeyScript extends Script {
@@ -36,32 +36,31 @@ class KeyScript extends Script {
 }
 ```
 
-## Practical Use
+## Practical Example
 
-Let's control the angry bird with the space key this time.
+This time, let's use the spacebar to control Angry Birds.
 
 <playground src="flappy-bird.ts"></playground>
 
 ## State Dictionary
 
-| Key State                                                | isKeyHeldDown | isKeyDown | isKeyUp |
-| -------------------------------------------------------- | ------------- | --------- | ------- |
-| Key has been held down since the previous frame          | true          | false     | false   |
-| Key was pressed during the current frame and not released| true          | true      | false   |
-| Key was released and pressed again during the current frame| true        | true      | true    |
-| Key was pressed and released during the current frame    | false         | true      | true    |
-| Key was released during the current frame                | false         | false     | true    |
-| Key is not pressed and has no interaction                | false         | false     | false   |
-| This scenario will not occur                             | true          | false     | true    |
-| This scenario will not occur                             | false         | true      | false   |
+| Key State                   | isKeyHeldDown | isKeyDown | isKeyUp |
+| --------------------------- | ------------- | --------- | ------- |
+| The key has been held down since the last frame | true          | false     | false   |
+| The key was pressed in the current frame and not released | true          | true      | false   |
+| The key was released and pressed again in the current frame | true          | true      | true    |
+| The key was pressed and released in the current frame | false         | true      | true    |
+| The key was released in the current frame | false         | false     | true    |
+| The key was not pressed and had no interaction | false         | false     | false   |
+| This situation will not occur | true          | false     | true    |
+| This situation will not occur | false         | true      | false   |
 
 ## Keys
 
-The keyboard keys enumerated by Galacean correspond one-to-one with physical keyboard keys, following the W3C standard, and are compatible with various special keys on different hardware.
+The keyboard Keys enumerated by Galacean correspond one-to-one with the physical keyboard, following W3C standards, and are compatible with various special keys on different hardware.
 
-Keys Enumeration: [Keys.ts](https://github.com/galacean/engine/blob/main/packages/core/src/input/enums/Keys.ts)
+Keys Enumeration: https://github.com/galacean/engine/blob/main/packages/core/src/input/enums/Keys.ts
 
-W3C Standard: [W3C UI Events Code](https://www.w3.org/TR/2017/CR-uievents-code-20170601/)
+W3C Standard: https://www.w3.org/TR/2017/CR-uievents-code-20170601/
 
-Keyboard Input Design Approach: [Keyboard Input Design](https://github.com/galacean/engine/wiki/Keyboard-Input-design)
-
+Keyboard Input Design Philosophy: https://github.com/galacean/engine/wiki/Keyboard-Input-design

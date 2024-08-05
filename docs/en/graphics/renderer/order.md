@@ -1,22 +1,22 @@
 ---
 order: 3
-title: Rendering Order
+title: Render Order
 type: Graphics
 group: Renderer
 label: Graphics/Renderer
 ---
 
-The rendering order of the renderer will affect the **performance** and **accuracy** of the rendering. In Galacean, for each camera, components are placed in the corresponding **render queue** according to a unified **determination rule**.
+The render order of the renderer affects the **performance** and **accuracy** of rendering. In Galacean, for each camera, components are placed in the corresponding **render queue** according to a unified **determination rule**.
 
 ## Render Queue
 
-Galacean has divided the rendering into three render queues, in the following order:
+Galacean is divided into three render queues, in the order of rendering:
 
-- Non-transparent render queue (**Opaque**)
-- Transparent cutout render queue (**AlphaTest**)
-- Transparent render queue (**Transparent**)
+- Opaque Render Queue (**Opaque**)
+- Alpha Test Render Queue (**AlphaTest**)
+- Transparent Render Queue (**Transparent**)
 
-The assignment of the renderer to a queue is determined by whether the renderer material is **transparent** and the **threshold** of transparent cutout.
+The queue to which the renderer is assigned is determined by whether the renderer material is **transparent** and the **alpha test threshold**.
 
 ```mermaid
 flowchart TD
@@ -27,9 +27,9 @@ flowchart TD
     D -->|否| F[非透明渲染队列]
 ```
 
-## Determination Rule
+## Determination Rules
 
-The determination rule for rendering order in Galacean is as follows:
+The determination rules for render order in Galacean are as follows:
 
 ```mermaid
 flowchart TD
@@ -44,20 +44,20 @@ flowchart TD
 
 ### Renderer Priority
 
-The engine provides a `priority` property for the renderer to modify the rendering order in the render queue. The default value is 0, the **smaller the priority (can be negative), the higher the priority** of rendering.
+The engine provides the `priority` property for the renderer to modify the render order in the render queue. The default value is 0. **The smaller the priority (it can be negative), the higher the rendering priority**.
 
 ### Material Priority
 
-The engine provides a `priority` property for the material to modify the rendering order of different rendering data from the same renderer in the render queue. The default value is 0, the **smaller the priority (can be negative), the higher the priority** of rendering.
+The engine provides the `priority` property for the material to modify the render order of different render data from the same renderer in the render queue. The default value is 0. **The smaller the priority (it can be negative), the higher the rendering priority**.
 
-### Distance from Renderer Component Bounds to Camera
+### Distance from Renderer Component Bounding Box to Camera
 
-The calculation of the distance from the renderer component bounds to the camera depends on the type of [camera](/en/docs/graphics-camera). In an orthographic camera, it is the distance between the center point of the renderer bounds and the camera along the camera's view direction. In a perspective camera, it is the direct distance from the center point of the renderer bounds to the camera position.
+The calculation method of the distance from the renderer component bounding box to the camera depends on the [camera](/en/docs/graphics/camera/camera/) type. In an orthographic camera, it is the distance from the center of the renderer bounding box to the camera along the camera view direction. In a perspective camera, it is the direct distance from the center of the renderer bounding box to the camera position.
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*gYvyQp6qD3YAAAAAAAAAAAAADjCHAQ/original" alt="Distance to Camera Illustration" style="zoom:50%;" />
+<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*gYvyQp6qD3YAAAAAAAAAAAAADjCHAQ/original" alt="Distance to Camera Diagram" style="zoom:50%;" />
 
-> It is important to note that the impact of distance on rendering order is different in different render queues. In the non-transparent render queue and transparent cutout render queue, the rendering order is **from near to far**, while in the transparent render queue, the rendering order is **from far to near**.
+> It should be noted that in different render queues, the rules for the impact of distance on render order are different. In the opaque render queue and alpha test render queue, the render order is **from near to far**, while in the transparent render queue, the render order is **from far to near**.
 
 ### Stability
 
-Currently, when different renderers have the same `renderer priority` and `distance from renderer component bounds to camera`, Galacean ensures the stability of rendering order through **`renderer.instanceId`**, but it cannot guarantee the stability of rendering order within the **same renderer**.
+Currently, when different renderers have the same `renderer priority` and the same `distance from the renderer component bounding box to the camera`, Galacean ensures the stability of the render order through **`renderer.instanceId`**, but the render order within the **same renderer** cannot be guaranteed to be stable.

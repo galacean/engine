@@ -1,0 +1,54 @@
+---
+title: Shader
+---
+
+In the [Shader Introduction](/en/docs/graphics/shader/intro/), we learned the basic concepts of shaders. The Galacean engine encapsulates other rendering-related information based on shader programs to form a Shader object. The Shader object, together with the [material](/en/docs/graphics/material/material/), determines the final rendering result of the rendered object.
+
+## Shader
+
+The Shader object contains the following:
+
+- name
+
+The name of the Shader instance. Once created, the Shader object is cached by the engine and can be reused by finding it through `Shader.find()` using `Shader.name` as the index. Therefore, the engine requires that the name attribute of the Shader must be unique within a single engine instance.
+
+- SubShader
+
+A Shader object contains at least one SubShader object.
+
+## SubShader
+
+A shader program may run on different GPU hardware platforms and different rendering pipelines. Therefore, the Shader object specifies different rendering logic for different hardware platforms and rendering pipelines through key-value pairs of tags, which are the SubShader objects.
+
+The SubShader contains the following:
+
+- Tags
+
+Tags are key-value pairs consumed by the rendering pipeline, usually used to specify information such as the hardware platforms and rendering pipelines compatible with the Shader. The current engine's built-in pipeline consumes the following Tags:
+
+| Key           | value        |
+| ------------- | ------------ |
+| pipelineStage | Forward      |
+| pipelineStage | DepthOnly    |
+| pipelineStage | ShadowCaster |
+| pipelineStage | DepthOnly    |
+
+Additionally, you can specify the `replacementTag` of the rendering pipeline through [Camera.setReplacementShader](/en/apis/galacean/#Camera-resetReplacementShader) to achieve the purpose of replacing the `SubShader` with the specified `Tag`.
+
+Tags can be specified through [SubShader.setTag](/en/apis/galacean/#SubShader-setTag) and [ShaderPass.setTag](/en/apis/galacean/#ShaderPass-setTag). For details on specifying Tags in ShaderLab, see the [documentation](/en/docs/graphics/shader/shaderLab/syntax/subShader/#tags).
+
+- Passes
+
+A SubShader contains at least one ShaderPass object.
+
+- RenderStates
+
+[RenderState rendering states](/en/docs/graphics/material/composition/#渲染状态) shared by all ShaderPasses under the SubShader.
+
+## ShaderPass
+
+ShaderPass encapsulates the specific shader program and the [rendering state](/en/docs/graphics/material/composition/#渲染状态) when performing the final rendering.
+
+<Callout type="info">
+  The ShaderPasses under the same SubShader are rendered sequentially according to the array order, with the rendering effects gradually superimposed to form the final rendering result of the Shader in the current frame.
+</Callout>

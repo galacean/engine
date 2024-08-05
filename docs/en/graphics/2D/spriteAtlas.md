@@ -6,62 +6,63 @@ group: 2D
 label: Graphics/2D
 ---
 
-[SpriteAtlas](/apis/core/#SpriteAtlas) is a collection of sprites that combines multiple sprite textures into one sprite atlas to merge drawing commands during rendering. It has the following advantages:
+[SpriteAtlas](/en/apis/core/#SpriteAtlas) is a collection of sprite resources that combines multiple sprite textures into a single sprite atlas to merge draw calls during rendering. It has the following advantages:
 
-- Better performance (merge drawing commands);
-- Less memory usage (packing algorithm reduces texture size);
-- Fewer requests (reduce loading requests by reducing fragmented files);
+- Better performance (merged draw calls);
+- Less video memory (packing algorithm reduces texture size);
+- Fewer requests (reduces the number of load requests by reducing fragmented files);
 
-In the example below, only one drawing command is called per frame in the sprite atlas:
+In the example of the sprite atlas below, only one draw call is made per frame:
 
 <playground src="sprite-atlas.ts"></playground>
 
 ## Editor Usage
 
-### Create Sprite Atlas
+### Creating a Sprite Atlas
 
-Right-click inside the **[Asset Panel](/en/docs/assets/interface)**, select `Create` from the `Feature List`, and choose `Sprite Atlas`. This will create an empty sprite atlas asset.
+Right-click in the **[Assets Panel](/en/docs/assets/interface/)**, select `Create` from the `Function List`, and choose `Sprite Atlas`. At this point, a blank sprite atlas asset is successfully created.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*W-HZSrvAiG8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-Select the `Sprite Atlas` asset to view detailed information in the **[Inspector Panel](/en/docs/interface/inspector)**.
+Select the `Sprite Atlas` asset to view detailed information about the asset in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*LW0JS7v5dP8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-### Add Sprites
+### Adding Sprites
 
-After determining the relationship between the `Sprite Atlas` and `Sprites`, you need to add the `Sprites` to the corresponding `Sprite Atlas`. This can be done by operating the `Sprite` asset or the `Sprite Atlas` asset. The following explains both methods.
+After determining the inclusion relationship between the `Sprite Atlas` and the `Sprite`, you need to add the `Sprite` to the corresponding `Sprite Atlas`. This step can be achieved by operating the `Sprite` asset or by operating the `Sprite Atlas` asset. Next, we will practice both methods.
 
-#### Method 1: Operate Sprite
+#### Method 1: Operating the Sprite
 
-Left-click on the `Sprite` asset that needs to be added, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the `Hierarchy` of the sprite. Select `Pack into Atlas` to choose the desired `Sprite Atlas` asset to pack into.
+Left-click to select the `Sprite` asset to be added. In the **[Inspector Panel](/en/docs/interface/inspector)**, find the sprite's `Affiliation`, and select `Pack into Atlas` to choose the `Sprite Atlas` asset you want to pack into.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*G_utQZfPYPoAAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-#### Method 2: Operate Sprite Atlas
+#### Method 2: Operating the Sprite Atlas
 
-Left-click on the target `Sprite Atlas` asset, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the list of sprites packed in the atlas. Select `Add Sprite` to choose the desired `Sprite` asset to pack (selecting a folder will add all sprites under that folder).
+Left-click to select the target `Sprite Atlas` asset. In the **[Inspector Panel](/en/docs/interface/inspector)**, find the sprite list of the atlas, and select `Add Sprite` to choose the `Sprite` asset you want to pack. (If you select a folder, all sprites in the folder directory will be added)
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*6unHT7e-S-8AAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-### Remove Sprites
+### Removing Sprites
 
-#### Method 1: Operate Sprite
+#### Method 1: Operating the Sprite
 
-Left-click on the `Sprite` asset that needs to be removed from the atlas, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the sprite's `Hierarchy` (make sure the path of the target atlas matches). Click the remove button to remove the sprite from the target atlas.
+Left-click to select the `Sprite` asset to be removed from the atlas. In the **[Inspector Panel](/en/docs/interface/inspector)**, find the sprite's `Affiliation` (make sure the target atlas path matches), and click the remove button to remove the sprite from the target atlas.
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*dQ_CT5qjHacAAAAAAAAAAAAADleLAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-#### Method 2: Operate Sprite Atlas
+#### Method 2: Operating the Sprite Atlas
 
-Left-click on the `Sprite Atlas` asset to be operated, and in the **[Inspector Panel](/en/docs/interface/inspector)**, find the list of sprites in the atlas. Locate the sprite to be removed and click the remove button.
+Left-click to select the `Sprite Atlas` asset to be operated on. In the **[Inspector Panel](/en/docs/interface/inspector)**, find the sprite list of the atlas, find the sprite object to be removed, and click the remove button.
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*aZcoS6ISXAoAAAAAAAAAAAAADjCHAQ/original" alt="buildBox" style="zoom: 67%;" />
 
-### Quickly Operate Sprites
+### Quick Operations on Sprites
 
-After a `Sprite` asset is added to a `Sprite Atlas`, you can quickly operate the sprite in the `Sprite Atlas` **[Inspector Panel](/en/docs/interface/inspector)**, and its properties will be synchronized with the `Sprite` asset.
+After the `Sprite` asset is added to the `Sprite Atlas`, you can quickly operate the sprite in the **[Inspector Panel](/en/docs/interface/inspector)** of the `Sprite Atlas`. Its properties will be synchronously modified in the `Sprite` asset.
 
+<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*WxzIS5If7NsAAAAAAAAAAAAADjCHAQ/original" alt="buildBox"  />
 
 ### Settings
 
@@ -69,39 +70,43 @@ After a `Sprite` asset is added to a `Sprite Atlas`, you can quickly operate the
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/81a2044b-c1b7-449d-96cf-1e098b72a1be/image-20231208165843716.png" alt="image-20231208165843716" style="zoom:50%;" />
 
-| Setting Name       | Definition                                |
+| Setting Name       | Description                              |
 | ------------------ | ---------------------------------------- |
-| Texture Max Width       | Maximum width limit of the packed texture               |
-| Texture Max Height       | Maximum height limit of the packed texture               |
-| Edge Padding           | Padding width for the sprite packing                   |
-| Allow Rotation (Disabled) | Whether to improve the space utilization of the atlas packing through rotation     |
-| Trim Blank Space (Disabled) | Whether to improve the space utilization of the atlas packing through blank space trimming |
+| Max Texture Width  | Maximum width limit for the packed texture (1, 2048] |
+| Max Texture Height | Maximum height limit for the packed texture (1, 2048] |
+| Edge Padding       | Edge padding width for the packed sprite |
+| Allow Rotation (Disabled) | Whether to improve atlas packing space utilization by rotation |
+| Trim Whitespaces (Disabled) | Whether to improve atlas packing space utilization by trimming whitespaces |
+
+If you encounter the following warning during packaging, it means that the size of the atlas exceeds the maximum width and height of the texture. You can solve this by adjusting the `Max Texture Width` and `Max Texture Height` or **rearranging** the scattered images for packaging.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*dE71RKXvGAAAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 
 #### Export Settings
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1f4302b8-d485-4d3e-b508-36b570f5a883/image-20231208165430415.png" alt="image-20231208165430415" style="zoom:50%;" />
 
-| Property                                                            | Value                                                                                                                                                                                         |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Wrap Mode U ([wrapModeU](/apis/core/#Texture-wrapModeU))         | Clamping Mode ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeating Mode ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirrored Repeat Mode ([Mirror](/apis/core/#TextureWrapMode-Mirror))               |
-| Wrap Mode V ([wrapModeV](/apis/core/#Texture-wrapModeV))         | Clamping Mode ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeating Mode ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirrored Repeat Mode ([Mirror](/apis/core/#TextureWrapMode-Mirror))               |
-| Filter Mode ([filterMode](/apis/core/#Texture-filterMode))         | Point Filtering ([Point](/apis/core/#TextureFilterMode-Point)), Bilinear Filtering ([Bilinear](/apis/core/#TextureFilterMode-Bilinear)), Trilinear Filtering ([Trilinear](/apis/core/#TextureFilterMode-Trilinear)) |
-| Anisotropic Filtering Level ([anisoLevel](/apis/core/#Texture-anisoLevel)) | Anisotropic level, 1 ~ 16                                                                                                                                                                       |
-| Texture Mapping ([Mipmap](/apis/core/#Texture-generateMipmaps))         | true , false                                                                                                                                                                               |
+| Property | Value |
+| --- | --- |
+| Wrap Mode U ([wrapModeU](/en/apis/core/#Texture-wrapModeU)) | Clamp ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror ([Mirror](/en/apis/core/#TextureWrapMode-Mirror)) |
+| Wrap Mode V ([wrapModeV](/en/apis/core/#Texture-wrapModeV)) | Clamp ([Clamp](/en/apis/core/#TextureWrapMode-Clamp)), Repeat ([Repeat](/en/apis/core/#TextureWrapMode-Repeat)), Mirror ([Mirror](/en/apis/core/#TextureWrapMode-Mirror)) |
+| Filter Mode ([filterMode](/en/apis/core/#Texture-filterMode)) | Point ([Point](/en/apis/core/#TextureFilterMode-Point)), Bilinear ([Bilinear](/en/apis/core/#TextureFilterMode-Bilinear)), Trilinear ([Trilinear](/en/apis/core/#TextureFilterMode-Trilinear)) |
+| Anisotropic Filtering Level ([anisoLevel](/en/apis/core/#Texture-anisoLevel)) | Anisotropic level, 1 ~ 16 |
+| Mipmap ([Mipmap](/en/apis/core/#Texture-generateMipmaps)) | true, false |
 
-### Best Practices {#best-practices}
+### Best Practices
 
-Click on the `Sprite Atlas` asset, adjust the `Texture Max Width` and `Texture Max Height` in the `Pack Settings`, and call `Pack and Preview` in the `Pack Objects` to ensure the utilization of the atlas is at a relatively high level.
+Click on the `Sprite Atlas` asset, adjust the `Max Texture Width` and `Max Texture Height` in the `Packaging Settings`, and then call `Pack and Preview` in the `Packaging Object` to ensure a high level of atlas utilization.
 
 ![image-20210901171947471](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*lyhRSY63HJgAAAAAAAAAAAAADjCHAQ/original)
 
-The left side of the preview image shows the size information of the exported images, while the right side shows the information about the utilization of the atlas (representing the percentage of the sum of all individual image areas occupying the final large image). You can adjust the packing settings based on this value to achieve better results.
+The left side of the preview image shows the size information of the exported image, and the right side shows the atlas utilization information (representing the percentage of the total area of all scattered images occupying the final large image). You can adjust the packing settings based on this value to achieve better results.
 
-## Script Usage {#script-usage}
+## Script Usage {/*examples*/}
 
-### Atlas Generation
+### Atlas Generation {/*examples*/}
 
-Galacean provides a command-line tool for sprite atlas, developers can generate atlases following these steps:
+Galacean provides a command-line tool for sprite atlas generation. Developers can generate an atlas by following these steps:
 
 1. Install the package
 
@@ -115,35 +120,35 @@ npm i @galacean/tools-atlas -g
 galacean-tool-atlas p inputPath -o outputName
 ```
 
-Where `inputPath` represents the folder path that needs to be packed, and `outputName` represents the output sprite atlas file name. If you get the result shown below, it means the packing was successful.
+Here, `inputPath` represents the path of the folder to be packed, and `outputName` represents the name of the output sprite atlas file. If you get the result shown in the image below, it means the packing was successful.
 
 <img src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*UhLBRpt9SwAAAAAAAAAAAAAAARQnAQ" alt="image.png" style="zoom:75%;" />
 
-| Property       | Description                                 |
-| -------------- | ------------------------------------------- |
-| f/format       | Sprite atlas format for packing (default: "galacean") |
-| o/output       | Output sprite atlas file name (default: "galacean") |
-| a/algorithm    | Algorithm for packing sprite atlas (default: "maxrects") |
+| Property       | Description                                   |
+| -------------- | --------------------------------------------- |
+| f/format       | Format of the output sprite atlas (default: "galacean") |
+| o/output       | Name of the output sprite atlas file (default: "galacean") |
+| a/algorithm    | Algorithm for packing the sprite atlas (default: "maxrects") |
 | ar/allowRotate | Whether the sprite atlas supports rotation (default: false) |
-| p/padding      | Distance between each sprite in the atlas and its border (default: 1) |
-| mw/maxWidth    | Maximum width of the final sprite atlas (default: 1024) |
-| mh/maxHeight   | Maximum height of the final sprite atlas (default: 1024) |
-| s/square       | Force packing into a square (default: false) |
-| pot            | Force packing into power of 2 (default: false) |
+| p/padding      | Distance between each sprite and its border in the atlas (default: 1) |
+| mw/maxWidth    | Maximum width of the final packed sprite atlas (default: 1024) |
+| mh/maxHeight   | Maximum height of the final packed sprite atlas (default: 1024) |
+| s/square       | Force packing into a square (default: false)  |
+| pot            | Force width and height to be a power of 2 (default: false) |
 
-For more information, please refer to the [Atlas Packing Tool](https://github.com/galacean/tools/blob/main/packages/atlas/README.md).
+For more details, refer to [Atlas Packing Tool](https://github.com/galacean/tools/blob/main/packages/atlas/README.md).
 
-### Usage
+### Usage {/*examples*/}
 
-1. Upload the atlas image and atlas file to the same directory on CDN, for example, the addresses of the file and image should be `https://*cdnDir*/*atlasName*.atlas` and `https://*cdnDir*/*atlasName*.png` respectively.
+1. Upload the atlas image and atlas file to the same directory on the CDN. For example, the addresses of the file and image should be `https://*cdnDir*/*atlasName*.atlas` and `https://*cdnDir*/*atlasName*.png`, respectively.
 
-2. Load and Use
+2. Load and use
 
 ```typescript
 engine.resourceManager
   .load<SpriteAtlas>({
     url: "https://*cdnDir*/*atlasName*.atlas",
-    type: AssetType.SpriteAtlas,
+    type: AssetType.SpriteAtlas
   })
   .then((atlas) => {
     // Get all sprites.
@@ -155,8 +160,8 @@ engine.resourceManager
   });
 ```
 
-## Notes {#notes}
+## Notes {/*examples*/}
 
-1. Pack sprites that are drawn in sequence into the same atlas to significantly improve performance (reduce the number of draw command calls);
-2. When cleaning up sprite atlases, make sure that all sprites in the atlas are no longer in use;
-3. When packing sprite atlases, it is necessary to coordinate the number and size of sprites to avoid generating multiple sprite atlases at once;
+1. Please pack sprites with connected drawing sequences into the same atlas to significantly improve performance (reduce the number of draw calls);
+2. When cleaning up the sprite atlas, ensure that all sprites in the atlas are no longer in use;
+3. When packing the sprite atlas, it is necessary to coordinate the number and size of sprites to avoid generating multiple sprite atlases in one packing session;
