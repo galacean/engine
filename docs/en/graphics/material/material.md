@@ -1,9 +1,5 @@
 ---
-order: 0
 title: Material Overview
-type: Material
-group: Mesh
-label: Graphics/Material
 ---
 
 Materials refer to a collection of properties used to describe the appearance and surface characteristics of an object. Materials determine how a model interacts with light during rendering, thus affecting its visual presentation.

@@ -1,9 +1,5 @@
 ---
-order: 2
 title: Using the Editor
-type: Material
-group: Mesh
-label: Graphics/Material
 ---
 
 ## Using the Editor

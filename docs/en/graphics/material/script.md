@@ -1,9 +1,5 @@
 ---
-order: 3
 title: Script Usage
-type: Material
-group: Mesh
-label: Graphics/Material
 ---
 
 The material exported by the editor is only the base class [Material](/apis/core/#Material), while through code you can create the engine's pre-packaged [PBRMaterial](/apis/core/#PBRMaterial), [UnlitMaterial](/apis/core/#UnlitMaterial), and [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial).
