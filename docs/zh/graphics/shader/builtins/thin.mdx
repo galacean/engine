@@ -1,0 +1,36 @@
+---
+title: 薄膜干涉
+---
+
+薄膜干涉着色器是指某些表面随着视角或照明角度的变化而逐渐改变颜色的现象，是由微结构或薄膜中光波的干涉引起的，常用于肥皂泡、羽毛、蝴蝶翅膀和贝壳珍珠层等矿物表层。
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*taABSY4nUcEAAAAAAAAAAAAADgDwAQ/original"   />
+
+<Callout type="info">
+对于薄膜干涉材质，颜色取决于光的入射角，光的照射能带来很好的颜色渐变，但如果你的模型是 low-poly ，那么将无法获得很好的颜色渐变，因为每个面都会以不同的角度反射光线。
+</Callout>
+
+
+## 导入示例
+
+Galacean 为你提供了薄膜干涉示例进一步帮助你入门，要查找此示例，请[点击](https://galacean.antgroup.com/editor/projects)。
+
+1. 在 Galacean 编辑器中导航到编辑器首页。
+2. 选择 **Templates** 面板，导航到模板界面，预览并且下载薄膜干涉示例到 **Project**。
+
+## 材质属性
+
+|         参数          |                             描述                             |
+| :-------------------: | :----------------------------------------------------------: |
+|    iridescent ior     | 该折射率值决定了光线的弯曲程度，对于薄膜干涉而言，它影响所得光线的颜色 |
+|      iridescence      |      控制虹彩颜色强度，`1` 对应最高强度，`0` 将只有 PBR 效果       |
+| iridescence Thickness |         用于控制虹彩厚度，决定了最终薄膜干涉的层数         |
+
+## 细节展示
+下面的演示比较了PBR属性一样的情况下，仅调节 iridescent ior 有何不同。
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*opDFQY6Cu1EAAAAAAAAAAAAADgDwAQ/original"
+  leftText="iridescent ior: 1.0"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*bfIhRIAinRIAAAAAAAAAAAAADgDwAQ/original"
+  rightText="iridescent ior: 1.6"
+/>
