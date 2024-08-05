@@ -10,7 +10,7 @@ Models typically refer to 3D models created by designers using 3D modeling softw
 
 ```mermaid
 	flowchart LR
-	Modeling software exports model --> Import model into Galacean editor --> Adjust model
+	A[Modeling software exports model] --> B[Import model into Galacean editor] --> C[Adjust model]
 ```
 
 This chapter mainly addresses the following issues developers might encounter:

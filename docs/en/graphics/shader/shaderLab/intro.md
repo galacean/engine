@@ -1,5 +1,5 @@
 ---
-title: ShaderLab
+title: Introduction
 ---
 
 > In the [Custom Shader](/en/docs/graphics/shader/custom/) section, we learned how to create custom Shaders using the native WebGL GLSL language. In this section, we will introduce another way to create Shaders --- ShaderLab.
@@ -10,7 +10,7 @@ Although ShaderLab introduces convenience for writing shaders, it does not repla
 
 ```mermaid
 flowchart LR
-   Create Shader --> Edit shaderlab --> Debug shaderlab
+   A[Create Shader] --> B[Edit shaderlab] --> C[Debug shaderlab]
 ```
 
 Below is a simple example of using ShaderLab, which includes two Shaders. The `normal` Shader defines a vertex shader that only implements MVP transformation and a fragment shader that specifies the pixel color through a Uniform variable. Additionally, the `lines` Shader is a [shadertoy](https://www.shadertoy.com/view/DtXfDr) example modified using ShaderLab.

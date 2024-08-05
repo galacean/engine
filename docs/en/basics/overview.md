@@ -17,7 +17,7 @@ The overall process of creating an interactive project using the editor:
 
 ```mermaid
 flowchart LR
-   Create Project --> Create Assets --> Build Scene --> Write Scripts --> Export
+   A[Create Project] --> B[Create Assets] --> B[Build Scene] --> C[Write Scripts] --> Export
 ```
 
 The editor allows better collaboration between technical and artistic team members. You can quickly start the development of your first project through business templates on the [editor homepage](https://galacean.antgroup.com/editor).

@@ -13,7 +13,7 @@ In Galacean, the asset workflow typically follows these steps:
 
 ```mermaid
 flowchart LR
-   Import Assets --> Edit Assets --> Build and Export --> Distribute --> Load
+   A[Import Assets] --> B[Edit Assets] --> C[Build and Export] --> Distribute --> Load
 ```
 
 This chapter will mainly cover:

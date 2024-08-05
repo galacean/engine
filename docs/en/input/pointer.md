@@ -87,7 +87,7 @@ Touch callbacks are implemented based on raycasting. Customizing raycasting is a
 
 ```mermaid
 flowchart LR
-   Add Collider Component --> Get Touch Point --> Get Ray from Canvas Coordinates --> Raycasting
+   A[Add Collider Component] --> B[Get Touch Point] --> C[Get Ray from Canvas Coordinates] --> Raycasting
 ```
 
 Refer to [Collider Component](/en/docs/physics/collider/) for adding a collider component. The code logic for implementing the detection part is as follows:

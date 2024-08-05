@@ -20,7 +20,7 @@ The overall workflow for creating interactive projects using the editor:
 
 ```mermaid
 flowchart LR
- Add Animation Clip --> Create Animation Controller and Import Animation Clip --> Add Animation Control Component to Play Animation
+ A[Add Animation Clip] --> B[Create Animation Controller and Import Animation Clip] --> C[Add Animation Control Component to Play Animation]
 ```
 
 ### 1. Add Animation Clip

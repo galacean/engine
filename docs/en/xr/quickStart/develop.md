@@ -13,7 +13,7 @@ The process for developing XR interactions in the editor is as follows:
 
 ```mermaid
 flowchart LR
-   Create Project --> Add XR Node --> Add XR Capabilities --> Preview --> Export
+   A[Create Project] --> B[Add XR Node] --> C[Add XR Capabilities] --> D[Preview] --> E[Export]
 ```
 
 ### Create Project
