@@ -18,5 +18,7 @@ export class AnimatorControllerLayer {
   /**
    * @param name - The layer's name
    */
-  constructor(public readonly name: string) {}
+  constructor(public readonly name: string) {
+    this.stateMachine = new AnimatorStateMachine();
+  }
 }

@@ -41,6 +41,7 @@ export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { XRManager } from "./xr/XRManager";
+export * from "./utils/index";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./shadow/index";
@@ -62,6 +63,6 @@ export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
 
-// Export for CanvasRenderer plugin.
-export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+
+export * from "./postProcess";

@@ -1,0 +1,50 @@
+---
+order: 6
+title: 阴影
+type: 图形
+group: 光照
+label: Graphics/Light
+---
+
+阴影能够有效增强渲染画面的立体感和真实感。为了实现这一点，通常使用所谓的 ShadowMap 技术。简单来说，就是把光源作为一个虚拟的相机渲染场景的深度，然后从场景相机渲染画面时，如果物体的深度比之前保存的深度信息中的要深，认为被其他物体遮挡，则渲染阴影。
+
+## 场景配置
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/c1246c17-ba92-405d-b111-3cff6796097d/image-20240730114010025.png" alt="image-20240730114010025" style="zoom:50%;" />
+
+场景中拥有一些配置能够影响全局阴影：
+
+| 参数 | 应用 |
+| :-- | :-- |
+| [Cast Shadow](/apis/core/#Scene-castShadows) | 是否投射阴影。这是总开关。 |
+| [Transparent](/apis/core/#Scene-enableTransparentShadow) | 是否投射透明阴影。开启后，透明物体也能投射阴影。 |
+| [Resolution](/apis/core/#Scene-shadowResolution) | Shadowmap 的分辨率。`Low` 选项使用 512 分辨率，`Medium` 选项使用 1024 分辨率，`High` 选项使用 2048 分辨率，`VeryHigh` 选项使用 4096 分辨率。 |
+| [Cascades](/apis/core/#Scene-shadowCascades) | [级联阴影](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps) 数量设置。一般用于大场景分割 shadowmap 分辨率，可以改善不同距离的阴影锯齿。开启二级级联阴影后，可以通过[ShadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits)配置，开启四级级联阴影后，可以通过[ShadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits)配置。 |
+| [Distance](/apis/core/#Scene-shadowDistance) | 最远阴影距离（与摄像机之间的距离），超过这个距离后看不到阴影。 |
+| [Fade Border](/apis/core/#Scene-shadowFadeBorder) | 阴影衰减距离，表示从阴影距离的多少比例开始衰减，范围为 [0~1]，为 0 时表示没有衰减。 |
+
+## 灯光配置
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/1b572189-db78-4f56-9d42-d8b5ea1fe857/image-20240724183629537.png" alt="image-20240724183629537" style="zoom:50%;" />
+
+要投射阴影，需要场景中有[方向光](/docs/graphics/light/directional)，引擎目前只能为一盏方向光 `DirectLight` 开启阴影，这主要是因为阴影的渲染使得 DrawCall 翻倍，会严重影响渲染的性能。在没有确定[主光(scene.sun)](/apis/core/#Scene-sun)的情况下，引擎会默认选择光强最强的那一盏灯投射阴影:
+
+| 参数                                              | 应用                                               |
+| :------------------------------------------------ | :------------------------------------------------- |
+| [Shadow Type](/apis/core/#Light-shadowType)       | 阴影投射类型。不同的类型会影响渲染性能和视觉效果。 |
+| [Shadow Bias](/apis/core/#Light-shadowBias)       | 阴影的偏移。防止阴影失真。                         |
+| [Normal Bias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移。避免阴影失真。                     |
+| [Near Plane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面。影响阴影的裁剪面和精度。     |
+| [Strength](/apis/core/#Light-shadowStrength)      | 阴影强度。控制阴影的透明度。                       |
+
+## 投射物与接受物
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/f3125f0f-09e6-4404-a84c-7013df5c0db3/image-20240724184711014.png" alt="image-20240724184711014" style="zoom:50%;" />
+
+在 [网格渲染器组件](/docs/graphics/renderer/meshRenderer) 中，`receiveShadows` 能够决定该物体是否接受阴影，`castShadows` 能够决定该物体是否投射阴影。
+
+## 透明阴影
+
+从 `1.3` 版本开始，引擎支持投射透明裁剪（Alpha Cutoff）物体和透明（Transparent）物体的阴影，其中，透明物体投射阴影需要在场景面板中打开 `Transparent` 开关:
+
+![](https://gw.alipayobjects.com/zos/OasisHub/3c972121-d072-4d2c-ba87-2a9ec88c9268/2024-07-30%25252011.36.32.gif)

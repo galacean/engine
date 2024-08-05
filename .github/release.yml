@@ -3,6 +3,8 @@ changelog:
   exclude:
     labels:
       - ignore for release
+      - documentation
+      - test
   categories:
     - title: Breaking Changes 🛠
       labels:
@@ -16,5 +18,4 @@ changelog:
         - bug
     - title: Other Changes
       labels:
-        - test
         - "*"

@@ -15,6 +15,19 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
  * @internal
  */
 export class ParticleBufferUtils {
+  static readonly instanceVertexStride = 152;
+  static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
+
+  static readonly startLifeTimeOffset = 3;
+  static readonly timeOffset = 7;
+  static readonly simulationUVOffset = 34;
+
+  static readonly billboardIndexCount = 6;
+
+  static readonly boundsFloatStride = 8;
+  static readonly boundsTimeOffset = 6;
+  static readonly boundsMaxLifetimeOffset = 7;
+
   readonly billboardVertexElement = new VertexElement(
     ParticleBillboardVertexAttribute.cornerTextureCoordinate,
     0,
@@ -36,15 +49,6 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1)
   ];
 
-  readonly instanceVertexStride = 152;
-  readonly instanceVertexFloatStride = this.instanceVertexStride / 4;
-
-  readonly startLifeTimeOffset = 3;
-  readonly timeOffset = 7;
-  readonly simulationUVOffset = 34;
-
-  readonly billboardIndexCount = 6;
-
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;
 
@@ -63,7 +67,7 @@ export class ParticleBufferUtils {
     const indexBuffer = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      this.billboardIndexCount,
+      ParticleBufferUtils.billboardIndexCount,
       BufferUsage.Static,
       false
     );

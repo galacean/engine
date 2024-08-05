@@ -8,6 +8,8 @@ export enum ShaderDataGroup {
   Camera,
   /** Renderer group. */
   Renderer,
-  /** material group. */
-  Material
+  /** Material group. */
+  Material,
+  /** Render element group. */
+  RenderElement
 }

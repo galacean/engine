@@ -1,20 +1,22 @@
 import {
   BackgroundMode,
   BackgroundTextureFillMode,
+  BloomDownScaleMode,
   DiffuseMode,
   FogMode,
   ShadowCascadesMode,
-  ShadowResolution
+  ShadowResolution,
+  TonemappingMode
 } from "@galacean/engine-core";
 import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
-import type { IColor, IPrefabFile, IVector3 } from "./BasicSchema";
+import type { IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
 
 export enum SpecularMode {
   Sky = "Sky",
   Custom = "Custom"
 }
 
-export interface IScene extends IPrefabFile {
+export interface IScene extends IHierarchyFile {
   scene: {
     background: {
       mode: BackgroundMode;
@@ -37,6 +39,7 @@ export interface IScene extends IPrefabFile {
     };
     shadow?: {
       castShadows: boolean;
+      enableTransparentShadow: boolean;
       shadowResolution: ShadowResolution;
       shadowDistance: number;
       shadowCascades: ShadowCascadesMode;
@@ -50,6 +53,23 @@ export interface IScene extends IPrefabFile {
       fogEnd: number;
       fogDensity: number;
       fogColor: IColor;
+    };
+    postProcess?: {
+      isActive: boolean;
+      bloom: {
+        enabled: boolean;
+        downScale: BloomDownScaleMode;
+        threshold: number;
+        scatter: number;
+        intensity: number;
+        tint: IColor;
+        dirtTexture: IReferable;
+        dirtIntensity: number;
+      };
+      tonemapping: {
+        enabled: boolean;
+        mode: TonemappingMode;
+      };
     };
   };
   files: Array<{ id: string; type: string; virtualPath: string; path: string }>;

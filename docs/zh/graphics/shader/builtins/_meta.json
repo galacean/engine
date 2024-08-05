@@ -1,0 +1,8 @@
+{
+  "intro": {"title": "介绍"},
+  "pbr": "PBR",
+  "unlit": "Unlit",
+  "blinnPhong": "Blinn Phong",
+  "thin": "薄膜干涉",
+  "digitalHuman": "数字人"
+}

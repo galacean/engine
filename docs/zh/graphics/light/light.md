@@ -1,0 +1,37 @@
+---
+order: 0
+title: 光照总览
+type: 图形
+group: 光照
+label: Graphics/Light
+---
+
+合理使用光照，能够提供逼真的渲染效果。本节包含以下相关信息：
+
+- 光源类型
+  - 直接光
+    - [方向光](/docs/graphics/light/directional/)
+    - [点光源](/docs/graphics/light/point/)
+    - [聚光灯](/docs/graphics/light/spot/)
+  - 间接光
+    - [环境光](/docs/graphics/light/ambient/)
+- [烘焙](/docs/graphics/light/bake/)
+- [阴影](/docs/graphics/light/shadow/)
+
+> 需要注意的是，直接光的数量会影响性能损耗，引擎限制了每种直接光的数量不能超过10盏，通常建议使用环境光 + 部分直接光进行点缀。
+
+## 直接光
+
+直接光一般从一个区域或者朝特定方向照射，经过一次反射直接进入眼睛（相机），如下案例：
+
+<playground src="light-type.ts"></playground>
+
+## 间接光
+
+环境光从四周发射进入眼睛，如下案例：
+
+<playground src="ambient-light.ts"></playground>
+
+## 实时光照和烘焙光照
+
+实时光照指 Galacean 在运行时实时计算光照。烘焙光照指 Galacean 提前执行光照计算并将结果[烘焙](/docs/graphics/light/bake/)到二进制文件（包含[漫反射球谐参数](https://www.wikiwand.com/zh-hans/%E7%90%83%E8%B0%90%E5%87%BD%E6%95%B0)和[预滤波环境贴图](https://learnopengl-cn.github.io/07%20PBR/03%20IBL/02%20Specular%20IBL/)），然后在运行时实时采样。

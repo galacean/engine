@@ -140,7 +140,7 @@ export class WebXRSession implements IXRSession {
     session.removeEventListener("squeeze", onSessionEvent);
     session.removeEventListener("squeezestart", onSessionEvent);
     session.removeEventListener("squeezeend", onSessionEvent);
-    session.addEventListener("end", this._onSessionExit);
+    session.removeEventListener("end", this._onSessionExit);
     this._events.length = 0;
   }
 

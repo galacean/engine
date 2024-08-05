@@ -1,4 +1,6 @@
+import { SafeLoopArray } from "@galacean/engine";
 import { IXRTrackablePlatformFeature } from "@galacean/engine-design";
+import { IXRListener } from "../../XRManagerExtended";
 import { XRTrackingState } from "../../input/XRTrackingState";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
@@ -9,9 +11,10 @@ import { XRTracked } from "./XRTracked";
 /**
  * The base class of XR trackable manager.
  */
-export abstract class XRTrackableFeature<T extends XRTracked, K extends XRRequestTracking<T>> extends XRFeature<
-  IXRTrackablePlatformFeature<T, K>
-> {
+export abstract class XRTrackableFeature<
+  T extends XRTracked = XRTracked,
+  K extends XRRequestTracking<T> = XRRequestTracking<T>
+> extends XRFeature<IXRTrackablePlatformFeature<T, K>> {
   protected static _uuid = 0;
 
   protected _requestTrackings: K[] = [];
@@ -20,14 +23,14 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
   protected _updated: T[] = [];
   protected _removed: T[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
-  private _listeners: ((added: readonly T[], updated: readonly T[], removed: readonly T[]) => void)[] = [];
+  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * Add a listening function for tracked object changes.
    * @param listener - The listening function
    */
   addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    this._listeners.push(listener);
+    this._listeners.push({ fn: listener });
   }
 
   /**
@@ -35,11 +38,7 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
    * @param listener - The listening function
    */
   removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    const { _listeners: listeners } = this;
-    const index = listeners.indexOf(listener);
-    if (index >= 0) {
-      listeners.splice(index, 1);
-    }
+    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
   }
 
   override _onUpdate(): void {
@@ -47,7 +46,6 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
     const { frame: platformFrame } = platformSession;
     const {
       _platformFeature: platformFeature,
-      _listeners: listeners,
       _requestTrackings: requestTrackings,
       _statusSnapshot: statusSnapshot,
       _tracked: allTracked,
@@ -108,8 +106,10 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
       requestTrackings[i].state === XRRequestTrackingState.Destroyed && requestTrackings.splice(i, 1);
     }
     if (added.length > 0 || updated.length > 0 || removed.length > 0) {
+      const listeners = this._listeners.getLoopArray();
       for (let i = 0, n = listeners.length; i < n; i++) {
-        listeners[i](added, updated, removed);
+        const listener = listeners[i];
+        !listener.destroyed && listener.fn(added, updated, removed);
       }
     }
   }
@@ -120,12 +120,8 @@ export abstract class XRTrackableFeature<T extends XRTracked, K extends XRReques
 
   override _onSessionExit(): void {
     // prettier-ignore
-    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
-  }
-
-  override _onDestroy(): void {
-    // prettier-ignore
-    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length = 0;
+    this._requestTrackings.length = this._tracked.length = this._added.length = this._updated.length = this._removed.length  = 0;
+    this._listeners.findAndRemove((value) => (value.destroyed = true));
   }
 
   protected _addRequestTracking(requestTracking: K): void {

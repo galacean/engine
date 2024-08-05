@@ -1,1 +1,1 @@
-export { Preprocessor } from "./Preprocessor";
+export * from "./Preprocessor";
