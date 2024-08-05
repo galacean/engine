@@ -24,7 +24,7 @@ export interface IColor {
   a: number;
 }
 
-export interface IPrefabFile {
+export interface IHierarchyFile {
   entities: Array<IEntity>;
 }
 

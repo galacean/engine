@@ -1,0 +1,46 @@
+---
+order: 4
+title: 纹理压缩
+type: 图形
+group: 纹理
+label: Graphics/Texture
+---
+
+**[KTX2](https://www.khronos.org/ktx/)**(Khronos Texture Container version 2.0) 是 Khronos 推出最新的纹理压缩方案，Galacean 自 1.1 版本开始已经支持。KTX2 会根据设备平台支持运行时转码到对应格式的压缩纹理(BC/PVRTC/ETC/ASTC)。
+
+## 使用
+
+在引擎中，直接使用 `resourceManager` 加载即可：
+
+```typescript
+engine.resourceManager.load("xxx.ktx2");
+// 或
+engine.resourceManager.load<Texture2D>({
+  type: AssetType.KTX2,
+  url: "xxx.ktx2",
+}).then(tex=>{
+  material.baseTexture = tex;
+})
+```
+
+<playground src="compressed-texture.ts"></playground>
+
+glTF 中使用 ktx2 需要包含 [KHR_texture_basisu](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md) 扩展。
+
+KTX2 的生成可以使用：
+
+- toktx
+- basisu
+
+### 编辑器
+
+编辑器在项目打包时，可以配置选项生成 KTX2，可以参考『[项目发布](/assets-build)』文档。项目导出是全局的配置，也可以独立给不同的纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 overwrite 可以覆盖全局配置：
+
+<img src="https://mdn.alipayobjects.com/rms/afts/img/A*fmURSZ4HwKUAAAAAAAAAAAAAARQnAQ/original/image-20240705112419249.png" alt="image-20240705112419249" style="zoom:50%;" />
+
+- ETC1S 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图
+- UASTC 尺寸大，质量高，适合 normal 这类贴图
+
+## 兼容性
+
+KTX2 转码使用到了 WebAssembly 技术，需要使用 Chrome 57+，和 iOS 11.3+（11.0 ~ 11.2.以下的 WebAssembly 存在 [bug](https://bugs.webkit.org/show_bug.cgi?id=181781)）

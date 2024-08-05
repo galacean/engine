@@ -6,6 +6,8 @@ import { Quaternion, Vector3 } from "@galacean/engine";
  * A dynamic collider can act with self-defined movement or physical force
  */
 export class LiteDynamicCollider extends LiteCollider implements IDynamicCollider {
+  /** @internal */
+  readonly _isStaticCollider: boolean = false;
   /**
    * Initialize dynamic actor.
    * @param position - The global position

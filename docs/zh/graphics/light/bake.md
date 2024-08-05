@@ -1,0 +1,43 @@
+---
+order: 5
+title: 烘焙
+type: 图形
+group: 光照
+label: Graphics/Light
+---
+
+烘焙指 Galacean 提前执行光照计算并将结果烘焙到二进制文件（包含[漫反射球谐参数](https://www.wikiwand.com/zh-hans/%E7%90%83%E8%B0%90%E5%87%BD%E6%95%B0)和[预滤波环境贴图](https://learnopengl-cn.github.io/07%20PBR/03%20IBL/02%20Specular%20IBL/)），然后在运行时实时采样。
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/5ff4f65b-7940-4359-9de0-f8beef4d7fb2/bake.gif" alt="bake" style="zoom:50%;" />
+
+我们在[编辑器](https://galacean.antgroup.com/editor) 和 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 提供了烘焙工具。
+
+## 编辑器使用
+
+### 1. 烘焙开关
+
+编辑器默认打开自动烘焙，会在修改背景(颜色、曝光、旋转等配置)或者修改烘焙分辨率等操作后，自动进行烘焙。
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/c1d83838-b7c8-434c-b689-118f2ddb0d9e/image-20240219164704802.png" alt="image-20240219164704802" style="zoom:50%;" />
+
+也可以关闭自动烘焙，在需要的时候进行手动烘焙。
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/2e5e0965-956b-4146-a0de-0ca5a8025d4a/image-20240219164728187.png" alt="image-20240219164728187" style="zoom:50%;" />
+
+### 2. 烘焙分辨率
+
+表示烘焙后的预滤波环境贴图的分辨率，默认 128 分辨率，烘焙产物约为 500KB；64 分辨率的烘焙产物约为 125KB，可以根据场景选择合适的烘焙分辨率。
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/2aee8d7d-4f64-4ef9-b004-f81be968488e/image-20240219164802607.png" alt="image-20240219164802607" style="zoom:50%;" />
+
+### 3. 设置背景
+
+参考 [背景教程](/docs/graphics/background/sky/) 设置完场景的背景后，编辑器会根据上面设置的烘焙分辨率和烘焙开关进行光照烘焙，期间针对背景的修改（颜色、旋转、曝光、换 HDR 贴图等）都会根据烘焙开关来决定是否自动烘焙。**如果想要设置纯色背景或者透明背景，但是又不想要烘焙纯色背景，可以先关闭自动烘焙开关，然后再切换到[纯色背景](/docs/graphics/background/solidColor/)。**
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/1604407b-f6e0-442a-b179-aef4836877cf/image-20231009114455268.png" alt="image-20231009114455268" style="zoom:50%;" />
+
+## glTF 查看器
+
+我们在官网的 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 也提供了烘焙工具，直接拖拽 HDR 贴图到网页即可自动下载烘焙产物 ：
+
+![gltf viewer](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*9mGbSpQ4HngAAAAAAAAAAAAAARQnAQ)

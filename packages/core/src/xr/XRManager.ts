@@ -38,7 +38,7 @@ export class XRManager {
   /**
    * @internal
    */
-  _getCameraClearFlagsMask(type: CameraType): CameraClearFlags {
+  _getCameraIgnoreClearFlags(type: CameraType): CameraClearFlags {
     return CameraClearFlags.None;
   }
 }

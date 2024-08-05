@@ -25,7 +25,7 @@ export class DepthOnlyPass extends PipelinePass {
   }
 
   onConfig(camera: Camera): void {
-    const engine = this._engine;
+    const engine = this.engine;
     const { width, height } = camera.pixelViewport;
 
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -37,28 +37,25 @@ export class DepthOnlyPass extends PipelinePass {
       TextureFormat.Depth16,
       true,
       false,
-      1
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Point
     );
-    const { depthTexture } = renderTarget;
-    depthTexture.wrapModeU = depthTexture.wrapModeV = TextureWrapMode.Clamp;
-    depthTexture.filterMode = TextureFilterMode.Point;
 
     this._renderTarget = renderTarget;
   }
 
   override onRender(context: RenderContext, cullingResults: CullingResults): void {
-    const engine = this._engine;
+    const engine = this.engine;
     const renderTarget = this._renderTarget;
     const camera = context.camera;
     const rhi = engine._hardwareRenderer;
-    rhi.activeRenderTarget(renderTarget, camera.viewport, context.flipProjection, 0);
-
-    rhi.viewport(0, 0, renderTarget.width, renderTarget.height);
-    rhi.scissor(0, 0, renderTarget.width, renderTarget.height);
+    rhi.activeRenderTarget(renderTarget, PipelineUtils.defaultViewport, context.flipProjection, 0);
     rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
-    cullingResults.opaqueQueue.render(camera, PipelineStage.DepthOnly);
-    cullingResults.alphaTestQueue.render(camera, PipelineStage.DepthOnly);
+    engine._renderCount++;
+    cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
+    cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this._renderTarget.depthTexture);
   }

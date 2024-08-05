@@ -1,13 +1,16 @@
+import { Shader, ShaderPlatformTarget } from ".";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import { Logger } from "../base";
 import { GLCapabilityType } from "../base/Constant";
-import { ShaderFactory } from "../shaderlib/ShaderFactory";
+import { ShaderFactory } from "../shaderlib";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
+import { ShaderType } from "./enums/ShaderType";
 import { RenderState } from "./state/RenderState";
 
 /**
@@ -15,6 +18,8 @@ import { RenderState } from "./state/RenderState";
  */
 export class ShaderPass extends ShaderPart {
   private static _shaderPassCounter: number = 0;
+  /** @internal */
+  static _shaderRootPath = "shaders://root/";
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -31,6 +36,26 @@ export class ShaderPass extends ShaderPart {
 
   private _vertexSource: string;
   private _fragmentSource: string;
+
+  private readonly _type: ShaderType;
+  private readonly _shaderLabSource: string;
+  private readonly _vertexEntry: string;
+  private readonly _fragmentEntry: string;
+  /** @internal */
+  _path = "";
+
+  private _platformMacros: string[] = [];
+
+  /**
+   * @internal
+   */
+  constructor(
+    name: string,
+    shaderLabSource: string,
+    vertexEntry: string,
+    fragmentEntry: string,
+    tags?: Record<string, number | string | boolean>
+  );
 
   /**
    * Create a shader pass.
@@ -56,29 +81,40 @@ export class ShaderPass extends ShaderPart {
 
   constructor(
     nameOrVertexSource: string,
-    vertexSourceOrFragmentSource: string,
-    fragmentSourceOrTags: string | Record<string, number | string | boolean>,
+    vertexSourceOrFragmentSourceOrCode?: string | Record<string, number | string | boolean>,
+    fragmentSourceOrTagsOrVertexEntry?: string | Record<string, number | string | boolean>,
+    fragmentEntryOrTags?: string | Record<string, number | string | boolean>,
     tags?: Record<string, number | string | boolean>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
+    this._type = ShaderType.Canonical;
 
-    if (typeof fragmentSourceOrTags === "string") {
+    if (typeof fragmentEntryOrTags === "string") {
       this._name = nameOrVertexSource;
-      this._vertexSource = vertexSourceOrFragmentSource;
-      this._fragmentSource = fragmentSourceOrTags;
-      tags = tags ?? {
+      this._shaderLabSource = vertexSourceOrFragmentSourceOrCode as string;
+      this._vertexEntry = fragmentSourceOrTagsOrVertexEntry as string;
+      this._fragmentEntry = fragmentEntryOrTags;
+      tags = {
+        pipelineStage: PipelineStage.Forward,
+        ...tags
+      };
+      this._type = ShaderType.ShaderLab;
+    } else if (typeof fragmentSourceOrTagsOrVertexEntry === "string") {
+      this._name = nameOrVertexSource;
+      this._vertexSource = vertexSourceOrFragmentSourceOrCode as string;
+      this._fragmentSource = fragmentSourceOrTagsOrVertexEntry;
+      tags = fragmentEntryOrTags ?? {
         pipelineStage: PipelineStage.Forward
       };
     } else {
       this._name = "Default";
       this._vertexSource = nameOrVertexSource;
-      this._fragmentSource = vertexSourceOrFragmentSource;
-      tags = fragmentSourceOrTags ?? {
+      this._fragmentSource = vertexSourceOrFragmentSourceOrCode as string;
+      tags = fragmentSourceOrTagsOrVertexEntry ?? {
         pipelineStage: PipelineStage.Forward
       };
     }
-
     for (const key in tags) {
       this.setTag(key, tags[key]);
     }
@@ -94,9 +130,75 @@ export class ShaderPass extends ShaderPart {
       return shaderProgram;
     }
 
+    if (this._type === ShaderType.Canonical) {
+      shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
+    } else {
+      shaderProgram = this._compileShaderProgram(engine, macroCollection, this._vertexEntry, this._fragmentEntry);
+    }
+
+    shaderProgramPool.cache(shaderProgram);
+    return shaderProgram;
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    const shaderProgramPools = this._shaderProgramPools;
+    for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
+      shaderProgramPools[i]._destroy();
+    }
+    shaderProgramPools.length = 0;
+  }
+
+  /**
+   * Shader Lab compilation
+   */
+  private _compileShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    vertexEntry: string,
+    fragmentEntry: string
+  ) {
+    const { _path: path, _platformMacros: platformMacros } = this;
+
+    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
+    const macros = new Array<ShaderMacro>();
+    ShaderMacro._getMacrosElements(macroCollection, macros);
+
+    platformMacros.length = 0;
+    if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
+      platformMacros.push("HAS_TEX_LOD");
+    }
+    if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
+      platformMacros.push("HAS_DERIVATIVES");
+    }
+    if (isWebGL2) {
+      platformMacros.push("GRAPHICS_API_WEBGL2");
+    } else {
+      platformMacros.push("GRAPHICS_API_WEBGL1");
+    }
+
+    const start = performance.now();
+    const { vertex, fragment } = Shader._shaderLab._parseShaderPass(
+      this._shaderLabSource,
+      vertexEntry,
+      fragmentEntry,
+      macros,
+      isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
+      platformMacros,
+      new URL(path, ShaderPass._shaderRootPath).href
+    );
+    Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
+
+    return new ShaderProgram(engine, vertex, fragment);
+  }
+
+  // TODO: remove it after migrate all shader to `ShaderLab`.
+  private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-    const macroNameList = [];
-    ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
+    const macroNameList = new Array<ShaderMacro>();
+    ShaderMacro._getMacrosElements(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
     const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
@@ -135,20 +237,8 @@ export class ShaderPass extends ShaderPart {
       fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
     }
 
-    shaderProgram = new ShaderProgram(engine, vertexSource, fragmentSource);
+    const shaderProgram = new ShaderProgram(engine, vertexSource, fragmentSource);
 
-    shaderProgramPool.cache(shaderProgram);
     return shaderProgram;
-  }
-
-  /**
-   * @internal
-   */
-  _destroy(): void {
-    const shaderProgramPools = this._shaderProgramPools;
-    for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
-      shaderProgramPools[i]._destroy();
-    }
-    shaderProgramPools.length = 0;
   }
 }

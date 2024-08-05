@@ -2,7 +2,6 @@ import {
   GLCapabilityType,
   IPlatformTexture,
   Logger,
-  RenderBufferDepthFormat,
   Texture,
   TextureCubeFace,
   TextureDepthCompareFunction,
@@ -80,6 +79,13 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.LUMINANCE_ALPHA,
           baseFormat: gl.LUMINANCE_ALPHA,
           dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
+      case TextureFormat.R11G11B10_UFloat:
+        return {
+          internalFormat: isWebGL2 ? gl.R11F_G11F_B10F : gl.NONE,
+          baseFormat: gl.RGB,
+          dataType: gl.FLOAT,
           isCompressed: false
         };
       case TextureFormat.R16G16B16A16:
@@ -354,6 +360,7 @@ export class GLTexture implements IPlatformTexture {
           return false;
         }
         break;
+      case TextureFormat.R11G11B10_UFloat:
       case TextureFormat.R32G32B32A32_UInt:
       case TextureFormat.Depth24:
       case TextureFormat.Depth32:
@@ -382,6 +389,12 @@ export class GLTexture implements IPlatformTexture {
           if (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat)) {
             isSupported = false;
           }
+        }
+        break;
+
+      case TextureFormat.R11G11B10_UFloat:
+        {
+          isSupported = rhi.isWebGL2;
         }
         break;
     }
