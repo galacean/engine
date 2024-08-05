@@ -24,7 +24,7 @@ flowchart LR
 
 ## 运行时
 
-核心功能由 [Galacean Runtime](https://www.npmjs.com/package/@galacean/runtime) 提供，非核心和偏业务逻辑定制的高级功能由 [Galacean Toolkit](https://github.com/galacean/runtime-toolkit) 提供。你可以通过浏览器在线浏览引擎的各种[示例](/examples/latest/background)。
+核心功能由 [Galacean Runtime](https://www.npmjs.com/package/@galacean/engine) 提供，非核心和偏业务逻辑定制的高级功能由 [Galacean Toolkit](https://github.com/galacean/runtime-toolkit) 提供。你可以通过浏览器在线浏览引擎的各种[示例](/examples/latest/background)。
 
 ### 核心包
 
@@ -35,7 +35,7 @@ flowchart LR
 | [@galacean/engine](https://www.npmjs.com/package/@galacean/engine) | 核心架构逻辑和核心功能 | [API](/apis/galacean) |
 | [@galacean/engine-physics-lite](https://www.npmjs.com/package/@galacean/engine-physics-lite) | 轻量级物理引擎 | [Doc](/docs/physics/overall) |
 | [@galacean/engine-physics-physx](https://www.npmjs.com/package/@galacean/engine-physics-physx) | 全功能物理引擎 | [Doc](/docs/physics/overall) |
-| [@galacean/engine-shader-lab](https://www.npmjs.com/package/@galacean/engine-shader-lab) | Galacean Shader 编译器 | [Doc](/docs/graphics/shader/lab) |
+| [@galacean/engine-shader-lab](https://www.npmjs.com/package/@galacean/engine-shader-lab) | Galacean Shader 编译器 | [Doc](/docs/graphics/shader/shaderLab/intro/) |
 | [@galacean/engine-xr](https://www.npmjs.com/package/@galacean/engine-xr) | XR 逻辑包 | [Doc](/docs/xr/overall) |
 | [@galacean/engine-xr-webxr](https://www.npmjs.com/package/@galacean/engine-xr-webxr) | WebXR 后端 | [Doc](/docs/xr/overall) |
 
@@ -81,11 +81,11 @@ import { WebGLEngine, Camera } from "@galacean/engine";
 
 Galacean Runtime 在支持 WebGL 的环境下运行，到目前为止，所有主流的移动端浏览器与桌面浏览器都支持这一标准。可以在 [CanIUse](https://caniuse.com/?search=webgl) 上检测运行环境的兼容性。
 
-此外，**Galacean Runtime** 还支持在[支付宝/淘宝小程序](/docs/assets/build)中运行，同时也有开发者在社区贡献了[微信小程序/游戏的适配方案](https://github.com/deepkolos/platformize)。对于一些需要额外考虑兼容性的功能模块，当前的适配方案如下：
+此外，**Galacean Runtime** 还支持在[支付宝/淘宝小程序](/docs/miniProgram/miniProgame/)中运行，同时也有开发者在社区贡献了[微信小程序/游戏的适配方案](https://github.com/deepkolos/platformize)。对于一些需要额外考虑兼容性的功能模块，当前的适配方案如下：
 
 | 模块 | 兼容考虑 | 具体文档 |
 | :-- | :-- | :-- |
-| [鼠标与触控](/docs/input) | [PointerEvent](https://caniuse.com/?search=PointerEvent) | 兼容请参照 [polyfill-pointer-event](https://github.com/galacean/polyfill-pointer-event) |
+| [鼠标与触控](/docs/input/input/) | [PointerEvent](https://caniuse.com/?search=PointerEvent) | 兼容请参照 [polyfill-pointer-event](https://github.com/galacean/polyfill-pointer-event) |
 | [PhysX](/docs/physics/overall) | [WebAssembly](https://caniuse.com/?search=wasm) | 在不支持 WebAssembly 的情况下，会降级为 JS 版本，略低于 WebAssembly 版本的性能与表现 |
 
 ## 开源共建

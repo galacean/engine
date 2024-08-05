@@ -13,13 +13,13 @@ label: Core
   - [场景管理](/docs/core/scene)
   - [资源管理](/docs/assets/overall)
   - [物理系统](/docs/physics/overall)
-  - [交互系统](/docs/input)
+  - [交互系统](/docs/input/input/)
   - [XR 系统](/docs/xr/overall)
 - **执行环境的上下文管理**：控制 WebGL 等执行环境的上下文管理。
 
 ## 初始化
 
-为了方便用户直接创建 web 端 engine，Galacean 提供了 [WebGLEngine](/apis/rhi-webgl/WebGLEngine) ：
+为了方便用户直接创建 web 端 engine，Galacean 提供了 [WebGLEngine](/apis/rhi-webgl/#WebGLEngine) ：
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });
@@ -68,7 +68,7 @@ const engine = await WebGLEngine.create({
 
 类似的，可以用 `webGLMode` 控制 WebGL1/2，除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。
 
-更多相关配置信息，可参考[物理系统](/docs/physics/overall)、[交互系统](/docs/input)、[XR 系统](/docs/xr/overall)。
+更多相关配置信息，可参考[物理系统](/docs/physics/overall)、[交互系统](/docs/input/input/)、[XR 系统](/docs/xr/overall)。
 
 ## 属性
 

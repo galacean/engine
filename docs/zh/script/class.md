@@ -144,7 +144,7 @@ onLateUpdate(deltaTime: number) {
 
 ### onPointerXXX
 
-输入系统接口详见[输入交互](/docs/input)。
+输入系统接口详见[输入交互](/docs/input/input/)。
 
 ## 实体操作
 
