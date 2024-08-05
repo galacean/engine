@@ -18,7 +18,7 @@ label: Graphics/2D/Spine/other
 目前已发布 4.2 beta 版本，4.1， 4.0 版本会陆续发布
 
 ### 版本升级
-升级到编辑器 1.3 版本后。除了需要在编辑器的[项目设置](https://antg.antgroup.com/engine/docs/latest/cn/interface-menu#%E9%A1%B9%E7%9B%AE%E8%AE%BE%E7%BD%AE)中升级引擎版本外，由于导出 JSON 或者二进制的 Spine 编辑器版本需要与运行时版本[保持一致](https://zh.esotericsoftware.com/spine-versioning#%E5%90%8C%E6%AD%A5%E7%89%88%E6%9C%AC)，所以编辑器升级到 1.3 后，`还需要重新导出 4.2 版本的 Spine 资产并上传到编辑器，通过文件覆盖完成资产的更新`。
+升级到编辑器 1.3 版本后。除了需要在编辑器的[项目设置](/docs/interface/menu/#项目设置)中升级引擎版本外，由于导出 JSON 或者二进制的 Spine 编辑器版本需要与运行时版本[保持一致](https://zh.esotericsoftware.com/spine-versioning#%E5%90%8C%E6%AD%A5%E7%89%88%E6%9C%AC)，所以编辑器升级到 1.3 后，`还需要重新导出 4.2 版本的 Spine 资产并上传到编辑器，通过文件覆盖完成资产的更新`。
 
 ### 性能建议
 这里提供一些优化 spine 动画性能的方法：

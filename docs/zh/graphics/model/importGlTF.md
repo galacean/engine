@@ -14,7 +14,7 @@ label: Graphics/Model
 - **(.glb + 图片)**
 - **(.fbx)**
 
-需要注意的是，编辑器会将 FBX 转换成运行时也可以解析的[ glTF 格式](./glTF)。接下来，让我们实操一下如何将模型文件导入编辑器。
+需要注意的是，编辑器会将 FBX 转换成运行时也可以解析的[ glTF 格式](/docs/graphics/model/glTF/)。接下来，让我们实操一下如何将模型文件导入编辑器。
 
 ## 拖拽导入
 
@@ -35,4 +35,4 @@ style="zoom:100%;" />
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*OtKERZfkrEAAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112129853" style="zoom:50%;" />
 
-导入完毕后， **[资产面板](/docs/assets/interface)** 中就会新增导入的模型资产，让我们[看看模型资产包含了什么内容](./assets)吧。
+导入完毕后， **[资产面板](/docs/assets/interface)** 中就会新增导入的模型资产，让我们[看看模型资产包含了什么内容](/docs/graphics/model/assets/)吧。
