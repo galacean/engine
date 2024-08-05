@@ -15,9 +15,9 @@ label: Graphics/Model
 
 本章主要解答如下开发者可能遇到的问题：
 
-- 模型格式的要求，编辑器目前支持导入 `glTF` 或者 `FBX` 格式的模型，但是最后编辑器都会转换成运行时也可以解析的 [glTF](./glTF) 格式。
-- [导入模型](./importGlTF)到编辑器
-- 什么是[模型资产](./assets)
-- [模型的加载与使用](./use)
-- [在编辑器中还原美术效果](./restoration)
-- [模型优化](./opt)
+- 模型格式的要求，编辑器目前支持导入 `glTF` 或者 `FBX` 格式的模型，但是最后编辑器都会转换成运行时也可以解析的 [glTF](/docs/graphics/model/glTF/) 格式。
+- [导入模型](/docs/graphics/model/importGlTF/)到编辑器
+- 什么是[模型资产](/docs/graphics/model/assets/)
+- [模型的加载与使用](/docs/graphics/model/use/)
+- [在编辑器中还原美术效果](/docs/graphics/model/restoration/)
+- [模型优化](/docs/graphics/model/opt/)

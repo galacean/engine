@@ -12,6 +12,6 @@ label: Graphics/Material
 
 本节包含以下相关信息：
 
-- [材质组成](/composition)
-- [编辑器使用](/editor)
-- [脚本使用](/script)
+- [材质组成](/docs/graphics/material/composition/)
+- [编辑器使用](/docs/graphics/material/editor/)
+- [脚本使用](/docs/graphics/material/script/)

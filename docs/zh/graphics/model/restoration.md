@@ -16,7 +16,7 @@ Galacean 引擎目前有 3 种方式调试材质：
 
 2. 通过 Galacean Editor 可视化调试，参考[教程](/docs/graphics/material/material)。
 
-3. **通过 3D 建模软件调好后导出 [glTF](./glTF)**
+3. **通过 3D 建模软件调好后导出 [glTF](/docs/graphics/model/glTF/)**
 
 前两种方式直接使用引擎渲染，所见即所得，没有视觉上的差异。
 
