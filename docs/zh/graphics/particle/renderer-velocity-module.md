@@ -8,7 +8,7 @@ label: Graphics/Particle
 
 ### 生命周期速度模块
 
-[`VelocityOverLifetimeModule`](/apis/core/VelocityOverLifetimeModule) 继承自 `ParticleGeneratorModule`，用于控制粒子系统的生命周期内的速度变化。
+[`VelocityOverLifetimeModule`](/apis/core/#VelocityOverLifetimeModule) 继承自 `ParticleGeneratorModule`，用于控制粒子系统的生命周期内的速度变化。
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*cJWxR6XQ2VwAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 
@@ -16,7 +16,7 @@ label: Graphics/Particle
 
 | 属性                                                         | 释义                                                                                                |
 | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| [space](/apis/core/VelocityOverLifetimeModule#velocityZ)     | 选择速度变化的空间，可以是世界空间或本地空间                                                        |
-| [velocityX](/apis/core/VelocityOverLifetimeModule#velocityX) | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 x 轴旋转 |
-| [velocityY](/apis/core/VelocityOverLifetimeModule#velocityY) | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 y 轴旋转 |
-| [velocityZ](/apis/core/VelocityOverLifetimeModule#velocityZ) | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 z 轴旋转 |
+| [space](/apis/core/#VelocityOverLifetimeModule-velocityZ)     | 选择速度变化的空间，可以是世界空间或本地空间                                                        |
+| [velocityX](/apis/core/#VelocityOverLifetimeModule-velocityX) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 x 轴旋转 |
+| [velocityY](/apis/core/#VelocityOverLifetimeModule-velocityY) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 y 轴旋转 |
+| [velocityZ](/apis/core/#VelocityOverLifetimeModule-velocityZ) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 z 轴旋转 |

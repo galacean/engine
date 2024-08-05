@@ -5,7 +5,7 @@ group: 基础
 label: Core
 ---
 
-Galacean Engine 封装了不同平台的画布，如 [WebCanvas](/apis/rhi-webgl/WebCanvas)  支持用 [Engine](/apis/core/#Engine) 控制 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) 或者 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) 。
+Galacean Engine 封装了不同平台的画布，如 [WebCanvas](/apis/rhi-webgl/#WebCanvas)  支持用 [Engine](/apis/core/#Engine) 控制 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) 或者 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) 。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -33,7 +33,7 @@ console.log(engine.canvas); // => WebCanvas 实例
 
 ### 基础适配
 
-画布尺寸一般通过**设备像素比**控制，以 [WebCanvas](/apis/rhi-webgl/WebCanvas) 为例：
+画布尺寸一般通过**设备像素比**控制，以 [WebCanvas](/apis/rhi-webgl/#WebCanvas) 为例：
 
 ```mermaid
 flowchart TD
