@@ -22,7 +22,7 @@ label: Basics/Interface
 
 ### 实体检查器
 
-实体检查器是最常用的检查器，它的属性包含了当前实体的组件列表。你可以很方便地修改某个组件的属性，也可以通过 **Add Component** 按钮方便地添加任何引擎内置的组件和自定义的脚本组件。实体检查器也包含当前实体的基本信息，比如 `Transform`、`Layer` 等。详见[实体](/engine/docs/core/entity)。
+实体检查器是最常用的检查器，它的属性包含了当前实体的组件列表。你可以很方便地修改某个组件的属性，也可以通过 **Add Component** 按钮方便地添加任何引擎内置的组件和自定义的脚本组件。实体检查器也包含当前实体的基本信息，比如 `Transform`、`Layer` 等。详见[实体](/docs/core/entity)。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/bb8e0881-c716-4fc2-89c0-d7b4b01d668d/image-20240318175043180.png" style="zoom:50%;" />
 
