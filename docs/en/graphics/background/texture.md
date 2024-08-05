@@ -6,15 +6,15 @@ group: Background
 label: Graphics/Background
 ---
 
-When the background type of the scene is set to texture, the rendering area of the canvas will be filled with the corresponding texture according to the fill rule before camera rendering.
+When the background type of the scene is set to texture, the rendering area of the canvas will be filled with the corresponding texture according to the fill rules before the camera renders.
 
-## Set Texture Background
+## Setting Texture Background
 
-Based on the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> Set **Mode** to **Texture** in the **Background** section, then choose the desired texture. You can see the background of the scene change in real-time.
+According to the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background Section** set **Mode** to **Texture**, then select the desired texture, you can see the background of the scene change in real-time.
 
 ![](https://gw.alipayobjects.com/zos/OasisHub/2673b2a2-a87b-4707-b3fc-9af334231298/2024-07-18%25252017.50.16.gif)
 
-Similarly, you can also set it in scripts using the following code:
+Similarly, in the script, you can also set it with the following code:
 
 ```typescript
 // 获取当前场景的背景实例
@@ -32,23 +32,23 @@ background.textureFillMode = BackgroundTextureFillMode.Fill;
 
 ## Properties
 
-It is important to note that all background-related properties are in the `background` property of the scene. Only after obtaining this property instance can you modify the related properties to take effect.
+It should be noted that the relevant properties of the background are all in the `background` property of the scene. After obtaining this property instance, modifying the relevant properties will take effect.
 
-| Property         | Description                                                                                                                                                                                                                                                                           |
-| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| texture          | Set the background texture                                                                                                                                                                                                                                                            |
-| textureFillMode  | Set the fill mode of the background texture, options are [AspectFitWidth](/apis/core/#BackgroundTextureFillMode-AspectFitWidth), [AspectFitHeight](/apis/core/#BackgroundTextureFillMode-AspectFitHeight), or [Fill](/apis/core/#BackgroundTextureFillMode-Fill), default is `BackgroundTextureFillMode.AspectFitHeight` |
+| Property        | Function                                                                                                                                                                                                                                                                               |
+| :-------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| texture         | Set the background texture                                                                                                                                                                                                                                                              |
+| textureFillMode | Set the fill mode of the background texture, optional [AspectFitWidth](/apis/core/#BackgroundTextureFillMode-AspectFitWidth), [AspectFitHeight](/apis/core/#BackgroundTextureFillMode-AspectFitHeight) or [Fill](/apis/core/#BackgroundTextureFillMode-Fill), default is `BackgroundTextureFillMode.AspectFitHeight` |
 
-### Fill Modes
+### Fill Mode
 
-Set the texture adaptation mode by `background.textureFillMode = BackgroundTextureFillMode.AspectFitWidth`.
+Set the texture adaptation mode through `background.textureFillMode = BackgroundTextureFillMode.AspectFitWidth`.
 
-Currently, there are three fill modes for texture adaptation:
+Currently, there are three texture adaptation modes:
 
-| Fill Mode                                                                | Description                                           |
-| ------------------------------------------------------------------------ | ----------------------------------------------------- |
-| [AspectFitWidth](/apis/core/#BackgroundTextureFillMode-AspectFitWidth)    | Maintain aspect ratio, scale the texture width to fit the canvas width, center vertically. |
-| [AspectFitHeight](/apis/core/#BackgroundTextureFillMode-AspectFitHeight)  | Maintain aspect ratio, scale the texture height to fit the canvas height, center horizontally. |
-| [Fill](/apis/core/#BackgroundTextureFillMode-Fill)                        | Fill the width and height of the canvas with the texture. |
+| Fill Mode                                                               | Description                                        |
+| ----------------------------------------------------------------------- | -------------------------------------------------- |
+| [AspectFitWidth](/apis/core/#BackgroundTextureFillMode-AspectFitWidth)   | Maintain aspect ratio, scale the texture width to the width of the Canvas, centered vertically. |
+| [AspectFitHeight](/apis/core/#BackgroundTextureFillMode-AspectFitHeight) | Maintain aspect ratio, scale the texture height to the height of the Canvas, centered horizontally. |
+| [Fill](/apis/core/#BackgroundTextureFillMode-Fill)                       | Fill the width and height of the Canvas with the texture.                   |
 
-Please paste the Markdown content you need to be translated.
+It seems like your message is empty. Please paste the Markdown content you want translated, and I'll help you with the translation while adhering to the rules you've provided.

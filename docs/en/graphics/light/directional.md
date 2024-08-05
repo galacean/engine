@@ -6,22 +6,19 @@ group: Lighting
 label: Graphics/Light
 ---
 
-**Directional Light** represents light that is emitted uniformly from a specific direction, with parallel light rays. The sunlight shining on the Earth's surface can be considered as directional light because the distance between the Sun and the Earth is much greater than the Earth's radius. Therefore, the sunlight shining on the Earth can be seen as a set of parallel light rays coming from the same direction, which is directional light.
+**Directional Light** represents light that is emitted uniformly in a certain direction, with parallel light rays. Sunlight hitting the Earth's surface can be considered directional light because the distance between the Sun and the Earth is much greater than the Earth's radius. Therefore, sunlight hitting the Earth can be seen as a set of parallel light rays coming from the same direction, i.e., directional light.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/a7f8b3f7-1a5f-4a56-8e57-1636a72aa1fb/image-20240319173643671.png" alt="image-20240319173643671" style="zoom:50%;" />
 
-Directional light has 3 main properties: _Color_ ([color](/apis/core/#DirectLight-color)), _Intensity_ ([intensity](/apis/core/#DirectLight-intensity)), and _Direction_ ([direction](/apis/core/#DirectLight-direction)). The _Direction_ is represented by the orientation of the node where the directional light is located.
+Directional light has 3 main characteristics: _color_ ([color](/apis/core/#DirectLight-color)), _intensity_ ([intensity](/apis/core/#DirectLight-intensity)), and _direction_ ([direction](/apis/core/#DirectLight-direction)). The _direction_ is represented by the orientation of the node where the directional light is located.
 
-| Property   | Description                       |
-| :-------- | :------------------------------- |
-| Intensity | Controls the intensity of the parallel light, **the higher the value, the brighter** |
-| Color     | Controls the color of the parallel light, default is white       |
-| Culling Mask     | Controls which objects the light needs to illuminate, default is Everything. Needs to be used in conjunction with the Entity's Layer  |
+| Property     | Function                                                                 |
+| :----------- | :----------------------------------------------------------------------- |
+| Intensity    | Controls the intensity of the parallel light, **the higher the value, the brighter** |
+| Color        | Controls the color of the parallel light, default is white               |
+| Culling Mask | Controls the objects that need to be illuminated by the light, default is Everything. Needs to be used in conjunction with the Entity's Layer |
 
-> Directional lights can cast shadows. For more information, see the [shadow documentation](/en/docs/graphics/light/shadow).
-
-
-
+> Directional light can cast shadows. For related configurations, refer to the [shadow documentation](/en/docs/graphics/light/shadow).
 
 ## Script Usage
 

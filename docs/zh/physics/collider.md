@@ -93,9 +93,9 @@ label: Physics
 
 对于触发器模式，首先需要给场景中的 `Entity` 添加 `Collider`；该当这些组件相互接触时，会自动触发脚本组件当中的三个函数：
 
-1. [onTriggerEnter](/docs/script#$1-ontriggerenter)：相互接触时调用
-2. [onTriggerStay](/docs/script#$1-ontriggerstay)：接触过程中*循环*调用
-3. [onTriggerExit](/docs/script#$1-ontriggerexit)：接触结束时调用
+1. [onTriggerEnter](/docs/script/class/#ontriggerenter)：相互接触时调用
+2. [onTriggerStay](/docs/script/class/#ontriggerstay)：接触过程中*循环*调用
+3. [onTriggerExit](/docs/script/class/#ontriggerexit)：接触结束时调用
 
 可以通过 `ColliderShape` 上的 `isTrigger` 开启触发器模式，但需要特别强调的是，**两个 StaticCollider 之间不会调用触发器事件**，除非其中一个是 `DynamicCollider`。
 
@@ -104,8 +104,8 @@ label: Physics
 ### 碰撞器脚本函数
 
 对于碰撞器模式，`DynamicCollider` 相互作用时会触发三个碰撞相关的脚本函数：
-1. [onCollisionEnter](/docs/script#$1-oncollisionenter)：碰撞触发时调用
-2. [onCollisionStay](/docs/script#$1-oncollisionstay)：碰撞过程中*循环*调用
-3. [onCollisionExit](/docs/script#$1-oncollisionexit)：碰撞结束时调用
+1. [onCollisionEnter](/docs/script/class/#oncollisionenter)：碰撞触发时调用
+2. [onCollisionStay](/docs/script/class/#oncollisionstay)：碰撞过程中*循环*调用
+3. [onCollisionExit](/docs/script/class/#oncollisionexit)：碰撞结束时调用
 
 <playground src="physx-compound.ts"></playground>

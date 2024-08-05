@@ -1,17 +1,17 @@
 ---
 order: 3
-title: Loading Resources
-type: Resource Workflow
+title: Asset Loading
+type: Asset Workflow
 label: Resource
 ---
 
-In Galacean, loading resources is generally divided into three scenarios based on their usage:
+In Galacean, asset loading is generally divided into three situations based on its usage:
 
-- Resources are imported into the editor and used in a scene
-- Resources are imported into the editor but not used in any scene
-- Resources are not imported into the editor
+- The asset is imported into the editor and used in a scene
+- The asset is imported into the editor but not used in a scene
+- The asset is not imported into the editor
 
-> When loading a project using the project loader, only the resources used in the **main scene** will be loaded, other resources in the editor will not be loaded.
+> If the project loader is used to load the project, only the resources used in the **main scene** will be loaded, and other resources in the editor will not be loaded.
 
 ```typescript
 await engine.resourceManager.load({
@@ -20,7 +20,7 @@ await engine.resourceManager.load({
 });
 ```
 
-> Similarly, when loading a specific scene using the scene loader, only the resources used in **that scene** will be loaded, other resources will not be loaded by default.
+> Correspondingly, if the scene loader is used to load a scene, the scene loader will only load the resources used in **that scene**, and other resources will not be loaded by default.
 
 ```typescript
 const scene = await engine.resourceManager.load({
@@ -30,7 +30,7 @@ const scene = await engine.resourceManager.load({
 engine.sceneManager.activeScene = scene;
 ```
 
-> For resources that are not used in any scene, you can load them using the [resourceManager.load](/apis/core/#Engine-resourceManager#load) method mounted on the Engine instance.
+> As for those assets that are not used in the scene, you can use [resourceManager.load](/apis/core/#Engine-resourceManager#load) mounted on the Engine instance to load the resources.
 
 ```typescript
 // 若只传入 URL ，引擎会依据后缀推断加载的资产类型，如 `.png` 对应纹理， `.gltf` 则对应模型
@@ -52,20 +52,20 @@ const [texture2D, glTFResource] = await this.engine.resourceManager.load([
 ]);
 ```
 
-The following will specifically introduce loading resources at runtime:
+The following will specifically introduce how to load resources at runtime:
 
-- Resource Paths
-- Loading Progress
-- Canceling Loading
-- Retrieving Loaded Assets
+- Resource path
+- Loading progress
+- Cancel loading
+- Get loaded assets
 
-## Resource Paths
+## Resource Path
 
-Resource URL paths support **relative paths**, **absolute paths**, and **virtual paths**:
+The URL path of the resource supports **relative paths**, **absolute paths**, and **virtual paths**:
 
-- Relative paths are relative to the runtime root path. If there is an error in the path, adjustments can be made based on the loading error information in the developer tools.
+- Relative paths are relative to the runtime root path. If the path is incorrect, you can adjust it based on the loading error information in the developer tools.
 - Absolute paths specify the complete file location, such as `https://xxxx.png`, and also include `blob` and `base64`.
-- Virtual paths are paths in the editor's asset files, usually in the format `Assets/sprite.png`.
+- Virtual paths are the paths in the asset files of the editor, generally `Assets/sprite.png`.
 
 ```typescript
 // 加载相对路径下的资源
@@ -84,27 +84,29 @@ this.engine.resourceManager.load<GLTFResource>({
 this.engine.resourceManager.load<GLTFResource>("Assets/texture.png");
 ```
 
-> In the editor, you can quickly copy the relative path of an asset by going to **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Asset** -> **Copy relative path**.
+> In the editor, you can quickly copy the relative path of the asset through **[Asset Panel](/en/docs/assets/interface)** -> **Right-click asset** -> **Copy relative path**.
+
+![image-20240717180517517](https://mdn.alipayobjects.com/rms/afts/img/A*yft2SLLgIyQAAAAAAAAAAAAAARQnAQ/original/image-20240717180517517.png)
 
 ### baseUrl
 
-The `ResourceManger` now also supports setting a `baseUrl`:
+`ResourceManger` currently also supports setting `baseUrl`:
 
 ```typescript
 engine.resourceManager.baseUrl = "https://cdn.galacean.com";
 ```
 
-If a `baseUrl` is set, the relative paths loaded will be combined with the `baseUrl`:
+If `baseUrl` is set, the relative path loaded will be combined with `baseUrl`:
 
 ```typescript
 engine.resourceManager.load("img/2d.png");
 ```
 
-The actual loading path from the above code snippets would be `https://cdn.galacean.com/img/2d.png`.
+The actual loading path from the above two lines of code will be `https://cdn.galacean.com/img/2d.png`.
 
 ## Loading Progress
 
-By calling the load queue, you can obtain an [AssetPromise](/apis/core/#AssetPromise) object, and use [onProgress](/apis/core/#AssetPromise-onProgress) to get the loading progress.
+Calling the loading queue can get an [AssetPromise](/apis/core/#AssetPromise) object, and you can use [onProgress](/apis/core/#AssetPromise-onProgress) to get the loading progress.
 
 ```typescript
 this.engine.resourceManager
@@ -114,9 +116,9 @@ this.engine.resourceManager
   });
 ```
 
-## Canceling Loading
+## Cancel Loading
 
-The _ResourceManager_ object has a method [cancelNotLoaded](/apis/core/#ResourceManager-cancelNotLoaded) that can be used to cancel the loading of unfinished resources by calling this method. Providing a URL will cancel the loading of a specific resource.
+The _ResourceManager_ object has a [cancelNotLoaded](/apis/core/#ResourceManager-cancelNotLoaded) method, which can be used to cancel resources that have not been loaded yet. Passing in a URL will cancel the resource loading for that specific URL.
 
 ```typescript
 // 取消所有未加载完的资源。
@@ -127,17 +129,19 @@ this.engine.resourceManager.cancelNotLoaded("test.gltf");
 
 > Note: Currently, canceling the loading of unfinished resources will throw an exception.
 
-## Retrieving Loaded Assets
+## Get Loaded Assets
 
-Currently loaded assets are cached in the _ResourceManager_. To retrieve loaded assets, you can use the more secure `load` method, an **asynchronous method**, which will reload the corresponding resource even if it is not in the cache.
+Currently, loaded assets are cached in the _ResourceManager_. If you need to get loaded assets, you can use the more reliable `load` **asynchronous method**. **Even if the asset is not in the cache**, this interface will reload the corresponding resource.
 
 ```typescript
 const asset = await this.engine.resourceManager.load(assetItem);
 ```
 
-If you are certain that the resource is currently in the cache, you can also use the `getFromCache` method, a **synchronous method**:
+If you know for sure that this resource is now in the cache, you can also call the `getFromCache` **synchronous method**:
 
 ```typescript
-// Get the asset corresponding to the URL provided
+// Get the asset corresponding to the passed URL
 const asset = this.engine.resourceManager.getFromCache(url);
 ```
+
+It looks like you haven't pasted any content yet. Please provide the Markdown content you want translated, and I'll help you with the translation while adhering to the rules you've specified.

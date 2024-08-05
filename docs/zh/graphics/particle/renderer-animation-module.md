@@ -6,7 +6,7 @@ group: 粒子
 label: Graphics/Particle
 ---
 
-[`TextureSheetAnimationModule`](/apis/core/TextureSheetAnimationModule) 继承自 `ParticleGeneratorModule`，用于控制粒子系统的纹理表动画。
+[`TextureSheetAnimationModule`](/apis/core/#TextureSheetAnimationModule) 继承自 `ParticleGeneratorModule`，用于控制粒子系统的纹理表动画。
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*XhXmQadW8ToAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 
@@ -14,8 +14,8 @@ label: Graphics/Particle
 
 | 属性                                                                  | 释义                                                                                             |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [startFrame](/apis/core/TextureSheetAnimationModule#startFrame)       | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) 对象，表示纹理表的起始帧             |
-| [frameOverTime](/apis/core/TextureSheetAnimationModule#frameOverTime) | [ParticleCompositeCurve](/apis/core/ParticleCompositeCurve) 对象，表示纹理表的帧随时间变化的曲线 |
-| [type](/apis/core/TextureSheetAnimationModule#type)                   | `TextureSheetAnimationType` 枚举，表示纹理表动画的类型                                           |
-| [cycleCount](/apis/core/TextureSheetAnimationModule#cycleCount)       | `number` 类型，表示纹理表动画的周期计数                                                          |
-| [tiling](/apis/core/TextureSheetAnimationModule#tiling)               | `Vector2` 对象，表示纹理表的平铺。可以通过 `get` 和 `set` 方法访问和修改                         |
+| [startFrame](/apis/core/#TextureSheetAnimationModule-startFrame)       | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示纹理表的起始帧             |
+| [frameOverTime](/apis/core/#TextureSheetAnimationModule-frameOverTime) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示纹理表的帧随时间变化的曲线 |
+| [type](/apis/core/#TextureSheetAnimationModule-type)                   | `TextureSheetAnimationType` 枚举，表示纹理表动画的类型                                           |
+| [cycleCount](/apis/core/#TextureSheetAnimationModule-cycleCount)       | `number` 类型，表示纹理表动画的周期计数                                                          |
+| [tiling](/apis/core/#TextureSheetAnimationModule-tiling)               | `Vector2` 对象，表示纹理表的平铺。可以通过 `get` 和 `set` 方法访问和修改                         |

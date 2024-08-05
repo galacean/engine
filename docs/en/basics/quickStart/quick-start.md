@@ -1,0 +1,99 @@
+---
+order: 1
+title: Quick Start
+label: Basics
+---
+
+We will understand the use of the engine through an example of a "rotating duck."
+
+## Create a Project
+
+After logging in, the first thing you see is the editor's homepage, which displays all the projects you have created. Use the button in the upper right corner to create a project. After clicking, you can choose the type of project to create, either 2D or 3D. We choose 3D Project.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*luxKRKYGSBMAAAAAAAAAAAAADhuCAQ/original" alt="image-20230921161225962" style="zoom:50%;" />
+
+At this point, a new blank project will open, with a camera and a directional light built into the scene.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/92b9b53e-63df-4165-bb53-d130bde7a731/image-20240705161613717.png" alt="image-20240705161613717" style="zoom:50%;" />
+
+## Build the Scene
+
+Before that, let's explain some basic concepts in the game engine:
+
+| Concept     | Explanation                                                  |
+| ----------- | ------------------------------------------------------------ |
+| Scene       | An environment containing all 2D/3D elements                  |
+| Entity      | The basic unit that makes up the scene, representing any object in the scene with independent significance |
+| Component   | The specific implementation of the entity's function, each component is responsible for handling a specific function of the entity |
+| Script Component | A special type of component that gives the entity dynamic behavior and logic control capabilities |
+| Asset       | A general term for reusable resources used to build scenes, such as 3D models, materials, etc. |
+| 3D Model    | A digital representation created by computer software that can represent the shape and appearance of objects in three-dimensional space. It includes the three-dimensional geometric shapes of characters, environmental objects (such as buildings, vegetation), props (weapons, furniture), usually with texture and material definitions |
+
+### Place the Duck
+
+First, click this [link](https://gw.alipayobjects.com/os/bmw-prod/6cb8f543-285c-491a-8cfd-57a1160dc9ab.glb) to download a 3D model of a duck. Drag the downloaded model to the asset panel, and after a while, you will see that the model has been uploaded to the editor:
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/a73635d5-9f6f-4dc0-aa32-af8d49b669a6/image-20240705162025015.png" alt="image-20240705162025015" style="zoom:50%;" />
+
+Next, drag the model from the asset panel to the scene view, and you can render this 3D model in the scene. At this point, a new entity has been added to the scene's node tree.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/cfbdb410-9091-4246-a9ba-1cf06cd4fb93/image-20240705162359455.png" alt="image-20240705162359455" style="zoom:50%;" />
+
+### Adjust the Duck's Transform
+
+First, to better preview the final effect on mobile devices, we can select the **camera** entity. You can use the positioning button to clarify the current preview camera's position in the scene, simulate real device previews by selecting different sizes of mobile devices, and also choose to lock the preview window so that it does not disappear when selecting other entities.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*V33tQ4FZlVsAAAAAAAAAAAAADhuCAQ/original" alt="image-20240705162931132" style="zoom:50%;" />
+
+Next, we select the duck and use the **move**, **rotate**, **scale**, and other [transform](/en/docs/core/transform) operations from the top toolbar. Switching between different transform types will also switch different operation handles on the duck. These operation handles are similar to the interactions in most 3D software. If you are using such handles for the first time, don't worry, just move the mouse to the handle and play around a bit, and you will quickly get the hang of it. Through simple transform operations, we can adjust the duck's position, angle, and size to meet our expected effect. The camera preview in the upper left corner will display the effect of your adjustments in real-time.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/4f2955d5-41e8-4cc3-81ef-5f1fee6a8b59/image-20240705163544657.png" alt="image-20240705163544657" style="zoom:50%;" />
+
+### Adjusting the Light
+
+At this point, the duck is a bit dark. Select the `DirectLight` light entity in the node tree, and in the inspector panel on the right, drag the slider to appropriately adjust the intensity of the light, making the scene brighter.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lA07Ro1SfuwAAAAAAAAAAAAADhuCAQ/original" alt="image-20240705164814972" style="zoom:80%;" />
+
+### Making the Duck Rotate
+
+First, in the asset panel, *right-click → Create → New Empty Script* to create a Script asset.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/e47a9c4e-bfd8-481d-8233-a7daae00f500/image-20240705170003841.png" alt="image-20240705170003841" style="zoom:50%;" />
+
+After creation, you can see a new Script asset in the asset panel.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/690d8428-2295-4c07-bfb0-6bdace57cd03/image-20240705170256694.png" alt="image-20240705170256694" style="zoom:50%;" />
+
+Next, select the duck entity, and in the inspector panel on the right, click **Add Component** to add a [ Script ](/en/docs/script/class) component.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/c8879990-82c2-4ebd-a8c4-028fcecea364/image-20240705165619069.png" alt="image-20240705165619069" style="zoom:50%;" />
+
+Click **Select asset** to choose the Script you just created. This binds the script to the entity, meaning the script's lifecycle functions will apply to this entity.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*MfjMQ7KA0B0AAAAAAAAAAAAADhuCAQ/original" alt="image-20240705170349805" style="zoom:80%;" />
+
+After creating the script, you can **double-click it** to jump to the code editor page.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/73374e9e-77f2-46dd-baed-da79b8601dfa/image-20240705170853613.png" alt="image-20240705170853613" style="zoom:50%;" />
+
+In the code editor, add a line of code in the `onUpdate` function to make the duck rotate along the Y-axis. After writing the code, save it (`⌘+s`), and you can see the effect in real-time in the preview area on the right.
+
+```ts
+// Script.ts
+import { Script } from "@galacean/engine";
+
+export default class extends Script {
+  onUpdate(deltaTime: number) {
+     this.entity.transform.rotate(0, 1, 0);
+  }
+}
+```
+
+## Exporting the Project
+
+We have completed the development work in the editor. Next, let's export this project to the local machine. Click the **Download** button on the left toolbar to bring up the export interface. Here, rename the project to "duck", then click the `Download` button. The editor will package the project into a `duck.zip` file for download.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/26a6e282-689a-4c69-903f-10c565a9746c/image-20240705171230958.png" alt="image-20240705171230958" style="zoom:50%;" />
+
+After the project is packaged, open the box project with VsCode, run `npm install` & `npm run dev`, and you can see the project running normally.

@@ -1,0 +1,35 @@
+---
+title: Creation
+---
+
+## Create in the Editor
+
+You can add 3 types of ShaderLab templates in the editor: `Unlit`, `PBR`, and Shader Fragments.
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_rmtxpm/afts/img/A*namMTLNnCPYAAAAAAAAAAAAADv-7AQ/original"
+  style={{ width: "50%" }}
+/>
+
+Among them, **`Unlit`** and **`PBR`** are shader templates written using ShaderLab syntax, while **Shader Fragments** are for convenient code segment reuse. In ShaderLab, you can use the `include` macro to reference code segments, which will be automatically expanded and replaced during subsequent compilation. For usage details, see the syntax standard module.
+
+## Create in Script
+
+Currently, `ShaderLab` is not yet integrated into the engine core package. You need to pass in a newly created `ShaderLab` object during engine initialization; otherwise, the engine cannot parse and use shaders written in `ShaderLab` syntax.
+
+1. `ShaderLab` Initialization
+
+```ts
+import { ShaderLab } from "@galacean/engine-shaderlab";
+
+const shaderLab = new ShaderLab();
+// 使用ShaderLab初始化Engine
+const engine = await WebGLEngine.create({ canvas: "canvas", shaderLab });
+```
+
+2. Create Shader
+
+```glsl
+// Directly create Shader using ShaderLab
+const shader = Shader.create(galaceanShaderCode);
+```

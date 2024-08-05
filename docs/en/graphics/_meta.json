@@ -1,0 +1,38 @@
+{
+  "camera": {
+    "title": "Camera"
+  },
+  "background": {
+    "title": "Background"
+  },
+  "light": {
+    "title": "Light"
+  },
+  "renderer": {
+    "title": "Renderer"
+  },
+  "model": {
+    "title": "Model"
+  },
+  "mesh": {
+    "title": "Mesh"
+  },
+  "material": {
+    "title": "Material"
+  },
+  "shader": {
+    "title": "Shader"
+  },
+  "texture": {
+    "title": "Texture"
+  },
+  "2D": {
+    "title": "2D"
+  },
+  "particle": {
+    "title": "Particle"
+  },
+  "postProcess": {
+    "title": "Post Process"
+  }
+}

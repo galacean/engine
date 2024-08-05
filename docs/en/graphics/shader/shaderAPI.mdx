@@ -1,0 +1,357 @@
+---
+title: Shader API【Experimental】
+---
+
+<Callout type="warning">
+  This version is currently experimental and can only be used in the `editor`. If you want to use it in `Pro Code`, you need to import the `@galacean/engine-toolkit` package. Please note that the API may change in the next version, and we will notify you in time.
+</Callout>
+
+Similar to functions, classes, and properties in Typescript, Shader code also has its own set of APIs. This article can help you write your own Shader based on these APIs and `ShaderLab` syntax.
+
+## Getting Started
+
+Let's start with the `Unlit template` to briefly introduce our Shader API. First, create an Unlit Shader as shown in the figure below:
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/9abd1026-4e4d-4994-b36a-f964375c38cb/image-20240731105324320.png"
+  style={{ zoom: "50%" }}
+/>
+
+The default Unlit template already has built-in skinning calculations and Shadow Pass, so you can see that skeletal animation and shadows are rendered correctly:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6e7f7d40-e54c-45bc-a915-dfbfb26c2c74/2024-08-01%25252017.01.06.gif" />
+
+The key code is as follows. By calling `UsePass "pbr/Default/ShadowCaster"`, the object can be rendered to the Shadowmap; by using the `getSkinMatrix` API, you can get the bone matrix to animate the object.
+
+```ts showLineNumbers {1,11-15} /getSkinMatrix/
+UsePass "pbr/Default/ShadowCaster"
+
+Pass "Example" {
+	#include "Skin.glsl"
+
+	Varyings vert(Attributes attr) {
+		Varyings v;
+
+		vec4 position = vec4(attr.POSITION, 1.0);
+
+		// Skin
+		#ifdef RENDERER_HAS_SKIN
+		  mat4 skinMatrix = getSkinMatrix(attr);
+		  position = skinMatrix * position;
+		#endif
+
+		gl_Position = renderer_MVPMat * position;
+		v.uv = attr.TEXCOORD_0;
+
+		return v;
+	}
+}
+```
+
+The Unlit Shader is not affected by lighting by default. We can call the API provided by `Light.glsl` to make the Shader's output affected by lighting:
+
+```ts showLineNumbers {1,4} /getDirectLight/
+#include "Light.glsl"
+
+// Demo 演示，我们只简单计算第 1 盏方向光。
+DirectLight light = getDirectLight(0);
+// 衰减系数，光线越垂直照射的地方越亮
+float dotNL = saturate( dot( v.normalWS, -light.direction ) );
+baseColor.rgb *= dotNL * light.color;
+```
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a552c86f-6a59-4765-89ff-fac3b38aa9d2/2024-08-01%25252017.06.14.gif" />
+
+Of course, in addition, you can also perform vertex color calculations, normal map calculations, [ambient light](/en/docs/graphics/light/ambient) calculations, and other operations, but we do not recommend doing these operations based on the `Unlit template`. The `PBR template` already has these calculations built-in and provides a more comprehensive lighting model, such as anisotropy, Clear Coat, etc., and provides function overload macros for quick expansion.
+
+## PBR Template
+
+We recreate a `PBR Shader template` and bind it to the material ball just now. You can see that the material panel already has built-in basic properties, metallic roughness, anisotropy, normal, emission, shadow occlusion, Clear Coat, and other configurations, and can be affected by direct light and ambient light:
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/1bb43cac-ca21-4342-a6ea-a19324eaf12d/image-20240801174338560.png"
+  style={{ zoom: "50%" }}
+/>
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/f8f09e89-e14d-481e-a328-eed491f41e79/image-20240801174216595.png" />
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/65a7f2ec-ffd5-45cf-9508-8d951b995e3d/2024-08-01%25252017.40.02.gif" />
+
+Next, we refer to the `thin film interference` algorithm to see how to overload the implementation of the lighting model:
+
+1. First, create a `DemoPass.glsl` and import it into the main Shader file just now:
+
+```ts showLineNumbers {7-8}
+// PBRShader.gs
+SubShader "Default" {
+	Pass "Forward Pass" {
+	  VertexShader = PBRVertex;
+	  FragmentShader = PBRFragment;
+
+	  // #include "ForwardPassPBR.glsl"
+	  #include "./DemoPass.glsl"
+	}
+
+```
+
+2. Modify the lighting model in `DemoPass.glsl`. As a demo, we only demonstrate modifying the direct light part:
+
+<Callout type="warning">
+  The editor currently does not support displaying the contents of `ForwardPassPBR.glsl` because it is in another repository. However, you can copy the `/Internal/Shader/Advanced/IridescenceForwardPass` file for modification.
+</Callout>
+
+```ts showLineNumbers {7-8}
+// DemoPass.glsl
+#include "Common.glsl"
+#include "Fog.glsl"
+
+#include "AttributesPBR.glsl"
+#include "VaryingsPBR.glsl"
+// #include "LightDirectPBR.glsl"
+#include "DemoLight.glsl"
+
+#include "LightIndirectPBR.glsl"
+
+#include "VertexPBR.glsl"
+#include "FragmentPBR.glsl"
+```
+
+3. Use the `FUNCTION_SPECULAR_LOBE` macro to overload the `direct light specular reflection lighting model`. The algorithm part here is copied from thin-film interference, so you don't need to worry too much about it. After overloading, `LightDirectPBR.glsl` can recognize this function and replace the lighting model implementation. Key functions for both direct and indirect light provide corresponding overload macros, which will be introduced in detail in the API documentation below:
+
+```ts showLineNumbers {2,5,16} /specularLobe_iridescence/
+// DemoLight.glsl
+#define FUNCTION_SPECULAR_LOBE specularLobe_iridescence
+
+#include "BRDF.glsl"
+#include "./IridescenceFunction.glsl"
+
+void specularLobe_iridescence(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor){
+
+ vec3 thin = DirectBDRFIridescence(surfaceData, incidentDirection, brdfData);
+ vec3 BRDF_Specular = BRDF_Specular_GGX( incidentDirection, surfaceData, surfaceData.normal, brdfData.specularColor, brdfData.roughness);
+ vec3 factor =mix(BRDF_Specular,thin,material_Iridescence);
+
+ specularColor += attenuationIrradiance * factor;
+}
+
+#include "LightDirectPBR.glsl"
+```
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ad18c98d-d1a5-47fd-b5c8-882908c249a2/2024-08-01%25252018.51.36.gif" />
+
+## General API
+
+The API call method is as follows:
+
+```glsl
+#include "Common.glsl"
+
+float f2 = pow2(0.5);
+```
+
+### Common
+
+Provides common macros like `PI`, and general methods like `gammaToLinear`, `pow2`, etc. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/Common.glsl) for details.
+
+### Fog
+
+Provides depth fogging methods:
+
+```glsl
+vec4 fog(vec4 color, vec3 positionVS);
+```
+
+### Transform
+
+Provides system variables for model space, view space, world space, camera coordinates, etc. [system variables](/en/docs/graphics/shader/custom/#属性):
+
+```glsl
+mat4 renderer_LocalMat;
+mat4 renderer_ModelMat;
+mat4 camera_ViewMat;
+mat4 camera_ProjMat;
+mat4 renderer_MVMat;
+mat4 renderer_MVPMat;
+mat4 renderer_NormalMat;
+
+vec3 camera_Position;
+vec3 camera_Forward;
+vec4 camera_ProjectionParams;
+```
+
+### Light
+
+Provides methods to get [engine lighting](/en/docs/graphics/light/light), including direct light and indirect light:
+
+```glsl
+// 直接光
+DirectLight getDirectLight(int index);
+PointLight getPointLight(int index);
+SpotLight getSpotLight(int index);
+
+// 间接光
+EnvMapLight scene_EnvMapLight;
+
+#ifdef SCENE_USE_SH
+    vec3 scene_EnvSH[9];
+#endif
+
+#ifdef SCENE_USE_SPECULAR_ENV
+    samplerCube scene_EnvSpecularSampler;
+#endif
+```
+
+### Normal
+
+Provides some general methods for normal calculation:
+
+```glsl
+// 在切线空间进行法线贴图运算后的法线
+vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv, bool isFrontFacing);
+
+// 利用导数计算切线，针对本身没有切线的模型
+mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing);
+```
+
+### Shadow
+
+Provides shadow-related functions. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/Shadow.glsl) for details.
+
+```glsl
+// 获取级联阴影所属层级，比如级联数量设为4，则返回 0～3
+int computeCascadeIndex(vec3 positionWS);
+
+// 获取 shadowmap 中的坐标
+vec3 getShadowCoord(vec3 positionWS);
+
+// 获取阴影强度，包含采样方式、阴影衰减
+float sampleShadowMap(vec3 positionWS, vec3 shadowCoord);
+```
+
+### Skin
+
+Provides bone calculation methods:
+
+```glsl
+mat4 getSkinMatrix(Attributes attributes);
+```
+
+### BlendShape
+
+Provides BS calculation methods:
+
+```glsl
+void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 normal, inout vec4 tangent);
+```
+
+## PBR API
+
+In addition to the general API, PBR also encapsulates a series of APIs such as the BRDF lighting model. These are some core links of `ForwardPassPBR`. When users extend other materials, such as SSS, thin-film interference, etc., they may also need these functions and can try to `#include` reuse these APIs.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/dd9af974-f4d2-4ef5-845a-732f39492bc0/yuque_diagram.jpg" />
+
+### AttributesPBR
+
+Encapsulates all the Attribute variables needed for PBR. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl) for details.
+
+### VaryingsPBR
+
+Encapsulates all the Varyings variables needed for PBR. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl) for details.
+
+### LightDirectPBR
+```
+
+Encapsulates direct light calculations based on the BRDF lighting model. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl).
+
+Generally, you can call it directly:
+
+```glsl
+// Evaluate direct lighting
+evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, color.rgb);
+```
+
+The following function overload macros are provided to override key calculations of the lighting model:
+
+```glsl
+#define FUNCTION_SURFACE_SHADING surfaceShading
+#define FUNCTION_DIFFUSE_LOBE diffuseLobe
+#define FUNCTION_SPECULAR_LOBE specularLobe
+#define FUNCTION_CLEAR_COAT_LOBE clearCoatLobe
+
+void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 color);
+void diffuseLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 attenuationIrradiance, inout vec3 diffuseColor);
+void specularLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor);
+float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 color, inout vec3 specularColor);
+```
+
+<Callout type="info">Refer to the PBR template extension above for the overload method.</Callout>
+
+### LightInDirectPBR
+
+Encapsulates [ambient light](/en/docs/graphics/light/ambient) calculations based on the BRDF lighting model. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/LightInDirectPBR.glsl).
+
+Generally, you can call it directly:
+
+```glsl
+// IBL
+evaluateIBL(varyings, surfaceData, brdfData, color.rgb);
+```
+
+The following function overload macros are provided to override key calculations of the lighting model:
+
+```glsl
+#define FUNCTION_DIFFUSE_IBL evaluateDiffuseIBL
+#define FUNCTION_SPECULAR_IBL evaluateSpecularIBL
+#define FUNCTION_CLEAR_COAT_IBL evaluateClearCoatIBL
+
+void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 diffuseColor);
+void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, float radianceAttenuation, inout vec3 specularColor);
+float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 specularColor);
+```
+
+### VertexPBR
+
+Some methods required by the PBR vertex shader, such as obtaining UV coordinates after TilingOffset, obtaining world coordinates, normals, tangents after skeletal and BS operations, etc. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/VertexPBR.glsl).
+
+```glsl showLineNumbers {2, 4}
+Varyings varyings;
+varyings.uv = getUV0(attributes);
+
+VertexInputs vertexInputs = getVertexInputs(attributes);
+
+// positionWS
+varyings.positionWS = vertexInputs.positionWS;
+
+// normalWS、tangentWS、bitangentWS
+#ifdef RENDERER_HAS_NORMAL
+  varyings.normalWS = vertexInputs.normalWS;
+  #ifdef RENDERER_HAS_TANGENT
+    varyings.tangentWS = vertexInputs.tangentWS;
+    varyings.bitangentWS = vertexInputs.bitangentWS;
+  #endif
+#endif
+
+gl_Position = renderer_MVPMat * vertexInputs.positionOS;
+```
+
+### BRDF
+
+The key file of the PBR lighting model, encapsulating general calculation functions related to BRDF, as well as the `SurfaceData` structure and `BRDFData` structure used for subsequent lighting model calculations. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/BRDF.glsl).
+
+### FragmentPBR
+
+Contains a large number of variables passed from the CPU, such as metallic, roughness, maps, etc., and initializes the `SurfaceData` structure through `getSurfaceData`. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl).
+
+```glsl showLineNumbers
+BRDFData brdfData;
+
+// 初始化 SurfaceData 结构体
+SurfaceData surfaceData = getSurfaceData(varyings, aoUV, gl_FrontFacing);
+
+// 可以在这加工 SurfaceData 里面的数据
+initBRDFData(surfaceData, brdfData);
+```
+
+### Finally
+
+In addition to the functionality and calling methods of key APIs, you can refer to the [ForwardPassPBR](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl) on the official website for the organization of the entire file.
