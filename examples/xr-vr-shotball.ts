@@ -38,7 +38,6 @@ import {
   XRTrackingState,
 } from "@galacean/engine-xr";
 import { WebXRDevice } from "@galacean/engine-xr-webxr";
-import { XRInput } from "@galacean/engine-xr/types/input/XRInput";
 // Create engine
 WebGLEngine.create({
   canvas: "canvas",
@@ -234,7 +233,7 @@ class ControllerManager extends Script {
   onStart(): void {
     const inputManager = this.engine.xrManager.inputManager;
     inputManager.addTrackedDeviceChangedListener(
-      (added: readonly XRInput[], removed: readonly XRInput[]) => {
+      (added, removed) => {
         for (let i = 0, n = added.length; i < n; i++) {
           const { type } = added[i];
           switch (type) {
