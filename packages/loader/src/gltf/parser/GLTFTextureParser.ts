@@ -76,17 +76,17 @@ export class GLTFTextureParser extends GLTFParser {
     return texture;
   }
 
-  parse(context: GLTFParserContext, index: number): Promise<Texture> {
-    const textureInfo = context.glTF.textures[index];
+  parse(context: GLTFParserContext, textureIndex: number): Promise<Texture> {
+    const textureInfo = context.glTF.textures[textureIndex];
     const glTFResource = context.glTFResource;
-    const { sampler, source = 0, name: textureName, extensions } = textureInfo;
+    const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
 
     let texture = <Texture | Promise<Texture>>(
-      GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo, index)
+      GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo, textureIndex)
     );
 
     if (!texture) {
-      texture = GLTFTextureParser._parseTexture(context, source, index, sampler, textureName);
+      texture = GLTFTextureParser._parseTexture(context, imageIndex, textureIndex, sampler, textureName);
     }
 
     return Promise.resolve(texture).then((texture) => {
