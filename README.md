@@ -107,9 +107,8 @@ npm run b:all
 ## Links
 
 - [Official Site](https://galacean.antgroup.com/engine)
-- [Examples](https://galacean.antgroup.com/#/examples/latest)
-- [Documentation](https://galacean.antgroup.com/#/docs/latest/en/install)
-- [API References](https://galacean.antgroup.com/#/api/latest)
+- [Editor](https://galacean.antgroup.com/editor)
+- [Documentation](https://galacean.antgroup.com/engine/docs)
 
 ## License
 
