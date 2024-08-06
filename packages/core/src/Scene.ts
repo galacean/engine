@@ -363,6 +363,7 @@ export class Scene extends EngineObject {
       (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
     activeChangeFlag && entity._processActive(activeChangeFlag);
+    !isRoot && entity._setTransformDirty();
   }
 
   /**
