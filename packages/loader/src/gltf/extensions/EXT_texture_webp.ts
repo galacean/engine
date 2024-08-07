@@ -15,11 +15,7 @@ class EXT_texture_webp extends GLTFExtensionParser {
 
   constructor() {
     super();
-    try {
-      this._supportWebP = document.createElement("canvas").toDataURL("image/webp").indexOf("data:image/webp") == 0;
-    } catch (e) {
-      this._supportWebP = false;
-    }
+    this._supportWebP = document.createElement("canvas").toDataURL("image/webp").indexOf("data:image/webp") == 0;
   }
 
   override async createAndParse(
