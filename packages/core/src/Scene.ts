@@ -327,6 +327,7 @@ export class Scene extends EngineObject {
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
+      entity._setTransformDirty();
     }
 
     // Add or remove from scene's rootEntities
@@ -363,7 +364,6 @@ export class Scene extends EngineObject {
       (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
     activeChangeFlag && entity._processActive(activeChangeFlag);
-    !isRoot && entity._setTransformDirty();
   }
 
   /**
