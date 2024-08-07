@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-physics-lite",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
