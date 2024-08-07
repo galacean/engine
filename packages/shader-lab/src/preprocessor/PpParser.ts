@@ -6,7 +6,7 @@ import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { ParserUtils } from "../Utils";
-import { EPpKeyword, EPpToken, PpConstant } from "./constants";
+import { EEditorKeywords, EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
@@ -622,9 +622,17 @@ export default class PpParser {
   }
 
   private static _skipEditorBlock(token: BaseToken, scanner: PpScanner) {
-    if (token.lexeme === "EditorProperties" || token.lexeme === "EditorMacros") {
+    if (token.lexeme === EEditorKeywords.Property || token.lexeme === EEditorKeywords.Macro) {
       const start = scanner.current - token.lexeme.length;
       scanner.scanPairedBlock("{", "}");
+      const end = scanner.current;
+      const startPosition = ShaderLab.createPosition(start);
+      const endPosition = ShaderLab.createPosition(end);
+      const range = ShaderLab.createRange(startPosition, endPosition);
+      this.expandSegments.push({ rangeInBlock: range, replace: "" });
+    } else if (token.lexeme === EEditorKeywords.Script) {
+      const start = scanner.current - token.lexeme.length;
+      scanner.scanQuotedString();
       const end = scanner.current;
       const startPosition = ShaderLab.createPosition(start);
       const endPosition = ShaderLab.createPosition(end);

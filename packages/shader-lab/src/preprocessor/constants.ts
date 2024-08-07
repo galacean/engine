@@ -70,3 +70,9 @@ export const PpKeyword = new Map<string, EPpKeyword>([
 ]);
 
 export type PpConstant = boolean | number;
+
+export enum EEditorKeywords {
+  Property = "EditorProperties",
+  Macro = "EditorMacros",
+  Script = "EditorScript"
+}
