@@ -6,67 +6,45 @@ group: Lighting
 label: Graphics/Light
 ---
 
-Shadows can effectively enhance the three-dimensionality and realism of the rendered image. In real-time rendering, the so-called ShadowMap technology is generally used to draw shadows. Simply put, the light source is used as a virtual camera to render the depth of the scene. Then, when rendering the image from the scene camera, if the depth of the object is deeper than the previously saved depth information, it is considered to be blocked by other objects, and the shadow is rendered accordingly.
+Shadows can effectively enhance the three-dimensionality and realism of the rendered scene. To achieve this, the so-called ShadowMap technique is usually used. Simply put, it involves rendering the scene's depth from the light source as a virtual camera, and then when rendering the scene from the camera's perspective, if an object's depth is deeper than the previously saved depth information, it is considered to be occluded by other objects, and thus a shadow is rendered.
 
 ## Scene Configuration
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/51e08840-95c0-4c68-82f0-0d2e29fbe966/image-20240726111645816.png" alt="image-20240726111645816" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/c1246c17-ba92-405d-b111-3cff6796097d/image-20240730114010025.png" alt="image-20240730114010025" style="zoom:50%;" />
 
-There are some configurations in the scene that can affect the global shadow:
+There are some configurations in the scene that can affect global shadows:
 
-| Parameters | Application |
+| Parameter | Application |
 | :-- | :-- |
-| [Cast Shadow](/apis/core/#Scene-castShadows) | Whether to cast shadows. This is the master switch. |
-| [Transparent](/apis/core/#Scene-enableTransparentShadow) | Whether to cast transparent shadows. When turned on, transparent objects can also cast shadows. |
-| [Resolution](/apis/core/#Scene-shadowResolution) | Shadowmap resolution. |
-| [Cascades](/apis/core/#Scene-shadowCascades) | Cascade shadow quantity settings. Generally used to split shadow resolution in large scenes. |
-| [ShadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits) | Parameters for dividing two-level cascade shadows. |
-| [ShadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits) | Parameters for dividing four-level cascade shadows. |
-| [Distance](/apis/core/#Scene-shadowDistance) | Farthest shadow distance. Shadows cannot be seen beyond this distance. |
-| [Fade Border](/apis/core/#Scene-shadowFadeBorder) | Shadow attenuation distance, which indicates the proportion of the shadow distance from which attenuation begins. The range is [0~1]. When it is 0, it means no attenuation. |
+| [Cast Shadow](/apis/core/#Scene-castShadows) | Whether to cast shadows. This is the main switch. |
+| [Transparent](/apis/core/#Scene-enableTransparentShadow) | Whether to cast transparent shadows. When enabled, transparent objects can also cast shadows. |
+| [Resolution](/apis/core/#Scene-shadowResolution) | The resolution of the Shadowmap. The `Low` option uses a resolution of 512, the `Medium` option uses a resolution of 1024, the `High` option uses a resolution of 2048, and the `VeryHigh` option uses a resolution of 4096. |
+| [Cascades](/apis/core/#Scene-shadowCascades) | The number of [cascaded shadows](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps). Generally used for large scenes to divide the shadowmap resolution, which can improve shadow aliasing at different distances. After enabling two-level cascaded shadows, you can configure it through [ShadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits), and after enabling four-level cascaded shadows, you can configure it through [ShadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits). |
+| [Distance](/apis/core/#Scene-shadowDistance) | The farthest shadow distance (distance from the camera), beyond which shadows are not visible. |
+| [Fade Border](/apis/core/#Scene-shadowFadeBorder) | The shadow fade distance, indicating the proportion of the shadow distance at which fading starts, ranging from [0~1]. A value of 0 means no fading. |
 
 ## Light Configuration
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1b572189-db78-4f56-9d42-d8b5ea1fe857/image-20240724183629537.png" alt="image-20240724183629537" style="zoom:50%;" />
 
-To cast shadows, you need a [directional light](/en/docs/graphics/light/directional) in the scene, and then you can configure some properties that determine the shadowmap:
+To cast shadows, there needs to be a [directional light](/en/docs/graphics/light/directional) in the scene. Currently, the engine can only enable shadows for one directional light `DirectLight`, mainly because shadow rendering doubles the DrawCall, which can severely impact rendering performance. In the absence of a specified [main light(scene.sun)](/apis/core/#Scene-sun), the engine will default to selecting the light with the highest intensity to cast shadows:
 
-| Parameters                                        | Application                          |
-| :------------------------------------------------ | :----------------------------------- |
-| [Shadow Type](/apis/core/#Light-shadowType)       | Shadow casting type.                 |
-| [Shadow Bias](/apis/core/#Light-shadowBias)       | Shadow bias.                         |
-| [Normal Bias](/apis/core/#Light-shadowNormalBias) | Shadow normal bias.                  |
-| [Near Plane](/apis/core/#Light-shadowNearPlane)   | Near plane when rendering depth map. |
-| [Strength](/apis/core/#Light-shadowStrength)      | Shadow strength.                     |
+| Parameter | Application |
+| :------------------------------------------------ | :------------------------------------------------- |
+| [Shadow Type](/apis/core/#Light-shadowType) | The type of shadow casting. Different types affect rendering performance and visual effects. |
+| [Shadow Bias](/apis/core/#Light-shadowBias) | The offset of the shadow. Prevents shadow distortion. |
+| [Normal Bias](/apis/core/#Light-shadowNormalBias) | The normal offset of the shadow. Avoids shadow distortion. |
+| [Near Plane](/apis/core/#Light-shadowNearPlane) | The near clipping plane when rendering the depth map. Affects the shadow clipping plane and precision. |
+| [Strength](/apis/core/#Light-shadowStrength) | The strength of the shadow. Controls the transparency of the shadow. |
 
-Here we need to explain the shadow bias:
-
-![shadow-bias](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*8q5MTbrlC7QAAAAAAAAAAAAAARQnAQ)
-
-Due to depth accuracy issues, artifacts are generated when sampling from the camera. So it is usually necessary to set the shadow bias to produce clean shadows, as shown in the right figure. But if the offset is too large, the shadow will deviate from the projected object, and you can see that the shadow and the heel in the right picture are separated. Therefore, this parameter is a parameter that needs to be carefully adjusted when using shadows.
-
-Currently, the engine only supports casting shadows for one directional light `DirectLight`, mainly because the rendering of shadows doubles the DrawCall, which will seriously affect the rendering performance. Generally speaking, `DirectLight` is used to imitate sunlight, so only one is supported. There are two points to note about the shadow of a directional light.
-
-### Cascade Shadows
-
-First is cascade shadows. Since a directional light is only the direction of the light, the position of the light source is meaningless. So it is difficult to determine how to set the frustum used when drawing the depth map starting from the light source. And if the depth map is only rendered once in the entire scene, the objects in the distance are very small, which will seriously waste the depth map and produce a lot of blanks. So the engine uses the Stable Cascade Shadows (CSSM) technique:
-
-![shadow-cascade](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*R_ESQpQuP3wAAAAAAAAAAAAAARQnAQ)
-
-This technique divides the camera's view cone into two or four blocks, and then renders the scene two or four times along the direction of the light, and determines the size of each block by dividing the parameters, thereby maximizing the utilization of the depth map. The engine uses four-level cascade shadows by default when shadows are turned on, so the size of each level can be controlled by adjusting shadowFourCascadeSplits.
-
-### Shadow selection
-
-It was mentioned above that **only one directional light `DirectLight` can be used to turn on shadows**, but what happens if shadows are turned on for two `DirectLight` in the scene? In the absence of a determined main light, the engine will choose the light with the strongest light intensity to cast shadows by default. Light intensity is determined by the intensity of the light and the brightness of the light color. The light color is converted to a de-brightness value using the Hue-Saturation-Brightness formula.
-
-## Projectors and receivers
+## Projectiles and Receivers
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/f3125f0f-09e6-4404-a84c-7013df5c0db3/image-20240724184711014.png" alt="image-20240724184711014" style="zoom:50%;" />
 
-In the [mesh renderer component](/en/docs/graphics/renderer/meshRenderer), `receiveShadows` can determine whether the object receives shadows, and `castShadows` can determine whether the object casts shadows.
+In the [Mesh Renderer Component](/en/docs/graphics/renderer/meshRenderer), `receiveShadows` determines whether the object receives shadows, and `castShadows` determines whether the object casts shadows.
 
-## Transparent shadows
+## Transparent Shadows
 
-Starting from version `1.3`, the engine supports casting shadows of `alpha cutoff` objects and `transparent` objects. Among them, transparent objects casting shadows need to turn on the `Transparent` switch in the scene panel:
+Starting from version `1.3`, the engine supports casting shadows for alpha cutoff (Alpha Cutoff) objects and transparent (Transparent) objects. For transparent objects to cast shadows, you need to enable the `Transparent` switch in the scene panel:
 
-![](https://gw.alipayobjects.com/zos/OasisHub/cf763750-8d2b-45f6-91d0-15502a199010/2024-07-24%25252019.03.15.gif)
+![](https://gw.alipayobjects.com/zos/OasisHub/3c972121-d072-4d2c-ba87-2a9ec88c9268/2024-07-30%25252011.36.32.gif)

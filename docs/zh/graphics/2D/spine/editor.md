@@ -48,7 +48,7 @@ Galacean 编辑器内置了对 Spine 动画的支持，无需额外下载或配�
 spineboy.skel 包含了 skeleton  animation 数据，spineboy.atlas 包含了 texture atlas 信息，导出的图片可能有多张，每张图片都代表了 texture altas 中的一页
 
 ## 2. 在 Galacean 编辑器中导入资产
-从 Spine 编辑器导出资产后，第二步就要将资产导入至 Galacean 编辑器了。打开编辑器后，将导出的文件直接拖入到[资产面板](https://antg.antgroup.com/engine/docs/latest/cn/assets-interface)中，即可完成上传
+从 Spine 编辑器导出资产后，第二步就要将资产导入至 Galacean 编辑器了。打开编辑器后，将导出的文件直接拖入到[资产面板](/docs/assets/interface/)中，即可完成上传
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/gif/76063/1721208067896-206d850e-20fc-44a6-9987-6a8556b10e3b.gif#clientId=uf07edf19-371c-4&from=paste&height=540&id=u4bb88103&originHeight=1080&originWidth=1984&originalType=binary&ratio=2&rotation=0&showTitle=false&size=8620071&status=done&style=shadow&taskId=ua9290849-8cb2-46ac-98b6-e2b22ab0d83&title=&width=992" width="992" alt="Drag spine assets into Galacean editor">
 
@@ -125,9 +125,7 @@ SpineAnimationRenderer 组件的配置如下：
 - Priority：渲染优先级
 
 ## 4. 项目导出
-最终，完成场景编辑器后，可以参考[项目导出](https://antg.antgroup.com/engine/docs/latest/cn/assets-build) 流程，导出编辑器项目。
-
-
+最终，完成场景编辑器后，可以参考[项目导出](/docs/assets/build/)流程，导出编辑器项目。
 
 </br></br></br></br>
 下一章节：[在代码中使用 Galacean Spine 运行时](/docs/graphics/2D/spine/runtime)

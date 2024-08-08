@@ -763,7 +763,7 @@ export interface ITexture extends IChildRootProperty {
   /**
    * The index of the image used by this texture
    */
-  source: number;
+  source?: number;
 }
 
 /**

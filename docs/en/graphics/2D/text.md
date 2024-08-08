@@ -10,57 +10,57 @@ label: Graphics/2D
 
 ## Editor Usage
 
-### Adding Text Component
+### Add Text Component
 
-When you need to display text, you first need to add a text component to an entity, as shown below:
+To display text, you need to add a text component to an entity, as shown below:
 
-![Adding Text Component](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*3d5AQYTtcNkAAAAAAAAAAAAADjCHAQ/original)
+![Add Text Component](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*3d5AQYTtcNkAAAAAAAAAAAAADjCHAQ/original)
 
 ### Parameter Description
 
-Select an entity with a TextRenderer component, you can set all related properties in the right-side inspector to configure the text component:
-![Adding Text Component](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*9XKjSYHZQWsAAAAAAAAAAAAADjCHAQ/original)
+Select an entity with the TextRenderer component, and you can set all related properties in the inspector on the right to configure the text component:
+![Add Text Component](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*9XKjSYHZQWsAAAAAAAAAAAAADjCHAQ/original)
 
-The properties are described as follows:
+The property descriptions are as follows:
 | Property | Description |
 | :--- | :--- |
-| `Text` | Text to be displayed |
+| `Text` | The text to be displayed |
 | `Color` | Text color |
 | `FontSize` | Font size of the text |
 | `Font` | Custom font |
-| `Width` | Width of the text in 3D space, used for bounding box calculation and determining line breaks when displaying multiline text |
-| `Height` | Height of the text in 3D space, used for bounding box calculation and determining line breaks when displaying multiline text |
-| `LineSpacing` | Spacing between lines |
+| `Width` | The width of the text in 3D space, used for bounding box calculation and determining line breaks when multi-line text is needed |
+| `Height` | The height of the text in 3D space, used for bounding box calculation and determining line breaks when multi-line text is needed |
+| `LineSpacing` | Line spacing |
 | `FontStyle` | Font style settings: bold/italic |
-| `HorizontalAlignment` | Horizontal alignment, options are: Left/Center/Right |
-| `VerticalAlignment` | Vertical alignment, options are: Top/Center/Bottom |
-| `EnableWrapping` | Enable wrapping mode, when enabled, text will wrap based on the set width. If width is set to 0, the text will not be rendered |
-| `OverflowMode` | Handling method when the total height of the text exceeds the set height, options are: Overflow/Truncate. Overflow means direct overflow display, Truncate means only content within the set height will be displayed, the specific display content also depends on the vertical alignment of the text |
-| `Mask Interaction` | Mask type, used to determine if the text needs masking, and if masking is required, whether to display content inside or outside the mask |
-| `Mask Layer` | Mask layer to which the text belongs, used for matching with SpriteMask, default is Everything, indicating it can be masked with any SpriteMask |
-| `priority` | Rendering priority, the smaller the value, the higher the rendering priority, and will be rendered first |
+| `HorizontalAlignment` | Horizontal alignment options: Left/Center/Right |
+| `VerticalAlignment` | Vertical alignment options: Top/Center/Bottom |
+| `EnableWrapping` | Whether to enable wrapping mode. When wrapping mode is enabled, the text will wrap according to the set width. If the width is set to 0, the text will not render |
+| `OverflowMode` | Handling method when the total height of the text exceeds the set height. Options: Overflow/Truncate. Overflow means the text will overflow and display, Truncate means only the content within the set height will be displayed. The specific display content is also related to the vertical alignment of the text |
+| `Mask Interaction` | Mask type, used to set whether the text needs a mask, and if so, whether to display the content inside or outside the mask |
+| `Mask Layer` | The mask layer to which the text belongs, used to match with SpriteMask. The default is Everything, meaning it can be masked by any SpriteMask |
+| `priority` | Rendering priority. The smaller the value, the higher the rendering priority, and the earlier it will be rendered |
 
-### Setting Displayed Text
+### Set Display Text
 
 After adding the text component, you can set the Text property to display the desired text, as shown below:
 
-![Setting Displayed Text](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*J6nKTJOOm4kAAAAAAAAAAAAADjCHAQ/original)
+![Set Display Text](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*J6nKTJOOm4kAAAAAAAAAAAAADjCHAQ/original)
 
-### Setting Custom Font
+### Set Custom Font
 
-To make the text display more diverse, developers can upload their own font files. The editor currently supports font file formats: **.ttf**, **.otf**, **.woff**
+To make the text display more diverse, developers can upload their own font files. The editor currently supports the following font file formats: **.ttf**, **.otf**, **.woff**
 
-![Setting Font](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*CgA5S5vneeMAAAAAAAAAAAAADjCHAQ/original)
+![Set Font](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*CgA5S5vneeMAAAAAAAAAAAAADjCHAQ/original)
 
 ## Script Usage
 
 <playground src="text-renderer.ts"></playground>
 
-1. Create a [TextRenderer](/apis/core/#TextRenderer) component to display text
-2. Set a [Font](/apis/core/#Font) object through the font property
-3. Set the text to be displayed through the text property
-4. Set the font size through the fontSize property
-5. Set the text color through the color property
+1. Create a [TextRenderer](/apis/core/#TextRenderer) component to display text  
+2. Set the [Font](/apis/core/#Font) object through the font property  
+3. Set the text to be displayed through the text property  
+3. Set the font size through the fontSize property  
+4. Set the text color through the color property
 
 ```typescript
 import {
@@ -74,34 +74,34 @@ import {
 } from "@galacean/engine";
 
 const textEntity = rootEntity.createChild("text");
-// Add a TextRenderer component to the entity.
+// 给实体添加 TextRenderer 组件
 const textRenderer = textEntity.addComponent(TextRenderer);
-// Set the Font object via font.
+// 通过 font 设置 Font 对象
 textRenderer.font = Font.createFromOS(engine, "Arial");
-// Set the text to be displayed through text.
+// 通过 text 设置需要显示的文本
 textRenderer.text = "Galacean 会写字了！";
-// Set the font size via fontSize.
+// 通过 fontSize 设置字体大小
 textRenderer.fontSize = 36;
-// Set the text color via color.
+// 通过 color 设置文本颜色
 textRenderer.color.set(1, 0, 0, 1);
 ```
 
-### Setting Width and Height
+### Set Width and Height
 
-You can set the size of the text in 3D space using width/height, mainly for the following purposes:
-1. Used for bounding box calculation
-2. Used to determine line break rules when displaying multiline text
+You can set the size of the text in 3D space through width/height, which mainly has the following uses:  
+1. Used for bounding box calculation  
+2. When multi-line text is needed, the width and height will be used to determine the line break principle
 
 ```typescript
-// Set width.
+// 设置宽
 textRenderer.width = 10;
-// Set height.
+// 设置高
 textRenderer.height = 10;
 ```
 
-### Setting Line Spacing
+### Set Line Spacing
 
-When displaying multiline text, you can set the vertical spacing between two lines using lineSpacing.
+When you need to display multiple lines of text, you can set the vertical spacing between two lines of text through `lineSpacing`.
 
 ```typescript
 // Set line spacing
@@ -110,51 +110,51 @@ textRenderer.lineSpacing = 0.1;
 
 ### Multi-line Text Display
 
-When the text is too long, you may want the text to be displayed on multiple lines. In this case, you can enable wrapping by setting the `enableWrapping` field to true. Once wrapping is enabled, the text will wrap based on the width set earlier. If the width is set to 0, the text will not be rendered.
+When the text is too long, you may want the text to be displayed in multiple lines. At this time, you can set the `enableWrapping` field to enable the wrapping mode. After turning on the wrapping mode, it will wrap according to the width set earlier. If the width is set to 0 at this time, the text will not be rendered.
 
 ```typescript
-// Enable wrapping mode
+// Turn on wrapping mode
 textRenderer.enableWrapping = true;
 ```
 
 ### Text Truncation
 
-When displaying multi-line text, there may be too many lines of text. In this case, you can use the `overflowMode` field to determine whether to truncate and only display content within the set height. The specific content displayed also depends on the vertical alignment of the text (see: Text Alignment), as shown below:
+When displaying multiple lines of text, there may be too many lines of text. At this time, you can set the `overflowMode` field to determine whether to truncate part of the display, only retaining the content within the set height. The specific display content is also related to the vertical alignment of the text (see: Text Alignment), as follows:
 
 ```typescript
-// Set text support overflow.
+// 文本溢出
 textRenderer.overflowMode = OverflowMode.Overflow;
-// Set text support truncate.
+// 文本截取
 textRenderer.overflowMode = OverflowMode.Truncate;
 ```
 
 ### Text Alignment
 
-Text alignment is used to determine how text should be displayed within a specified width and height. The following attributes are available:
+Text alignment is used to set how the text is displayed within the specified width and height, as follows:
 
-| Attribute                                                          | Type                                                           | Description                                                                     |
-| :----------------------------------------------------------------- | :------------------------------------------------------------- | :------------------------------------------------------------------------------ |
-| [horizontalAlignment](/apis/core/#TextRenderer-horizontalAlignment) | [TextHorizontalAlignment](/apis/core/#TextHorizontalAlignment)   | Horizontal alignment: Left/Center/Right represent left/center/right alignment     |
-| [verticalAlignment](/apis/core/#TextRenderer-horizontalAlignment)   | [TextVerticalAlignment](/apis/core/#TextVerticalAlignment)     | Vertical alignment: Top/Center/Bottom represent top/center/bottom alignment       |
+| Property Name                                                        | Property Type                                                   | Description                                                                 |
+| :------------------------------------------------------------------- | :-------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| [horizontalAlignment](/apis/core/#TextRenderer-horizontalAlignment) | [TextHorizontalAlignment](/apis/core/#TextHorizontalAlignment) | Horizontal alignment: Left/Center/Right represent left-aligned/center-aligned/right-aligned display respectively |
+| [verticalAlignment](/apis/core/#TextRenderer-horizontalAlignment)   | [TextVerticalAlignment](/apis/core/#TextVerticalAlignment)     | Vertical alignment: Top/Center/Bottom represent top-aligned/center-aligned/bottom-aligned display respectively   |
 
-### Text Font Styles
+### Text Font Style
 
-Text font styles are used to set whether the text should be displayed in bold or italic. The following attributes are available:
+The text font style is used to set whether the text is displayed in bold or italic, as follows:
 
-| Attribute                                         | Type                               | Description                                     |
-| :------------------------------------------------ | :--------------------------------- | :---------------------------------------------- |
-| [fontStyle](/apis/core/#TextRenderer-fontStyle)    | [FontStyle](/apis/core/#FontStyle) | Font style: None/Bold/Italic represent normal/bold/italic display |
+| Property Name                                      | Property Type                   | Description                                      |
+| :------------------------------------------------- | :------------------------------ | :------------------------------------------------ |
+| [fontStyle](/apis/core/#TextRenderer-fontStyle) | [FontStyle](/apis/core/#FontStyle) | Font style: None/Bold/Italic represent normal/bold/italic display respectively |
 
-Usage:
+Usage is as follows:
 
 ```typescript
-// Normal display.
+// 正常显示
 textRenderer.fontStyle = FontStyle.None;
-// Bold display.
+// 加粗显示
 textRenderer.fontStyle = FontStyle.Bold;
-// Italic display.
+// 斜体显示
 textRenderer.fontStyle = FontStyle.Italic;
-// Display in both bold and italic.
+// 既加粗又斜体显示
 textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
 ```
 
@@ -164,12 +164,11 @@ textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
 
 ### Custom Fonts
 
-[Font](/apis/core/#Font) is a font resource used to represent the font used for text.
+[Font](/apis/core/#Font) is a font resource used to represent the font used by the text.
 
-| Attribute                         | Type     | Description                                                                 |
-| :-------------------------------- | :------- | :-------------------------------------------------------------------------- |
-| [name](/apis/core/#Sprite-name)    | string   | Font resource name, used to uniquely identify a font resource, currently used to indicate the required system font |
-```
+| Property Name                        | Property Type | Description                                                                 |
+| :----------------------------------- | :------------ | :-------------------------------------------------------------------------- |
+| [name](/apis/core/#Sprite-name)   | string        | Font resource name, used to uniquely identify a font resource. Currently, this field is used to represent the required system font |
 
 ```typescript
 const font = Font.createFromOS(engine, "Arial");

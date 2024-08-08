@@ -79,7 +79,7 @@ label: Art
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/1590d92c-54ba-4efa-b6ca-6c2c3e8b95de/1635165880957-933cc281-8848-436f-a2af-186d818202d1.png)
 
-4. 放入[glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer)预览效果
+4. 放入[glTF 查看器](https://galacean.antgroup.com/engine/gltf-viewer)预览效果
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/81cfd9e4-474a-45dc-8133-de27a9c08dd6/1635166016557-59978f7f-6c91-4f13-99b3-9907e5c8cd44.png)
 

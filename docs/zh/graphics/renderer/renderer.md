@@ -12,14 +12,14 @@ label: Graphics/Renderer
 
 在 Galacean 中，内置了以下几种渲染器：
 
-- [网格渲染器](./meshRenderer): 通过设置 `mesh` 与 `material` 即可渲染物体。
-- [蒙皮网格渲染器](./skinnedMeshRenderer): 基于[网格渲染器](./meshRenderer)，额外包含了`骨骼动画`与 `Blend Shape` 的能力，使得物体的动画效果更加自然。
+- [网格渲染器](/docs/graphics/renderer/meshRenderer/): 通过设置 `mesh` 与 `material` 即可渲染物体。
+- [蒙皮网格渲染器](/docs/graphics/renderer/skinnedMeshRenderer): 基于[网格渲染器](/docs/graphics/renderer/meshRenderer/)，额外包含了`骨骼动画`与 `Blend Shape` 的能力，使得物体的动画效果更加自然。
 - [精灵渲染器](/docs/graphics/2D/spriteRenderer/): 通过设置 `sprite` 与 `material` (默认内置精灵材质)，可以在场景中展示 2D 图像。
 - [精灵遮罩渲染器](/docs/graphics/2D/spriteMask/): 用于对精灵渲染器实现遮罩效果。
 - [文字渲染器](/docs/graphics/2D/text/): 在场景中显示文本
 - [粒子渲染器](/docs/graphics/particle/renderer/): 在场景中展示粒子效果。
 
-通过[渲染排序](./order)可以更深入地了解各种渲染器在引擎内的渲染顺序。
+通过[渲染排序](/docs/graphics/renderer/order/)可以更深入地了解各种渲染器在引擎内的渲染顺序。
 
 ## 属性
 

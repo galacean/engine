@@ -1,7 +1,7 @@
 /**
  * @title Particle Main Module
  * @category Particle
- * @thumbnail "https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*N9wCSLFJoMcAAAAAAAAAAAAADtKFAQ/original"
+ * @thumbnail https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*N9wCSLFJoMcAAAAAAAAAAAAADtKFAQ/original
  */
 import {
   AssetType,

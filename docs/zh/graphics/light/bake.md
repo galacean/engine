@@ -10,7 +10,7 @@ label: Graphics/Light
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/5ff4f65b-7940-4359-9de0-f8beef4d7fb2/bake.gif" alt="bake" style="zoom:50%;" />
 
-我们在[编辑器](https://galacean.antgroup.com/editor) 和 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 提供了烘焙工具。
+我们在[编辑器](https://galacean.antgroup.com/editor) 和 [glTF 查看器](https://galacean.antgroup.com/engine/gltf-viewer) 提供了烘焙工具。
 
 ## 编辑器使用
 
@@ -38,6 +38,6 @@ label: Graphics/Light
 
 ## glTF 查看器
 
-我们在官网的 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 也提供了烘焙工具，直接拖拽 HDR 贴图到网页即可自动下载烘焙产物 ：
+我们在官网的 [glTF 查看器](https://galacean.antgroup.com/engine/gltf-viewer) 也提供了烘焙工具，直接拖拽 HDR 贴图到网页即可自动下载烘焙产物 ：
 
 ![gltf viewer](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*9mGbSpQ4HngAAAAAAAAAAAAAARQnAQ)

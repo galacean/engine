@@ -1,33 +1,37 @@
 ---
 order: 0
-title: Overview of Lighting
+title: Lighting Overview
 type: Graphics
 group: Lighting
 label: Graphics/Light
 ---
 
-Proper use of lighting can provide realistic rendering effects. This section contains the following relevant information:
+Proper use of lighting can provide realistic rendering effects. This section includes the following information:
 
 - Types of Light Sources
-  - [Directional Light](/en/docs/graphics-light-directional)
-  - [Point Light](/en/docs/graphics-light-point)
-  - [Spotlight](/en/docs/graphics-light-spot)
-  - [Ambient Light](/en/docs/graphics-light-ambient)
-- [Baking](/en/docs/graphics-light-bake)
-- [Shadows](/en/docs/graphics-light-shadow})
+  - Direct Light
+    - [Directional Light](/en/docs/graphics/light/directional/)
+    - [Point Light](/en/docs/graphics/light/point/)
+    - [Spotlight](/en/docs/graphics/light/spot/)
+  - Indirect Light
+    - [Ambient Light](/en/docs/graphics/light/ambient/)
+- [Baking](/en/docs/graphics/light/bake/)
+- [Shadows](/en/docs/graphics/light/shadow/)
+
+> It should be noted that the number of direct lights affects performance loss. The engine limits the number of each type of direct light to no more than 10. It is generally recommended to use ambient light + some direct lights for embellishment.
 
 ## Direct Light
 
-Direct light generally shines from a specific area or direction, reflects once, and enters the eye (camera) directly, as shown in the example below:
+Direct light usually shines from an area or in a specific direction, entering the eye (camera) directly after one reflection, as shown in the following example:
 
 <playground src="light-type.ts"></playground>
 
-## Ambient Light
+## Indirect Light
 
-Ambient light emits from all directions and enters the eye, as shown in the example below:
+Ambient light is emitted from all around and enters the eye, as shown in the following example:
 
 <playground src="ambient-light.ts"></playground>
 
 ## Real-time Lighting and Baked Lighting
 
-Real-time lighting refers to Galacean calculating lighting in real-time during runtime. Baked lighting refers to Galacean precomputing lighting and [baking](/en/docs/graphics-light-bake) the results into a binary file (including [diffuse irradiance coefficients](https://en.wikipedia.org/wiki/Spherical_harmonics) and [pre-filtered environment maps](https://learnopengl.com/PBR/IBL/Specular-IBL/)), then sampling it in real-time during runtime.
+Real-time lighting refers to Galacean calculating lighting in real-time during runtime. Baked lighting refers to Galacean performing lighting calculations in advance and baking the results into binary files (including [diffuse spherical harmonics parameters](https://www.wikiwand.com/zh-hans/%E7%90%83%E8%B0%90%E5%87%BD%E6%95%B0) and [pre-filtered environment maps](https://learnopengl-cn.github.io/07%20PBR/03%20IBL/02%20Specular%20IBL/)), and then sampling them in real-time during runtime.

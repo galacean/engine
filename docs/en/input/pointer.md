@@ -1,23 +1,23 @@
 ---
 order: 1
 title: Touch
-type: Interaction
+type: Interact
 label: Interact
 ---
 
-Galacean's touch is based on [PointerEvent](https://www.w3.org/TR/pointerevents3/), which bridges the gap between [MouseEvent](https://developer.mozilla.org/zh-CN/en/docs/Web/API/MouseEvent) and [TouchEvent](https://developer.mozilla.org/zh-CN/en/docs/Web/API/TouchEvent), unifying the concept and interface of touch.
+Galacean's touch is based on [Pointer](https://www.w3.org/TR/pointerevents3/), which smooths out the differences between [Mouse](https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent) and [Touch](https://developer.mozilla.org/zh-CN/docs/Web/API/TouchEvent), making touch unified in both concept and interface.
 
 ## Pointer
 
-In Galacean, whether it's a mouse on a PC, a stylus or finger on a mobile device, when it performs corresponding actions within the touch area (**Down**, **Move**, etc), it is instantiated as a [Pointer](/apis/core/#Pointer), and you can access all active touch points in the [InputManager](/apis/core/#InputManager).
+In Galacean, whether it's a mouse on a PC, a stylus or a finger on a mobile device, when it performs the corresponding behavior within the touch range (**Down**, **Move**, etc.), it will be instantiated as a [Pointer](/apis/core/#Pointer). You can get all the currently active touch points in the [InputManager](/apis/core/#InputManager).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*k6_aRKNVxGkAAAAAAAAAAAAADhuCAQ/original" alt="image.png"  />
 
-> It is important to note that each touch point is independent, responding to events and invoking corresponding callback functions.
+> It should be noted that each touch point is independent of each other, they respond to the corresponding events and callback the corresponding hook functions.
 
 ### Lifecycle
 
-Each touch point begins its own life in **PointerDown** or **PointerMove**, fades away in **PointerLeave** or **PointerCancel**, and in Galacean, you can use `Pointer.phase` to get the current status of the touch point.
+Each touch point will start its life in **PointerDown** or **PointerMove**, and leave the stage in **PointerLeave** or **PointerCancel**. In Galacean, you can get the real-time status of this touch point through `Pointer.phase`.
 
 ```mermaid
 timeline
@@ -40,57 +40,57 @@ timeline
 
 ### Touch Buttons
 
-Referring to the [W3C standard](https://www.w3.org/TR/uievents/#dom-mouseevent-button) and [Microsoft documentation](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.mousebutton?view=windowsdesktop-6.0), Galacean defines touch buttons as follows:
+Referring to the [W3C standard](https://www.w3.org/TR/uievents/#dom-mouseevent-button) and [Microsoft related documentation](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.mousebutton?view=windowsdesktop-6.0), Galacean defines touch buttons as follows:
 
 | Enumeration                                      | Explanation                                                      |
 | :---------------------------------------------- | :--------------------------------------------------------------- |
-| [None](/apis/core/#PointerButton-None)           | No touch button pressed                                           |
-| [Primary](/apis/core/#PointerButton-Primary)     | Primary button of the device, usually left button (mouse) or the only button on a single-button device (finger) |
-| [Secondary](/apis/core/#PointerButton-Secondary) | Secondary button of the device, usually right button (mouse)     |
-| [Auxiliary](/apis/core/#PointerButton-Auxiliary) | Auxiliary button of the device, usually the scroll wheel (mouse)  |
-| [XButton1](/apis/core/#PointerButton-XButton1)   | Extended button of the device, usually the undo button (mouse)   |
-| [XButton2](/apis/core/#PointerButton-XButton2)   | Extended button of the device, usually the redo button (mouse)   |
-| [XButton3](/apis/core/#PointerButton-XButton3)   | Extended button                                                  |
-| [XButton4](/apis/core/#PointerButton-XButton4)   | Extended button                                                  |
+| [None](/apis/core/#PointerButton-None)        | No touch button pressed                                          |
+| [Primary](/apis/core/#PointerButton-Primary)  | The primary button of the device, usually the left button (mouse) or the only button on a single-button device (finger) |
+| [Secondary](/apis/core/#PointerButton-Secondary) | The secondary button of the device, usually the right button (mouse) |
+| [Auxiliary](/apis/core/#PointerButton-Auxiliary) | The auxiliary button of the device, usually the wheel (mouse)    |
+| [XButton1](/apis/core/#PointerButton-XButton1) | The extended button of the device, usually the undo button (mouse) |
+| [XButton2](/apis/core/#PointerButton-XButton2) | The extended button of the device, usually the redo button (mouse) |
+| [XButton3](/apis/core/#PointerButton-XButton3) | Extended button                                                  |
+| [XButton4](/apis/core/#PointerButton-XButton4) | Extended button                                                  |
 | ……                                              | ……                                                               |
 
-结合触控按键可以方便地检测触控点在本帧触发的行为：
+Combining touch buttons can easily detect the behavior of touch points triggered in this frame:
 
 <playground src="input-pointerButton.ts"></playground>
 
-### 触控回调
+### Touch Callbacks
 
-只需要为添加了 Collider 组件的 Entity 增加触控回调，就可以实现与渲染物体交互的能力。触控回调已经整合到引擎的[脚本组件生命周期](/en/docs/script#组件生命周期函数)中，用户可以很方便地添加以下事件，同时钩子函数中会携带触发此回调的 Pointer 实例。
+You only need to add touch callbacks to an Entity with a Collider component to enable interaction with rendered objects. Touch callbacks are integrated into the engine's [script lifecycle](/en/docs/script/class/#脚本生命周期), allowing users to easily add the following events. The hook functions will carry the Pointer instance that triggered the callback.
 
-| 接口                                               | 触发时机与频率                                                             |
-| :------------------------------------------------- | :------------------------------------------------------------------------- |
-| [onPointerEnter](/apis/core/#Script-onPointerEnter) | 当触控点进入 Entity 的碰撞体范围时触发一次                                 |
-| [onPointerExit](/apis/core/#Script-onPointerExit)   | 当触控点离开 Entity 的碰撞体范围时触发一次                                 |
-| [onPointerDown](/apis/core/#Script-onPointerDown)   | 当触控点在 Entity 的碰撞体范围内按下时触发一次                             |
-| [onPointerUp](/apis/core/#Script-onPointerUp)       | 当触控点在 Entity 的碰撞体范围内松开时触发一次                             |
-| [onPointerClick](/apis/core/#Script-onPointerClick) | 当触控点在 Entity 的碰撞体范围内按下并松开，在松开时触发一次               |
-| [onPointerDrag](/apis/core/#Script-onPointerDrag)   | 当触控点在 Entity 的碰撞体范围内按下时**持续**触发，直至触控点解除按下状态 |
+| Interface                                           | Trigger Timing and Frequency                                               |
+| :-------------------------------------------------- | :------------------------------------------------------------------------- |
+| [onPointerEnter](/apis/core/#Script-onPointerEnter) | Triggered once when the touch point enters the Entity's collider range     |
+| [onPointerExit](/apis/core/#Script-onPointerExit)   | Triggered once when the touch point leaves the Entity's collider range     |
+| [onPointerDown](/apis/core/#Script-onPointerDown)   | Triggered once when the touch point is pressed within the Entity's collider range |
+| [onPointerUp](/apis/core/#Script-onPointerUp)       | Triggered once when the touch point is released within the Entity's collider range |
+| [onPointerClick](/apis/core/#Script-onPointerClick) | Triggered once when the touch point is pressed and released within the Entity's collider range |
+| [onPointerDrag](/apis/core/#Script-onPointerDrag)   | Continuously triggered when the touch point is pressed within the Entity's collider range until the touch point is no longer pressed |
 
-> ⚠️ 触控回调**依赖物理引擎**，使用此功能前请确保物理引擎已初始化完毕。
+> ⚠️ Touch callbacks **depend on the physics engine**. Please ensure the physics engine is initialized before using this feature.
 
-如下示例：
+Example:
 
-- 最左边的立方体添加了对 Enter 与 Exit 的响应，当鼠标移动到上方和鼠标移出时便会触发它颜色的改变。
-- 中间的立方体添加了对 Drag 的响应，你可以用鼠标拖拽这个立方体在空间内任意移动。
-- 最右边的立方体添加了对 Click 的响应（先 down 后 up ），当鼠标点击时会触发它颜色的改变。
+- The leftmost cube responds to Enter and Exit events, changing color when the mouse moves over it and when the mouse leaves.
+- The middle cube responds to Drag events, allowing you to drag the cube anywhere in space with the mouse.
+- The rightmost cube responds to Click events (first down, then up), changing color when the mouse clicks on it.
 
 <playground src="input-pointer.ts"></playground>
 
-### 射线检测
+### Raycasting
 
-触控回调是基于射线检测实现的，若要自定义射线检测也十分简单，只需按照如下步骤即可。
+Touch callbacks are implemented based on raycasting. Customizing raycasting is also very simple, just follow these steps.
 
 ```mermaid
 flowchart LR
-   添加碰撞体组件 --> 获取触控点 --> 通过画布坐标获取射线 --> 射线检测
+   A[Add Collider Component] --> B[Get Touch Point] --> C[Get Ray from Canvas Coordinates] --> Raycasting
 ```
 
-添加碰撞体组件可参考[物理相关文档](/en/docs/physics-collider)，实现检测部分的代码逻辑如下：
+Refer to [Collider Component](/en/docs/physics/collider/) for adding a collider component. The code logic for implementing the detection part is as follows:
 
 ```typescript
 // 假设当前有一个活动的触控点
@@ -104,31 +104,31 @@ if (scene.physics.raycast(ray, 100, hitResult)) {
 }
 ```
 
-通过下方示例可以更直观地理解此过程，示例中为主相机添加了辅助线，侧视相机可以完整观察到主相机射线检测到碰撞体的过程。
+The following example provides a more intuitive understanding of this process. The main camera is equipped with auxiliary lines, and the side view camera can fully observe the process of the main camera's raycasting detecting the collider.
 
 <playground src="input-pointerRaycast.ts"></playground>
 
-## 兼容性
+## Compatibility
 
-截止 2024 年 2 月，不同平台对 PointerEvent 的兼容性已经达到了 [96.35%](https://caniuse.com/?search=PointerEvent) 。
+As of February 2024, the compatibility of PointerEvent across different platforms has reached [96.35%](https://caniuse.com/?search=PointerEvent).
 
-设计思路可参考：https://github.com/galacean/engine/wiki/Input-system-design.
+Design ideas can be referenced at: https://github.com/galacean/engine/wiki/Input-system-design.
 
-> ⚠️ 若遇到平台的兼容性问题，可以在 https://github.com/galacean/polyfill-pointer-event 提 issue 。
+> ⚠️ If you encounter compatibility issues on a platform, you can raise an issue at https://github.com/galacean/polyfill-pointer-event.
 
 ## QA
 
-### 触控在 PC 端正常，但在移动端异常
+### Touch works fine on PC but behaves abnormally on mobile devices
 
-在移动端，触控会触发 HTML 元素的默认行为，一旦触发默认行为，触控就会从元素上被移除（PointerCancel），可以通过设置监听源的 `touchAction` 解决，若触控的监听源为默认画布：
+On mobile devices, touch interactions trigger the default behavior of HTML elements. Once the default behavior is triggered, the touch interaction is removed from the element (PointerCancel). This can be resolved by setting the `touchAction` of the listening source. If the listening source is the default canvas:
 
 ```typescript
 (engine.canvas._webCanvas as HTMLCanvasElement).style.touchAction = "none";
 ```
 
-### 右键操作失效，弹出菜单栏
+### Right-click operation fails, context menu pops up
 
-这是由于右键触发系统默认行为导致的，可以加入下列代码阻止：
+This is caused by the default behavior triggered by the right-click. You can add the following code to prevent it:
 
 ```typescript
 document.oncontextmenu = (e) => {

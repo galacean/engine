@@ -153,7 +153,7 @@ float f2 = pow2(0.5);
 
 ### Common
 
-提供了`PI` 等常用宏，`gammaToLinear`、`pow2` 等通用方法，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/Common.glsl)。
+提供了`PI` 等常用宏，`gammaToLinear`、`pow2` 等通用方法，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/Common.glsl)。
 
 ### Fog
 
@@ -217,7 +217,7 @@ mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing
 
 ### Shadow
 
-提供了阴影相关的函数，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/Shadow.glsl)。
+提供了阴影相关的函数，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/Shadow.glsl)。
 
 ```glsl
 // 获取级联阴影所属层级，比如级联数量设为4，则返回 0～3
@@ -254,15 +254,15 @@ void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 
 
 ### AttributesPBR
 
-封装了 PBR 所需要的所有 Attribute 变量，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl)。
+封装了 PBR 所需要的所有 Attribute 变量，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl)。
 
 ### VaryingsPBR
 
-封装了 PBR 所需要的所有 Varyings 变量，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl)。
+封装了 PBR 所需要的所有 Varyings 变量，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl)。
 
 ### LightDirectPBR
 
-封装了基于 BRDF 光照模型的直接光计算，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl)。
+封装了基于 BRDF 光照模型的直接光计算，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl)。
 
 一般来说，直接调用即可：
 
@@ -289,7 +289,7 @@ float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
 
 ### LightInDirectPBR
 
-封装了基于 BRDF 光照模型的[环境光](/docs/graphics/light/ambient)计算，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/LightInDirectPBR.glsl)。
+封装了基于 BRDF 光照模型的[环境光](/docs/graphics/light/ambient)计算，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/LightInDirectPBR.glsl)。
 
 一般来说，直接调用即可：
 
@@ -312,7 +312,7 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData 
 
 ### VertexPBR
 
-PBR 顶点着色器所需要的一些方法，比如获取 TilingOffset 之后的 UV 坐标，获取骨骼、BS运算过后的世界坐标、法线、切线等，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/VertexPBR.glsl)。
+PBR 顶点着色器所需要的一些方法，比如获取 TilingOffset 之后的 UV 坐标，获取骨骼、BS运算过后的世界坐标、法线、切线等，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/VertexPBR.glsl)。
 
 ```glsl showLineNumbers {2, 4}
 Varyings varyings;
@@ -337,11 +337,11 @@ gl_Position = renderer_MVPMat * vertexInputs.positionOS;
 
 ### BRDF
 
-PBR 光照模型关键文件，封装了 BRDF 相关的通用计算函数， 以及用于后续光照模型计算的 `SurfaceData` 结构体和 `BRDFData` 结构体，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/BRDF.glsl)。
+PBR 光照模型关键文件，封装了 BRDF 相关的通用计算函数， 以及用于后续光照模型计算的 `SurfaceData` 结构体和 `BRDFData` 结构体，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/BRDF.glsl)。
 
 ### FragmentPBR
 
-包含了大量 CPU 传过来的金属度、粗糙度、贴图等变量，通过 `getSurfaceData` 初始化 `SurfaceData` 结构体，详见[源码](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl)。
+包含了大量 CPU 传过来的金属度、粗糙度、贴图等变量，通过 `getSurfaceData` 初始化 `SurfaceData` 结构体，详见[源码](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl)。
 
 ```glsl showLineNumbers
 BRDFData brdfData;
@@ -355,4 +355,4 @@ initBRDFData(surfaceData, brdfData);
 
 ### 最后
 
-除了关键 API 的功能和调用方式，关于整个文件的组织方式可以参考官网的 [ForwardPassPBR](https://github.com/galacean/engine-toolkit/blob/dev/1.3/packages/shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl)。
+除了关键 API 的功能和调用方式，关于整个文件的组织方式可以参考官网的 [ForwardPassPBR](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl)。
