@@ -351,9 +351,11 @@ export class TextUtils {
     // @todo: Text layout may vary from standard and not support emoji.
     const { actualBoundingBoxLeft, actualBoundingBoxRight, width: actualWidth } = context.measureText(measureString);
     // In some case (ex: " "), actualBoundingBoxRight and actualBoundingBoxLeft will be 0, so use width.
-    let width = Math.max(1, Math.round(Math.max(actualBoundingBoxRight - actualBoundingBoxLeft, actualWidth)));
+    const width = Math.max(
+      1,
+      Math.round(Math.max(actualBoundingBoxRight + Math.abs(actualBoundingBoxLeft), actualWidth))
+    );
     // Make sure enough width.
-    actualBoundingBoxLeft > 0 && (width += actualBoundingBoxRight);
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
