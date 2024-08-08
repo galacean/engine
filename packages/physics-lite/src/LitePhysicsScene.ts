@@ -322,19 +322,13 @@ export class LitePhysicsScene implements IPhysicsScene {
     colliders: LiteCollider[],
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    let hitResult: LiteHitResult;
-    if (hit) {
-      hitResult = LitePhysicsScene._hitResult;
-    }
-
     let isHit = false;
     const curHit = LitePhysicsScene._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
-      const collider = colliders[i];
-
-      if (collider._raycast(ray, onRaycast, curHit) && curHit.distance < distance) {
-        isHit = true;
-        if (hitResult) {
+      if (colliders[i]._raycast(ray, onRaycast, curHit) && curHit.distance < distance) {
+        if (hit) {
+          isHit = true;
+          const hitResult = LitePhysicsScene._hitResult;
           hitResult.normal.copyFrom(curHit.normal);
           hitResult.point.copyFrom(curHit.point);
           hitResult.distance = curHit.distance;
