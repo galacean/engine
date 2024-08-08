@@ -243,7 +243,7 @@ describe("TextRenderer", () => {
     textRenderer.verticalAlignment = TextVerticalAlignment.Top;
     textRenderer.horizontalAlignment = TextHorizontalAlignment.Left;
     BoundingBox.transform(
-      new BoundingBox(new Vector3(-1.5, 1.27, 0), new Vector3(1.42, 1.5, 0)),
+      new BoundingBox(new Vector3(-1.5, 1.27, 0), new Vector3(1.39, 1.5, 0)),
       textRendererEntity.transform.worldMatrix,
       box
     );
@@ -283,7 +283,7 @@ describe("TextRenderer", () => {
     textRendererEntity.transform.setPosition(0, 1, 0);
     textRendererEntity.transform.setRotation(10, 3, 0);
     BoundingBox.transform(
-      new BoundingBox(new Vector3(-1.42, 1.28, 0), new Vector3(1.5, 1.5, 0)),
+      new BoundingBox(new Vector3(-1.39, 1.28, 0), new Vector3(1.5, 1.5, 0)),
       textRendererEntity.transform.worldMatrix,
       box
     );
@@ -321,7 +321,7 @@ describe("TextRenderer", () => {
     // Test that bounds is correct, while verticalAlignment is bottom and horizontalAlignment is right.
     textRenderer.verticalAlignment = TextVerticalAlignment.Bottom;
     BoundingBox.transform(
-      new BoundingBox(new Vector3(-1.42, 1.25, 0), new Vector3(1.5, 1.47, 0)),
+      new BoundingBox(new Vector3(-1.39, 1.25, 0), new Vector3(1.5, 1.47, 0)),
       textRendererEntity.transform.worldMatrix,
       box
     );
