@@ -331,12 +331,11 @@ export class LitePhysicsScene implements IPhysicsScene {
           const hitResult = LitePhysicsScene._hitResult;
           hitResult.normal.copyFrom(curHit.normal);
           hitResult.point.copyFrom(curHit.point);
-          hitResult.distance = curHit.distance;
+          hitResult.distance = distance = curHit.distance;
           hitResult.shapeID = curHit.shapeID;
         } else {
           return true;
         }
-        distance = curHit.distance;
       }
     }
 
