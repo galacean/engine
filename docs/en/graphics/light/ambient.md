@@ -2,37 +2,37 @@
 order: 4
 title: Ambient Light
 type: Graphics
-group: Lighting
+group: Light
 label: Graphics/Light
 ---
 
-In addition to real-time computed direct light sources, we generally need to pre-bake ambient light as ambient light for real-time sampling. This method can effectively capture global ambient light and atmosphere, making objects better blend into their environment.
+In addition to real-time computed direct light sources, we generally need to pre-bake lighting offline as ambient light for real-time sampling. This method effectively captures the global illumination and atmosphere of the environment, making objects blend better into their surroundings.
 
 ![image-20231227151844040](https://gw.alipayobjects.com/zos/OasisHub/23397353-5434-4bde-ace7-72c8731d5581/image-20231227151844040.png)
 
 ## Editor Usage
 
-### 1. Ambient Diffuse Reflection
+### 1. Ambient Diffuse
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/a0bec326-364b-42ca-9172-0319b47e0256/image-20240219163916257.png" alt="image-20240219163916257" style="zoom:50%;" />
 
-| Property | Description |
+| Property | Function |
 | :-- | :-- |
-| Source | Specify whether the diffuse reflection source is `Background` or `Solid Color`, with the default source being `Background`. `Background` means using the baked spherical harmonic parameters as the diffuse reflection color; `Solid Color` means using a solid color as the diffuse reflection color. |
-| Intensity | Diffuse reflection intensity |
+| Source | Specifies whether the diffuse source is `Background` or `Solid Color`, with the default source being `Background`. `Background` means using the baked spherical harmonics parameters as the diffuse color; `Solid Color` means using a solid color as the diffuse color. |
+| Intensity | Diffuse intensity |
 
-### 2. Ambient Specular Reflection
+### 2. Ambient Specular
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/bec5c785-1969-4f3d-8d04-eff02595cbca/image-20240219163941010.png" alt="image-20240219163941010" style="zoom:50%;" />
 
-| Property | Description |
+| Property | Function |
 | :-- | :-- |
-| Source | Specify whether the specular reflection source is `Background` or `Custom`, with the default source being `Background`. `Background` means using the pre-filtered environment map obtained based on the background baking as the specular reflection; `Custom` means you can bake an HDR map separately as the environment reflection. |
-| Intensity | Specular reflection intensity |
+| Source | Specifies whether the specular source is `Background` or `Custom`, with the default source being `Background`. `Background` means using the pre-filtered environment map baked from the background as the specular reflection; `Custom` means you can separately bake an HDR map as the environment reflection. |
+| Intensity | Specular intensity |
 
 ## Script Usage
 
-After obtaining the baked product URL through the [baking tutorial](/en/docs/graphics-light-bake), load and parse it using the engine's EnvLoader:
+After obtaining the URL of the baked product through the [baking tutorial](/en/docs/graphics/light/bake/), load and parse it through the engine's EnvLoader:
 
 ```typescript
 engine.resourceManager

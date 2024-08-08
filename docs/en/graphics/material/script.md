@@ -1,14 +1,10 @@
 ---
-order: 3
 title: Script Usage
-type: Material
-group: Mesh
-label: Graphics/Material
 ---
 
-The materials exported by the editor only include the basic [Material](/apis/core/#Material) class, while you can create the engine's pre-packaged [PBRMaterial](/apis/core/#PBRMaterial), [UnlitMaterial](/apis/core/#UnlitMaterial), [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial) through code.
+The material exported by the editor is only the base class [Material](/apis/core/#Material), while through code you can create the engine's pre-packaged [PBRMaterial](/apis/core/#PBRMaterial), [UnlitMaterial](/apis/core/#UnlitMaterial), and [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial).
 
-## Get Material
+## Getting Material
 
 ### 1. Get from an existing renderer
 
@@ -26,7 +22,7 @@ const material = renderer.getMaterial();
 
 ### 2. Replace the material in the renderer
 
-You can also directly replace the material type, for example, assign a PBR material to a model:
+We can also directly replace the material type, for example, reassigning a PBR material to the model:
 
 ```typescript
 // 获取想要修改的 renderer
@@ -54,7 +50,7 @@ const unlitMaterial = new UnlitMaterial(engine);
 const customMaterial = new Material(engine, Shader.find("***"));
 ```
 
-## Modify Material
+## Modifying Material
 
 ### 1. Modify built-in materials
 

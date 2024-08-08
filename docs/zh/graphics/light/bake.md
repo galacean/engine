@@ -10,7 +10,7 @@ label: Graphics/Light
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/5ff4f65b-7940-4359-9de0-f8beef4d7fb2/bake.gif" alt="bake" style="zoom:50%;" />
 
-我们在[编辑器](https://galacean.antgroup.com/editor) 和 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 提供了烘焙工具。
+我们在[编辑器](https://galacean.antgroup.com/editor) 和 [glTF 查看器](https://galacean.antgroup.com/engine/gltf-viewer) 提供了烘焙工具。
 
 ## 编辑器使用
 
@@ -32,12 +32,12 @@ label: Graphics/Light
 
 ### 3. 设置背景
 
-参考 [背景教程](/docs/graphics-background-sky) 设置完场景的背景后，编辑器会根据上面设置的烘焙分辨率和烘焙开关进行光照烘焙，期间针对背景的修改（颜色、旋转、曝光、换 HDR 贴图等）都会根据烘焙开关来决定是否自动烘焙。**如果想要设置纯色背景或者透明背景，但是又不想要烘焙纯色背景，可以先关闭自动烘焙开关，然后再切换到[纯色背景](/docs/graphics-background-solidColor)。**
+参考 [背景教程](/docs/graphics/background/sky/) 设置完场景的背景后，编辑器会根据上面设置的烘焙分辨率和烘焙开关进行光照烘焙，期间针对背景的修改（颜色、旋转、曝光、换 HDR 贴图等）都会根据烘焙开关来决定是否自动烘焙。**如果想要设置纯色背景或者透明背景，但是又不想要烘焙纯色背景，可以先关闭自动烘焙开关，然后再切换到[纯色背景](/docs/graphics/background/solidColor/)。**
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1604407b-f6e0-442a-b179-aef4836877cf/image-20231009114455268.png" alt="image-20231009114455268" style="zoom:50%;" />
 
 ## glTF 查看器
 
-我们在官网的 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 也提供了烘焙工具，直接拖拽 HDR 贴图到网页即可自动下载烘焙产物 ：
+我们在官网的 [glTF 查看器](https://galacean.antgroup.com/engine/gltf-viewer) 也提供了烘焙工具，直接拖拽 HDR 贴图到网页即可自动下载烘焙产物 ：
 
 ![gltf viewer](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*9mGbSpQ4HngAAAAAAAAAAAAAARQnAQ)

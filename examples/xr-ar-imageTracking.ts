@@ -59,7 +59,7 @@ WebGLEngine.create({
   };
 
   image.src =
-    "https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*br03RK1-XTMAAAAAAAAAAAAADleLAQ/original";
+    "https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*-MneS5WGJywAAAAAAAAAAAAADhuCAQ/original";
   engine.run();
 });
 

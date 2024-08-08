@@ -10,7 +10,7 @@ label: Graphics/Background
 
 ## 设置纹理背景
 
-依据路径 **[层级面板](/docs/interface-hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface-inspector)** -> **Background 栏** 设置 **Mode** 为 **Texture**，然后选择期望的纹理，可以看到场景的背景发生实时变化。
+依据路径 **[层级面板](/docs/interface/hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface/inspector)** -> **Background 栏** 设置 **Mode** 为 **Texture**，然后选择期望的纹理，可以看到场景的背景发生实时变化。
 
 ![](https://gw.alipayobjects.com/zos/OasisHub/2673b2a2-a87b-4707-b3fc-9af334231298/2024-07-18%25252017.50.16.gif)
 

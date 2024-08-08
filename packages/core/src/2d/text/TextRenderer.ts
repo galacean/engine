@@ -636,7 +636,7 @@ export class TextRenderer extends Renderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance + letterSpacing;
+            startX += charInfo.xAdvance + charInfo.offsetX + letterSpacing;
           }
         }
         startY -= lineHeight;

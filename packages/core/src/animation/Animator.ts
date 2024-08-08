@@ -245,7 +245,7 @@ export class Animator extends Component {
    */
   setParameterValue(name: string, value: AnimatorControllerParameterValue) {
     const parameter = this._animatorController?._parametersMap[name];
-    if (parameter && parameter.defaultValue !== value) {
+    if (parameter) {
       this._parametersValueMap[name] = value;
     }
   }

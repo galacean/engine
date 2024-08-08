@@ -5,7 +5,7 @@ type: XR
 label: XR
 ---
 
-XR 系统支持多后端（可参照[XR 总览](/docs/xr-overall)），目前官方仅适配了 WebXR 标准，因此 XR 互动的兼容性也**受限于设备对 WebXR** 的兼容。
+XR 系统支持多后端（可参照[XR 总览](/docs/xr/overall)），目前官方仅适配了 WebXR 标准，因此 XR 互动的兼容性也**受限于设备对 WebXR** 的兼容。
 
 在使用 XR 能力前，可参考 [CanIUse](https://caniuse.com/?search=webxr) 对运行环境进行评估，下方是当下 WebXR 兼容性的概括。
 

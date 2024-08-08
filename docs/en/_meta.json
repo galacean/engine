@@ -1,10 +1,6 @@
 {
-  "index": {
-    "title": "Homepage",
-    "display": "hidden"
-  },
-  "quick-start": {
-    "title": "Quick Start",
+  "basics": {
+    "title": "Basics",
     "theme": {
       "collapse": true
     }
@@ -27,28 +23,67 @@
       "collapse": true
     }
   },
-  "camera": {
-    "title": "Camera",
+  "graphics": {
+    "title": "Graphics",
     "theme": {
       "collapse": true
     }
   },
-  "background": {
-    "title": "Background",
+  "animation": {
+    "title": "Animation",
     "theme": {
       "collapse": true
     }
   },
-  "lighting": {
-    "title": "Lighting",
+  "physics": {
+    "title": "Physics",
     "theme": {
       "collapse": true
     }
   },
-  "ecosystem": {
-    "title": "Ecosystem",
+  "script": {
+    "title": "Script",
     "theme": {
       "collapse": true
     }
+  },
+  "xr": {
+    "title": "XR",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "input": {
+    "title": "Input",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "device": {
+    "title": "Device",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "performance": {
+    "title": "Performance",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "miniProgram": {
+    "title": "Mini Program",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "art": {
+    "title": "Art",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "en": {
+    "display": "hidden"
   }
 }

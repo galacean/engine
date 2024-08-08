@@ -22,9 +22,9 @@ First, we create a new entity in the **Hierarchy Panel** ([What is an entity?](h
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g-zmTr6rD9MAAAAAAAAAAAAADhuCAQ/original" alt="image-20230921161422138" style="zoom:50%;" />
 
-Select the newly created entity node with the left mouse button. The **[Inspector Panel](/en/docs/interface-inspector)** on the right will display some configurable properties of the current entity. Since our entity is not currently associated with any components ([What is a component?](https://galacean.antgroup.com/#/en/docs/latest/cn/entity)), we can only adjust basic properties like the entity's coordinate information for now.
+Select the newly created entity node with the left mouse button. The **[Inspector Panel](/en/docs/interface/inspector)** on the right will display some configurable properties of the current entity. Since our entity is not currently associated with any components ([What is a component?](https://galacean.antgroup.com/#/en/docs/latest/cn/entity)), we can only adjust basic properties like the entity's coordinate information for now.
 
-Next, click the `Add Component` button in the **[Inspector Panel](/en/docs/interface-inspector)** to bring up the component menu, then choose to add a `Mesh Renderer` component ([What is a Mesh Renderer?](/en/docs/graphics-renderer-meshRenderer)).
+Next, click the `Add Component` button in the **[Inspector Panel](/en/docs/interface/inspector)** to bring up the component menu, then choose to add a `Mesh Renderer` component ([What is a Mesh Renderer?](/en/docs/graphics-renderer-meshRenderer)).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*TrArQ7FmXc4AAAAAAAAAAAAADhuCAQ/original" alt="image-20230921161622497" style="zoom:50%;" />
 
@@ -46,7 +46,7 @@ After uploading, you can see these files in the panel, which are roughness textu
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/81ad7299-158b-4347-8e67-86b835980a04/image-20230921172453377.png" alt="image-20230921172453377" style="zoom:50%;" />
 
-First, in the **Asset Management Panel**, select `Right-click` → `Create` → `Material` to let the editor create a default PBR material. Select this material, and the **[Inspector Panel](/en/docs/interface-inspector)** will display the configuration options for the current material. The default material is quite simple, so we can add some texture maps to this material, such as base texture, roughness texture, and normal map.
+First, in the **Asset Management Panel**, select `Right-click` → `Create` → `Material` to let the editor create a default PBR material. Select this material, and the **[Inspector Panel](/en/docs/interface/inspector)** will display the configuration options for the current material. The default material is quite simple, so we can add some texture maps to this material, such as base texture, roughness texture, and normal map.
 
 
 ![image-20230921173056885](https://gw.alipayobjects.com/zos/OasisHub/65bf4b63-3f09-4ad6-abc9-a9d26e173783/image-20230921173056885.png)
@@ -64,9 +64,9 @@ Now it looks more normal.
 
 Next, we will bind a `Script` component to this node ([What is a Script component?](https://galacean.antgroup.com/#/en/docs/latest/en/script)).
 
-1. We continue to add a `Script` component in the **[Inspector Panel](/en/docs/interface-inspector)** in the same way as above
-2. Next, in the **[Assets Panel](/en/docs/assets-interface)**, `right-click` → `Create` → `Script` to create a `Script` asset
-3. Finally, in the **[Inspector Panel](/en/docs/interface-inspector)**, bind the newly created script file to the script component
+1. We continue to add a `Script` component in the **[Inspector Panel](/en/docs/interface/inspector)** in the same way as above
+2. Next, in the **[Assets Panel](/en/docs/assets/interface)**, `right-click` → `Create` → `Script` to create a `Script` asset
+3. Finally, in the **[Inspector Panel](/en/docs/interface/inspector)**, bind the newly created script file to the script component
 
 > ⚠️ Note that if you do not bind the script asset to the entity's script component, the script will not run
 
@@ -113,19 +113,19 @@ Let's start by getting to know these classes:
 
 | Type           | Class Name                                                                               | Definition                                                                                                                                                            |
 | -------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| WebGL Engine   | [WebGLEngine](${api}rhi-webgl/WebGLEngine)                                              | WebGL platform engine, supporting WebGL 1.0 and WebGL 2.0, it can control all behaviors of the canvas, including resource management, scene management, execution/pause/resume, vertical synchronization, etc. (See [Engine](/en/docs/core-engine) section for details.) |
+| WebGL Engine   | [WebGLEngine](/apis/rhi-webgl/WebGLEngine)                                              | WebGL platform engine, supporting WebGL 1.0 and WebGL 2.0, it can control all behaviors of the canvas, including resource management, scene management, execution/pause/resume, vertical synchronization, etc. (See [Engine](/en/docs/core/engine) section for details.) |
 | Component      | [Camera](/apis/core/#Camera)                                                             | Camera, an abstract concept of 3D projection in a graphics engine, similar to a camera or eye in the real world. Without a camera, the canvas will not render anything. (See [Camera](/en/docs/graphics-camera) section for details.)          |
 |                | [DirectLight](/apis/core/#DirectLight)                                                   | Direct light, a type of lighting that adds depth to the scene. Using lighting can create a more realistic 3D scene. (See [Lighting](/en/docs/graphics-light) section for details.)                                             |
 |                | [Script](/apis/core/#Script)                                                             | Script, a link between engine capabilities and game logic. It can be used to extend the engine's functionality, and game logic code can be written in the lifecycle hooks provided by script components. (See [Script](/en/docs/script) section for details.)   |
 |                | [MeshRenderer](/apis/core/#MeshRenderer)                                                 | Mesh renderer, using a mesh object (in this example, a cube) as the data source for the geometric outline.                                                                                               |
 | Geometry and Material Classes | [PrimitiveMesh](/apis/core/#PrimitiveMesh)                                               | Primitive mesh, providing convenient methods for creating mesh objects such as cubes, spheres, etc. (See [Built-in Geometry](/en/docs/graphics-model) section for details.)                                                             |
 |                | [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial)                                     | Material defines how to render this cube, BlinnPhong material is one of the classic materials. (See [Material](/en/docs/graphics-material) section for details.)                                                         |
-| Math Library Classes   | [Vector3](/apis/math/#Vector3), [Vector4](/apis/math/#Vector4), [Color](/apis/math/#Color) | These classes are basic units for mathematical calculations, used to calculate the position, color, etc., of the cube. (See [Math Library](/en/docs/core-math) section for details.)                                                              |
+| Math Library Classes   | [Vector3](/apis/math/#Vector3), [Vector4](/apis/math/#Vector4), [Color](/apis/math/#Color) | These classes are basic units for mathematical calculations, used to calculate the position, color, etc., of the cube. (See [Math Library](/en/docs/core/math) section for details.)                                                              |
 
 
 ## Create Engine Instance
 
-Create an engine instance, where the `canvas` parameter is the `id` of the _Canvas_ element. If the `id` is different, please replace it accordingly. As mentioned above, reset the canvas dimensions using the [resizeByClientSize](${api}rhi-webgl/WebCanvas#resizeByClientSize) method.
+Create an engine instance, where the `canvas` parameter is the `id` of the _Canvas_ element. If the `id` is different, please replace it accordingly. As mentioned above, reset the canvas dimensions using the [resizeByClientSize](/apis/rhi-webgl/WebCanvas#resizeByClientSize) method.
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });
