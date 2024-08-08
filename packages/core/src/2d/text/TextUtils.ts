@@ -351,7 +351,7 @@ export class TextUtils {
     // @todo: Text layout may vary from standard and not support emoji.
     const { actualBoundingBoxLeft, actualBoundingBoxRight, width: actualWidth } = context.measureText(measureString);
     // In some case (ex: " "), actualBoundingBoxRight and actualBoundingBoxLeft will be 0, so use width.
-    // TODO: After testing, actualBoundingBoxLeft + actualBoundingBoxRight is the actual rendering width
+    // TODO: With testing, actualBoundingBoxLeft + actualBoundingBoxRight is the actual rendering width
     // but the space rules between characters are unclear. Using actualBoundingBoxRight + Math.abs(actualBoundingBoxLeft) is the closest to the native effect.
     const width = Math.max(
       1,
