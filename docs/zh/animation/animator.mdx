@@ -1,0 +1,159 @@
+---
+order: 3
+title: 动画控制组件
+type: 动画
+label: Animation
+---
+
+## 简介
+动画控制组件（[Animator](/apis/core/#Animator)）的作用是读取[动画控制器](/docs/animation/animatorController/)（[AnimatorController](/apis/core/#AnimatorController)）的数据，并播放其内容。
+
+### 参数说明
+
+| 属性               | 功能说明                       |
+| :----------------- | :----------------------------- |
+| animatorController | 绑定 `AnimatorController` 资产 |
+
+## 编辑器使用
+
+当把模型拖入到场景中，模型以初始姿态展示，并不会播放任何动画，这时需要在模型实体上找到动画控制组件（[Animator](/apis/core/#Animator)）并为它绑定一个 [动画控制器](/docs/animation/animatorController/) 资产。
+
+
+1. 找到或者创建动画控制组件（[Animator](/apis/core/#Animator)）
+
+
+<Callout type="info">
+模型的动画控制组件（[Animator](/apis/core/#Animator)）在glTF实例的根实体上，也就是编辑器的模型实体下的第一个子实体上。
+
+如果模型内有动画，会为你自动绑定一个只读的[动画控制器](/docs/animation/animatorController/)。
+</Callout>
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WkafRagPFo8AAAAAAAAAAAAADsJ_AQ/original)
+
+如果没有动画控制组件（[Animator](/apis/core/#Animator)）可以按下图方式创建
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uOuPT5cFwx4AAAAAAAAAAAAADsJ_AQ/original)
+
+2. 创建一个[动画控制器](/docs/animation/animatorController/) 资产并绑定到模型上
+
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original)
+![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
+
+3. 编辑动画控制器（[详见](/docs/animation/animatorController/)）后你就可以按照[动画控制器](/docs/animation/animatorController/) 的逻辑播放其中的动画了
+
+## 脚本使用
+<Callout type="positive">
+在使用脚本之前，最好阅读[动画系统构成](/docs/animation/system)文档，以帮助你更好的了解动画系统的运行逻辑
+</Callout>
+
+
+### 播放动画
+
+在加载 GLTF 模型后引擎会自动为模型添加一个 Animator 组件，并将模型中的动画片段加入其中。可以直接在模型的根实体上获取 Animator 组件，并播放指定动画。
+
+```typescript
+engine.resourceManager
+  .load<GLTFResource>(
+    "https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb"
+  )
+  .then((asset) => {
+    const { defaultSceneRoot } = asset;
+    rootEntity.addChild(defaultSceneRoot);
+    const animator = defaultSceneRoot.getComponent(Animator);
+    animator.play("run");
+  });
+```
+
+#### 控制播放速度
+
+你可以通过 [speed](/apis/core/#Animator-speed)  属性来控制动画的播放速度。 `speed`  默认值为 `1.0` ，值越大播放的越快，越小播放的越慢。当值为负数时，进行倒播。
+
+```typescript
+animator.speed = 2.0；
+```
+
+#### 停止/重新播放
+
+你可以通过设置 Animator 的 [enabled](/apis/core/#Animator-enabled) 来停止和重新播放动画
+
+```typescript
+// 停止
+animator.enabled = false;
+// 重新播放
+animator.enabled = true;
+```
+
+#### 暂停/恢复播放
+你可以通过设置 Animator 的 [speed](/apis/core/#Animator-speed) 暂停和恢复播放
+
+```typescript
+// 暂停
+animator.speed = 0;
+// 恢复
+animator.speed = 1;
+```
+
+
+如果你只想针对某一个动画状态进行暂停，可以通过将它的速度设置为 0 来实现。
+
+```typescript
+const state = animator.findAnimatorState("xxx");
+state.speed = 0;
+```
+
+#### 播放指定动画状态
+
+你可以使用 [animator.play](/apis/core/#Animator-play) 方法来播放指定的 `AnimatorState`，参数说明详见[API 文档](/apis/core/#Animator-play)。
+
+```typescript
+animator.play("run");
+```
+
+如果需要在动画中的某一时刻开始播放可以通过以下方式
+
+```typescript
+const layerIndex = 0;
+const normalizedTimeOffset = 0.5; // 归一化的时间
+animator.play("run", layerIndex, normalizedTimeOffset);
+```
+
+<Playground href="/embed/skeleton-animation-play" />
+
+#### 过渡指定动画状态
+
+你可以使用 [animator.crossfade](/apis/core/#Animator-crossfade) 方法来将动画过渡到指定的 `AnimatorState`，参数说明详见[API 文档](/apis/core/#Animator-crossFade)。
+
+```typescript
+animator.crossFade("run", 0.3);
+```
+
+<Playground href="/embed/skeleton-animation-crossfade" />
+
+### 获取当前在播放的动画状态
+
+你可以使用 [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState)  方法来获取当前正在播放的 AnimatorState。参数为动画状态所在层的序号`layerIndex`, 详见[API 文档](/apis/core/#Animator-getCurrentAnimatorState)。获取之后可以设置动画状态的属性，比如将默认的循环播放改为一次。
+
+```typescript
+const currentState = animator.getCurrentAnimatorState(0);
+// 播放一次
+currentState.wrapMode = WrapMode.Once;
+// 循环播放
+currentState.wrapMode = WrapMode.Loop;
+```
+
+### 获取动画状态
+
+你可以使用 [findAnimatorState](/apis/core/#Animator-findAnimatorState)  方法来获取指定名称的 AnimatorState。详见[API 文档](/apis/core/#Animator-getCurrentAnimatorState)。获取之后可以设置动画状态的属性，比如将默认的循环播放改为一次。
+
+```typescript
+const state = animator.findAnimatorState("xxx");
+// 播放一次
+state.wrapMode = WrapMode.Once;
+// 循环播放
+state.wrapMode = WrapMode.Loop;
+```
+
+### 动画裁剪
+你可以通过设置 [Animator](/apis/core/#Animator) 的 [cullingMode](/apis/core/#Animator-cullingMode) 来设置当 Animator 绑定的实体不可见时动画是否进行计算。在动画被裁剪时，动画不会进行计算并应用到实体上，但动画的状态仍然会随着时间更新，使其再可见时是正确地表现。
+
+

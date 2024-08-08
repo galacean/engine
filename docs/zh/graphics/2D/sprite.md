@@ -6,7 +6,7 @@ group: 2D
 label: Graphics/2D
 ---
 
-[Sprite](/apis/core/#Sprite) 是 2D 项目中最重要的资产，他从 [Texture2D](/docs/graphics-texture-2d) 中获取图形源数据，通过设置 [region](/apis/core/#Sprite-region)，[pivot](/apis/core/#Sprite-pivot) 等属性定制期望的渲染结果，若将其赋予[SpriteRenderer](/apis/core/#SpriteRenderer)，挂载了精灵渲染器的节点就可以在三维空间中展示 2D 图片，若将其赋予[SpriteMask](/docs/graphics-2d-spriteMask)，挂载了精灵遮罩的节点就可以对相应的 2D 元素实现遮罩效果，接下来就让我们深入了解精灵的属性和用法。
+[Sprite](/apis/core/#Sprite) 是 2D 项目中最重要的资产，他从 [Texture2D](/docs/graphics/texture/2d/) 中获取图形源数据，通过设置 [region](/apis/core/#Sprite-region)，[pivot](/apis/core/#Sprite-pivot) 等属性定制期望的渲染结果，若将其赋予[SpriteRenderer](/apis/core/#SpriteRenderer)，挂载了精灵渲染器的节点就可以在三维空间中展示 2D 图片，若将其赋予[SpriteMask](/docs/graphics/2D/spriteMask/)，挂载了精灵遮罩的节点就可以对相应的 2D 元素实现遮罩效果，接下来就让我们深入了解精灵的属性和用法。
 
 ## 属性
 
@@ -33,13 +33,13 @@ pivot 代表精灵中心在 region 中的位置，如下：
 
 #### 上传精灵
 
-在 **[资产面板](/docs/assets-interface)** 空白处依次 **右键** → **Upload** → **Sprite** → **选中对应图片** 即可上传精灵资产，上传成功后当前资产列表会同步添加一份名为 `图片名.png` 的纹理资产和一份 `图片名-spr.png` 的精灵资产
+在 **[资产面板](/docs/assets/interface/)** 空白处依次 **右键** → **Upload** → **Sprite** → **选中对应图片** 即可上传精灵资产，上传成功后当前资产列表会同步添加一份名为 `图片名.png` 的纹理资产和一份 `图片名-spr.png` 的精灵资产
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
 
 #### 创建空白精灵
 
-在 **[资产面板](/docs/assets-interface)** 空白处依次 **右键** → **Create** → **Sprite** 即可创建一份空白的精灵资产。
+在 **[资产面板](/docs/assets/interface/)** 空白处依次 **右键** → **Create** → **Sprite** 即可创建一份空白的精灵资产。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
 

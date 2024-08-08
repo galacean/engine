@@ -65,7 +65,7 @@ Now it looks more normal.
 Next, we will bind a `Script` component to this node ([What is a Script component?](https://galacean.antgroup.com/#/en/docs/latest/en/script)).
 
 1. We continue to add a `Script` component in the **[Inspector Panel](/en/docs/interface/inspector)** in the same way as above
-2. Next, in the **[Assets Panel](/en/docs/assets-interface)**, `right-click` → `Create` → `Script` to create a `Script` asset
+2. Next, in the **[Assets Panel](/en/docs/assets/interface)**, `right-click` → `Create` → `Script` to create a `Script` asset
 3. Finally, in the **[Inspector Panel](/en/docs/interface/inspector)**, bind the newly created script file to the script component
 
 > ⚠️ Note that if you do not bind the script asset to the entity's script component, the script will not run
@@ -113,7 +113,7 @@ Let's start by getting to know these classes:
 
 | Type           | Class Name                                                                               | Definition                                                                                                                                                            |
 | -------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| WebGL Engine   | [WebGLEngine](${api}rhi-webgl/WebGLEngine)                                              | WebGL platform engine, supporting WebGL 1.0 and WebGL 2.0, it can control all behaviors of the canvas, including resource management, scene management, execution/pause/resume, vertical synchronization, etc. (See [Engine](/en/docs/core/engine) section for details.) |
+| WebGL Engine   | [WebGLEngine](/apis/rhi-webgl/WebGLEngine)                                              | WebGL platform engine, supporting WebGL 1.0 and WebGL 2.0, it can control all behaviors of the canvas, including resource management, scene management, execution/pause/resume, vertical synchronization, etc. (See [Engine](/en/docs/core/engine) section for details.) |
 | Component      | [Camera](/apis/core/#Camera)                                                             | Camera, an abstract concept of 3D projection in a graphics engine, similar to a camera or eye in the real world. Without a camera, the canvas will not render anything. (See [Camera](/en/docs/graphics-camera) section for details.)          |
 |                | [DirectLight](/apis/core/#DirectLight)                                                   | Direct light, a type of lighting that adds depth to the scene. Using lighting can create a more realistic 3D scene. (See [Lighting](/en/docs/graphics-light) section for details.)                                             |
 |                | [Script](/apis/core/#Script)                                                             | Script, a link between engine capabilities and game logic. It can be used to extend the engine's functionality, and game logic code can be written in the lifecycle hooks provided by script components. (See [Script](/en/docs/script) section for details.)   |
@@ -125,7 +125,7 @@ Let's start by getting to know these classes:
 
 ## Create Engine Instance
 
-Create an engine instance, where the `canvas` parameter is the `id` of the _Canvas_ element. If the `id` is different, please replace it accordingly. As mentioned above, reset the canvas dimensions using the [resizeByClientSize](${api}rhi-webgl/WebCanvas#resizeByClientSize) method.
+Create an engine instance, where the `canvas` parameter is the `id` of the _Canvas_ element. If the `id` is different, please replace it accordingly. As mentioned above, reset the canvas dimensions using the [resizeByClientSize](/apis/rhi-webgl/WebCanvas#resizeByClientSize) method.
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });

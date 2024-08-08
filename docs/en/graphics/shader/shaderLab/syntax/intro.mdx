@@ -1,0 +1,31 @@
+---
+title: ShaderLab Syntax Standard
+---
+
+## Editing Shaders in the Editor
+
+Double-click the shader asset we created in the previous step to jump to the code editing page.
+
+> A future version will release the Galacean VSCode plugin, which will provide syntax checking, auto-completion, and code synchronization features for `ShaderLab`. Stay tuned.
+
+  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*Djs2RJsoPawAAAAAAAAAAAAADteEAQ/original" style={{zoom:"50%"}}/>
+
+## Syntax Standard
+
+The `ShaderLab` syntax framework is as follows:
+
+```glsl
+Shader "ShaderName" {
+  ...
+  SubShader "SubShaderName" {
+    ...
+    Pass "PassName" {
+      ...
+    }
+    ...
+  }
+  ...
+}
+```
+
+It mainly includes [Shader](/en/docs/graphics/shader/shaderLab/syntax/shader/), [SubShader](/en/docs/graphics/shader/shaderLab/syntax/subShader/), and [ShaderPass](/en/docs/graphics/shader/shaderLab/syntax/pass/) modules.

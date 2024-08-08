@@ -6,7 +6,7 @@ group: 粒子
 label: Graphics/Particle
 ---
 
-[MainModule](${api}core/MainModule) 是 `ParticleGeneratorModule` 的主模块，包含了最基本的粒子生成参数。这些属性大多用于控制新创建的粒子的初始状态。
+[MainModule](/apis/core/#MainModule) 是 `ParticleGeneratorModule` 的主模块，包含了最基本的粒子生成参数。这些属性大多用于控制新创建的粒子的初始状态。
 
 <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*JUjgTLfiz7kAAAAAAAAAAAAADtKFAQ/original" alt="avatar" style="zoom:50%;" />
 
@@ -16,29 +16,29 @@ label: Graphics/Particle
 
 你可以在提供的示例中逐个调试各项属性，帮助你更好地理解和掌控粒子住模块，从而实现各种复杂和精美的视觉效果。
 
-持续时间 [duration](${api}core/MainModule#duration) 决定了粒子生成器运行多长时间，单位为秒。更长的持续时间意味着粒子系统会生成更多的粒子，创造出持续的效果。
+持续时间 [duration](/apis/core/#MainModule-duration) 决定了粒子生成器运行多长时间，单位为秒。更长的持续时间意味着粒子系统会生成更多的粒子，创造出持续的效果。
 
-是否循环 [isLoop](${api}core/MainModule#isLoop) 如果设置为 true，粒子生成器会在持续时间结束后自动重新开始，从而形成一个连续的效果，比如烟雾或流水。
+是否循环 [isLoop](/apis/core/#MainModule-isLoop) 如果设置为 true，粒子生成器会在持续时间结束后自动重新开始，从而形成一个连续的效果，比如烟雾或流水。
 
-开始延迟时间 [startDelay](${api}core/MainModule#startDelay) 决定了粒子生成器在启动后延迟一定时间才开始发射，这对于实现如烟花等需要时间差的效果非常有用。
+开始延迟时间 [startDelay](/apis/core/#MainModule-startDelay) 决定了粒子生成器在启动后延迟一定时间才开始发射，这对于实现如烟花等需要时间差的效果非常有用。
 
-初始生命周期 [startLifetime](${api}core/MainModule#startLifetime) 决定了每个粒子在消失前能存活多久。更长的生命周期意味着粒子会在屏幕上停留更长时间。
+初始生命周期 [startLifetime](/apis/core/#MainModule-startLifetime) 决定了每个粒子在消失前能存活多久。更长的生命周期意味着粒子会在屏幕上停留更长时间。
 
-首次生成粒子时的初始速度 [startSpeed](${api}core/MainModule#startSpeed) 决定了粒子发射时的速度，较高的初始速度会使粒子迅速扩散，如爆炸效果；较低的速度则会使粒子缓慢飘动，如烟雾效果。
+首次生成粒子时的初始速度 [startSpeed](/apis/core/#MainModule-startSpeed) 决定了粒子发射时的速度，较高的初始速度会使粒子迅速扩散，如爆炸效果；较低的速度则会使粒子缓慢飘动，如烟雾效果。
 
-是否以每个轴的粒子大小分别指定 [startSize3D](${api}core/MainModule#startSize3D) 允许为粒子的 x、y、z 轴设置不同的大小，以实现各向异性的粒子效果，比如长条形火焰。粒子生成器首次生成粒子时的初始大小 [startSize](${api}core/MainModule#startSize) 控制每个粒子的大小，较大的初始大小适合模拟大块的烟云或火焰，较小的则适合细腻的尘土或水花。针对具体轴的初始大小，粒子生成器首次生成粒子时沿 x 轴的初始大小 [startSizeX](${api}core/MainModule#startSizeX) 、沿 y 轴的初始大小 [startSizeY](${api}core/MainModule#startSizeY) 和沿 z 轴的初始大小 [startSizeZ](${api}core/MainModule#startSizeZ) 分别控制粒子在 x、y、z 轴上的大小，使粒子形状更加多样化和细腻。
+是否以每个轴的粒子大小分别指定 [startSize3D](/apis/core/#MainModule-startSize3D) 允许为粒子的 x、y、z 轴设置不同的大小，以实现各向异性的粒子效果，比如长条形火焰。粒子生成器首次生成粒子时的初始大小 [startSize](/apis/core/#MainModule-startSize) 控制每个粒子的大小，较大的初始大小适合模拟大块的烟云或火焰，较小的则适合细腻的尘土或水花。针对具体轴的初始大小，粒子生成器首次生成粒子时沿 x 轴的初始大小 [startSizeX](/apis/core/#MainModule-startSizeX) 、沿 y 轴的初始大小 [startSizeY](/apis/core/#MainModule-startSizeY) 和沿 z 轴的初始大小 [startSizeZ](/apis/core/#MainModule-startSizeZ) 分别控制粒子在 x、y、z 轴上的大小，使粒子形状更加多样化和细腻。
 
-是否启用 3D 粒子旋转 [startRotation3D](${api}core/MainModule#startRotation3D) 允许粒子在 3D 空间中旋转，增加粒子的立体感和复杂性，如在三维空间内☑️下坠的树叶。粒子生成器首次生成粒子时的初始旋转 (startRotation) 设置粒子发射时的旋转角度，适用于需要粒子朝特定方向运动的效果，如方向性的火焰。而粒子发射时沿 x 轴的初始旋转 [startRotationX](${api}core/MainModule#startRotationX)、沿 y 轴的初始旋转 [startRotationY](${api}core/MainModule#startRotationY) 和沿 z 轴的初始旋转 [startRotationZ](${api}core/MainModule#startRotationZ) 分别控制粒子在 x、y、z 轴上的旋转，增加粒子运动的自由度。翻转旋转 [flipRotation](${api}core/MainModule#flipRotation) 范围在 0 到 1 之间，使部分粒子以相反方向旋转，增加粒子系统的随机性和自然感，适用于模拟复杂的运动轨迹。
+是否启用 3D 粒子旋转 [startRotation3D](/apis/core/#MainModule-startRotation3D) 允许粒子在 3D 空间中旋转，增加粒子的立体感和复杂性，如在三维空间内☑️下坠的树叶。粒子生成器首次生成粒子时的初始旋转 (startRotation) 设置粒子发射时的旋转角度，适用于需要粒子朝特定方向运动的效果，如方向性的火焰。而粒子发射时沿 x 轴的初始旋转 [startRotationX](/apis/core/#MainModule-startRotationX)、沿 y 轴的初始旋转 [startRotationY](/apis/core/#MainModule-startRotationY) 和沿 z 轴的初始旋转 [startRotationZ](/apis/core/#MainModule-startRotationZ) 分别控制粒子在 x、y、z 轴上的旋转，增加粒子运动的自由度。翻转旋转 [flipRotation](/apis/core/#MainModule-flipRotation) 范围在 0 到 1 之间，使部分粒子以相反方向旋转，增加粒子系统的随机性和自然感，适用于模拟复杂的运动轨迹。
 
-初始颜色 [startColor](${api}core/MainModule#startColor) 决定了粒子的颜色，可用于模拟不同材质的效果，如火焰的红橙色或烟雾的灰白色。
+初始颜色 [startColor](/apis/core/#MainModule-startColor) 决定了粒子的颜色，可用于模拟不同材质的效果，如火焰的红橙色或烟雾的灰白色。
 
-重力修正 [gravityModifier](${api}core/MainModule#gravityModifier) 调整粒子受重力影响的程度，使粒子看起来更真实，如下降的雨滴或上升的烟雾。
+重力修正 [gravityModifier](/apis/core/#MainModule-gravityModifier) 调整粒子受重力影响的程度，使粒子看起来更真实，如下降的雨滴或上升的烟雾。
 
-选择模拟粒子的空间 [simulationSpace](${api}core/MainModule#simulationSpace) 决定了粒子是相对于世界还是相对于生成器自身运动。世界空间适合固定位置的效果，如烟雾；本地空间适合随对象移动的效果，如火焰尾迹。
+选择模拟粒子的空间 [simulationSpace](/apis/core/#MainModule-simulationSpace) 决定了粒子是相对于世界还是相对于生成器自身运动。世界空间适合固定位置的效果，如烟雾；本地空间适合随对象移动的效果，如火焰尾迹。
 
-模拟速度 [simulationSpeed](${api}core/MainModule#simulationSpeed) 可整体加快或减慢粒子的运动速度，适用于时间慢动作或加速效果。
+模拟速度 [simulationSpeed](/apis/core/#MainModule-simulationSpeed) 可整体加快或减慢粒子的运动速度，适用于时间慢动作或加速效果。
 
-缩放模式 [scalingMode](${api}core/MainModule#scalingMode) 决定了粒子生成器在发射粒子时，如何处理位置、旋转和缩放等变换操作。使用 scalingMode 能确保粒子生成器和粒子之间的变换关系符合预期。scalingMode 有以下几种模式：
+缩放模式 [scalingMode](/apis/core/#MainModule-scalingMode) 决定了粒子生成器在发射粒子时，如何处理位置、旋转和缩放等变换操作。使用 scalingMode 能确保粒子生成器和粒子之间的变换关系符合预期。scalingMode 有以下几种模式：
 
 - Local：粒子会继承粒子生成器的局部变换，即粒子的变换是在生成器的本地坐标系中进行的。
 
@@ -46,6 +46,6 @@ label: Graphics/Particle
 
 - Hierarchy：粒子会继承整个变换层级中的变换，即粒子会考虑到生成器的父级及更上级的变换。
 
-如果设置为 true，粒子生成器将在启动时自动开始播放 [playOnEnabled](${api}core/MainModule#playOnEnabled) 。开启这个选项会确保粒子系统一启动就开始发射粒子，适用于需要立即显示效果的场景。
+如果设置为 true，粒子生成器将在启动时自动开始播放 [playOnEnabled](/apis/core/#MainModule-playOnEnabled) 。开启这个选项会确保粒子系统一启动就开始发射粒子，适用于需要立即显示效果的场景。
 
-最大粒子数 [maxParticles](${api}core/MainModule#maxParticles) 限制了粒子系统的最大粒子数，以防止性能问题。较大的值适用于需要大量粒子的效果，如浓烟。
+最大粒子数 [maxParticles](/apis/core/#MainModule-maxParticles) 限制了粒子系统的最大粒子数，以防止性能问题。较大的值适用于需要大量粒子的效果，如浓烟。

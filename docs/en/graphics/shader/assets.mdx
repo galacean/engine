@@ -1,0 +1,25 @@
+---
+title: Shader Assets
+---
+
+Shader assets define Shader objects in the Galacean editor project and currently include two types:
+
+- Shader Main File
+
+With the `.gs` suffix, it is the entry file compiled by ShaderLab.
+
+- Shader Chunk
+
+With the `.glsl` suffix, it is a reusable ShaderLab code snippet introduced via the `#include` macro.
+
+<Callout type="warning">
+  `EditorProperties` and `EditorMacros` can only be declared in the Shader main file and cannot be introduced via the `#include` macro.
+</Callout>
+
+## Shader Asset Creation
+
+<Image src="https://mdn.alipayobjects.com/huamei_rmtxpm/afts/img/A*namMTLNnCPYAAAAAAAAAAAAADv-7AQ/original" />
+
+The editor provides three Shader asset file templates: `Unlit Shader`, `PBR Shader`, and `Shader Chunk`. Similar to script components, selecting a Shader asset allows you to preview the Shader code in the Inspector interface. You can edit the Shader code in real-time by double-clicking or selecting it in the code editing page.
+
+Go to [Shader API Tutorial](/en/docs/graphics/shader/shaderAPI/) to learn how to extend Shaders based on the templates.

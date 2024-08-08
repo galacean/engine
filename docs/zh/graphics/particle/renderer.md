@@ -6,7 +6,7 @@ group: 粒子
 label: Graphics/Particle
 ---
 
-Galacean Engine 的粒子（粒子渲染器） [ParticleRenderer](${api}core/ParticleRenderer) 是常用的渲染组件，具备丰富的属性，通过调节各个属性值达到绚丽多彩的粒子效果。
+Galacean Engine 的粒子（粒子渲染器） [ParticleRenderer](/apis/core/#ParticleRenderer) 是常用的渲染组件，具备丰富的属性，通过调节各个属性值达到绚丽多彩的粒子效果。
 
 ![avatar](https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*oPEmTqfD_asAAAAAAAAAAAAADtKFAQ/original)
 
@@ -31,7 +31,7 @@ let particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
 ## 渲染材质
 
-[ParticleMaterial](${api}core/ParticleMaterial) 是粒子的默认材质。
+[ParticleMaterial](/apis/core/#ParticleMaterial) 是粒子的默认材质。
 
 编辑器中通过 添加材质 - 选择粒子材质 创建。编辑完成后回到粒子观察器面板中选择该材质进行使用。
 
@@ -47,8 +47,8 @@ particleRenderer.setMaterial(material);
 
 | 属性                                                 | 释义     |
 | ---------------------------------------------------- | -------- |
-| [baseColor](${api}core/ParticleMaterial#baseColor)   | 基础颜色 |
-| [baseTexture](${api}core/ParticleMaterial#baseColor) | 基础纹理 |
+| [baseColor](/apis/core/#ParticleMaterial-baseColor)   | 基础颜色 |
+| [baseTexture](/apis/core/#ParticleMaterial-baseColor) | 基础纹理 |
 
 ## 播放控制
 
@@ -79,7 +79,7 @@ particleRenderer.generator.main.simulationSpeed = 2;
 
 ## 粒子生成器
 
-`ParticleRenderer` 的 [generator](${api}core/ParticleGenerator) 属性主要负责粒子的生成和播放功能，生成粒子相关的功能由多个模块组成，分别是主模块、发射器模块、生命周期尺寸模块、生命周期颜色模块、生命周期速度模块、生命周期旋转模块、纹理表格动画模块。在编辑器粒子观察器面板可以直观看到各个模块及分选项。
+`ParticleRenderer` 的 [generator](/apis/core/#ParticleGenerator) 属性主要负责粒子的生成和播放功能，生成粒子相关的功能由多个模块组成，分别是主模块、发射器模块、生命周期尺寸模块、生命周期颜色模块、生命周期速度模块、生命周期旋转模块、纹理表格动画模块。在编辑器粒子观察器面板可以直观看到各个模块及分选项。
 
 ## 其他参数
 
@@ -87,8 +87,8 @@ particleRenderer.generator.main.simulationSpeed = 2;
 
 | 属性 | 释义 |
 | --- | --- |
-| [velocityScale](${api}core/ParticleRenderer#velocityScale) | 指定粒子根据其速度伸展的程度 |
-| [lengthScale](${api}core/ParticleRenderer#lengthScale) | 定义粒子在其运动方向上伸展的程度，定义为粒子的长度与其宽度的比例 |
-| [pivot](${api}core/ParticleRenderer#pivot) | 粒子的枢轴 |
-| [renderMode](${api}core/ParticleRenderer#renderMode) | 粒子的渲染模式 |
-| [mesh](${api}core/ParticleRenderer#mesh) | 粒子的网格，当 `renderMode` 为 `Mesh` 时有效 |
+| [velocityScale](/apis/core/#ParticleRenderer-velocityScale) | 指定粒子根据其速度伸展的程度 |
+| [lengthScale](/apis/core/#ParticleRenderer-lengthScale) | 定义粒子在其运动方向上伸展的程度，定义为粒子的长度与其宽度的比例 |
+| [pivot](/apis/core/#ParticleRenderer-pivot) | 粒子的枢轴 |
+| [renderMode](/apis/core/#ParticleRenderer-renderMode) | 粒子的渲染模式 |
+| [mesh](/apis/core/#ParticleRenderer-mesh) | 粒子的网格，当 `renderMode` 为 `Mesh` 时有效 |

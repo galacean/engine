@@ -6,20 +6,20 @@ group: Lighting
 label: Graphics/Light
 ---
 
-A **spotlight** is like a flashlight in real life, emitting light in a cone from a specific point in a particular direction.
+**Spotlight** is like the light emitted from a flashlight in real life, emitting conically from a point in a specific direction.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/93b85357-e67b-4c80-b74e-f116250958a7/image-20240319174652884.png" alt="image-20240319174652884" style="zoom:50%;" />
 
-Spotlights have several main characteristics: _color_ ([color](/apis/core/#SpotLight-color)), _intensity_ ([intensity](/apis/core/#SpotLight-intensity)), _effective distance_ ([distance](/apis/core/#SpotLight-distance)), _spread angle_ ([angle](/apis/core/#SpotLight-angle)), and _penumbra angle_ ([penumbra](/apis/core/#SpotLight-penumbra)). The spread angle indicates when there is light when the angle between the light source and the direction is less than a certain value, and the penumbra angle indicates that within the effective angle range, the light intensity gradually decays to 0 as the angle increases.
+The spotlight has several main characteristics: _color_ ([color](/apis/core/#SpotLight-color)), _intensity_ ([intensity](/apis/core/#SpotLight-intensity)), _effective distance_ ([distance](/apis/core/#SpotLight-distance)), _scatter angle_ ([angle](/apis/core/#SpotLight-angle)), _penumbra attenuation angle_ ([penumbra](/apis/core/#SpotLight-penumbra)). The scatter angle indicates the angle within which there is light relative to the direction of the light source, and the penumbra attenuation angle indicates that within the effective angle range, the light intensity gradually attenuates to 0 as the angle increases.
 
-| Property               | Description                                                               |
+| Attribute              | Function                                                                 |
 | :--------------------- | :------------------------------------------------------------------------ |
-| Angle                  | Indicates when there is light when the angle between the light source and the direction is less than a certain value |
+| Angle (Scatter Angle)  | Indicates the angle within which there is light relative to the direction of the light source |
 | Intensity              | Controls the intensity of the spotlight, **the higher the value, the brighter** |
-| Color                  | Controls the color of the spotlight                                      |
-| Distance               | Effective distance, light intensity decays with distance                  |
-| Penumbra               | Indicates that within the effective angle range, the light intensity gradually decays to 0 as the angle increases |
-| Culling Mask           | Controls which objects the light needs to illuminate, default is Everything. Needs to be used with Entity's Layer |
+| Color                  | Controls the color of the spotlight                                       |
+| Distance               | Effective distance, light intensity attenuates with distance              |
+| Penumbra (Attenuation Angle) | Indicates that within the effective angle range, the light intensity gradually attenuates to 0 as the angle increases |
+| Culling Mask           | Controls the objects that need to be illuminated by the light, default is Everything. Needs to be used in conjunction with the Entity's Layer |
 
 ### Script Usage
 

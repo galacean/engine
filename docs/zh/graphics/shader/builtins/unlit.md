@@ -16,13 +16,13 @@ title: Unlit
 | :-- | :-- |
 | [baseColor](/apis/core/#UnlitMaterial-baseColor) | 基础颜色。**基础颜色 \* 基础颜色纹理 = 最后的颜色。** |
 | [baseTexture](/apis/core/#UnlitMaterial-baseTexture) | 基础纹理。搭配基础颜色使用，是个相乘的关系。 |
-| [tilingOffset](/apis/core/#UnlitMaterial-tilingOffset) | 纹理坐标的缩放与偏移。是一个 Vector4 数据，分别控制纹理坐标在 uv 方向上的缩放和偏移，参考 [案例](${examples}tiling-offset) |
+| [tilingOffset](/apis/core/#UnlitMaterial-tilingOffset) | 纹理坐标的缩放与偏移。是一个 Vector4 数据，分别控制纹理坐标在 uv 方向上的缩放和偏移，参考 [案例](/embed/tiling-offset) |
 
-如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics-material-script)。
+如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics/material/script)。
 
 ## Blender 导出 Unlit 材质
 
-如[烘焙教程](/docs/graphics-bake-blender)介绍，如果我们已经制作完了烘焙贴图，希望有一种**便捷材质**，颜色只由烘焙纹理影响，不用添加灯光，不用调试法线，也不用调试金属粗糙度等高阶属性，那么你可以试试 Galacean 的 [UnlitMaterial](/apis/core/#UnlitMaterial), glTF 有专门的[KHR_materials_unlit ](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit)插件，Galacean 会解析插件，生成 Unlit 材质。
+如[烘焙教程](/docs/art/bake-blender)介绍，如果我们已经制作完了烘焙贴图，希望有一种**便捷材质**，颜色只由烘焙纹理影响，不用添加灯光，不用调试法线，也不用调试金属粗糙度等高阶属性，那么你可以试试 Galacean 的 [UnlitMaterial](/apis/core/#UnlitMaterial), glTF 有专门的[KHR_materials_unlit ](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit)插件，Galacean 会解析插件，生成 Unlit 材质。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/39965fc2-3fc2-44b9-a294-a04eb4441120/1623652741734-090284d5-9b1a-4db8-9231-dc3f4d188a38-20210614150743080.png" alt="image.png" style="zoom:50%;" />
 
@@ -60,6 +60,6 @@ title: Unlit
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/1fe38185-399e-4f56-bff4-c39ba4ae3a2a/1623652462007-85b065a3-69fa-4d80-9dfd-834ef66da12a.png)
 
-将刚才导出来的 glTF 文件拖入编辑器或者 [glTF 预览器](https://galacean.antgroup.com/#/gltf-viewer)，若材质类型为 **UnlitMaterial**，说明已经导出了 glTF 的 [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit) 插件，且 Galacean 已经解析成 Unlit 材质。
+将刚才导出来的 glTF 文件拖入编辑器或者 [glTF 预览器](https://galacean.antgroup.com/engine/gltf-viewer)，若材质类型为 **UnlitMaterial**，说明已经导出了 glTF 的 [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit) 插件，且 Galacean 已经解析成 Unlit 材质。
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/fbb6ba43-f7d7-4757-a1d3-590083d30573/1623652636074-d8bb8437-f885-43fd-8957-8e14ae9fd8c0-20210614150914493.png)

@@ -1,0 +1,7 @@
+{
+  "intro": "Introduction",
+  "shader": "Shader",
+  "subShader": "SubShader",
+  "pass": "Pass",
+  "macro": "Macro"
+}

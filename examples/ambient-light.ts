@@ -1,5 +1,5 @@
 /**
- * @title AmbientLight222
+ * @title AmbientLight
  * @category Light
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*7LKBQ4bsMiEAAAAAAAAAAAAADiR2AQ/original
  */

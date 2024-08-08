@@ -6,7 +6,7 @@ group: 渲染器
 label: Graphics/Renderer
 ---
 
-[MeshRenderer](/apis/core/#MeshRenderer) 是网格渲染组件，当一个实体挂载了网格渲染组件，只需设置它的 `mesh` 与 `material`即可渲染物体。
+[MeshRenderer](/apis/core/#MeshRenderer) 是网格渲染器组件， 使用网格对象（如立方体）作为几何体轮廓的数据源。当一个实体挂载了网格渲染组件，只需设置它的 `mesh` 与 `material` 即可渲染物体。
 
 <playground src="scene-basic.ts"></playground>
 
@@ -16,7 +16,7 @@ label: Graphics/Renderer
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Pca9RZvOsNMAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
 
-当然，也可以为场景中已有的节点挂载上网格渲染器，并设置任意[网格](/docs/graphics-mesh)与[材质](/docs/graphics-material)。（ **选中节点** -> **[检查器面板](/docs/interface/inspector)** -> **Add Component** -> **Mesh Renderer** ）。
+当然，也可以为场景中已有的节点挂载上网格渲染器，并设置任意[网格](/docs/graphics/mesh/mesh/)与[材质](/docs/graphics/material/material/)。（ **选中节点** -> **[检查器面板](/docs/interface/inspector)** -> **Add Component** -> **Mesh Renderer** ）。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*UHfjTYk0b4sAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
 
@@ -37,13 +37,13 @@ cube.setMaterial(new BlinnPhongMaterial(engine));
 
 | 设置             | 解释                                               |
 | :--------------- | :------------------------------------------------- |
-| `material`       | 待渲染物体的[材质](/docs/graphics-material)信息   |
-| `mesh`           | 待渲染物体的[网格](/docs/graphics-mesh)信息       |
+| `material`       | 待渲染物体的[材质](/docs/graphics/material/material/)信息   |
+| `mesh`           | 待渲染物体的[网格](/docs/graphics/mesh/mesh/)信息       |
 | `receiveShadows` | 是否接收阴影                                       |
 | `castShadows`    | 是否投射阴影                                       |
 | `priority`       | 渲染器的渲染优先级，值越小渲染优先级越高，默认为 0 |
 
-相比于基础的[渲染器](/docs/graphics-renderer)，网格渲染器还可设置是否支持顶点色（顶点色数据包含在网格的顶点信息中）。
+相比于基础的[渲染器](/docs/graphics/renderer/renderer/)，网格渲染器还可设置是否支持顶点色（顶点色数据包含在网格的顶点信息中）。
 
 | 属性                | 解释           |
 | :------------------ | :------------- |

@@ -1,9 +1,5 @@
 ---
-order: 1
 title: Material Composition
-type: Material
-group: Mesh
-label: Graphics/Material
 ---
 
 The Galacean material consists of **[shaders](/en/docs/graphics-shader), render states, and [shader data](/en/docs/graphics-shader-shaderData)**. Shaders can write vertex and fragment code to determine the color of pixels output to the screen by the rendering pipeline; render states can provide additional configurations to the context of the rendering pipeline; shader data encapsulates some data sets passed from the CPU to the GPU, such as colors, matrices, textures, etc.

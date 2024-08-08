@@ -1,39 +1,38 @@
 ---
 order: 2
-title: Exporting Lottie Animations
+title: Export Lottie Animation
 type: Art
 label: Art
 ---
 
 ## What is Bodymovin
 
-- Bodymovin is an AE plugin that can directly output animations as code for programmers to use on various platforms.
+- Bodymovin is an AE plugin that can directly output animations as code, which can be used by programmers on various terminals.
 - You can find the latest version of Bodymovin on GitHub.
-- The version of Bodymovin is equivalent to the version of the output JSON file.
+- The version of Bodymovin is equal to the version of the output JSON file.
 
-## How to Use Bodymovin
+## How to use Bodymovin
 
-- Go to the GitHub page of Bodymovin ([link: airbnb/lottie-web](https://github.com/airbnb/lottie-web)) to clone the project locally or download the .zip package.
+- Clone the project to your local machine from the Bodymovin GitHub homepage (link: airbnb/lottie-web), or download the .zip package.   
   ![image.png](https://gw.alipayobjects.com/zos/OasisHub/429a17b1-19b3-41b8-902c-4992d722832f/1597673434824-27e06992-4a7d-486a-8514-62a470c53789.png)
-- In the "/build/extension" directory of the project directory, find the "bodymovin.zxp" file, which is the plugin package.
+- Find the "bodymovin.zxp" file in the "/build/extension" directory of the project directory, which is the plugin package.
 - Download and install ZXP Installer.
-  ZXP Installer link: [https://aescripts.com/learn/zxp-installer](https://aescripts.com/learn/zxp-installer) <br />
+  ZXP Installer address: [https://aescripts.com/learn/zxp-installer](https://aescripts.com/learn/zxp-installer) <br />
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/1e996008-498c-4845-953b-8d39f05503e0/1597674042809-af5a084f-f21b-4bf4-b0d4-7404466b2a1e.png)
 
-- Open AE, click on "Edit" > "Preferences" > "General" menu item, check "Allow Scripts to Write Files and Access Network," and click OK.
+- Open AE, click "Edit" > "Preferences" > "General" menu item, check "Allow Scripts to Write Files and Access Network", and click OK.
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/22b31fcd-2b6e-4691-abd1-b173ccab87e7/1597674058269-f2242296-32c5-4ae9-973b-2943e04e94bc.png)
 
-- Click on "Window" > "Extensions" > "Bodymovin" menu item to open the Bodymovin interface and use the plugin.
+- Click "Window" > "Extensions" > "Bodymovin" menu item to open the Bodymovin interface and use the plugin.
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/cb002ffc-4b59-4dbd-a85d-56e0c1809475/1597674100420-41e2440c-fe9a-4280-8000-4f384ccdf9c3.png)
 
-- Open the Bodymovin plugin window, and you will see the project name in the list below. Select the name, set the output location for the JSON file, and click "Render."
+- Open the Bodymovin plugin window, and you will find the name of the project appearing in the list below. Select the name, set the JSON file output location, and click "Render".
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/605a89c4-4cde-4e36-a3cf-4d47abbd2f92/1597675512496-6c7320a9-fb09-460b-a2b0-e1a133020d9e.png" alt="image.png" style="zoom:50%;" />
 
-- Click on Settings in the image above to configure the exported JSON:
+- Click Settings in the image above to configure the exported JSON:
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/8e63e349-dad4-4fc9-a535-121aa92450b4/1597675671244-f967fb47-da02-4033-9c37-277e2056af40.png" alt="image.png" style="zoom:50%;" />
-
