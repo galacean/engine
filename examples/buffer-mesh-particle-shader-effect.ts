@@ -19,7 +19,6 @@ import {
   BaseMaterial,
   Script,
   WebGLEngine,
-  Logger,
 } from '@galacean/engine';
 import { OrbitControl } from '@galacean/engine-toolkit-controls';
 import { ShaderLab } from '@galacean/engine-shader-lab';
