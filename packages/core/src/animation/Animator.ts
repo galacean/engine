@@ -548,27 +548,25 @@ export class Animator extends Component {
     srcPlayData.update(playDeltaTime);
 
     const { clipTime, isForwards } = srcPlayData;
+    const { transitions } = state;
+    const { anyStateTransitions } = layer.stateMachine;
+
     const transition =
-      this._applyTransitionsByCondition(
-        layerIndex,
-        layerData,
-        layer,
-        state,
-        layer.stateMachine.anyStateTransitions,
-        aniUpdate
-      ) ||
-      this._applyStateTransitions(
-        layerIndex,
-        layerData,
-        layer,
-        isForwards,
-        srcPlayData,
-        state.transitions,
-        lastClipTime,
-        clipTime,
-        playDeltaTime,
-        aniUpdate
-      );
+      (anyStateTransitions.length &&
+        this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate)) ||
+      (transitions.length &&
+        this._applyStateTransitions(
+          layerIndex,
+          layerData,
+          layer,
+          isForwards,
+          srcPlayData,
+          transitions,
+          lastClipTime,
+          clipTime,
+          playDeltaTime,
+          aniUpdate
+        ));
 
     let playCostTime: number;
     if (transition) {
@@ -899,28 +897,25 @@ export class Animator extends Component {
     playData.updateOrientation(actualDeltaTime);
 
     const { clipTime, isForwards } = playData;
+    const { transitions } = state;
+    const { anyStateTransitions } = layer.stateMachine;
 
     const transition =
-      this._applyTransitionsByCondition(
-        layerIndex,
-        layerData,
-        layer,
-        state,
-        stateMachine.anyStateTransitions,
-        aniUpdate
-      ) ||
-      this._applyStateTransitions(
-        layerIndex,
-        layerData,
-        layer,
-        isForwards,
-        playData,
-        state.transitions,
-        clipTime,
-        clipTime,
-        actualDeltaTime,
-        aniUpdate
-      );
+      (anyStateTransitions.length &&
+        this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate)) ||
+      (transitions.length &&
+        this._applyStateTransitions(
+          layerIndex,
+          layerData,
+          layer,
+          isForwards,
+          playData,
+          transitions,
+          clipTime,
+          clipTime,
+          actualDeltaTime,
+          aniUpdate
+        ));
 
     if (transition) {
       this._updateState(layerIndex, layerData, layer, deltaTime, aniUpdate);
