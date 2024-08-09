@@ -684,7 +684,7 @@ export class Animator extends Component {
           : dstPlayDeltaTime;
     }
 
-    const actualCostTime = dstPlaySpeed === 0 ? 0 : dstPlayCostTime / dstPlaySpeed;
+    const actualCostTime = dstPlaySpeed === 0 ? deltaTime : dstPlayCostTime / dstPlaySpeed;
     const srcPlayCostTime = actualCostTime * srcPlaySpeed;
 
     srcPlayData.update(srcPlayCostTime);
@@ -809,7 +809,7 @@ export class Animator extends Component {
           : playDeltaTime;
     }
 
-    const actualCostTime = playSpeed === 0 ? 0 : dstPlayCostTime / playSpeed;
+    const actualCostTime = playSpeed === 0 ? deltaTime : dstPlayCostTime / playSpeed;
 
     destPlayData.update(dstPlayCostTime);
 
