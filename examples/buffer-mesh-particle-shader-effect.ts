@@ -34,15 +34,19 @@ const shaderSource = `Shader "ParticleEffect" {
       #define PI 3.14159265359
       mat4 renderer_MVPMat;
 
+      float progress;
+      sampler2D texture1;
+      sampler2D texture2;
+
       struct a2v {
         vec3 POSITION;
         vec3 INDEX;
         vec2 UV;
-      }
+      };
 
       struct v2f {
         vec2 v_uv;
-      }
+      };
 
       v2f vert(a2v v) {
         v2f o;
@@ -59,10 +63,6 @@ const shaderSource = `Shader "ParticleEffect" {
         gl_Position = renderer_MVPMat * position;
         return o;
       }
-
-      float progress;
-      sampler2D texture1;
-      sampler2D texture2;
 
       // This function could be changed. Some great effects could be referred to https://gl-transitions.com/gallery
       vec4 transition(vec2 p, float progress) {
