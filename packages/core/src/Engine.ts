@@ -387,6 +387,15 @@ export class Engine extends EventDispatcher {
       scene._componentsManager.callScriptOnLateUpdate(deltaTime);
     }
 
+    // Write newest transform to collider
+    if (physicsInitialized) {
+      for (let i = 0; i < sceneCount; i++) {
+        const scene = scenes[i];
+        if (!scene.isActive || scene.destroyed) continue;
+        scene.physics._callColliderOnUpdate();
+      }
+    }
+
     // Render scene and fire `onBeginRender` and `onEndRender`
     if (!this._isDeviceLost) {
       this._render(scenes);
