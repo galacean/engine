@@ -696,6 +696,7 @@ export class Animator extends Component {
     const crossFadeFinished = crossWeight === 1.0;
 
     if (crossFadeFinished) {
+      srcPlayData.playState = AnimatorStatePlayState.Finished;
       this._preparePlayOwner(layerData, destState);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
@@ -708,8 +709,7 @@ export class Animator extends Component {
       srcState,
       lastSrcClipTime,
       lastSrcPlayState,
-      srcPlayCostTime,
-      crossFadeFinished
+      srcPlayCostTime
     );
 
     this._fireAnimationEventsAndCallScripts(
@@ -1442,8 +1442,7 @@ export class Animator extends Component {
     state: AnimatorState,
     lastClipTime: number,
     lastPlayState: AnimatorStatePlayState,
-    deltaTime: number,
-    exitByCrossfadeFinish?: boolean
+    deltaTime: number
   ) {
     const { eventHandlers } = playData.stateData;
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
@@ -1451,10 +1450,7 @@ export class Animator extends Component {
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(state, layerIndex);
     }
-    if (
-      lastPlayState !== AnimatorStatePlayState.Finished &&
-      (exitByCrossfadeFinish || playData.playState === AnimatorStatePlayState.Finished)
-    ) {
+    if (lastPlayState !== AnimatorStatePlayState.Finished && playData.playState === AnimatorStatePlayState.Finished) {
       playData.playState = AnimatorStatePlayState.Finished;
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
