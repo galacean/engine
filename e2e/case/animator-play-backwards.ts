@@ -1,5 +1,5 @@
 /**
- * @title Animation Play
+ * @title Animation Play Backwards
  * @category Animation
  */
 import { Animator, Camera, DirectLight, GLTFResource, Logger, Vector3, WebGLEngine } from "@galacean/engine";
