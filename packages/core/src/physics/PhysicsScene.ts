@@ -350,8 +350,8 @@ export class PhysicsScene {
     const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
-      this._callColliderOnUpdate();
       componentsManager.callScriptOnPhysicsUpdate();
+      this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
     }

@@ -80,6 +80,7 @@ export class CharacterController extends Collider {
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
+    this._onUpdate();
   }
 
   /**
@@ -90,7 +91,9 @@ export class CharacterController extends Collider {
    * @return flags - The ControllerCollisionFlag
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return (<ICharacterController>this._nativeCollider).move(disp, minDist, elapsedTime);
+    const flags = (<ICharacterController>this._nativeCollider).move(disp, minDist, elapsedTime);
+    this._getWorldPositionFromBackend();
+    return flags;
   }
 
   /**
@@ -135,8 +138,7 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onLateUpdate() {
-    const position = this.entity.transform.worldPosition;
-    (<ICharacterController>this._nativeCollider).getWorldPosition(position);
+    this._getWorldPositionFromBackend();
     this._updateFlag.flag = false;
   }
 
@@ -162,6 +164,11 @@ export class CharacterController extends Collider {
     for (let i = 0, n = shapes.length; i < n; i++) {
       physics._removeColliderShape(shapes[i]);
     }
+  }
+
+  private _getWorldPositionFromBackend(): void {
+    const position = this.entity.transform.worldPosition;
+    (<ICharacterController>this._nativeCollider).getWorldPosition(position);
   }
 
   private _setUpDirection(): void {
